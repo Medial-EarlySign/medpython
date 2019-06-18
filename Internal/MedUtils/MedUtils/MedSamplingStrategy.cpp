@@ -33,8 +33,9 @@ int MedSamplingTimeWindow::init(map<string, string>& map) {
 	}
 	if (minimal_times.empty() || maximal_times.empty())
 		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - empty time windows - please provide both minimal_times,maximal_times\n");
-	if (minimal_times.size() <= maximal_times.size())
-		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - minimal_times.size()!=maximal_times.size()\n");
+	if (minimal_times.size() != maximal_times.size())
+		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - minimal_times.size()[%zu]!=maximal_times.size()[%zu]\n",
+			minimal_times.size(), maximal_times.size());
 	return 0;
 }
 
