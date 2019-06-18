@@ -1246,6 +1246,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	double filter_pval) {
 	//sort by  pVal (if equal than -score (Floating point round and they are almost all has same dof)) also use posCnts/ valCnts:
 	int num_of_init_test = (int)indexes.size();
+	if (num_of_init_test == 0)
+		return;
 	double cm = 0;
 	for (size_t i = 0; i < num_of_init_test; ++i)
 		cm += 1 / (i + double(1));
