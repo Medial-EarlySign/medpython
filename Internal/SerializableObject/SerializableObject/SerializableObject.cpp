@@ -113,9 +113,13 @@ int SerializableObject::write_to_file(const string &fname)
 int SerializableObject::init_from_string(string init_string) {
 
 	map<string, string> map;
-	if (MedSerialize::init_map_from_string(init_string, map) < 0) return -1;
+	if (MedSerialize::init_map_from_string(init_string, map) < 0) 
+		MTHROW_AND_ERR("Error Init from String %s\n", init_string.c_str());
+
 	if (map.size() == 1 && map.begin()->first == "pFile") {
-		return init_params_from_file(map.begin()->second);
+		int rc = init_params_from_file(map.begin()->second);
+		if (rc < 0)
+			MTHROW_AND_ERR("Error Init params from file %s\n", map.begin()->second.c_str());
 	}
 
 	for (auto &e : map) {
@@ -124,12 +128,14 @@ int SerializableObject::init_from_string(string init_string) {
 		if (val.compare(0, 5, "FILE:") == 0 || val.compare(0, 5, "LIST:") == 0 ||
 			val.compare(0, 9, "LIST_REL:") == 0) {
 			string param;
-			if (init_param_from_file(e.second, param) < 0) return -1;
+			if (init_param_from_file(e.second, param) < 0) 
+				MTHROW_AND_ERR("Error Init params from file %s\n", e.second.c_str());
 			e.second = param;
 		}
 	}
 
-	if (init(map) < 0) return -1;
+	if (init(map) < 0) 
+		MTHROW_AND_ERR("Error Init from string after convertion to map %s\n", init_string.c_str());
 
 	return 0;
 }

@@ -81,14 +81,10 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 
 		for (size_t i = 0; i < minimal_times.size(); ++i)
 		{
-			for (size_t i = 0; i < it->second.size(); ++i)
+			for (size_t j = 0; j < it->second.size(); ++j)
 			{
-				int min_allowed_date = it->second[i].first;
-				int max_allowed_date = it->second[i].second;
-				if (max_allowed_date >= 30000000) {
-					max_allowed_date = min_allowed_date;
-					min_allowed_date = 0;
-				}
+				int min_allowed_date = it->second[j].first;
+				int max_allowed_date = it->second[j].second;
 				
 				int currDate = max_allowed_date;
 				int diff_window = maximal_times[i] - minimal_times[i];
@@ -122,7 +118,7 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 					rnd_days_diff = (int)rand_int(gen);
 				}
 
-				for (size_t i = 0; i < sample_count; ++i)
+				for (size_t k = 0; k < sample_count; ++k)
 				{
 					int sample_pred_date = medial::repository::DateAdd(currDate, -rnd_days_diff);
 					pid_options[pid].push_back(sample_pred_date);
