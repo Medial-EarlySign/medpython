@@ -83,9 +83,9 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 		{
 			for (size_t i = 0; i < it->second.size(); ++i)
 			{
-				int max_allowed_date = it->second[i].first;
-				int min_allowed_date = it->second[i].second;
-
+				int min_allowed_date = it->second[i].first;
+				int max_allowed_date = it->second[i].second;
+				
 				int currDate = max_allowed_date;
 				int diff_window = maximal_times[i] - minimal_times[i];
 				bool use_random = !take_max && (diff_window > 1);
@@ -99,8 +99,8 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 				if (year_diff_to_first_pred < 0) {
 					++skip_end_smaller_start;
 					if (skip_end_smaller_start < 5) {
-						MLOG("Exampled Row Skipped: pid=%d, pid_bdate=%d, min_allowed_date=%d, currDate=%d, age=%d\n",
-							pid, pid_bdate, min_allowed_date, currDate, (int)medial::repository::DateDiff(pid_bdate, currDate));
+						MLOG("Exampled Row Skipped: pid=%d, pid_bdate=%d, min_allowed_date=%d, max_allowed_date=%d, currDate=%d, age=%d\n",
+							pid, pid_bdate, min_allowed_date, max_allowed_date, currDate, (int)medial::repository::DateDiff(pid_bdate, currDate));
 					}
 					continue;
 				}
