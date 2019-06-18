@@ -85,6 +85,8 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 			{
 				int min_allowed_date = it->second[i].first;
 				int max_allowed_date = it->second[i].second;
+				if (max_allowed_date >= 30000000)
+					max_allowed_date = min_allowed_date;
 				
 				int currDate = max_allowed_date;
 				int diff_window = maximal_times[i] - minimal_times[i];
