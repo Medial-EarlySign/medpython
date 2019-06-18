@@ -67,8 +67,6 @@ public:
 	MedSamplingTimeWindow() {
 		sample_count = 1; take_max = false;
 	}
-private:
-	unordered_map<int, int> pids_bdates;
 };
 
 /**
