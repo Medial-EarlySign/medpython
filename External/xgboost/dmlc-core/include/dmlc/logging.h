@@ -135,6 +135,9 @@ namespace dmlc {
 #define CHECK_GE(x, y) CHECK_BINARY_OP(_GE, >=, x, y)
 #define CHECK_EQ(x, y) CHECK_BINARY_OP(_EQ, ==, x, y)
 #define CHECK_NE(x, y) CHECK_BINARY_OP(_NE, !=, x, y)
+#ifdef CHECK_NOTNULL
+#undef CHECK_NOTNULL
+#endif
 #define CHECK_NOTNULL(x) \
   ((x) == NULL ? dmlc::LogMessageFatal(__FILE__, __LINE__).stream() << "Check  notnull: "  #x << ' ', (x) : (x)) // NOLINT(*)
 // Debug-only checking.
