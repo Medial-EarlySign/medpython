@@ -259,15 +259,11 @@ public:
 		for (auto& sig : sigs) {
 			MLOG("(II)   Preparing signal dictionary for signal '%s'\n", sig.c_str());
 			vector<map<string, int >* > chan_dict;
-			int section_id = rep.dict.section_id(sig);
-			if (section_id == 0) {
-				MERR("no section_id entry for signal '%s'\n", sig.c_str());
-				exit(-1);
-			}
 			if (rep.sigs.Name2Sid.count(sig) == 0) {
 				MERR("no Name2Sid entry for signal '%s'\n", sig.c_str());
 				exit(-1);
 			}
+			int section_id = rep.dict.section_id(sig);
 			int sid = rep.sigs.Name2Sid[sig];
 			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
 			for (int vchan = 0; vchan < n_vchan; ++vchan) {
