@@ -194,6 +194,11 @@ public:
 	void create_samples(const MedSamplingStrategy *sampler, MedSamples &samples, bool show_conflicts = true) const;
 
 	/// <summary>
+	/// relabels the samples besed on the labeler
+	/// </summary>
+	void relabel_samples(MedSamples &samples, bool show_conflicts = true) const;
+
+	/// <summary>
 	/// Ctor with labling params
 	/// </summary>
 	MedLabels(const LabelParams &params);

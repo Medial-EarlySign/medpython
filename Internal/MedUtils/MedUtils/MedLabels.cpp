@@ -965,12 +965,62 @@ void MedLabels::create_samples(const MedSamplingStrategy *sampler, MedSamples &s
 			samples.idSamples.push_back(smp_id);
 	}
 	if (no_rule > 0)
-		MLOG("WARNING MedSamplingYearly:do_sample - has %d samples with no rules for time window\n", no_rule);
+		MLOG("WARNING MedLabels::create_samples - has %d samples with no rules for time window\n", no_rule);
 	if (no_censor > 0) {
 		if (has_censor_reg())
-			MLOG("WARNING MedSamplingYearly:do_sample - has %d patients with no censor dates\n", no_censor);
+			MLOG("WARNING MedLabels::create_samples - has %d patients with no censor dates\n", no_censor);
 		else
-			MLOG("WARNING MedSamplingYearly:do_sample - no censoring time region was given\n");
+			MLOG("WARNING MedLabels::create_samples - no censoring time region was given\n");
+	}
+	if (conflict_count > 0)
+		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
+	//do sort:
+	samples.sort_by_id_date();
+}
+
+void MedLabels::relabel_samples(MedSamples &samples, bool show_conflicts) const {
+	if (pid_reg_records.empty())
+		MTHROW_AND_ERR("Error in MedLabels::relabel_samples - please init MedLabels by calling prepare_from_registry\n");
+	int conflict_count = 0, done_count = 0, no_censor = 0, no_rule = 0;
+	int max_to_shown = 5;
+
+	vector<int> keep_ids;
+	keep_ids.reserve(samples.idSamples.size());
+	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
+		int pid = samples.idSamples[i].id;
+		vector<int> times(samples.idSamples[i].samples.size());
+		samples.idSamples[i].get_times(times);
+		samples.idSamples[i].samples.clear();
+		SamplingRes r = get_samples(pid, times, samples.idSamples[i].samples, show_conflicts);
+		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count += r.conflict_cnt;
+		if (r.conflict_cnt > 0 && max_to_shown > 0) {
+			--max_to_shown;
+			if (max_to_shown <= 0)
+				show_conflicts = false;
+		}
+		if (!samples.idSamples[i].samples.empty())
+			keep_ids.push_back(i);
+	}
+	//filter only keep:
+	MedSamples filtered;
+	filtered.time_unit = samples.time_unit;
+	filtered.raw_format = samples.raw_format;
+	filtered.idSamples.resize(keep_ids.size());
+	for (size_t i = 0; i < keep_ids.size(); ++i)
+	{
+		filtered.idSamples[i].id = samples.idSamples[keep_ids[i]].id;
+		filtered.idSamples[i].split = samples.idSamples[keep_ids[i]].split;
+		filtered.idSamples[i].samples = move(samples.idSamples[keep_ids[i]].samples);
+	}
+	samples = move(filtered);
+
+	if (no_rule > 0)
+		MLOG("WARNING MedLabels::relabel_samples - has %d samples with no rules for time window\n", no_rule);
+	if (no_censor > 0) {
+		if (has_censor_reg())
+			MLOG("WARNING MedLabels::relabel_samples - has %d patients with no censor dates\n", no_censor);
+		else
+			MLOG("WARNING MedLabels::relabel_samples - no censoring time region was given\n");
 	}
 	if (conflict_count > 0)
 		MLOG("Sampled registry with %d conflicts. has %d registry records\n", conflict_count, done_count);
