@@ -257,8 +257,17 @@ public:
 
 		map<string, vector<map<string, int >* > > sig_dict;
 		for (auto& sig : sigs) {
+			MLOG("(II)   Preparing signal dictionary for signal '%s'\n", sig.c_str());
 			vector<map<string, int >* > chan_dict;
 			int section_id = rep.dict.section_id(sig);
+			if (section_id == 0) {
+				MERR("no section_id entry for signal '%s'\n", sig.c_str());
+				exit(-1);
+			}
+			if (rep.sigs.Name2Sid.count(sig) == 0) {
+				MERR("no Name2Sid entry for signal '%s'\n", sig.c_str());
+				exit(-1);
+			}
 			int sid = rep.sigs.Name2Sid[sig];
 			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
 			for (int vchan = 0; vchan < n_vchan; ++vchan) {
@@ -272,7 +281,7 @@ public:
 			}
 			sig_dict[sig] = chan_dict;
 		}
-		
+		MLOG("(II)   Switching repo to in-mem mode\n");
 		string curr_line;
 		rep.switch_to_in_mem_mode();
 
@@ -1017,7 +1026,7 @@ int main(int argc, char *argv[])
 			vm["generate_data_cat_prefix"].as<string>(), 
 			vm.count("generate_data_force_cat_prefix")!=0);
 	}
-	if (vm.count("apply") || vm.count("apply_amconfig")) {
+	if (vm.count("apply") || (vm.count("apply_amconfig") && vm["apply_amconfig"].as<string>() != "")) {
 		if (vm["rep"].as<string>() == "" || 
 			(vm["samples"].as<string>() == "" && vm["apply_dates_to_score"].as<string>() =="" ) ||
 			vm["model"].as<string>() == "" || 
