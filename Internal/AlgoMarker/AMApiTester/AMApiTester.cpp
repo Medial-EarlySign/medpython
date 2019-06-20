@@ -128,7 +128,7 @@ public:
     map<int, MedIdSamples* > pid2samples;
 
     void load(const string& rep_fname, const string& model_fname, const string& samples_fname="",bool read_signals=true) {
-	    // read model file
+		// read model file
 	    if (model.read_from_file(model_fname) < 0) {
 		    MERR("FAILED reading model file %s\n", model_fname.c_str());
             throw runtime_error(string("FAILED reading model file ")+model_fname);
@@ -148,24 +148,23 @@ public:
 				MERR("FAILED reading samples file %s\n", samples_fname.c_str());
 				throw runtime_error(string("FAILED reading samples file ") + samples_fname);
 			}
-
-			MLOG("\n");
-			samples.get_ids(pids);
-			if (read_signals) {
-				if (rep.read_all(rep_fname, pids, sigs) < 0) {
-					MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
-					throw runtime_error(string("FAILED loading pids and signals from repository"));
-				}
-			}
-			else {
-				if (rep.MedRepository::init(rep_fname) < 0) {
-					MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
-					throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
-				}
-			}
-			for (auto &id : samples.idSamples)
-				pid2samples[id.id] = &id;
 		}
+		MLOG("\n");
+		samples.get_ids(pids);
+		if (read_signals) {
+			if (rep.read_all(rep_fname, pids, sigs) < 0) {
+				MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
+				throw runtime_error(string("FAILED loading pids and signals from repository"));
+			}
+		}
+		else {
+			if (rep.MedRepository::init(rep_fname) < 0) {
+				MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
+				throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
+			}
+		}
+		for (auto &id : samples.idSamples)
+			pid2samples[id.id] = &id;		
     }
 
 	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
@@ -357,7 +356,9 @@ public:
 				samples.insertRec(stoi(v[0]), stoi(v[1]));
 			}
 		samples.normalize();
-		MLOG("Prepared MedSamples\n");
+		MLOG("(II) Prepared MedSamples\n");
+		for (auto &id : samples.idSamples)
+			pid2samples[id.id] = &id;
 		return 0;
 	}
 
@@ -961,9 +962,9 @@ int apply_data(const string& repdata_file, const string& mock_rep_file, const st
 	MLOG("(II) Loading mock repo, model and date for scoring\n");
 
 	if (!score_format_is_samples) {
+		l.load_samples_from_dates_to_score(scores_file);
 		l.load(mock_rep_file, model_file,"",false);
 		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", scores_file.c_str());
-		l.load_samples_from_dates_to_score(scores_file);
 	}
 	else { 
 		MLOG("\n(II) Loading dates for scoring from samples file %s\n", scores_file.c_str());
