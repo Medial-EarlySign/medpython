@@ -999,7 +999,7 @@ void MedLabels::relabel_samples(MedSamples &samples, bool show_conflicts) const 
 				show_conflicts = false;
 		}
 		if (!samples.idSamples[i].samples.empty())
-			keep_ids.push_back(i);
+			keep_ids.push_back((int)i);
 	}
 	//filter only keep:
 	MedSamples filtered;
