@@ -6,6 +6,7 @@
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "KpSmokingGenerator.h"
+#include "UnifiedSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 #include "EmbeddingGenerator.h"
@@ -36,6 +37,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_SMOKING;
 	else if (generator_name == "kp_smoking")
 		return FTR_GEN_KP_SMOKING;
+	else if (generator_name == "unified_smoking")
+		return FTR_GEN_UNIFIED_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -127,6 +130,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, BinnedLmEstimates);
 	CONDITIONAL_NEW_CLASS(dname, SmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, KpSmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, UnifiedSmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, AlcoholGenerator);
 	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
@@ -157,6 +161,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new SmokingGenerator;
 	else if (generator_type == FTR_GEN_KP_SMOKING)
 		return new KpSmokingGenerator;
+	else if (generator_type == FTR_GEN_UNIFIED_SMOKING)
+		return new UnifiedSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
