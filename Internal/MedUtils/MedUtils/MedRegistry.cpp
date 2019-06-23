@@ -1928,14 +1928,14 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (max_allowed_date != 0 && curr_date > max_allowed_date)
 			break;
 
-		if (curr_date < r.end_date)
+		int new_start = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+		if (curr_date < r.end_date || (secondry_start_buffer_duration < 0 && new_start < r.end_date))
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		else {
 			//has dead region - close buffer and open new one:
-			//r.end_date = medial::repository::DateAdd(r.end_date, -end_buffer_duration);
 			if (r.end_date > r.start_date)
 				results.push_back(r);
-			r.start_date = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+			r.start_date = new_start;
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		}
 

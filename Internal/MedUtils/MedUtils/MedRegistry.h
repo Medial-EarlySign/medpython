@@ -429,7 +429,7 @@ public:
 	int duration; ///< the duration buffer form start
 	int max_repo_date; ///< the maximal date for the repository
 	int start_buffer_duration; ///< the buffer duration from first signal
-	int secondry_start_buffer_duration; ///< the buffer duration from new signal region
+	int secondry_start_buffer_duration; ///< the buffer duration for new region (after not active) - can be negative to look backward
 	int end_buffer_duration; ///< the buffer duration from last signal
 	vector<string> signal_list; ///< list of signals to fetch for keep alive time ranges
 
