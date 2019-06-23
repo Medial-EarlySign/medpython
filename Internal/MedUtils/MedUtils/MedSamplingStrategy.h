@@ -44,7 +44,7 @@ public:
 protected:
 	unordered_map<int, int> pids_bdates;
 private:
-	void apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const;
+	bool apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const;
 };
 
 /**

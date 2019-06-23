@@ -85,7 +85,7 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 			{
 				int min_allowed_date = it->second[j].first;
 				int max_allowed_date = it->second[j].second;
-				
+
 				int currDate = max_allowed_date;
 				int diff_window = maximal_times[i] - minimal_times[i];
 				bool use_random = !take_max && (diff_window > 1);
@@ -353,6 +353,28 @@ int MedSamplingFixedTime::add_time(int time, int add) const {
 	return med_time_converter.convert_times(time_jump_unit, time_range_unit, conv);
 }
 
+bool validate_in_dates(const vector<pair<int, int>> &pid_dates, int pred_date) {
+	bool inside = false;
+	for (size_t i = 0; i < pid_dates.size() && !inside; ++i)
+		inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
+	return inside;
+}
+
+void filter_opts(unordered_map<int, vector<int>> &pid_options, const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) {
+	unordered_map<int, vector<int>> pid_filtered;
+	for (auto it = pid_options.begin(); it != pid_options.end(); ++it)
+	{
+		int pid = it->first;
+		if (pid_time_ranges.find(pid) == pid_time_ranges.end())
+			continue;
+		const vector<pair<int, int>> &pid_date = pid_time_ranges.at(pid);
+		for (int pred_date : it->second)
+			if (validate_in_dates(pid_date, pred_date))
+				pid_filtered[pid].push_back(pred_date);
+	}
+	pid_options = move(pid_filtered);
+}
+
 void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (time_jump <= 0)
@@ -413,9 +435,9 @@ template<class T> void commit_selection_vec(vector<T> &vec, const vector<int> &i
 	vec.swap(filt);
 }
 
-void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
+bool MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
 	if (filtering_params.max_age < 0 && filtering_params.max_time < 0 && filtering_params.min_age == 0 && filtering_params.min_time == 0)
-		return; //no filters
+		return false; //no filters
 
 	for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it)
 	{
@@ -455,15 +477,20 @@ void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int
 
 		commit_selection_vec(pid_time_ranges[it->first], selected_idx);
 	}
+	return true;
 }
 
 void MedSamplingStrategy::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	//process filters
 	unordered_map<int, vector<pair<int, int>>> pid_time_ranges_filtered = pid_time_ranges;
-	apply_filter_params(pid_time_ranges_filtered);
+	bool has_filters = apply_filter_params(pid_time_ranges_filtered);
 
 	_get_sampling_options(pid_time_ranges_filtered, pid_options);
+
+	//force apply filters:
+	if (has_filters)
+		filter_opts(pid_options, pid_time_ranges_filtered);
 }
 
 int MedSamplingStick::init(map<string, string>& map) {
