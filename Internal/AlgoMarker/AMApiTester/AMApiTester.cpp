@@ -286,15 +286,24 @@ public:
 		vchan_vec.reserve(10);
 
 		MLOG("(II)   reading data in to in-mem repository\n");
-
+		int cur_line = 0;
 		while (getline(infile, curr_line)) {
+			cur_line++;
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 				if (curr_line[curr_line.size() - 1] == '\r')
 					curr_line.erase(curr_line.size() - 1);
 				vector<string> fields;
 				split(fields, curr_line, boost::is_any_of("\t"));
 				int fields_i = 0;
-				int pid = stoi(fields[fields_i++]);
+				const auto& pid_str = fields[fields_i++];
+				int pid = -1;
+				try {
+					pid = stoi(pid_str);
+				}
+				catch (...) {
+					MERR("fail reading pid, performing stoi(\"%s\") at %s:%d\n", pid_str.c_str(), fname.c_str(), cur_line);
+					exit(-1);
+				}
 				string sig = fields[fields_i++];
 				int sid = rep.sigs.Name2Sid[sig];
 				int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
@@ -302,11 +311,27 @@ public:
 				tchan_vec.clear();
 				vchan_vec.clear();
 				for (int tchan = 0; tchan < n_tchan; ++tchan) {
-					tchan_vec.push_back(stoi(fields[fields_i++]));
+					const auto& field_str = fields[fields_i++];
+					try {
+						tchan_vec.push_back(stoi(field_str));
+					}
+					catch (...) {
+						MERR("fail reading time channel #%d, performing stoi(\"%s\") at %s:%d\n", tchan, field_str.c_str(), fname.c_str(), cur_line);
+						exit(-1);
+					}
+
 				}
 				for (int vchan = 0 ; vchan < n_vchan; ++vchan) {
-					if (sig_dict[sig][vchan] == nullptr)
-						vchan_vec.push_back(stof(fields[fields_i++]));
+					if (sig_dict[sig][vchan] == nullptr) {
+						const auto& field_str = fields[fields_i++];
+						try {
+							vchan_vec.push_back(stof(field_str));
+						}
+						catch (...) {
+							MERR("fail reading value channel #%d, performing stof(\"%s\") at %s:%d\n", vchan, field_str.c_str(), fname.c_str(), cur_line);
+							exit(-1);
+						}
+					}
 					else
 					{
 						try {
