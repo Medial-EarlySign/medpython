@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
+#include "MedSamplingHelper.h"
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -353,14 +354,18 @@ int MedSamplingFixedTime::add_time(int time, int add) const {
 	return med_time_converter.convert_times(time_jump_unit, time_range_unit, conv);
 }
 
-bool validate_in_dates(const vector<pair<int, int>> &pid_dates, int pred_date) {
+bool validate_in_dates(const vector<pair<int, int>> &pid_dates, int pred_date, const TimeWindowMode &interaction) {
 	bool inside = false;
+	
 	for (size_t i = 0; i < pid_dates.size() && !inside; ++i)
-		inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
+		inside = medial::sampling::in_time_window_simple(pred_date, 
+			pid_dates[i].first, pid_dates[i].second, false, interaction);
+		//inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
 	return inside;
 }
 
-void filter_opts(unordered_map<int, vector<int>> &pid_options, const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) {
+void filter_opts(unordered_map<int, vector<int>> &pid_options, 
+	const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, const TimeWindowMode &interaction) {
 	unordered_map<int, vector<int>> pid_filtered;
 	for (auto it = pid_options.begin(); it != pid_options.end(); ++it)
 	{
@@ -369,7 +374,7 @@ void filter_opts(unordered_map<int, vector<int>> &pid_options, const unordered_m
 			continue;
 		const vector<pair<int, int>> &pid_date = pid_time_ranges.at(pid);
 		for (int pred_date : it->second)
-			if (validate_in_dates(pid_date, pred_date))
+			if (validate_in_dates(pid_date, pred_date, interaction))
 				pid_filtered[pid].push_back(pred_date);
 	}
 	pid_options = move(pid_filtered);
@@ -490,7 +495,7 @@ void MedSamplingStrategy::get_sampling_options(const unordered_map<int, vector<p
 
 	//force apply filters:
 	if (has_filters)
-		filter_opts(pid_options, pid_time_ranges_filtered);
+		filter_opts(pid_options, pid_time_ranges_filtered, filtering_params.interaction_mode);
 }
 
 int MedSamplingStick::init(map<string, string>& map) {

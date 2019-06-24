@@ -764,7 +764,7 @@ void UnifiedSmokingGenerator::printDebug(vector<RangeStatus> &smokeRanges, int q
 	vector <SMOKING_STATUS> currStatsVec = {};
 	for (auto currRange : smokeRanges)
 		currStatsVec.push_back(currRange.smokingStatus);
-	int oldLen = possibleCombinations.size();
+	int oldLen = (int)possibleCombinations.size();
 
 	//possibleCombinations.insert(currStatsVec);
 	if (possibleCombinations.size() != oldLen)
