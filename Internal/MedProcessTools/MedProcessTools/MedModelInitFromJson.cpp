@@ -63,7 +63,7 @@ void get_prefix_suffix_from_tokens(const string& single_attr_value, string& smal
 		else if (boost::starts_with(token, "ref:"))
 			ref_node = tokens[0].substr(4);
 		else if (boost::starts_with(token, "comma_rel:"))
-			small_file = tokens[0].substr(9);
+			small_file = tokens[0].substr(10);
 		else MTHROW_AND_ERR("dont know how to handle token [%s]\n", token.c_str());
 	}
 }
