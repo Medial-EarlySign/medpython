@@ -301,7 +301,7 @@ public:
 					pid = stoi(pid_str);
 				}
 				catch (...) {
-					MERR("fail reading pid, performing stoi(\"%s\") at %s:%d\n", pid_str.c_str(), fname.c_str(), cur_line);
+					MERR("failed reading pid, performing stoi(\"%s\") at %s:%d\n", pid_str.c_str(), fname.c_str(), cur_line);
 					exit(-1);
 				}
 				string sig = fields[fields_i++];
@@ -316,7 +316,7 @@ public:
 						tchan_vec.push_back(stoi(field_str));
 					}
 					catch (...) {
-						MERR("fail reading time channel #%d, performing stoi(\"%s\") at %s:%d\n", tchan, field_str.c_str(), fname.c_str(), cur_line);
+						MERR("failed reading time channel #%d, performing stoi(\"%s\") at %s:%d\n", tchan, field_str.c_str(), fname.c_str(), cur_line);
 						exit(-1);
 					}
 
@@ -328,7 +328,7 @@ public:
 							vchan_vec.push_back(stof(field_str));
 						}
 						catch (...) {
-							MERR("fail reading value channel #%d, performing stof(\"%s\") at %s:%d\n", vchan, field_str.c_str(), fname.c_str(), cur_line);
+							MERR("failed reading value channel #%d, performing stof(\"%s\") at %s:%d\n", vchan, field_str.c_str(), fname.c_str(), cur_line);
 							exit(-1);
 						}
 					}
