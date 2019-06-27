@@ -269,6 +269,25 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalNa
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
+// adding data to an AlgoMarker using string parameters
+// this API allows adding a specific signal, with matching arrays of times and string values which 
+// also enables providing the categorial string representation of a value.
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
+{
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		return pAlgoMarker->AddDataStr(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
 // Prepare a Request
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
