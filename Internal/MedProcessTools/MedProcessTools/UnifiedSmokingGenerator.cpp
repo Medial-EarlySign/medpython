@@ -89,7 +89,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 	float lastPackYears = missing_val, daysSinceQuitting = missing_val, smokingDuration = missing_val, smokingIntensity = missing_val, yearsSinceQuitting = missing_val;
 	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv, SmokingIntensityUsv;
 
-	int qa_print = 1;
+	int birthDate, qa_print = 1;
 
 	for (int i = 0; i < num; i++) {
 		qa_print = 1;
@@ -103,7 +103,11 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		rec.uget("Smoking_Intensity", i, SmokingIntensityUsv);
 
 		rec.uget("BDATE", i, bdateUsv);
-		int birthDate = bdateUsv.Val(0);
+
+		if (bdateUsv.n_val_channels() > 0)
+			birthDate = bdateUsv.Val(0);
+		else
+			birthDate = bdateUsv.Time(0);
 
 		int testDate = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 
