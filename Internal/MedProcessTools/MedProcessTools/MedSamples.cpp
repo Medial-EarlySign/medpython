@@ -388,8 +388,8 @@ int MedSamples::insert_post_process(MedFeatures& features) {
 	int idx = 0;
 	for (MedIdSamples& idSample : idSamples) {
 		for (unsigned int i = 0; i < idSample.samples.size(); i++) {
-			idSample.samples[i].attributes = features.samples[idx].attributes;
-			idSample.samples[i].str_attributes = features.samples[idx].str_attributes;
+			idSample.samples[i].attributes.insert(features.samples[idx].attributes.begin(), features.samples[idx].attributes.end());
+			idSample.samples[i].str_attributes.insert(features.samples[idx].str_attributes.begin(), features.samples[idx].str_attributes.end());
 			++idx;
 		}
 	}
