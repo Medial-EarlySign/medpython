@@ -90,6 +90,7 @@ public:
 	int width = 1200;
 	int height = 200;
 
+
 	int init(map<string, string>& _map);
 };
 
@@ -132,7 +133,6 @@ public:
 
 	int read_config(const string &config_fname);
 
-
 };
 
 //=========================================================================================================
@@ -143,7 +143,7 @@ public:
 	string name;
 	string color = ""; // if empty will use default color lists
 
-	ChartTimeSign();
+	ChartTimeSign() {};
 	ChartTimeSign(int t, const string &_name, const string _color) { time=t; name=_name; color=_color; }
 	int init(map<string, string>& _map);
 
@@ -159,6 +159,8 @@ public:
 	int pid = 0;
 	int from_date = 0;
 	int to_date = 0;
+
+	
 };
 
 //=========================================================================================================
@@ -179,6 +181,7 @@ public:
 	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times) { 
 		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views); 
 	}
+
 
 private:
 	// builders for html
