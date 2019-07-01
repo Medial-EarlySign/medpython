@@ -30,6 +30,7 @@ typedef enum {
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
 	FTR_GEN_KP_SMOKING, ///< "kp_smoking" - creating smoking feature - KpSmokingGenerator
+	FTR_GEN_UNIFIED_SMOKING, ///< "unified_smoking" - creating smoking feature - UnifiedSmokingGenerator
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator

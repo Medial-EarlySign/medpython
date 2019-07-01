@@ -303,7 +303,7 @@ int RegistrySignal::init(map<string, string>& mapper) {
 			rest_arguments[it->first] = it->second;
 		//! [RegistrySignal::init]
 	}
-	
+
 	_init(rest_arguments);
 	return 0;
 }
@@ -1246,6 +1246,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	double filter_pval) {
 	//sort by  pVal (if equal than -score (Floating point round and they are almost all has same dof)) also use posCnts/ valCnts:
 	int num_of_init_test = (int)indexes.size();
+	if (num_of_init_test == 0)
+		return;
 	double cm = 0;
 	for (size_t i = 0; i < num_of_init_test; ++i)
 		cm += 1 / (i + double(1));
@@ -1926,14 +1928,14 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (max_allowed_date != 0 && curr_date > max_allowed_date)
 			break;
 
-		if (curr_date < r.end_date)
+		int new_start = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+		if (curr_date < r.end_date || (secondry_start_buffer_duration < 0 && new_start < r.end_date))
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		else {
 			//has dead region - close buffer and open new one:
-			//r.end_date = medial::repository::DateAdd(r.end_date, -end_buffer_duration);
 			if (r.end_date > r.start_date)
 				results.push_back(r);
-			r.start_date = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+			r.start_date = new_start;
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		}
 
@@ -1946,4 +1948,101 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (start_date > 0 && r.end_date > r.start_date)
 			results.push_back(r);
 	}
+}
+
+void medial::registry::complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry) {
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_periods;
+	for (size_t i = 0; i < active_periods_registry.size(); ++i)
+		pid_to_periods[active_periods_registry[i].pid].push_back(&active_periods_registry[i]);
+	unordered_map<int, vector<MedRegistryRecord>> pid_to_regs;
+	for (size_t i = 0; i < registry.size(); ++i)
+		pid_to_regs[registry[i].pid].push_back(registry[i]);
+
+	for (auto &rec : pid_to_regs)
+	{
+		int pid = rec.first;
+		if (pid_to_periods.find(pid) == pid_to_periods.end())
+			continue; //not found - no completion
+		vector<MedRegistryRecord> &reg_recs = rec.second;
+		vector<const MedRegistryRecord *> &active_pr = pid_to_periods.at(pid);
+		sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+		{ return a.start_date < b.start_date; });
+		sort(active_pr.begin(), active_pr.end(), [](const MedRegistryRecord *a, const MedRegistryRecord *b)
+		{ return a->start_date < b->start_date; });
+
+		//both sorted - now "join" them
+		int active_i = 0, reg_i = 0;
+		int curr_time = 0;
+		vector<MedRegistryRecord> added_recs;
+		while (active_i < active_pr.size())
+		{
+			const MedRegistryRecord *curr_active = active_pr[active_i];
+			const MedRegistryRecord *curr_reg = NULL;
+			if (reg_i < reg_recs.size())
+				curr_reg = &reg_recs[reg_i];
+			if (curr_reg == NULL) {
+				if (curr_time == 0)
+					curr_time = curr_active->start_date;
+				MedRegistryRecord reg_rec;
+				reg_rec.pid = pid;
+				reg_rec.registry_value = 0;
+				reg_rec.start_date = curr_time;
+				reg_rec.end_date = curr_active->end_date;
+				if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+					added_recs.push_back(reg_rec);
+
+				curr_time = 0;
+				++active_i; //finished active period
+				continue;
+			}
+			if (curr_time > 0 && curr_time > curr_active->end_date) {
+				++active_i;
+				continue;
+			}
+
+			if (curr_active->start_date < curr_reg->start_date) {
+				if (curr_time == 0)
+					curr_time = curr_active->start_date;
+				//complete till active_end or start_date of reg:
+				MedRegistryRecord reg_rec;
+				reg_rec.pid = pid;
+				reg_rec.registry_value = 0;
+				reg_rec.start_date = curr_time;
+				reg_rec.end_date = curr_active->end_date;
+				if (curr_reg->start_date < reg_rec.end_date) {
+					reg_rec.end_date = curr_reg->start_date;
+					curr_time = curr_reg->end_date; //update to current reg time - there is intersection, skip till curr_reg.end_date
+					++reg_i; //read and skip reg record can move on...
+					if (curr_reg->end_date > curr_active->end_date)
+						++active_i; //finished active period
+				}
+				else {
+					++active_i; //finished active period
+					curr_time = 0; //need to test again for curr_time
+				}
+
+				if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+					added_recs.push_back(reg_rec);
+			}
+			else {
+				curr_time = curr_reg->end_date;
+				++reg_i;
+				//for efficancy - will work anyway
+				if (curr_active->end_date < curr_reg->end_date)
+					++active_i;
+			}
+
+		}
+
+		//add and sort new control records:
+		reg_recs.insert(reg_recs.end(), added_recs.begin(), added_recs.end());
+		sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+		{ return a.start_date < b.start_date; });
+	}
+
+	//commit to reg:
+	vector<MedRegistryRecord> new_reg;
+	for (const auto rec : pid_to_regs)
+		new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+	registry = move(new_reg);
 }

@@ -261,6 +261,7 @@ public:
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
 	virtual int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
+	virtual int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	// check supported score types in the supported_score_types vector
@@ -316,6 +317,7 @@ public:
 	int Unload();
 	int ClearData();
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
@@ -368,6 +370,7 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 // adding data to an AlgoMarker
 // this API allows adding a specific signal, with matching arrays of times and values
 extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 
 // Prepare a Request
 // Null RC means failure

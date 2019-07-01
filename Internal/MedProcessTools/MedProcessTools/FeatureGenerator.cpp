@@ -6,6 +6,7 @@
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "KpSmokingGenerator.h"
+#include "UnifiedSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 #include "EmbeddingGenerator.h"
@@ -36,6 +37,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_SMOKING;
 	else if (generator_name == "kp_smoking")
 		return FTR_GEN_KP_SMOKING;
+	else if (generator_name == "unified_smoking")
+		return FTR_GEN_UNIFIED_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -127,6 +130,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, BinnedLmEstimates);
 	CONDITIONAL_NEW_CLASS(dname, SmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, KpSmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, UnifiedSmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, AlcoholGenerator);
 	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
@@ -157,6 +161,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new SmokingGenerator;
 	else if (generator_type == FTR_GEN_KP_SMOKING)
 		return new KpSmokingGenerator;
+	else if (generator_type == FTR_GEN_UNIFIED_SMOKING)
+		return new UnifiedSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
@@ -329,7 +335,7 @@ inline bool isInteger(const std::string & s)
 void FeatureGenerator::dprint(const string &pref, int fg_flag)
 {
 	if (fg_flag > 0) {
-		MLOG("%s :: FG type %d(%s) : serial_id %d : ", pref.c_str(), generator_type, my_class_name().c_str() ,serial_id);
+		MLOG("%s :: FG type %d(%s) : serial_id %d : ", pref.c_str(), generator_type, my_class_name().c_str(), serial_id);
 		MLOG("names(%d) : ", names.size());
 		if (fg_flag > 1) for (auto &name : names) MLOG("%s,", name.c_str());
 		MLOG(" tags(%d) : ", tags.size());
@@ -601,18 +607,22 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 
 	float *p_feat = _p_data[0] + index;
 
-	int len;
 
-	SVal *sig = (SVal *)rec.get(signalId, len);
-	if (len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, len, signalId, signalName.c_str()); }
-	if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
+	UniversalSigVec usv;
+	rec.uget(signalId, 0, usv);
+	if (usv.len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
+	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	if (signalName == "BYEAR") {
-		int byear = (int)(sig[0].val);
+		int byear = (int)(usv.Val(0));
 		for (int i = 0; i < num; i++)
 			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
 	}
 	else if (signalName == "BDATE") {
-		int bdate = (int)(sig[0].val);
+		int bdate;
+		if (usv.n_val_channels() > 0)
+			bdate = (int)(usv.Val(0));
+		else
+			bdate = (int)(usv.Time(0));
 		for (int i = 0; i < num; i++) {
 			int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 			int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
@@ -1844,7 +1854,7 @@ int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	for (int i = 0; i < num; i++) {
 		if (features.samples[index + i].attributes.find(attribute) != features.samples[index + i].attributes.end())
 			p_feat[i] = features.samples[index + i].attributes[attribute];
-		else 
+		else
 			p_feat[i] = missing_val;
 	}
 

@@ -62,6 +62,8 @@ void get_prefix_suffix_from_tokens(const string& single_attr_value, string& smal
 			small_file = tokens[0].substr(9);
 		else if (boost::starts_with(token, "ref:"))
 			ref_node = tokens[0].substr(4);
+		else if (boost::starts_with(token, "comma_rel:"))
+			small_file = tokens[0].substr(10);
 		else MTHROW_AND_ERR("dont know how to handle token [%s]\n", token.c_str());
 	}
 }
@@ -114,6 +116,14 @@ void MedModel::parse_action(basic_ptree<string, string>& action, vector<vector<s
 						//e.g. "signal": "ref:signals"
 						current_attr_values.push_back(parse_key_val(attr_name, r.second.data()));
 				}
+				else if (boost::starts_with(single_attr_value, "comma_rel:")) { //wih relative paths - read as list with ","
+																			   //e.g. "signal": "list_rel:my_list.txt;prefix:ppp;suffix:sss" - file can be relative					
+					get_prefix_suffix_from_tokens(single_attr_value, small_file, ref_node, prefix, suffix);
+					vector<string> my_list;
+					fill_list_from_file(make_absolute_path(fname, small_file, true), my_list);
+					string full_list_str = medial::io::get_list(my_list, ",");
+					current_attr_values.push_back(prefix + parse_key_val(attr_name, full_list_str) + suffix);
+				}
 				else
 					// e.g. "fg_type": "gender"
 					current_attr_values.push_back(parse_key_val(attr_name, single_attr_value));
@@ -161,7 +171,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
 
-		string action_type = action.get<string>("action_type","").c_str();
+		string action_type = action.get<string>("action_type", "").c_str();
 		if (action_type == "") action_type = "feat_generator"; // default action when none provided
 		if (boost::starts_with(action_type, "change_path:")) {
 			//change json base_path fo relative paths to work:

@@ -19,6 +19,7 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <MedMat/MedMat/MedMatConstants.h>
+#include "MedSamplingHelper.h"
 
 using namespace std;
 

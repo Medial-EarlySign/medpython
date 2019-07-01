@@ -4,6 +4,7 @@
 #include <iostream>
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
+#include "MedSamplingHelper.h"
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -33,8 +34,9 @@ int MedSamplingTimeWindow::init(map<string, string>& map) {
 	}
 	if (minimal_times.empty() || maximal_times.empty())
 		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - empty time windows - please provide both minimal_times,maximal_times\n");
-	if (minimal_times.size() <= maximal_times.size())
-		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - minimal_times.size()!=maximal_times.size()\n");
+	if (minimal_times.size() != maximal_times.size())
+		MTHROW_AND_ERR("Error in MedSamplingTimeWindow::init - minimal_times.size()[%zu]!=maximal_times.size()[%zu]\n",
+			minimal_times.size(), maximal_times.size());
 	return 0;
 }
 
@@ -80,10 +82,10 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 
 		for (size_t i = 0; i < minimal_times.size(); ++i)
 		{
-			for (size_t i = 0; i < it->second.size(); ++i)
+			for (size_t j = 0; j < it->second.size(); ++j)
 			{
-				int max_allowed_date = it->second[i].first;
-				int min_allowed_date = it->second[i].second;
+				int min_allowed_date = it->second[j].first;
+				int max_allowed_date = it->second[j].second;
 
 				int currDate = max_allowed_date;
 				int diff_window = maximal_times[i] - minimal_times[i];
@@ -98,8 +100,8 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 				if (year_diff_to_first_pred < 0) {
 					++skip_end_smaller_start;
 					if (skip_end_smaller_start < 5) {
-						MLOG("Exampled Row Skipped: pid=%d, pid_bdate=%d, min_allowed_date=%d, currDate=%d, age=%d\n",
-							pid, pid_bdate, min_allowed_date, currDate, (int)medial::repository::DateDiff(pid_bdate, currDate));
+						MLOG("Exampled Row Skipped: pid=%d, pid_bdate=%d, min_allowed_date=%d, max_allowed_date=%d, currDate=%d, age=%d\n",
+							pid, pid_bdate, min_allowed_date, max_allowed_date, currDate, (int)medial::repository::DateDiff(pid_bdate, currDate));
 					}
 					continue;
 				}
@@ -117,7 +119,7 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 					rnd_days_diff = (int)rand_int(gen);
 				}
 
-				for (size_t i = 0; i < sample_count; ++i)
+				for (size_t k = 0; k < sample_count; ++k)
 				{
 					int sample_pred_date = medial::repository::DateAdd(currDate, -rnd_days_diff);
 					pid_options[pid].push_back(sample_pred_date);
@@ -352,6 +354,32 @@ int MedSamplingFixedTime::add_time(int time, int add) const {
 	return med_time_converter.convert_times(time_jump_unit, time_range_unit, conv);
 }
 
+bool validate_in_dates(const vector<pair<int, int>> &pid_dates, int pred_date, const TimeWindowMode &interaction) {
+	bool inside = false;
+	
+	for (size_t i = 0; i < pid_dates.size() && !inside; ++i)
+		inside = medial::sampling::in_time_window_simple(pred_date, 
+			pid_dates[i].first, pid_dates[i].second, false, interaction);
+		//inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
+	return inside;
+}
+
+void filter_opts(unordered_map<int, vector<int>> &pid_options, 
+	const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, const TimeWindowMode &interaction) {
+	unordered_map<int, vector<int>> pid_filtered;
+	for (auto it = pid_options.begin(); it != pid_options.end(); ++it)
+	{
+		int pid = it->first;
+		if (pid_time_ranges.find(pid) == pid_time_ranges.end())
+			continue;
+		const vector<pair<int, int>> &pid_date = pid_time_ranges.at(pid);
+		for (int pred_date : it->second)
+			if (validate_in_dates(pid_date, pred_date, interaction))
+				pid_filtered[pid].push_back(pred_date);
+	}
+	pid_options = move(pid_filtered);
+}
+
 void MedSamplingFixedTime::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	if (time_jump <= 0)
@@ -412,9 +440,9 @@ template<class T> void commit_selection_vec(vector<T> &vec, const vector<int> &i
 	vec.swap(filt);
 }
 
-void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
+bool MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int, int>>> &pid_time_ranges) const {
 	if (filtering_params.max_age < 0 && filtering_params.max_time < 0 && filtering_params.min_age == 0 && filtering_params.min_time == 0)
-		return; //no filters
+		return false; //no filters
 
 	for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it)
 	{
@@ -454,15 +482,20 @@ void MedSamplingStrategy::apply_filter_params(unordered_map<int, vector<pair<int
 
 		commit_selection_vec(pid_time_ranges[it->first], selected_idx);
 	}
+	return true;
 }
 
 void MedSamplingStrategy::get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
 	unordered_map<int, vector<int>> &pid_options) const {
 	//process filters
 	unordered_map<int, vector<pair<int, int>>> pid_time_ranges_filtered = pid_time_ranges;
-	apply_filter_params(pid_time_ranges_filtered);
+	bool has_filters = apply_filter_params(pid_time_ranges_filtered);
 
 	_get_sampling_options(pid_time_ranges_filtered, pid_options);
+
+	//force apply filters:
+	if (has_filters)
+		filter_opts(pid_options, pid_time_ranges_filtered, filtering_params.interaction_mode);
 }
 
 int MedSamplingStick::init(map<string, string>& map) {

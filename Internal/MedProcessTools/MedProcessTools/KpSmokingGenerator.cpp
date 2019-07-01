@@ -16,7 +16,7 @@ void KpSmokingGenerator::set_names() {
 			MTHROW_AND_ERR("KpSmokingGenerator does not know how to generate [%s]", s.c_str());
 		if ((s == "NLST_Criterion") && (nonDefaultNlstCriterion == true))
 			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s + "_min_age_" + to_string((int)nlstMinAge) + "_max_age_" + to_string((int)nlstMaxAge) + "_pack_years_" + to_string((int)nlstPackYears));
-		else 
+		else
 			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + s);
 	}
 }
@@ -91,12 +91,16 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 		rec.uget("Smoking_Quit_Date", i, quitTimeUsv);
 		rec.uget("Pack_Years", i, SmokingPackYearsUsv);
 		rec.uget("BDATE", i, bdateUsv);
-		int birthDate = bdateUsv.Val(0);
+		int birthDate;
+		if (bdateUsv.n_val_channels() > 0)
+			birthDate = bdateUsv.Val(0);
+		else
+			birthDate = bdateUsv.Time(0);
 
 		int testDate = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 
 		// calc age
-		int age = (int)((float)tm.diff_times(testDate, birthDate, MedTime::Date, MedTime::Days)/365.0);
+		int age = (int)((float)tm.diff_times(testDate, birthDate, MedTime::Date, MedTime::Days) / 365.0);
 		// If Smoking Status vec exists, then status is known.
 		if (smokingStatusUsv.len > 0)
 		{
@@ -117,7 +121,7 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 			neverSmoker = 0;
 			formerSmoker = 1;
 		}
-		
+
 		// Calculate smoking status   
 		int smokingStatusSid = rec.my_base_rep->dict.section_id("Smoking_Status");
 
@@ -177,7 +181,7 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 			}
 		}
 		// This means that there wasn't any value.
-		if (lastPackYears == missing_val) {	maxPackYears = missing_val;}
+		if (lastPackYears == missing_val) { maxPackYears = missing_val; }
 
 		if (neverSmoker == 1)
 		{
@@ -189,10 +193,10 @@ int KpSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 		// Calculate time since quitting
 		if (quitTime != (int)missing_val)
 		{
-		//	MLOG("quit time: %d %d \n", testDate, (int)quitTime);
+			//	MLOG("quit time: %d %d \n", testDate, (int)quitTime);
 			daysSinceQuitting = (float)med_time_converter.diff_times(testDate, quitTime, MedTime::Date, MedTime::Days);
 		}
-		else 
+		else
 		{
 			daysSinceQuitting = missing_val;
 		}

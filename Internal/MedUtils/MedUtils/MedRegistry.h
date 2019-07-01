@@ -173,6 +173,13 @@ namespace medial {
 		/// \brief printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
+	/*!
+	*  \brief registry namespace
+	*/
+	namespace registry {
+		/// \brief completes control period for registry giving active period for patient. active_periods_registry - is time ranges for each patient (not looking on registry_value - like in censor registry)
+		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry);
+	}
 }
 
 /**
@@ -422,7 +429,7 @@ public:
 	int duration; ///< the duration buffer form start
 	int max_repo_date; ///< the maximal date for the repository
 	int start_buffer_duration; ///< the buffer duration from first signal
-	int secondry_start_buffer_duration; ///< the buffer duration from new signal region
+	int secondry_start_buffer_duration; ///< the buffer duration for new region (after not active) - can be negative to look backward
 	int end_buffer_duration; ///< the buffer duration from last signal
 	vector<string> signal_list; ///< list of signals to fetch for keep alive time ranges
 
