@@ -1746,6 +1746,37 @@ void count_stats(int bin_counts, const vector<float> &y, const map<string, vecto
 	}
 }
 
+void bin_calc_inc(const vector<double> &general_counts,
+	const vector<double> &filtered_counts, const vector<double> &all_counts
+	, double &tot_population, double &incidence_fix) {
+	//Assume general_counts - doesn't have zeros. checked before
+
+	if (all_counts[1] <= 0) {
+		tot_population += filtered_counts[0] + filtered_counts[1]; //1 should be zero also
+		return; //adds zero contribution to incidence - (like adding 0 incidence rate)
+	}
+
+	double general_or = general_counts[1] / general_counts[0];
+	tot_population += filtered_counts[0] + filtered_counts[1];
+	double current_bin_inc = 1;
+
+	if (all_counts[0] > 0) {
+		double all_or = all_counts[1] / all_counts[0];
+		if (filtered_counts[0] > 0) {
+			double filtered_or = filtered_counts[1] / filtered_counts[0];
+			double or_ratio = filtered_or / all_or;
+			double general_or_fix = or_ratio * general_or;
+			current_bin_inc = general_or_fix / (1.0 + general_or_fix);
+		}
+	}
+	else //Maybe skip those records?
+		current_bin_inc = general_or / (1.0 + general_or);
+
+	//weighted average
+	incidence_fix += (filtered_counts[0] + filtered_counts[1]) * current_bin_inc;
+
+}
+
 void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_info,
 	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
@@ -1800,44 +1831,36 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 
 	//Lets calc the ratio for the incidence in the filter:
 	params->incidence_fix = 0;
-	double tot_controls = 0;
+	double tot_population = 0;
 	//test for problems:
 	for (int i = 0; i < bin_counts; ++i) {
-		if (all_male_counts[i][1] > 0)
-			MTHROW_AND_ERR("Error - unable to calc incidence - Males Age %d can't be empty of cases for odds calc in fixing incidence\n",
+		if (all_male_counts[i][1] <= 0)
+			MWARN("Warning fix_cohort_sample_incidence :: incidence - Males Age %d is empty of cases and will be counted as incidence rate of 0.0\n",
 				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
-		if (all_female_counts[i][1] > 0)
-			MTHROW_AND_ERR("Error - unable to calc incidence - Feales Age %d can't be empty of cases for odds calc in fixing incidence\n",
+		if (all_female_counts[i][1] <= 0)
+			MWARN("Warning fix_cohort_sample_incidence :: incidence - Females Age %d is empty of cases and will be counted as incidence rate of 0.0\n",
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
+		if (all_male_counts[i][0] <= 0)
+			MWARN("Warning fix_cohort_sample_incidence :: incidence - Males Age %d is empty of controls and will be counted as incidence rate of 1.0\n",
+				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
+		if (all_female_counts[i][0] <= 0)
+			MWARN("Warning fix_cohort_sample_incidence :: incidence - Females Age %d is empty of controls and will be counted as incidence rate of 1.0\n",
 				int(params->inc_stats.min_age + i * params->inc_stats.age_bin_years));
 	}
 	//recalc new ratio of #1/(#1+#0) and fix stats
-	for (size_t i = 0; i < bin_counts; ++i)
+	for (int i = 0; i < bin_counts; ++i)
 	{
-		if (filtered_male_counts[i][0] > 0 && all_male_counts[i][0] > 0) {
-			double general_or = params->inc_stats.male_labels_count_per_age[i][1] /
-				params->inc_stats.male_labels_count_per_age[i][0];
-			tot_controls += filtered_male_counts[i][0];
-			double filtered_or = filtered_male_counts[i][1] / filtered_male_counts[i][0];
-			double all_or = all_male_counts[i][1] / all_male_counts[i][0];
-			double or_ratio = filtered_or / all_or;
-			double general_or_fix = or_ratio * general_or;
-			params->incidence_fix += filtered_male_counts[i][0] * (general_or_fix / (1.0 + general_or_fix));
-		}
-		if (filtered_female_counts[i][0] > 0 && all_female_counts[i][0] > 0 && all_female_counts[i][1] > 0) {
-			double general_or = params->inc_stats.female_labels_count_per_age[i][1] /
-				params->inc_stats.female_labels_count_per_age[i][0];
-			tot_controls += filtered_female_counts[i][0];
-			double filtered_or = filtered_female_counts[i][1] / filtered_female_counts[i][0];
-			double all_or = all_female_counts[i][1] / all_female_counts[i][0];
-			double or_ratio = filtered_or / all_or;
-			double general_or_fix = or_ratio * general_or;
+		//MALE calc
+		bin_calc_inc(params->inc_stats.male_labels_count_per_age[i], filtered_male_counts[i],
+			all_male_counts[i], tot_population, params->incidence_fix);
 
-			params->incidence_fix += filtered_female_counts[i][0] * (general_or_fix / (1.0 + general_or_fix));
-		}
+		//FEMALE calc
+		bin_calc_inc(params->inc_stats.female_labels_count_per_age[i], filtered_female_counts[i],
+			all_female_counts[i], tot_population, params->incidence_fix);
 	}
 
-	if (tot_controls > 0)
-		params->incidence_fix /= tot_controls;
+	if (tot_population > 0)
+		params->incidence_fix /= tot_population;
 
 	MLOG_D("Running fix_cohort_sample_incidence and got %2.4f%% mean incidence\n",
 		100 * params->incidence_fix);
