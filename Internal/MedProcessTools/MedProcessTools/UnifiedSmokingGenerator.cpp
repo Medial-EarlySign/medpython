@@ -314,6 +314,7 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 		int currTime = quitTimeUsv.Time(timeInd);
 		if (currTime > testDate) { break; }
 		int quitTime = (int)quitTimeUsv.Val(timeInd);
+		if (quitTime < MedTime::MIN_DATE_SUPPORT) { continue; }
 		if (prevQuitTimes.find(quitTime) != prevQuitTimes.end())
 			continue;
 		prevQuitTimes.insert(quitTime);
