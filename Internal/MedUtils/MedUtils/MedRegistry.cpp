@@ -2040,6 +2040,17 @@ void medial::registry::complete_active_period_as_controls(vector<MedRegistryReco
 		{ return a.start_date < b.start_date; });
 	}
 
+	//add as controls missings from reg:
+	for (auto &rec : active_periods_registry)
+		if (pid_to_regs.find(rec.pid) == pid_to_regs.end()) {
+			MedRegistryRecord new_rec;
+			new_rec.pid = rec.pid;
+			new_rec.registry_value = 0;
+			new_rec.start_date = rec.start_date;
+			new_rec.end_date = rec.end_date;
+			pid_to_regs[rec.pid].push_back(new_rec);
+		}
+
 	//commit to reg:
 	vector<MedRegistryRecord> new_reg;
 	for (const auto rec : pid_to_regs)
