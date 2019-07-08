@@ -71,6 +71,7 @@ DRUG_GROUP	AntiAnemic	ATC_B03_____
 # panels definition:
 # format:
 # PANEL <params>
+PANEL	name=P_Flu;title=Flu_Panel;sigs=FLU_REG,Vaccination_flu,Complications;width=900;height=600
 PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,Weight,BMI;drugs=Insulin,Non-Insulin;width=900;height=600
 PANEL	name=P_Cholesterol;title=Cholesterol_Panel;sigs=LDL,Cholesterol,HDL,Triglycerides;drugs=Statins;width=900;height=600
 PANEL	name=P_BP;title=BP_Panel;sigs=BP,PULSE;drugs=Diuretics,Beta_blockers,Calcium_channels,AceI;width=900;height=600;log_scale=0
@@ -95,7 +96,7 @@ PANEL	name=P_White;title=White_Count;sigs=WBC,Eosinophils#,Monocytes#,Basophils#
 
 VIEW	demographics
 VIEW	drugs_heatmap
-VIEW	P_Diabetes,P_Cholesterol,P_BP,P_Renal,P_Liver,P_IONS,P_Red,P_White
+VIEW	P_Flu,P_Diabetes,P_Cholesterol,P_BP,P_Renal,P_Liver,P_IONS,P_Red,P_White
 VIEW	DIAGNOSIS,Drug,Vaccination,ADMISSION,VISIT,MEMBERSHIP
 
 
