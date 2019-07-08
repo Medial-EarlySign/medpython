@@ -281,12 +281,12 @@ bool RegistrySignalSet::get_outcome(const UniversalSigVec &s, int current_i, flo
 	return is_active;
 }
 
-int RegistrySignalSet::init(map<string, string>& map) {
-
+int RegistrySignal::init(map<string, string>& mapper) {
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	map<string, string> rest_arguments;
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignal::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -299,12 +299,27 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			outcome_value = stof(it->second);
 		else if (it->first == "channel")
 			channel = stoi(it->second);
-		else if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
+		else
+			rest_arguments[it->first] = it->second;
+		//! [RegistrySignal::init]
+	}
+
+	_init(rest_arguments);
+	return 0;
+}
+
+void RegistrySignalSet::_init(const map<string, string>& mapper) {
+
+	string sets_path = "";
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [RegistrySignalSet::_init]
+		if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalSet::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignalSet::_init]
 	}
 	int sid = repo->sigs.sid(signalName);
 	if (sid < 0)
@@ -332,7 +347,6 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			}
 		}
 	}
-	return 0;
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val) {
@@ -394,32 +408,19 @@ bool RegistrySignalRange::get_outcome(const UniversalSigVec &s, int current_i, f
 	return is_active;
 }
 
-int RegistrySignalRange::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalRange::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalRange::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "min_value")
+		//! [RegistrySignalRange::_init]
+		if (it->first == "min_value")
 			min_value = stof(it->second);
 		else if (it->first == "max_value")
 			max_value = stof(it->second);
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "channel")
-			channel = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalRange::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalRange::init]
+		//! [RegistrySignalRange::_init]
 	}
-	return 0;
 }
 
 RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
@@ -431,28 +432,18 @@ RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
 	outcome_value = 1;
 }
 
-int RegistrySignalDrug::init(map<string, string>& map) {
+void RegistrySignalDrug::_init(const map<string, string>& mapper) {
 
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalDrug::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
+		//! [RegistrySignalDrug::_init]
+		if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalDrug::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalDrug::init]
+		//! [RegistrySignalDrug::_init]
 	}
 	//save to end
 	if (!sets_path.empty()) {
@@ -510,7 +501,6 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 		}
 		file.close();
 	}
-	return 0;
 }
 
 bool RegistrySignalDrug::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
@@ -547,27 +537,34 @@ RegistrySignalAnd::RegistrySignalAnd(MedRepository &rep) {
 	channel = 0;
 }
 
-int RegistrySignalAnd::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalAnd::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalAnd::init]
-		if (it->first == "signalName")
-			MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
-		else if (it->first == "conditions")  //not checking for infinite loop
+		//! [RegistrySignalAnd::_init]
+		if (it->first == "conditions")  //not checking for infinite loop
 			RegistrySignal::parse_registry_rules(it->second, *repo, conditions);
 		else
 			MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - Unsupported Argument %s\n", it->first.c_str());
-		//! [RegistrySignalAnd::init]
+		//! [RegistrySignalAnd::_init]
 	}
 	if (conditions.empty())
 		MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - conditions is empty. please use conditions to reffer to file with and conditions of signals\n");
-	return 0;
+	//given signalName argument
+	if (!signalName.empty())
+		MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
 }
 
 RegistrySignalAnd::~RegistrySignalAnd() {
 	for (size_t i = 0; i < conditions.size(); ++i)
 		delete conditions[i];
 	conditions.clear();
+}
+
+bool RegistrySignalAny::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
+	bool is_active = current_i < s.len;
+	if (is_active)
+		result = outcome_value;
+	return is_active;
 }
 
 inline int Date_wrapper(const UniversalSigVec &signal, int i) {
@@ -1249,6 +1246,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	double filter_pval) {
 	//sort by  pVal (if equal than -score (Floating point round and they are almost all has same dof)) also use posCnts/ valCnts:
 	int num_of_init_test = (int)indexes.size();
+	if (num_of_init_test == 0)
+		return;
 	double cm = 0;
 	for (size_t i = 0; i < num_of_init_test; ++i)
 		cm += 1 / (i + double(1));
@@ -1366,6 +1365,8 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepo
 		return new RegistrySignalDrug(rep);
 	else if (type == "and")
 		return new RegistrySignalAnd(rep);
+	else if (type == "any")
+		return new RegistrySignalAny;
 	else
 		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for RegistrySignal::make_registry_signal\n", type.c_str());
 	//! [RegistrySignal::make_registry_signal]
@@ -1927,14 +1928,14 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (max_allowed_date != 0 && curr_date > max_allowed_date)
 			break;
 
-		if (curr_date < r.end_date)
+		int new_start = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+		if (curr_date < r.end_date || (secondry_start_buffer_duration < 0 && new_start < r.end_date))
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		else {
 			//has dead region - close buffer and open new one:
-			//r.end_date = medial::repository::DateAdd(r.end_date, -end_buffer_duration);
 			if (r.end_date > r.start_date)
 				results.push_back(r);
-			r.start_date = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+			r.start_date = new_start;
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		}
 
@@ -1947,4 +1948,112 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (start_date > 0 && r.end_date > r.start_date)
 			results.push_back(r);
 	}
+}
+
+void medial::registry::complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry) {
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_periods;
+	for (size_t i = 0; i < active_periods_registry.size(); ++i)
+		pid_to_periods[active_periods_registry[i].pid].push_back(&active_periods_registry[i]);
+	unordered_map<int, vector<MedRegistryRecord>> pid_to_regs;
+	for (size_t i = 0; i < registry.size(); ++i)
+		pid_to_regs[registry[i].pid].push_back(registry[i]);
+
+	for (auto &rec : pid_to_regs)
+	{
+		int pid = rec.first;
+		if (pid_to_periods.find(pid) == pid_to_periods.end())
+			continue; //not found - no completion
+		vector<MedRegistryRecord> &reg_recs = rec.second;
+		vector<const MedRegistryRecord *> &active_pr = pid_to_periods.at(pid);
+		sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+		{ return a.start_date < b.start_date; });
+		sort(active_pr.begin(), active_pr.end(), [](const MedRegistryRecord *a, const MedRegistryRecord *b)
+		{ return a->start_date < b->start_date; });
+
+		//both sorted - now "join" them
+		int active_i = 0, reg_i = 0;
+		int curr_time = 0;
+		vector<MedRegistryRecord> added_recs;
+		while (active_i < active_pr.size())
+		{
+			const MedRegistryRecord *curr_active = active_pr[active_i];
+			const MedRegistryRecord *curr_reg = NULL;
+			if (reg_i < reg_recs.size())
+				curr_reg = &reg_recs[reg_i];
+			if (curr_reg == NULL) {
+				if (curr_time == 0)
+					curr_time = curr_active->start_date;
+				MedRegistryRecord reg_rec;
+				reg_rec.pid = pid;
+				reg_rec.registry_value = 0;
+				reg_rec.start_date = curr_time;
+				reg_rec.end_date = curr_active->end_date;
+				if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+					added_recs.push_back(reg_rec);
+
+				curr_time = 0;
+				++active_i; //finished active period
+				continue;
+			}
+			if (curr_time > 0 && curr_time > curr_active->end_date) {
+				++active_i;
+				continue;
+			}
+
+			if (curr_active->start_date < curr_reg->start_date) {
+				if (curr_time == 0)
+					curr_time = curr_active->start_date;
+				//complete till active_end or start_date of reg:
+				MedRegistryRecord reg_rec;
+				reg_rec.pid = pid;
+				reg_rec.registry_value = 0;
+				reg_rec.start_date = curr_time;
+				reg_rec.end_date = curr_active->end_date;
+				if (curr_reg->start_date < reg_rec.end_date) {
+					reg_rec.end_date = curr_reg->start_date;
+					curr_time = curr_reg->end_date; //update to current reg time - there is intersection, skip till curr_reg.end_date
+					++reg_i; //read and skip reg record can move on...
+					if (curr_reg->end_date > curr_active->end_date)
+						++active_i; //finished active period
+				}
+				else {
+					++active_i; //finished active period
+					curr_time = 0; //need to test again for curr_time
+				}
+
+				if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+					added_recs.push_back(reg_rec);
+			}
+			else {
+				curr_time = curr_reg->end_date;
+				++reg_i;
+				//for efficancy - will work anyway
+				if (curr_active->end_date < curr_reg->end_date)
+					++active_i;
+			}
+
+		}
+
+		//add and sort new control records:
+		reg_recs.insert(reg_recs.end(), added_recs.begin(), added_recs.end());
+		sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+		{ return a.start_date < b.start_date; });
+	}
+
+	//add as controls missings from reg:
+	for (auto &rec : active_periods_registry)
+		if (pid_to_regs.find(rec.pid) == pid_to_regs.end()) {
+			MedRegistryRecord new_rec;
+			new_rec.pid = rec.pid;
+			new_rec.registry_value = 0;
+			new_rec.start_date = rec.start_date;
+			new_rec.end_date = rec.end_date;
+			pid_to_regs[rec.pid].push_back(new_rec);
+		}
+
+	//commit to reg:
+	vector<MedRegistryRecord> new_reg;
+	for (const auto rec : pid_to_regs)
+		new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+	registry = move(new_reg);
 }

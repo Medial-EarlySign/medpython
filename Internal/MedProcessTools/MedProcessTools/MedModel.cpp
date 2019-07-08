@@ -59,14 +59,14 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		return -1;
 	}
 
+	//init to check we have remove all we can (or if need to create virtual signals?):
+	set_affected_signal_ids(rep.dict);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
 		MERR("FAILED collect_and_add_virtual_signals\n");
 		return -1;
 	}
 
-	//init to check we have remove all we can:
-	set_affected_signal_ids(rep.dict);
 	// Filter un-needed repository processors
 	filter_rep_processors();
 
@@ -241,6 +241,8 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
+	//init to check we have remove all we can (or if need to create virtual signals?):
+	set_affected_signal_ids(rep.dict);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
 		MERR("FAILED collect_and_add_virtual_signals\n");
@@ -1428,10 +1430,10 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 
 	vector<unordered_set<string>> current_req_signal_names;
 	if (rep_processors != NULL && !rep_processors->empty()) {
-		collect_and_add_virtual_signals_static(rep, *rep_processors);
-		//init to check if need to remove (may seem it can remove after init)
 		for (RepProcessor *processor : *rep_processors)
 			processor->set_affected_signal_ids(rep.dict);
+		collect_and_add_virtual_signals_static(rep, *rep_processors);
+		//init to check if need to remove (may seem it can remove after init)
 		filter_rep_processors(needed_sigs, rep_processors);
 		for (RepProcessor *processor : *rep_processors) {
 			processor->set_affected_signal_ids(rep.dict);

@@ -257,11 +257,7 @@ inline void tree_saabas(tfloat *out, const TreeEnsemble &tree, const Explanation
 * This runs Tree SHAP with a per tree path conditional dependence assumption.
 */
 void dense_tree_saabas(tfloat *out_contribs, const TreeEnsemble& trees, const ExplanationDataset &data) {
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = data.num_X;
+	MedProgress progress("SHAPLEY_SAABAS", data.num_X, 15, 50);
 
 	// build explanation for each sample
 	for (int i = 0; i < data.num_X; ++i) {
@@ -282,20 +278,7 @@ void dense_tree_saabas(tfloat *out_contribs, const TreeEnsemble& trees, const Ex
 			instance_out_contribs[data.M * trees.num_outputs + j] += trees.base_offset;
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 
@@ -1233,11 +1216,8 @@ void dense_independent(const TreeEnsemble& trees, const ExplanationDataset &data
 void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDataset &data,
 	tfloat *out_contribs, tfloat transform(const tfloat, const tfloat)) {
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-	int max_loop = data.num_X;
+	
+	MedProgress progress("SHAPLEY", data.num_X, 15,50);
 	// build explanation for each sample
 #pragma omp parallel for
 	for (int i = 0; i < data.num_X; ++i) {
@@ -1258,20 +1238,7 @@ void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDatas
 			instance_out_contribs[data.M * trees.num_outputs + j] += trees.base_offset;
 		}
 
-#pragma omp atomic
-		++progress;
-		double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-			- tm_prog).count()) / 1000000.0;
-		if (duration > 15 && progress % 50 == 0) {
-#pragma omp critical
-			tm_prog = chrono::high_resolution_clock::now();
-			double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm.t[0]).count()) / 1000000.0;
-			double estimate_time = int(double(max_loop - progress) / double(progress) * double(time_elapsed));
-			MLOG("SHAPLEY Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-				"estimate time to finish %2.1f Minutes\n", progress, max_loop, 100.0*(progress / float(max_loop)), time_elapsed / 60,
-				estimate_time / 60.0);
-		}
+		progress.update();
 	}
 }
 

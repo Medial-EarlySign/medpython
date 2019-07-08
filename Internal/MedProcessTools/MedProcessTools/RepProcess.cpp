@@ -661,6 +661,13 @@ void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& 
 		processors[i]->register_virtual_section_name_id(dict);
 }
 
+void RepBasicOutlierCleaner::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	is_categ = sigs.is_categorical_channel(signalId, val_channel);
+	if (is_categ)
+		MWARN("Warning Signal %s is categorical - no cleaning\n", signalName.c_str());
+}
+
 //=======================================================================================
 // BasicOutlierCleaner
 //=======================================================================================
@@ -811,6 +818,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		return -1;
 	}
 
+	if (is_categ)
+		return 0;
 	int len;
 
 	differentVersionsIterator vit(rec, signalId);
@@ -922,6 +931,8 @@ void remove_stats::restart() {
 }
 
 void remove_stats::print_summary(const string &cleaner_info, const string &signal_name, int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
+	if (total_records == 0)
+		return; //nothing happend
 	float rmv_ratio = float(total_removed) / total_records;
 	bool is_critical = total_pids > minimal_pid_cnt && rmv_ratio > print_summary_critical_cleaned;
 	//build msg:
@@ -2182,7 +2193,8 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 // Get time-channels (if empty)
 //.......................................................................................
 void RepSimValHandler::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
-
+	if (signalId < 0)
+		return;
 	if (time_channels.empty()) {
 		int n = sigs.Sid2Info[signalId].n_time_channels;
 		time_channels.resize(n);

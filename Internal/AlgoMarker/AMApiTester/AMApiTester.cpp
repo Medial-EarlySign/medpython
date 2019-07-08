@@ -128,7 +128,7 @@ public:
     map<int, MedIdSamples* > pid2samples;
 
     void load(const string& rep_fname, const string& model_fname, const string& samples_fname="",bool read_signals=true) {
-	    // read model file
+		// read model file
 	    if (model.read_from_file(model_fname) < 0) {
 		    MERR("FAILED reading model file %s\n", model_fname.c_str());
             throw runtime_error(string("FAILED reading model file ")+model_fname);
@@ -148,24 +148,23 @@ public:
 				MERR("FAILED reading samples file %s\n", samples_fname.c_str());
 				throw runtime_error(string("FAILED reading samples file ") + samples_fname);
 			}
-
-			MLOG("\n");
-			samples.get_ids(pids);
-			if (read_signals) {
-				if (rep.read_all(rep_fname, pids, sigs) < 0) {
-					MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
-					throw runtime_error(string("FAILED loading pids and signals from repository"));
-				}
-			}
-			else {
-				if (rep.MedRepository::init(rep_fname) < 0) {
-					MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
-					throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
-				}
-			}
-			for (auto &id : samples.idSamples)
-				pid2samples[id.id] = &id;
 		}
+		MLOG("\n");
+		samples.get_ids(pids);
+		if (read_signals) {
+			if (rep.read_all(rep_fname, pids, sigs) < 0) {
+				MERR("FAILED loading pids and signals from repository %s\n", rep_fname.c_str());
+				throw runtime_error(string("FAILED loading pids and signals from repository"));
+			}
+		}
+		else {
+			if (rep.MedRepository::init(rep_fname) < 0) {
+				MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
+				throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
+			}
+		}
+		for (auto &id : samples.idSamples)
+			pid2samples[id.id] = &id;		
     }
 
 	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
@@ -257,7 +256,12 @@ public:
 
 		map<string, vector<map<string, int >* > > sig_dict;
 		for (auto& sig : sigs) {
+			MLOG("(II)   Preparing signal dictionary for signal '%s'\n", sig.c_str());
 			vector<map<string, int >* > chan_dict;
+			if (rep.sigs.Name2Sid.count(sig) == 0) {
+				MERR("no Name2Sid entry for signal '%s'\n", sig.c_str());
+				exit(-1);
+			}
 			int section_id = rep.dict.section_id(sig);
 			int sid = rep.sigs.Name2Sid[sig];
 			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
@@ -272,7 +276,7 @@ public:
 			}
 			sig_dict[sig] = chan_dict;
 		}
-		
+		MLOG("(II)   Switching repo to in-mem mode\n");
 		string curr_line;
 		rep.switch_to_in_mem_mode();
 
@@ -282,15 +286,24 @@ public:
 		vchan_vec.reserve(10);
 
 		MLOG("(II)   reading data in to in-mem repository\n");
-
+		int cur_line = 0;
 		while (getline(infile, curr_line)) {
+			cur_line++;
 			if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 				if (curr_line[curr_line.size() - 1] == '\r')
 					curr_line.erase(curr_line.size() - 1);
 				vector<string> fields;
 				split(fields, curr_line, boost::is_any_of("\t"));
 				int fields_i = 0;
-				int pid = stoi(fields[fields_i++]);
+				const auto& pid_str = fields[fields_i++];
+				int pid = -1;
+				try {
+					pid = stoi(pid_str);
+				}
+				catch (...) {
+					MERR("failed reading pid, performing stoi(\"%s\") at %s:%d\n", pid_str.c_str(), fname.c_str(), cur_line);
+					exit(-1);
+				}
 				string sig = fields[fields_i++];
 				int sid = rep.sigs.Name2Sid[sig];
 				int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
@@ -298,11 +311,27 @@ public:
 				tchan_vec.clear();
 				vchan_vec.clear();
 				for (int tchan = 0; tchan < n_tchan; ++tchan) {
-					tchan_vec.push_back(stoi(fields[fields_i++]));
+					const auto& field_str = fields[fields_i++];
+					try {
+						tchan_vec.push_back(stoi(field_str));
+					}
+					catch (...) {
+						MERR("failed reading time channel #%d, performing stoi(\"%s\") at %s:%d\n", tchan, field_str.c_str(), fname.c_str(), cur_line);
+						exit(-1);
+					}
+
 				}
 				for (int vchan = 0 ; vchan < n_vchan; ++vchan) {
-					if (sig_dict[sig][vchan] == nullptr)
-						vchan_vec.push_back(stof(fields[fields_i++]));
+					if (sig_dict[sig][vchan] == nullptr) {
+						const auto& field_str = fields[fields_i++];
+						try {
+							vchan_vec.push_back(stof(field_str));
+						}
+						catch (...) {
+							MERR("failed reading value channel #%d, performing stof(\"%s\") at %s:%d\n", vchan, field_str.c_str(), fname.c_str(), cur_line);
+							exit(-1);
+						}
+					}
 					else
 					{
 						try {
@@ -352,7 +381,9 @@ public:
 				samples.insertRec(stoi(v[0]), stoi(v[1]));
 			}
 		samples.normalize();
-		MLOG("Prepared MedSamples\n");
+		MLOG("(II) Prepared MedSamples\n");
+		for (auto &id : samples.idSamples)
+			pid2samples[id.id] = &id;
 		return 0;
 	}
 
@@ -956,9 +987,9 @@ int apply_data(const string& repdata_file, const string& mock_rep_file, const st
 	MLOG("(II) Loading mock repo, model and date for scoring\n");
 
 	if (!score_format_is_samples) {
+		l.load_samples_from_dates_to_score(scores_file);
 		l.load(mock_rep_file, model_file,"",false);
 		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", scores_file.c_str());
-		l.load_samples_from_dates_to_score(scores_file);
 	}
 	else { 
 		MLOG("\n(II) Loading dates for scoring from samples file %s\n", scores_file.c_str());
@@ -1017,7 +1048,7 @@ int main(int argc, char *argv[])
 			vm["generate_data_cat_prefix"].as<string>(), 
 			vm.count("generate_data_force_cat_prefix")!=0);
 	}
-	if (vm.count("apply") || vm.count("apply_amconfig")) {
+	if (vm.count("apply") || (vm.count("apply_amconfig") && vm["apply_amconfig"].as<string>() != "")) {
 		if (vm["rep"].as<string>() == "" || 
 			(vm["samples"].as<string>() == "" && vm["apply_dates_to_score"].as<string>() =="" ) ||
 			vm["model"].as<string>() == "" || 

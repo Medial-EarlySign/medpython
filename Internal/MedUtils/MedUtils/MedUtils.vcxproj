@@ -105,6 +105,7 @@
     <ClInclude Include="MedPlot.h" />
     <ClInclude Include="MedRegistry.h" />
     <ClInclude Include="MedRegistryRecord.h" />
+    <ClInclude Include="MedSamplingHelper.h" />
     <ClInclude Include="MedSamplingStrategy.h" />
     <ClInclude Include="MedUtils.h" />
     <ClInclude Include="MedUtils_imp.h" />
@@ -121,6 +122,7 @@
     <ClCompile Include="MedNumeric.cpp" />
     <ClCompile Include="MedPlot.cpp" />
     <ClCompile Include="MedRegistry.cpp" />
+    <ClCompile Include="MedSamplingHelper.cpp" />
     <ClCompile Include="MedSamplingStrategy.cpp" />
     <ClCompile Include="MedUtils.cpp" />
   </ItemGroup>

@@ -485,6 +485,22 @@ private:
 };
 
 
+//===============================================================
+// simplifying iterations over several signals
+class UsvsIterator {
+public:
+	MedRepository *rep;
+	vector<string> sig_names;
+	vector<UniversalSigVec *> usvs;
+
+	int init(MedRepository *_rep, const vector<string> &_sig_names, const vector<UniversalSigVec *> &_usvs);
+	int read_pid(int pid);
+	int read_pid(int pid, const vector<UniversalSigVec *> &_usvs);
+
+private:
+	vector<int> sids;
+};
+
 //=============================================================================================
 // Inline functions
 //=============================================================================================

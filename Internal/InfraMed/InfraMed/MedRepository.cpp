@@ -1877,6 +1877,48 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 	return 0;
 }
 
+//======================================================================================================================
+int UsvsIterator::init(MedRepository *_rep, const vector<string> &_sig_names, const vector<UniversalSigVec *> &_usvs)
+{
+	rep = _rep;
+	sig_names = _sig_names;
+	sids.clear();
+	for (auto sig : sig_names) {
+		sids.push_back(rep->sigs.sid(sig));
+		if (sids.back() <= 0) {
+			MERR("ERROR: no susch sig %s in UsvsIterator init()\n", sig.c_str());
+			return -1;
+		}
+	}
+	usvs = _usvs;
+	if (usvs.size() != sids.size()) {
+		MERR("ERROR: non matching lengths: %d usvs, %d sigs, in UsvsIterator init()\n", usvs.size(), sids.size());
+		return -1;
+	}
+	return 0;
+}
+
+//======================================================================================================================
+int UsvsIterator::read_pid(int pid) 
+{
+	for (int i = 0; i < usvs.size(); i++)
+		rep->uget(pid, sids[i], *usvs[i]);
+	return 0;
+}
+
+//======================================================================================================================
+int UsvsIterator::read_pid(int pid, const vector<UniversalSigVec *> &_usvs)
+{
+	if (usvs.size() != sids.size()) {
+		MERR("ERROR: non matching lengths: %d usvs, %d sigs, in UsvsIterator read_pid()\n", _usvs.size(), sids.size());
+		return -1;
+	}
+	for (int i = 0; i < _usvs.size(); i++)
+		rep->uget(pid, sids[i], *_usvs[i]);
+	return 0;
+}
+
+
 float medial::repository::DateDiff(int refDate, int dateSample) {
 	return float((med_time_converter.convert_times(global_default_time_unit, MedTime::Days, dateSample) -
 		med_time_converter.convert_times(global_default_time_unit, MedTime::Days, refDate)) / 365.0);

@@ -117,17 +117,40 @@ void RepPanelCompleter::set_signal_ids(MedSignals& sigs) {
 
 }
 
+void RepPanelCompleter::set_affected_signal_ids(MedDictionarySections& dict) {
+	vector<string> miss_sigs;
+	for (int iPanel = 0; iPanel < panel_signal_names.size(); iPanel++) {
+		vector<string> panel_miss;
+		for (int iSig = 0; iSig < panel_signal_names[iPanel].size(); iSig++) {
+			const string &sig_name = panel_signal_names[iPanel][iSig];
+			if (dict.curr_dict()->id(sig_name) < 0)
+				panel_miss.push_back(sig_name);
+		}
+		if (panel_miss.size() == 1) //only use when 1 is missing, if more than 1 - skip all panel:
+			miss_sigs.insert(miss_sigs.end(), panel_miss.begin(), panel_miss.end());
+		else if (!panel_miss.empty()) 
+			panel_signal_names[iPanel].clear(); //remove panel - too many misses
+	}
 
+	virtual_signals.clear();
+	for (const string &sig : miss_sigs) {
+		virtual_signals.push_back(pair<string, int>(sig, T_DateVal));
+		MWARN("Warning: RepPanelCompleter:: add virtual signal %s\n", sig.c_str());
+	}
+
+	//regular code:
+	RepProcessor::set_affected_signal_ids(dict);
+}
 //.......................................................................................
-void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sigs) 
+void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sigs)
 {
 	// TBD: Should be improved, this is way too specific 
-	
+
 	if (panel_signal_names[REP_CMPLT_GCS].size()) {
 		int section_id = dict.section_id(panel_signal_names[REP_CMPLT_GCS].back());
 		if (section_id < 0)
-		MTHROW_AND_ERR("unable to find GCS Section. search for %s signal\n",
-		panel_signal_names[REP_CMPLT_GCS].back().c_str());
+			MTHROW_AND_ERR("unable to find GCS Section. search for %s signal\n",
+				panel_signal_names[REP_CMPLT_GCS].back().c_str());
 		eye_vals = {
 		{ dict.id(section_id, "GCS_Eye:none") , 1 },
 		{ dict.id(section_id, "GCS_Eye:to_pain"), 2 },
@@ -152,7 +175,7 @@ void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sig
 		};
 
 	}
-	
+
 }
 
 //.......................................................................................
@@ -778,7 +801,7 @@ int RepPanelCompleter::triplet_complete(vector<float>& panel, float factor, int 
 
 	// Try completing ...
 	if (panel[x_idx] == missing_val && panel[y_idx] != missing_val && panel[z_idx] != missing_val && panel[z_idx] != 0.0) {
-		panel[x_idx] = factor*panel[y_idx] / panel[z_idx];
+		panel[x_idx] = factor * panel[y_idx] / panel[z_idx];
 		if (x_idx < orig_res.size())
 			panel[x_idx] = completer_round(panel[x_idx], orig_res[x_idx], final_res[x_idx], conv[x_idx]);
 		changed[x_idx] = 1;
@@ -791,8 +814,8 @@ int RepPanelCompleter::triplet_complete(vector<float>& panel, float factor, int 
 		changed[y_idx] = 1;
 		return 1;
 	}
-	else if (panel[z_idx] == missing_val &&panel[y_idx] != missing_val && panel[x_idx] != missing_val && panel[x_idx] != 0) {
-		panel[z_idx] = factor*panel[y_idx] / panel[x_idx];
+	else if (panel[z_idx] == missing_val && panel[y_idx] != missing_val && panel[x_idx] != missing_val && panel[x_idx] != 0) {
+		panel[z_idx] = factor * panel[y_idx] / panel[x_idx];
 		if (z_idx < orig_res.size())
 			panel[z_idx] = completer_round(panel[z_idx], orig_res[z_idx], final_res[z_idx], conv[z_idx]);
 		changed[z_idx] = 1;

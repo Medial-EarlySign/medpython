@@ -173,6 +173,13 @@ namespace medial {
 		/// \brief printing registry stats for labels inside of it.
 		void print_reg_stats(const vector<MedRegistryRecord> &regRecords, const string &log_file = "");
 	}
+	/*!
+	*  \brief registry namespace
+	*/
+	namespace registry {
+		/// \brief completes control period for registry giving active period for patient. active_periods_registry - is time ranges for each patient (not looking on registry_value - like in censor registry)
+		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry);
+	}
 }
 
 /**
@@ -216,6 +223,13 @@ public:
 	static void parse_registry_rules(const string &reg_cfg, MedRepository &rep,
 		vector<RegistrySignal *> &result);
 
+	/// The parsed fields from init command.\n
+	/// @snippet MedRegistry.cpp RegistrySignal::init
+	int init(map<string, string>& mapper);
+
+	/// Each specific init function for pther arguments - called from init
+	virtual void _init(const map<string, string>& mapper) {};
+
 	virtual ~RegistrySignal() {};
 };
 
@@ -231,8 +245,8 @@ public:
 	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
-	/// @snippet MedRegistry.cpp RegistrySignalSet::init
-	int init(map<string, string>& map);
+	/// @snippet MedRegistry.cpp RegistrySignalSet::_init
+	void _init(const map<string, string>& mapper);
 
 	/// Checks if has flags inside or it's empty one
 	bool is_empty() { return Flags.empty(); }
@@ -255,10 +269,20 @@ public:
 	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
-	/// @snippet MedRegistry.cpp RegistrySignalRange::init
-	int init(map<string, string>& map);
+	/// @snippet MedRegistry.cpp RegistrySignalRange::_init
+	void _init(const map<string, string>& mapper);
 private:
 
+};
+
+/**
+* A Class that conditions nothing, just exising of the signal. usefull for DEATH signal
+* Can have only time channel.
+* use "aby" keyword to refernce this class
+*/
+class RegistrySignalAny: public RegistrySignal {
+
+	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 };
 
 /**
@@ -268,8 +292,8 @@ class RegistrySignalDrug : public RegistrySignal {
 public:
 	RegistrySignalDrug(MedRepository &rep);
 	/// The parsed fields from init command.\n
-	/// @snippet MedRegistry.cpp RegistrySignalDrug::init
-	int init(map<string, string>& map);
+	/// @snippet MedRegistry.cpp RegistrySignalDrug::_init
+	void _init(const map<string, string>& mapper);
 
 	/// Checks if has flags inside or it's empty one
 	bool is_empty() { return Flags.empty(); }
@@ -291,8 +315,8 @@ public:
 
 	RegistrySignalAnd(MedRepository &rep);
 	/// The parsed fields from init command.\n
-	/// @snippet MedRegistry.cpp RegistrySignalAnd::init
-	int init(map<string, string>& map);
+	/// @snippet MedRegistry.cpp RegistrySignalAnd::_init
+	void _init(const map<string, string>& mapper);
 
 	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
@@ -405,7 +429,7 @@ public:
 	int duration; ///< the duration buffer form start
 	int max_repo_date; ///< the maximal date for the repository
 	int start_buffer_duration; ///< the buffer duration from first signal
-	int secondry_start_buffer_duration; ///< the buffer duration from new signal region
+	int secondry_start_buffer_duration; ///< the buffer duration for new region (after not active) - can be negative to look backward
 	int end_buffer_duration; ///< the buffer duration from last signal
 	vector<string> signal_list; ///< list of signals to fetch for keep alive time ranges
 
