@@ -183,7 +183,7 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vec
 			death = (int)usv.Val(0);
 	}
 
-	MLOG("add_basic_demographics 2\n");
+	MLOG("add_basic_demographics 2 death is %d (len %d)\n", death, usv.len);
 	shtml += "<h1> Patient Report </h1>\n";
 
 	shtml += "<h3> pid " + to_string(rec.pid) + " , ";
