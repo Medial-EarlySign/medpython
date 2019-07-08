@@ -70,7 +70,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 		auto& names = Id2Names[raw_val];
 		if (names.size() == 0) { cat_dict[raw_val] = ""; continue; }
 		cat_dict[raw_val] = names[0];
-		for (int j = 1; j < names.size() && j < 3; j++)
+		for (int j = 1; j < names.size(); j++)
 			cat_dict[raw_val] += string("|") + names[j];
 	}
 	categories[field_name] = cat_dict;
