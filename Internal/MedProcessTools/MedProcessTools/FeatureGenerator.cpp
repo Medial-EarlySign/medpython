@@ -753,7 +753,7 @@ void SingletonGenerator::set_names()
 }
 
 void SingletonGenerator::init_tables(MedDictionarySections& dict) {
-	MLOG("sets size = %d \n", lut.size());
+	//MLOG("sets size = %d \n", lut.size());
 	if (sets.size() > 0) {
 		// This is a categorial variable.
 		if (lut.size() == 0) {
