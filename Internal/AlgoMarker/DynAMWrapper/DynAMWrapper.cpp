@@ -17,6 +17,7 @@ public:
   typedef int (*t_AM_API_Load)(AlgoMarker * pAlgoMarker, const char *config_fname);
   typedef int (*t_AM_API_ClearData)(AlgoMarker * pAlgoMarker);
   typedef int (*t_AM_API_AddData)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+  typedef int (*t_AM_API_AddDataStr)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
   typedef int (*t_AM_API_CreateRequest)(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
   typedef int (*t_AM_API_CreateResponses)(AMResponses **);
   typedef int (*t_AM_API_Calculate)(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
@@ -39,6 +40,7 @@ public:
   void *AM_API_Load=nullptr;
   void *AM_API_ClearData=nullptr;
   void *AM_API_AddData=nullptr;
+  void *AM_API_AddDataStr = nullptr;
   void *AM_API_CreateRequest=nullptr;
   void *AM_API_CreateResponses=nullptr;
   void *AM_API_Calculate=nullptr;
@@ -62,7 +64,7 @@ public:
 
 so_functions so;
 
-void* load_sym(void* lib_h, const char* sym_name)
+void* load_sym(void* lib_h, const char* sym_name, bool exit_on_fail=true)
 {
   printf("Loading %s ... ", sym_name);
 #ifdef __linux__ 
@@ -75,7 +77,8 @@ void* load_sym(void* lib_h, const char* sym_name)
   if (ret == nullptr) {
 	printf("Failed\n");
 #endif
-    exit(0);
+	if(exit_on_fail)
+		exit(0);
   }
   printf("OK\n");
   return ret;
@@ -104,6 +107,7 @@ void load_am(const char * am_fname){
   so.AM_API_Load = load_sym(lib_handle, "AM_API_Load");
   so.AM_API_ClearData = load_sym(lib_handle, "AM_API_ClearData");
   so.AM_API_AddData = load_sym(lib_handle, "AM_API_AddData");
+  so.AM_API_AddDataStr = load_sym(lib_handle, "AM_API_AddDataStr", false);
   so.AM_API_CreateRequest = load_sym(lib_handle, "AM_API_CreateRequest");
   so.AM_API_CreateResponses = load_sym(lib_handle, "AM_API_CreateResponses");
   so.AM_API_Calculate = load_sym(lib_handle, "AM_API_Calculate");
@@ -211,6 +215,12 @@ int AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalN
   return (*((so_functions::t_AM_API_AddData)so.AM_API_AddData))
     (pAlgoMarker, patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
 }
+
+int AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) {
+	return (*((so_functions::t_AM_API_AddData)so.AM_API_AddDataStr))
+		(pAlgoMarker, patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+}
+
 
 int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req){
   return (*((so_functions::t_AM_API_CreateRequest)so.AM_API_CreateRequest))
