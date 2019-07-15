@@ -1,5 +1,9 @@
 // This is the main DLL file.
 
+#ifdef _WIN32
+#pragma warning(disable:4996)
+#endif
+
 #include "SigSum_AlgoMarker.h"
 // This is the main DLL file.
 
@@ -836,7 +840,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 				//	return LogData::EndFunction(AM_FAIL_RC, __func__);
 
 				realScoreIndex = numOfScores;
-				response->scoresIndexs.insert(pair<string, int>(request->get_score_type(scoreIndex), numOfScores++));
+				response->scoresIndexs.insert(pair<string, int>(request->get_score_type((int)scoreIndex), numOfScores++));
 			}
 		}
 		for (; dataIndex < data.size(); dataIndex++) //Before real score

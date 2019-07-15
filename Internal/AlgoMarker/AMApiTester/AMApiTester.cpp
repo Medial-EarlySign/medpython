@@ -64,6 +64,22 @@ string expandEnvVars(const string &str) {
 #endif
   return ret;
 }
+/**/
+class charpp_adaptor : public vector<string> {
+protected:
+	vector<const char*> charpp_arr;
+public:
+	charpp_adaptor() : vector<string>() {};
+	charpp_adaptor(int capacity) : vector<string>(capacity) {};
+	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) {};
+	char** get_charpp() {
+		charpp_arr.clear();
+		for (auto& str : *this) {
+			charpp_arr.push_back(str.data());
+		}
+		return const_cast<char**>(charpp_arr.data());
+	}
+};
 
 //=========================================================================================================
 int read_run_params(int argc, char *argv[], po::variables_map& vm) {
@@ -393,8 +409,11 @@ public:
 	    int max_vals = 100000;
     	vector<long long> times(max_vals);
     	vector<float> vals(max_vals);
-
+		charpp_adaptor str_vals(max_vals);
+		MLOG("(INFO) Will use %s API to insert data\n", so_functions::so->AM_API_AddDataStr == nullptr ? "AddData()" : "AddDataStr()" );
 	    for (auto &sig : sigs) {
+			int sid = rep.sigs.Name2Sid[sig];
+			int section_id = rep.dict.section_id(sig);
 		    rep.uget(pid, sig, usv);
 		    int nelem = usv.len;
 		    if (nelem > 0) {
@@ -415,18 +434,40 @@ public:
 			    }
 			    else
 				    p_times = NULL;
-   
-			    if (usv.n_val_channels() > 0) {
-				    if (p_times != NULL) nelem = nelem_before;
-				    for (int i=0; i<nelem; i++)
-					    for (int j=0; j<usv.n_val_channels(); j++)
-						    p_vals[i_val++] = usv.Val(i, j);
-			    }
-			    else
-				    p_vals = NULL;
-   
-			    if ((i_val > 0) || (i_time > 0))
-				    AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
+				
+				if (so_functions::so->AM_API_AddDataStr == nullptr) {
+					if (usv.n_val_channels() > 0) {
+						if (p_times != nullptr) nelem = nelem_before;
+						for (int i = 0; i < nelem; i++)
+							for (int j = 0; j < usv.n_val_channels(); j++)
+								p_vals[i_val++] = usv.Val(i, j);
+					}
+					else
+						p_vals = nullptr;
+
+					if ((i_val > 0) || (i_time > 0))
+						AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
+				}
+				else {
+					if (usv.n_val_channels() > 0) {
+						if (p_times != nullptr) nelem = nelem_before;
+						for (int i = 0; i < nelem; i++)
+							for (int j = 0; j < usv.n_val_channels(); j++) {
+								if (rep.sigs.is_categorical_channel(sid, j)) {
+									str_vals[i_val++] = rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
+								}
+								else {
+									str_vals[i_val++] = to_string(usv.Val(i, j));
+								}
+
+							}
+					}
+					else
+						p_vals = nullptr;
+
+					if ((i_val > 0) || (i_time > 0))
+						AM_API_AddDataStr(am, pid, sig.c_str(), i_time, p_times, i_val, str_vals.get_charpp());
+				}
 		    }
 	    }
     }
