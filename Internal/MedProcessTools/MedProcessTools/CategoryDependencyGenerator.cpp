@@ -34,6 +34,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	filter_child_pval_diff = (float)1e-10;
 	filter_child_lift_ratio = (float)0.05;
 	filter_child_removed_ratio = 1;
+	filter_hierarchy = true;
 	verbose = false;
 	use_fixed_lift = false;
 	verbose_full = false;
@@ -76,6 +77,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			fdr = med_stof(it->second);
 		else if (it->first == "take_top")
 			take_top = med_stoi(it->second);
+		else if (it->first == "filter_hierarchy")
+			filter_hierarchy = med_stoi(it->second) > 0;
 		else if (it->first == "lift_below")
 			lift_below = med_stof(it->second);
 		else if (it->first == "lift_above")
@@ -206,7 +209,7 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
 			const vector<string> &names = categoryId_to_name.at(code);
 			int nm_idx = 0;
-			bool pass_regex_filter = false;
+			bool pass_regex_filter = false;  
 			while (!pass_regex_filter && nm_idx < names.size())
 			{
 				pass_regex_filter = regex_match(names[nm_idx], reg_pat);
@@ -531,12 +534,14 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
 	//filter hierarchy:
-	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members, indexes, code_list, pvalues, codeCnts, lift,
-		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
-	if (verbose)
-		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
-			signalName.c_str(), indexes.size(), before_cnt);
-	before_cnt = (int)indexes.size();
+	if (filter_hierarchy) {
+		medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members, indexes, code_list, pvalues, codeCnts, lift,
+			code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
+		if (verbose)
+			MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
+				signalName.c_str(), indexes.size(), before_cnt);
+		before_cnt = (int)indexes.size();
+	}
 	//Real FDR filtering:
 	vector<double> fixed_lift(lift); //for sorting
 	for (int index : indexes)

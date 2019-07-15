@@ -836,6 +836,7 @@ public:
 	int max_depth; ///< maximal depth to go in heirarchy
 	int max_parents; ///< controls maximum parents count
 	bool use_fixed_lift; ///< If true will also sort be lifts below 1
+	bool filter_hierarchy; /// Apply hierarchy filtering
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
 

@@ -415,6 +415,21 @@ void MedSamples::get_preds(vector<float>& preds) const {
 				preds.push_back(sample.prediction[i]);
 }
 
+// Extract a vector of values corresponding to attribute [empty if never given]
+//.......................................................................................
+void MedSamples::get_attr_values(const string& attr_name, vector<float>& values) const {
+
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			for (int i = 0; i < sample.prediction.size(); i++)
+				if (sample.attributes.find(attr_name) != sample.attributes.end())
+					values.push_back(sample.attributes.at(attr_name));
+
+	int nValues = (int)values.size();
+	if (nValues != 0 && nValues != nSamples())
+		MTHROW_AND_ERR("Attribute %s not consistently given for samples\n", attr_name.c_str());
+}
+
 // Extract a vector of all outcomes
 //.......................................................................................
 void MedSamples::get_y(vector<float>& y) const {

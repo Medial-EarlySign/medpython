@@ -184,6 +184,7 @@ MPPandasAdaptor MPSamples::MEDPY__from_df_adaptor() {
 	ret.set_type_requirement("split", "int");
 	ret.set_type_requirement("time", "int");
 	ret.set_type_requirement("pred_\\d+", "float");
+	ret.set_type_requirement("attr_\\S+", "float");
 	return ret;
 }
 
@@ -192,8 +193,8 @@ void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
 	static const string attr_ = "attr_";
 	static const string str_attr_ = "str_attr_";
 	vector<MedSample> vms;
+
 	for (string col_name : pandas_df.keys()) {
-		
 		if (col_name == "id") {
 			vector<int> vec;
 			pandas_df.pull_col_as_vector(col_name, vec);

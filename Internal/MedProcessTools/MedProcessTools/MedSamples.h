@@ -29,6 +29,7 @@ public:
 
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
+	MedSample(int _id, int _time, float _outcome, float _outcomeTime) { id = _id; time = _time; outcome = _outcome; outcomeTime = _outcomeTime; prediction.clear(); }
 	/// <summary> Destructor </summary>
 	~MedSample() { prediction.clear(); }
 
@@ -181,6 +182,8 @@ public:
 	void get_y(vector<float>& y) const;
 	/// <summary>  Get a list of all categories (different values) appearing in the outcome </summary>
 	void get_categs(vector<float> &categs) const;
+	/// <summary> get a vector corresponding to given attr (name should include attr_) </summary>
+	void get_attr_values(const string& attr_name, vector<float>& values) const;
 	/// <summary> Get all MedSamples as a single vector </summary>
 	void export_to_sample_vec(vector<MedSample> &vec_samples) const;
 	/// <summary> Set MedSamples from a single vector </summary>

@@ -798,11 +798,11 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateRangeVal2) {
 			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateFloat2) {
 			SDateFloat2 *v = (SDateFloat2 *)data;
-			out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_TimeShort4) {
 			STimeShort4 *v = (STimeShort4 *)data;
