@@ -15,6 +15,8 @@
 // AM_DLL_EXPORT is defined only in the matching .cpp file to handle the dll building
 // apps just include this h file and hence will work in import mode.
 
+#define _SCL_SECURE_NO_WARNINGS
+
 #ifdef _MSC_VER 
 #define strncasecmp _strnicmp
 #define strcasecmp _stricmp
@@ -370,6 +372,8 @@ public:
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
+
+	virtual ~AlgoMarker() { ClearData(); Unload(); };
 
 };
 
