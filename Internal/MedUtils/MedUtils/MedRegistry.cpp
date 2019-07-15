@@ -1011,7 +1011,8 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	}
 	unordered_set<int> signal_values_set(signal_values.begin(), signal_values.end());
 
-	unordered_set<float> toRemove;
+	unordered_set<int> toRemove;
+	unordered_set<int> removingParents;
 	for (int index : indexes)
 	{
 		int keyVal = signal_values[index];
@@ -1041,6 +1042,7 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 						MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
 							categoryId_to_name->at(keyVal).back().c_str(), (int)parentCnt, (int)currCnt);
 					toRemove.insert(keyVal);
+					removingParents.insert(parentId);
 					break;
 				}
 
@@ -1051,10 +1053,11 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 					else if (parentLift > 0 && currLift > parentLift)
 						cmp = abs(currLift / parentLift - 1);
 					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
-						toRemove.insert(keyVal);
 						if (categoryId_to_name != NULL)
 							MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%2.3f\n",
 								categoryId_to_name->at(keyVal).back().c_str(), parentLift, currLift);
+						toRemove.insert(keyVal);
+						removingParents.insert(parentId);
 						break;
 					}
 				}
@@ -1079,6 +1082,11 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	for (int index : indexes)
 	{
 		int keyVal = signal_values[index];
+		
+		// If this parent has caused the removal of one of it's children, we can't remove it !
+		if (removingParents.find(keyVal) != removingParents.end())
+			continue;
+
 		double currCnt = valCnts[index];
 		//test if that's parent that need to be removed - has child that has been removed, 
 		//and at least onr child that haven't moved:
