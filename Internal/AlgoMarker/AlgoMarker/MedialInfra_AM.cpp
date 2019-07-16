@@ -130,15 +130,18 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		int section_id = rep.dict.section_id(sig);
 		int sid = rep.sigs.Name2Sid[sig];
 		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
-		for (int i=0; i<Values_len; i++){
-        	float val=-1;
-			if(!rep.sigs.is_categorical_channel(sid, i)) {
-				val = stof(Values[i]);
-			}else{
-				val = category_map.at(Values[i]);
+		for (int i=0; i<Values_len; i++) {
+			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+				float val = -1;
+				if (!rep.sigs.is_categorical_channel(sid, j)) {
+					val = stof(Values[i]);
+				}
+				else {
+					val = category_map.at(Values[i]);
+				}
+
+				converted_Values.push_back(val);
 			}
-	
-			converted_Values.push_back(val);
 		}
 	} catch(...){
 		return AM_FAIL_RC;
