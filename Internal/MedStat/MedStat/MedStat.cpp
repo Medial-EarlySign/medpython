@@ -833,6 +833,10 @@ template<class T>float _auc_q_weighted(const vector<T> &preds, const vector<floa
 		tot_true_labels += int(y[i] > 0) * weights[i];
 		tot_false_labels += int(y[i] <= 0) * weights[i];
 	}
+	if (tot_true_labels <= 0)
+		MTHROW_AND_ERR("Error _auc_q_weighted - tot_true_labels(%2.1f) <= 0.\n", tot_true_labels);
+	if (tot_false_labels <= 0)
+		MTHROW_AND_ERR("Error _auc_q_weighted - tot_false_labels(%2.1f) <= 0.\n", tot_false_labels);
 	pred_threshold.resize((int)pred_indexes.size());
 	auto it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
