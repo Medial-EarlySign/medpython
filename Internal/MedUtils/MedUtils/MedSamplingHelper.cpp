@@ -72,7 +72,7 @@ float interect_time_window(int pred_date, int time_from, int time_to,
 	int window_size = abs(time_to - time_from);
 
 	int max_start = max(start_window, r_outcome->start_date);
-	int min_end = max(end_window, r_outcome->end_date);
+	int min_end = min(end_window, r_outcome->end_date);
 	int interact_size = min_end - max_start;
 	if (interact_size < 0)
 		interact_size = 0;
