@@ -73,7 +73,7 @@ float interect_time_window(int pred_date, int time_from, int time_to,
 
 	int max_start = max(start_window, r_outcome->start_date);
 	int min_end = min(end_window, r_outcome->end_date);
-	int interact_size = min_end - max_start;
+	int interact_size = int(365 * medial::repository::DateDiff(max_start, min_end));
 	if (interact_size < 0)
 		interact_size = 0;
 

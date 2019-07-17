@@ -1082,7 +1082,7 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	for (int index : indexes)
 	{
 		int keyVal = signal_values[index];
-		
+
 		// If this parent has caused the removal of one of it's children, we can't remove it !
 		if (removingParents.find(keyVal) != removingParents.end())
 			continue;
@@ -2059,9 +2059,51 @@ void medial::registry::complete_active_period_as_controls(vector<MedRegistryReco
 			pid_to_regs[rec.pid].push_back(new_rec);
 		}
 
+
+
+
 	//commit to reg:
 	vector<MedRegistryRecord> new_reg;
-	for (const auto rec : pid_to_regs)
-		new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+	MedRegistryRecord rec_temp;
+	for (const auto rec : pid_to_regs) {
+		//sort(rec.second.begin(), rec.second.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+		//{ return a.start_date < b.start_date; });
+		//unite control times:
+		if (!rec.second.empty()) {
+			rec_temp.pid = -1;
+			for (size_t i = 0; i < rec.second.size(); ++i)
+			{
+				if (rec.second[i].registry_value > 0) {
+					//close buffer:
+					if (rec_temp.pid > 0) {
+						new_reg.push_back(rec_temp);
+						rec_temp.pid = -1;
+					}
+					new_reg.push_back(rec.second[i]);
+				}
+				else {
+					if (rec_temp.pid == -1) {
+						rec_temp = rec.second[i];
+					}
+					else if (rec.second[i].start_date <= rec_temp.end_date) {
+						//unite buffers
+						rec_temp.end_date = rec.second[i].end_date;
+					}
+					else {
+						//close buffer & start new one:
+						if (rec_temp.pid > 0) {
+							new_reg.push_back(rec_temp);
+							rec_temp = rec.second[i];
+						}
+					}
+				}
+			}
+			//close buffer:
+			if (rec_temp.pid > 0)
+				new_reg.push_back(rec_temp);
+
+			//new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+		}
+	}
 	registry = move(new_reg);
 }
