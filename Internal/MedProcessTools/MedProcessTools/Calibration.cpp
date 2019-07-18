@@ -521,17 +521,19 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	return 0;
 }
 
-void get_counts(const vector<int> &inds, const vector<float> &y, int &cases_cnt,
+void get_counts(const vector<int> &inds, const vector<float> &y, const vector<float> &w, double &cases_cnt,
 	double &cntls_cnt, double control_weight) {
-	cases_cnt = 0;
-	for (int ind : inds)
-		cases_cnt += int(y[ind] > 0);
+	cases_cnt = 0, cntls_cnt = 0;
 	if (control_weight <= 0)
 		control_weight = 1;
-	cntls_cnt = (int(inds.size()) - cases_cnt) * control_weight;
+
+	for (int ind : inds) {
+		cases_cnt += int(y[ind] > 0) * w[ind];
+		cntls_cnt += int(y[ind] <= 0)* w[ind] * control_weight;
+	}
 }
 
-void learn_binned_probs(vector<float> &x, const vector<float> &y,
+void learn_binned_probs(const vector<float> &x, const vector<float> &y, const vector<float> &weights,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order,
 	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample, bool verbose) {
 	unordered_map<float, vector<int>> score_to_indexes;
@@ -553,9 +555,8 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	for (int i = sz - 1; i >= 0; --i)
 	{
 		//update values curr_cnt, pred_avg
-		int cases_cnt;
-		double cntls_cnt;
-		get_counts(score_to_indexes[unique_scores[i]], y, cases_cnt, cntls_cnt, control_weight_down_sample);
+		double cases_cnt, cntls_cnt;
+		get_counts(score_to_indexes[unique_scores[i]], y, weights, cases_cnt, cntls_cnt, control_weight_down_sample);
 
 		pred_sum += cases_cnt;
 		curr_cnt += (cases_cnt + cntls_cnt);
@@ -683,12 +684,12 @@ void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<
 			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
 }
 
-void learn_platt_scale(vector<float> x, vector<float> &y,
+void learn_platt_scale(const vector<float> x, const vector<float> &y, const vector<float> &weights,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
 	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample, bool verbose) {
 	vector<float> min_range, max_range, map_prob;
 
-	learn_binned_probs(x, y, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
+	learn_binned_probs(x, y, weights, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
 		min_range, max_range, map_prob, control_weight_down_sample, verbose);
 
 	vector<float> probs;
@@ -766,7 +767,7 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 
 	MLOG_D("Learning calibration on %d ids\n", (int)orig_samples.size());
 
-	vector<float> preds, labels;
+	vector<float> preds, labels, weights;
 	switch (calibration_type)
 	{
 	case CalibrationTypes::probability_time_window:
@@ -774,12 +775,14 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		break;
 	case CalibrationTypes::probability_binning:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_binned_probs(preds, labels, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_binned_probs(preds, labels, weights, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_platt_scale(preds, labels, weights, poly_rank, platt_params, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_isotonic:
