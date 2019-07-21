@@ -815,6 +815,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + sets[0]; break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
+	case FTR_RANGE_TIME_COVERED: name += "time_covered"; break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -854,6 +855,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field == "recurrence_delta") recurrence_delta = med_stoi(entry.second);
 		else if (field == "min_range_time") min_range_time = med_stoi(entry.second);
+		else if (field == "div_factor") div_factor = med_stof(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -907,6 +909,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "ever")			return FTR_RANGE_EVER;
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
+	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -950,6 +953,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_RECURRENCE_COUNT: return uget_range_recurrence_count(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
 
 
 	default:	return missing_val;
@@ -1624,6 +1628,34 @@ float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int 
 	}
 
 	return (float)num_recurrence;
+}
+
+
+//.......................................................................................
+float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_from, int win_to, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
+
+	int time_sum = 0;
+	for (int i = 0; i < usv.len; i++) {
+
+		int curr_from = usv.Time(i, 0);
+		int curr_to = usv.Time(i, 1);
+
+		if (curr_from > max_time) break;
+		if (curr_to < min_time) continue;
+
+		if (curr_from < min_time) curr_from = min_time;
+		if (curr_to > max_time) curr_to = max_time;
+
+		if (curr_to >= curr_to) {
+			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
+		}
+
+	}
+
+	return (float)time_sum/div_factor;
 }
 
 //=======================================================================================

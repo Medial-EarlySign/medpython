@@ -570,6 +570,8 @@ typedef enum {
 	///<"recurrence_count" - count the number of time the event occur shortly after a previous event, there is an intersection of the time signal range with the defined time window
 	///previous event does not need to intersect the time window. 
 	FTR_RANGE_RECURRENCE_COUNT = 6,
+	/// "time_covered"  : give a time window, sum up all the times in ranges that intersect the time window
+	FTR_RANGE_TIME_COVERED = 7,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -586,6 +588,7 @@ private:
 	float uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 
@@ -599,6 +602,7 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
+	float div_factor = 1.0f;					/// dividing by this number in time_covered option
 
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
 	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
@@ -647,7 +651,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win)
+			time_unit_sig, time_unit_win, div_factor)
 };
 
 /**
