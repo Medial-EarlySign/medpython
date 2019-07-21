@@ -20,11 +20,11 @@ class calibration_entry : public SerializableObject {
 public:
 	int bin;
 	float min_pred, max_pred;
-	int cnt_cases, cnt_controls;
+	double cnt_cases, cnt_controls;
 	float mean_pred, mean_outcome;
 	float cumul_pct;
-	vector<int> controls_per_time_slot;
-	vector<int> cases_per_time_slot;
+	vector<double> controls_per_time_slot;
+	vector<double> cases_per_time_slot;
 	float kaplan_meier;
 
 	ADD_CLASS_NAME(calibration_entry)
@@ -59,6 +59,7 @@ public:
 	int min_cases_for_calibration_smoothing_pct = 10;
 	int do_calibration_smoothing = 1;
 	int censor_controls = 0; ///< censor controls without long-enough followup even in mean-outcome mode
+	string weights_attr_name = "weight"; //weight attr to look for in samples attributes
 
 	int min_preds_in_bin = 100; ///< minimal number of obseravtion to create bin
 	float min_score_res = 0; ///< score resulotion value to round to and merge similar
@@ -97,7 +98,7 @@ public:
 		cals, min_range, max_range, map_prob, platt_params)
 
 protected:
-	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor);
+	double calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot, double controls_factor);
 	void smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals, double controls_factor);
 
 private:

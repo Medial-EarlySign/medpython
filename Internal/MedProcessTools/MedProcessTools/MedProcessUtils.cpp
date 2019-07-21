@@ -115,7 +115,7 @@ int find_in_feature_names(const vector<string>& names, const string& substr, boo
 
 	int index = -1;
 	for (int i = 0; i < names.size(); i++) {
-		if (names[i].size() > 11 && names[i].substr(11) == substr) { // exact match
+		if ((names[i].size() > 11 && names[i].substr(11) == substr) || names[i] == substr) { // exact match
 			index = i;
 			break;
 		}
@@ -143,12 +143,16 @@ int find_in_feature_names(const vector<string>& names, const string& substr, boo
 
 	if (index == -1) {
 		string err = string("Got source_feature_name [") + substr + "] which does not match any feature (did you forget to set duplicate=1?). Tried matching to these features:\n";
+		string err1 = "";
 		for (auto candidate : names)
-			err += candidate + "\n";
+			err1 += candidate + "\n";
 		if (throw_on_error) {
-			if (err.size() >= 300) //out of buffer
+			if (err.size() + err1.size() >= 300) { //out of buffer
 				MWARN("%s\n", err.c_str());
-			MTHROW_AND_ERR("%s\n", err.c_str());
+				for (auto candidate : names)
+					MWARN("%s\n", candidate.c_str());
+			}
+			MTHROW_AND_ERR("%s%s\n", err.c_str(), err1.c_str());
 		}
 		return -1;
 	}
