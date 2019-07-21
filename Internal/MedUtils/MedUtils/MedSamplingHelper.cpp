@@ -35,7 +35,13 @@ bool medial::sampling::in_time_window_simple(int pred_date, int start_time, int 
 // testing for time_window - for specific registry_value. has rule for pred_date - which is from_time_window 
 // time and rules for outcome
 bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
-	int time_from, int time_to, const TimeWindowMode mode[2], const TimeWindowMode mode_prediction[2]) {
+	int time_from, int time_to, int censor_time_from, int  censor_time_to,
+	const TimeWindowMode mode[2], const TimeWindowMode mode_prediction[2]) {
+	if (censor_time_from == MED_MAT_MISSING_VALUE)
+		censor_time_from = time_from;
+	if (censor_time_to == MED_MAT_MISSING_VALUE)
+		censor_time_to = time_to;
+
 	int sig_start_date = medial::repository::DateAdd(pred_date, time_from);
 	int sig_end_date = medial::repository::DateAdd(pred_date, time_to);
 	int reffer_date = sig_start_date, op_reffer = sig_end_date;
@@ -48,11 +54,21 @@ bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_
 
 	int idx_time = 0;
 	bool can_have_pred = r_censor.empty();
+	int censor_start_date = sig_start_date;
+	int censor_end_date = sig_end_date;
+	int censor_reffer_date = censor_start_date, censor_op_reffer = censor_end_date;
+	bool censor_reverse = censor_time_from < 0;
+	if (!r_censor.empty()) {
+		censor_start_date = medial::repository::DateAdd(pred_date, censor_time_from);
+		censor_end_date = medial::repository::DateAdd(pred_date, censor_time_to);
+		censor_reffer_date = censor_start_date;
+		censor_op_reffer = censor_end_date;
+	}
 	while (idx_time < r_censor.size() && !can_have_pred) {
-		can_have_pred = in_time_window_simple(reffer_date, r_censor[idx_time]->start_date,
-			r_censor[idx_time]->end_date, reverse, mode_prediction[0]);
-		can_have_pred &= in_time_window_simple(op_reffer, r_censor[idx_time]->start_date,
-			r_censor[idx_time]->end_date, reverse, mode_prediction[1]);
+		can_have_pred = in_time_window_simple(censor_reffer_date, r_censor[idx_time]->start_date,
+			r_censor[idx_time]->end_date, censor_reverse, mode_prediction[0]);
+		can_have_pred &= in_time_window_simple(censor_op_reffer, r_censor[idx_time]->start_date,
+			r_censor[idx_time]->end_date, censor_reverse, mode_prediction[1]);
 		++idx_time;
 	}
 	if (!can_have_pred)
@@ -81,7 +97,7 @@ float interect_time_window(int pred_date, int time_from, int time_to,
 }
 
 bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
-	int time_from, int time_to, const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
+	int time_from, int time_to, int censor_time_from, int  censor_time_to, const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 	bool filter_no_censor) {
 	const TimeWindowMode *mode = NULL;
 	const TimeWindowMode  *mode_censor = NULL;
@@ -91,7 +107,8 @@ bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_
 		mode_censor = mode_censoring.at(r_outcome->registry_value);
 
 	float min_range, max_range;
-	bool has_interact = in_time_window(pred_date, r_outcome, r_censor, time_from, time_to, mode, mode_censor);
+	bool has_interact = in_time_window(pred_date, r_outcome, r_censor, time_from, time_to,
+		censor_time_from, censor_time_to, mode, mode_censor);
 	if (mode_outcome.get_inresection_range_cond(r_outcome->registry_value, min_range, max_range)) {
 		float intersect_rate = interect_time_window(pred_date, time_from, time_to, r_outcome);
 		has_interact &= intersect_rate >= min_range && intersect_rate <= max_range;
@@ -111,7 +128,7 @@ bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_
 }
 
 void medial::sampling::get_label_for_sample(int pred_time, const vector<const MedRegistryRecord *> &pid_records
-	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to,
+	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to, int censor_time_from, int  censor_time_to,
 	const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 	ConflictMode conflict_mode, vector<MedSample> &idSamples,
 	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor, bool show_conflicts) {
@@ -148,7 +165,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 		}
 		if (curr_index < pid_records.size() &&
 			!medial::sampling::in_time_window(pred_time, pid_records[curr_index], r_censor,
-				time_from, time_to, mode_outcome, mode_censoring, filter_no_censor)) {
+				time_from, time_to, censor_time_from, censor_time_to, mode_outcome, mode_censoring, filter_no_censor)) {
 			++curr_index;
 			continue;
 		}
