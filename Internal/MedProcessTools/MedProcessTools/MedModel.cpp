@@ -1302,7 +1302,7 @@ void MedModel::get_all_features_names(vector<string> &feat_names, int before_pro
 		for (string& name : generators[i]->names)
 			uniq_feat_names.insert(name);
 	}
-	assert((before_process_set < feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
+	assert((before_process_set <= feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
 	for (int i = 0; i < before_process_set; i++) {
 		//if (feature_processors[i]->is_selector()) {
 		//	FeatureSelector *fs = (FeatureSelector *)feature_processors[i];

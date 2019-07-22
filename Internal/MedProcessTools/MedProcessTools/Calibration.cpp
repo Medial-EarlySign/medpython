@@ -49,6 +49,7 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "verbose") verbose = stoi(entry.second) > 0;
 		else if (field == "use_split") use_split = stoi(entry.second);
 		else if (field == "use_p") use_p = stof(entry.second);
+		else if (field == "weights_attr_name") weights_attr_name = entry.second;
 		else if (field == "pp_type") {} //ignore
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
@@ -58,14 +59,15 @@ int Calibrator::init(map<string, string>& mapper) {
 }
 
 
-double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor) {
+double Calibrator::calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot,
+	double controls_factor) {
 	double prob = 1.0;
 	double total_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
 		total_all += (controls_per_time_slot[i] * controls_factor) + cases_per_time_slot[i];
 	//MLOG("size %d total_controls_all %d\n", controls_per_time_slot.size(), total_controls_all);
 	for (int i = 0; i < controls_per_time_slot.size(); i++) {
-		if (total_all == 0) {
+		if (total_all <= 0) {
 			MWARN("Reached 0 samples at time slot [%d]. Quitting\n", i);
 			break;
 		}
@@ -89,8 +91,8 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 		int end = s, start = s;
 		int controls = cals[start].cnt_controls;
 		int cases = cals[start].cnt_cases;
-		vector<int> controls_per_time_slot;
-		vector<int> cases_per_time_slot;
+		vector<double> controls_per_time_slot;
+		vector<double> cases_per_time_slot;
 		for (size_t j = 0; j < cals[start].controls_per_time_slot.size(); j++)
 		{
 			controls_per_time_slot.push_back(cals[start].controls_per_time_slot[j]);
@@ -326,7 +328,27 @@ void Calibrator::Apply(MedFeatures &matrix) const {
 	Apply(matrix.samples);
 }
 
+void get_weights(const vector<MedSample>& orig_samples, const string &attr, vector<float> &weights) {
+	bool has_miss = false, found = false;
+	weights.resize(orig_samples.size(), 1); //give 1 weights to all
+	for (size_t i = 0; i < orig_samples.size(); ++i) {
+		if (orig_samples[i].attributes.find(attr) == orig_samples[i].attributes.end())
+			has_miss = true;
+		else {
+			weights[i] = orig_samples[i].attributes.at(attr);
+			found = true;
+		}
+	}
+	if (has_miss && found)
+		MWARN("Warning get_weights: has weights for some of the samples\n");
+	else if (found)
+		MLOG("Read Weights from samples attr %s\n", attr.c_str());
+}
+
 int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {
+	vector<float> weights;
+	//read weights from samples:
+	get_weights(orig_samples, weights_attr_name, weights);
 
 	int do_km;
 	if (estimator_type == "kaplan_meier")
@@ -338,9 +360,12 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	cals.clear();
 	float min_pred = 100000.0, max_pred = -100000.0;
 	int cases = 0;
+	double w_cases = 0;
 	set<float> unique_preds;
 	vector<MedSample> samples;
-	for (auto e : orig_samples) {
+	for (int i = 0; i < orig_samples.size(); ++i) {
+		MedSample e = orig_samples[i];
+
 		if (unique_preds.find(e.prediction[0]) == unique_preds.end())
 			unique_preds.insert(e.prediction[0]);
 		if (e.prediction[0] < min_pred)
@@ -357,8 +382,10 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		if (e.outcome >= 1 && gap > pos_sample_max_time_before_case)
 			// too far case is considered as control
 			e.outcome = 0;
-		if (e.outcome >= 1)
-			cases++;
+		if (e.outcome >= 1) {
+			++cases;
+			w_cases += weights[i];
+		}
 		samples.push_back(e);
 	}
 	std::sort(samples.begin(), samples.end(), comp_sample_pred);
@@ -376,6 +403,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			bins_num, max_samples_per_bin);
 	}
 	else if (binning_method == "equal_num_of_cases_per_bin") {
+		//max_cases_per_bin = max((int)w_cases / bins_num, 10);
 		max_cases_per_bin = max(cases / bins_num, 10);
 		MLOG("equal_num_of_cases_per_bin bins_num: %d max_cases_per_bin: %d \n",
 			bins_num, max_cases_per_bin);
@@ -387,36 +415,40 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	}
 	else MTHROW_AND_ERR("unknown binning method [%s]\n", binning_method.c_str());
 
-	vector<int> cnt_cases;
-	vector<int> cnt_controls;
+	vector<double> cnt_cases;
+	vector<double> cnt_controls;
 	vector<float> bin_max_preds;
 	vector<float> bin_min_preds;
 	vector<float> bin_sum_preds;
-	vector<vector<int>> bin_controls_per_time_slot;
-	vector<vector<int>> bin_cases_per_time_slot;
+	vector<vector<double>> bin_controls_per_time_slot;
+	vector<vector<double>> bin_cases_per_time_slot;
 	int km_time_slots = (pos_sample_max_time_before_case - pos_sample_min_time_before_case) / km_time_resolution;
 	if (km_time_slots <= 0)
 		km_time_slots = 1;
 	MLOG("km_time_slots [%d] \n", km_time_slots);
-	for (size_t i = 0; i < (bins_num + 1) * 2; i++)
+	//init arrays:
+	//int sz_loop = (bins_num + 1) * 2;
+	int sz_loop = (bins_num + 1);
+	cnt_cases.resize(sz_loop);
+	cnt_controls.resize(sz_loop);
+	bin_sum_preds.resize(sz_loop);
+	bin_max_preds.resize(sz_loop);
+	bin_min_preds.resize(sz_loop, min_pred);
+	for (size_t i = 0; i < sz_loop; i++)
 	{
-		cnt_cases.push_back(0);
-		cnt_controls.push_back(0);
-		bin_sum_preds.push_back(0.0);
-		bin_min_preds.push_back(min_pred);
-		bin_max_preds.push_back(0.0);
-		vector<int> controls_per_time_slot;
-		vector<int> cases_per_time_slot;
-		for (size_t j = 0; j <= km_time_slots; j++) {
-			controls_per_time_slot.push_back(0);
-			cases_per_time_slot.push_back(0);
-		}
+		vector<double> controls_per_time_slot(km_time_slots + 1);
+		vector<double> cases_per_time_slot(km_time_slots + 1);
 		bin_controls_per_time_slot.push_back(controls_per_time_slot);
 		bin_cases_per_time_slot.push_back(cases_per_time_slot);
 	}
 	int bin = 1;
+	//end init
+
+	//stats for all samples in time slots and general - iterating on scores (same bin, or move to next one)
 	float prev_pred = min_pred;
-	for (auto &o : samples) {
+	double tot_weight = 0;
+	for (int i = 0; i < samples.size(); ++i) {
+		const MedSample &o = samples[i];
 		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, o.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, o.time);
 		if (
 			(bin < bins_num)
@@ -428,7 +460,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
 			)
 		{
-			bin++;
+			++bin;
 			bin_min_preds[bin] = o.prediction[0];
 		}
 		int time_slot;
@@ -438,22 +470,26 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			time_slot = (gap - pos_sample_min_time_before_case) / km_time_resolution;
 
 		if (o.outcome >= 1) {
-			cnt_cases[bin] ++;
-			bin_cases_per_time_slot[bin][time_slot]++;
+			cnt_cases[bin] += weights[i];
+			bin_cases_per_time_slot[bin][time_slot] += weights[i];
 		}
 		else {
-			cnt_controls[bin]++;
-			bin_controls_per_time_slot[bin][time_slot]++;
+			cnt_controls[bin] += weights[i];
+			bin_controls_per_time_slot[bin][time_slot] += weights[i];
 		}
 
-		bin_sum_preds[bin] += o.prediction[0];
+		bin_sum_preds[bin] += o.prediction[0] * weights[i];
 		bin_max_preds[bin] = o.prediction[0];
 		prev_pred = o.prediction[0];
+		tot_weight += weights[i];
 	}
+	//end stats collection
+
 	int cumul_cnt = 0;
 	double controls_factor = 1;
 	if (control_weight_down_sample > 0)
 		controls_factor = control_weight_down_sample;
+	//calibration calc:
 	for (int i = 1; i <= bin; i++)
 	{
 		calibration_entry ce;
@@ -462,7 +498,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
 		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
-		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)samples.size();
+		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)tot_weight;
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
@@ -476,6 +512,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
 		cals.push_back(ce);
 	}
+	//smooth calc
 	if (do_calibration_smoothing) {
 		vector<calibration_entry> smooth_cals;
 		smooth_calibration_entries(cals, smooth_cals, controls_factor);
@@ -484,17 +521,19 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	return 0;
 }
 
-void get_counts(const vector<int> &inds, const vector<float> &y, int &cases_cnt,
+void get_counts(const vector<int> &inds, const vector<float> &y, const vector<float> &w, double &cases_cnt,
 	double &cntls_cnt, double control_weight) {
-	cases_cnt = 0;
-	for (int ind : inds)
-		cases_cnt += int(y[ind] > 0);
+	cases_cnt = 0, cntls_cnt = 0;
 	if (control_weight <= 0)
 		control_weight = 1;
-	cntls_cnt = (int(inds.size()) - cases_cnt) * control_weight;
+
+	for (int ind : inds) {
+		cases_cnt += int(y[ind] > 0) * w[ind];
+		cntls_cnt += int(y[ind] <= 0)* w[ind] * control_weight;
+	}
 }
 
-void learn_binned_probs(vector<float> &x, const vector<float> &y,
+void learn_binned_probs(const vector<float> &x, const vector<float> &y, const vector<float> &weights,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order,
 	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample, bool verbose) {
 	unordered_map<float, vector<int>> score_to_indexes;
@@ -516,9 +555,8 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	for (int i = sz - 1; i >= 0; --i)
 	{
 		//update values curr_cnt, pred_avg
-		int cases_cnt;
-		double cntls_cnt;
-		get_counts(score_to_indexes[unique_scores[i]], y, cases_cnt, cntls_cnt, control_weight_down_sample);
+		double cases_cnt, cntls_cnt;
+		get_counts(score_to_indexes[unique_scores[i]], y, weights, cases_cnt, cntls_cnt, control_weight_down_sample);
 
 		pred_sum += cases_cnt;
 		curr_cnt += (cases_cnt + cntls_cnt);
@@ -582,13 +620,13 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 }
 
 void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
-	
+
 	int n = (int)x.size();
 
 	vector<pair<float, float>> x2y(n);
 	for (int i = 0; i < n; i++)
 		x2y[i] = { x[i],y[i] };
-	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first);});
+	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
 
 	// PAV
 	vector<int> nag(n);
@@ -597,13 +635,13 @@ void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<
 	unsigned int i, j;
 	nag[0] = 1;
 	val[0] = x2y[0].second;
-		
+
 	j = 0;
-	for (i = 1;i<n;i++) {
+	for (i = 1; i < n; i++) {
 		j += 1;
 		val[j] = x2y[i].second;
 		nag[j] = 1;
-		while ((j>0) && (val[j]<val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+		while ((j > 0) && (val[j] < val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
 			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
 			nag[j - 1] += nag[j];
 			j--;
@@ -612,7 +650,7 @@ void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<
 
 	// Further unite ...
 	int nbins = 1;
-	for (i = 1; i < j+1; i++) {
+	for (i = 1; i < j + 1; i++) {
 		if (val[i] == val[nbins - 1])
 			nag[nbins - 1] += nag[i];
 		else {
@@ -621,14 +659,14 @@ void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<
 			nbins++;
 		}
 	}
-			
+
 	// Fill table
 	min_range.resize(nbins);
 	max_range.resize(nbins);
 	map_prob.resize(nbins);
 
 	int idx = 0;
-	min_range[nbins-1] = (float)INT32_MIN;
+	min_range[nbins - 1] = (float)INT32_MIN;
 	for (i = 0; i < nbins; i++) {
 		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
 		if (i < nbins - 1)
@@ -646,12 +684,12 @@ void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<
 			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
 }
 
-void learn_platt_scale(vector<float> x, vector<float> &y,
+void learn_platt_scale(const vector<float> x, const vector<float> &y, const vector<float> &weights,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
 	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample, bool verbose) {
 	vector<float> min_range, max_range, map_prob;
 
-	learn_binned_probs(x, y, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
+	learn_binned_probs(x, y, weights, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
 		min_range, max_range, map_prob, control_weight_down_sample, verbose);
 
 	vector<float> probs;
@@ -727,9 +765,9 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 
 int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_unit) {
 
-	MLOG_D("Learning calibration on %d ids\n", (int) orig_samples.size());
+	MLOG_D("Learning calibration on %d ids\n", (int)orig_samples.size());
 
-	vector<float> preds, labels;
+	vector<float> preds, labels, weights;
 	switch (calibration_type)
 	{
 	case CalibrationTypes::probability_time_window:
@@ -737,12 +775,14 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		break;
 	case CalibrationTypes::probability_binning:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_binned_probs(preds, labels, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_binned_probs(preds, labels, weights, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_platt_scale(preds, labels, weights, poly_rank, platt_params, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_isotonic:
