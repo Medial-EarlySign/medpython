@@ -178,7 +178,8 @@ namespace medial {
 	*/
 	namespace registry {
 		/// \brief completes control period for registry giving active period for patient. active_periods_registry - is time ranges for each patient (not looking on registry_value - like in censor registry)
-		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry);
+		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, 
+			const vector<MedRegistryRecord> &active_periods_registry, bool unite_full_controls = true);
 	}
 }
 
