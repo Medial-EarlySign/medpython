@@ -2009,7 +2009,7 @@ void medial::registry::complete_active_period_as_controls(vector<MedRegistryReco
 			}
 
 			if (curr_active->start_date < curr_reg->start_date) {
-				if (curr_time == 0)
+				if (curr_time == 0 || curr_time < curr_active->start_date)
 					curr_time = curr_active->start_date;
 				//complete till active_end or start_date of reg:
 				MedRegistryRecord reg_rec;

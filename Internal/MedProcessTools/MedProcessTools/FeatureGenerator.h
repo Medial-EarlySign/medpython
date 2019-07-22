@@ -808,7 +808,7 @@ private:
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat);
+	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex & remove_reg_pat);
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
@@ -825,6 +825,7 @@ public:
 	int max_age; ///< maximal age for testing statistical dependency
 	int age_bin; ///< age bin for testing statistical dependency
 	string regex_filter; ///< regex filter for filtering categories in learn
+	string remove_regex_filter; ///< remove regex filter for filtering categories in learn
 	int min_code_cnt; ///< minimal number of occourences to consider signal
 	float fdr; ///< the FDR value
 	int take_top; ///< maximal number of features to create

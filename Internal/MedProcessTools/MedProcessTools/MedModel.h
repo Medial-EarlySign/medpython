@@ -179,6 +179,17 @@ public:
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
+	// Learn with a vector of samples - one for the actual learning, and additional one for each post-processor.
+	// PostProcessors that do not require samples, can be assigned empty samples.
+	int learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets) {
+		return learn(rep, model_learning_set, post_processors_learning_sets, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END);
+	}
+	int learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets, MedModelStage start_stage, MedModelStage end_stage);
+
+	// Envelopes for normal calling 
+	int learn(MedPidRepository& rep, MedSamples& samples) { return learn(rep, &samples); }
+	int learn(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) { return learn(rep, &samples,start_stage,end_stage); }
+
 	// Apply on a given Rec : this is needed when someone outside the model runs on Records. No matching method for learn.
 	// The process is started with an initialization using init_for_apply_rec
 	// Then for each record use : apply_rec , there's a flag for using a copy of the rec rather than the record itself.
