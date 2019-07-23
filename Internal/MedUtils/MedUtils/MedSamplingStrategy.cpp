@@ -133,6 +133,7 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 
 int MedSamplingYearly::init(map<string, string>& map) {
 	int prediction_month_day = 101;
+	bool add_prediction_month = true;
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "start_year" || it->first == "from_year") {
@@ -140,9 +141,12 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			if (start_time <= 1900 || start_time >= 2100)
 				MTHROW_AND_ERR("start_year must be initialize between 1900 to 2100\n");
 			start_time = start_time * 10000; //convert to DATE format
+			add_prediction_month = true;
 		}
-		else if (it->first == "start_time")
+		else if (it->first == "start_time") {
 			start_time = stoi(it->second);
+			add_prediction_month = false;
+		}
 		else if (it->first == "end_year" || it->first == "to_year") {
 			end_time = stoi(it->second);
 			if (end_time <= 1900 || end_time >= 2100)
@@ -173,7 +177,8 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	if (back_random_duration < 0)
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
 
-	start_time += prediction_month_day;
+	if (add_prediction_month)
+		start_time += prediction_month_day;
 	return 0;
 }
 
