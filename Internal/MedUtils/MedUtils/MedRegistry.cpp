@@ -636,8 +636,16 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//advanced till passed end_date + buffer with no reapeating RC:
 			while (signal_index >= 0 && Date_wrapper(*signal, i) < max_search) {
 				if (signal_prop->get_outcome(*signal, i, registry_outcome_result)) {
-					r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
-					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					if (!seperate_cases) {
+						r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
+						max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					}
+					else {
+						results.push_back(r);
+						r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
+						r.start_date = Date_wrapper(*signal, i);
+						max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					}
 				}
 
 				signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
@@ -1427,6 +1435,8 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 			max_repo_date = stoi(it->second);
 		else if (it->first == "allow_prediciton_in_case")
 			allow_prediciton_in_case = stoi(it->second) > 0;
+		else if (it->first == "seperate_cases")
+			seperate_cases = stoi(it->second) > 0;
 		else if (it->first == "pid_to_censor_dates") {
 			ifstream fr(it->second);
 			if (!fr.good())
