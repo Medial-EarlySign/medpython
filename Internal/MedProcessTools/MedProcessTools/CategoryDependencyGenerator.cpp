@@ -39,6 +39,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	verbose = false;
 	use_fixed_lift = false;
 	verbose_full = false;
+	feature_prefix = "";
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -106,6 +107,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "verbose_full")
 			verbose_full = med_stoi(it->second) > 0;
+		else if (it->first == "feature_prefix")
+			feature_prefix = it->second;
 		else if (it->first == "stat_metric") {
 			if (conv_map_stats.find(it->second) != conv_map_stats.end())
 				stat_metric = category_stat_test(conv_map_stats.at(it->second));
@@ -214,7 +217,7 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
 			const vector<string> &names = categoryId_to_name.at(code);
 			int nm_idx = 0;
-			bool pass_regex_filter = false;  
+			bool pass_regex_filter = false;
 			bool pass_remove_regex_filter = false;
 			while (!(pass_regex_filter && pass_remove_regex_filter) && nm_idx < names.size())
 			{
@@ -328,7 +331,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			total_stats[i][j].resize(2);
 	}
 
-	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15,100);
+	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15, 100);
 	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	//bool nested_state = omp_get_nested();
 	//omp_set_nested(true);
@@ -465,7 +468,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			// Some timing printing
 			//#pragma omp atomic
 			progress.update();
-			
+
 		}
 	}
 	//omp_set_nested(nested_state);
@@ -637,8 +640,12 @@ void CategoryDependencyGenerator::set_names() {
 	names.resize(top_codes.size());
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
-		snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
-			signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
+		if (!feature_prefix.empty())
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
+		else
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
 }
