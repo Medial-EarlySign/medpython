@@ -925,10 +925,24 @@ bool MedSamples::same_as(MedSamples &other, int mode) {
 	return true;
 }
 
+//.......................................................................................
 void MedSamples::flatten(vector<MedSample> &flat) const {
 	for (size_t i = 0; i < idSamples.size(); ++i)
 		for (size_t j = 0; j < idSamples[i].samples.size(); ++j)
 			flat.push_back(idSamples[i].samples[j]);
+}
+
+//.......................................................................................
+void MedSamples::subtract(MedSamples &_dont_include)
+{
+	unordered_set<int> ids_to_remove;
+
+	for (auto &ids : _dont_include.idSamples) ids_to_remove.insert(ids.id);
+	vector<MedIdSamples> new_list;
+	for (auto &ids : idSamples)
+		if (ids_to_remove.find(ids.id) != ids_to_remove.end())
+			new_list.push_back(ids);
+	idSamples = new_list;
 }
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {

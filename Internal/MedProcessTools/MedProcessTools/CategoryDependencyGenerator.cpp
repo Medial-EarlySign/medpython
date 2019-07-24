@@ -96,6 +96,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			filter_child_removed_ratio = med_stof(it->second);
 		else if (it->first == "chi_square_at_least")
 			chi_square_at_least = med_stof(it->second);
+		else if (it->first == "sort_by_chi")
+			sort_by_chi = med_stoi(it->second);
 		else if (it->first == "minimal_chi_cnt")
 			minimal_chi_cnt = med_stoi(it->second);
 		else if (it->first == "use_fixed_lift")
@@ -590,6 +592,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		else
 			sort_pars[i].second[1] = -lift[indexes[i]];
 		sort_pars[i].second[2] = -scores[indexes[i]];
+		if (sort_by_chi) sort_pars[i].second.insert(sort_pars[i].second.begin(), -scores[indexes[i]]);
 	}
 	sort(sort_pars.begin(), sort_pars.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
 		int pos = 0;

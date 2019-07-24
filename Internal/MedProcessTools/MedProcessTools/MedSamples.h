@@ -213,6 +213,9 @@ public:
 	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
 
+	/// <summary> removing all ids that appear in _dont_include from the current samples
+	void subtract(MedSamples &_dont_include);
+
 	void flatten(vector<MedSample> &flat) const;
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>
