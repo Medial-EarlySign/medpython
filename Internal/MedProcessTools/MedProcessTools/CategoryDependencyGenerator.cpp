@@ -8,7 +8,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 void CategoryDependencyGenerator::init_defaults() {
-	generator_type = FTR_GEN_BASIC;
+	generator_type = FTR_GEN_CATEGORY_DEPEND;
 	signalName = "";
 	signalId = -1;
 	time_channel = 0;
@@ -302,6 +302,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
 		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
+	names.clear();
 
 	// Required signals
 	vector<int> all_req_signal_ids_v;
