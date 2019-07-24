@@ -647,7 +647,7 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 			list.push_back(curr_line.substr(0, npos));
 		else list.push_back(curr_line);
 	}
-	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
+	MLOG("read %d lines from: %s\n", lines, fname.c_str());
 	inf.close();
 
 }
