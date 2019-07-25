@@ -1750,6 +1750,10 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 	unordered_set<string> req_sigs;
 	vector<string> rsigs;
 
+	MedPidRepository rep;
+	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
+	model.set_affected_signal_ids(rep.dict);
 	model.get_required_signal_names(req_sigs);
 	for (auto &s : req_sigs) rsigs.push_back(s);
 
@@ -1760,7 +1764,6 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 
 	samples.get_ids(pids);
 
-	MedPidRepository rep;
 	if (rep.read_all(rep_fname, pids, rsigs) < 0)
 		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read repository %s\n", rep_fname.c_str());
 
