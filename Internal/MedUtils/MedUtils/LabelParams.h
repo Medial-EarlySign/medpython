@@ -95,6 +95,8 @@ public:
 	int time_from; ///< time window from - for labeling
 	int time_to; ///< time window to - for labeling
 	ConflictMode conflict_method; ///< resolving conflicts
+	int censor_time_from; ///< time window from - for censor registry
+	int censor_time_to; ///< time window to - for censor registry
 
 	LabelParams();
 

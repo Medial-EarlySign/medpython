@@ -1,4 +1,5 @@
 #include "LabelParams.h"
+#include <MedMat/MedMat/MedMatConstants.h>
 
 #define LOCAL_SECTION LOG_INFRA
 
@@ -56,6 +57,8 @@ LabelParams::LabelParams() {
 	conflict_method = ConflictMode::Drop;
 	time_from = 0; 
 	time_to = 0;
+	censor_time_from = MED_MAT_MISSING_VALUE;
+	censor_time_to = MED_MAT_MISSING_VALUE;
 }
 
 int LabelParams::init(map<string, string>& map) {
@@ -71,6 +74,10 @@ int LabelParams::init(map<string, string>& map) {
 			label_interaction_mode.init_from_string(it->second);
 		else if (it->first == "censor_interaction_mode")
 			censor_interaction_mode.init_from_string(it->second);
+		else if (it->first == "censor_time_from")
+			censor_time_from = med_stoi(it->second);
+		else if (it->first == "censor_time_to")
+			censor_time_to = med_stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in LabelParams::init - unsupported param %s\n", it->first.c_str());
 	}

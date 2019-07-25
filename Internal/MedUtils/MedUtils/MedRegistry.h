@@ -178,7 +178,8 @@ namespace medial {
 	*/
 	namespace registry {
 		/// \brief completes control period for registry giving active period for patient. active_periods_registry - is time ranges for each patient (not looking on registry_value - like in censor registry)
-		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, const vector<MedRegistryRecord> &active_periods_registry);
+		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, 
+			const vector<MedRegistryRecord> &active_periods_registry, bool unite_full_controls = true);
 	}
 }
 
@@ -335,6 +336,7 @@ public:
 	int end_buffer_duration; ///< the duration buffer from last date
 	int max_repo_date; ///< the maximal date for the repository
 	bool allow_prediciton_in_case; ///< If True will allow to give prediciton after\in case time range
+	bool seperate_cases; ///< If true will seperate each "case" time zone
 
 	vector<RegistrySignal *> signal_filters; ///< the signal filters
 
@@ -345,6 +347,7 @@ public:
 		max_repo_date = 0;
 		need_bdate = false;
 		allow_prediciton_in_case = false;
+		seperate_cases = false;
 	}
 
 	~MedRegistryCodesList() {

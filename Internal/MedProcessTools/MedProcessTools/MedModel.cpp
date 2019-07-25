@@ -46,11 +46,9 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 //=======================================================================================
 // MedModel
 //=======================================================================================
-// Learn
+// Learn with a single MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage start_stage, MedModelStage end_stage) {
-
-	MedTimer timer;
 
 	MLOG("MedModel() : starting learn process on %d samples, stages %d - %d \n", _samples->nSamples(), start_stage, end_stage);
 	// Stage Sanity
@@ -58,6 +56,26 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		MERR("MedModel learn() : Illegal start and end\n");
 		return -1;
 	}
+
+	// Set aside parts of the learning set required for post-processors training
+	vector<MedSamples> post_processors_learning_sets;
+	MedSamples model_learning_set;
+	split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
+
+	return learn(rep, model_learning_set, post_processors_learning_sets, start_stage, end_stage);
+}
+
+// Learn with multiple MedSamples
+//.......................................................................................
+int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets, MedModelStage start_stage, MedModelStage end_stage) {
+
+	MedTimer timer;
+
+	LearningSet = &model_learning_set;
+
+	// Sanity
+	if (post_processors_learning_sets.size() != post_processors.size())
+		MTHROW_AND_ERR("MedModel::Learn - Not enough samples given for post-processors learning");
 
 	//init to check we have remove all we can (or if need to create virtual signals?):
 	set_affected_signal_ids(rep.dict);
@@ -89,20 +107,13 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 		}
 	}
 
-	LearningSet = _samples;
-
-	// Set aside parts of the learning set required for post-processors training
-	vector<MedSamples> post_processors_learning_sets;
-	MedSamples model_learning_set;
-	split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
-
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
 	if (start_stage <= MED_MDL_LEARN_REP_PROCESSORS) {
 		MLOG("MedModel() : starting learn rep processors on %d samples\n", model_learning_set.nSamples(), start_stage, end_stage);
 		timer.start();
-		if (learn_rep_processors(rep, *LearningSet) < 0) { //??? why are rep processors initialized for ALL time points in an id??
+		if (learn_rep_processors(rep, model_learning_set) < 0) { //??? why are rep processors initialized for ALL time points in an id??
 			MERR("MedModel learn() : ERROR: Failed learn_rep_processors()\n");
 			return -1;
 		}
@@ -115,7 +126,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	// Learn Feature Generators
 	if (start_stage <= MED_MDL_LEARN_FTR_GENERATORS) {
 		timer.start();
-		if (learn_feature_generators(rep, LearningSet) < 0) {
+		if (learn_feature_generators(rep, &model_learning_set) < 0) {
 			MERR("MedModel learn() : ERROR: Failed learn_feature_generators\n");
 			return -1;
 		}
@@ -131,10 +142,10 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	unordered_set<string> empty_set;
 	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
 		features.clear();
-		features.set_time_unit(LearningSet->time_unit);
+		features.set_time_unit(model_learning_set.time_unit);
 
 		timer.start();
-		if (generate_all_features(rep, LearningSet, features, empty_set) < 0) {
+		if (generate_all_features(rep, &model_learning_set, features, empty_set) < 0) {
 			MERR("MedModel learn() : ERROR: Failed generate_all_features()\n");
 			return -1;
 		}
@@ -636,7 +647,7 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 			list.push_back(curr_line.substr(0, npos));
 		else list.push_back(curr_line);
 	}
-	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
+	MLOG("read %d lines from: %s\n", lines, fname.c_str());
 	inf.close();
 
 }
@@ -1291,7 +1302,7 @@ void MedModel::get_all_features_names(vector<string> &feat_names, int before_pro
 		for (string& name : generators[i]->names)
 			uniq_feat_names.insert(name);
 	}
-	assert((before_process_set < feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
+	assert((before_process_set <= feature_processors.size()) || (before_process_set == 0 && feature_processors.size() == 0));
 	for (int i = 0; i < before_process_set; i++) {
 		//if (feature_processors[i]->is_selector()) {
 		//	FeatureSelector *fs = (FeatureSelector *)feature_processors[i];
@@ -1670,7 +1681,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 		int use_split = processor->get_use_split();
 		if (use_p > 0 && use_split >= 0)
 			MTHROW_AND_ERR("Split_Learning_Set: At most one of use_p (%f) & use_split (%d) allowed for post-processor\n", use_p, use_split);
-		if (processor->get_use_p() > 0) {
+		if (use_p > 0) {
 			// Adjust use_p according to free ids
 			float eff_use_p = (use_p * nIds) / nFreeIds;
 			if (eff_use_p > 1.0)
@@ -1716,6 +1727,10 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 	MLOG("Split_Learning_Set: Assigned %d ids out of %d to model learning set\n", nFreeIds, nIds);
 
 	// Create MedSamples
+	model_learning_set.time_unit = inSamples.time_unit;
+	for (auto& learning_set : post_processors_learning_sets)
+		learning_set.time_unit = inSamples.time_unit;
+
 	for (int i = 0; i < nIds; i++) {
 		if (assignments[i] == 0)
 			model_learning_set.idSamples.push_back(inSamples.idSamples[i]);
@@ -1735,6 +1750,10 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 	unordered_set<string> req_sigs;
 	vector<string> rsigs;
 
+	MedPidRepository rep;
+	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
+	model.set_affected_signal_ids(rep.dict);
 	model.get_required_signal_names(req_sigs);
 	for (auto &s : req_sigs) rsigs.push_back(s);
 
@@ -1745,7 +1764,6 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 
 	samples.get_ids(pids);
 
-	MedPidRepository rep;
 	if (rep.read_all(rep_fname, pids, rsigs) < 0)
 		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read repository %s\n", rep_fname.c_str());
 

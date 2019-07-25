@@ -570,6 +570,8 @@ typedef enum {
 	///<"recurrence_count" - count the number of time the event occur shortly after a previous event, there is an intersection of the time signal range with the defined time window
 	///previous event does not need to intersect the time window. 
 	FTR_RANGE_RECURRENCE_COUNT = 6,
+	/// "time_covered"  : give a time window, sum up all the times in ranges that intersect the time window
+	FTR_RANGE_TIME_COVERED = 7,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -586,6 +588,7 @@ private:
 	float uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 
@@ -599,6 +602,7 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
+	float div_factor = 1.0f;					/// dividing by this number in time_covered option
 
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
 	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
@@ -647,7 +651,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win)
+			time_unit_sig, time_unit_win, div_factor)
 };
 
 /**
@@ -804,7 +808,7 @@ private:
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat);
+	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex & remove_reg_pat);
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
@@ -821,6 +825,7 @@ public:
 	int max_age; ///< maximal age for testing statistical dependency
 	int age_bin; ///< age bin for testing statistical dependency
 	string regex_filter; ///< regex filter for filtering categories in learn
+	string remove_regex_filter; ///< remove regex filter for filtering categories in learn
 	int min_code_cnt; ///< minimal number of occourences to consider signal
 	float fdr; ///< the FDR value
 	int take_top; ///< maximal number of features to create
@@ -833,12 +838,14 @@ public:
 	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
+	int sort_by_chi = 0; ///< sort results by chi-square
 	int max_depth; ///< maximal depth to go in heirarchy
 	int max_parents; ///< controls maximum parents count
 	bool use_fixed_lift; ///< If true will also sort be lifts below 1
 	bool filter_hierarchy; /// Apply hierarchy filtering
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
+	string feature_prefix; ///< additional prefix to add to name to describe the feature
 
 	void set_signal_ids(MedSignals& sigs);
 
@@ -863,7 +870,7 @@ public:
 	int nfeatures();
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix)
 };
 
 //=======================================

@@ -53,8 +53,9 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 		const vector<const MedRegistryRecord *> &pid_recs = pid_reg_records.at(pid);
 
 		medial::sampling::get_label_for_sample(time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
-			labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-			samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
+			labeling_params.censor_time_from, labeling_params.time_to, labeling_params.label_interaction_mode,
+			labeling_params.censor_interaction_mode, labeling_params.conflict_method, samples, r.no_rule_cnt, r.conflict_cnt,
+			r.done_cnt, false, show_conflicts);
 	}
 	else
 		++r.miss_pid_in_reg_cnt;
@@ -74,8 +75,9 @@ SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<Med
 		const vector<const MedRegistryRecord *> &pid_recs = pid_reg_records.at(pid);
 		for (size_t i = 0; i < times.size(); ++i) {
 			medial::sampling::get_label_for_sample(times[i], pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
-				labeling_params.label_interaction_mode, labeling_params.censor_interaction_mode, labeling_params.conflict_method,
-				samples, r.no_rule_cnt, r.conflict_cnt, r.done_cnt, false, show_conflicts);
+				labeling_params.censor_time_from, labeling_params.censor_time_to, labeling_params.label_interaction_mode,
+				labeling_params.censor_interaction_mode, labeling_params.conflict_method, samples, r.no_rule_cnt, r.conflict_cnt,
+				r.done_cnt, false, show_conflicts);
 		}
 
 	}
@@ -512,7 +514,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	sampler->init_sampler(rep);
 	MLOG("Sampling for incidence stats...\n");
 	create_samples(sampler, incidence_samples);
-	MLOG("Done...\n");
+	MLOG("Done (has %zu idSamples)...\n", incidence_samples.idSamples.size());
 	delete sampler;
 	ofstream fw_debug;
 	if (!debug_file.empty())
