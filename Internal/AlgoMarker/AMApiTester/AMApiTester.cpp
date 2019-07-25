@@ -23,6 +23,8 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include "internal_am.h"
+
 
 #ifdef __linux__ 
 #include <wordexp.h>
@@ -39,6 +41,14 @@
 using namespace std;
 namespace po = boost::program_options;
 namespace pt = boost::property_tree;
+
+
+string precision_float_to_string(float val) {
+	stringstream ss;
+	ss << std::setprecision(10) << val;
+	return ss.str();
+}
+
 
 string expandEnvVars(const string &str) {
   string ret = "";
@@ -64,10 +74,10 @@ string expandEnvVars(const string &str) {
 #endif
   return ret;
 }
-/**/
+/*
 class charpp_adaptor : public vector<string> {
 protected:
-	vector<const char*> charpp_arr;
+	vector<char*> charpp_arr;
 public:
 	charpp_adaptor() : vector<string>() {};
 	charpp_adaptor(int capacity) : vector<string>(capacity) {};
@@ -75,9 +85,57 @@ public:
 	char** get_charpp() {
 		charpp_arr.clear();
 		for (auto& str : *this) {
-			charpp_arr.push_back(str.data());
+			charpp_arr.push_back(const_cast<char*>(str.data()));
 		}
-		return const_cast<char**>(charpp_arr.data());
+		return charpp_arr.data();
+	}
+};
+*/
+
+class charpp_adaptor : public vector<string> {
+protected:
+	char** charpp_arr;
+	char* charpp_buf;
+public:
+	void init() {
+		charpp_arr = (char**)malloc(1);
+		charpp_buf = (char*)malloc(1);
+	}
+	~charpp_adaptor() {
+		free(charpp_arr);
+		free(charpp_buf);
+	};
+	charpp_adaptor() : vector<string>() { init();  };
+	charpp_adaptor(int capacity) : vector<string>(capacity) { init(); };
+	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) { init(); };
+
+	char** get_charpp() {
+		int charpp_arr_sz=this->size()*sizeof(char**);
+		int charpp_buf_sz=0;
+		for (auto& str : *this) {
+			charpp_buf_sz += str.size() + 1;
+		}
+		charpp_buf_sz *= sizeof(char*);
+		
+		charpp_arr = (char**)realloc(charpp_arr, charpp_arr_sz);
+		charpp_buf = (char*)realloc(charpp_buf, charpp_buf_sz);
+
+		char** charpp_arr_i = charpp_arr;
+		char* charpp_buf_i = charpp_buf;
+
+		for (auto& str : *this) 
+		{
+			*charpp_arr_i = charpp_buf_i;
+			charpp_arr_i++;
+			for (int i=0; i < str.size(); ++i) {
+				*charpp_buf_i = str[i];
+				charpp_buf_i++;
+			}
+			*charpp_buf_i = '\0';
+			charpp_buf_i++;
+			//charpp_arr.push_back(const_cast<char*>(str.data()));
+		}
+		return charpp_arr; //charpp_arr.data();
 	}
 };
 
@@ -92,6 +150,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("amfile", po::value<string>()->default_value(expandEnvVars(DEFAULT_AM_LOCATION)), "AlgoMarker .so/.dll file")
 			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("med_res_file", po::value<string>()->default_value(""), "File name to save Medial API results to")
+			("med_csv_file", po::value<string>()->default_value(""), "file to write Med API feature matrix after apply")
+			("am_csv_file", po::value<string>()->default_value(""), "file to write AM API feature matrix after apply")
 			("samples", po::value<string>()->default_value(""), "MedSamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "AlgoMarker configuration file")
@@ -99,6 +159,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("print_msgs", "Print algomarker messages when testing batches or single (direct test always prints them)")
 			("egfr_test", "Test simple egfr algomarker")
 			("signalsum_test", "Test signalsum algomarker")
+			("force_add_data","Force using the AddData() API call instead of the AddDataStr()")
 			("generate_data", "Generate a unified repository data file for all the signals a model needs (required options: rep,samples,model)")
 			("generate_data_outfile", po::value<string>()->default_value(""), "file to output the Generated unified signal file")
 			("generate_data_cat_prefix", po::value<string>()->default_value(""), "If provided, prefer to convert a catogorial channel to a name/setname with given prefix")
@@ -183,11 +244,7 @@ public:
 			pid2samples[id.id] = &id;		
     }
 
-	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
-		ofstream outfile(fname, ios::binary | ios::out);
-		
-		MLOG("(II) Preparing dictinaries to export\n", fname.c_str());
-
+	map<string, vector<map<int, string> > > get_sig_dict(const string& cat_prefix="", bool force_cat_prefix=false) {
 		map<string, vector<map<int, string> > > sig_dict;
 		for (auto& sig : sigs) {
 			vector<map<int, string > > chan_dict;
@@ -205,30 +262,41 @@ public:
 							continue;
 						}
 						string new_ent = entry.second;
-						if(Member2Sets.count(entry.first) != 0)
-						for (const auto& setid : Member2Sets.at(entry.first)) {
-							if (Id2Name.count(setid) != 0 && boost::starts_with(Id2Name.at(setid), cat_prefix)) {
-								if(!boost::starts_with(new_ent, cat_prefix) || new_ent.length() > Id2Name.at(setid).length())
-								new_ent = Id2Name.at(setid);
+						if (Member2Sets.count(entry.first) != 0)
+							for (const auto& setid : Member2Sets.at(entry.first)) {
+								if (Id2Name.count(setid) != 0 && boost::starts_with(Id2Name.at(setid), cat_prefix)) {
+									if (!boost::starts_with(new_ent, cat_prefix) || new_ent.length() > Id2Name.at(setid).length())
+										new_ent = Id2Name.at(setid);
+								}
 							}
-						}
-						if(!force_cat_prefix || boost::starts_with(new_ent, cat_prefix))
+						if (!force_cat_prefix || boost::starts_with(new_ent, cat_prefix))
 							new_dict[entry.first] = new_ent;
 					}
-					
+
 					chan_dict.push_back(new_dict);
-					auto& dict = new_dict; //rep.dict.dict(section_id)->Id2Name;
+					/*
+					auto& dict = new_dict; //rep.dict.dict(section_id)->Id2Name;										   
 					ofstream f;
 					f.open("/nas1/Work/Users/Shlomi/apply-program/generated/dict.orig.tsv");
 					for (const auto& entry : dict) {
-						f << entry.first << '\t' << entry.second << '\n';
+					f << entry.first << '\t' << entry.second << '\n';
 					}
 					f.close();
+					*/
 				}
 				else chan_dict.push_back(map<int, string>());
 			}
 			sig_dict[sig] = chan_dict;
 		}
+		return sig_dict;
+	}
+
+	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
+		ofstream outfile(fname, ios::binary | ios::out);
+		
+		MLOG("(II) Preparing dictinaries to export\n", fname.c_str());
+
+		map<string, vector<map<int, string> > > sig_dict = get_sig_dict(cat_prefix, force_cat_prefix);
 		
 		MLOG("(II) Exporting required data to %s\n", fname.c_str());
 
@@ -403,14 +471,18 @@ public:
 		return 0;
 	}
 
-    void am_add_data(AlgoMarker *am, int pid, int max_date=INT_MAX){
-        UniversalSigVec usv;
-
+    void am_add_data(AlgoMarker *am, int pid, int max_date=INT_MAX, bool force_add_data=false){
+		static bool print_once = false;
+		UniversalSigVec usv;
 	    int max_vals = 100000;
     	vector<long long> times(max_vals);
     	vector<float> vals(max_vals);
 		charpp_adaptor str_vals(max_vals);
-		MLOG("(INFO) Will use %s API to insert data\n", so_functions::so->AM_API_AddDataStr == nullptr ? "AddData()" : "AddDataStr()" );
+		if (!print_once) {
+			print_once = true;
+			MLOG("(INFO) force_add_data=%d\n", ((int)force_add_data));
+			MLOG("(INFO) Will use %s API to insert data\n", (so_functions::so->AM_API_AddDataStr == nullptr || force_add_data) ? "AddData()" : "AddDataStr()");
+		}
 	    for (auto &sig : sigs) {
 			int sid = rep.sigs.Name2Sid[sig];
 			int section_id = rep.dict.section_id(sig);
@@ -435,7 +507,7 @@ public:
 			    else
 				    p_times = NULL;
 				
-				if (so_functions::so->AM_API_AddDataStr == nullptr) {
+				if (so_functions::so->AM_API_AddDataStr == nullptr || force_add_data) {
 					if (usv.n_val_channels() > 0) {
 						if (p_times != nullptr) nelem = nelem_before;
 						for (int i = 0; i < nelem; i++)
@@ -447,17 +519,34 @@ public:
 
 					if ((i_val > 0) || (i_time > 0))
 						AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
+
+					
+					/*
+					ofstream f;
+					f.open("/tmp/adddata.tsv");
+					f << "times\n";
+					for (int i = 0; i < i_time; i++) {
+						f << p_times[i] << '\n';
+					}
+					f << "\nvals\n";
+					for (int i = 0; i < i_val; i++) {
+						f << p_vals[i] << '\n';
+					}
+					f.close();
+					*/
+					
 				}
 				else {
 					if (usv.n_val_channels() > 0) {
+						map<string, vector<map<int, string> > > sig_dict = get_sig_dict();
 						if (p_times != nullptr) nelem = nelem_before;
 						for (int i = 0; i < nelem; i++)
 							for (int j = 0; j < usv.n_val_channels(); j++) {
 								if (rep.sigs.is_categorical_channel(sid, j)) {
-									str_vals[i_val++] = rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
+									str_vals[i_val++] = sig_dict.at(sig)[j].at((int)(usv.Val(i, j))); //rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
 								}
 								else {
-									str_vals[i_val++] = to_string(usv.Val(i, j));
+									str_vals[i_val++] = precision_float_to_string(usv.Val(i, j));
 								}
 
 							}
@@ -467,6 +556,19 @@ public:
 
 					if ((i_val > 0) || (i_time > 0))
 						AM_API_AddDataStr(am, pid, sig.c_str(), i_time, p_times, i_val, str_vals.get_charpp());
+					/*
+					ofstream f;
+					f.open("/tmp/adddatastr.tsv");
+					f << "times\n";
+					for (int i = 0; i < i_time; i++) {
+						f << p_times[i] << '\n';
+					}
+					f << "\nvals\n";
+					for (int i = 0; i < i_val; i++) {
+						f << str_vals[i] << '\n';
+					}
+					f.close();
+					*/
 				}
 		    }
 	    }
@@ -475,7 +577,7 @@ public:
 };
 
 //=================================================================================================================
-int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d)
+int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data)
 {
 	AM_API_ClearData(am);
 
@@ -483,7 +585,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
     
 	MLOG("Going over %d pids\n", d.pids.size());
 	for (auto pid : d.pids) {
-        d.am_add_data(am, pid);
+        d.am_add_data(am, pid, INT_MAX, force_add_data);
     }
 
     //ASK_AVI: Is this needed?
@@ -601,7 +703,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d)
+int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data)
 {
 
 	AM_API_ClearData(am);
@@ -616,7 +718,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 		for (auto &s : id.samples) {
 
 			// adding all data 
-			d.am_add_data(am, s.id, s.time);
+			d.am_add_data(am, s.id, s.time, force_add_data);
 
 			// At this point we can send to the algomarker and ask for a score
 
@@ -947,13 +1049,19 @@ int generate_data(const string& rep_file, const string& samples_file, const stri
 	return 0;
 }
 
-vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single){
+vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data){
 	vector<MedSample> res2;
 	AlgoMarker *test_am;
 
 	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		throw runtime_error("ERROR: Failed creating test algomarker\n");
+	}
+
+	// put fix here
+
+	if (am_csv_file != "") {
+		set_am_matrix(test_am, am_csv_file);
 	}
 
     int rc=0;
@@ -963,16 +1071,19 @@ vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print
 	}
 
 	if (single)
-		get_preds_from_algomarker_single(test_am, res2, print_msgs, d);
+		get_preds_from_algomarker_single(test_am, res2, print_msgs, d, force_add_data);
 	else
-		get_preds_from_algomarker(test_am, res2, print_msgs, d);
+		get_preds_from_algomarker(test_am, res2, print_msgs, d, force_add_data);
 
     return res2;
 }
 
-vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples){
+vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples, const string& med_csv_file=""){
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
+
+	if (med_csv_file != "")
+		model.write_feature_matrix(med_csv_file);
 
     /////// REMOVE THIS
 	//model.write_feature_matrix("/nas1/Work/Users/Shlomi/apply-program/generated/fmat-apply-program.csv");
@@ -1020,7 +1131,7 @@ void save_sample_vec(vector<MedSample> sample_vec, const string& fname){
     s.write_to_file(fname);
 }
 
-int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file) {
+int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file, const string& med_csv_file, const string& am_csv_file, bool force_add_data) {
 	
 	DataLoader l;
 	MLOG("(II) Starting apply with:\n(II)   repdata_file='%s'\n(II)   mock_rep_file='%s'\n(II)   scores_file='%s' %s\n(II)   model_file='%s'\n(II)   scores_output_file='%s'\n(II)   amconfig_file='%s'\n"
@@ -1043,13 +1154,13 @@ int apply_data(const string& repdata_file, const string& mock_rep_file, const st
 
 	if (amconfig_file == "") {
 		MLOG("(II) Starting apply using Medial API\n");
-		auto ret = apply_med_api(l.rep, l.model, l.samples);
+		auto ret = apply_med_api(l.rep, l.model, l.samples, med_csv_file);
 		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
 		save_sample_vec(ret, scores_output_file);
 	}
 	else {
 		MLOG("(II) Starting apply using Algomarker API\n");
-		auto ret = apply_am_api(amconfig_file, l, false, false);
+		auto ret = apply_am_api(amconfig_file, l, false, false, am_csv_file, force_add_data);
 		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
 		save_sample_vec(ret, scores_output_file);
 	}
@@ -1074,6 +1185,10 @@ int main(int argc, char *argv[])
 	if (vm.count("help")) {
 	    return 0;
 	}
+
+	string med_csv_file = vm["med_csv_file"].as<string>();
+	string am_csv_file = vm["am_csv_file"].as<string>();
+	bool force_add_data = vm.count("force_add_data") != 0;
 
 	if (vm.count("generate_data")) {
 		if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
@@ -1105,7 +1220,7 @@ int main(int argc, char *argv[])
 			scores_file = vm["apply_dates_to_score"].as<string>();
 			score_to_date_format_is_samples = false;
 		}
-		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>());
+		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>(), med_csv_file, am_csv_file, force_add_data);
 	}
     
     load_am(vm["amfile"].as<string>().c_str());
@@ -1127,7 +1242,7 @@ int main(int argc, char *argv[])
 
         samples2 = samples = d.samples;
     
-        res1 = apply_med_api(d.rep, d.model,samples);
+        res1 = apply_med_api(d.rep, d.model, samples, med_csv_file);
     }catch(runtime_error e){
       return -1;
     }
@@ -1144,7 +1259,7 @@ int main(int argc, char *argv[])
 	//===============================================================================
     vector<MedSample> res2;
     try{
-        res2 = apply_am_api(vm["amconfig"].as<string>(), d, (vm.count("print_msgs")!=0),(vm.count("single")!=0) );
+        res2 = apply_am_api(vm["amconfig"].as<string>(), d, (vm.count("print_msgs")!=0),(vm.count("single")!=0) , am_csv_file, force_add_data);
     }catch(runtime_error e){
       return -1;
     }
