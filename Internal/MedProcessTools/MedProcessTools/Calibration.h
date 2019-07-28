@@ -21,6 +21,7 @@ public:
 	int bin;
 	float min_pred, max_pred;
 	double cnt_cases, cnt_controls;
+	double cnt_cases_no_w, cnt_controls_no_w;
 	float mean_pred, mean_outcome;
 	float cumul_pct;
 	vector<double> controls_per_time_slot;
@@ -30,7 +31,7 @@ public:
 	string str() const;
 
 	ADD_CLASS_NAME(calibration_entry)
-		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
+		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, cnt_cases_no_w, cnt_controls_no_w, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
 };
 MEDSERIALIZE_SUPPORT(calibration_entry)
 

@@ -20,8 +20,8 @@ unordered_map<int, string> calibration_method_to_name = {
 string calibration_entry::str() const {
 	char buffer[5000];
 
-	snprintf(buffer, sizeof(buffer), "Bin %d :: [%2.3f, %2.3f] => {kaplan_meier=%2.3f, mean_outcome=%2.3f, mean_pred=%2.3f} | cnt_cases=%2.1f, cnt_controls=%2.1f}",
-		bin, min_pred, max_pred, kaplan_meier, mean_outcome, mean_pred, cnt_cases, cnt_controls);
+	snprintf(buffer, sizeof(buffer), "Bin %d :: [%1.6f, %1.6f] => {kaplan_meier=%2.5f, mean_outcome=%2.5f, mean_pred=%2.5f} | cnt_cases=%2.1f(%d), cnt_controls=%2.1f(%d)}",
+		bin, min_pred, max_pred, kaplan_meier, mean_outcome, mean_pred, cnt_cases, (int)cnt_cases_no_w, cnt_controls, (int)cnt_controls_no_w);
 
 	return string(buffer);
 }
@@ -429,6 +429,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	vector<float> bin_max_preds;
 	vector<float> bin_min_preds;
 	vector<float> bin_sum_preds;
+	vector<double> cnt_cases_no_w, cnt_ctrl_no_w;
 	vector<vector<double>> bin_controls_per_time_slot;
 	vector<vector<double>> bin_cases_per_time_slot;
 	int km_time_slots = (pos_sample_max_time_before_case - pos_sample_min_time_before_case) / km_time_resolution;
@@ -440,6 +441,8 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	int sz_loop = (bins_num + 1);
 	cnt_cases.resize(sz_loop);
 	cnt_controls.resize(sz_loop);
+	cnt_cases_no_w.resize(sz_loop);
+	cnt_ctrl_no_w.resize(sz_loop);
 	bin_sum_preds.resize(sz_loop);
 	bin_max_preds.resize(sz_loop);
 	bin_min_preds.resize(sz_loop, min_pred);
@@ -456,17 +459,21 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	//stats for all samples in time slots and general - iterating on scores (same bin, or move to next one)
 	float prev_pred = min_pred;
 	double tot_weight = 0;
+	double controls_factor = 1;
+	if (control_weight_down_sample > 0)
+		controls_factor = control_weight_down_sample;
 	for (int i = 0; i < samples.size(); ++i) {
 		const MedSample &o = samples[i];
 		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, o.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, o.time);
 		if (
 			(bin < bins_num)
+			//&& (prev_pred != o.prediction[0]) //can't break prediction score
 			&&
 			(
 			(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
-				(binning_method == "equal_num_of_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
+				(binning_method == "equal_num_of_samples_per_bin" && cnt_ctrl_no_w[bin] + cnt_cases_no_w[bin] >= max_samples_per_bin) ||
 				(binning_method == "equal_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
-				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
+				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases_no_w[bin] >= max_cases_per_bin))
 			)
 		{
 			++bin;
@@ -481,23 +488,29 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		if (o.outcome >= 1) {
 			cnt_cases[bin] += weights[i];
 			bin_cases_per_time_slot[bin][time_slot] += weights[i];
+			++cnt_cases_no_w[bin];
 		}
 		else {
 			cnt_controls[bin] += weights[i];
 			bin_controls_per_time_slot[bin][time_slot] += weights[i];
+			++cnt_ctrl_no_w[bin];
 		}
 
-		bin_sum_preds[bin] += o.prediction[0] * weights[i];
 		bin_max_preds[bin] = o.prediction[0];
 		prev_pred = o.prediction[0];
-		tot_weight += weights[i];
+		if (o.outcome > 0) {
+			tot_weight += weights[i];
+			bin_sum_preds[bin] += o.prediction[0] * weights[i];
+		}
+		else {
+			tot_weight += controls_factor * weights[i];
+			bin_sum_preds[bin] += o.prediction[0] * weights[i] * controls_factor;
+		}
 	}
 	//end stats collection
 
 	int cumul_cnt = 0;
-	double controls_factor = 1;
-	if (control_weight_down_sample > 0)
-		controls_factor = control_weight_down_sample;
+
 	//calibration calc:
 	for (int i = 1; i <= bin; i++)
 	{
@@ -506,13 +519,14 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.min_pred = bin_min_preds[i];
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
+		ce.cnt_controls_no_w = cnt_ctrl_no_w[i]; ce.cnt_cases_no_w = cnt_cases_no_w[i];
 		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
 		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)tot_weight;
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
 			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i], controls_factor);
-			ce.mean_outcome = 0.0;
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
 		}
 		else {
 			ce.kaplan_meier = 0.0;
