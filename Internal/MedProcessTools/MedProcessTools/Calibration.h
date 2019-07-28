@@ -27,6 +27,8 @@ public:
 	vector<double> cases_per_time_slot;
 	float kaplan_meier;
 
+	string str() const;
+
 	ADD_CLASS_NAME(calibration_entry)
 		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
 };
@@ -90,6 +92,8 @@ public:
 
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
+
+	void dprint(const string &pref) const;
 
 	ADD_CLASS_NAME(Calibrator)
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,

@@ -17,6 +17,15 @@ unordered_map<int, string> calibration_method_to_name = {
 	{ probability_isotonic, "isotonic_regression" }
 };
 
+string calibration_entry::str() const {
+	char buffer[5000];
+
+	snprintf(buffer, sizeof(buffer), "Bin %d :: [%2.3f, %2.3f] => {kaplan_meier=%2.3f, mean_outcome=%2.3f, mean_pred=%2.3f} | cnt_cases=%2.1f, cnt_controls=%2.1f}",
+		bin, min_pred, max_pred, kaplan_meier, mean_outcome, mean_pred, cnt_cases, cnt_controls);
+
+	return string(buffer);
+}
+
 CalibrationTypes clibration_name_to_type(const string& calibration_name) {
 	for (auto it = calibration_method_to_name.begin(); it != calibration_method_to_name.end(); ++it)
 		if (it->second == calibration_name)
@@ -518,6 +527,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		smooth_calibration_entries(cals, smooth_cals, controls_factor);
 		cals = smooth_cals;
 	}
+	if (verbose)
+		dprint("");
+
 	return 0;
 }
 
@@ -989,5 +1001,31 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 	}
 }
 
+void Calibrator::dprint(const string &pref) const {
+	MLOG("%s :: PP type %d(%s) - of type %s\n", pref.c_str(), processor_type, my_class_name().c_str()
+		, calibration_method_to_name.at(calibration_type).c_str());
 
+	switch (calibration_type)
+	{
+	case probability_time_window:
+		for (size_t i = 0; i < cals.size(); ++i)
+			MLOG("%s\n", cals[i].str().c_str());
+		break;
+	case probability_isotonic:
+	case probability_binning:
+		for (size_t i = 0; i < map_prob.size(); ++i)
+			MLOG("Range: [%2.4f, %2.4f] => %2.4f\n",
+				min_range[i], max_range[i], map_prob[i]);
+		break;
+	case probability_platt_scale:
+		MLOG("Platt Scale params for poly_rank=%d:\n", poly_rank);
+		for (size_t i = 0; i < platt_params.size(); ++i)
+			MLOG("i=0 :: %2.3f\n", platt_params[i]);
+		break;
+	default:
+		MWARN("Unsupported print type %d - Maybe memory error\n", calibration_type);
+		break;
+	}
+
+}
 
