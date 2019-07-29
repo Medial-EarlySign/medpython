@@ -530,7 +530,7 @@ void medial::print::log_with_file(ofstream &fw, const char *format_str, ...) {
 	va_end(argptr);
 	string final_str = string(buff);
 
-	if (fw.good()) {
+	if (fw.is_open() && fw.good()) {
 		fw << final_str;
 		fw.flush();
 	}
