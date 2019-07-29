@@ -514,7 +514,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 					found_match = regex_match(names[pos_i], reg_pat);
 				else
 					found_match = true;
-				found_remove_match = regex_match(names[pos_i], remove_reg_pat);
+				if (!remove_regex_filter.empty())
+					found_remove_match = regex_match(names[pos_i], remove_reg_pat);
 				++pos_i;
 			}
 
