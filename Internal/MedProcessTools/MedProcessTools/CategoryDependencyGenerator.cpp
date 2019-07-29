@@ -181,6 +181,13 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
+bool any_regex_match(const regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = regex_match(nms[i], reg_pat);
+	return res;
+}
+
 void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex &remove_reg_pat) {
 
 	bool cached = false;
@@ -218,20 +225,12 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 		{
 			if (categoryId_to_name.find(code) == categoryId_to_name.end())
 				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
-			const vector<string> &names = categoryId_to_name.at(code);
-			int nm_idx = 0;
-			bool pass_regex_filter = false;
+			const vector<string> &names_ = categoryId_to_name.at(code);
+			bool pass_regex_filter = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
 			bool pass_remove_regex_filter = false;
-			while (!(pass_regex_filter && pass_remove_regex_filter) && nm_idx < names.size())
-			{
-				if (!regex_filter.empty())
-					pass_regex_filter = regex_match(names[nm_idx], reg_pat);
-				else
-					pass_regex_filter = true;
-				if (!remove_regex_filter.empty())
-					pass_remove_regex_filter = regex_match(names[nm_idx], remove_reg_pat);
-				++nm_idx;
-			}
+			if (pass_regex_filter) //calc only if needed, has chance to be selected
+				pass_remove_regex_filter = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
+
 			if (pass_regex_filter && !pass_remove_regex_filter)
 				filtered_p.push_back(code);
 		}
@@ -505,19 +504,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	if (!regex_filter.empty() || !remove_regex_filter.empty())
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
 			int base_code = it->first;
-			bool found_match = false;
+			const vector<string> &names_ = categoryId_to_name.at(base_code);
+			bool found_match = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
 			bool found_remove_match = false;
-			const vector<string> &names = categoryId_to_name.at(base_code);
-			int pos_i = 0;
-			while (pos_i < names.size() && !found_match) {
-				if (!regex_filter.empty())
-					found_match = regex_match(names[pos_i], reg_pat);
-				else
-					found_match = true;
-				if (!remove_regex_filter.empty())
-					found_remove_match = regex_match(names[pos_i], remove_reg_pat);
-				++pos_i;
-			}
+			if (found_match) //calc only if needed, has chance to be selected
+				found_remove_match = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
 
 			if (found_match && !found_remove_match)
 				++it;
