@@ -845,6 +845,7 @@ public:
 	bool filter_hierarchy; /// Apply hierarchy filtering
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
+	string verbose_full_file; ///< output file for verbose_full debug in learn
 	string feature_prefix; ///< additional prefix to add to name to describe the feature
 
 	void set_signal_ids(MedSignals& sigs);

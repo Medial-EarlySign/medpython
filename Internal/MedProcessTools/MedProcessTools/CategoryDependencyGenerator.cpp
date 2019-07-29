@@ -40,6 +40,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	use_fixed_lift = false;
 	verbose_full = false;
 	feature_prefix = "";
+	verbose_full_file = "";
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -107,6 +108,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "verbose_full")
 			verbose_full = med_stoi(it->second) > 0;
+		else if (it->first == "verbose_full_file")
+			verbose_full_file = it->second;
 		else if (it->first == "feature_prefix")
 			feature_prefix = it->second;
 		else if (it->first == "stat_metric") {
@@ -299,6 +302,20 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 		double pv = medial::contingency_tables::chisqr(dof_val, regScore);
 		p_values[index] = pv;
 	}
+}
+
+void print_or_log(ofstream &fw, bool write_to_file, char *fmt, ...) {
+	char buff[5000];
+	va_list args;
+	va_start(args, fmt);
+	//vfprintf(fds[section][i], fmt, args);
+	vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	if (write_to_file)
+		fw << buff;
+	else
+		MLOG("%s", buff);
 }
 
 int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
@@ -507,14 +524,26 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				it = categoryVal_to_stats.erase(it);
 		}
 
+	ofstream fw_verbose;
+	bool use_file = false;
+	if (!verbose_full_file.empty()) {
+		fw_verbose.open(verbose_full_file);
+		if (!fw_verbose.good())
+			MWARN("Can't open %s fopr writing\n", verbose_full_file.c_str());
+		else
+			use_file = true;
+		verbose_full_file = ""; //write to stdout
+	}
+
 	if (verbose_full) {
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
-			MLOG("code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+			print_or_log(fw_verbose, use_file, "code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+
 			for (size_t ii = 0; ii < 2; ++ii)
 				for (size_t jj = 0; jj < age_bin_cnt; ++jj)
 					if (!it->second[ii][jj].empty())
-						MLOG("Gender_idx=%zu,Age_idx=%zu\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
-							ii, jj, it->second[ii][jj][2], it->second[ii][jj][3],
+						print_or_log(fw_verbose, use_file, "Gender_idx=%zu,Age=[%d-%d]\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
+							ii, min_age + jj * age_bin, min_age + (jj + 1) * age_bin, it->second[ii][jj][2], it->second[ii][jj][3],
 							total_stats[ii][jj][0], total_stats[ii][jj][1]);
 		}
 	}
@@ -534,7 +563,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
 	if (verbose_full) {
 		for (unsigned int i = 0; i < code_list.size(); i++)
-			MLOG("Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
+			print_or_log(fw_verbose, use_file, "Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
 	}
 	unordered_map<int, double> code_cnts;
 	for (size_t i = 0; i < code_list.size(); ++i)
