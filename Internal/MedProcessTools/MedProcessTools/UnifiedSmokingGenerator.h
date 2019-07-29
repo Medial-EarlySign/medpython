@@ -83,7 +83,9 @@ public:
 	// Learn a generator
 	int _learn(MedPidRepository & rep, const MedSamples & samples, vector<RepProcessor*> processors);
 
-	void calcSmokingDuration(int neverSmoker, int unknownSmoker, vector<RangeStatus>& smokeRanges, int birthDate, int lastPackYearsDate, float & smokingDurationSinceLastPackYears, float & smokingDuration);
+	void calcSmokingDuration(int neverSmoker, int unknownSmoker, vector<RangeStatus>& smokeRanges, int birthDate, int lastPackYearsDate, UniversalSigVec & SmokingDurationUsv, int testDate, float & smokingDurationBeforeLastPackYears, float & smokingDuration);
+
+	void getLastSmokingDuration(int birthDate, UniversalSigVec & SmokingDurationUsv, int testDate, int &lastDurationDate, float &lastDurationValue);
 
 	void calcPackYears(UniversalSigVec & SmokingPackYearsUsv, int testDate, int & neverSmoker, int & currentSmoker, int & formerSmoker, int & lastPackYearsDate, float & lastPackYears, float & maxPackYears);
 
