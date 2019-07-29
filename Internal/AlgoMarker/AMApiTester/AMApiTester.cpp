@@ -485,7 +485,7 @@ public:
 		}
 	    for (auto &sig : sigs) {
 			int sid = rep.sigs.Name2Sid[sig];
-			int section_id = rep.dict.section_id(sig);
+//			int section_id = rep.dict.section_id(sig);
 		    rep.uget(pid, sig, usv);
 		    int nelem = usv.len;
 		    if (nelem > 0) {
@@ -523,7 +523,8 @@ public:
 					
 					/*
 					ofstream f;
-					f.open("/tmp/adddata.tsv");
+					f.open("/tmp/adddata.tsv", std::ofstream::out | std::ofstream::app);
+					f << sig << "\n\n";
 					f << "times\n";
 					for (int i = 0; i < i_time; i++) {
 						f << p_times[i] << '\n';
@@ -558,7 +559,8 @@ public:
 						AM_API_AddDataStr(am, pid, sig.c_str(), i_time, p_times, i_val, str_vals.get_charpp());
 					/*
 					ofstream f;
-					f.open("/tmp/adddatastr.tsv");
+					f.open("/tmp/adddatastr.tsv", std::ofstream::out | std::ofstream::app);
+					f << sig << "\n\n";
 					f << "times\n";
 					for (int i = 0; i < i_time; i++) {
 						f << p_times[i] << '\n';
