@@ -265,6 +265,7 @@ namespace medial {
 	namespace medmodel {
 
 		/// \brief given a medmodel object, a rep and samples, do the apply , throws upon a problem
+		void apply(MedModel &model, MedSamples &samples, string rep_fname, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated. no need to read samples/already read
 		void apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns also a MedSamples object
 		void apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated
 

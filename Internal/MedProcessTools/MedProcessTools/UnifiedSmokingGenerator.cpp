@@ -71,6 +71,7 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 	req_signals.push_back("BDATE");
 	req_signals.push_back("Pack_Years");
 	req_signals.push_back("Smoking_Intensity");
+	req_signals.push_back("Smoking_Duration");
 
 	//char *filename = "W:/Users/Ron/Projects/LungCancer/results/unified_smoking/tmp_output4.tsv";
 	if (debug_file != "")
@@ -87,7 +88,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 {
 	int unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
 	float lastPackYears = missing_val, daysSinceQuitting = missing_val, smokingDuration = missing_val, smokingIntensity = missing_val, yearsSinceQuitting = missing_val;
-	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv, SmokingIntensityUsv;
+	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv, SmokingIntensityUsv, SmokingDurationUsv;
 
 	int birthDate, qa_print = 1;
 
@@ -101,6 +102,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		rec.uget("Smoking_Quit_Date", i, quitTimeUsv);
 		rec.uget("Pack_Years", i, SmokingPackYearsUsv);
 		rec.uget("Smoking_Intensity", i, SmokingIntensityUsv);
+		rec.uget("Smoking_Duration", i, SmokingDurationUsv);
 
 		rec.uget("BDATE", i, bdateUsv);
 
@@ -141,10 +143,10 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		float maxPackYears = missing_val;
 		calcPackYears(SmokingPackYearsUsv, testDate, neverSmoker, currentSmoker, formerSmoker, lastPackYearsDate, lastPackYears, maxPackYears);
 
-		float smokingDurationSinceLastPackYears = missing_val;
-		calcSmokingDuration(neverSmoker, unknownSmoker, smokeRanges, birthDate, lastPackYearsDate, smokingDurationSinceLastPackYears, smokingDuration);
+		float smokingDurationBeforePackYears = missing_val;
+		calcSmokingDuration(neverSmoker, unknownSmoker, smokeRanges, birthDate, lastPackYearsDate, SmokingDurationUsv, testDate, smokingDurationBeforePackYears, smokingDuration);
 
-		fixPackYearsSmokingIntensity(smokingDurationSinceLastPackYears, smokingIntensity, smokingDuration, lastPackYears, maxPackYears);
+		fixPackYearsSmokingIntensity(smokingDurationBeforePackYears, smokingIntensity, smokingDuration, lastPackYears, maxPackYears);
 
 		printDebug(smokeRanges, qa_print, smokingStatusUsv, SmokingIntensityUsv, birthDate, testDate, smokingStatusVec, rec, quitTimeUsv, SmokingPackYearsUsv, smokingIntensity, smokingDuration, yearsSinceQuitting, maxPackYears);
 
@@ -667,14 +669,25 @@ int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& sam
 	return 0;
 }
 
-void UnifiedSmokingGenerator::calcSmokingDuration(int neverSmoker, int unknownSmoker, vector<RangeStatus> &smokeRanges, int birthDate, int lastPackYearsDate, float &smokingDurationSinceLastPackYears, float &smokingDuration)
+void UnifiedSmokingGenerator::calcSmokingDuration(int neverSmoker, int unknownSmoker, vector<RangeStatus> &smokeRanges, int birthDate, int lastPackYearsDate, UniversalSigVec &SmokingDurationUsv, int testDate, float &smokingDurationBeforeLastPackYears, float &smokingDuration)
 {
 	if (neverSmoker)
 		smokingDuration = 0;
 	else if (!unknownSmoker)
 	{
-		smokingDuration = 0;
-		smokingDurationSinceLastPackYears = 0;
+		int lastDurationDateBeforTestDate;
+		float lastDurationValueBeforeTestDate;
+		getLastSmokingDuration(birthDate, SmokingDurationUsv, testDate, lastDurationDateBeforTestDate, lastDurationValueBeforeTestDate);
+		float smokingDurationDays = lastDurationValueBeforeTestDate * 365.0;
+
+		float smokingDurationBeforeLastPackDays = missing_val;
+		if (lastPackYearsDate != missing_val)
+		{
+			int lastDurationDateBeforePackYears;
+			float lastDurationValueBeforePackYears;
+			getLastSmokingDuration(birthDate, SmokingDurationUsv, lastPackYearsDate, lastDurationDateBeforePackYears, lastDurationValueBeforePackYears);
+			smokingDurationBeforeLastPackDays = lastDurationValueBeforePackYears * 365.0;
+		}
 
 		for (int k = 0; k < smokeRanges.size(); k++)
 		{
@@ -684,19 +697,41 @@ void UnifiedSmokingGenerator::calcSmokingDuration(int neverSmoker, int unknownSm
 
 			if (currStatus == CURRENT_SMOKER)
 			{
-				int addDuration = (int)med_time_converter.diff_times(endDate, startDate, MedTime::Date, MedTime::Days);
-				if (addDuration > 0)
-					smokingDuration += addDuration;
+				int addedSmokingTimeFoDuration = (int)med_time_converter.diff_times(endDate, max(lastDurationDateBeforTestDate, startDate), MedTime::Date, MedTime::Days);
+				smokingDurationDays += addedSmokingTimeFoDuration > 0 ? addedSmokingTimeFoDuration : 0;
 
 				if (lastPackYearsDate != missing_val)
 				{
-					int addedSmokingTimeForPackYears = (int)med_time_converter.diff_times(endDate, max(lastPackYearsDate, startDate), MedTime::Date, MedTime::Days);
-					smokingDurationSinceLastPackYears += addedSmokingTimeForPackYears > 0 ? addedSmokingTimeForPackYears : 0;
+
+					int addedSmokingTimeForPack = (int)med_time_converter.diff_times(min(endDate, lastPackYearsDate ), max(lastDurationDateBeforTestDate, startDate), MedTime::Date, MedTime::Days);
+					smokingDurationBeforeLastPackDays += addedSmokingTimeForPack > 0 ? addedSmokingTimeForPack : 0;
 				}
 			}
 		}
-		smokingDuration = smokingDuration / 365.0;
-		smokingDurationSinceLastPackYears = smokingDurationSinceLastPackYears / 365.0;
+
+		if (smokingDurationBeforeLastPackDays != missing_val)
+		{
+			smokingDurationBeforeLastPackYears = smokingDurationBeforeLastPackDays / 365.0;
+		}
+		smokingDuration = smokingDurationDays / 365.0;
+	}
+}
+
+void UnifiedSmokingGenerator::getLastSmokingDuration(int birthDate, UniversalSigVec &SmokingDurationUsv, int testDate, int &lastDurationDate, float &lastDurationValue)
+{
+	// Keep last value of duration (but the date should  be the first that it was found  as it is usually duplicated). 
+	lastDurationDate = birthDate;
+	lastDurationValue = 0;
+
+	for (int k = 0; k < SmokingDurationUsv.len; k++)
+	{
+		if (SmokingDurationUsv.Time(k) > testDate)
+			break;
+		if (SmokingDurationUsv.Val(k) != lastDurationValue)
+		{
+			lastDurationDate = SmokingDurationUsv.Time(k);
+			lastDurationValue = SmokingDurationUsv.Val(k);
+		}
 	}
 }
 
@@ -733,29 +768,32 @@ void UnifiedSmokingGenerator::calcPackYears(UniversalSigVec &SmokingPackYearsUsv
 	}
 }
 
-void UnifiedSmokingGenerator::fixPackYearsSmokingIntensity(float smokingDurationSinceLastPackYears, float &smokingIntensity, float smokingDuration, float &lastPackYears, float &maxPackYears )
+void UnifiedSmokingGenerator::fixPackYearsSmokingIntensity(float smokingDurationBeforePackYears, float &smokingIntensity, float smokingDuration, float &lastPackYears, float &maxPackYears )
 {
 	if (lastPackYears == missing_val)
 	{
-		if ((smokingDurationSinceLastPackYears != missing_val) && (smokingIntensity != missing_val))
+		if ((smokingDuration != missing_val) && (smokingIntensity != missing_val))
 			lastPackYears = maxPackYears = smokingIntensity / PACK_SIZE * smokingDuration;
 	}
 	else
 	{
-		if (smokingDurationSinceLastPackYears != missing_val)
+		if ((smokingDurationBeforePackYears != missing_val) && (smokingDurationBeforePackYears != 0) )
 		{
 			if (smokingIntensity == missing_val)
 			{
-				float smokingDurationBeforeLastPackYears = smokingDuration - smokingDurationSinceLastPackYears;
-				if (smokingDurationBeforeLastPackYears != 0)
+				if (smokingDurationBeforePackYears != 0)
 				{
-					smokingIntensity = maxPackYears / smokingDurationBeforeLastPackYears;
+					smokingIntensity = maxPackYears / smokingDurationBeforePackYears * PACK_SIZE;
 				}
 			}
 			if (smokingIntensity != missing_val)
 			{
-				lastPackYears += smokingIntensity / PACK_SIZE * smokingDurationSinceLastPackYears;
-				maxPackYears += smokingIntensity / PACK_SIZE * smokingDurationSinceLastPackYears;
+				float smokingDurationSinceLastPackYears = smokingDuration - smokingDurationBeforePackYears;
+				if (smokingDurationSinceLastPackYears > 0)
+				{
+					lastPackYears += smokingIntensity / PACK_SIZE * smokingDurationSinceLastPackYears;
+					maxPackYears += smokingIntensity / PACK_SIZE * smokingDurationSinceLastPackYears;
+				}		
 			}
 		}
 	}

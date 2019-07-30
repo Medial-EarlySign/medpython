@@ -4,3 +4,13 @@
 #set(CUSTOME_TARGET_OVERRIDE "Yes")
 #add_library(dyn_AlgoMarker SHARED ${H_FILES} ${SRC_FILES})
 #target_link_libraries(dyn_AlgoMarker -Wl,-Bstatic,--whole-archive InfraMed Logger Mars MedAlgo MedEmbed MedIO MedMat MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -L$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build/lib/ -lboost_regex -lboost_program_options -lboost_system -lboost_filesystem -lxgboost -lrabit_empty -ldmlc -l_lightgbm -Wl,-no-whole-archive -Wl,-Bdynamic -licudata -licui18n -licuuc)
+
+
+message(STATUS "(ii) CMake Customization for AlgoMarker, sets static linking")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -Wl,--version-script=$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AlgoMarker/AlgoMarker-export.version")
+add_library(AlgoMarker STATIC ${H_FILES} ${SRC_FILES})
+add_library(dyn_AlgoMarker SHARED ${H_FILES} ${SRC_FILES})
+
+target_link_libraries(dyn_AlgoMarker -Wl,-Bstatic,--whole-archive InfraMed Logger Mars MedAlgo MedEmbed MedIO MedMat MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -Wl,-no-whole-archive -Wl,-Bdynamic -licudata -licui18n -licuuc)
+
+set(CMAKELISTS_OVERRIDE "ON")

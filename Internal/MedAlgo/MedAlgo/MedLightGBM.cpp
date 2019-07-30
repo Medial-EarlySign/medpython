@@ -216,7 +216,7 @@ namespace LightGBM {
 			config_.pred_early_stop, config_.pred_early_stop_freq, config_.pred_early_stop_margin);
 		int64_t num_pred_in_one_row = boosting_->NumPredictOneRow(config_.num_iteration_predict, config_.predict_leaf_index, config_.predict_contrib);
 		auto pred_fun = predictor.GetPredictFunction();
-		
+
 		//string str;
 		//serialize_to_string(str);
 
@@ -238,8 +238,8 @@ namespace LightGBM {
 			OMP_LOOP_EX_END();
 		}
 		OMP_THROW_EX();
-	
-		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];   
+
+		for (int64_t i = 0; i < len_res; i++) preds[i] = (float)out_result[i];
 	}
 
 	//-------------------------------------------------------------------------------------------------
@@ -400,7 +400,7 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
 
 	if (local_types.count(importance_type) > 0) {
-		mem_app.calc_feature_importance(features_importance_scores, importance_type,
+		mem_app.calc_feature_importance(features_importance_scores, "importance_type=" + importance_type,
 			(model_features.empty() ? features_count : (int)model_features.size()));
 		return;
 	}

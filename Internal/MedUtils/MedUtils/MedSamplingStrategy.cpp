@@ -133,6 +133,7 @@ void MedSamplingTimeWindow::_get_sampling_options(const unordered_map<int, vecto
 
 int MedSamplingYearly::init(map<string, string>& map) {
 	int prediction_month_day = 101;
+	bool add_prediction_month = true;
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "start_year" || it->first == "from_year") {
@@ -140,9 +141,12 @@ int MedSamplingYearly::init(map<string, string>& map) {
 			if (start_time <= 1900 || start_time >= 2100)
 				MTHROW_AND_ERR("start_year must be initialize between 1900 to 2100\n");
 			start_time = start_time * 10000; //convert to DATE format
+			add_prediction_month = true;
 		}
-		else if (it->first == "start_time")
+		else if (it->first == "start_time") {
 			start_time = stoi(it->second);
+			add_prediction_month = false;
+		}
 		else if (it->first == "end_year" || it->first == "to_year") {
 			end_time = stoi(it->second);
 			if (end_time <= 1900 || end_time >= 2100)
@@ -173,7 +177,8 @@ int MedSamplingYearly::init(map<string, string>& map) {
 	if (back_random_duration < 0)
 		MTHROW_AND_ERR("back_random_duration must be positive\n");
 
-	start_time += prediction_month_day;
+	if (add_prediction_month)
+		start_time += prediction_month_day;
 	return 0;
 }
 
@@ -350,21 +355,29 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 }
 
 int MedSamplingFixedTime::add_time(int time, int add) const {
+	//otherwise will lose month ad day in convertion
+	if (time_range_unit == MedTime::Date && time_jump_unit == MedTime::Months) {
+		int tm_month = (time % 10000) / 100 + add;
+		return 10000 * (int(time / 10000) + int((tm_month - 1) / 12)) + 100 * (1 + (tm_month % 12)) + (time % 100);
+	}
+	if (time_range_unit == MedTime::Date && time_jump_unit == MedTime::Years)
+		return time + add * 10000;
+
 	int conv = med_time_converter.convert_times(time_range_unit, time_jump_unit, time) + add;
 	return med_time_converter.convert_times(time_jump_unit, time_range_unit, conv);
 }
 
 bool validate_in_dates(const vector<pair<int, int>> &pid_dates, int pred_date, const TimeWindowMode &interaction) {
 	bool inside = false;
-	
+
 	for (size_t i = 0; i < pid_dates.size() && !inside; ++i)
-		inside = medial::sampling::in_time_window_simple(pred_date, 
+		inside = medial::sampling::in_time_window_simple(pred_date,
 			pid_dates[i].first, pid_dates[i].second, false, interaction);
-		//inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
+	//inside = pred_date >= pid_dates[i].first && pred_date <= pid_dates[i].second;
 	return inside;
 }
 
-void filter_opts(unordered_map<int, vector<int>> &pid_options, 
+void filter_opts(unordered_map<int, vector<int>> &pid_options,
 	const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, const TimeWindowMode &interaction) {
 	unordered_map<int, vector<int>> pid_filtered;
 	for (auto it = pid_options.begin(); it != pid_options.end(); ++it)

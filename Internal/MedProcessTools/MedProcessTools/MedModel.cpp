@@ -647,7 +647,7 @@ void MedModel::fill_list_from_file(const string& fname, vector<string>& list) {
 			list.push_back(curr_line.substr(0, npos));
 		else list.push_back(curr_line);
 	}
-	fprintf(stderr, "read %d lines from: %s\n", lines, fname.c_str());
+	MLOG("read %d lines from: %s\n", lines, fname.c_str());
 	inf.close();
 
 }
@@ -1745,31 +1745,36 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 //========================================================================================================
 
 //--------------------------------------------------------------------------------------------------------
-void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage)
+void medial::medmodel::apply(MedModel &model, MedSamples &samples, string rep_fname, MedModelStage to_stage)
 {
 	unordered_set<string> req_sigs;
 	vector<string> rsigs;
 
+	MedPidRepository rep;
+	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
+	model.set_affected_signal_ids(rep.dict);
 	model.get_required_signal_names(req_sigs);
 	for (auto &s : req_sigs) rsigs.push_back(s);
-
-	if (samples.read_from_file(f_samples) < 0)
-		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read samples file %s\n", f_samples.c_str());
 
 	vector<int> pids;
 
 	samples.get_ids(pids);
 
-	MedPidRepository rep;
 	if (rep.read_all(rep_fname, pids, rsigs) < 0)
 		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read repository %s\n", rep_fname.c_str());
 
 	if (model.apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, to_stage) < 0)
 		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not apply model\n");
-
 }
+//--------------------------------------------------------------------------------------------------------
+void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage)
+{
+	if (samples.read_from_file(f_samples) < 0)
+		MTHROW_AND_ERR("medial::medmodel::apply() ERROR :: could not read samples file %s\n", f_samples.c_str());
 
-
+	medial::medmodel::apply(model, samples, rep_fname, to_stage);
+}
 //--------------------------------------------------------------------------------------------------------
 void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage)
 {
@@ -1777,5 +1782,6 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 	MedSamples samples;
 	medial::medmodel::apply(model, rep_fname, f_samples, samples, to_stage);
 }
+
 
 #endif

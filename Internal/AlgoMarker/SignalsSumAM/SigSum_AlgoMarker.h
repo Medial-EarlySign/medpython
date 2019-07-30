@@ -219,6 +219,27 @@ public:
 	}
 };
 
+extern "C" class DLL_WORK_MODE AMDataStr {
+
+public:
+
+	int patient_id;
+	string signalName;
+	int TimeStamps_len;
+	long long* TimeStamps;
+	int Values_len;
+	char** Values;
+
+	// clear
+	void clear()
+	{
+		signalName.clear();
+		delete[] Values;
+		delete[] TimeStamps;
+		Values = NULL;
+		TimeStamps = NULL;
+	}
+};
 //-------------------------------------------------------------------------------
 extern "C" class DLL_WORK_MODE AMResponses {
 
@@ -351,6 +372,7 @@ public:
 	virtual int Unload() { return 0; }
 	virtual int ClearData() { return 0; }
 	virtual int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
+	virtual int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	vector<AMData*> data;
@@ -407,6 +429,7 @@ public:
 	int Unload();
 	int ClearData();
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 
 };
@@ -473,6 +496,10 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 // this API allows adding a specific signal, with matching arrays of times and values
 extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 
+// adding data string to an AlgoMarker
+// this API allows adding a specific signal, with matching arrays of times and string values
+extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
+ 
 // Prepare a Request
 // Null RC means failure
 extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);

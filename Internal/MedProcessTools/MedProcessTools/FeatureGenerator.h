@@ -848,12 +848,15 @@ public:
 	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
+	int sort_by_chi = 0; ///< sort results by chi-square
 	int max_depth; ///< maximal depth to go in heirarchy
 	int max_parents; ///< controls maximum parents count
 	bool use_fixed_lift; ///< If true will also sort be lifts below 1
 	bool filter_hierarchy; /// Apply hierarchy filtering
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
+	string verbose_full_file; ///< output file for verbose_full debug in learn
+	string feature_prefix; ///< additional prefix to add to name to describe the feature
 
 	void set_signal_ids(MedSignals& sigs);
 
@@ -878,7 +881,7 @@ public:
 	int nfeatures();
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix)
 };
 
 //=======================================

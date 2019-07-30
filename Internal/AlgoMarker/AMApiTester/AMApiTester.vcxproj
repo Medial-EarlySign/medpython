@@ -120,6 +120,10 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AMApiTester.cpp" />
+    <ClCompile Include="internal_am.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="internal_am.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

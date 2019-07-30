@@ -8,7 +8,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 void CategoryDependencyGenerator::init_defaults() {
-	generator_type = FTR_GEN_BASIC;
+	generator_type = FTR_GEN_CATEGORY_DEPEND;
 	signalName = "";
 	signalId = -1;
 	time_channel = 0;
@@ -39,6 +39,8 @@ void CategoryDependencyGenerator::init_defaults() {
 	verbose = false;
 	use_fixed_lift = false;
 	verbose_full = false;
+	feature_prefix = "";
+	verbose_full_file = "";
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -96,6 +98,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			filter_child_removed_ratio = med_stof(it->second);
 		else if (it->first == "chi_square_at_least")
 			chi_square_at_least = med_stof(it->second);
+		else if (it->first == "sort_by_chi")
+			sort_by_chi = med_stoi(it->second);
 		else if (it->first == "minimal_chi_cnt")
 			minimal_chi_cnt = med_stoi(it->second);
 		else if (it->first == "use_fixed_lift")
@@ -104,6 +108,10 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "verbose_full")
 			verbose_full = med_stoi(it->second) > 0;
+		else if (it->first == "verbose_full_file")
+			verbose_full_file = it->second;
+		else if (it->first == "feature_prefix")
+			feature_prefix = it->second;
 		else if (it->first == "stat_metric") {
 			if (conv_map_stats.find(it->second) != conv_map_stats.end())
 				stat_metric = category_stat_test(conv_map_stats.at(it->second));
@@ -173,6 +181,13 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
+bool any_regex_match(const regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = regex_match(nms[i], reg_pat);
+	return res;
+}
+
 void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex &remove_reg_pat) {
 
 	bool cached = false;
@@ -210,20 +225,12 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 		{
 			if (categoryId_to_name.find(code) == categoryId_to_name.end())
 				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
-			const vector<string> &names = categoryId_to_name.at(code);
-			int nm_idx = 0;
-			bool pass_regex_filter = false;  
+			const vector<string> &names_ = categoryId_to_name.at(code);
+			bool pass_regex_filter = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
 			bool pass_remove_regex_filter = false;
-			while (!(pass_regex_filter && pass_remove_regex_filter) && nm_idx < names.size())
-			{
-				if (!regex_filter.empty())
-					pass_regex_filter = regex_match(names[nm_idx], reg_pat);
-				else
-					pass_regex_filter = true;
-				if (!remove_regex_filter.empty())
-					pass_remove_regex_filter = regex_match(names[nm_idx], remove_reg_pat);
-				++nm_idx;
-			}
+			if (pass_regex_filter) //calc only if needed, has chance to be selected
+				pass_remove_regex_filter = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
+
 			if (pass_regex_filter && !pass_remove_regex_filter)
 				filtered_p.push_back(code);
 		}
@@ -296,10 +303,25 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 	}
 }
 
+void print_or_log(ofstream &fw, bool write_to_file, char *fmt, ...) {
+	char buff[5000];
+	va_list args;
+	va_start(args, fmt);
+	//vfprintf(fds[section][i], fmt, args);
+	vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	if (write_to_file)
+		fw << buff;
+	else
+		MLOG("%s", buff);
+}
+
 int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 
 	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
 		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
+	names.clear();
 
 	// Required signals
 	vector<int> all_req_signal_ids_v;
@@ -325,7 +347,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			total_stats[i][j].resize(2);
 	}
 
-	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15,100);
+	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15, 100);
 	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	//bool nested_state = omp_get_nested();
 	//omp_set_nested(true);
@@ -462,7 +484,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			// Some timing printing
 			//#pragma omp atomic
 			progress.update();
-			
+
 		}
 	}
 	//omp_set_nested(nested_state);
@@ -482,18 +504,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	if (!regex_filter.empty() || !remove_regex_filter.empty())
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
 			int base_code = it->first;
-			bool found_match = false;
+			const vector<string> &names_ = categoryId_to_name.at(base_code);
+			bool found_match = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
 			bool found_remove_match = false;
-			const vector<string> &names = categoryId_to_name.at(base_code);
-			int pos_i = 0;
-			while (pos_i < names.size() && !found_match) {
-				if (!regex_filter.empty())
-					found_match = regex_match(names[pos_i], reg_pat);
-				else
-					found_match = true;
-				found_remove_match = regex_match(names[pos_i], remove_reg_pat);
-				++pos_i;
-			}
+			if (found_match) //calc only if needed, has chance to be selected
+				found_remove_match = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
 
 			if (found_match && !found_remove_match)
 				++it;
@@ -501,14 +516,26 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				it = categoryVal_to_stats.erase(it);
 		}
 
+	ofstream fw_verbose;
+	bool use_file = false;
+	if (!verbose_full_file.empty()) {
+		fw_verbose.open(verbose_full_file);
+		if (!fw_verbose.good())
+			MWARN("Can't open %s fopr writing\n", verbose_full_file.c_str());
+		else
+			use_file = true;
+		verbose_full_file = ""; //write to stdout
+	}
+
 	if (verbose_full) {
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
-			MLOG("code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+			print_or_log(fw_verbose, use_file, "code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+
 			for (size_t ii = 0; ii < 2; ++ii)
 				for (size_t jj = 0; jj < age_bin_cnt; ++jj)
 					if (!it->second[ii][jj].empty())
-						MLOG("Gender_idx=%zu,Age_idx=%zu\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
-							ii, jj, it->second[ii][jj][2], it->second[ii][jj][3],
+						print_or_log(fw_verbose, use_file, "Gender_idx=%zu,Age=[%d-%d]\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
+							ii, min_age + jj * age_bin, min_age + (jj + 1) * age_bin, it->second[ii][jj][2], it->second[ii][jj][3],
 							total_stats[ii][jj][0], total_stats[ii][jj][1]);
 		}
 	}
@@ -528,7 +555,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
 	if (verbose_full) {
 		for (unsigned int i = 0; i < code_list.size(); i++)
-			MLOG("Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
+			print_or_log(fw_verbose, use_file, "Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
 	}
 	unordered_map<int, double> code_cnts;
 	for (size_t i = 0; i < code_list.size(); ++i)
@@ -589,6 +616,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		else
 			sort_pars[i].second[1] = -lift[indexes[i]];
 		sort_pars[i].second[2] = -scores[indexes[i]];
+		if (sort_by_chi) sort_pars[i].second.insert(sort_pars[i].second.begin(), -scores[indexes[i]]);
 	}
 	sort(sort_pars.begin(), sort_pars.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
 		int pos = 0;
@@ -633,8 +661,12 @@ void CategoryDependencyGenerator::set_names() {
 	names.resize(top_codes.size());
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
-		snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
-			signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
+		if (!feature_prefix.empty())
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
+		else
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
 }

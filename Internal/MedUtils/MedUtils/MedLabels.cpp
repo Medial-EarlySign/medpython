@@ -514,7 +514,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	sampler->init_sampler(rep);
 	MLOG("Sampling for incidence stats...\n");
 	create_samples(sampler, incidence_samples);
-	MLOG("Done...\n");
+	MLOG("Done (has %zu idSamples)...\n", incidence_samples.idSamples.size());
 	delete sampler;
 	ofstream fw_debug;
 	if (!debug_file.empty())
