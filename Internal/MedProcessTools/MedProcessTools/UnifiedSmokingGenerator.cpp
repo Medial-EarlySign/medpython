@@ -783,7 +783,7 @@ void UnifiedSmokingGenerator::fixPackYearsSmokingIntensity(float smokingDuration
 			{
 				if (smokingDurationBeforePackYears != 0)
 				{
-					smokingIntensity = maxPackYears / smokingDurationBeforePackYears;
+					smokingIntensity = maxPackYears / smokingDurationBeforePackYears * PACK_SIZE;
 				}
 			}
 			if (smokingIntensity != missing_val)
