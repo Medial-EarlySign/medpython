@@ -29,7 +29,7 @@ public:
 
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
-	MedSample(int _id, int _time, float _outcome, float _outcomeTime) { id = _id; time = _time; outcome = _outcome; outcomeTime = _outcomeTime; prediction.clear(); }
+	MedSample(int _id, int _time, int _outcome, int _outcomeTime) { id = _id; time = _time; outcome = _outcome; outcomeTime = _outcomeTime; prediction.clear(); }
 	/// <summary> Destructor </summary>
 	~MedSample() { prediction.clear(); }
 

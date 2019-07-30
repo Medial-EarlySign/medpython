@@ -887,7 +887,7 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 		else if (field == "allow_other") allow_other = (med_stoi(entry.second) != 0);
 		else if (field == "remove_last") remove_last = (med_stoi(entry.second) != 0);
 		else if (field == "max_values") max_values = med_stoi(entry.second);
-		else
+		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
 		//! [OneHotFeatProcessor::init]
 	}
@@ -914,8 +914,19 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		MTHROW_AND_ERR("Found %zd different values for %s. More than allowed %d\n", all_values.size(), feature_name.c_str(), max_values);
 
 	;
-	for (float value : all_values)
-		value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_" + to_string(value);
+	for (float value : all_values) {
+		value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
+		if (features.attributes[resolved_feature_name].value2Name.empty())
+			value2feature[value] += to_string(value);
+		else if (value == features.medf_missing_value)
+			value2feature[value] += "MISSING_VALUE";
+		else {
+			if (features.attributes[resolved_feature_name].value2Name.find(value) == features.attributes[resolved_feature_name].value2Name.end())
+				MTHROW_AND_ERR("Cannot find value %f for in feature %s value2Name\n", value, resolved_feature_name.c_str());
+			value2feature[value] += features.attributes[resolved_feature_name].value2Name[value];
+		}
+	}
+
 	other_feature_name = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_other";
 
 	// Remove last one

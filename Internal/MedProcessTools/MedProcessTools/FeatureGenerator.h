@@ -378,6 +378,10 @@ public:
 class SingletonGenerator : public FeatureGenerator {
 private:
 	vector<char> lut;			///< to be used when generating sets*
+	unordered_map<string, float> name2Value; ///< Used for mapping dictionary strings to values (we don't rely on dictionary not to change)
+	vector<float> id2Value; ///< mapping of dictionary id to value (rebuilt according to dictionary + name2Value)
+
+	void get_id2Value(MedDictionarySections& dict);
 public:
 
 	/// Signal Id
@@ -403,8 +407,14 @@ public:
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SingletonGenerator *>(generator)); }
 
+	// learn generator (learning name2Value)
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
+
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
+
+	// Preparation - just fill the value2Name attribute
+	void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
 
 	// Signal Ids
 	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
@@ -412,7 +422,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut, name2Value)
 };
 
 
