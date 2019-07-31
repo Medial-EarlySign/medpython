@@ -64,11 +64,15 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 		}
 	}
 
+	//Test:
+	for (const string& name : namesToTake)
+		if (attributes.find(name) == attributes.end())
+			MTHROW_AND_ERR("Error feature \"%s\" is missing attribute information\n", name.c_str());
 	// Normalization flag
 	mat.normalized_flag = true;
-	for (string& name : namesToTake)
+	for (const string& name : namesToTake)
 		mat.normalized_flag &= (int)attributes.at(name).normalized;
-	for (string& name : namesToTake)
+	for (const string& name : namesToTake)
 		mat.normalized_flag &= (int)attributes.at(name).imputed;
 
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
@@ -347,7 +351,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 		// sample
 		string sample_str;
-		
+
 		samples[i].write_to_string(sample_str, time_unit, write_attributes, ",");
 		boost::replace_all(sample_str, "SAMPLE,", "");
 
@@ -509,7 +513,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 			samples.push_back(newSample);
 			//advance idx in fields to last pos:
 			idx = (int)curr_pos_fields->size();
-			
+
 			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
 				idx = pos_preds.back() + 1;
 			if (!pos_attr.empty() && idx < max_ind_map(pos_attr) + 1)
@@ -518,7 +522,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				idx = max_ind_map(pos_str_attr) + 1;
 
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx++]));	
+				data[names[i]].push_back(stof(fields[idx++]));
 		}
 	}
 

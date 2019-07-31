@@ -720,7 +720,7 @@ int SingletonGenerator::_learn(MedPidRepository& rep, const MedSamples& samples,
 	}
 
 	get_id2Value(rep.dict);
-	
+
 	return 0;
 }
 
@@ -792,7 +792,7 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 	}
 	else {
 		lut.clear();
-		get_id2Value(dict);		
+		get_id2Value(dict);
 	}
 
 	return;
@@ -800,7 +800,7 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 
 //.......................................................................................
 void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
-	
+
 	if (!name2Value.empty()) {
 		int section_id = dict.section_id(signalName);
 
@@ -850,9 +850,10 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 
 //.......................................................................................
 void SingletonGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
-
-	for (auto& rec : name2Value)
-		features.attributes[names[0]].value2Name[rec.second] = rec.first;
+	FeatureGenerator::prepare(features, rep, samples);
+	if (sets.size() == 0)
+		for (auto& rec : name2Value)
+			features.attributes[names[0]].value2Name[rec.second] = rec.first;
 }
 
 //=======================================================================================
@@ -1714,7 +1715,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 
 	}
 
-	return (float)time_sum/div_factor;
+	return (float)time_sum / div_factor;
 }
 
 //=======================================================================================
