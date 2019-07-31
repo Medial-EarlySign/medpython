@@ -59,12 +59,78 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "use_split") use_split = stoi(entry.second);
 		else if (field == "use_p") use_p = stof(entry.second);
 		else if (field == "weights_attr_name") weights_attr_name = entry.second;
+		else if (field == "use_isotonic") use_isotonic = stoi(entry.second) > 0;
 		else if (field == "pp_type") {} //ignore
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
 	}
 
 	return 0;
+}
+
+void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
+
+	int n = (int)x.size();
+
+	vector<pair<float, float>> x2y(n);
+	for (int i = 0; i < n; i++)
+		x2y[i] = { x[i],y[i] };
+	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
+
+	// PAV
+	vector<int> nag(n);
+	vector<float> val(n);
+
+	unsigned int i, j;
+	nag[0] = 1;
+	val[0] = x2y[0].second;
+
+	j = 0;
+	for (i = 1; i < n; i++) {
+		j += 1;
+		val[j] = x2y[i].second;
+		nag[j] = 1;
+		while ((j > 0) && (val[j] < val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
+			nag[j - 1] += nag[j];
+			j--;
+		}
+	}
+
+	// Further unite ...
+	int nbins = 1;
+	for (i = 1; i < j + 1; i++) {
+		if (val[i] == val[nbins - 1])
+			nag[nbins - 1] += nag[i];
+		else {
+			val[nbins] = val[i];
+			nag[nbins] = nag[i];
+			nbins++;
+		}
+	}
+
+	// Fill table
+	min_range.resize(nbins);
+	max_range.resize(nbins);
+	map_prob.resize(nbins);
+
+	int idx = 0;
+	min_range[nbins - 1] = (float)INT32_MIN;
+	for (i = 0; i < nbins; i++) {
+		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
+		if (i < nbins - 1)
+			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
+		idx += nag[i];
+		map_prob[nbins - 1 - i] = val[i];
+	}
+	max_range[0] = (float)INT32_MAX;
+
+	if (verbose)
+		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
+	for (size_t i = 0; i < map_prob.size(); ++i)
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
+			min_range[i], max_range[i], map_prob[i],
+			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
 }
 
 
@@ -359,11 +425,11 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	//read weights from samples:
 	get_weights(orig_samples, weights_attr_name, weights);
 
-	int do_km;
+	bool do_km;
 	if (estimator_type == "kaplan_meier")
-		do_km = 1;
+		do_km = true;
 	else if (estimator_type == "mean_cases")
-		do_km = 0;
+		do_km = false;
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
 	cals.clear();
@@ -509,7 +575,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	}
 	//end stats collection
 
-	int cumul_cnt = 0;
+	double cumul_cnt = 0;
 
 	//calibration calc:
 	for (int i = 1; i <= bin; i++)
@@ -534,6 +600,63 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		}
 		cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
 		cals.push_back(ce);
+	}
+
+	if (use_isotonic) {
+		vector<float> collected_bin_idx(cals.size()), collected_probs(cals.size());
+		for (size_t i = 0; i < cals.size(); ++i)
+		{
+			collected_bin_idx[i] = i;
+			if (do_km)
+				collected_probs[i] = cals[i].kaplan_meier;
+			else
+				collected_probs[i] = cals[i].mean_outcome;
+		}
+		vector<float> min_r, max_r, map_r;
+		learn_isotonic_regression(collected_bin_idx, collected_probs, min_r, max_r, map_r, verbose);
+		//use new bins:
+		vector<calibration_entry> new_cals(map_r.size());
+		cumul_cnt = 0;
+		for (int i = 0; i < new_cals.size(); ++i)
+		{
+			calibration_entry ce;
+			ce.bin = i + 1;
+			ce.min_pred = cals[(int)min_r[i]].min_pred;
+			ce.max_pred = cals[(int)max_r[i]].max_pred;
+			ce.cnt_controls = 0; ce.cnt_cases = 0;
+			ce.cnt_controls_no_w = 0;  ce.cnt_cases_no_w = 0;
+			ce.controls_per_time_slot.resize(km_time_slots + 1);
+			ce.cases_per_time_slot.resize(km_time_slots + 1);
+			ce.mean_pred = 0;
+			int cnt = 0;
+			for (int j = (int)min_r[i]; j <= (int)max_r[i]; ++j)
+			{
+				ce.cnt_controls += cals[j].cnt_controls;
+				ce.cnt_cases += cals[j].cnt_cases;
+				ce.cnt_controls_no_w += cals[j].cnt_controls_no_w;
+				ce.cnt_cases_no_w += cals[j].cnt_cases_no_w;
+				for (size_t k = 0; k < km_time_slots + 1; ++k)
+					ce.controls_per_time_slot[k] += cals[j].controls_per_time_slot[k];
+				for (size_t k = 0; k < km_time_slots + 1; ++k)
+					ce.cases_per_time_slot[k] += cals[j].cases_per_time_slot[k];
+				ce.mean_pred += cals[j].mean_pred;
+				++cnt;
+			}
+			ce.mean_pred = ce.mean_pred / (float)cnt;
+			ce.cumul_pct = 1.0f * (cumul_cnt + (((ce.cnt_controls*controls_factor) + ce.cnt_cases) / 2)) / (float)tot_weight;
+
+			if (do_km) {
+				ce.kaplan_meier = map_r[i];
+				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls * controls_factor + ce.cnt_cases);
+			}
+			else {
+				ce.kaplan_meier = 0.0;
+				ce.mean_outcome = map_r[i];
+			}
+			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
+			new_cals.push_back(ce);
+		}
+		cals = move(new_cals);
 	}
 	//smooth calc
 	if (do_calibration_smoothing) {
@@ -643,71 +766,6 @@ void learn_binned_probs(const vector<float> &x, const vector<float> &y, const ve
 		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
 			min_range[i], max_range[i], map_prob[i],
 			100 * double(bin_cnts[i]) / y.size(), bin_cnts[i], (int)y.size());
-}
-
-void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
-
-	int n = (int)x.size();
-
-	vector<pair<float, float>> x2y(n);
-	for (int i = 0; i < n; i++)
-		x2y[i] = { x[i],y[i] };
-	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
-
-	// PAV
-	vector<int> nag(n);
-	vector<float> val(n);
-
-	unsigned int i, j;
-	nag[0] = 1;
-	val[0] = x2y[0].second;
-
-	j = 0;
-	for (i = 1; i < n; i++) {
-		j += 1;
-		val[j] = x2y[i].second;
-		nag[j] = 1;
-		while ((j > 0) && (val[j] < val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
-			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
-			nag[j - 1] += nag[j];
-			j--;
-		}
-	}
-
-	// Further unite ...
-	int nbins = 1;
-	for (i = 1; i < j + 1; i++) {
-		if (val[i] == val[nbins - 1])
-			nag[nbins - 1] += nag[i];
-		else {
-			val[nbins] = val[i];
-			nag[nbins] = nag[i];
-			nbins++;
-		}
-	}
-
-	// Fill table
-	min_range.resize(nbins);
-	max_range.resize(nbins);
-	map_prob.resize(nbins);
-
-	int idx = 0;
-	min_range[nbins - 1] = (float)INT32_MIN;
-	for (i = 0; i < nbins; i++) {
-		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
-		if (i < nbins - 1)
-			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
-		idx += nag[i];
-		map_prob[nbins - 1 - i] = val[i];
-	}
-	max_range[0] = (float)INT32_MAX;
-
-	if (verbose)
-		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
-	for (size_t i = 0; i < map_prob.size(); ++i)
-		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
-			min_range[i], max_range[i], map_prob[i],
-			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
 }
 
 void learn_platt_scale(const vector<float> x, const vector<float> &y, const vector<float> &weights,

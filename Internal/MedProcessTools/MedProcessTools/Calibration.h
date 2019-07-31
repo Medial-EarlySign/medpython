@@ -63,6 +63,7 @@ public:
 	int do_calibration_smoothing = 1;
 	int censor_controls = 0; ///< censor controls without long-enough followup even in mean-outcome mode
 	string weights_attr_name = "weight"; //weight attr to look for in samples attributes
+	bool use_isotonic = false; ///< If true will use isotonic on time_window
 
 	int min_preds_in_bin = 100; ///< minimal number of obseravtion to create bin
 	float min_score_res = 0; ///< score resulotion value to round to and merge similar
@@ -100,7 +101,7 @@ public:
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
 		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
 		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
-		cals, min_range, max_range, map_prob, platt_params)
+		cals, min_range, max_range, map_prob, platt_params, use_isotonic)
 
 protected:
 	double calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot, double controls_factor);
