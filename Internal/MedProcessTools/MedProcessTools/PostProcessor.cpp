@@ -22,6 +22,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_LIME_SHAP;
 	else if (lower_p == "linear")
 		return FTR_POSTPROCESS_LINEAR;
+	else if (lower_p == "knn")
+		return FTR_POSTPROCESS_KNN_EXPLAIN;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -50,6 +52,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new LimeExplainer;
 	else if (type == FTR_POSTPROCESS_LINEAR)
 		prc = new LinearExplainer;
+	else if (type == FTR_POSTPROCESS_KNN_EXPLAIN)
+		prc = new KNN_Explainer;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -58,7 +62,17 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 	return prc;
 }
 
-void PostProcessor::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix) {
+// Create processor from params string (type must be given within string)
+//.......................................................................................
+PostProcessor *PostProcessor::create_processor(string &params)
+{
+	string pp_type;
+	get_single_val_from_init_string(params, "pp_type", pp_type);
+	return (make_processor(pp_type, params));
+}
+
+
+void PostProcessor::Learn(const MedFeatures &matrix) {
 	MTHROW_AND_ERR("Learn Not implemented in class %s\n", my_class_name().c_str());
 }
 void PostProcessor::Apply(MedFeatures &matrix) const {
@@ -74,24 +88,27 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MissingShapExplainer);
 	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
 	CONDITIONAL_NEW_CLASS(dname, LinearExplainer);
+	CONDITIONAL_NEW_CLASS(dname, KNN_Explainer);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
-void MultiPostProcessor::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix) {
+void MultiPostProcessor::init_post_processor(MedModel& model) {
+#pragma omp parallel for if (call_parallel_learn)
+	for (int i = 0; i < post_processors.size(); ++i)
+		post_processors[i]->init_post_processor(model);
+
+}
+
+void MultiPostProcessor::Learn(const MedFeatures &matrix) {
 	if (call_parallel_learn) {
 #pragma omp parallel for
 		for (int i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->Learn(model, rep, matrix);
+			post_processors[i]->Learn(matrix);
 	}
 	else
 		for (int i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->Learn(model, rep, matrix);
-}
-
-void MultiPostProcessor::init_model(MedModel *mdl) {
-	for (int i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->init_model(mdl);
+			post_processors[i]->Learn(matrix);
 }
 
 void MultiPostProcessor::Apply(MedFeatures &matrix) const {
@@ -118,4 +135,34 @@ MultiPostProcessor::~MultiPostProcessor() {
 			post_processors[i] = NULL;
 		}
 	post_processors.clear();
+}
+
+float MultiPostProcessor::get_use_p() {
+
+	if (post_processors.size() == 0)
+		use_p = 0.0;
+	else {
+		use_p = post_processors[0]->use_p;
+		for (size_t i = 1; i < post_processors.size(); i++) {
+			if (post_processors[i]->use_p != use_p)
+				MTHROW_AND_ERR("MultiPostProcessor: use_p inconsistecny (%f vs %f)\n", use_p, post_processors[i]->use_p);
+		}
+	}
+	
+	return use_p;
+}
+
+int MultiPostProcessor::get_use_split() {
+
+	if (post_processors.size() == 0)
+		use_split = -1;
+	else {
+		use_split = post_processors[0]->use_split;
+		for (size_t i = 1; i < post_processors.size(); i++) {
+			if (post_processors[i]->use_split != use_split)
+				MTHROW_AND_ERR("MultiPostProcessor: use_split inconsistecny (%d vs %d)\n", use_split, post_processors[i]->use_split);
+		}
+	}
+
+	return use_split;
 }

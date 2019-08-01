@@ -70,6 +70,11 @@ struct ElasticNetParams : public dmlc::Parameter<ElasticNetParams> {
   // default=0 means no constraint on weight delta
   float max_delta_step;
 
+  // feature specific splitting penalties
+  uint64_t num_features;
+  std::string split_penalties_s;
+  std::vector<float> split_penalties;
+
   DMLC_DECLARE_PARAMETER(ElasticNetParams) {
     DMLC_DECLARE_FIELD(reg_lambda)
       .set_lower_bound(0.0)
@@ -86,6 +91,12 @@ struct ElasticNetParams : public dmlc::Parameter<ElasticNetParams> {
                 "If the value is set to 0, it means there is no constraint");
     DMLC_DECLARE_ALIAS(reg_lambda, lambda);
     DMLC_DECLARE_ALIAS(reg_alpha, alpha);
+    DMLC_DECLARE_FIELD(split_penalties_s)
+      .set_default("")
+      .describe("feature-specific splitting penalties");
+    DMLC_DECLARE_FIELD(num_features)
+      .set_default(0)
+      .describe("number of features in matrix");
   }
 };
 
@@ -99,9 +110,35 @@ class ElasticNet final : public SplitEvaluator {
       LOG(FATAL) << "ElasticNet does not accept an inner SplitEvaluator";
     }
   }
+
+  // Split-penalties string to vector
+  inline void get_split_penalties() {
+
+    params_.split_penalties.resize(params_.num_features, 0);
+
+    int start = 0, index = -1;
+    for (size_t i = 0; i < params_.split_penalties_s.length(); i++) {
+      if (params_.split_penalties_s[i] == ':') {
+        index = std::stoi(params_.split_penalties_s.substr(start, i - start));
+        start = i + 1;
+      }
+      else if (params_.split_penalties_s[i] == ',') {
+        float val = std::stof(params_.split_penalties_s.substr(start, i - start));
+        params_.split_penalties[index] = val;
+        start = i + 1;
+      }
+    }
+
+    if (index != -1) {
+      float val = std::stof(params_.split_penalties_s.substr(start, params_.split_penalties_s.length() - start));
+      params_.split_penalties[index] = val;
+    }
+  }
+
   void Init(
       const std::vector<std::pair<std::string, std::string> >& args) override {
     params_.InitAllowUnknown(args);
+    get_split_penalties();
   }
 
   SplitEvaluator* GetHostClone() const override {
@@ -117,15 +154,18 @@ class ElasticNet final : public SplitEvaluator {
                              const GradStats& right_stats,
                              bst_float left_weight,
                              bst_float right_weight) const override {
-    return ComputeScore(nodeid, left_stats, left_weight) +
-      ComputeScore(nodeid, right_stats, right_weight);
+
+    xgboost::bst_float penalty = ComputeScore(nodeid, left_stats, left_weight) + ComputeScore(nodeid, right_stats, right_weight);
+    return penalty - params_.split_penalties[featureid]  ;
   }
 
   bst_float ComputeSplitScore(bst_uint nodeid,
                              bst_uint featureid,
                              const GradStats& left_stats,
                              const GradStats& right_stats) const override {
-    return ComputeScore(nodeid, left_stats) + ComputeScore(nodeid, right_stats);
+
+    xgboost::bst_float penalty = ComputeScore(nodeid, left_stats) + ComputeScore(nodeid, right_stats);
+    return penalty - params_.split_penalties[featureid];
   }
 
   bst_float ComputeScore(bst_uint parentID, const GradStats &stats, bst_float weight)

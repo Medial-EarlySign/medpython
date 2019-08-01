@@ -8,7 +8,7 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 void CategoryDependencyGenerator::init_defaults() {
-	generator_type = FTR_GEN_BASIC;
+	generator_type = FTR_GEN_CATEGORY_DEPEND;
 	signalName = "";
 	signalId = -1;
 	time_channel = 0;
@@ -17,6 +17,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	win_to = 360000;
 	time_unit_win = MedTime::Days;
 	regex_filter = "";
+	remove_regex_filter = "";
 	min_age = 0;
 	max_age = 120;
 	age_bin = 5;
@@ -34,9 +35,12 @@ void CategoryDependencyGenerator::init_defaults() {
 	filter_child_pval_diff = (float)1e-10;
 	filter_child_lift_ratio = (float)0.05;
 	filter_child_removed_ratio = 1;
+	filter_hierarchy = true;
 	verbose = false;
 	use_fixed_lift = false;
 	verbose_full = false;
+	feature_prefix = "";
+	verbose_full_file = "";
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -64,6 +68,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			time_unit_win = med_time_converter.string_to_type(it->second);
 		else if (it->first == "regex_filter")
 			regex_filter = it->second;
+		else if (it->first == "remove_regex_filter")
+			remove_regex_filter = it->second;
 		else if (it->first == "min_age")
 			min_age = med_stoi(it->second);
 		else if (it->first == "max_age")
@@ -76,6 +82,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			fdr = med_stof(it->second);
 		else if (it->first == "take_top")
 			take_top = med_stoi(it->second);
+		else if (it->first == "filter_hierarchy")
+			filter_hierarchy = med_stoi(it->second) > 0;
 		else if (it->first == "lift_below")
 			lift_below = med_stof(it->second);
 		else if (it->first == "lift_above")
@@ -90,6 +98,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			filter_child_removed_ratio = med_stof(it->second);
 		else if (it->first == "chi_square_at_least")
 			chi_square_at_least = med_stof(it->second);
+		else if (it->first == "sort_by_chi")
+			sort_by_chi = med_stoi(it->second);
 		else if (it->first == "minimal_chi_cnt")
 			minimal_chi_cnt = med_stoi(it->second);
 		else if (it->first == "use_fixed_lift")
@@ -98,6 +108,10 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			verbose = med_stoi(it->second) > 0;
 		else if (it->first == "verbose_full")
 			verbose_full = med_stoi(it->second) > 0;
+		else if (it->first == "verbose_full_file")
+			verbose_full_file = it->second;
+		else if (it->first == "feature_prefix")
+			feature_prefix = it->second;
 		else if (it->first == "stat_metric") {
 			if (conv_map_stats.find(it->second) != conv_map_stats.end())
 				stat_metric = category_stat_test(conv_map_stats.at(it->second));
@@ -167,9 +181,24 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat) {
-	if (_member2Sets_flat_cache.find(codeGroup) != _member2Sets_flat_cache.end())
+bool any_regex_match(const regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = regex_match(nms[i], reg_pat);
+	return res;
+}
+
+void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex &remove_reg_pat) {
+
+	bool cached = false;
+#pragma omp critical
+	if (_member2Sets_flat_cache.find(codeGroup) != _member2Sets_flat_cache.end()) {
 		parents = _member2Sets_flat_cache.at(codeGroup);
+		cached = true;
+	}
+	if (cached)
+		return;
+
 	vector<int> last_parents = { codeGroup };
 	if (last_parents.front() < 0)
 		return; //no parents
@@ -189,22 +218,20 @@ void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parent
 			break; //no more parents to loop up
 	}
 
-	if (!regex_filter.empty()) {
+	if (!regex_filter.empty() || !remove_regex_filter.empty()) {
 		vector<int> filtered_p;
 		filtered_p.reserve(parents.size());
 		for (int code : parents)
 		{
 			if (categoryId_to_name.find(code) == categoryId_to_name.end())
 				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
-			const vector<string> &names = categoryId_to_name.at(code);
-			int nm_idx = 0;
-			bool pass_regex_filter = false;
-			while (!pass_regex_filter && nm_idx < names.size())
-			{
-				pass_regex_filter = regex_match(names[nm_idx], reg_pat);
-				++nm_idx;
-			}
-			if (pass_regex_filter)
+			const vector<string> &names_ = categoryId_to_name.at(code);
+			bool pass_regex_filter = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
+			bool pass_remove_regex_filter = false;
+			if (pass_regex_filter) //calc only if needed, has chance to be selected
+				pass_remove_regex_filter = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
+
+			if (pass_regex_filter && !pass_remove_regex_filter)
 				filtered_p.push_back(code);
 		}
 		parents.swap(filtered_p);
@@ -266,7 +293,7 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 				regScore += medial::contingency_tables::calc_mcnemar_square_dist(all_grps);
 			else if (stat_metric == category_stat_test::chi_square)
 				regScore += medial::contingency_tables::calc_chi_square_dist(all_grps, 0, chi_square_at_least, minimal_chi_cnt);
-			dof_val += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 1);
+			dof_val += _count_legal_rows(code_stats[i], stat_metric == category_stat_test::chi_square ? minimal_chi_cnt : 0);
 		}
 		scores[index] = (float)regScore;
 		dof[index] = dof_val;
@@ -276,10 +303,25 @@ void CategoryDependencyGenerator::get_stats(const unordered_map<int, vector<vect
 	}
 }
 
+void print_or_log(ofstream &fw, bool write_to_file, char *fmt, ...) {
+	char buff[5000];
+	va_list args;
+	va_start(args, fmt);
+	//vfprintf(fds[section][i], fmt, args);
+	vsnprintf(buff, sizeof(buff), fmt, args);
+	va_end(args);
+
+	if (write_to_file)
+		fw << buff;
+	else
+		MLOG("%s", buff);
+}
+
 int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 
 	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
 		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
+	names.clear();
 
 	// Required signals
 	vector<int> all_req_signal_ids_v;
@@ -288,8 +330,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	unordered_set<int> extra_req_signal_ids;
 	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
 	regex reg_pat;
+	regex remove_reg_pat;
 	if (!regex_filter.empty())
 		reg_pat = regex(regex_filter);
+	if (!remove_regex_filter.empty())
+		remove_reg_pat = regex(remove_regex_filter);
 
 	// Preparations
 	unordered_map<int, vector<vector<vector<int>>>> categoryVal_to_stats; //stats is gender,age, 4 ints counts:
@@ -302,11 +347,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			total_stats[i][j].resize(2);
 	}
 
-	MedTimer tm;
-	tm.start();
-	chrono::high_resolution_clock::time_point tm_prog = chrono::high_resolution_clock::now();
-	int progress = 0;
-
+	MedProgress progress("CategoryDependencyGenerator:" + signalName, (int)samples.idSamples.size(), 15, 100);
 	//unordered_map<int, unordered_map<int, vector<vector<bool>>>> code_pid_label_age_bin;// stores for each code => pid if saw label,age_bin
 	//bool nested_state = omp_get_nested();
 	//omp_set_nested(true);
@@ -392,7 +433,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			update_ls.push_back(it->first);
 		for (int base_code : update_ls) {
 			vector<int> all_parents;
-			get_parents(base_code, all_parents, reg_pat);
+			get_parents(base_code, all_parents, reg_pat, remove_reg_pat);
 
 			const vector<vector<vector<bool>>> &base_code_stats = pid_categoryVal_to_stats.at(base_code);
 			for (int code : all_parents)
@@ -442,26 +483,10 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 			// Some timing printing
 			//#pragma omp atomic
-			++progress;
-			double duration = (unsigned long long)(chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-				- tm_prog).count()) / 1000000.0;
-			if (progress % 100 == 0 && duration > 15) {
-				//#pragma omp critical
-				tm_prog = chrono::high_resolution_clock::now();
-				double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
-					- tm.t[0]).count()) / 1000000.0;
-				double estimate_time = int(double(samples.idSamples.size() - progress) / double(progress) * double(time_elapsed));
-				char buffer[1000];
-				snprintf(buffer, sizeof(buffer), "CategoryDependencyGenerator:%s Processed %d out of %d(%2.2f%%) time elapsed: %2.1f Minutes, "
-					"estimate time to finish %2.1f Minutes",
-					signalName.c_str(), progress, (int)samples.idSamples.size(), 100.0*(progress / float(samples.idSamples.size())), time_elapsed / 60,
-					estimate_time / 60.0);
-				MLOG("%s\n", buffer);
-			}
+			progress.update();
+
 		}
 	}
-	tm.take_curr_time();
-	MLOG("Took %2.2f seconds to complete\n", tm.diff_sec());
 	//omp_set_nested(nested_state);
 
 	//complete stats in rows:
@@ -476,31 +501,41 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				}
 
 	//filter regex if given:
-	if (!regex_filter.empty())
+	if (!regex_filter.empty() || !remove_regex_filter.empty())
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
 			int base_code = it->first;
-			bool found_match = false;
-			const vector<string> &names = categoryId_to_name.at(base_code);
-			int pos_i = 0;
-			while (pos_i < names.size() && !found_match) {
-				found_match = regex_match(names[pos_i], reg_pat);
-				++pos_i;
-			}
+			const vector<string> &names_ = categoryId_to_name.at(base_code);
+			bool found_match = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
+			bool found_remove_match = false;
+			if (found_match) //calc only if needed, has chance to be selected
+				found_remove_match = remove_regex_filter.empty() ? false : any_regex_match(remove_reg_pat, names_);
 
-			if (found_match)
+			if (found_match && !found_remove_match)
 				++it;
 			else
 				it = categoryVal_to_stats.erase(it);
 		}
 
+	ofstream fw_verbose;
+	bool use_file = false;
+	if (!verbose_full_file.empty()) {
+		fw_verbose.open(verbose_full_file);
+		if (!fw_verbose.good())
+			MWARN("Can't open %s fopr writing\n", verbose_full_file.c_str());
+		else
+			use_file = true;
+		verbose_full_file = ""; //write to stdout
+	}
+
 	if (verbose_full) {
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end(); ++it) {
-			MLOG("code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+			print_or_log(fw_verbose, use_file, "code=%d(%s):\n", it->first, categoryId_to_name.at(it->first).back().c_str());
+
 			for (size_t ii = 0; ii < 2; ++ii)
 				for (size_t jj = 0; jj < age_bin_cnt; ++jj)
 					if (!it->second[ii][jj].empty())
-						MLOG("Gender_idx=%zu,Age_idx=%zu\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
-							ii, jj, it->second[ii][jj][2], it->second[ii][jj][3],
+						print_or_log(fw_verbose, use_file, "Gender_idx=%zu,Age=[%d-%d]\tctrls:%d\tcases:%d\ttot_ctrls:%d\ttot_cases:%d\n",
+							ii, min_age + jj * age_bin, min_age + (jj + 1) * age_bin, it->second[ii][jj][2], it->second[ii][jj][3],
 							total_stats[ii][jj][0], total_stats[ii][jj][1]);
 		}
 	}
@@ -518,21 +553,21 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	vector<int> code_list, indexes, dof;
 	vector<double> codeCnts, posCnts, lift, scores, pvalues, pos_ratio;
 	get_stats(categoryVal_to_stats, code_list, indexes, codeCnts, posCnts, lift, scores, pvalues, pos_ratio, dof, prior_per_bin);
+	if (verbose_full) {
+		for (unsigned int i = 0; i < code_list.size(); i++)
+			print_or_log(fw_verbose, use_file, "Value=%d : Cnts = %f PosCnts = %f Lift = %f Score = %f P-value = %f\n", code_list[i], codeCnts[i], posCnts[i], lift[i], scores[i], pvalues[i]);
+	}
 	unordered_map<int, double> code_cnts;
 	for (size_t i = 0; i < code_list.size(); ++i)
 		code_cnts[code_list[i]] = codeCnts[i];
-	
+
 	int before_cnt = (int)indexes.size();
 	apply_filter(indexes, codeCnts, min_code_cnt, INT_MAX);
 	if (verbose)
 		MLOG("CategoryDependencyGenerator on %s - count_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
-	apply_filter(indexes, pvalues, 0, fdr);
-	if (verbose)
-		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
-			signalName.c_str(), indexes.size(), before_cnt);
-	before_cnt = (int)indexes.size();
+
 	vector<int> top_idx(indexes), bottom_idx(indexes);
 	apply_filter(top_idx, lift, lift_above, INT_MAX);
 	apply_filter(bottom_idx, lift, -1, lift_below);
@@ -543,22 +578,32 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 			signalName.c_str(), indexes.size(), before_cnt);
 	before_cnt = (int)indexes.size();
 	//filter hierarchy:
-	medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members ,indexes, code_list, pvalues, codeCnts, lift,
-		code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
+	if (filter_hierarchy) {
+		medial::contingency_tables::filterHirarchy(_member2Sets, _set2Members, indexes, code_list, pvalues, codeCnts, lift,
+			code_cnts, filter_child_pval_diff, filter_child_lift_ratio, filter_child_count_ratio, filter_child_removed_ratio);
+		if (verbose)
+			MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
+				signalName.c_str(), indexes.size(), before_cnt);
+		before_cnt = (int)indexes.size();
+	}
+	//Real FDR filtering:
+	vector<double> fixed_lift(lift); //for sorting
+	for (int index : indexes)
+		if (fixed_lift[index] < 1 && fixed_lift[index] > 0)
+			fixed_lift[index] = 1 / fixed_lift[index];
+		else if (fixed_lift[index] == 0)
+			fixed_lift[index] = 999999;
+
+	medial::contingency_tables::FilterFDR(indexes, scores, pvalues, fixed_lift, fdr);
 	if (verbose)
-		MLOG("CategoryDependencyGenerator on %s - Hirarchy_filter left %zu(out of %d)\n",
+		MLOG("CategoryDependencyGenerator on %s - fdr_filter left %zu(out of %d)\n",
 			signalName.c_str(), indexes.size(), before_cnt);
+
 	before_cnt = (int)indexes.size();
 	//join both results from up and down filters on the lift:
 	//sort before taking top:
 	//sort by p_value, lift, score:
-	vector<double> fixed_lift(lift); //for sorting
-	if (use_fixed_lift)
-		for (int index : indexes)
-			if (fixed_lift[index] < 1 && fixed_lift[index] > 0)
-				fixed_lift[index] = 1 / fixed_lift[index];
-			else if (fixed_lift[index] == 0)
-				fixed_lift[index] = 999999;
+
 	vector<int> indexes_order(indexes.size());
 	vector<pair<int, vector<double>>> sort_pars(indexes.size());
 	for (size_t i = 0; i < indexes.size(); ++i)
@@ -571,6 +616,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		else
 			sort_pars[i].second[1] = -lift[indexes[i]];
 		sort_pars[i].second[2] = -scores[indexes[i]];
+		if (sort_by_chi) sort_pars[i].second.insert(sort_pars[i].second.begin(), -scores[indexes[i]]);
 	}
 	sort(sort_pars.begin(), sort_pars.end(), [](pair<int, vector<double>> a, pair<int, vector<double>> b) {
 		int pos = 0;
@@ -615,10 +661,22 @@ void CategoryDependencyGenerator::set_names() {
 	names.resize(top_codes.size());
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
-		snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
-			signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
+		if (!feature_prefix.empty())
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
+		else
+			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
+				signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
+}
+
+int CategoryDependencyGenerator::nfeatures() {
+	if (!names.empty())
+		return (int)names.size();
+	if (take_top > 0)
+		return take_top;
+	return 0;
 }
 
 int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
@@ -661,7 +719,7 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 	vector<int> selected;
 	for (int i = 0; i < names.size(); i++) {
 		if (validFeatures.find(names[i]) != validFeatures.end())
-			selected.push_back(i); 
+			selected.push_back(i);
 	}
 
 	for (int i = 0; i < selected.size(); i++)

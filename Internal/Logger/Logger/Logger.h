@@ -197,6 +197,7 @@ public:
 	int print_interval;
 	string print_title;
 	int max_threads;
+	bool alway_print_total;
 
 	int print_section;
 	int print_level;

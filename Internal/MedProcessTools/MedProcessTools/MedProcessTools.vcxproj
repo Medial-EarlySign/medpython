@@ -95,6 +95,7 @@
     <ClCompile Include="MedModel.cpp" />
     <ClCompile Include="MedModelInitFromJson.cpp" />
     <ClCompile Include="MedProcessUtils.cpp" />
+    <ClCompile Include="MedProcessWrappers.cpp" />
     <ClCompile Include="MedSamples.cpp" />
     <ClCompile Include="MedValueCleaner.cpp" />
     <ClCompile Include="PanelCompleter.cpp" />
@@ -105,6 +106,7 @@
     <ClCompile Include="SampleFilter.cpp" />
     <ClCompile Include="SmokingGenerator.cpp" />
     <ClCompile Include="StripComments.cpp" />
+    <ClCompile Include="UnifiedSmokingGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlcoholGenerator.h" />
@@ -122,6 +124,7 @@
     <ClInclude Include="MedModel.h" />
     <ClInclude Include="MedModelExceptions.h" />
     <ClInclude Include="MedProcessUtils.h" />
+    <ClInclude Include="MedProcessWrappers.h" />
     <ClInclude Include="MedSamples.h" />
     <ClInclude Include="MedValueCleaner.h" />
     <ClInclude Include="PostProcessor.h" />
@@ -129,6 +132,7 @@
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />
     <ClInclude Include="StripComments.h" />
+    <ClInclude Include="UnifiedSmokingGenerator.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\all.signals" />

@@ -29,6 +29,7 @@ public:
 	const static int Hours = 5;				///< hours since 1900/01/01
 	const static int Minutes = 6;			///< minutes since 1900/01/01
 	const static int DateTimeString = 7;	///< string only format "YYYYMMDDHHMI"
+	const static int MIN_DATE_SUPPORT = 19000000; ///< minimal date support
 
 	vector<int> YearsMonths2Days;
 	vector<int> Years2Days;

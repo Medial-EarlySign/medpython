@@ -117,6 +117,42 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 	return AM_OK_RC;
 }
 
+//-----------------------------------------------------------------------------------
+// AddDatStr() - adding data for a signal with values and timestamps
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
+{
+    vector<float> converted_Values;
+	MedRepository &rep = ma.get_rep();
+
+	try{
+        string sig = signalName;
+		int section_id = rep.dict.section_id(sig);
+		int sid = rep.sigs.Name2Sid[sig];
+		int Values_i = 0;
+		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
+		int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+		for (int i=0; i<n_elem; i++) {
+			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+				float val = -1;
+				if (!rep.sigs.is_categorical_channel(sid, j)) {
+					val = stof(Values[Values_i++]);
+				}
+				else {
+					val = category_map.at(Values[Values_i++]);
+				}
+
+				converted_Values.push_back(val);
+			}
+		}
+	} catch(...){
+		return AM_FAIL_RC;
+	}
+
+	return AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, converted_Values.data());
+
+}
+
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------

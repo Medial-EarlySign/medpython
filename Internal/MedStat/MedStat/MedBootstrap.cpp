@@ -158,18 +158,23 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 		mdl.add_age();
 	if (need_gender)
 		mdl.add_gender();
+	//read only dicts of rep:
+	if (rep.read_config(rep_path) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
+	for (RepProcessor *processor : mdl.rep_processors)
+		processor->set_affected_signal_ids(rep.dict);
+	mdl.filter_rep_processors();
 
 	unordered_set<string> req_names;
-	for (FeatureGenerator *generator : mdl.generators)
-		generator->get_required_signal_names(req_names);
+	mdl.get_required_signal_names(req_names);
 	vector<string> sigs = { "BYEAR", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
-	mdl.filter_rep_processors();
-
+	
+	
 	int curr_level = global_logger.levels.front();
 	global_logger.init_all_levels(LOG_DEF_LEVEL);
 	if (rep.read_all(rep_path, pids_to_take, sigs) < 0)
@@ -408,6 +413,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 		pair<int, int> time_res = *it;
 		MLOG("Running Incidence calc for time Res %d to %d\n", time_res.first, time_res.second);
 		sampler_year->time_jump = time_res.second - time_res.first;
+		sampler_year->time_jump_unit = global_default_windows_time_unit;
 		LabelParams lbl_params = args.labeling_params;
 		lbl_params.time_from = time_res.first;
 		lbl_params.time_to = time_res.second;

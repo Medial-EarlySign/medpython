@@ -23,7 +23,7 @@ void split_string_delimeter(vector<string> &res, const string &s, const string &
 	res.push_back(s.substr(pos_start));
 }
 
-template<typename T> void get_attr_namespace(const map<string, T> &attr, unordered_map<string, vector<string>> &namespace_mapper) {
+template<typename T> void get_attr_namespace(const map<string, T> &attr, map<string, vector<string>> &namespace_mapper) {
 	for (const auto& a : attr) {
 		string ns = a.first;
 		if (ns.find("::") != string::npos)
@@ -40,10 +40,25 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 	if (keys.size() == 1 && keys.front().find(namespace_attr_delimeter) == string::npos) //one key without namespace!
 		s_buff << attr.at(keys.front());
 	else {
+		vector<float> vals;
+		for (auto &e : attr) {
+			float f;
+			try {
+				f = stof(e.second);
+			}
+			catch (...) {
+				f = 0;
+			}
+			vals.push_back(f);
+		}
+		vector<int> indexes;
+		medial::sort_ops::get_sort_indexes(vals, true, true, indexes);
+
 		s_buff << "{";
 		bool first = true;
-		for (const string &key : keys)
+		for (auto j : indexes)
 		{
+			string key = keys[j];
 			if (!first)
 				s_buff << delimeter_keys;
 			//strip ns from key in write:
@@ -106,7 +121,7 @@ void write_attributes(stringstream &s_buff, const string &delimeter, const map<s
 	string delimeter_keys = "||";
 	string delimeter_key_val = "=";
 
-	unordered_map<string, vector<string>> namespace_mapper;
+	map<string, vector<string>> namespace_mapper;
 	get_attr_namespace(attr, namespace_mapper);
 
 	for (const auto& kv : namespace_mapper) {
@@ -373,8 +388,8 @@ int MedSamples::insert_post_process(MedFeatures& features) {
 	int idx = 0;
 	for (MedIdSamples& idSample : idSamples) {
 		for (unsigned int i = 0; i < idSample.samples.size(); i++) {
-			idSample.samples[i].attributes = features.samples[idx].attributes;
-			idSample.samples[i].str_attributes = features.samples[idx].str_attributes;
+			idSample.samples[i].attributes.insert(features.samples[idx].attributes.begin(), features.samples[idx].attributes.end());
+			idSample.samples[i].str_attributes.insert(features.samples[idx].str_attributes.begin(), features.samples[idx].str_attributes.end());
 			++idx;
 		}
 	}
@@ -383,7 +398,7 @@ int MedSamples::insert_post_process(MedFeatures& features) {
 
 // Get all patient ids
 //.......................................................................................
-void MedSamples::get_ids(vector<int>& ids) {
+void MedSamples::get_ids(vector<int>& ids) const {
 
 	ids.resize(idSamples.size());
 	for (unsigned int i = 0; i < idSamples.size(); i++)
@@ -393,16 +408,31 @@ void MedSamples::get_ids(vector<int>& ids) {
 
 // Extract a single vector of concatanated (vectors of) predictions
 //.......................................................................................
-void MedSamples::get_preds(vector<float>& preds) {
+void MedSamples::get_preds(vector<float>& preds) const {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
 			for (int i = 0; i < sample.prediction.size(); i++)
 				preds.push_back(sample.prediction[i]);
 }
 
+// Extract a vector of values corresponding to attribute [empty if never given]
+//.......................................................................................
+void MedSamples::get_attr_values(const string& attr_name, vector<float>& values) const {
+
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			for (int i = 0; i < sample.prediction.size(); i++)
+				if (sample.attributes.find(attr_name) != sample.attributes.end())
+					values.push_back(sample.attributes.at(attr_name));
+
+	int nValues = (int)values.size();
+	if (nValues != 0 && nValues != nSamples())
+		MTHROW_AND_ERR("Attribute %s not consistently given for samples\n", attr_name.c_str());
+}
+
 // Extract a vector of all outcomes
 //.......................................................................................
-void MedSamples::get_y(vector<float>& y) {
+void MedSamples::get_y(vector<float>& y) const {
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
 			y.push_back(sample.outcome);
@@ -410,7 +440,7 @@ void MedSamples::get_y(vector<float>& y) {
 
 // gets a list of all categories (different values) appearing in the outcome
 //.......................................................................................
-void MedSamples::get_categs(vector<float>& categs)
+void MedSamples::get_categs(vector<float>& categs) const
 {
 	map<float, int> categ_inside;
 	categs.clear();
@@ -600,7 +630,7 @@ int MedSample::get_all_attributes(vector<string>& attributes, vector<string>& st
 	attributes.clear();
 	str_attributes.clear();
 
-	unordered_map<string, vector<string>> agg_map;
+	map<string, vector<string>> agg_map;
 	get_attr_namespace(this->attributes, agg_map);
 	for (auto& attr : agg_map)
 		attributes.push_back(attr.first);
@@ -822,7 +852,7 @@ void MedSamples::insertRec(int pid, int time, float outcome, int outcomeTime, fl
 
 // Get all MedSamples as a single vector
 //.......................................................................................
-void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples)
+void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples) const
 {
 	vec_samples.clear();
 	for (auto &s : idSamples) {
@@ -895,10 +925,24 @@ bool MedSamples::same_as(MedSamples &other, int mode) {
 	return true;
 }
 
+//.......................................................................................
 void MedSamples::flatten(vector<MedSample> &flat) const {
 	for (size_t i = 0; i < idSamples.size(); ++i)
 		for (size_t j = 0; j < idSamples[i].samples.size(); ++j)
 			flat.push_back(idSamples[i].samples[j]);
+}
+
+//.......................................................................................
+void MedSamples::subtract(MedSamples &_dont_include)
+{
+	unordered_set<int> ids_to_remove;
+
+	for (auto &ids : _dont_include.idSamples) ids_to_remove.insert(ids.id);
+	vector<MedIdSamples> new_list;
+	for (auto &ids : idSamples)
+		if (ids_to_remove.find(ids.id) != ids_to_remove.end())
+			new_list.push_back(ids);
+	idSamples = new_list;
 }
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
@@ -1130,8 +1174,8 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index(tot_samples);
-	random_device rd;
-	mt19937 gen(rd());
+
+	mt19937 gen(globalRNG::rand());
 	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;
@@ -1178,8 +1222,8 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
-	random_device rd;
-	mt19937 gen(rd());
+	
+	mt19937 gen(globalRNG::rand());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
 	filterd.time_unit = samples.time_unit;

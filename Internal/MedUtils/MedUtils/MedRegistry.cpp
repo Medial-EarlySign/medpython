@@ -281,12 +281,12 @@ bool RegistrySignalSet::get_outcome(const UniversalSigVec &s, int current_i, flo
 	return is_active;
 }
 
-int RegistrySignalSet::init(map<string, string>& map) {
-
+int RegistrySignal::init(map<string, string>& mapper) {
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	map<string, string> rest_arguments;
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignal::init]
 		if (it->first == "signalName")
 			signalName = it->second;
 		else if (it->first == "duration_flag")
@@ -299,12 +299,27 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			outcome_value = stof(it->second);
 		else if (it->first == "channel")
 			channel = stoi(it->second);
-		else if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
+		else
+			rest_arguments[it->first] = it->second;
+		//! [RegistrySignal::init]
+	}
+
+	_init(rest_arguments);
+	return 0;
+}
+
+void RegistrySignalSet::_init(const map<string, string>& mapper) {
+
+	string sets_path = "";
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [RegistrySignalSet::_init]
+		if (it->first == "sets_path") //should contain "sets_path=" which points to file with list of codes
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalSet::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalSet::init]
+		//! [RegistrySignalSet::_init]
 	}
 	int sid = repo->sigs.sid(signalName);
 	if (sid < 0)
@@ -332,7 +347,6 @@ int RegistrySignalSet::init(map<string, string>& map) {
 			}
 		}
 	}
-	return 0;
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val) {
@@ -394,32 +408,19 @@ bool RegistrySignalRange::get_outcome(const UniversalSigVec &s, int current_i, f
 	return is_active;
 }
 
-int RegistrySignalRange::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalRange::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalRange::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "min_value")
+		//! [RegistrySignalRange::_init]
+		if (it->first == "min_value")
 			min_value = stof(it->second);
 		else if (it->first == "max_value")
 			max_value = stof(it->second);
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "channel")
-			channel = stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalRange::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalRange::init]
+		//! [RegistrySignalRange::_init]
 	}
-	return 0;
 }
 
 RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
@@ -431,28 +432,18 @@ RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
 	outcome_value = 1;
 }
 
-int RegistrySignalDrug::init(map<string, string>& map) {
+void RegistrySignalDrug::_init(const map<string, string>& mapper) {
 
 	string sets_path = "";
-	for (auto it = map.begin(); it != map.end(); ++it)
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalDrug::init]
-		if (it->first == "signalName")
-			signalName = it->second;
-		else if (it->first == "duration_flag")
-			duration_flag = stoi(it->second);
-		else if (it->first == "buffer_duration")
-			buffer_duration = stoi(it->second);
-		else if (it->first == "take_only_first")
-			take_only_first = stoi(it->second) > 0;
-		else if (it->first == "outcome_value")
-			outcome_value = stof(it->second);
-		else if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
+		//! [RegistrySignalDrug::_init]
+		if (it->first == "sets_path") //should contain "sets=" which points to file with list of codes with TAB min_dosage_range TAB max_dosage_range
 			sets_path = it->second;
 		else
 			MTHROW_AND_ERR("Error in RegistrySignalDrug::init - unsupported element \"%s\"\n",
 				it->first.c_str());
-		//! [RegistrySignalDrug::init]
+		//! [RegistrySignalDrug::_init]
 	}
 	//save to end
 	if (!sets_path.empty()) {
@@ -510,7 +501,6 @@ int RegistrySignalDrug::init(map<string, string>& map) {
 		}
 		file.close();
 	}
-	return 0;
 }
 
 bool RegistrySignalDrug::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
@@ -547,27 +537,34 @@ RegistrySignalAnd::RegistrySignalAnd(MedRepository &rep) {
 	channel = 0;
 }
 
-int RegistrySignalAnd::init(map<string, string>& map) {
-	for (auto it = map.begin(); it != map.end(); ++it)
+void RegistrySignalAnd::_init(const map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		//! [RegistrySignalAnd::init]
-		if (it->first == "signalName")
-			MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
-		else if (it->first == "conditions")  //not checking for infinite loop
+		//! [RegistrySignalAnd::_init]
+		if (it->first == "conditions")  //not checking for infinite loop
 			RegistrySignal::parse_registry_rules(it->second, *repo, conditions);
 		else
 			MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - Unsupported Argument %s\n", it->first.c_str());
-		//! [RegistrySignalAnd::init]
+		//! [RegistrySignalAnd::_init]
 	}
 	if (conditions.empty())
 		MTHROW_AND_ERR("ERROR in RegistrySignalAnd::init - conditions is empty. please use conditions to reffer to file with and conditions of signals\n");
-	return 0;
+	//given signalName argument
+	if (!signalName.empty())
+		MWARN("Warning in RegistrySignalAnd::init - ignoring signalName argument. this is wrapper operation\n");
 }
 
 RegistrySignalAnd::~RegistrySignalAnd() {
 	for (size_t i = 0; i < conditions.size(); ++i)
 		delete conditions[i];
 	conditions.clear();
+}
+
+bool RegistrySignalAny::get_outcome(const UniversalSigVec &s, int current_i, float &result) {
+	bool is_active = current_i < s.len;
+	if (is_active)
+		result = outcome_value;
+	return is_active;
 }
 
 inline int Date_wrapper(const UniversalSigVec &signal, int i) {
@@ -639,8 +636,16 @@ void MedRegistryCodesList::get_registry_records(int pid,
 			//advanced till passed end_date + buffer with no reapeating RC:
 			while (signal_index >= 0 && Date_wrapper(*signal, i) < max_search) {
 				if (signal_prop->get_outcome(*signal, i, registry_outcome_result)) {
-					r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
-					max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					if (!seperate_cases) {
+						r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
+						max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					}
+					else {
+						results.push_back(r);
+						r.end_date = medial::repository::DateAdd(Date_wrapper(*signal, i), signal_prop->duration_flag);
+						r.start_date = Date_wrapper(*signal, i);
+						max_search = medial::repository::DateAdd(r.end_date, signal_prop->buffer_duration - 1);
+					}
 				}
 
 				signal_index = medial::repository::fetch_next_date(usv, signals_indexes_pointers);
@@ -831,13 +836,10 @@ int _count_legal_rows(const  map<float, vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
-	const map<float, map<float, vector<int>>> &female_stats,
-	vector<int> &all_signal_values, vector<int> &signal_indexes,
+void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats, vector<int> &all_signal_values, vector<int> &signal_indexes,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
-	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
-	, float allowed_error, int minimal_balls) {
-
+	, vector<double> &pos_ratio) {
 	unordered_set<int> all_vals;
 	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
 		all_vals.insert((int)i->first);
@@ -850,16 +852,26 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 	posCnts.resize(all_signal_values.size());
 	valCnts.resize(all_signal_values.size());
 	lift.resize(all_signal_values.size());
-	scores.resize(all_signal_values.size());
-	p_values.resize(all_signal_values.size());
 	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-		double weighted_lift = 0;
+		double totCnt = 0, weighted_lift = 0;
+		/*unordered_map<float, double> prior_lift_males, prior_lift_females; //for each age_bin - prior outcome
+
+		if (male_stats.find(signalVal) != male_stats.end())
+			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt)
+				if (jt->second[1] + jt->second[1 + 2] > 0)
+					prior_lift_males[jt->first] = (jt->second[1] + jt->second[1 + 2])
+					/ (jt->second[1] + jt->second[1 + 2] + jt->second[0] + jt->second[0 + 2]);
+		if (female_stats.find(signalVal) != female_stats.end())
+			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt)
+				if (jt->second[1] + jt->second[1 + 2] > 0)
+					prior_lift_females[jt->first] = (jt->second[1] + jt->second[1 + 2])
+					/ (jt->second[1] + jt->second[1 + 2] + jt->second[0] + jt->second[0 + 2]);*/
+
 
 		if (male_stats.find(signalVal) != male_stats.end())
 			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
@@ -867,6 +879,7 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
 					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+				//weighted_lift += jt->second[1 + 2] / prior_lift_males[jt->first];
 			}
 		if (female_stats.find(signalVal) != female_stats.end())
 			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
@@ -881,7 +894,24 @@ void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vec
 		lift[index] = weighted_lift / totCnt;
 
 		pos_ratio[index] = posCnts[index] / totCnt;
+	}
+}
 
+void medial::contingency_tables::calc_chi_scores(const map<float, map<float, vector<int>>> &male_stats,
+	const map<float, map<float, vector<int>>> &female_stats,
+	vector<int> &all_signal_values, vector<int> &signal_indexes,
+	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
+	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio, int smooth_balls
+	, float allowed_error, int minimal_balls) {
+
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
+	scores.resize(all_signal_values.size());
+	p_values.resize(all_signal_values.size());
+
+	for (int index : signal_indexes)
+	{
+		float signalVal = all_signal_values[index];
+		//check chi-square for this value:
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
 			regScore += calc_chi_square_dist(male_stats.at(signalVal), smooth_balls, allowed_error, minimal_balls); //Males
@@ -906,49 +936,14 @@ void medial::contingency_tables::calc_cmh_scores(const map<float, map<float, vec
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<int> all_vals;
-	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
-	signal_indexes.resize(all_signal_values.size());
-	for (size_t i = 0; i < signal_indexes.size(); ++i)
-		signal_indexes[i] = (int)i;
-	posCnts.resize(all_signal_values.size());
-	valCnts.resize(all_signal_values.size());
-	lift.resize(all_signal_values.size());
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
 	scores.resize(all_signal_values.size());
 	p_values.resize(all_signal_values.size());
-	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-		double weighted_lift = 0;
-
-		if (male_stats.find(signalVal) != male_stats.end())
-			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (female_stats.find(signalVal) != female_stats.end())
-			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (totCnt == 0)
-			continue;
-		valCnts[index] = totCnt; //for signal apeareance
-		lift[index] = weighted_lift / totCnt;
-
-		pos_ratio[index] = posCnts[index] / totCnt;
 
 		double regScore = 0;
 		const map<float, vector<int>> *p1 = NULL, *p2 = NULL;
@@ -973,50 +968,14 @@ void medial::contingency_tables::calc_mcnemar_scores(const map<float, map<float,
 	vector<double> &valCnts, vector<double> &posCnts, vector<double> &lift
 	, vector<double> &scores, vector<double> &p_values, vector<double> &pos_ratio) {
 
-	unordered_set<int> all_vals;
-	for (auto i = male_stats.begin(); i != male_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	for (auto i = female_stats.begin(); i != female_stats.end(); ++i)
-		all_vals.insert((int)i->first);
-	all_signal_values.insert(all_signal_values.end(), all_vals.begin(), all_vals.end());
-	signal_indexes.resize(all_signal_values.size());
-	for (size_t i = 0; i < signal_indexes.size(); ++i)
-		signal_indexes[i] = (int)i;
-	posCnts.resize(all_signal_values.size());
-	valCnts.resize(all_signal_values.size());
-	lift.resize(all_signal_values.size());
+	collect_stats(male_stats, female_stats, all_signal_values, signal_indexes, valCnts, posCnts, lift, pos_ratio);
 	scores.resize(all_signal_values.size());
 	p_values.resize(all_signal_values.size());
-	pos_ratio.resize(all_signal_values.size());
 
 	for (int index : signal_indexes)
 	{
 		float signalVal = all_signal_values[index];
 		//check chi-square for this value:
-		double totCnt = 0;
-
-		double weighted_lift = 0;
-		if (male_stats.find(signalVal) != male_stats.end())
-			for (auto jt = male_stats.at(signalVal).begin(); jt != male_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (female_stats.find(signalVal) != female_stats.end())
-			for (auto jt = female_stats.at(signalVal).begin(); jt != female_stats.at(signalVal).end(); ++jt) {
-				totCnt += jt->second[2] + jt->second[3];
-				posCnts[index] += jt->second[1 + 2];
-				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
-			}
-		if (totCnt == 0)
-			continue;
-		valCnts[index] = totCnt; //for signal apeareance
-		lift[index] = weighted_lift / totCnt;
-
-		pos_ratio[index] = posCnts[index] / totCnt;
-
 		double regScore = 0;
 		if (male_stats.find(signalVal) != male_stats.end())
 			regScore += calc_mcnemar_square_dist(male_stats.at(signalVal)); //Males
@@ -1060,7 +1019,8 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	}
 	unordered_set<int> signal_values_set(signal_values.begin(), signal_values.end());
 
-	unordered_set<float> toRemove;
+	unordered_set<int> toRemove;
+	unordered_set<int> removingParents;
 	for (int index : indexes)
 	{
 		int keyVal = signal_values[index];
@@ -1090,6 +1050,7 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 						MLOG("DEBUG: remove key %s, parent has similar count:%d and current:%d\n",
 							categoryId_to_name->at(keyVal).back().c_str(), (int)parentCnt, (int)currCnt);
 					toRemove.insert(keyVal);
+					removingParents.insert(parentId);
 					break;
 				}
 
@@ -1100,10 +1061,11 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 					else if (parentLift > 0 && currLift > parentLift)
 						cmp = abs(currLift / parentLift - 1);
 					if ((parentLift == 0 && currLift == 0) || (cmp > 0 && cmp <= minPerc)) { //less than 5% diff, remove child:
-						toRemove.insert(keyVal);
 						if (categoryId_to_name != NULL)
 							MLOG("DEBUG: remove key %s, parent has similar lift:%2.3f and current:%2.3f\n",
 								categoryId_to_name->at(keyVal).back().c_str(), parentLift, currLift);
+						toRemove.insert(keyVal);
+						removingParents.insert(parentId);
 						break;
 					}
 				}
@@ -1128,6 +1090,11 @@ void medial::contingency_tables::filterHirarchy(const map<int, vector<int>> &mem
 	for (int index : indexes)
 	{
 		int keyVal = signal_values[index];
+
+		// If this parent has caused the removal of one of it's children, we can't remove it !
+		if (removingParents.find(keyVal) != removingParents.end())
+			continue;
+
 		double currCnt = valCnts[index];
 		//test if that's parent that need to be removed - has child that has been removed, 
 		//and at least onr child that haven't moved:
@@ -1295,6 +1262,8 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 	double filter_pval) {
 	//sort by  pVal (if equal than -score (Floating point round and they are almost all has same dof)) also use posCnts/ valCnts:
 	int num_of_init_test = (int)indexes.size();
+	if (num_of_init_test == 0)
+		return;
 	double cm = 0;
 	for (size_t i = 0; i < num_of_init_test; ++i)
 		cm += 1 / (i + double(1));
@@ -1320,8 +1289,10 @@ void medial::contingency_tables::FilterFDR(vector<int> &indexes,
 
 	double normAlpha = filter_pval / num_test_factor;
 	int stop_index = 0;
-	while (stop_index < keysSorted.size() && normAlpha * (stop_index + 1) >= keysSorted[stop_index].second[0])
-		++stop_index;
+	for (unsigned int i = 0; i < keysSorted.size(); i++) {
+		if (keysSorted[i].second[0] <= normAlpha * (i + 1))
+			stop_index = i + 1;
+	}
 
 	//Keep only filtered indexes
 	indexes.resize(stop_index);
@@ -1410,6 +1381,8 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepo
 		return new RegistrySignalDrug(rep);
 	else if (type == "and")
 		return new RegistrySignalAnd(rep);
+	else if (type == "any")
+		return new RegistrySignalAny;
 	else
 		MTHROW_AND_ERR("Error: Unsupported type \"%s\" for RegistrySignal::make_registry_signal\n", type.c_str());
 	//! [RegistrySignal::make_registry_signal]
@@ -1462,6 +1435,8 @@ int MedRegistryCodesList::init(map<string, string>& map) {
 			max_repo_date = stoi(it->second);
 		else if (it->first == "allow_prediciton_in_case")
 			allow_prediciton_in_case = stoi(it->second) > 0;
+		else if (it->first == "seperate_cases")
+			seperate_cases = stoi(it->second) > 0;
 		else if (it->first == "pid_to_censor_dates") {
 			ifstream fr(it->second);
 			if (!fr.good())
@@ -1971,14 +1946,14 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (max_allowed_date != 0 && curr_date > max_allowed_date)
 			break;
 
-		if (curr_date < r.end_date)
+		int new_start = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+		if (curr_date < r.end_date || (secondry_start_buffer_duration < 0 && new_start < r.end_date))
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		else {
 			//has dead region - close buffer and open new one:
-			//r.end_date = medial::repository::DateAdd(r.end_date, -end_buffer_duration);
 			if (r.end_date > r.start_date)
 				results.push_back(r);
-			r.start_date = medial::repository::DateAdd(curr_date, secondry_start_buffer_duration);
+			r.start_date = new_start;
 			r.end_date = medial::repository::DateAdd(curr_date, duration);
 		}
 
@@ -1991,4 +1966,175 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 		if (start_date > 0 && r.end_date > r.start_date)
 			results.push_back(r);
 	}
+}
+
+void medial::registry::complete_active_period_as_controls(vector<MedRegistryRecord> &registry,
+	const vector<MedRegistryRecord> &active_periods_registry, bool unite_full_controls) {
+	unordered_map<int, vector<const MedRegistryRecord *>> pid_to_periods;
+	for (size_t i = 0; i < active_periods_registry.size(); ++i)
+		pid_to_periods[active_periods_registry[i].pid].push_back(&active_periods_registry[i]);
+	unordered_map<int, vector<MedRegistryRecord>> pid_to_regs;
+	for (size_t i = 0; i < registry.size(); ++i)
+		pid_to_regs[registry[i].pid].push_back(registry[i]);
+	vector<MedRegistryRecord> new_reg;
+
+	if (!unite_full_controls) {
+		for (auto &rec : pid_to_regs)
+		{
+			int pid = rec.first;
+			if (pid_to_periods.find(pid) == pid_to_periods.end())
+				continue; //not found - no completion
+			vector<MedRegistryRecord> &reg_recs = rec.second;
+			vector<const MedRegistryRecord *> &active_pr = pid_to_periods.at(pid);
+			sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+			{ return a.start_date < b.start_date; });
+			sort(active_pr.begin(), active_pr.end(), [](const MedRegistryRecord *a, const MedRegistryRecord *b)
+			{ return a->start_date < b->start_date; });
+
+			//both sorted - now "join" them
+			int active_i = 0, reg_i = 0;
+			int curr_time = 0;
+			vector<MedRegistryRecord> added_recs;
+			while (active_i < active_pr.size())
+			{
+				const MedRegistryRecord *curr_active = active_pr[active_i];
+				const MedRegistryRecord *curr_reg = NULL;
+				if (reg_i < reg_recs.size())
+					curr_reg = &reg_recs[reg_i];
+				if (curr_reg == NULL) {
+					if (curr_time == 0)
+						curr_time = curr_active->start_date;
+					MedRegistryRecord reg_rec;
+					reg_rec.pid = pid;
+					reg_rec.registry_value = 0;
+					reg_rec.start_date = curr_time;
+					reg_rec.end_date = curr_active->end_date;
+					if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+						added_recs.push_back(reg_rec);
+
+					curr_time = 0;
+					++active_i; //finished active period
+					continue;
+				}
+				if (curr_time > 0 && curr_time > curr_active->end_date) {
+					++active_i;
+					continue;
+				}
+
+				if (curr_active->start_date < curr_reg->start_date) {
+					if (curr_time == 0 || curr_time < curr_active->start_date)
+						curr_time = curr_active->start_date;
+					//complete till active_end or start_date of reg:
+					MedRegistryRecord reg_rec;
+					reg_rec.pid = pid;
+					reg_rec.registry_value = 0;
+					reg_rec.start_date = curr_time;
+					reg_rec.end_date = curr_active->end_date;
+					if (curr_reg->start_date < reg_rec.end_date) {
+						reg_rec.end_date = curr_reg->start_date;
+						curr_time = curr_reg->end_date; //update to current reg time - there is intersection, skip till curr_reg.end_date
+						++reg_i; //read and skip reg record can move on...
+						if (curr_reg->end_date > curr_active->end_date)
+							++active_i; //finished active period
+					}
+					else {
+						++active_i; //finished active period
+						curr_time = 0; //need to test again for curr_time
+					}
+
+					if (reg_rec.end_date > reg_rec.start_date) // add if not equal:
+						added_recs.push_back(reg_rec);
+				}
+				else {
+					curr_time = curr_reg->end_date;
+					++reg_i;
+					//for efficancy - will work anyway
+					if (curr_active->end_date < curr_reg->end_date)
+						++active_i;
+				}
+
+			}
+
+			//add and sort new control records:
+			reg_recs.insert(reg_recs.end(), added_recs.begin(), added_recs.end());
+			sort(reg_recs.begin(), reg_recs.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+			{ return a.start_date < b.start_date; });
+		}
+
+		//add as controls missings from reg:
+		for (auto &rec : active_periods_registry)
+			if (pid_to_regs.find(rec.pid) == pid_to_regs.end()) {
+				MedRegistryRecord new_rec;
+				new_rec.pid = rec.pid;
+				new_rec.registry_value = 0;
+				new_rec.start_date = rec.start_date;
+				new_rec.end_date = rec.end_date;
+				pid_to_regs[rec.pid].push_back(new_rec);
+			}
+
+		//commit to reg with unite:
+
+		MedRegistryRecord rec_temp;
+		for (const auto rec : pid_to_regs) {
+			//sort(rec.second.begin(), rec.second.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+			//{ return a.start_date < b.start_date; });
+			//unite control times:
+			if (!rec.second.empty()) {
+				rec_temp.pid = -1;
+				for (size_t i = 0; i < rec.second.size(); ++i)
+				{
+					if (rec.second[i].registry_value > 0) {
+						//close buffer:
+						if (rec_temp.pid > 0) {
+							new_reg.push_back(rec_temp);
+							rec_temp.pid = -1;
+						}
+						new_reg.push_back(rec.second[i]);
+					}
+					else {
+						if (rec_temp.pid == -1) {
+							rec_temp = rec.second[i];
+						}
+						else if (rec.second[i].start_date <= rec_temp.end_date) {
+							//unite buffers
+							rec_temp.end_date = rec.second[i].end_date;
+						}
+						else {
+							//close buffer & start new one:
+							if (rec_temp.pid > 0) {
+								new_reg.push_back(rec_temp);
+								rec_temp = rec.second[i];
+							}
+						}
+					}
+				}
+				//close buffer:
+				if (rec_temp.pid > 0)
+					new_reg.push_back(rec_temp);
+
+				//new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+			}
+		}
+	}
+	else { // just add all as controls
+		for (auto &rec : active_periods_registry) {
+			MedRegistryRecord new_rec;
+			new_rec.pid = rec.pid;
+			new_rec.registry_value = 0;
+			new_rec.start_date = rec.start_date;
+			new_rec.end_date = rec.end_date;
+			pid_to_regs[rec.pid].push_back(new_rec);
+		}
+
+		for (auto &rec : pid_to_regs) {
+			sort(rec.second.begin(), rec.second.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
+			{ return a.start_date < b.start_date; });
+			new_reg.insert(new_reg.end(), rec.second.begin(), rec.second.end());
+		}
+	}
+
+
+
+
+	registry = move(new_reg);
 }

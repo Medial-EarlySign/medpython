@@ -815,38 +815,19 @@ size_t MedDeepBit::get_size() {
 	return ptr;
 }
 
-void MedDeepBit::print_model() {
-	cout << params.lambda << " " << params.num_ftrs_per_round << " " << params.num_iterations << " " << params.max_depth << endl;
-	cout << "nftrs = " << nftrs << " num bin ftrs = " << num_bin_ftrs << " avy = " << avy << endl;
-	for (double val : avx) cout << val << " ";
-	cout << endl;
-	for (int val : is_categorial) cout << ((bool)(val!=0)) << " ";
-	cout << endl;
-	/*for (int j = 0; j < nftrs; j++) {
-		int grid_size = (int)ftr_grids[j].size();
-		for (double val : ftr_grids[j]) cout << val << " ";
-		cout << endl;
-		for (double val : frequent_ftr_vals[j])	cout << val << " ";
-		cout << endl;
-	}*/
+void MedDeepBit::print_model(FILE *fp, const string& prefix) const {
+	fprintf(fp, "%s %f %d %d %d\n", prefix.c_str(), params.lambda, params.num_ftrs_per_round, params.num_iterations, params.max_depth);
+	fprintf(fp, "%s nftrs = %d num-bin-ftrs = %d avy = %lf\n", prefix.c_str(), nftrs, num_bin_ftrs, avy);
+	
+	fprintf(fp, "%s ", prefix.c_str());
+	for (double val : avx) 
+		fprintf(fp, "%lf ", val);
+	fprintf(fp, "\n");
 
-	/*for (int i = 0; i < num_bin_ftrs; i++) {
-		int j, k;
-		bool direction, is_frequent;
-		tie(j, k, direction, is_frequent) = bin_ftrs_map[i];
-		cout << j << " " << k << " " << direction << " " << is_frequent << " ";
-	}
-	cout << endl;
-
-	for (int it = 0; it < params.num_iterations; it++) {
-		for (int val : bin_ftr_indexes[it])	cout << val << " ";
-	}
-	cout << endl;
-
-	for (int i = 0; i < params.num_iterations; i++) {
-		for (double val : bin_ftr_avg_sd_beta[i])	cout << val << " ";
-	}
-	cout << endl;*/
+	fprintf(fp, "%s ", prefix.c_str());
+	for (int val : is_categorial)
+		fprintf(fp, "%d ", ((bool)(val != 0)));
+	fprintf(fp, "\n");
 }
 
 size_t MedDeepBit::serialize(unsigned char *blob) {
@@ -980,8 +961,11 @@ size_t MedDeepBitParams::deserialize(unsigned char *blob) {
 	return ptr;
 }
 
-void MedDeepBit::print(FILE *fp, const string& prefix) const {
-	fprintf(fp, "%s: MedDeepBit ()\n", prefix.c_str());
+void MedDeepBit::print(FILE *fp, const string& prefix, int level) const {
+	if (level == 0)
+		fprintf(fp, "%s: MedDeepBit ()\n", prefix.c_str());
+	else
+		print_model(fp, prefix);
 }
 
 string MedDeepBitParams::to_string() {

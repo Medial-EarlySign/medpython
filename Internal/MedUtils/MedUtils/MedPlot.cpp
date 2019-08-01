@@ -157,7 +157,8 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 	{
 		const map<float, float> &dmap = data[i];
 
-		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
+		//rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -453,7 +454,7 @@ string createCsvFile(const vector<vector<float>> &data, const vector<string> &he
 
 vector<bool> empty_bool_arr;
 void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, const vector<float> &weights,
-	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv,
+	vector<float> &pred_threshold, vector<float> &true_rate, vector<float> &false_rate, vector<float> &ppv, vector<float> &pr,
 	const vector<bool> &indexes) {
 	bool censor_removed = true;
 	if (y.size() != preds.size())
@@ -492,9 +493,11 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, 
 	//From up to down sort:
 	double t_sum = 0;
 	double f_sum = 0;
+	double n_samples = (double)preds.size();
 	true_rate = vector<float>((int)pred_indexes.size());
 	false_rate = vector<float>((int)pred_indexes.size());
 	ppv = vector<float>((int)pred_indexes.size());
+	pr = vector<float>((int)pred_indexes.size());
 	for (int i = (int)pred_threshold.size() - 1; i >= 0; --i)
 	{
 		const vector<int> &indexes = pred_indexes[pred_threshold[i]];
@@ -514,6 +517,7 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, 
 		true_rate[i] = float(t_sum / tot_true_labels);
 		false_rate[i] = float(f_sum / tot_false_labels);
 		ppv[i] = float(t_sum / (t_sum + f_sum));
+		pr[i] = float((t_sum + f_sum) / n_samples);
 	}
 }
 void down_sample_graph(map<float, float> &points, int points_count) {
@@ -559,11 +563,13 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	vector<float> pred_threshold;
 	vector<float> true_rate;
 	vector<float> false_rate;
-	vector<float> ppv;
+	vector<float> ppv, pr;
 
 	boost::filesystem::create_directories(baseOut.data());
 	vector<map<float, float>> allData;
 	vector<map<float, float>> allPPV;
+	vector<map<float, float>> allSensPPV;
+	vector<map<float, float>> allSensPR;
 	vector<double> auc((int)all_preds.size());
 	vector<float> empty_vec;
 	for (size_t i = 0; i < all_preds.size(); ++i)
@@ -572,11 +578,12 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		const vector<float> *w = &empty_vec;
 		if (!weights.empty())
 			w = &weights[i];
-		get_ROC_working_points(preds, y[i], *w, pred_threshold, true_rate, false_rate, ppv);
+		get_ROC_working_points(preds, y[i], *w, pred_threshold, true_rate, false_rate, ppv, pr);
 		map<float, float> false_true;
 		map<float, float> th_false;
 		map<float, float> false_ppv;
 		map<float, float> xy;
+		map<float, float> sens_ppv, sens_pr;
 		for (size_t k = 0; k < true_rate.size(); ++k)
 		{
 			false_true[100 * false_rate[k]] = 100 * true_rate[k];
@@ -585,6 +592,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 			if (i == 0) {
 				xy[100 * false_rate[k]] = 100 * false_rate[k];
 			}
+			sens_ppv[float((int)(100 * true_rate[k]))] = ppv[k];
+			sens_pr[float((int)(100 * true_rate[k]))] = pr[k];
 		}
 		auc[i] = false_rate.back() * true_rate.back() / 2; //"auc" - saved in reversed order from smallest score to highest score)
 		for (int k = (int)true_rate.size() - 1; k > 0; --k)
@@ -599,6 +608,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		down_sample_graph(false_ppv);
 		allData.push_back(false_true);
 		allPPV.push_back(false_ppv);
+		allSensPPV.push_back(sens_ppv);
+		allSensPR.push_back(sens_pr);
 		vector<map<float, float>> model_false_scores;
 		down_sample_graph(th_false);
 		model_false_scores.push_back(th_false);
@@ -615,11 +626,12 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		data_titles[i] = string(buff);
 	}
 	data_titles.insert(data_titles.begin(), "x=y reference");
-	createHtmlGraph(baseOut + path_sep() + "ROC.html", allData, "ROC curve", "False Positive Rate",
-		"True Positive Rate", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "ROC.html", allData, "ROC curve", "False Positive Rate", "True Positive Rate", data_titles);
 	data_titles = vector<string>(modelNames);
-	createHtmlGraph(baseOut + path_sep() + "PPV.html", allPPV, "PPV curve", "False Positive Rate",
-		"Positive Predictive Value", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "PPV.html", allPPV, "PPV curve", "False Positive Rate", "Positive Predictive Value", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "SensPPV.html", allSensPPV, "PPV by Sensitivity", "Sensitivity", "Positive Predictive Value", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "SensPR.html", allSensPR, "PR by Sensitivity", "Sensitivity", "Positivity Rate", data_titles);
+
 
 	if (print_y)
 		for (size_t i = 0; i < y.size(); ++i) {

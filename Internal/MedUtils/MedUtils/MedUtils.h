@@ -19,8 +19,11 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <MedMat/MedMat/MedMatConstants.h>
+#include "MedSamplingHelper.h"
 
 using namespace std;
+
+extern string run_current_path;
 
 enum MedBinningType {
 	BIN_EQUIDIST,
@@ -70,6 +73,16 @@ namespace medial {
 		/// \brief binary search for position to add new element in sorted manner (last position if equal elements found).
 		template<typename T> int binary_search_position_last(const T *begin, const T *end, T val, bool reversed = false);
 	}
+
+	/*!
+	*  \brief sort helpers
+	*/
+	namespace sort_ops {
+		/// \brief sorts x (or abs(x)) and returns the indexes of sorted values in indexes (descending or ascending)
+		template<typename T> void get_sort_indexes(const vector<T> &x, const bool descending_order, bool const abs_val, vector<int> &indexes);
+	}
+
+
 	/*!
 	*  \brief io
 	*/

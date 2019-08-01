@@ -139,6 +139,8 @@ public:
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
 	void add_pre_processors_json_string_to_model(string in_json, string fname);
+	int add_post_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_post_processors_json_string_to_model(in_json, fname, dummy); }
+	int add_post_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
 	void add_feature_generator_to_set(int i_set, const string &init_string);	// fg_type and signal are must have parameters
 	void add_feature_processor_to_set(int i_set, int duplicate, const string &init_string);	// fp_type and feature name are must have parameters
@@ -178,6 +180,17 @@ public:
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
+	// Learn with a vector of samples - one for the actual learning, and additional one for each post-processor.
+	// PostProcessors that do not require samples, can be assigned empty samples.
+	int learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets) {
+		return learn(rep, model_learning_set, post_processors_learning_sets, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END);
+	}
+	int learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets, MedModelStage start_stage, MedModelStage end_stage);
+
+	// Envelopes for normal calling 
+	int learn(MedPidRepository& rep, MedSamples& samples) { return learn(rep, &samples); }
+	int learn(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) { return learn(rep, &samples,start_stage,end_stage); }
+
 	// Apply on a given Rec : this is needed when someone outside the model runs on Records. No matching method for learn.
 	// The process is started with an initialization using init_for_apply_rec
 	// Then for each record use : apply_rec , there's a flag for using a copy of the rec rather than the record itself.
@@ -188,9 +201,9 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-	ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
 
-	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
@@ -203,11 +216,8 @@ public:
 	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
 	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
 
-	void learn_post_processors(MedPidRepository &rep, MedSamples &post_samples);
-	void apply_post_processors(MedFeatures &matrix_after_pred);
-
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
-	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int pp_flag, bool predictor_type);
+	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
@@ -216,10 +226,13 @@ private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
 	string parse_key_val(string key, string val);
 	void fill_list_from_file(const string& fname, vector<string>& list);
-	string make_absolute_path(const string& main_file, const string& small_file);
+	string make_absolute_path(const string& main_file, const string& small_file, bool use_cwd = false);
 	void alter_json(string &json_contents, vector<string>& alterations);
-	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "");
+	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
+
+	// Handle learning sets for model/post-processors
+	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);
@@ -244,6 +257,19 @@ namespace medial {
 		/// returns the signal id's neede to read in the repository. MedRepository must be init to read dicts
 		vector<string> prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
 			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
+
+		/// \brief removes uneeded rep_processors based on model
+		void prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+			MedModel &mod, MedPidRepository &rep);
+	}
+
+	namespace medmodel {
+
+		/// \brief given a medmodel object, a rep and samples, do the apply , throws upon a problem
+		void apply(MedModel &model, MedSamples &samples, string rep_fname, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated. no need to read samples/already read
+		void apply(MedModel &model, string rep_fname, string f_samples, MedSamples &samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns also a MedSamples object
+		void apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated
+
 	}
 }
 

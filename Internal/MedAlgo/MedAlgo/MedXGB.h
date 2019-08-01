@@ -125,7 +125,7 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	void prepare_mat_handle(float *x, float *y, const float *w, int nsamples, int nftrs, DMatrixHandle &matrix_handle);
 
-	virtual void print(FILE *fp, const string& prefix) const;
+	virtual void print(FILE *fp, const string& prefix, int level=0) const;
 
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params, const MedFeatures *features);

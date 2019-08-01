@@ -141,12 +141,12 @@ public:
 		recordsMetadata = other.recordsMetadata;
 	}
 	template <class S> MedMat(S *x, int n_rows, int n_cols) { clear(); load(x, n_rows, n_cols); }
-	template <class S> MedMat(vector<S> &x, int n_cols) { clear(); load(x, n_cols); }
+	template <class S> MedMat(const vector<S> &x, int n_cols) { clear(); load(x, n_cols); }
 	template <class S> MedMat(MedMat<S> &x) { clear(); load(x); }
 
 	template <class S> void load(S *x, int n_rows, int n_cols);
 	template <class S> void load_transposed(S *x, int n_rows, int n_cols);
-	template <class S> void load(vector<S> &x, int n_cols);
+	template <class S> void load(const vector<S> &x, int n_cols);
 	template <class S> void load(MedMat<S> &x);
 
 	void zero() { fill(m.begin(), m.end(), (T)0); }
@@ -197,7 +197,7 @@ public:
 	void normalize(int norm_type, vector<float> &wgts) { return normalize(norm_type, &wgts[0]); }
 	void normalize(int norm_type = Normalize_Cols) { return normalize(norm_type, NULL); }
 
-	template <class S> void normalize(vector<S>& external_avg, vector<S>& external_std, int norm_type = 1);
+	template <class S> void normalize(const vector<S>& external_avg, const vector<S>& external_std, int norm_type = 1);
 
 	void get_cols_avg_std(vector<T>& _avg, vector<T>& _std);
 
@@ -226,6 +226,8 @@ public:
 
 		return true;
 	}
+
+	string my_class_name() const { return "MedMat"; }
 };
 
 // a few related util functions

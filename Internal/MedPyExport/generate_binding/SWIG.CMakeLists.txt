@@ -23,7 +23,10 @@ include_directories($ENV{MR_ROOT}/Libs/External/xgboost/src)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/include)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/rabit/include)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/dmlc-core/include)
-include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
+#include_directories($ENV{MR_ROOT}/Libs/External/LightGBM/LightGBM/include)
+include_directories($ENV{MR_ROOT}/Libs/External/LightGBM_2.2.3/LightGBM-2.2.3/include)
+# uncomment the following line for compilation on node-05 (with tensorflow)
+#include_directories(/usr/lib64/python2.7/site-packages/numpy/core/include)
 
 link_directories(/server/Work/Libs/Boost/latest/stage/lib)
 

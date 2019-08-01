@@ -1,5 +1,9 @@
 // This is the main DLL file.
 
+#ifdef _WIN32
+#pragma warning(disable:4996)
+#endif
+
 #include "SigSum_AlgoMarker.h"
 // This is the main DLL file.
 
@@ -726,6 +730,42 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 	return AM_OK_RC;
 }
 
+//-----------------------------------------------------------------------------------
+// AddDataStr() - adding data for a signal with values and timestamps
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
+{
+	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
+	// This may change in the future as needed.
+	AMDataStr* newData = new AMDataStr();
+	newData->patient_id = patient_id;
+	newData->signalName = string(signalName);
+	newData->TimeStamps_len = TimeStamps_len;
+	newData->TimeStamps = (long long*)malloc(TimeStamps_len * sizeof(long long));
+	for (size_t i = 0; i < TimeStamps_len; i++)
+	{
+		newData->TimeStamps[i] = TimeStamps[i];
+	}
+
+	newData->Values = (char**)malloc(Values_len * sizeof(char*));
+	//To send to AddData
+	float * values = (float *)malloc(Values_len * sizeof(float));
+	for (size_t i = 0; i < Values_len; i++)
+	{
+		newData->Values[i] = Values[i];
+		values[i] = i;
+	}
+	newData->Values_len = Values_len;
+
+	AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, values);
+	//data.push_back(newData);
+
+	//int sizeOfData = data.size();
+	//data.resize(sizeOfData + 1);
+	//data[sizeOfData] = newData;
+
+	return AM_OK_RC;
+}
 
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
@@ -836,7 +876,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 				//	return LogData::EndFunction(AM_FAIL_RC, __func__);
 
 				realScoreIndex = numOfScores;
-				response->scoresIndexs.insert(pair<string, int>(request->get_score_type(scoreIndex), numOfScores++));
+				response->scoresIndexs.insert(pair<string, int>(request->get_score_type((int)scoreIndex), numOfScores++));
 			}
 		}
 		for (; dataIndex < data.size(); dataIndex++) //Before real score
@@ -1146,6 +1186,41 @@ int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalNa
 		}
 
 		auto result = pAlgoMarker->AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+		LogData::AddArgument("patient_id", patient_id);
+		LogData::AddArgument("signalName", signalName);
+		LogData::AddArgument("TimeStamps_len", TimeStamps_len);
+		LogData::AddArgument("TimeStamps", TimeStamps, TimeStamps_len);
+		LogData::AddArgument("Values_len", Values_len);
+		LogData::AddArgument("Values", Values, Values_len);
+		return	SpecialReturn(pAlgoMarker, __func__, result);
+	}
+	catch (...) {
+		return LogData::EndFunction(AM_FAIL_RC, __func__);
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// adding string data to an AlgoMarker
+// this API allows adding a specific signal, with matching arrays of times and string values
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
+{
+	LogData::AddArgument("patient_id", patient_id);
+	LogData::AddArgument("signalName", signalName);
+	LogData::AddArgument("TimeStamps_len", TimeStamps_len);
+	LogData::AddArgument("TimeStamps", TimeStamps, TimeStamps_len);
+	LogData::AddArgument("Values_len", Values_len);
+	LogData::AddArgument("Values", Values, Values_len);
+	LogData::StartFunction(__func__);
+
+	try {
+		if (pAlgoMarker == NULL)
+		{
+			return LogData::EndFunction(AM_FAIL_RC, __func__);
+		}
+
+		auto result = pAlgoMarker->AddDataStr(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
 		LogData::AddArgument("patient_id", patient_id);
 		LogData::AddArgument("signalName", signalName);
 		LogData::AddArgument("TimeStamps_len", TimeStamps_len);

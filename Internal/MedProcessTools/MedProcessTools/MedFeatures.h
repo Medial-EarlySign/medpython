@@ -19,9 +19,11 @@ public:
 	bool imputed = false; ///< indicator that the feature has been imputed and does not contain missing values
 	float denorm_mean = 0.0, denorm_sdv = 1.0; ///< Mean and Standard deviation for de-normalization
 
+	unordered_map<float, string> value2Name; ///< map value to name (e.g. for naming one-hot feature processor)
+
 	// Serialization
 	ADD_CLASS_NAME(FeatureAttr)
-	ADD_SERIALIZATION_FUNCS(normalized, imputed , denorm_mean, denorm_sdv)
+	ADD_SERIALIZATION_FUNCS(normalized, imputed , denorm_mean, denorm_sdv, value2Name)
 };
 
 //.......................................................................................
@@ -75,7 +77,7 @@ public:
 	/// <summary> Constructor Given time-unit </summary>
 	MedFeatures(int _time_unit) { time_unit = _time_unit; }
 	///<summary>  Constructor setting time-unit to undef </summary>
-	MedFeatures() { time_unit = MedTime::Undefined; global_serial_id_cnt = 0; }
+	MedFeatures() { time_unit = global_default_time_unit; global_serial_id_cnt = 0; }
 
 	// Initialization
 	/// <summary> Clear all vectors </summary>
@@ -136,6 +138,8 @@ public:
 	int mark_imputed_in_masks(float _missing_val);
 	int mark_imputed_in_masks() { return mark_imputed_in_masks(medf_missing_value); }
 
+	void round_data(float r);
+	void noise_data(float r);
 
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)

@@ -33,8 +33,8 @@ typedef enum {
 	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
-	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point
-	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values)
+	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
+	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -197,6 +197,11 @@ public:
 	/// the default print just prints the basic type, etc.
 	virtual void dprint(const string &pref, int rp_flag);
 
+	///<summary>
+	/// prints summary of rep_processor job. optional, called after apply.
+	/// for example - prints how many values were cleaned
+	///</summary>
+	virtual void make_summary() {};
 
 	// Serialization (including type)
 	ADD_CLASS_NAME(RepProcessor)
@@ -285,6 +290,8 @@ public:
 	/// debug prints
 	void dprint(const string &pref, int rp_flag);
 
+	void make_summary();
+
 	/// serialization
 	ADD_CLASS_NAME(RepMultiProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, processors)
@@ -296,6 +303,19 @@ public:
 #define DEF_REP_TRIMMING_SD_NUM 7
 #define DEF_REP_REMOVING_SD_NUM 14
 
+class remove_stats {
+public:
+	int total_removed = 0, total_pids_touched = 0;
+	int total_records = 0, total_pids = 0;
+
+	/// restarts stats for new apply
+	void restart();
+
+	/// prints stats to screen for cleaner
+	void print_summary(const string &cleaner_info, const string &signal_name,
+		int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const;
+};
+
 //.......................................................................................
 /**
 * A simple cleaner considering each value of a certain signal separatley
@@ -304,6 +324,8 @@ public:
 class RepBasicOutlierCleaner : public RepProcessor, public MedValueCleaner {
 private:
 	ofstream log_file;
+	remove_stats _stats;
+	bool is_categ = false;
 public:
 
 	string signalName; 	///< name of signal to clean
@@ -316,6 +338,9 @@ public:
 	string nRem_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of removed. not recorded if empty
 	string nTrim_attr_suffix = ""; ///< Attribute suffix (name is sample is signalName_suffix) for number of trimmed. not recorded if empty
 	string verbose_file; ///< cleaning output_file for debuging
+
+	bool print_summary = false; ///< If true will always print clean summary
+	float print_summary_critical_cleaned = (float)0.05; ///< beyond this value will print summary
 
 	/// <summary> default constructor </summary>
 	RepBasicOutlierCleaner() { init_defaults(); }
@@ -342,7 +367,7 @@ public:
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
 
 	/// <summary> Set signal id </summary>
-	virtual void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
+	virtual void set_signal_ids(MedSignals& sigs);
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	int init(void *processor_params) { return MedValueCleaner::init(processor_params); };
@@ -367,10 +392,13 @@ public:
 
 	virtual ~RepBasicOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
+	void make_summary();
+
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicOutlierCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
-			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix, verbose_file)
+			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix, verbose_file,
+			print_summary, print_summary_critical_cleaned)
 
 		/// <summary> Print processors information </summary>
 		void print();
@@ -486,6 +514,9 @@ public:
 	string verbose_file; ///< cleaning output_file for debuging
 	float calc_res = 0; ///< signal resolution calc, 0 no resolution
 
+	bool print_summary = false; ///< If true will always print clean summary
+	float print_summary_critical_cleaned = (float)0.05; ///< beyond this value will print summary
+
 	/// static map from rule to participating signals
 	map <int, vector<string>>rules2Signals = {
 	{1,{"BMI","Weight","Height"}},
@@ -558,9 +589,13 @@ public:
 
 	~RepRuleBasedOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
+	void set_affected_signal_ids(MedDictionarySections& dict);
+
+	void make_summary();
+
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file)
+		ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -569,6 +604,10 @@ private:
 		const vector<int> &val_channels, const vector<int> &sPointer);
 	unordered_map<int, string> affected_ids_to_name;
 	ofstream log_file;
+	unordered_map<string, remove_stats> _rmv_stats;
+
+
+	void change_rules();
 
 };
 
@@ -851,6 +890,9 @@ public:
 
 	// initialize signal ids
 	void set_signal_ids(MedSignals& sigs);
+
+	// checks if need to create virual signal
+	void set_affected_signal_ids(MedDictionarySections& dict);
 
 	// dictionary based initializations
 	void init_tables(MedDictionarySections &dict, MedSignals& sigs);
@@ -1283,7 +1325,7 @@ public:
 	string ckd_proteinuria_sig = "Proteinuria_State";
 
 
-	/// @snippet RepProcess.cpp RepCreateRegistry::init
+	/// @snippet RepCreateRegistry.cpp RepCreateRegistry::init
 	int init(map<string, string>& mapper);
 	void init_lists();
 

@@ -6,6 +6,7 @@
 #include "FeatureGenerator.h"
 #include "SmokingGenerator.h"
 #include "KpSmokingGenerator.h"
+#include "UnifiedSmokingGenerator.h"
 #include "DrugIntakeGenerator.h"
 #include "AlcoholGenerator.h"
 #include "EmbeddingGenerator.h"
@@ -36,6 +37,8 @@ FeatureGeneratorTypes ftr_generator_name_to_type(const string& generator_name) {
 		return FTR_GEN_SMOKING;
 	else if (generator_name == "kp_smoking")
 		return FTR_GEN_KP_SMOKING;
+	else if (generator_name == "unified_smoking")
+		return FTR_GEN_UNIFIED_SMOKING;
 	else if (generator_name == "alcohol")
 		return FTR_GEN_ALCOHOL;
 	else if (generator_name == "range")
@@ -127,6 +130,7 @@ void *FeatureGenerator::new_polymorphic(string dname) {
 	CONDITIONAL_NEW_CLASS(dname, BinnedLmEstimates);
 	CONDITIONAL_NEW_CLASS(dname, SmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, KpSmokingGenerator);
+	CONDITIONAL_NEW_CLASS(dname, UnifiedSmokingGenerator);
 	CONDITIONAL_NEW_CLASS(dname, AlcoholGenerator);
 	CONDITIONAL_NEW_CLASS(dname, RangeFeatGenerator);
 	CONDITIONAL_NEW_CLASS(dname, DrugIntakeGenerator);
@@ -157,6 +161,8 @@ FeatureGenerator *FeatureGenerator::make_generator(FeatureGeneratorTypes generat
 		return new SmokingGenerator;
 	else if (generator_type == FTR_GEN_KP_SMOKING)
 		return new KpSmokingGenerator;
+	else if (generator_type == FTR_GEN_UNIFIED_SMOKING)
+		return new UnifiedSmokingGenerator;
 	else if (generator_type == FTR_GEN_ALCOHOL)
 		return new AlcoholGenerator;
 	else if (generator_type == FTR_GEN_RANGE)
@@ -329,7 +335,7 @@ inline bool isInteger(const std::string & s)
 void FeatureGenerator::dprint(const string &pref, int fg_flag)
 {
 	if (fg_flag > 0) {
-		MLOG("%s :: FG type %d(%s) : serial_id %d : ", pref.c_str(), generator_type, my_class_name().c_str() ,serial_id);
+		MLOG("%s :: FG type %d(%s) : serial_id %d : ", pref.c_str(), generator_type, my_class_name().c_str(), serial_id);
 		MLOG("names(%d) : ", names.size());
 		if (fg_flag > 1) for (auto &name : names) MLOG("%s,", name.c_str());
 		MLOG(" tags(%d) : ", tags.size());
@@ -601,18 +607,22 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 
 	float *p_feat = _p_data[0] + index;
 
-	int len;
 
-	SVal *sig = (SVal *)rec.get(signalId, len);
-	if (len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, len, signalId, signalName.c_str()); }
-	if (len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
+	UniversalSigVec usv;
+	rec.uget(signalId, 0, usv);
+	if (usv.len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
+	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	if (signalName == "BYEAR") {
-		int byear = (int)(sig[0].val);
+		int byear = (int)(usv.Val(0));
 		for (int i = 0; i < num; i++)
 			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
 	}
 	else if (signalName == "BDATE") {
-		int bdate = (int)(sig[0].val);
+		int bdate;
+		if (usv.n_val_channels() > 0)
+			bdate = (int)(usv.Val(0));
+		else
+			bdate = (int)(usv.Time(0));
 		for (int i = 0; i < num; i++) {
 			int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
 			int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
@@ -694,6 +704,27 @@ int GenderGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Singleton
 //=======================================================================================
+
+//.......................................................................................
+int SingletonGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
+
+	// Learn mapping from string to value (not relying on dictionary ...)
+	if (rep.sigs.Sid2Info[signalId].is_categorical_per_val_channel[0]) {
+		int section_id = rep.dict.section_id(signalName);
+
+		int idx = 0;
+		for (auto& rec : rep.dict.dicts[section_id].Name2Id)
+			name2Value[rec.first] = idx++;
+
+		name2Value["SINGLETON_UNKNOWN"] = idx;
+	}
+
+	get_id2Value(rep.dict);
+
+	return 0;
+}
+
+//.......................................................................................
 int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	// Sanity check
@@ -709,8 +740,11 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	else {
 		if (sets.size() == 0)
 		{
-			// Normal Singleton, just return value
-			value = (float)((int)(rec.usv.Val(0)));
+			// Normal Singleton
+			if (id2Value.empty()) // Values as is
+				value = (float)((int)(rec.usv.Val(0)));
+			else // dictionaries
+				value = id2Value[(int)(rec.usv.Val(0))];
 		}
 		else
 		{
@@ -725,6 +759,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	return 0;
 }
 
+//.......................................................................................
 void SingletonGenerator::set_names()
 {
 	if (names.empty()) {
@@ -742,8 +777,10 @@ void SingletonGenerator::set_names()
 	}
 }
 
+//.......................................................................................
 void SingletonGenerator::init_tables(MedDictionarySections& dict) {
-	MLOG("sets size = %d \n", lut.size());
+
+	//MLOG("sets size = %d \n", lut.size());
 	if (sets.size() > 0) {
 		// This is a categorial variable.
 		if (lut.size() == 0) {
@@ -753,13 +790,38 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
 		}
 	}
-	else
+	else {
 		lut.clear();
+		get_id2Value(dict);
+	}
 
 	return;
 }
 
-// Init
+//.......................................................................................
+void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
+
+	if (!name2Value.empty()) {
+		int section_id = dict.section_id(signalName);
+
+		int max_id = 1;
+		if (dict.dicts[section_id].Id2Name.size() > 0)
+			max_id = dict.dicts[section_id].Id2Name.rbegin()->first;
+		else
+			MTHROW_AND_ERR("SingletonGenerator::init_tables() : Got an empty Id2Name...\n");
+
+		id2Value.resize(max_id + 1, (float)0);
+
+		for (auto& rec : dict.dicts[section_id].Id2Name) {
+			if (name2Value.find(rec.second) == name2Value.end())
+				id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			else
+				id2Value[rec.first] = name2Value[rec.second];
+		}
+
+
+	}
+}
 //.......................................................................................
 int SingletonGenerator::init(map<string, string>& mapper) {
 
@@ -786,8 +848,16 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+//.......................................................................................
+void SingletonGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
+	FeatureGenerator::prepare(features, rep, samples);
+	if (sets.size() == 0)
+		for (auto& rec : name2Value)
+			features.attributes[names[0]].value2Name[rec.second] = rec.first;
+}
+
 //=======================================================================================
-// ComorbidityGenerator
+// RangeFeatGenerator
 //=======================================================================================
 
 //................................................................................................................
@@ -805,6 +875,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + sets[0]; break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
+	case FTR_RANGE_TIME_COVERED: name += "time_covered"; break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -844,6 +915,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field == "recurrence_delta") recurrence_delta = med_stoi(entry.second);
 		else if (field == "min_range_time") min_range_time = med_stoi(entry.second);
+		else if (field == "div_factor") div_factor = med_stof(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -897,6 +969,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "ever")			return FTR_RANGE_EVER;
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
+	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -940,6 +1013,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_EVER:		return uget_range_ever(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_RECURRENCE_COUNT: return uget_range_recurrence_count(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
 
 
 	default:	return missing_val;
@@ -1616,6 +1690,34 @@ float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int 
 	return (float)num_recurrence;
 }
 
+
+//.......................................................................................
+float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_from, int win_to, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
+
+	int time_sum = 0;
+	for (int i = 0; i < usv.len; i++) {
+
+		int curr_from = usv.Time(i, 0);
+		int curr_to = usv.Time(i, 1);
+
+		if (curr_from > max_time) break;
+		if (curr_to < min_time) continue;
+
+		if (curr_from < min_time) curr_from = min_time;
+		if (curr_to > max_time) curr_to = max_time;
+
+		if (curr_to >= curr_to) {
+			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
+		}
+
+	}
+
+	return (float)time_sum / div_factor;
+}
+
 //=======================================================================================
 // TimeFeatGenerator: creating sample-time features (e.g. differentiate between 
 //	times of day, season of year, days of the week, etc.)
@@ -1838,7 +1940,7 @@ int AttrFeatGenerator::init(map<string, string>& mapper) {
 
 // Generate
 //.......................................................................................
-int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int AttrFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	float *p_feat = p_data[0] + index;
 	for (int i = 0; i < num; i++) {

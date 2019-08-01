@@ -342,21 +342,26 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 
 // Printing
-void MedQRF::print(FILE *fp, const string& prefix) const {
-	fprintf(fp, "%s: MedQRF of type %d\n", prefix.c_str(), params.type);
-	fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n",
-		prefix.c_str(), params.ntrees, params.maxq, params.sampsize == NULL ? -1 : *params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
+void MedQRF::print(FILE *fp, const string& prefix, int level) const {
+	
+	if (level == 0)
+		fprintf(fp, "%s: MedQRF ()\n", prefix.c_str());
+	else {
+		fprintf(fp, "%s: MedQRF of type %d\n", prefix.c_str(), params.type);
+		fprintf(fp, "%s: params = (ntrees=%d, maxq=%d, sampsize=%d, ntry=%d, spread=%f, min_node=%d, n_categ=%d, get_count=%d)\n",
+			prefix.c_str(), params.ntrees, params.maxq, params.sampsize == NULL ? -1 : *params.sampsize, params.ntry, params.spread, params.min_node, params.n_categ, params.get_count);
 
-	if (1) {
-		for (unsigned int i = 0; i < qf.qtrees.size(); i++) {
-			for (unsigned int j = 0; j < qf.qtrees[i].qnodes.size(); j++) {
-				const QRF_ResNode& node = qf.qtrees[i].qnodes[j];
+		if (1) {
+			for (unsigned int i = 0; i < qf.qtrees.size(); i++) {
+				for (unsigned int j = 0; j < qf.qtrees[i].qnodes.size(); j++) {
+					const QRF_ResNode& node = qf.qtrees[i].qnodes[j];
 
-				fprintf(fp, "Tree %d Node %d ", i, j);
-				if (node.is_leaf)
-					fprintf(fp, "Prediction %f\n", node.pred);
-				else
-					fprintf(fp, "Split by %d at %f to %d and %d\n", node.ifeat, node.split_val, node.left, node.right);
+					fprintf(fp, "Tree %d Node %d ", i, j);
+					if (node.is_leaf)
+						fprintf(fp, "Prediction %f\n", node.pred);
+					else
+						fprintf(fp, "Split by %d at %f to %d and %d\n", node.ifeat, node.split_val, node.left, node.right);
+				}
 			}
 		}
 	}

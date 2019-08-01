@@ -7,6 +7,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedStat/MedStat/GibbsSampler.h>
 #include <MedEmbed/MedEmbed/ApplyKeras.h>
+#include <MedMat/MedMat/MedMat.h>
 #include <random>
 
 using namespace std;
@@ -23,14 +24,14 @@ public:
 	SamplesGenerator();
 
 	/// <summary>
+	/// prepare to generate
+	/// </summary>
+	virtual void prepare(void *params) {};
+
+	/// <summary>
 	/// learn of sample generator
 	/// </summary>
 	virtual void learn(const map<string, vector<T>> &data) {};
-
-	/// <summary>
-	/// apply of sample generator - deafult arguments without mask, and mask values to generate all values
-	/// </summary>
-	virtual void get_samples(map<string, vector<T>> &data, void *params);
 
 	/// <summary>
 	/// apply of sample generator - deafult arguments with mask, and mask values to generate values in mask, where mask[i]==false. 
@@ -41,7 +42,18 @@ public:
 	/// <summary>
 	/// vector api from generating samples
 	/// </summary>
-	virtual void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values);
+	virtual void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+
+	/// <summary>
+	/// apply of sample generator - deafult arguments with mask, and mask values to generate values in mask, where mask[i]==false. 
+	/// when mask[i]==true fix values from mask_values
+	/// </summary>
+	virtual void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+
+	/// <summary>
+	/// vector api from generating samples
+	/// </summary>
+	virtual void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
 
 	void *new_polymorphic(string derived_name);
 
@@ -66,13 +78,17 @@ private:
 public:
 	GibbsSamplesGenerator();
 
-	GibbsSamplesGenerator(GibbsSampler<T> &gibbs, bool do_parallel = true);
+	GibbsSamplesGenerator(GibbsSampler<T> &gibbs, bool do_parallel = true, bool no_need_clear_mem = true);
+
+	void prepare(void *params);
 
 	void learn(const map<string, vector<T>> &data);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
 
-	void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
 
 	void pre_serialization();
 	void post_deserialization();
@@ -103,15 +119,19 @@ private:
 	mt19937 _gen;
 	MaskedGANParams mg_params;
 
-	T round_to_allowed_values(T in_value, vector<T>& curr_allowed_values);
+	T round_to_allowed_values(T in_value, const vector<T>& curr_allowed_values) const;
 	void set_params(void *params);
 
 public:
 	MaskedGAN();
 
+	void prepare(void *params);
+
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
-	void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values);
-	void get_samples_from_Z(vector<vector<T>> &data, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &Z);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples_from_Z(MedMat<T> &data, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, const MedMat<T> &Z);
 
 	void read_from_text_file(const string& file_name);
 
@@ -137,8 +157,9 @@ public:
 	void learn(const map<string, vector<T>> &data);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
-
-	void get_samples(vector<vector<T>> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const vector<vector<T>> &mask_values);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
 
 	void pre_serialization();
 	void post_deserialization();
@@ -147,6 +168,31 @@ public:
 		ADD_SERIALIZATION_FUNCS(missing_value, names)
 };
 
+template<typename T> class RandomSamplesGenerator : public SamplesGenerator<T> {
+public:
+	T mean_value;
+	T std_value;
+	vector<string> names;
+
+	RandomSamplesGenerator();
+
+	RandomSamplesGenerator(T mean_val, T std_val);
+
+	void learn(const map<string, vector<T>> &data);
+
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
+
+	void pre_serialization();
+	void post_deserialization();
+
+	ADD_CLASS_NAME(RandomSamplesGenerator<T>)
+		ADD_SERIALIZATION_FUNCS(mean_value, std_value, names)
+};
+
+
 MEDSERIALIZE_SUPPORT(MaskedGANParams)
 MEDSERIALIZE_SUPPORT(SamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(SamplesGenerator<double>)
@@ -154,5 +200,6 @@ MEDSERIALIZE_SUPPORT(MaskedGAN<float>)
 MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<double>)
 MEDSERIALIZE_SUPPORT(MissingsSamplesGenerator<float>)
+MEDSERIALIZE_SUPPORT(RandomSamplesGenerator<float>)
 
 #endif

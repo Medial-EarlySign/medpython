@@ -11,23 +11,28 @@
 
 using namespace std;
 
+/**
+* Calibrator are post processocrs using for recalibration of a model
+*/
 
-
+// Calibration entry is used for transoforming a score into probabibilty
 class calibration_entry : public SerializableObject {
 public:
 	int bin;
 	float min_pred, max_pred;
-	int cnt_cases, cnt_controls;
+	double cnt_cases, cnt_controls;
+	double cnt_cases_no_w, cnt_controls_no_w;
 	float mean_pred, mean_outcome;
 	float cumul_pct;
-	vector<int> controls_per_time_slot;
-	vector<int> cases_per_time_slot;
+	vector<double> controls_per_time_slot;
+	vector<double> cases_per_time_slot;
 	float kaplan_meier;
 
-	ADD_CLASS_NAME(calibration_entry)
-		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
-};
+	string str() const;
 
+	ADD_CLASS_NAME(calibration_entry)
+		ADD_SERIALIZATION_FUNCS(bin, min_pred, max_pred, cnt_cases, cnt_controls, cnt_cases_no_w, cnt_controls_no_w, mean_pred, mean_outcome, controls_per_time_slot, cases_per_time_slot, kaplan_meier)
+};
 MEDSERIALIZE_SUPPORT(calibration_entry)
 
 enum CalibrationTypes {
@@ -57,6 +62,8 @@ public:
 	int min_cases_for_calibration_smoothing_pct = 10;
 	int do_calibration_smoothing = 1;
 	int censor_controls = 0; ///< censor controls without long-enough followup even in mean-outcome mode
+	string weights_attr_name = "weight"; //weight attr to look for in samples attributes
+	bool use_isotonic = false; ///< If true will use isotonic on time_window
 
 	int min_preds_in_bin = 100; ///< minimal number of obseravtion to create bin
 	float min_score_res = 0; ///< score resulotion value to round to and merge similar
@@ -70,9 +77,6 @@ public:
 	vector<float> min_range, max_range, map_prob; ///< for "binning/isotonic-regression"
 	vector<double> platt_params; ///< for "platt_scale"
 
-	string calibration_samples = ""; ///< calibration samples path to learn
-	bool use_preds_in_samples = false; ///< If true will use predictions in sample file
-
 	/// @snippet Calibration.cpp Calibrator::init
 	virtual int init(map<string, string>& mapper);
 	virtual int Learn(const MedSamples& samples);
@@ -82,7 +86,7 @@ public:
 	virtual int Apply(vector <MedSample>& samples) const;
 
 	//PostProcessor functions:
-	void Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix);
+	void Learn(const MedFeatures &matrix) {Learn(matrix.samples); }
 	void Apply(MedFeatures &matrix) const;
 
 	calibration_entry calibrate_pred(float pred);
@@ -91,14 +95,16 @@ public:
 	void write_calibration_table(const string & calibration_table_file);
 	void read_calibration_table(const string& fname);
 
+	void dprint(const string &pref) const;
+
 	ADD_CLASS_NAME(Calibrator)
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
 		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
 		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
-		cals, min_range, max_range, map_prob, platt_params)
+		cals, min_range, max_range, map_prob, platt_params, use_isotonic)
 
 protected:
-	double calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor);
+	double calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot, double controls_factor);
 	void smooth_calibration_entries(const vector<calibration_entry>& cals, vector<calibration_entry>& smooth_cals, double controls_factor);
 
 private:

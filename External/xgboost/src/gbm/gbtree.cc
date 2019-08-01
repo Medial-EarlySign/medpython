@@ -263,6 +263,8 @@ class GBTree : public GradientBooster {
                             DMatrix *p_fmat,
                             int bst_group,
                             std::vector<std::unique_ptr<RegTree> >* ret) {
+
+    this->cfg_.push_back({ "num_features", std::to_string(p_fmat->Info().num_col_) });
     this->InitUpdater();
     std::vector<RegTree*> new_trees;
     ret->clear();

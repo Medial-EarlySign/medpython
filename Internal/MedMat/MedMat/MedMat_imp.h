@@ -35,7 +35,7 @@ template <class T> template <class S> void MedMat<T>::load_transposed(S *x, int 
 }
 
 //...........................................................................................
-template <class T> template <class S> void MedMat<T>::load(vector<S> &x, int n_cols)
+template <class T> template <class S> void MedMat<T>::load(const vector<S> &x, int n_cols)
 {
 	ncols = n_cols;
 	if (ncols == 0)
@@ -221,7 +221,7 @@ template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv) const
 {
 	rowv.resize(ncols);
 	if (ncols > 0 && nrows > 0)
-		memcpy(&rowv[0],&m[i_row*ncols],ncols*sizeof(T));
+		memcpy(&(rowv[0]),&(m[i_row*ncols]),ncols*sizeof(T));
 }
 
 //...........................................................................................
@@ -783,13 +783,15 @@ template <class T> void MedMat<T>::get_cols_avg_std(vector<T>& _avg, vector<T>& 
 	}
 }
 
-template <class T> template <class S> void MedMat<T>::normalize (vector<S>& external_mean, vector<S>& external_std, int norm_type) {
+template <class T> template <class S> void MedMat<T>::normalize (const vector<S>& external_mean, const vector<S>& external_std, int norm_type) {
 	
 	normalized_flag = norm_type ;
-
+	vector<S> internal_std(external_std.size());// to go with the const attr
 	for (int i=0; i<external_std.size(); i++) {
 		if (external_std[i] == 0)
-			external_std[i] = 1;
+			internal_std[i] = 1;
+		else
+			internal_std[i] = external_std[i];
 	}
 
 	for (int i=0; i<nrows; i++) {
@@ -797,15 +799,15 @@ template <class T> template <class S> void MedMat<T>::normalize (vector<S>& exte
 			if (normalized_flag == Normalize_Cols) {
 				if (m[i*ncols +j] == missing_value)
 					m[i*ncols +j]  = 0 ;
-				else if (external_std.size())
-					m[i*ncols + j] = (m[i*ncols + j] - external_mean[j])/external_std[j] ;
+				else if (internal_std.size())
+					m[i*ncols + j] = (m[i*ncols + j] - external_mean[j])/internal_std[j] ;
 				else
 					m[i*ncols + j] = (m[i*ncols + j] - external_mean[j]) ;
 			} else {
 				if (m[i*ncols +j] == missing_value)
 					m[i*ncols +j]  = 0 ;
-				else if (external_std.size())
-					m[i*ncols + j] = (m[i*ncols + j] - external_mean[i])/external_std[i] ;
+				else if (internal_std.size())
+					m[i*ncols + j] = (m[i*ncols + j] - external_mean[i])/internal_std[i] ;
 				else
 					m[i*ncols + j] = (m[i*ncols + j] - external_mean[i]) ;
 			}

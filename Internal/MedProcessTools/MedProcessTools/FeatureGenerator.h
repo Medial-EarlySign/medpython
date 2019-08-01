@@ -30,6 +30,7 @@ typedef enum {
 	FTR_GEN_BINNED_LM, ///< "binnedLm" or "binnedLM" - creating linear model for esitmating feature in time points - BinnedLmEstimates
 	FTR_GEN_SMOKING, ///< "smoking" - creating smoking feature - SmokingGenerator
 	FTR_GEN_KP_SMOKING, ///< "kp_smoking" - creating smoking feature - KpSmokingGenerator
+	FTR_GEN_UNIFIED_SMOKING, ///< "unified_smoking" - creating smoking feature - UnifiedSmokingGenerator
 	FTR_GEN_RANGE, ///< "range" - creating RangeFeatGenerator
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
@@ -105,7 +106,7 @@ public:
 
 	// generate feature data from repository
 	// We assume the corresponding MedSamples have been inserted to MedFeatures : either at the end or at position index
-	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) { return _generate(in_rep, features, index, num, p_data); }
+	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num) {return _generate(in_rep, features, index, num, p_data); }
 
 	// the following is the MAIN generation routine to implement.
 	// note that it is given a p_data of its own. This is in order to allow different records to write results to different places.
@@ -377,6 +378,10 @@ public:
 class SingletonGenerator : public FeatureGenerator {
 private:
 	vector<char> lut;			///< to be used when generating sets*
+	unordered_map<string, float> name2Value; ///< Used for mapping dictionary strings to values (we don't rely on dictionary not to change)
+	vector<float> id2Value; ///< mapping of dictionary id to value (rebuilt according to dictionary + name2Value)
+
+	void get_id2Value(MedDictionarySections& dict);
 public:
 
 	/// Signal Id
@@ -402,8 +407,14 @@ public:
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<SingletonGenerator *>(generator)); }
 
+	// learn generator (learning name2Value)
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
+
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
+
+	// Preparation - just fill the value2Name attribute
+	void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
 
 	// Signal Ids
 	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
@@ -411,7 +422,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, signalName, names, tags, iGenerateWeights, sets, lut, name2Value)
 };
 
 
@@ -569,6 +580,8 @@ typedef enum {
 	///<"recurrence_count" - count the number of time the event occur shortly after a previous event, there is an intersection of the time signal range with the defined time window
 	///previous event does not need to intersect the time window. 
 	FTR_RANGE_RECURRENCE_COUNT = 6,
+	/// "time_covered"  : give a time window, sum up all the times in ranges that intersect the time window
+	FTR_RANGE_TIME_COVERED = 7,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -585,6 +598,7 @@ private:
 	float uget_range_ever(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 
@@ -598,6 +612,7 @@ public:
 	int time_unit_sig = MedTime::Undefined;		///< the time init in which the signal is given. (set correctly from Repository in learn and Generate)
 	int val_channel = 0;						///< n >= 0 : use val channel n , default : 0.
 	int check_first = 1;						///< if 1 choose first occurance of check_val otherwise choose last
+	float div_factor = 1.0f;					/// dividing by this number in time_covered option
 
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
 	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
@@ -646,7 +661,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win)
+			time_unit_sig, time_unit_win, div_factor)
 };
 
 /**
@@ -776,7 +791,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<AttrFeatGenerator *>(generator)); }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Serialization
 	ADD_CLASS_NAME(AttrFeatGenerator);
@@ -803,7 +818,7 @@ private:
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat);
+	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex & remove_reg_pat);
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
@@ -820,6 +835,7 @@ public:
 	int max_age; ///< maximal age for testing statistical dependency
 	int age_bin; ///< age bin for testing statistical dependency
 	string regex_filter; ///< regex filter for filtering categories in learn
+	string remove_regex_filter; ///< remove regex filter for filtering categories in learn
 	int min_code_cnt; ///< minimal number of occourences to consider signal
 	float fdr; ///< the FDR value
 	int take_top; ///< maximal number of features to create
@@ -832,11 +848,15 @@ public:
 	category_stat_test stat_metric; ///< statistical test
 	float chi_square_at_least; ///< chi_square arg to test for at least that change in lift to measure bigger diffrence
 	int minimal_chi_cnt; ///< chi_square arg to keep at least count to use row in calc
+	int sort_by_chi = 0; ///< sort results by chi-square
 	int max_depth; ///< maximal depth to go in heirarchy
 	int max_parents; ///< controls maximum parents count
 	bool use_fixed_lift; ///< If true will also sort be lifts below 1
+	bool filter_hierarchy; /// Apply hierarchy filtering
 	bool verbose; ///< in Learn will print selected features
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
+	string verbose_full_file; ///< output file for verbose_full debug in learn
+	string feature_prefix; ///< additional prefix to add to name to describe the feature
 
 	void set_signal_ids(MedSignals& sigs);
 
@@ -858,8 +878,10 @@ public:
 	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
+	int nfeatures();
+
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix)
 };
 
 //=======================================

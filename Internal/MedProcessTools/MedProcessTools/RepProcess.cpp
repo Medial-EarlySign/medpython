@@ -651,9 +651,21 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 	}
 }
 
+void RepMultiProcessor::make_summary() {
+	for (auto& proc : processors)
+		proc->make_summary();
+}
+
 void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < processors.size(); ++i)
 		processors[i]->register_virtual_section_name_id(dict);
+}
+
+void RepBasicOutlierCleaner::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	is_categ = sigs.is_categorical_channel(signalId, val_channel);
+	if (is_categ)
+		MWARN("Warning Signal %s is categorical - no cleaning\n", signalName.c_str());
 }
 
 //=======================================================================================
@@ -691,6 +703,8 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "verbose_file")verbose_file = entry.second;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		else if (field == "rp_type") {}
 		//! [RepBasicOutlierCleaner::init]
 	}
@@ -705,7 +719,8 @@ int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 	init_lists();
 	map<string, string>& mapper_p = mapper;
 	vector<string> remove_fl = { "verbose_file" ,"fp_type", "rp_type", "unconditional", "signal", "time_channel", "val_channel", "nrem_attr", "ntrim_attr", "nrem_suff",
-		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals", "addRequiredSignals", "consideredRules" };
+		"ntrim_suff", "time_unit", "nbr_time_unit", "nbr_time_width",  "tag", "conf_file", "clean_method","signals",
+		"addRequiredSignals", "consideredRules", "print_summary", "print_summary_critical_cleaned" };
 
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
@@ -803,6 +818,8 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 		return -1;
 	}
 
+	if (is_categ)
+		return 0;
 	int len;
 
 	differentVersionsIterator vit(rec, signalId);
@@ -839,6 +856,15 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 					change[nChange++] = pair<int, float>(i, trimMax);
 				}
 			}
+		}
+
+		//collect stats for summary:
+#pragma omp critical 
+		{
+			++_stats.total_pids;
+			_stats.total_records += len;
+			_stats.total_removed += nRemove;
+			_stats.total_pids_touched += nRemove > 0;
 		}
 
 		// Apply removals + changes
@@ -897,13 +923,49 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 }
 
+void remove_stats::restart() {
+	total_removed = 0;
+	total_pids_touched = 0;
+	total_records = 0;
+	total_pids = 0;
+}
+
+void remove_stats::print_summary(const string &cleaner_info, const string &signal_name, int minimal_pid_cnt, float print_summary_critical_cleaned, bool prnt_flg) const {
+	if (total_records == 0)
+		return; //nothing happend
+	float rmv_ratio = float(total_removed) / total_records;
+	bool is_critical = total_pids > minimal_pid_cnt && rmv_ratio > print_summary_critical_cleaned;
+	//build msg:
+	string msg;
+	if (is_critical || prnt_flg) {
+		char buffer[5000];
+		snprintf(buffer, sizeof(buffer), "Removed Records: (%d / %d) %2.1f%%, Touched Patients: (%d / %d) %2.1f%%",
+			total_removed, total_records, 100 * rmv_ratio,
+			total_pids_touched, total_pids, 100 * float(total_pids_touched) / total_pids);
+		msg = string(buffer);
+	}
+
+	if (is_critical) {
+		MWARN("Warning: %s(%s): %s\n", cleaner_info.c_str(), signal_name.c_str(), msg.c_str());
+	}
+	else {
+		if (prnt_flg)
+			MLOG("Info: %s(%s): %s\n", cleaner_info.c_str(), signal_name.c_str(), msg.c_str());
+	}
+
+}
+
+void RepBasicOutlierCleaner::make_summary() {
+	_stats.print_summary(my_class_name(), signalName, 100, print_summary_critical_cleaned, print_summary);
+	_stats.restart();
+}
+
 //.......................................................................................
 void RepBasicOutlierCleaner::print()
 {
 	MLOG("BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
 		signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
-
 
 //=======================================================================================
 // ConfiguredOutlierCleaner  
@@ -968,6 +1030,8 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else if (field == "verbose_file")verbose_file = entry.second;
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		//! [RepConfiguredOutlierCleaner::init]
 	}
 
@@ -978,7 +1042,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	if (outlierParams_dict.find(sig_search) != outlierParams_dict.end())
 		outlierParam = outlierParams_dict.at(sig_search);
 	else
-		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unkown signal %s in configure rules\n", sig_search.c_str());
+		MTHROW_AND_ERR("Error in RepConfiguredOutlierCleaner::init - Unknown signal %s in configure rules\n", sig_search.c_str());
 
 	if (!verbose_file.empty())
 	{
@@ -990,7 +1054,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 	init_lists();
 	map<string, string>& mapper_p = mapper;
 	vector<string> remove_fl = { "verbose_file" , "clean_method", "conf_file", "rp_type", "unconditional",
-		"signal", "time_channel", "val_channel" };
+		"signal", "time_channel", "val_channel", "print_summary", "print_summary_critical_cleaned" };
 	for (const string &fl : remove_fl)
 		if (mapper_p.find(fl) != mapper_p.end()) mapper_p.erase(fl);
 	return MedValueCleaner::init(mapper_p);
@@ -1029,7 +1093,7 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 
 			vector<float> values, filteredValues;
 
-			float borderHi, borderLo, logBorderHi, logBorderLo;
+			float borderHi = numeric_limits<float>::max(), borderLo = -99999, logBorderHi = 9999, logBorderLo = -99999;
 			get_values(rep, samples, signalId, time_channel, val_channel, removeMin, removeMax, values, prev_cleaners);
 			for (auto& el : values)if (el != 0)filteredValues.push_back(el);
 			sort(filteredValues.begin(), filteredValues.end());
@@ -1157,50 +1221,29 @@ void RepRuleBasedOutlierCleaner::parse_sig_channels(const string &path) {
 	fr.close();
 }
 
-
-int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
-{
-
-	init_defaults();
-	set<string> rulesStrings;
-
-	for (auto entry : mapper) {
-		string field = entry.first;
-		//! [RepRuleBasedOutlierCleaner::init]
-		if (field == "signals") {
-			boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
-			for (auto sig : aff_signals)  // all affected are of course required
-				req_signals.insert(sig);
-		}
-		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
-		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
-		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
-		else if (field == "time_window") time_window = med_stoi(entry.second);
-		else if (field == "nrem_attr") nRem_attr = entry.second;
-		else if (field == "verbose_file") verbose_file = entry.second;
-		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
-		else if (field == "tolerance") tolerance = med_stof(entry.second);
-		else if (field == "calc_res") calc_res = med_stof(entry.second);
-		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
-		else if (field == "rp_type") {}
-		else if (field == "consideredRules") {
-			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
-			for (auto& rule : rulesStrings) {
-				int ruleNum = med_stoi(rule);
-				consideredRules.push_back(ruleNum);
-				if (ruleNum == 0)break;
-			}
-		}
-		//! [RepRuleBasedOutlierCleaner::init]
-
+void RepRuleBasedOutlierCleaner::set_affected_signal_ids(MedDictionarySections& dict) {
+	//remove non exists rules!
+	vector<int> sel_rules;
+	for (auto& rule : rules2Signals) {
+		const vector<string> &all_sigs = rule.second;
+		string miss_sig = "";
+		for (size_t i = 0; i < all_sigs.size() && miss_sig.empty(); ++i)
+			if (dict.curr_dict()->id(all_sigs[i]) < 0)
+				miss_sig = all_sigs[i];
+		if (!miss_sig.empty())
+			MWARN("RepRuleBasedOutlierCleaner: Signal %s not exists - remove rule %d\n", miss_sig.c_str(), rule.first);
+		else
+			sel_rules.push_back(rule.first);
 	}
+	consideredRules = move(sel_rules);
 
-	if (consideredRules.empty()) {
-		//init deafault to use all:
-		for (const auto &rule : rules2Signals)
-			consideredRules.push_back(rule.first);
-	}
+	change_rules();
 
+	//regular code:
+	RepProcessor::set_affected_signal_ids(dict);
+}
+
+void RepRuleBasedOutlierCleaner::change_rules() {
 	unordered_set<int> rules_set(consideredRules.begin(), consideredRules.end());
 	if (rules_set.find(0) == rules_set.end()) // If has 0 - take all
 		for (auto it = rules2Signals.begin(); it != rules2Signals.end(); ) {
@@ -1210,6 +1253,8 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 				it = rules2Signals.erase(it);// rule removed
 		}
 
+	aff_signals.clear();
+	req_signals.clear();
 	//mark affected and requested:
 	for (auto& rule : rules2Signals)
 		aff_signals.insert(rule.second.begin(), rule.second.end());
@@ -1217,6 +1262,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		req_signals.insert(sig);
 
 	// add required signals according to rules that apply to affected signals
+	rulesToApply.clear();
 	unordered_set<int> seen_rule;
 	for (auto& rule : rules2Signals) {
 		for (auto& sig : aff_signals) {
@@ -1250,6 +1296,54 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 			}
 		}
 	}
+}
+
+int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
+{
+
+	init_defaults();
+	set<string> rulesStrings;
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepRuleBasedOutlierCleaner::init]
+		if (field == "signals") {
+			boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
+			for (auto sig : aff_signals)  // all affected are of course required
+				req_signals.insert(sig);
+		}
+		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
+		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
+		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
+		else if (field == "time_window") time_window = med_stoi(entry.second);
+		else if (field == "nrem_attr") nRem_attr = entry.second;
+		else if (field == "verbose_file") verbose_file = entry.second;
+		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
+		else if (field == "tolerance") tolerance = med_stof(entry.second);
+		else if (field == "calc_res") calc_res = med_stof(entry.second);
+		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "rp_type") {}
+		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
+		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
+		else if (field == "consideredRules") {
+			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
+			for (auto& rule : rulesStrings) {
+				int ruleNum = med_stoi(rule);
+				consideredRules.push_back(ruleNum);
+				if (ruleNum == 0)break;
+			}
+		}
+		//! [RepRuleBasedOutlierCleaner::init]
+
+	}
+
+	if (consideredRules.empty()) {
+		//init deafault to use all:
+		for (const auto &rule : rules2Signals)
+			consideredRules.push_back(rule.first);
+	}
+	change_rules();
+
 	if (!verbose_file.empty())
 	{
 		ofstream fw(verbose_file);
@@ -1325,13 +1419,13 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	affSignalIds.swap(new_aff_id);
 }
 
-
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	// get the signals
 	map <int, UniversalSigVec> usvs;// from signal to its USV
 	//map <int, vector <int>> removePoints; // from signal id to its remove points
-
+	if (rulesToApply.empty())
+		return 0; //removed rule
 
 	// Check that we have the correct number of dynamic-versions : one per time-point
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
@@ -1356,6 +1450,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 		for (int iRule = 0; iRule < rulesToApply.size(); iRule++) {
 			int rule = rulesToApply[iRule];
+			//MLOG("Apply Rule %d\n", rule);
 			vector <UniversalSigVec>ruleUsvs;
 			vector<int>& mySids = rules_sids[rule];
 			const vector<string> &rule_signals = rules2Signals[rule];
@@ -1457,16 +1552,26 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 		// Apply removals
 		size_t nRemove = 0;
 		int idx = 0;
+
 		for (auto sig : affSignalIds) {
 			vector <int> toRemove(removePoints[sig].begin(), removePoints[sig].end());
+			string sig_name = affected_ids_to_name[sig];
 			if (!verbose_file.empty() && !toRemove.empty()) {
-				string sig_name = affected_ids_to_name[sig];
 				string time_points = removePoints_Time[sig].empty() ? "" : to_string(removePoints_Time[sig].front());
 				for (size_t i = 1; i < removePoints_Time[sig].size(); ++i)
 					time_points += "," + to_string(removePoints_Time[sig][i]);
 				log_file << "signal " << sig_name << " pid " << rec.pid << " removed "
 					<< toRemove.size() << " int_times " << time_points << "\n";
 			}
+
+#pragma omp critical 
+			{
+				++_rmv_stats[sig_name].total_pids;
+				_rmv_stats[sig_name].total_pids_touched += int(!removePoints[sig].empty());
+				_rmv_stats[sig_name].total_records += usvs[sig].len;
+				_rmv_stats[sig_name].total_removed += (int)removePoints[sig].size();
+			}
+
 			vector <pair<int, float>>noChange;
 			pair<int, int> sig_channels(0, 0);
 			if (signal_id_channels.find(sig) != signal_id_channels.end())
@@ -1491,6 +1596,14 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 	return 0;
 
 
+}
+
+void RepRuleBasedOutlierCleaner::make_summary() {
+	for (auto it = _rmv_stats.begin(); it != _rmv_stats.end(); ++it)
+		it->second.print_summary(my_class_name(), it->first.c_str()
+			, 100, print_summary_critical_cleaned, print_summary);
+
+	_rmv_stats.clear(); //prepare for next apply
 }
 
 bool test_diff(float origianl, float calculated, float tolerance, float resulotion) {
@@ -2080,7 +2193,8 @@ SimValHandleTypes RepSimValHandler::get_sim_val_handle_type(string& name) {
 // Get time-channels (if empty)
 //.......................................................................................
 void RepSimValHandler::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
-
+	if (signalId < 0)
+		return;
 	if (time_channels.empty()) {
 		int n = sigs.Sid2Info[signalId].n_time_channels;
 		time_channels.resize(n);

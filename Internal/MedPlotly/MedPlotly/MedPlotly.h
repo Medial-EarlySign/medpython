@@ -90,6 +90,7 @@ public:
 	int width = 1200;
 	int height = 200;
 
+
 	int init(map<string, string>& _map);
 };
 
@@ -132,7 +133,6 @@ public:
 
 	int read_config(const string &config_fname);
 
-
 };
 
 //=========================================================================================================
@@ -143,7 +143,7 @@ public:
 	string name;
 	string color = ""; // if empty will use default color lists
 
-	ChartTimeSign();
+	ChartTimeSign() {};
 	ChartTimeSign(int t, const string &_name, const string _color) { time=t; name=_name; color=_color; }
 	int init(map<string, string>& _map);
 
@@ -159,6 +159,8 @@ public:
 	int pid = 0;
 	int from_date = 0;
 	int to_date = 0;
+
+	
 };
 
 //=========================================================================================================
@@ -180,6 +182,7 @@ public:
 		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views); 
 	}
 
+
 private:
 	// builders for html
 	int add_html_header(string &shtml, const string &mode);
@@ -189,6 +192,9 @@ private:
 
 	// THIN_RC report
 	void add_thin_rc_chart(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
+
+	// categorical signal , add as table
+	void add_categorical_table(string sig, string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
 
 	// heatmap creation
 	void get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);

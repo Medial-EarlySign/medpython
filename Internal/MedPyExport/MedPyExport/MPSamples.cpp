@@ -184,6 +184,7 @@ MPPandasAdaptor MPSamples::MEDPY__from_df_adaptor() {
 	ret.set_type_requirement("split", "int");
 	ret.set_type_requirement("time", "int");
 	ret.set_type_requirement("pred_\\d+", "float");
+	ret.set_type_requirement("attr_\\S+", "float");
 	return ret;
 }
 
@@ -192,8 +193,8 @@ void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
 	static const string attr_ = "attr_";
 	static const string str_attr_ = "str_attr_";
 	vector<MedSample> vms;
+
 	for (string col_name : pandas_df.keys()) {
-		
 		if (col_name == "id") {
 			vector<int> vec;
 			pandas_df.pull_col_as_vector(col_name, vec);
@@ -257,6 +258,7 @@ void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
 }
 
 MPPandasAdaptor MPSamples::MEDPY__to_df() {
+
 	MPPandasAdaptor ret;
 	int record_count = o->nSamples();
 
@@ -284,18 +286,14 @@ MPPandasAdaptor MPSamples::MEDPY__to_df() {
 		}
 	}
 
-	vector<string> attribute_names;
-	vector<string> str_attribute_names;
-
-	copy(attribute_names_set.begin(), attribute_names_set.end(), attribute_names.end());
-	copy(str_attribute_names_set.begin(), str_attribute_names_set.end(), attribute_names.end());
+	vector<string> attribute_names(attribute_names_set.begin(), attribute_names_set.end());
+	vector<string> str_attribute_names(str_attribute_names_set.begin(), str_attribute_names_set.end());
 
 	vector<float*> pred_vecs;
 	for (int i = 0; i < max_predictions; i++) {
 		pred_vecs.push_back((float*)malloc(sizeof(float)*record_count));
 		//data_keys.push_back((string)"pred_" + to_string(i));
 	}
-
 	map<string,float*> attr_vecs;
 	for (const auto& s : attribute_names) {
 		attr_vecs[s] = (float*)malloc(sizeof(float)*record_count);

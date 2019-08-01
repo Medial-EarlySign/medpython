@@ -9,6 +9,7 @@ FilterParams::FilterParams() {
 	max_age = -1;
 	min_time = 0;
 	max_time = -1;
+	interaction_mode = TimeWindowMode::Within;
 }
 
 int FilterParams::init(map<string, string>& map) {
@@ -22,6 +23,8 @@ int FilterParams::init(map<string, string>& map) {
 			min_time = med_stoi(it->second);
 		else if (it->first == "max_time")
 			max_time = med_stoi(it->second);
+		else if (it->first == "interaction_mode")
+			interaction_mode = TimeWindow_name_to_type(it->second);
 		else
 			MTHROW_AND_ERR("Error in FilterParams::init - Unsupported param %s\n", it->first.c_str())
 	}

@@ -833,6 +833,10 @@ template<class T>float _auc_q_weighted(const vector<T> &preds, const vector<floa
 		tot_true_labels += int(y[i] > 0) * weights[i];
 		tot_false_labels += int(y[i] <= 0) * weights[i];
 	}
+	if (tot_true_labels <= 0)
+		MTHROW_AND_ERR("Error _auc_q_weighted - tot_true_labels(%2.1f) <= 0.\n", tot_true_labels);
+	if (tot_false_labels <= 0)
+		MTHROW_AND_ERR("Error _auc_q_weighted - tot_false_labels(%2.1f) <= 0.\n", tot_false_labels);
 	pred_threshold.resize((int)pred_indexes.size());
 	auto it = pred_indexes.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
@@ -1489,8 +1493,52 @@ template<typename T> void medial::stats::get_percentiles(vector<T> &vals, vector
 		out_pvals[i] = vals[k];
 	}
 }
+template<typename T>
+T inPlaceQuantile(T *vals, float *w ,float wq,int length)
+{
+	int pIndex = length - 1;
+	double weightToIndex = 0;
+	for (int i = 0; i < pIndex; i++) 
+		if (vals[i] > vals[pIndex]) {
+			
+
+			T dummy = vals[pIndex];
+			vals[pIndex] = vals[i];
+			vals[i] = vals[pIndex - 1];
+			vals[pIndex - 1] = dummy;
+
+			float dummy1 = w[pIndex];
+			w[pIndex] = w[i];
+			w[i] = w[pIndex - 1];
+			w[pIndex - 1] = dummy1;
+
+			pIndex--;
+			i--;
+		}
+		else weightToIndex += w[i];
+	
+	if(weightToIndex<=wq && weightToIndex+w[pIndex]>=wq)
+		return(vals[pIndex]);
+	if (wq<weightToIndex)return(inPlaceQuantile(vals,w, wq,pIndex));
+	return(inPlaceQuantile(vals + pIndex, w+pIndex,wq-weightToIndex,length-pIndex));
+	
+}
+template<typename T>
+T medial::stats::get_quantile(vector<T> vals, vector<float> w ,float q)
+{
+	if (vals.size() == 1)return(vals[0]);
+	if(vals.size()!=w.size())	MTHROW_AND_ERR("Length inconsistency in calculating Quantile\n");
+	float sumW = 0;
+	for (auto&& ww : w)sumW += ww;
+
+	double wq = sumW*q;
+	return T(inPlaceQuantile(vals.data(),w.data(),wq,(int)vals.size()));
+}
 template void medial::stats::get_percentiles<float>(vector<float> &vals, vector<float> &p, vector<float> &out_pvals, int only_positive_flag);
 template void medial::stats::get_percentiles<double>(vector<double> &vals, vector<float> &p, vector<double> &out_pvals, int only_positive_flag);
+
+template float medial::stats::get_quantile<float>(vector<float> vals,vector<float> w, float q);
+template double medial::stats::get_quantile<double>(vector<double> vals,vector<float> w, float q);
 
 // Chi-Square
 //.........................................................................................................................................

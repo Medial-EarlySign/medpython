@@ -64,11 +64,15 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 		}
 	}
 
+	//Test:
+	for (const string& name : namesToTake)
+		if (attributes.find(name) == attributes.end())
+			MTHROW_AND_ERR("Error feature \"%s\" is missing attribute information\n", name.c_str());
 	// Normalization flag
 	mat.normalized_flag = true;
-	for (string& name : namesToTake)
+	for (const string& name : namesToTake)
 		mat.normalized_flag &= (int)attributes.at(name).normalized;
-	for (string& name : namesToTake)
+	for (const string& name : namesToTake)
 		mat.normalized_flag &= (int)attributes.at(name).imputed;
 
 	mat.signals.insert(mat.signals.end(), namesToTake.begin(), namesToTake.end());
@@ -347,7 +351,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 		// sample
 		string sample_str;
-		
+
 		samples[i].write_to_string(sample_str, time_unit, write_attributes, ",");
 		boost::replace_all(sample_str, "SAMPLE,", "");
 
@@ -509,7 +513,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 			samples.push_back(newSample);
 			//advance idx in fields to last pos:
 			idx = (int)curr_pos_fields->size();
-			
+
 			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
 				idx = pos_preds.back() + 1;
 			if (!pos_attr.empty() && idx < max_ind_map(pos_attr) + 1)
@@ -518,7 +522,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				idx = max_ind_map(pos_str_attr) + 1;
 
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx++]));	
+				data[names[i]].push_back(stof(fields[idx++]));
 		}
 	}
 
@@ -1363,7 +1367,7 @@ int MedFeatures::get_masks_as_mat(MedMat<unsigned char> &masks_mat)
 	for (int i = 0; i < names.size(); i++) {
 		unsigned char *p_mask = masks[names[i]].data();
 		for (int j = 0; j < nrows; j++)
-			masks_mat(i, j) = p_mask[j];
+			masks_mat(j, i) = p_mask[j];
 	}
 
 	return 0;
@@ -1376,6 +1380,7 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 	if (masks.empty()) return 0;
 
 	int nrows = (int)masks.begin()->second.size();
+	//int ncols = (int)masks.size();
 	vector<string> names;
 	get_feature_names(names);
 
@@ -1393,3 +1398,41 @@ int MedFeatures::mark_imputed_in_masks(float _missing_val)
 }
 
 
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::round_data(float r)
+{
+	if (r <= 0) return;
+	vector<string> names;
+	get_feature_names(names);
+	int n_feat = (int)names.size();
+
+#pragma omp parallel for
+	for (int j = 0; j < n_feat; j++) {
+		float *p_data = data[names[j]].data();
+		int len = (int)data[names[j]].size();
+		for (int i = 0; i < len; i++)
+			p_data[i] = roundf(p_data[i] / r)*r;
+	}
+
+}
+
+
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::noise_data(float r)
+{
+	if (r <= 0) return;
+	vector<string> names;
+	get_feature_names(names);
+	int n_feat = (int)names.size();
+
+#pragma omp parallel for
+	for (int j = 0; j < n_feat; j++) {
+		float *p_data = data[names[j]].data();
+		int len = (int)data[names[j]].size();
+		for (int i = 0; i < len; i++) {
+			float noise = r * (rand_1()*2.0f - 1.0f);
+			p_data[i] = p_data[i] + noise;
+		}
+	}
+
+}

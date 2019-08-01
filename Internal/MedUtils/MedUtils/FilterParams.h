@@ -4,6 +4,7 @@
 #include <map>
 #include <string>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
+#include "LabelParams.h"
 using namespace std;
 
 /**
@@ -16,6 +17,7 @@ public:
 	int max_age; ///< Filter on max age
 	int min_time; ///< Filter on min time
 	int max_time; ///< Filter on max time
+	TimeWindowMode interaction_mode; ///< the interaction mode in filtering
 
 	FilterParams();
 	/// init function

@@ -2,8 +2,13 @@
 #include "MedAlgo/MedAlgo/MedAlgo.h"
 #include "MedAlgo/MedAlgo/MedLinearModel.h"
 
-#define LOCAL_SECTION LOG_MEDALGO
+#define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
+// *************************************************************************************************
+// Functions for calibrators
+// *************************************************************************************************
+
 
 unordered_map<int, string> calibration_method_to_name = {
 	{probability_time_window, "time_window"},
@@ -11,6 +16,15 @@ unordered_map<int, string> calibration_method_to_name = {
 	{ probability_platt_scale, "platt_scale" },
 	{ probability_isotonic, "isotonic_regression" }
 };
+
+string calibration_entry::str() const {
+	char buffer[5000];
+
+	snprintf(buffer, sizeof(buffer), "Bin %d :: [%1.6f, %1.6f] => {kaplan_meier=%2.5f, mean_outcome=%2.5f, mean_pred=%2.5f} | cnt_cases=%2.1f(%d), cnt_controls=%2.1f(%d)}",
+		bin, min_pred, max_pred, kaplan_meier, mean_outcome, mean_pred, cnt_cases, (int)cnt_cases_no_w, cnt_controls, (int)cnt_controls_no_w);
+
+	return string(buffer);
+}
 
 CalibrationTypes clibration_name_to_type(const string& calibration_name) {
 	for (auto it = calibration_method_to_name.begin(); it != calibration_method_to_name.end(); ++it)
@@ -42,8 +56,10 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "control_weight_down_sample") control_weight_down_sample = stof(entry.second);
 		else if (field == "censor_controls") censor_controls = stoi(entry.second);
 		else if (field == "verbose") verbose = stoi(entry.second) > 0;
-		else if (field == "calibration_samples") calibration_samples = entry.second;
-		else if (field == "use_preds_in_samples") use_preds_in_samples = stoi(entry.second) > 0;
+		else if (field == "use_split") use_split = stoi(entry.second);
+		else if (field == "use_p") use_p = stof(entry.second);
+		else if (field == "weights_attr_name") weights_attr_name = entry.second;
+		else if (field == "use_isotonic") use_isotonic = stoi(entry.second) > 0;
 		else if (field == "pp_type") {} //ignore
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
 		//! [Calibrator::init]
@@ -52,15 +68,81 @@ int Calibrator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
 
-double Calibrator::calc_kaplan_meier(vector<int> controls_per_time_slot, vector<int> cases_per_time_slot, double controls_factor) {
+	int n = (int)x.size();
+
+	vector<pair<float, float>> x2y(n);
+	for (int i = 0; i < n; i++)
+		x2y[i] = { x[i],y[i] };
+	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
+
+	// PAV
+	vector<int> nag(n);
+	vector<float> val(n);
+
+	unsigned int i, j;
+	nag[0] = 1;
+	val[0] = x2y[0].second;
+
+	j = 0;
+	for (i = 1; i < n; i++) {
+		j += 1;
+		val[j] = x2y[i].second;
+		nag[j] = 1;
+		while ((j > 0) && (val[j] < val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
+			nag[j - 1] += nag[j];
+			j--;
+		}
+	}
+
+	// Further unite ...
+	int nbins = 1;
+	for (i = 1; i < j + 1; i++) {
+		if (val[i] == val[nbins - 1])
+			nag[nbins - 1] += nag[i];
+		else {
+			val[nbins] = val[i];
+			nag[nbins] = nag[i];
+			nbins++;
+		}
+	}
+
+	// Fill table
+	min_range.resize(nbins);
+	max_range.resize(nbins);
+	map_prob.resize(nbins);
+
+	int idx = 0;
+	min_range[nbins - 1] = (float)INT32_MIN;
+	for (i = 0; i < nbins; i++) {
+		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
+		if (i < nbins - 1)
+			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
+		idx += nag[i];
+		map_prob[nbins - 1 - i] = val[i];
+	}
+	max_range[0] = (float)INT32_MAX;
+
+	if (verbose)
+		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
+	for (size_t i = 0; i < map_prob.size(); ++i)
+		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
+			min_range[i], max_range[i], map_prob[i],
+			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
+}
+
+
+double Calibrator::calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot,
+	double controls_factor) {
 	double prob = 1.0;
 	double total_all = 0;
 	for (int i = 0; i < controls_per_time_slot.size(); i++)
 		total_all += (controls_per_time_slot[i] * controls_factor) + cases_per_time_slot[i];
 	//MLOG("size %d total_controls_all %d\n", controls_per_time_slot.size(), total_controls_all);
 	for (int i = 0; i < controls_per_time_slot.size(); i++) {
-		if (total_all == 0) {
+		if (total_all <= 0) {
 			MWARN("Reached 0 samples at time slot [%d]. Quitting\n", i);
 			break;
 		}
@@ -84,8 +166,8 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 		int end = s, start = s;
 		int controls = cals[start].cnt_controls;
 		int cases = cals[start].cnt_cases;
-		vector<int> controls_per_time_slot;
-		vector<int> cases_per_time_slot;
+		vector<double> controls_per_time_slot;
+		vector<double> cases_per_time_slot;
 		for (size_t j = 0; j < cals[start].controls_per_time_slot.size(); j++)
 		{
 			controls_per_time_slot.push_back(cals[start].controls_per_time_slot[j]);
@@ -312,79 +394,53 @@ int Calibrator::Apply(vector <MedSample>& samples) const {
 
 int Calibrator::Learn(const MedSamples& orig_samples) {
 	vector<MedSample> samples;
-	for (const auto& pat : orig_samples.idSamples)
-		for (const auto& s : pat.samples)
-			samples.push_back(s);
-	Learn(samples, orig_samples.time_unit);
-	return 0;
+	orig_samples.export_to_sample_vec(samples);
+	return Learn(samples, orig_samples.time_unit);
 }
 
-void Calibrator::Learn(MedModel &model, MedPidRepository& rep, const MedFeatures &matrix) {
-	MedPidRepository curr_rep;
-	unordered_set<string> req_names;
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
-	if (!calibration_samples.empty()) {
-		//load external calibration samples:
-		MLOG("Load calibration samples from %s\n", calibration_samples.c_str());
-		MedSamples external;
-		external.read_from_file(calibration_samples);
-		if (!use_preds_in_samples) {
-			//create Matrix and get predictions:
-			model.get_required_signal_names(req_names);
-			for (string s : req_names)
-				sigs.push_back(s);
-			sort(sigs.begin(), sigs.end());
-			auto it = unique(sigs.begin(), sigs.end());
-			sigs.resize(std::distance(sigs.begin(), it));
-			vector<int> pids;
-			external.get_ids(pids);
-			if (curr_rep.read_all(rep.config_fname, pids, sigs) < 0)
-				MTHROW_AND_ERR("ERROR could not read repository %s\n", rep.config_fname.c_str());
-			MedFeatures feats = move(model.features);
-			model.apply(curr_rep, external, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_LEARN_POST_PROCESSORS);
-			Learn(model.features.samples);
-			model.features = move(feats);
-		}
-		else 
-			Learn(external);
-		return;
-	}
-	else
-		MWARN("Warning - Calibrator::Learn - Learn on train samples. please provide \"calibration_samples\" param\n");
-
-	//for test calibrate on train:
-	if (matrix.samples.empty())
-		return;
-	//get preds
-	if (matrix.samples.front().prediction.empty()) {
-		MedFeatures cp_mat = matrix;
-		model.predictor->predict(cp_mat);
-		Learn(cp_mat.samples);
-		return;
-	}
-
-	Learn(matrix.samples);
-}
 
 void Calibrator::Apply(MedFeatures &matrix) const {
 	Apply(matrix.samples);
 }
 
-int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {
+void get_weights(const vector<MedSample>& orig_samples, const string &attr, vector<float> &weights) {
+	bool has_miss = false, found = false;
+	weights.resize(orig_samples.size(), 1); //give 1 weights to all
+	for (size_t i = 0; i < orig_samples.size(); ++i) {
+		if (orig_samples[i].attributes.find(attr) == orig_samples[i].attributes.end())
+			has_miss = true;
+		else {
+			weights[i] = orig_samples[i].attributes.at(attr);
+			found = true;
+		}
+	}
+	if (has_miss && found)
+		MWARN("Warning get_weights: has weights for some of the samples\n");
+	else if (found)
+		MLOG("Read Weights from samples attr %s\n", attr.c_str());
+}
 
-	int do_km;
+int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {
+	vector<float> weights;
+	//read weights from samples:
+	get_weights(orig_samples, weights_attr_name, weights);
+
+	bool do_km;
 	if (estimator_type == "kaplan_meier")
-		do_km = 1;
+		do_km = true;
 	else if (estimator_type == "mean_cases")
-		do_km = 0;
+		do_km = false;
 	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
 
 	cals.clear();
 	float min_pred = 100000.0, max_pred = -100000.0;
 	int cases = 0;
+	double w_cases = 0;
 	set<float> unique_preds;
 	vector<MedSample> samples;
-	for (auto e : orig_samples) {
+	for (int i = 0; i < orig_samples.size(); ++i) {
+		MedSample e = orig_samples[i];
+
 		if (unique_preds.find(e.prediction[0]) == unique_preds.end())
 			unique_preds.insert(e.prediction[0]);
 		if (e.prediction[0] < min_pred)
@@ -401,8 +457,10 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		if (e.outcome >= 1 && gap > pos_sample_max_time_before_case)
 			// too far case is considered as control
 			e.outcome = 0;
-		if (e.outcome >= 1)
-			cases++;
+		if (e.outcome >= 1) {
+			++cases;
+			w_cases += weights[i];
+		}
 		samples.push_back(e);
 	}
 	std::sort(samples.begin(), samples.end(), comp_sample_pred);
@@ -420,6 +478,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			bins_num, max_samples_per_bin);
 	}
 	else if (binning_method == "equal_num_of_cases_per_bin") {
+		//max_cases_per_bin = max((int)w_cases / bins_num, 10);
 		max_cases_per_bin = max(cases / bins_num, 10);
 		MLOG("equal_num_of_cases_per_bin bins_num: %d max_cases_per_bin: %d \n",
 			bins_num, max_cases_per_bin);
@@ -431,48 +490,59 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	}
 	else MTHROW_AND_ERR("unknown binning method [%s]\n", binning_method.c_str());
 
-	vector<int> cnt_cases;
-	vector<int> cnt_controls;
+	vector<double> cnt_cases;
+	vector<double> cnt_controls;
 	vector<float> bin_max_preds;
 	vector<float> bin_min_preds;
 	vector<float> bin_sum_preds;
-	vector<vector<int>> bin_controls_per_time_slot;
-	vector<vector<int>> bin_cases_per_time_slot;
+	vector<double> cnt_cases_no_w, cnt_ctrl_no_w;
+	vector<vector<double>> bin_controls_per_time_slot;
+	vector<vector<double>> bin_cases_per_time_slot;
 	int km_time_slots = (pos_sample_max_time_before_case - pos_sample_min_time_before_case) / km_time_resolution;
 	if (km_time_slots <= 0)
 		km_time_slots = 1;
 	MLOG("km_time_slots [%d] \n", km_time_slots);
-	for (size_t i = 0; i < (bins_num + 1) * 2; i++)
+	//init arrays:
+	//int sz_loop = (bins_num + 1) * 2;
+	int sz_loop = (bins_num + 1);
+	cnt_cases.resize(sz_loop);
+	cnt_controls.resize(sz_loop);
+	cnt_cases_no_w.resize(sz_loop);
+	cnt_ctrl_no_w.resize(sz_loop);
+	bin_sum_preds.resize(sz_loop);
+	bin_max_preds.resize(sz_loop);
+	bin_min_preds.resize(sz_loop, min_pred);
+	for (size_t i = 0; i < sz_loop; i++)
 	{
-		cnt_cases.push_back(0);
-		cnt_controls.push_back(0);
-		bin_sum_preds.push_back(0.0);
-		bin_min_preds.push_back(min_pred);
-		bin_max_preds.push_back(0.0);
-		vector<int> controls_per_time_slot;
-		vector<int> cases_per_time_slot;
-		for (size_t j = 0; j <= km_time_slots; j++) {
-			controls_per_time_slot.push_back(0);
-			cases_per_time_slot.push_back(0);
-		}
+		vector<double> controls_per_time_slot(km_time_slots + 1);
+		vector<double> cases_per_time_slot(km_time_slots + 1);
 		bin_controls_per_time_slot.push_back(controls_per_time_slot);
 		bin_cases_per_time_slot.push_back(cases_per_time_slot);
 	}
 	int bin = 1;
+	//end init
+
+	//stats for all samples in time slots and general - iterating on scores (same bin, or move to next one)
 	float prev_pred = min_pred;
-	for (auto &o : samples) {
+	double tot_weight = 0;
+	double controls_factor = 1;
+	if (control_weight_down_sample > 0)
+		controls_factor = control_weight_down_sample;
+	for (int i = 0; i < samples.size(); ++i) {
+		const MedSample &o = samples[i];
 		int gap = med_time_converter.convert_times(samples_time_unit, time_unit, o.outcomeTime) - med_time_converter.convert_times(samples_time_unit, time_unit, o.time);
 		if (
 			(bin < bins_num)
+			//&& (prev_pred != o.prediction[0]) //can't break prediction score
 			&&
 			(
 			(binning_method == "unique_score_per_bin" && prev_pred != o.prediction[0]) ||
-				(binning_method == "equal_num_of_samples_per_bin" && cnt_controls[bin] + cnt_cases[bin] >= max_samples_per_bin) ||
+				(binning_method == "equal_num_of_samples_per_bin" && cnt_ctrl_no_w[bin] + cnt_cases_no_w[bin] >= max_samples_per_bin) ||
 				(binning_method == "equal_score_delta_per_bin" && (o.prediction[0] - bin_min_preds[bin]) > max_delta_in_bin) ||
-				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases[bin] >= max_cases_per_bin))
+				(binning_method == "equal_num_of_cases_per_bin" && cnt_cases_no_w[bin] >= max_cases_per_bin))
 			)
 		{
-			bin++;
+			++bin;
 			bin_min_preds[bin] = o.prediction[0];
 		}
 		int time_slot;
@@ -482,22 +552,32 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			time_slot = (gap - pos_sample_min_time_before_case) / km_time_resolution;
 
 		if (o.outcome >= 1) {
-			cnt_cases[bin] ++;
-			bin_cases_per_time_slot[bin][time_slot]++;
+			cnt_cases[bin] += weights[i];
+			bin_cases_per_time_slot[bin][time_slot] += weights[i];
+			++cnt_cases_no_w[bin];
 		}
 		else {
-			cnt_controls[bin]++;
-			bin_controls_per_time_slot[bin][time_slot]++;
+			cnt_controls[bin] += weights[i];
+			bin_controls_per_time_slot[bin][time_slot] += weights[i];
+			++cnt_ctrl_no_w[bin];
 		}
 
-		bin_sum_preds[bin] += o.prediction[0];
 		bin_max_preds[bin] = o.prediction[0];
 		prev_pred = o.prediction[0];
+		if (o.outcome > 0) {
+			tot_weight += weights[i];
+			bin_sum_preds[bin] += o.prediction[0] * weights[i];
+		}
+		else {
+			tot_weight += controls_factor * weights[i];
+			bin_sum_preds[bin] += o.prediction[0] * weights[i] * controls_factor;
+		}
 	}
-	int cumul_cnt = 0;
-	double controls_factor = 1;
-	if (control_weight_down_sample > 0)
-		controls_factor = control_weight_down_sample;
+	//end stats collection
+
+	double cumul_cnt = 0;
+
+	//calibration calc:
 	for (int i = 1; i <= bin; i++)
 	{
 		calibration_entry ce;
@@ -505,13 +585,14 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.min_pred = bin_min_preds[i];
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
+		ce.cnt_controls_no_w = cnt_ctrl_no_w[i]; ce.cnt_cases_no_w = cnt_cases_no_w[i];
 		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
-		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)samples.size();
+		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)tot_weight;
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
 			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i], controls_factor);
-			ce.mean_outcome = 0.0;
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
 		}
 		else {
 			ce.kaplan_meier = 0.0;
@@ -520,25 +601,88 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
 		cals.push_back(ce);
 	}
+
+	if (use_isotonic) {
+		vector<float> collected_bin_idx(cals.size()), collected_probs(cals.size());
+		for (size_t i = 0; i < cals.size(); ++i)
+		{
+			collected_bin_idx[i] = i;
+			if (do_km)
+				collected_probs[i] = cals[i].kaplan_meier;
+			else
+				collected_probs[i] = cals[i].mean_outcome;
+		}
+		vector<float> min_r, max_r, map_r;
+		learn_isotonic_regression(collected_bin_idx, collected_probs, min_r, max_r, map_r, verbose);
+		//use new bins:
+		vector<calibration_entry> new_cals(map_r.size());
+		cumul_cnt = 0;
+		for (int i = 0; i < new_cals.size(); ++i)
+		{
+			calibration_entry ce;
+			ce.bin = i + 1;
+			ce.min_pred = cals[(int)min_r[i]].min_pred;
+			ce.max_pred = cals[(int)max_r[i]].max_pred;
+			ce.cnt_controls = 0; ce.cnt_cases = 0;
+			ce.cnt_controls_no_w = 0;  ce.cnt_cases_no_w = 0;
+			ce.controls_per_time_slot.resize(km_time_slots + 1);
+			ce.cases_per_time_slot.resize(km_time_slots + 1);
+			ce.mean_pred = 0;
+			int cnt = 0;
+			for (int j = (int)min_r[i]; j <= (int)max_r[i]; ++j)
+			{
+				ce.cnt_controls += cals[j].cnt_controls;
+				ce.cnt_cases += cals[j].cnt_cases;
+				ce.cnt_controls_no_w += cals[j].cnt_controls_no_w;
+				ce.cnt_cases_no_w += cals[j].cnt_cases_no_w;
+				for (size_t k = 0; k < km_time_slots + 1; ++k)
+					ce.controls_per_time_slot[k] += cals[j].controls_per_time_slot[k];
+				for (size_t k = 0; k < km_time_slots + 1; ++k)
+					ce.cases_per_time_slot[k] += cals[j].cases_per_time_slot[k];
+				ce.mean_pred += cals[j].mean_pred;
+				++cnt;
+			}
+			ce.mean_pred = ce.mean_pred / (float)cnt;
+			ce.cumul_pct = 1.0f * (cumul_cnt + (((ce.cnt_controls*controls_factor) + ce.cnt_cases) / 2)) / (float)tot_weight;
+
+			if (do_km) {
+				ce.kaplan_meier = map_r[i];
+				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls * controls_factor + ce.cnt_cases);
+			}
+			else {
+				ce.kaplan_meier = 0.0;
+				ce.mean_outcome = map_r[i];
+			}
+			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
+			new_cals.push_back(ce);
+		}
+		cals = move(new_cals);
+	}
+	//smooth calc
 	if (do_calibration_smoothing) {
 		vector<calibration_entry> smooth_cals;
 		smooth_calibration_entries(cals, smooth_cals, controls_factor);
 		cals = smooth_cals;
 	}
+	if (verbose)
+		dprint("");
+
 	return 0;
 }
 
-void get_counts(const vector<int> &inds, const vector<float> &y, int &cases_cnt,
+void get_counts(const vector<int> &inds, const vector<float> &y, const vector<float> &w, double &cases_cnt,
 	double &cntls_cnt, double control_weight) {
-	cases_cnt = 0;
-	for (int ind : inds)
-		cases_cnt += int(y[ind] > 0);
+	cases_cnt = 0, cntls_cnt = 0;
 	if (control_weight <= 0)
 		control_weight = 1;
-	cntls_cnt = (int(inds.size()) - cases_cnt) * control_weight;
+
+	for (int ind : inds) {
+		cases_cnt += int(y[ind] > 0) * w[ind];
+		cntls_cnt += int(y[ind] <= 0)* w[ind] * control_weight;
+	}
 }
 
-void learn_binned_probs(vector<float> &x, const vector<float> &y,
+void learn_binned_probs(const vector<float> &x, const vector<float> &y, const vector<float> &weights,
 	int min_bucket_size, float min_score_jump, float min_prob_jump, bool fix_prob_order,
 	vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, double control_weight_down_sample, bool verbose) {
 	unordered_map<float, vector<int>> score_to_indexes;
@@ -560,9 +704,8 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 	for (int i = sz - 1; i >= 0; --i)
 	{
 		//update values curr_cnt, pred_avg
-		int cases_cnt;
-		double cntls_cnt;
-		get_counts(score_to_indexes[unique_scores[i]], y, cases_cnt, cntls_cnt, control_weight_down_sample);
+		double cases_cnt, cntls_cnt;
+		get_counts(score_to_indexes[unique_scores[i]], y, weights, cases_cnt, cntls_cnt, control_weight_down_sample);
 
 		pred_sum += cases_cnt;
 		curr_cnt += (cases_cnt + cntls_cnt);
@@ -625,77 +768,12 @@ void learn_binned_probs(vector<float> &x, const vector<float> &y,
 			100 * double(bin_cnts[i]) / y.size(), bin_cnts[i], (int)y.size());
 }
 
-void learn_isotonic_regression(vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
-	
-	int n = (int)x.size();
-
-	vector<pair<float, float>> x2y(n);
-	for (int i = 0; i < n; i++)
-		x2y[i] = { x[i],y[i] };
-	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first);});
-
-	// PAV
-	vector<int> nag(n);
-	vector<float> val(n);
-
-	unsigned int i, j;
-	nag[0] = 1;
-	val[0] = x2y[0].second;
-		
-	j = 0;
-	for (i = 1;i<n;i++) {
-		j += 1;
-		val[j] = x2y[i].second;
-		nag[j] = 1;
-		while ((j>0) && (val[j]<val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
-			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
-			nag[j - 1] += nag[j];
-			j--;
-		}
-	}
-
-	// Further unite ...
-	int nbins = 1;
-	for (i = 1; i < j+1; i++) {
-		if (val[i] == val[nbins - 1])
-			nag[nbins - 1] += nag[i];
-		else {
-			val[nbins] = val[i];
-			nag[nbins] = nag[i];
-			nbins++;
-		}
-	}
-			
-	// Fill table
-	min_range.resize(nbins);
-	max_range.resize(nbins);
-	map_prob.resize(nbins);
-
-	int idx = 0;
-	min_range[nbins-1] = (float)INT32_MIN;
-	for (i = 0; i < nbins; i++) {
-		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
-		if (i < nbins - 1)
-			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
-		idx += nag[i];
-		map_prob[nbins - 1 - i] = val[i];
-	}
-	max_range[0] = (float)INT32_MAX;
-
-	if (verbose)
-		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
-	for (size_t i = 0; i < map_prob.size(); ++i)
-		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
-			min_range[i], max_range[i], map_prob[i],
-			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
-}
-
-void learn_platt_scale(vector<float> x, vector<float> &y,
+void learn_platt_scale(const vector<float> x, const vector<float> &y, const vector<float> &weights,
 	int poly_rank, vector<double> &params, int min_bucket_size, float min_score_jump
 	, float min_prob_jump, bool fix_pred_order, double control_weight_down_sample, bool verbose) {
 	vector<float> min_range, max_range, map_prob;
 
-	learn_binned_probs(x, y, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
+	learn_binned_probs(x, y, weights, min_bucket_size, min_score_jump, min_prob_jump, fix_pred_order,
 		min_range, max_range, map_prob, control_weight_down_sample, verbose);
 
 	vector<float> probs;
@@ -770,7 +848,10 @@ void learn_platt_scale(vector<float> x, vector<float> &y,
 }
 
 int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_unit) {
-	vector<float> preds, labels;
+
+	MLOG_D("Learning calibration on %d ids\n", (int)orig_samples.size());
+
+	vector<float> preds, labels, weights;
 	switch (calibration_type)
 	{
 	case CalibrationTypes::probability_time_window:
@@ -778,12 +859,14 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		break;
 	case CalibrationTypes::probability_binning:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_binned_probs(preds, labels, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_binned_probs(preds, labels, weights, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, min_range, max_range, map_prob, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_platt_scale:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_platt_scale(preds, labels, poly_rank, platt_params, min_preds_in_bin,
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_platt_scale(preds, labels, weights, poly_rank, platt_params, min_preds_in_bin,
 			min_score_res, min_prob_res, fix_pred_order, control_weight_down_sample, verbose);
 		break;
 	case CalibrationTypes::probability_isotonic:
@@ -990,5 +1073,31 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 	}
 }
 
+void Calibrator::dprint(const string &pref) const {
+	MLOG("%s :: PP type %d(%s) - of type %s\n", pref.c_str(), processor_type, my_class_name().c_str()
+		, calibration_method_to_name.at(calibration_type).c_str());
 
+	switch (calibration_type)
+	{
+	case probability_time_window:
+		for (size_t i = 0; i < cals.size(); ++i)
+			MLOG("%s\n", cals[i].str().c_str());
+		break;
+	case probability_isotonic:
+	case probability_binning:
+		for (size_t i = 0; i < map_prob.size(); ++i)
+			MLOG("Range: [%2.4f, %2.4f] => %2.4f\n",
+				min_range[i], max_range[i], map_prob[i]);
+		break;
+	case probability_platt_scale:
+		MLOG("Platt Scale params for poly_rank=%d:\n", poly_rank);
+		for (size_t i = 0; i < platt_params.size(); ++i)
+			MLOG("i=0 :: %2.3f\n", platt_params[i]);
+		break;
+	default:
+		MWARN("Unsupported print type %d - Maybe memory error\n", calibration_type);
+		break;
+	}
+
+}
 

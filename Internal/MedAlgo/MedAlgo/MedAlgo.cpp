@@ -491,8 +491,9 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 
 //.......................................................................................
 
-void MedPredictor::print(FILE *fp, const string& prefix) const { fprintf(fp, "%s : No Printing method defined\n", prefix.c_str()); }
-
+void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
+	fprintf(fp, "%s: %s ()\n", prefix.c_str(),predictor_type_to_name[classifier_type].c_str());
+}
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 
@@ -1203,45 +1204,21 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			MTHROW_AND_ERR("Can't open %s for writing\n", output_file.c_str());
 	}
 
-	//print each feature dist in each population:
-	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
-		" Features distributaions:\n", name1.c_str(), population1.samples.size(),
-		name2.c_str(), population2.samples.size());
-	MLOG("%s", string(buffer_s).c_str());
-	if (!output_file.empty())
-		fw << string(buffer_s);
-
-	feat_i = 0;
-	for (auto it = population1.data.begin(); it != population1.data.end(); ++it) {
-		bool res_sim = is_similar(means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i],
-			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i]);
-		string desc_str = res_sim ? "GOOD" : "BAD";
-		float ratio_diff_range = abs(means1[feat_i]);
-		if (ratio_diff_range < std1[feat_i]) //if mean is closed to zero - take mean diff in std's ratio
-			ratio_diff_range = std1[feat_i];
-		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | "
-			"%s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | mean_diff_ratio=%2.3f%%\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
-			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
-			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
-			100 * abs(means1[feat_i] - means2[feat_i]) / max(ratio_diff_range, (float)1e-10));
-		MLOG("%s", string(buffer_s).c_str());
-		if (!output_file.empty())
-			fw << string(buffer_s);
-
-		++feat_i;
-	}
 
 	//try diffrentiate between populations:
+	vector<float> features_scores(population1.data.size(), 0);
+	MedFeatures new_data;
+	vector<float> preds;
+	vector<float> labels;
 	if (!predictor_type.empty() && !predictor_init.empty()) {
 		random_device rd;
 		mt19937 gen(rd());
-		MedFeatures new_data;
 		new_data.attributes = population1.attributes;
 		new_data.time_unit = population1.time_unit;
 		new_data.samples.insert(new_data.samples.end(), population1.samples.begin(), population1.samples.end());
 		new_data.samples.insert(new_data.samples.end(), population2.samples.begin(), population2.samples.end());
 		//change outcome to be population label: is population 1?
-		vector<float> labels(new_data.samples.size());
+		labels.resize(new_data.samples.size());
 		for (size_t i = 0; i < new_data.samples.size(); ++i) {
 			new_data.samples[i].outcome = i < population1.samples.size();
 			labels[i] = new_data.samples[i].outcome;
@@ -1278,9 +1255,42 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			medial::process::commit_selection(labels, sel);
 		}
 		//lets fix labels weight that cases will be less common
-		vector<float> preds;
 		medial::models::get_pids_cv(predictor, new_data, nfolds, gen, preds);
+		predictor->calc_feature_importance(features_scores, "", NULL);
 
+	}
+
+
+	//print each feature dist in each population:
+	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
+		" Features distributaions:\n", name1.c_str(), population1.samples.size(),
+		name2.c_str(), population2.samples.size());
+	MLOG("%s", string(buffer_s).c_str());
+	if (!output_file.empty())
+		fw << string(buffer_s);
+
+	feat_i = 0;
+	int j = 0;
+	for (auto it = population1.data.begin(); it != population1.data.end(); ++it) {
+		bool res_sim = is_similar(means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i],
+			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i]);
+		string desc_str = res_sim ? "GOOD" : "BAD";
+		float ratio_diff_range = abs(means1[feat_i]);
+		if (ratio_diff_range < std1[feat_i]) //if mean is closed to zero - take mean diff in std's ratio
+			ratio_diff_range = std1[feat_i];
+		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | "
+			"%s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | mean_diff_ratio=%2.3f%% | IMP %f\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
+			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
+			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
+			100 * abs(means1[feat_i] - means2[feat_i]) / max(ratio_diff_range, (float)1e-10), features_scores[j++]);
+		MLOG("%s", string(buffer_s).c_str());
+		if (!output_file.empty())
+			fw << string(buffer_s);
+
+		++feat_i;
+	}
+
+	if (!predictor_type.empty() && !predictor_init.empty()) {
 		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),
 			"predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);

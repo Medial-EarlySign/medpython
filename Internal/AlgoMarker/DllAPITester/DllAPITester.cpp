@@ -1037,7 +1037,7 @@ int main(int argc, char *argv[])
 	model.apply(rep, samples);
 
 	if (vm["direct_csv"].as<string>() != "")
-		model.write_feature_matrix("direct.csv");
+		model.write_feature_matrix(vm["direct_csv"].as<string>());
 
 
 	// printing

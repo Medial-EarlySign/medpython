@@ -809,11 +809,11 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateRangeVal2) {
 			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateFloat2) {
 			SDateFloat2 *v = (SDateFloat2 *)data;
-			out += convert_date(v[i].date, sid).c_str() + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_TimeShort4) {
 			STimeShort4 *v = (STimeShort4 *)data;
@@ -1971,6 +1971,48 @@ int IndexTable::read_index_and_data(string &idx_fname, string &data_fname, const
 
 	return 0;
 }
+
+//======================================================================================================================
+int UsvsIterator::init(MedRepository *_rep, const vector<string> &_sig_names, const vector<UniversalSigVec *> &_usvs)
+{
+	rep = _rep;
+	sig_names = _sig_names;
+	sids.clear();
+	for (auto sig : sig_names) {
+		sids.push_back(rep->sigs.sid(sig));
+		if (sids.back() <= 0) {
+			MERR("ERROR: no susch sig %s in UsvsIterator init()\n", sig.c_str());
+			return -1;
+		}
+	}
+	usvs = _usvs;
+	if (usvs.size() != sids.size()) {
+		MERR("ERROR: non matching lengths: %d usvs, %d sigs, in UsvsIterator init()\n", usvs.size(), sids.size());
+		return -1;
+	}
+	return 0;
+}
+
+//======================================================================================================================
+int UsvsIterator::read_pid(int pid) 
+{
+	for (int i = 0; i < usvs.size(); i++)
+		rep->uget(pid, sids[i], *usvs[i]);
+	return 0;
+}
+
+//======================================================================================================================
+int UsvsIterator::read_pid(int pid, const vector<UniversalSigVec *> &_usvs)
+{
+	if (usvs.size() != sids.size()) {
+		MERR("ERROR: non matching lengths: %d usvs, %d sigs, in UsvsIterator read_pid()\n", _usvs.size(), sids.size());
+		return -1;
+	}
+	for (int i = 0; i < _usvs.size(); i++)
+		rep->uget(pid, sids[i], *_usvs[i]);
+	return 0;
+}
+
 
 float medial::repository::DateDiff(int refDate, int dateSample) {
 	return float((med_time_converter.convert_times(global_default_time_unit, MedTime::Days, dateSample) -
