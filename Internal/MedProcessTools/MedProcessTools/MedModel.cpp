@@ -383,9 +383,12 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	vector<int> rc(generators.size(), 0);
 	//omp_set_nested(true);
 
-//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++)
+	MedProgress progress("MedModel::learn_feature_generators", (int)generators.size(), 60, 1);
+	//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
+	for (int i = 0; i < generators.size(); i++) {
 		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors);
+		progress.update();
+	}
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;

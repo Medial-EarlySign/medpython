@@ -572,7 +572,8 @@ int RepMultiProcessor::_conditional_apply(PidDynamicRec& rec, vector<int>& time_
 	}
 
 	// ??? chances are this next parallelization is not needed, as we parallel before on recs...
-#pragma omp parallel for schedule(dynamic)
+	//Can't parallel - we may use rec.usv in procesors
+//#pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < processors.size(); j++) {
 		if (unconditional)
 			rc[j] = processors[j]->apply(rec, time_points, all_attributes_mats[j]);
