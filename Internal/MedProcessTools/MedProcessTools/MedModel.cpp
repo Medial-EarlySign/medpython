@@ -253,7 +253,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	}
 
 	//only perform when needed
-	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
 		//init to check we have remove all we can (or if need to create virtual signals?):
 		set_affected_signal_ids(rep.dict);
 		// init virtual signals
