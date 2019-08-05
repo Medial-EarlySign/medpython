@@ -252,14 +252,17 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
-	//init to check we have remove all we can (or if need to create virtual signals?):
-	set_affected_signal_ids(rep.dict);
-	// init virtual signals
-	if (collect_and_add_virtual_signals(rep) < 0) {
-		MERR("FAILED collect_and_add_virtual_signals\n");
-		return -1;
-	}
+	//only perform when needed
+	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
+		//init to check we have remove all we can (or if need to create virtual signals?):
+		set_affected_signal_ids(rep.dict);
+		// init virtual signals
+		if (collect_and_add_virtual_signals(rep) < 0) {
+			MERR("FAILED collect_and_add_virtual_signals\n");
+			return -1;
+		}
 
+	}
 	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
 
 	// Build sets of required features at each stage of processing
@@ -383,9 +386,12 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	vector<int> rc(generators.size(), 0);
 	//omp_set_nested(true);
 
-//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++)
+	MedProgress progress("MedModel::learn_feature_generators", (int)generators.size(), 60, 1);
+	//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
+	for (int i = 0; i < generators.size(); i++) {
 		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors);
+		progress.update();
+	}
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;

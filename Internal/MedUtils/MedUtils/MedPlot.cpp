@@ -119,7 +119,7 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 }
 
 void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title, const string &xName
-	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type)
+	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type, const string &mode)
 {
 	string x_name = "x";
 	string y_name = "y";
@@ -158,7 +158,7 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 		const map<float, float> &dmap = data[i];
 
 		//rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
-		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines',\n " + x_name + ": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: '" + mode + "',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -226,7 +226,7 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 
 void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title,
 	const string &xName, const string &yName, const vector<string> &seriesNames,
-	int refreshTime) {
+	int refreshTime, const string &mode) {
 
 	string x_name = "x";
 	string y_name = "y";
@@ -260,7 +260,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 	{
 		const vector<pair<float, float>> &dmap = data[i];
 
-		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: 'markers',\n " + x_name + ": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: '" + mode + "',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -298,7 +298,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 	rep += "var data = [";
 	for (size_t i = 0; i < data.size(); ++i)
 		rep += " series" + to_string(i) + ", ";
-	
+
 	rep = rep.substr(0, rep.size() - 2);
 	rep += " ]; \n";
 

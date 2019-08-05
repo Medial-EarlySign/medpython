@@ -73,7 +73,8 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 /// @param chart type Can be: "scatter", "bar", "pie"
 /// </summary>
 void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title = "", const string &xName = "", const string &yName = "",
-	const vector<string> &seriesNames = vector<string>(), int refreshTime = 0, const string &chart_type = "scatter");
+	const vector<string> &seriesNames = vector<string>(), int refreshTime = 0, 
+	const string &chart_type = "scatter", const string &mode = "lines");
 
 /// <summary>
 /// Will create Html Graph string - you will decide where to save it to disk. 
@@ -89,7 +90,7 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 /// </summary>
 void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title = "", 
 	const string &xName = "", const string &yName = "", const vector<string> &seriesNames = vector<string>(), 
-	int refreshTime = 0);
+	int refreshTime = 0, const string &mode = "markers");
 
 /// <summary>
 /// Plot of 3D graph data
