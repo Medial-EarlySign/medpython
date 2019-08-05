@@ -388,6 +388,10 @@ public:
 
 	virtual ~RepBasicOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
+	/// <summary> Debug printing </summary>
+	void print() { dprint("", 1); }
+	void dprint(const string &pref, int rp_flag);
+
 	void make_summary();
 
 	/// Serialization
@@ -395,9 +399,6 @@ public:
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix, verbose_file,
 			print_summary, print_summary_critical_cleaned)
-
-		/// <summary> Print processors information </summary>
-		void print();
 };
 
 /** Parameters for configured outliers cleaner

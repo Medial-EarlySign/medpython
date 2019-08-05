@@ -960,11 +960,13 @@ void RepBasicOutlierCleaner::make_summary() {
 	_stats.restart();
 }
 
+
 //.......................................................................................
-void RepBasicOutlierCleaner::print()
+void RepBasicOutlierCleaner::dprint(const string &pref, int rp_flag)
 {
-	MLOG("BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-		signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+	if (rp_flag > 0)
+		MLOG("%s :: BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
+			pref.c_str(),signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 //=======================================================================================
