@@ -282,7 +282,9 @@ int MedSignals::read(const string &fname)
 							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
 							return -1;
 						}
-						info.generic_signal_spec = type_fields[1];
+						if(generic_signal_types.count(type_fields[1]))
+							info.generic_signal_spec = generic_signal_types.at(type_fields[1]);
+						else info.generic_signal_spec = type_fields[1];
 						info.bytes_len = GenericSigVec(info.generic_signal_spec).size();
 						MedRep::get_type_channels(info.generic_signal_spec, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
@@ -701,7 +703,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 	while (i < signalSpec.length())
 	{
 		char cur_char = signalSpec.at(i);
-		//cout << "parsing char '" << cur_char << "' at " << to_string(i) << endl;
+		//cout << "spec='" << signalSpec << "' parsing char '" << cur_char << "' at " << to_string(i) << endl;
 		switch (cur_char) {
 		case ')':
 			in_val_chan = false;
