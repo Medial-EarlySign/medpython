@@ -1071,6 +1071,17 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	// test that AM repo. contains all the required signal
+	unordered_set<string> am_signals;
+	((MedialInfraAlgoMarker *)test_am)->get_am_rep_signals(am_signals);
+	for (auto &sig : sigs_set)
+	{
+		if (am_signals.count(sig) == 0)
+		{
+			MTHROW_AND_ERR("AlgoMarker's repository doesn't contain sig [%s]", sig.c_str());
+		}
+	}
+
 	MLOG("Algomarker %s was loaded with config file %s\n", test_am->get_name(), test_am->get_config());
 	vector<MedSample> res2;
 
