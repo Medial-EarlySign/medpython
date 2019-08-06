@@ -103,6 +103,14 @@ public:
 	// end loading : actions that must be taken AFTER all loading was done, and BEFORE we calculate the predictions
 	int data_load_end() { return rep.in_mem_rep.sortData(); }
 
+	void get_rep_signals(unordered_set<string> &sigs) 
+	{
+		for (auto &sig : rep.sigs.signals_names)
+		{
+			sigs.insert(sig);
+		}
+	} 
+	// returns the available signals
 
 	//========================================================
 	// Samples
