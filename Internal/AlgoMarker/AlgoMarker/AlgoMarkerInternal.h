@@ -63,6 +63,14 @@ public:
 
 	// init model
 	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; return (model.read_from_file(string(_model_fname))); }
+	int model_check_required_signals() { 
+		vector<string> req_sigs;
+		model.get_required_signal_names(req_sigs);
+		for (const auto& s : req_sigs)
+			if (0 == rep.sigs.Name2Sid.count(s))
+				return -1;
+		return 0;
+	}
 
 
 	// init samples
