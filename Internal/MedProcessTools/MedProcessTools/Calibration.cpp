@@ -464,6 +464,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		samples.push_back(e);
 	}
 	std::sort(samples.begin(), samples.end(), comp_sample_pred);
+	weights.clear(); //reorder weigths to samples
+	get_weights(samples, weights_attr_name, weights);
+
 	MLOG("eligible samples [%d] cases [%d]\n", int(samples.size()), cases);
 	int max_samples_per_bin = 0;
 	int max_cases_per_bin = 0;
