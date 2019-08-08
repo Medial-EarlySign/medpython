@@ -624,15 +624,23 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		{
 			calibration_entry ce;
 			ce.bin = i + 1;
-			ce.min_pred = cals[(int)min_r[i]].min_pred;
-			ce.max_pred = cals[(int)max_r[i]].max_pred;
+			int min_idx_bin = (int)min_r[i];
+			int max_idx_bin = (int)max_r[i];
+			if (max_idx_bin >= cals.size())
+				max_idx_bin = (int)cals.size() - 1;
+			if (min_idx_bin < 0)
+				min_idx_bin = -1;
+			++min_idx_bin;
+
+			ce.min_pred = cals[min_idx_bin].min_pred;
+			ce.max_pred = cals[max_idx_bin].max_pred;
 			ce.cnt_controls = 0; ce.cnt_cases = 0;
 			ce.cnt_controls_no_w = 0;  ce.cnt_cases_no_w = 0;
 			ce.controls_per_time_slot.resize(km_time_slots + 1);
 			ce.cases_per_time_slot.resize(km_time_slots + 1);
 			ce.mean_pred = 0;
 			int cnt = 0;
-			for (int j = (int)min_r[i]; j <= (int)max_r[i]; ++j)
+			for (int j = min_idx_bin; j <= max_idx_bin; ++j)
 			{
 				ce.cnt_controls += cals[j].cnt_controls;
 				ce.cnt_cases += cals[j].cnt_cases;
