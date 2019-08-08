@@ -670,6 +670,10 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
 			new_cals[i] = ce;
 		}
+		reverse(new_cals.begin(), new_cals.end());
+		for (size_t i = 0; i < new_cals.size(); ++i)
+			new_cals[i].bin = (int)i + 1;		
+
 		cals = move(new_cals);
 	}
 	//smooth calc
