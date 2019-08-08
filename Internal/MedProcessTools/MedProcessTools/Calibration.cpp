@@ -624,12 +624,15 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		{
 			calibration_entry ce;
 			ce.bin = i + 1;
-			int min_idx_bin = (int)min_r[i];
-			int max_idx_bin = (int)max_r[i];
-			if (max_idx_bin >= cals.size())
+			int min_idx_bin, max_idx_bin;
+			if (max_r[i] >= cals.size())
 				max_idx_bin = (int)cals.size() - 1;
-			if (min_idx_bin < 0)
+			else
+				max_idx_bin = (int)max_r[i];
+			if (min_r[i] < 0)
 				min_idx_bin = -1;
+			else
+				min_idx_bin = (int)min_r[i];
 			++min_idx_bin;
 
 			ce.min_pred = cals[min_idx_bin].min_pred;
@@ -665,7 +668,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				ce.mean_outcome = map_r[i];
 			}
 			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
-			new_cals.push_back(ce);
+			new_cals[i] = ce;
 		}
 		cals = move(new_cals);
 	}
