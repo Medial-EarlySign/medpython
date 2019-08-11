@@ -429,6 +429,14 @@ bool RepMultiProcessor::filter(unordered_set<string>& neededSignals) {
 	}
 }
 
+// Make changes to RepProcessor according to available signals in Repository
+//.......................................................................................
+void RepMultiProcessor::fit_for_repository(MedPidRepository& rep) {
+
+	for (auto& processor : processors)
+		processor->fit_for_repository(rep);
+}
+
 // Set signal-ids for all linked signals
 //.......................................................................................
 void RepMultiProcessor::set_signal_ids(MedSignals& sigs) {
@@ -1175,6 +1183,20 @@ void RepConfiguredOutlierCleaner::print()
 // RuleBasedOutlierCleaner
 //=======================================================================================
 
+// Defulat initialization
+void RepRuleBasedOutlierCleaner::init_defaults() {
+	
+	processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
+	// consider all rules if none is given specifically
+	for (const auto &rule : rules2Signals)
+		consideredRules.push_back(rule.first);
+
+	// Set rules2Apply
+	select_rules_to_apply();
+	init_lists();
+}
+
+// Read rules from file
 void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 	ifstream fr(path);
 	if (!fr.good())
@@ -1201,6 +1223,7 @@ void RepRuleBasedOutlierCleaner::parse_rules_signals(const string &path) {
 	fr.close();
 }
 
+// Read channels information from file
 void RepRuleBasedOutlierCleaner::parse_sig_channels(const string &path) {
 	ifstream fr(path);
 	if (!fr.good())
@@ -1224,99 +1247,72 @@ void RepRuleBasedOutlierCleaner::parse_sig_channels(const string &path) {
 	fr.close();
 }
 
-void RepRuleBasedOutlierCleaner::set_affected_signal_ids(MedDictionarySections& dict) {
-	//remove non exists rules!
-	vector<int> sel_rules;
-	for (auto& rule : rules2Signals) {
-		const vector<string> &all_sigs = rule.second;
+// Adjust rulesToApply: Check if some required signals are missing and remove corresponding rules
+void RepRuleBasedOutlierCleaner::fit_for_repository(MedPidRepository& rep) {
+
+	int index = 0;
+	for (auto& rule : rulesToApply) {
+		const vector<string> &all_sigs = rules2Signals[rule];
 		string miss_sig = "";
-		for (size_t i = 0; i < all_sigs.size() && miss_sig.empty(); ++i)
-			if (dict.curr_dict()->id(all_sigs[i]) < 0)
+		for (size_t i = 0; i < all_sigs.size() && miss_sig.empty(); ++i) {
+			if (rep.sigs.Name2Sid.find(all_sigs[i]) == rep.sigs.Name2Sid.end()) {
 				miss_sig = all_sigs[i];
+				break;
+			}
+		}
 		if (!miss_sig.empty())
-			MWARN("RepRuleBasedOutlierCleaner: Signal %s not exists - remove rule %d\n", miss_sig.c_str(), rule.first);
+			MWARN("RepRuleBasedOutlierCleaner: Signal %s does not exists - removing rule %d\n", miss_sig.c_str(), rule);
 		else
-			sel_rules.push_back(rule.first);
+			index++;
 	}
-	consideredRules = move(sel_rules);
 
-	change_rules();
+	rulesToApply.resize(index);
+	rulesToApply.shrink_to_fit();
 
-	//regular code:
-	RepProcessor::set_affected_signal_ids(dict);
+	init_lists();
 }
 
-void RepRuleBasedOutlierCleaner::change_rules() {
-	unordered_set<int> rules_set(consideredRules.begin(), consideredRules.end());
-	if (rules_set.find(0) == rules_set.end()) // If has 0 - take all
-		for (auto it = rules2Signals.begin(); it != rules2Signals.end(); ) {
-			if (rules_set.find(it->first) != rules_set.end())
-				++it;// rule remains
-			else
-				it = rules2Signals.erase(it);// rule removed
-		}
+/// select which rules to apply according to consideredRules
+void RepRuleBasedOutlierCleaner::select_rules_to_apply() {
+
+	rulesToApply = consideredRules;
+
+}
+
+// Init affected and required signals lists according to rules
+void RepRuleBasedOutlierCleaner::init_lists() {
 
 	aff_signals.clear();
 	req_signals.clear();
-	//mark affected and requested:
-	for (auto& rule : rules2Signals)
-		aff_signals.insert(rule.second.begin(), rule.second.end());
-	for (auto sig : aff_signals)  // all affected are of course required
-		req_signals.insert(sig);
 
-	// add required signals according to rules that apply to affected signals
-	rulesToApply.clear();
-	unordered_set<int> seen_rule;
-	for (auto& rule : rules2Signals) {
-		for (auto& sig : aff_signals) {
-			if (std::find(rule.second.begin(), rule.second.end(), sig) != rule.second.end()) {
-
-				if (seen_rule.find(rule.first) == seen_rule.end()) {
-					rulesToApply.push_back(rule.first);
-					seen_rule.insert(rule.first);
-				}
-				bool loopBreak = false;
-				for (auto& reqSig : rule.second) {
-					bool found = false;
-					for (auto& existReqSig : req_signals) {
-						if (reqSig == existReqSig) {
-							found = true;
-							break;  //already there
-						}
-					}
-
-					if (!found) {
-						if (addRequiredSignals)
-							req_signals.insert(reqSig);    //add required signal
-						else {
-							rulesToApply.pop_back(); //We were asked not to load additional signals so ignore this rule
-							loopBreak = true;
-							break;
-						}
-					}
-				}
-				if (loopBreak)break;
-			}
+	// Loop on rules to apply
+	for (int rule : rulesToApply) {
+		// Affected Signals
+		if (rules2RemoveSignal.find(rule) != rules2RemoveSignal.end())
+			aff_signals.insert(rules2RemoveSignal[rule]);
+		else {
+			for (string signal : rules2Signals[rule])
+				aff_signals.insert(signal);
 		}
+
+		// Required Signals
+		for (string signal : rules2Signals[rule])
+			req_signals.insert(signal);
 	}
+
 }
 
+// Init from map
 int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 {
 
-	init_defaults();
+	processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
 	set<string> rulesStrings;
 
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepRuleBasedOutlierCleaner::init]
-		if (field == "signals") {
-			boost::split(aff_signals, entry.second, boost::is_any_of(",")); // build list of  affected signals 
-			for (auto sig : aff_signals)  // all affected are of course required
-				req_signals.insert(sig);
-		}
-		else if (field == "addRequiredSignals")addRequiredSignals = med_stoi(entry.second) != 0;
-		else if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
+		if (field == "rules2Signals") parse_rules_signals(entry.second); //each line is rule_id [TAB] list of signals with ","  optional [TAB] for which signal to remove when contradiction
 		else if (field == "signal_channels") parse_sig_channels(entry.second); //each line is signal_name [TAB] time_channel [TAB] val_channel 
 		else if (field == "time_window") time_window = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
@@ -1329,6 +1325,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "print_summary") print_summary = stoi(entry.second) > 0;
 		else if (field == "print_summary_critical_cleaned") print_summary_critical_cleaned = stof(entry.second);
 		else if (field == "consideredRules") {
+			consideredRules.clear();
 			boost::split(rulesStrings, entry.second, boost::is_any_of(","));
 			for (auto& rule : rulesStrings) {
 				int ruleNum = med_stoi(rule);
@@ -1340,12 +1337,15 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 
 	}
 
+	// consider all rules if none is given specifically
 	if (consideredRules.empty()) {
 		//init deafault to use all:
 		for (const auto &rule : rules2Signals)
 			consideredRules.push_back(rule.first);
 	}
-	change_rules();
+
+	select_rules_to_apply();
+	init_lists();
 
 	if (!verbose_file.empty())
 	{
@@ -1356,6 +1356,7 @@ int RepRuleBasedOutlierCleaner::init(map<string, string>& mapper)
 	return 0;
 }
 
+// Initialization of reporting attributes
 void RepRuleBasedOutlierCleaner::init_attributes() {
 
 	attributes.clear();
@@ -1367,9 +1368,12 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 	if (!nRem_attr.empty()) attributes.push_back(nRem_attr);
 }
 
+// Get req/aff signal ids
 void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	for (const auto &reqSig : req_signals)reqSignalIds.insert(sigs.sid(reqSig));
 	for (const auto &affSig : aff_signals)affSignalIds.insert(sigs.sid(affSig));
+	
+	// Keep names for logging.
 	for (int affSig_id : affSignalIds)
 		affected_ids_to_name[affSig_id] = sigs.name(affSig_id);
 	if (!verbose_file.empty() && !log_file.is_open()) {
@@ -1379,30 +1383,26 @@ void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	}
 }
 
+// Initialization of tables
 void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 
-	//rules_sids.resize(rulesToApply.size());
-	//affected_by_rules.resize(rulesToApply.size());
 	rules_sids.clear();
 	affected_by_rules.clear();
 
-	unordered_set<string> new_aff;
-	set<int> new_aff_id;
 	for (int i = 0; i < rulesToApply.size(); i++) {
+		
 		// build set of the participating signals
-		string removal_signal = "";
+		string removal_signal;
 		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
 			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
+		
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
 			bool affect_sig = affSignalIds.find(thisSid) != affSignalIds.end();
 			affect_sig = affect_sig && (removal_signal.empty() || removal_signal == sname);
 			affected_by_rules[rulesToApply[i]].push_back(affect_sig);
-			if (affect_sig) {
-				new_aff.insert(sname);
-				new_aff_id.insert(thisSid);
-			}
+
 			if (signal_channels.find(sname) != signal_channels.end()) {
 				signal_id_channels[thisSid] = signal_channels[sname];
 				//check channels exists:
@@ -1417,11 +1417,9 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 		}
 
 	}
-	//keep only needed affected signals - pass on affected_by_rules
-	aff_signals.swap(new_aff);
-	affSignalIds.swap(new_aff_id);
 }
 
+// Apply cleaners
 int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	// get the signals
@@ -1601,6 +1599,7 @@ int RepRuleBasedOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_poi
 
 }
 
+// Reporting.
 void RepRuleBasedOutlierCleaner::make_summary() {
 	for (auto it = _rmv_stats.begin(); it != _rmv_stats.end(); ++it)
 		it->second.print_summary(my_class_name(), it->first.c_str()
@@ -1609,11 +1608,13 @@ void RepRuleBasedOutlierCleaner::make_summary() {
 	_rmv_stats.clear(); //prepare for next apply
 }
 
+// Utility
 bool test_diff(float origianl, float calculated, float tolerance, float resulotion) {
 	float df = abs(origianl - calculated);
 	return (df > tolerance*calculated && df > resulotion);
 }
 
+// Apply rule
 bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSigVec> &ruleUsvs,
 	const vector<int> &val_channels, const vector<int> &sPointer)
 	// apply the rule and return true if data is consistent with the rule

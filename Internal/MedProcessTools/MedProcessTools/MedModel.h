@@ -221,6 +221,11 @@ public:
 	/// following is for debugging : writing the feature to a csv file as a matrix.
 	int write_feature_matrix(const string mat_fname);
 
+	/// loading a repository (optionally allowing for adjustment to model according to available signals)
+	void load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment = false);
+	void load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment = false);
+	void fit_for_repository(MedPidRepository& rep);
+
 private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
 	string parse_key_val(string key, string val);

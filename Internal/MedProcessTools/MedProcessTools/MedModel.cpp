@@ -1745,6 +1745,42 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 	}
 }
 
+// Adjust model according to signals available in repository
+//--------------------------------------------------------------------------------------------------------
+void MedModel::fit_for_repository(MedPidRepository& rep) {
+
+	// Currently - only RepProcessors are adjustable
+	for (RepProcessor *processor : rep_processors)
+		processor->fit_for_repository(rep);
+}
+
+// loading a repository (optionally allowing for adjustment to model according to available signals)
+//--------------------------------------------------------------------------------------------------------
+void MedModel::load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment) {
+
+	vector<int> empty_ids_list;
+	load_repository(configFile, empty_ids_list, rep, allow_adjustment);
+}
+
+void MedModel::load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment) {
+
+	// Adjust Model
+	if (allow_adjustment) {
+		if (rep.init(configFile) < 0)
+			MTHROW_AND_ERR("Cannot initialize repository from %s\n", configFile.c_str());
+		fit_for_repository(rep);
+	}
+	
+	// Get Required signals
+	vector<string> req_signals;
+	get_required_signal_names(req_signals);
+
+	// Read Repository
+	MLOG("Reading Repository from %s\n", configFile.c_str());
+	if (rep.read_all(configFile, ids, req_signals) != 0)
+		MTHROW_AND_ERR("Read repository from %s failed\n", configFile.c_str());
+}
+
 
 //========================================================================================================
 // medial::medmodel:: functions

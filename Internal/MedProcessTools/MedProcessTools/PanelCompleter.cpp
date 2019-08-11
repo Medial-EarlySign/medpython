@@ -117,29 +117,33 @@ void RepPanelCompleter::set_signal_ids(MedSignals& sigs) {
 
 }
 
-void RepPanelCompleter::set_affected_signal_ids(MedDictionarySections& dict) {
-	vector<string> miss_sigs;
+// Check if some required signals are missing and make them virtual or remove relevant panel completer
+void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
+	
+	unordered_set<string> missing_sigs;
 	for (int iPanel = 0; iPanel < panel_signal_names.size(); iPanel++) {
-		vector<string> panel_miss;
+		vector<string> panel_missing;
 		for (int iSig = 0; iSig < panel_signal_names[iPanel].size(); iSig++) {
 			const string &sig_name = panel_signal_names[iPanel][iSig];
-			if (dict.curr_dict()->id(sig_name) < 0)
-				panel_miss.push_back(sig_name);
+			if (rep.sigs.Name2Sid.find(sig_name) == rep.sigs.Name2Sid.end())
+				panel_missing.push_back(sig_name);
 		}
-		if (panel_miss.size() == 1) //only use when 1 is missing, if more than 1 - skip all panel:
-			miss_sigs.insert(miss_sigs.end(), panel_miss.begin(), panel_miss.end());
-		else if (!panel_miss.empty()) 
-			panel_signal_names[iPanel].clear(); //remove panel - too many misses
+
+		// If one signal is missing, we can declare it virtual and use the panel completer
+		// Otherwise, we have to remove the completer
+		if (panel_missing.size() == 1)
+			missing_sigs.insert(panel_missing[0]);
+		else if (!panel_missing.empty())
+			panel_signal_names[iPanel].clear();
 	}
 
+	// Missing sigs are virtual signals
 	virtual_signals.clear();
-	for (const string &sig : miss_sigs) {
+	for (const string &sig : missing_sigs) {
 		virtual_signals.push_back(pair<string, int>(sig, T_DateVal));
 		MWARN("Warning: RepPanelCompleter:: add virtual signal %s\n", sig.c_str());
 	}
 
-	//regular code:
-	RepProcessor::set_affected_signal_ids(dict);
 }
 //.......................................................................................
 void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sigs)
