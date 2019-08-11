@@ -78,7 +78,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set, vecto
 		MTHROW_AND_ERR("MedModel::Learn - Not enough samples given for post-processors learning");
 
 	//init to check we have remove all we can (or if need to create virtual signals?):
-	set_affected_signal_ids(rep.dict);
+	fit_for_repository(rep);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
 		MERR("FAILED collect_and_add_virtual_signals\n");
@@ -255,7 +255,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	//only perform when needed
 	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
 		//init to check we have remove all we can (or if need to create virtual signals?):
-		set_affected_signal_ids(rep.dict);
+		fit_for_repository(rep);
 		// init virtual signals
 		if (collect_and_add_virtual_signals(rep) < 0) {
 			MERR("FAILED collect_and_add_virtual_signals\n");
@@ -1421,10 +1421,9 @@ void medial::repository::prepare_repository(const MedSamples &samples, const str
 	MedModel &mod, MedPidRepository &rep) {
 	MLOG("Reading repo file [%s]\n", RepositoryPath.c_str());
 	unordered_set<string> req_names;
-	if (rep.read_config(RepositoryPath) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(RepositoryPath) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
-	for (RepProcessor *processor : mod.rep_processors)
-		processor->set_affected_signal_ids(rep.dict);
+	mod.fit_for_repository(rep);
 	mod.filter_rep_processors();
 
 	mod.get_required_signal_names(req_names);
@@ -1448,7 +1447,7 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 	vector<unordered_set<string>> current_req_signal_names;
 	if (rep_processors != NULL && !rep_processors->empty()) {
 		for (RepProcessor *processor : *rep_processors)
-			processor->set_affected_signal_ids(rep.dict);
+			processor->fit_for_repository(rep);
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		//init to check if need to remove (may seem it can remove after init)
 		filter_rep_processors(needed_sigs, rep_processors);
@@ -1745,6 +1744,42 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 	}
 }
 
+// Adjust model according to signals available in repository
+//--------------------------------------------------------------------------------------------------------
+void MedModel::fit_for_repository(MedPidRepository& rep) {
+
+	// Currently - only RepProcessors are adjustable
+	for (RepProcessor *processor : rep_processors)
+		processor->fit_for_repository(rep);
+}
+
+// loading a repository (optionally allowing for adjustment to model according to available signals)
+//--------------------------------------------------------------------------------------------------------
+void MedModel::load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment) {
+
+	vector<int> empty_ids_list;
+	load_repository(configFile, empty_ids_list, rep, allow_adjustment);
+}
+
+void MedModel::load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment) {
+
+	// Adjust Model
+	if (allow_adjustment) {
+		if (rep.init(configFile) < 0)
+			MTHROW_AND_ERR("Cannot initialize repository from %s\n", configFile.c_str());
+		fit_for_repository(rep);
+	}
+	
+	// Get Required signals
+	vector<string> req_signals;
+	get_required_signal_names(req_signals);
+
+	// Read Repository
+	MLOG("Reading Repository from %s\n", configFile.c_str());
+	if (rep.read_all(configFile, ids, req_signals) != 0)
+		MTHROW_AND_ERR("Read repository from %s failed\n", configFile.c_str());
+}
+
 
 //========================================================================================================
 // medial::medmodel:: functions
@@ -1757,9 +1792,9 @@ void medial::medmodel::apply(MedModel &model, MedSamples &samples, string rep_fn
 	vector<string> rsigs;
 
 	MedPidRepository rep;
-	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(rep_fname) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
-	model.set_affected_signal_ids(rep.dict);
+	model.fit_for_repository(rep);
 	model.get_required_signal_names(req_sigs);
 	for (auto &s : req_sigs) rsigs.push_back(s);
 

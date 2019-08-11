@@ -966,7 +966,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			false_rate[st_size - i] = float(f_sum);
 		}
 
-	if (f_cnt == 0 || t_sum <= 0) {
+	if (f_cnt <= 0 || t_sum <= 0) {
 		if (params->show_warns) {
 			if (t_sum <= 0)
 				MWARN("no positives exists in cohort\n");
@@ -975,6 +975,18 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		}
 		return res;
 	}
+	if (params->show_warns) {
+		bool has_neg = false;
+		for (size_t i = 0; i < true_rate.size() && !has_neg; ++i) 
+			has_neg = true_rate[i] < 0;
+
+		if (has_neg)
+			MWARN("true positive has negative values - outcome fix is too aggresive\n");
+	}
+	for (size_t i = 0; i < true_rate.size(); ++i)
+		if (true_rate[i] < 0)
+			true_rate[i] = 0;
+
 	for (size_t i = 0; i < true_rate.size(); ++i) {
 		true_rate[i] /= float(!trunc_max ? t_sum : tt_cnt);
 		false_rate[i] /= float(f_sum);

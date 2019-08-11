@@ -124,6 +124,9 @@ public:
 	inline bool is_signal_affected(int signalId) { return (aff_signal_ids.find(signalId) != aff_signal_ids.end()); }
 	inline bool is_signal_affected(string& signalName) { return (aff_signals.find(signalName) != aff_signals.end()); }
 
+	/// <summary> make changes to RepProcessor according to available signals in Repository </summary>
+	virtual void fit_for_repository(MedPidRepository& rep) {};
+
 	///Register section id to section name of new virtual signals
 	virtual void register_virtual_section_name_id(MedDictionarySections& dict) { };
 
@@ -283,6 +286,9 @@ public:
 	/// <summary> Apply processors that affect any of the needed signals </summary>
 	int _conditional_apply(PidDynamicRec& rec, vector<int>& time_points, unordered_set<int>& neededSignals, vector<vector<float>>& attributes_mat);
 
+	/// <summary> make changes to RepProcessor according to available signals in Repository </summary>
+	void fit_for_repository(MedPidRepository& rep);
+
 	/// debug prints
 	void dprint(const string &pref, int rp_flag);
 
@@ -388,6 +394,10 @@ public:
 
 	virtual ~RepBasicOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
+	/// <summary> Debug printing </summary>
+	void print() { dprint("", 1); }
+	void dprint(const string &pref, int rp_flag);
+
 	void make_summary();
 
 	/// Serialization
@@ -395,9 +405,6 @@ public:
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, val_channel, req_signals, aff_signals, params.take_log, params.missing_value, params.doTrim, params.doRemove,
 			trimMax, trimMin, removeMax, removeMin, nRem_attr, nTrim_attr, nRem_attr_suffix, nTrim_attr_suffix, verbose_file,
 			print_summary, print_summary_critical_cleaned)
-
-		/// <summary> Print processors information </summary>
-		void print();
 };
 
 /** Parameters for configured outliers cleaner
@@ -497,8 +504,6 @@ public:
 
 	/// Signals to clean
 	vector <int> signalIds;
-	bool addRequiredSignals = false; ///< a flag stating if we want to load signals that are not in the cleaned signal list 
-								   /// because they share a rule with the cleaned signals (set it in jason)
 	vector<int> consideredRules;///< only rules in this list will be considered in this cleaner (read list from jason)
 								/// rule number 0 means apply all rules. Empty vector: do nothing in this cleaner.
 
@@ -552,9 +557,7 @@ public:
 	// Constructors 
 	RepRuleBasedOutlierCleaner() : RepProcessor() { init_defaults(); }
 
-	void init_defaults() {
-		processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
-	};
+	void init_defaults();
 
 	void parse_rules_signals(const string &path);
 	void parse_sig_channels(const string &path);
@@ -585,13 +588,18 @@ public:
 
 	~RepRuleBasedOutlierCleaner() { if (!verbose_file.empty() && log_file.is_open()) log_file.close(); };
 
-	void set_affected_signal_ids(MedDictionarySections& dict);
+	// Check if some required signals are missing and remove corresponding rules
+	void fit_for_repository(MedPidRepository& rep);
+
+	// set affected and required signals lists according to rules
+	void init_lists();
 
 	void make_summary();
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, addRequiredSignals, consideredRules, tolerance, req_signals, aff_signals, nRem_attr, nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
+	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,
+		nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -602,8 +610,8 @@ private:
 	ofstream log_file;
 	unordered_map<string, remove_stats> _rmv_stats;
 
-
-	void change_rules();
+	/// select which rules to apply according to consideredRules
+	void select_rules_to_apply();
 
 };
 
@@ -887,8 +895,8 @@ public:
 	// initialize signal ids
 	void set_signal_ids(MedSignals& sigs);
 
-	// checks if need to create virual signal
-	void set_affected_signal_ids(MedDictionarySections& dict);
+	// Check if some required signals are missing and make them virtual or remove relevant panel completer
+	void fit_for_repository(MedPidRepository& rep);
 
 	// dictionary based initializations
 	void init_tables(MedDictionarySections &dict, MedSignals& sigs);
@@ -939,7 +947,7 @@ public:
 	// serialization. meta-data file is kept for information but not used in apply
 	void print();
 	ADD_CLASS_NAME(RepPanelCompleter)
-		ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals)
+	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals,virtual_signals)
 
 private:
 

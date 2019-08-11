@@ -572,6 +572,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	vector<map<float, float>> allSensPR, allPRPPV, allPRSens;
 	vector<double> auc((int)all_preds.size());
 	vector<float> empty_vec;
+	map<float, float> ref_graph;
 	for (size_t i = 0; i < all_preds.size(); ++i)
 	{
 		const vector<float> &preds = all_preds[i];
@@ -605,8 +606,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 
 
 		if (i == 0) {
-			down_sample_graph(xy);
-			allData.push_back(xy);
+			ref_graph = xy;
+			down_sample_graph(ref_graph);
+			//allData.push_back(xy);
 		}
 		down_sample_graph(false_true);
 		down_sample_graph(false_ppv);
@@ -624,6 +626,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		createHtmlGraph(baseOut + path_sep() + fname + "_False_Thresholds.html", model_false_scores,
 			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
 	}
+	if (!all_preds.empty())
+		allData.push_back(ref_graph);
 	vector<string> data_titles(modelNames);
 	//append Auc to titles
 	char buff[200];
@@ -631,7 +635,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		snprintf(buff, sizeof(buff), "%s (AUC=%1.3f)", data_titles[i].c_str(), auc[i]);
 		data_titles[i] = string(buff);
 	}
-	data_titles.insert(data_titles.begin(), "x=y reference");
+	data_titles.push_back("x=y reference");
 	createHtmlGraph(baseOut + path_sep() + "ROC.html", allData, "ROC curve", "False Positive Rate", "True Positive Rate", data_titles);
 	data_titles = vector<string>(modelNames);
 	createHtmlGraph(baseOut + path_sep() + "PPV.html", allPPV, "PPV curve", "False Positive Rate", "Positive Predictive Value", data_titles);

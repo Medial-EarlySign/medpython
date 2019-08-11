@@ -27,10 +27,10 @@ template<typename T> void medial::sort_ops::get_sort_indexes(const vector<T> &x,
 	}
 
 	if (descending_order) {
-		sort(v.begin(), v.end(), [](const pair<T,int> &v1, const pair<T,int> &v2) {return (v1.first > v2.first); });
+		sort(v.begin(), v.end(), [](const pair<T, int> &v1, const pair<T, int> &v2) {return (v1.first > v2.first); });
 	}
 	else {
-		sort(v.begin(), v.end(), [](const pair<T,int> &v1, const pair<T,int> &v2) {return (v1.first < v2.first); });
+		sort(v.begin(), v.end(), [](const pair<T, int> &v1, const pair<T, int> &v2) {return (v1.first < v2.first); });
 	}
 
 	indexes.resize(x.size());
@@ -336,6 +336,9 @@ string medial::print::print_any(po::variable_value &a) {
 	else if (a.value().type() == typeid(float)) {
 		return to_string(a.as<float>());
 	}
+	else if (a.value().type() == typeid(double)) {
+		return to_string(a.as<double>());
+	}
 	else if (a.value().type() == typeid(bool)) {
 		return to_string(a.as<bool>());
 	}
@@ -394,13 +397,13 @@ void medial::io::ProgramArgs_base::list_sections(const string &full_help, vector
 int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 	if (!init_called)
 		MTHROW_AND_ERR("ProgramArgs_base::init function wasn't called\n");
-	
+
 	po::options_description desc_file(desc);
 	po::variables_map vm_config;
 
 	auto parsed_args = po::parse_command_line(argc, argv, desc,
 		po::command_line_style::style_t::default_style);
-	
+
 	po::store(parsed_args, vm);
 	if (vm.count("help_module")) {
 		string help_search = vm["help_module"].as<string>();
@@ -474,7 +477,9 @@ int medial::io::ProgramArgs_base::parse_parameters(int argc, char *argv[]) {
 		for (auto it = vm.begin(); it != vm.end(); ++it) {
 			MLOG("%s = %s\n", it->first.c_str(), medial::print::print_any(it->second).c_str());
 			string val = medial::print::print_any(it->second);
-			if (val.empty() || val.find(";") != string::npos)
+			//gets deafult value when defaulted
+			//desc.find(it->first, true).semantic()
+			if (it->second.value().type() == typeid(string))
 				val = "\"" + val + "\"";
 			snprintf(buffer, sizeof(buffer), " --%s %s", it->first.c_str(), val.c_str());
 			full_params += string(buffer);
