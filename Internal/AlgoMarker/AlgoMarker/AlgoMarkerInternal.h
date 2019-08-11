@@ -63,6 +63,17 @@ public:
 
 	// init model
 	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; return (model.read_from_file(string(_model_fname))); }
+	int model_check_required_signals() { 
+		int ret = 0;
+		vector<string> req_sigs;
+		model.get_required_signal_names(req_sigs);
+		for (const auto& s : req_sigs)
+			if (0 == rep.sigs.Name2Sid.count(s)) {
+				ret = -1;
+				fprintf(stderr, "ERROR: AM model requires signal '%s' but signal does not exist in AM repository .signals file\n", s.c_str());
+			}
+		return ret;
+	}
 
 
 	// init samples
@@ -103,6 +114,14 @@ public:
 	// end loading : actions that must be taken AFTER all loading was done, and BEFORE we calculate the predictions
 	int data_load_end() { return rep.in_mem_rep.sortData(); }
 
+	void get_rep_signals(unordered_set<string> &sigs) 
+	{
+		for (auto &sig : rep.sigs.signals_names)
+		{
+			sigs.insert(sig);
+		}
+	} 
+	// returns the available signals
 
 	//========================================================
 	// Samples
