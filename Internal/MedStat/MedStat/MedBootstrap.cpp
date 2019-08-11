@@ -159,7 +159,7 @@ void init_model(MedModel &mdl, MedPidRepository& rep, const string &json_model,
 	if (need_gender)
 		mdl.add_gender();
 	//read only dicts of rep:
-	if (rep.read_config(rep_path) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(rep_path) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
 	mdl.fit_for_repository(rep);
 	mdl.filter_rep_processors();

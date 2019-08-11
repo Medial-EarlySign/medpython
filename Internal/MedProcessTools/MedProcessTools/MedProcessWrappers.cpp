@@ -26,7 +26,7 @@ int medial::model::prep_model_rep_samples(string f_model, string f_samples, stri
 	vector<string> required;
 
 	samples.get_ids(pids);
-	if (rep.read_config(f_rep) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(f_rep) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", f_rep.c_str());
 	model.fit_for_repository(rep);
 

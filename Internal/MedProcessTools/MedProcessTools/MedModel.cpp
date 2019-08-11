@@ -1421,7 +1421,7 @@ void medial::repository::prepare_repository(const MedSamples &samples, const str
 	MedModel &mod, MedPidRepository &rep) {
 	MLOG("Reading repo file [%s]\n", RepositoryPath.c_str());
 	unordered_set<string> req_names;
-	if (rep.read_config(RepositoryPath) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(RepositoryPath) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
 	mod.fit_for_repository(rep);
 	mod.filter_rep_processors();
@@ -1792,7 +1792,7 @@ void medial::medmodel::apply(MedModel &model, MedSamples &samples, string rep_fn
 	vector<string> rsigs;
 
 	MedPidRepository rep;
-	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(rep_fname) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
 	model.fit_for_repository(rep);
 	model.get_required_signal_names(req_sigs);
