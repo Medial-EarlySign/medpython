@@ -668,7 +668,8 @@ string MedModel::make_absolute_path(const string& main_file, const string& small
 		(main_file_path.size() == 0)
 		)
 		return small_file;
-	string abs = main_file_path + '/' + small_file;
+
+	string abs = main_file_path + path_sep() + small_file;
 	if (use_cwd)
 		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	else
@@ -703,12 +704,9 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	string fname;
 	if (small_file == "")
 		fname = main_file;
-	else {
-		if (add_change_path)
-			fname = small_file;
-		else
-			fname = make_absolute_path(main_file, small_file, add_change_path);
-	}
+	else
+		fname = make_absolute_path(main_file, small_file, false);
+
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
@@ -736,7 +734,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())
 			MTHROW_AND_ERR("could not parse [%s]", it->str(0).c_str());
-		string small_file = tokens[0];
+		string small_file_inc = tokens[0];
 		vector<string> my_alterations;
 		for (int i = 1; i < tokens.size(); i++)
 			my_alterations.push_back(tokens[i]);
@@ -751,7 +749,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 				boost::algorithm::split_regex(existing_fields, existing_alt, boost::regex("::"));
 				if (fields[0] == existing_fields[0]) {
 					MLOG_D("alteration [%s] overriden in the context of [%s] to [%s]\n",
-						fields[0].c_str(), small_file.c_str(), existing_fields[1].c_str());
+						fields[0].c_str(), small_file_inc.c_str(), existing_fields[1].c_str());
 					overriden = true;
 				}
 			}
@@ -760,13 +758,14 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 		}
 		out_string += orig.substr(last_char, it->position() - last_char);
 		if (add_change_path) {
-			boost::filesystem::path json_p(small_file);
-			string pth = json_p.parent_path().string();
+			boost::filesystem::path json_p(small_file_inc);
+			boost::filesystem::path json_par(fname);
+			string pth = boost::filesystem::absolute(json_p.parent_path(), json_par.parent_path()).string();
 			snprintf(buff, sizeof(buff), "{\"action_type\":\"change_path:%s\"},\n", pth.c_str());
 			add_path = string(buff);
 			out_string += add_path;
 		}
-		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file, add_change_path);
+		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file_inc, add_change_path);
 		if (add_change_path) {
 			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", run_current_path.c_str());
 			add_path = string(buff);
@@ -1769,7 +1768,7 @@ void MedModel::load_repository(const string& configFile, vector<int> ids, MedPid
 			MTHROW_AND_ERR("Cannot initialize repository from %s\n", configFile.c_str());
 		fit_for_repository(rep);
 	}
-	
+
 	// Get Required signals
 	vector<string> req_signals;
 	get_required_signal_names(req_signals);
