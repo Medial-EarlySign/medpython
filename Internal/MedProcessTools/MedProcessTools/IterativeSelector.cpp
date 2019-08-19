@@ -585,6 +585,7 @@ void IterativeFeatureSelector::init_bootstrap_params(MedBootstrapResult& bootstr
 
 	bootstrapper.bootstrap_params.roc_Params.working_point_FPR.clear();
 	bootstrapper.bootstrap_params.roc_Params.working_point_PR.clear();
+	bootstrapper.bootstrap_params.roc_Params.working_point_Score.clear();
 	bootstrapper.bootstrap_params.roc_Params.working_point_SENS.clear();
 
 	if (params.size() == 1) {
@@ -600,12 +601,15 @@ void IterativeFeatureSelector::init_bootstrap_params(MedBootstrapResult& bootstr
 
 	else if (params.size() == 3) {
 		float target = stof(params[2]);
-		if ((params[1] == "PR" && (params[0] == "SENS" || params[0] == "SPEC")))
+		if (params[1] == "PR" && (params[0] == "SENS" || params[0] == "SPEC"))
 			bootstrapper.bootstrap_params.roc_Params.working_point_PR.push_back(100 * target);
 		else if (params[1] == "FPR" && params[0] == "SENS")
 			bootstrapper.bootstrap_params.roc_Params.working_point_FPR.push_back(100 * target);
 		else if (params[1] == "SENS" && params[0] == "SPEC")
 			bootstrapper.bootstrap_params.roc_Params.working_point_SENS.push_back(100 * target);
+		else if (params[1] == "Score" && (params[0] == "SENS" || params[0] == "SPEC"))
+			bootstrapper.bootstrap_params.roc_Params.working_point_Score.push_back(target);
+
 		else
 			MTHROW_AND_ERR("Cannot parse bootstrap-measuremnt initialization string \'%s\'\n", init.c_str());
 

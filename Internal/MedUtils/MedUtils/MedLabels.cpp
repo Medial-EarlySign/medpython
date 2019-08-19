@@ -63,6 +63,41 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 	return r;
 }
 
+
+SamplingRes MedLabels::get_samples(int pid, const vector<MedSample> &samples, vector<MedSample>& new_samples, bool show_conflicts) const {
+	
+	new_samples.clear();
+	if (pid_reg_records.empty())
+		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
+	vector<const MedRegistryRecord *> empty_censor;
+	const vector<const MedRegistryRecord *> *censor_p = &empty_censor;
+	if (pid_censor_records.find(pid) != pid_censor_records.end())
+		censor_p = &pid_censor_records.at(pid);
+	SamplingRes r;
+	size_t j = 0; 
+	if (pid_reg_records.find(pid) != pid_reg_records.end()) {
+		const vector<const MedRegistryRecord *> &pid_recs = pid_reg_records.at(pid);
+		for (size_t i=0; i<samples.size(); ++i) {
+			medial::sampling::get_label_for_sample(samples[i].time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
+				labeling_params.censor_time_from, labeling_params.censor_time_to, labeling_params.label_interaction_mode,
+				labeling_params.censor_interaction_mode, labeling_params.conflict_method, new_samples, r.no_rule_cnt, r.conflict_cnt,
+				r.done_cnt, false, show_conflicts);
+
+			while (j < new_samples.size()) {
+				new_samples[j].split = samples[i].split;
+				new_samples[j].prediction = samples[i].prediction;
+				new_samples[j].attributes = samples[i].attributes;
+				new_samples[j].str_attributes = samples[i].str_attributes;
+				j++;
+			}
+		}
+
+	}
+	else
+		++r.miss_pid_in_reg_cnt;
+	return r;
+}
+
 SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts) const {
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
@@ -774,11 +809,12 @@ void MedLabels::relabel_samples(MedSamples &samples, bool show_conflicts) const 
 	vector<int> keep_ids;
 	keep_ids.reserve(samples.idSamples.size());
 	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
+
 		int pid = samples.idSamples[i].id;
-		vector<int> times(samples.idSamples[i].samples.size());
-		samples.idSamples[i].get_times(times);
-		samples.idSamples[i].samples.clear();
-		SamplingRes r = get_samples(pid, times, samples.idSamples[i].samples, show_conflicts);
+		vector<MedSample> new_samples;
+		SamplingRes r = get_samples(pid, samples.idSamples[i].samples, new_samples, show_conflicts);
+		samples.idSamples[i].samples = new_samples;
+
 		done_count += r.done_cnt;  no_rule += r.no_rule_cnt; conflict_count += r.conflict_cnt;
 		if (r.conflict_cnt > 0 && max_to_shown > 0) {
 			--max_to_shown;

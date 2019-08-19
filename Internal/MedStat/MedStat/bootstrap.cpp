@@ -894,6 +894,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	sort(pr_points.begin(), pr_points.end());
 	for (size_t i = 0; i < pr_points.size(); ++i)
 		pr_points[i] /= 100.0;
+	vector<float> score_points = params->working_point_Score; // Working Score points
+	sort(score_points.begin(), score_points.end());
 
 	unordered_map<float, vector<float>> thresholds_labels;
 	unordered_map<float, vector<float>> thresholds_weights;
@@ -997,10 +999,10 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
 	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
-	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
+	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0;
 	int i = 0;
 
-	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
+	float ppv_c, pr_prev, ppv_prev, pr_c, score_c, score_prev, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
 	if (use_wp) {
 		//fpr points:
 		i = 1;
@@ -1438,7 +1440,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
 						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
 							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
-						res[format_working_point("RR@SENS", pr_points[curr_wp_pr_ind])] =
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] =
 							float(ppv / FOR);
 					}
 					else
@@ -1447,6 +1449,157 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 
 				++curr_wp_pr_ind;
+				continue;
+			}
+			++i;
+		}
+
+		//handle score points:
+		i = 1; //first point is always before
+		while (i < true_rate.size() && curr_wp_score_ind < score_points.size())
+		{
+			score_c = unique_scores[true_rate.size()-i-1];
+
+			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+				score_prev = unique_scores[true_rate.size() - i];
+
+				float prev_diff = score_prev - score_points[curr_wp_score_ind];
+				float curr_diff = score_points[curr_wp_score_ind] - score_c;
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind],false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PPV@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("NPV@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT Score=%f, prev_Score%f, next_Score=%f\n",
+						score_points[curr_wp_score_ind], score_prev, score_c);
+#endif //  WARN_SKIP_WP
+					++curr_wp_score_ind;
+					continue; //skip working point - diff is too big
+				}
+
+				if (params->incidence_fix > 0) {
+					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
+				}
+				else {
+					pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+						(t_sum + f_sum));
+					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(t_sum + f_sum));
+				}
+				res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff));
+
+				res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (false_rate[i] * (prev_diff / tot_diff) + false_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) + (1 - false_rate[i - 1]) * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
+				}
+				else {
+					ppv_c = float((true_rate[i] * t_sum) /
+						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
+				}
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
+				res[format_working_point("PPV@SCORE", score_points[curr_wp_score_ind], false)] = 100 * ppv;
+				res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
+				}
+				else {
+					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
+						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
+				}
+				res[format_working_point("NPV@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = float(ppv / params->incidence_fix);
+				else
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = float(ppv /
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = or_prev;
+				else
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = rr_prev;
+					else
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] =
+							float(ppv / FOR);
+					}
+					else
+
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+				}
+
+				++curr_wp_score_ind;
 				continue;
 			}
 			++i;
@@ -2304,6 +2457,8 @@ int ROC_Params::init(map<string, string>& map) {
 			parse_vector(param_value, working_point_FPR);
 		else if (param_name == "working_point_pr")
 			parse_vector(param_value, working_point_PR);
+		else if (param_name == "working_point_score")
+			parse_vector(param_value, working_point_Score);
 		else if (param_name == "working_point_sens")
 			parse_vector(param_value, working_point_SENS);
 		else if (param_name == "show_warns")
