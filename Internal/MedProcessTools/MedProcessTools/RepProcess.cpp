@@ -975,7 +975,7 @@ void RepBasicOutlierCleaner::dprint(const string &pref, int rp_flag)
 {
 	if (rp_flag > 0)
 		MLOG("%s :: BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-			pref.c_str(),signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+			pref.c_str(), signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 //=======================================================================================
@@ -1185,7 +1185,7 @@ void RepConfiguredOutlierCleaner::print()
 
 // Defulat initialization
 void RepRuleBasedOutlierCleaner::init_defaults() {
-	
+
 	processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
 	// consider all rules if none is given specifically
 	for (const auto &rule : rules2Signals)
@@ -1372,7 +1372,7 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	for (const auto &reqSig : req_signals)reqSignalIds.insert(sigs.sid(reqSig));
 	for (const auto &affSig : aff_signals)affSignalIds.insert(sigs.sid(affSig));
-	
+
 	// Keep names for logging.
 	for (int affSig_id : affSignalIds)
 		affected_ids_to_name[affSig_id] = sigs.name(affSig_id);
@@ -1390,12 +1390,12 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	affected_by_rules.clear();
 
 	for (int i = 0; i < rulesToApply.size(); i++) {
-		
+
 		// build set of the participating signals
 		string removal_signal;
 		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
 			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
-		
+
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
@@ -2624,8 +2624,23 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 					vector<float> collected_vals(sigs_ids.size());
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
-						if (static_input_signals[i])
-							collected_vals[i] = static_signals_values[i];
+						if (static_input_signals[i]) {
+							if (signals[i] != "BYEAR" && signals[i] != "BDATE")
+								collected_vals[i] = static_signals_values[i];
+							else
+							{
+								int bdt = med_time_converter.convert_times(signals_time_unit, MedTime::Date, static_signals_values[i]);
+								if (signals[i] == "BYEAR")
+									bdt = bdt * 10000 + 701;
+								if (rec.usvs.empty())
+									collected_vals[i] = missing_value;
+								else {
+									int time_date = med_time_converter.convert_times(signals_time_unit, MedTime::Date, rec.usvs.front().Time(idx[0] - 1, work_channel));
+									collected_vals[i] = med_time_converter.get_age_from_bdate(time_date, MedTime::Date, bdt);
+								}
+							}
+
+						}
 						else {
 							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;

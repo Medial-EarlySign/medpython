@@ -86,8 +86,8 @@ void eGFRCalculator::validate_arguments(const vector<string> &input_signals, con
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Requires 3 input signals and 1 output signal\n");
 	if (input_signals[1] != "GENDER")
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Second signal should be GENDER- got \"%s\"\n", input_signals[1].c_str());
-	if (input_signals[2] != "BYEAR")
-		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR- got \"%s\"\n", input_signals[2].c_str());
+	if (input_signals[2] != "BYEAR" && input_signals[2] != "BDATE")
+		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR or BDATE - got \"%s\"\n", input_signals[2].c_str());
 }
 
 void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
