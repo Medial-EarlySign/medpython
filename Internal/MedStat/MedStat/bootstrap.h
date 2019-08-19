@@ -192,6 +192,7 @@ public:
 	vector<float> working_point_FPR; ///< The False Positive rate working point definition
 	vector<float> working_point_SENS; ///< The True Positive rate working point definition
 	vector<float> working_point_PR; ///< The Positive rate working point definition
+	vector<float> working_point_Score; ///< The Scores workin point definition
 	bool use_score_working_points; ///< If true will calculate all roc measurements based on scores working points
 	float max_diff_working_point; ///< The maximal diff in calculated working point to requested working point to drop
 	int score_bins; ///< score bin count for speed up calculation. 0 means no binning
@@ -227,7 +228,7 @@ public:
 	int init(map<string, string>& map);
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
-	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, use_score_working_points,
+	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score,use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
 };
 
