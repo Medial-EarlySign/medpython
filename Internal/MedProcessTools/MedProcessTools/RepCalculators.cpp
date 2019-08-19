@@ -102,9 +102,9 @@ float eGFRCalculator::do_calc(const vector<float> &vals) const {
 		return missing_value;
 	//age, creatinine,  gender, ethnicity
 	if (!mdrd)
-		return get_eGFR_CKD_EPI(vals[2], vals[0], vals[1], ethnicity);
+		return round(get_eGFR_CKD_EPI(vals[2], vals[0], vals[1], ethnicity));
 	else
-		return get_eGFR_MDRD(vals[2], vals[0], vals[1], ethnicity);
+		return  round(get_eGFR_MDRD(vals[2], vals[0], vals[1], ethnicity));
 }
 //.................................LOG CALCULATOR.......................................
 void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
