@@ -86,8 +86,8 @@ void eGFRCalculator::validate_arguments(const vector<string> &input_signals, con
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Requires 3 input signals and 1 output signal\n");
 	if (input_signals[1] != "GENDER")
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Second signal should be GENDER- got \"%s\"\n", input_signals[1].c_str());
-	if (input_signals[2] != "BYEAR" && input_signals[2] != "BDATE")
-		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR or BDATE - got \"%s\"\n", input_signals[2].c_str());
+	if (input_signals[2] != "BYEAR")
+		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR - got \"%s\"\n", input_signals[2].c_str());
 }
 
 void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
@@ -100,11 +100,19 @@ void eGFRCalculator::list_output_signals(const vector<string> &input_signals, ve
 float eGFRCalculator::do_calc(const vector<float> &vals) const {
 	if (vals[0] <= 0)
 		return missing_value;
-	//age, creatinine,  gender, ethnicity
+	if (vals.size() != 4)
+		MTHROW_AND_ERR("Error eGFRCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
+			vals.size());
+	//input: creatinine, gender, byear, time
+	int year = (int)vals[2]; //BYEAR
+	int time = (int)vals[3]; //TIME
+	
+	float age = med_time_converter.get_age(time, MedTime::Date, year);
+	//age, creatinine, gender, ethnicity
 	if (!mdrd)
-		return round(get_eGFR_CKD_EPI(vals[2], vals[0], vals[1], ethnicity));
+		return round(get_eGFR_CKD_EPI(age, vals[0], vals[1], ethnicity));
 	else
-		return  round(get_eGFR_MDRD(vals[2], vals[0], vals[1], ethnicity));
+		return  round(get_eGFR_MDRD(age, vals[0], vals[1], ethnicity));
 }
 //.................................LOG CALCULATOR.......................................
 void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {

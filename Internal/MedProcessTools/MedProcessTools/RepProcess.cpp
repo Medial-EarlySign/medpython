@@ -2408,11 +2408,13 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
 		else if (field == "calculator_init_params") calculator_init_params = entry.second;
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "pass_time_last") pass_time_last = stoi(entry.second) > 0;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
@@ -2465,6 +2467,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(signals[i]);
 
 	calculator_logic->validate_arguments(signals, V_names);
+	pass_time_last = calculator_logic->need_time;
 
 	return 0;
 
@@ -2621,31 +2624,24 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 				//iterate on time ordered of signals - Let's try to calc signal:
 				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
 				if (can_calc) {
-					vector<float> collected_vals(sigs_ids.size());
+					vector<float> collected_vals(sigs_ids.size() + int(pass_time_last));
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
 						if (static_input_signals[i]) {
-							if (signals[i] != "BYEAR" && signals[i] != "BDATE")
-								collected_vals[i] = static_signals_values[i];
-							else
-							{
-								int bdt = med_time_converter.convert_times(signals_time_unit, MedTime::Date, static_signals_values[i]);
-								if (signals[i] == "BYEAR")
-									bdt = bdt * 10000 + 701;
-								if (rec.usvs.empty())
-									collected_vals[i] = missing_value;
-								else {
-									int time_date = med_time_converter.convert_times(signals_time_unit, MedTime::Date, rec.usvs.front().Time(idx[0] - 1, work_channel));
-									collected_vals[i] = med_time_converter.get_age_from_bdate(time_date, MedTime::Date, bdt);
-								}
-							}
-
+							collected_vals[i] = static_signals_values[i];
 						}
 						else {
 							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}
+					if (pass_time_last) {
+						if (rec.usvs.empty())
+							collected_vals.back() = missing_value;
+						else
+							collected_vals.back() = rec.usvs[0].Time(idx[0] - 1, time_channel);
+					}
+
 					if (no_missings(collected_vals, missing_value)) {
 						float prev_val = missing_value;
 						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
