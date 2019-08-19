@@ -1209,6 +1209,10 @@ public:
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
 			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel, time_channel)
+		void post_deserialization() {
+		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
+		pass_time_last = p->need_time; delete p;
+	}
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator

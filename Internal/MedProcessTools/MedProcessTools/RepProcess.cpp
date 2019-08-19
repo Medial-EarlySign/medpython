@@ -2414,7 +2414,6 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals") boost::split(signals, entry.second, boost::is_any_of(",:"));
 		else if (field == "signals_time_unit") signals_time_unit = med_time_converter.string_to_type(entry.second);
-		else if (field == "pass_time_last") pass_time_last = stoi(entry.second) > 0;
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCalcSimpleSignals::init - Unsupported param \"%s\"\n", field.c_str());
