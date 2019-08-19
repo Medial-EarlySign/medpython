@@ -237,6 +237,7 @@ private:
 
 	// Handle learning sets for model/post-processors
 	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
+	void split_learning_set(MedSamples& inSamples_orig, vector<MedSamples>& post_processors_learning_sets_orig, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);
