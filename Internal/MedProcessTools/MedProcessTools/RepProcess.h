@@ -1588,7 +1588,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
+		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type, get_values_in_range)
 
 		/// <summary> Print processors information </summary>
 		void print();
