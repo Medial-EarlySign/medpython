@@ -504,6 +504,26 @@ void UniversalSigVec::init(const SignalInfo &info)
 
 }
 
+// returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
+int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) > time_bound)
+			return i;
+	}
+	return -1;
+}
+
+// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
+int UniversalSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) >= time_bound)
+			return i;
+	}
+	return -1;
+}
+
 
 //-------------------------------------------------------------------------------------------------------------------
 int MedSignalsSingleElemFill(int sig_type, char *buf, int *time_data, float *val_data)
