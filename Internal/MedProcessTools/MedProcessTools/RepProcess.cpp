@@ -3186,6 +3186,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "ranges_sig_name") { ranges_name = entry.second; }
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
 		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
@@ -3276,6 +3277,12 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) doRemove = false;
 				break;
 			}
+
+			if ((doRemove && get_values_in_range) || ((!doRemove) && (!get_values_in_range)))
+				doRemove = true;
+			else
+				doRemove = false;
+
 			if (!doRemove) {
 				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t);
 				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);

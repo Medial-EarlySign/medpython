@@ -1558,6 +1558,7 @@ public:
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
+	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
