@@ -133,8 +133,14 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 		// Otherwise, we have to remove the completer
 		if (panel_missing.size() == 1)
 			missing_sigs.insert(panel_missing[0]);
-		else if (!panel_missing.empty())
+		else if (!panel_missing.empty()) {
 			panel_signal_names[iPanel].clear();
+			string panel_name = "";
+			for (const auto &it: panel2type)
+				if (it.second == iPanel)
+					panel_name = it.first;
+			MLOG("RepPanelCompleter::fit_for_repository - removed panel %s\n", panel_name.c_str());
+		}
 	}
 
 	// Missing sigs are virtual signals
@@ -144,6 +150,8 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 		MWARN("Warning: RepPanelCompleter:: add virtual signal %s\n", sig.c_str());
 	}
 
+	//analyze required and affected signals again:
+	init_lists();
 }
 //.......................................................................................
 void RepPanelCompleter::init_tables(MedDictionarySections &dict, MedSignals& sigs)

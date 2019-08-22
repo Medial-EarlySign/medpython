@@ -598,8 +598,8 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,
-		nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
+		ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,
+			nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -947,7 +947,7 @@ public:
 	// serialization. meta-data file is kept for information but not used in apply
 	void print();
 	ADD_CLASS_NAME(RepPanelCompleter)
-	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals,virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals, virtual_signals)
 
 private:
 
@@ -1017,6 +1017,7 @@ public:
 	float missing_value = (float)MED_MAT_MISSING_VALUE; ///< missing value 
 	string calculator_name = ""; ///< just for debuging
 	int work_channel = 0; ///< the working channel
+	bool need_time = false; ///< if needed time
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
@@ -1062,7 +1063,7 @@ public:
 	float ethnicity = 0; ///< ethnicity, for now only support 0
 	bool mdrd = false; ///< If true will use MDRD calculation
 
-	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; };
+	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; need_time = true; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
@@ -1172,6 +1173,8 @@ public:
 
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
+	int time_channel = 0; ///<the time channel
+	bool pass_time_last = false; ///< pass last signal as time
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1205,7 +1208,11 @@ public:
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
+			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel, time_channel)
+		void post_deserialization() {
+		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
+		pass_time_last = p->need_time; delete p;
+	}
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator

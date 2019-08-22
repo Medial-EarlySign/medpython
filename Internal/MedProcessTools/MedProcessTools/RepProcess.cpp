@@ -975,7 +975,7 @@ void RepBasicOutlierCleaner::dprint(const string &pref, int rp_flag)
 {
 	if (rp_flag > 0)
 		MLOG("%s :: BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-			pref.c_str(),signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+			pref.c_str(), signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 //=======================================================================================
@@ -1185,7 +1185,7 @@ void RepConfiguredOutlierCleaner::print()
 
 // Defulat initialization
 void RepRuleBasedOutlierCleaner::init_defaults() {
-	
+
 	processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
 	// consider all rules if none is given specifically
 	for (const auto &rule : rules2Signals)
@@ -1372,7 +1372,7 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	for (const auto &reqSig : req_signals)reqSignalIds.insert(sigs.sid(reqSig));
 	for (const auto &affSig : aff_signals)affSignalIds.insert(sigs.sid(affSig));
-	
+
 	// Keep names for logging.
 	for (int affSig_id : affSignalIds)
 		affected_ids_to_name[affSig_id] = sigs.name(affSig_id);
@@ -1390,12 +1390,12 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	affected_by_rules.clear();
 
 	for (int i = 0; i < rulesToApply.size(); i++) {
-		
+
 		// build set of the participating signals
 		string removal_signal;
 		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
 			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
-		
+
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
@@ -2408,6 +2408,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
 		else if (field == "calculator_init_params") calculator_init_params = entry.second;
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
@@ -2465,6 +2466,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(signals[i]);
 
 	calculator_logic->validate_arguments(signals, V_names);
+	pass_time_last = calculator_logic->need_time;
 
 	return 0;
 
@@ -2621,16 +2623,24 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 				//iterate on time ordered of signals - Let's try to calc signal:
 				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
 				if (can_calc) {
-					vector<float> collected_vals(sigs_ids.size());
+					vector<float> collected_vals(sigs_ids.size() + int(pass_time_last));
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
-						if (static_input_signals[i])
+						if (static_input_signals[i]) {
 							collected_vals[i] = static_signals_values[i];
+						}
 						else {
 							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}
+					if (pass_time_last) {
+						if (rec.usvs.empty())
+							collected_vals.back() = missing_value;
+						else
+							collected_vals.back() = rec.usvs[0].Time(idx[0] - 1, time_channel);
+					}
+
 					if (no_missings(collected_vals, missing_value)) {
 						float prev_val = missing_value;
 						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
