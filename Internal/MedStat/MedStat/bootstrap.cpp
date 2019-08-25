@@ -978,12 +978,15 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		return res;
 	}
 	if (params->show_warns) {
-		bool has_neg = false;
-		for (size_t i = 0; i < true_rate.size() && !has_neg; ++i) 
-			has_neg = true_rate[i] < 0;
+		int last_idx = -1;
+		for (size_t i = 0; i < true_rate.size(); ++i) {
+			if (true_rate[i] < 0)
+				last_idx = i;
+		}
 
-		if (has_neg)
-			MWARN("true positive has negative values - outcome fix is too aggresive\n");
+		if (last_idx > -1 && false_rate[last_idx] / f_sum >= 0.005)
+			MWARN("true positive has negative values - outcome fix is too aggresive (index=%d, fpr=%2.1f%%, sens=%2.1f%%)\n",
+				last_idx, 100 * false_rate[last_idx] / f_sum, 100 * true_rate[last_idx] / float(!trunc_max ? t_sum : tt_cnt));
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i)
 		if (true_rate[i] < 0)
@@ -1458,7 +1461,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		i = 1; //first point is always before
 		while (i < true_rate.size() && curr_wp_score_ind < score_points.size())
 		{
-			score_c = unique_scores[true_rate.size()-i-1];
+			score_c = unique_scores[true_rate.size() - i - 1];
 
 			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
 				score_prev = unique_scores[true_rate.size() - i];
@@ -1471,7 +1474,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind],false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
