@@ -1766,7 +1766,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 		}
 
 	vector<int> v_ids(all_ids.begin(), all_ids.end());
-	int nIds = v_ids.size();
+	int nIds = (int)v_ids.size();
 	vector<int> assignments(nIds, 0);
 	unordered_map<int, int> id2assignment;
 
