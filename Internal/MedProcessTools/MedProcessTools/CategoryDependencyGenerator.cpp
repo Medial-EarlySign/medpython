@@ -662,10 +662,10 @@ void CategoryDependencyGenerator::set_names() {
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
 		if (!feature_prefix.empty())
-			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.%s.win_%d_%d",
+			snprintf(buff, sizeof(buff), "%s.category_dep_count_%s.%s.win_%d_%d",
 				signalName.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
 		else
-			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
+			snprintf(buff, sizeof(buff), "%s.category_dep_count_%s.win_%d_%d",
 				signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
@@ -699,10 +699,8 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 			for (int i = 0; i < rec.usv.len; i++) {
 				int itime = rec.usv.Time(i, time_channel);
 				if (itime > max_time) break;
-				if (itime >= min_time && lut[(int)rec.usv.Val(i, val_channel)]) {
-					val = 1;
-					break;
-				}
+				if (itime >= min_time && lut[(int)rec.usv.Val(i, val_channel)])
+					++val;
 			}
 
 			p_feat[i] = val;
