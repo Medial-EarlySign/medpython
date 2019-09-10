@@ -343,19 +343,16 @@ Mem_Iterator::Mem_Iterator(const vector<int> &pids, const vector<int> &cohort_in
 			max_pid = pids[ii];
 	}
 
-	pid_to_inds.resize(max_pid - min_pid);
-	ind_to_pid.reserve(max_pid - min_pid);
-	pids_cnt = 0;
+	pid_to_inds.resize(max_pid - min_pid + 1);
+	ind_to_pid.reserve(max_pid - min_pid + 1);
 	for (int ii : cohort_indexes) {
 		int pid_ind_val = pids[ii] - min_pid;
-		if (pid_to_inds[pid_ind_val].empty()) {
-			++pids_cnt;
+		if (pid_to_inds[pid_ind_val].empty())
 			ind_to_pid.push_back(pid_ind_val);
-		}
 		pid_to_inds[pid_ind_val].push_back(int(ii));
 	}
 
-	cohort_size = int(sample_ratio * pids_cnt);
+	cohort_size = int(sample_ratio * ind_to_pid.size());
 	//choose pids:
 
 
@@ -369,12 +366,17 @@ void Mem_Iterator::fetch_selection(mt19937 &rd_gen, vector<int> &indexes) const 
 		indexes.reserve(cohort_size * sample_per_pid);
 	else
 		indexes.reserve(tot_rec_cnt);
-	uniform_int_distribution<> rand_pids(0, pids_cnt - 1);
+	uniform_int_distribution<> rand_pids(0, (int)ind_to_pid.size() - 1);
 	for (size_t k = 0; k < cohort_size; ++k)
 	{
 		int ind_pid = rand_pids(rd_gen);
 		int pid_idx_sel = ind_to_pid[ind_pid];
+		//if (pid_idx_sel >= pid_to_inds.size())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - pid_idx_sel(%d) >= pid_to_inds.size(%zu)\n",
+		//		pid_idx_sel, pid_to_inds.size());
 		const vector<int> &ind_vec = pid_to_inds[pid_idx_sel]; //the indexes of current pid:
+		//if (ind_vec.empty())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - ind_vec is empty\n");
 		//subsample if needed:
 		if (sample_per_pid == 0)
 			indexes.insert(indexes.end(), ind_vec.begin(), ind_vec.end());
@@ -586,11 +588,11 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
-		}
+			}
 
 			done_cnt.update();
+		}
 	}
-}
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
 	map<string, float> all_final_measures;

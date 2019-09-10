@@ -151,7 +151,6 @@ private:
 	int tot_rec_cnt;
 	vector<vector<int>> pid_to_inds;
 	vector<int> ind_to_pid;
-	int pids_cnt;
 	vector<int> cohort_idx;
 };
 
