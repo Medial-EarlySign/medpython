@@ -1446,8 +1446,11 @@ public:
 	string output_name; ///< names of signal created by the processor
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
+	int num_val_channels; ///< number of val channels
 
-	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
+	RepCombineSignals() {
+		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2;
+	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 

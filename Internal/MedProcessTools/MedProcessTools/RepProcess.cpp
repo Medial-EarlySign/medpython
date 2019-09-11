@@ -2709,6 +2709,7 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 		if (field == "names") output_name = entry.second;
 		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "num_val_channels") num_val_channels = stoi(entry.second);
 		else if (field == "rp_type") {}
 		else if (field == "factors") {
 			boost::split(tokens, entry.second, boost::is_any_of(","));
@@ -2733,7 +2734,14 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	if (num_val_channels == 2)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	else if (num_val_channels == 1)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
+	else if (num_val_channels == 0)
+		virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
+	else
+		MTHROW_AND_ERR("Error RepCombineSignals::init num_val_channels should be [0-2]\n");
 
 	return 0;
 }
@@ -2776,8 +2784,8 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				v_vals.resize(2 * final_size + 2);
 			}
 			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
-			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
+			for (int k = 0; k < num_val_channels; ++k)
+				v_vals[2 * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
@@ -2808,9 +2816,9 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 				signals[i].c_str());
 		SignalInfo &si = sigs.Sid2Info[sigs_ids[i]];
 
-		if (si.n_val_channels < 2)
-			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain 2 val channels\n",
-				signals[i].c_str());
+		if (si.n_val_channels < num_val_channels)
+			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain %d val channels\n",
+				signals[i].c_str(), num_val_channels);
 	}
 	req_signal_ids.clear();
 	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
