@@ -1166,6 +1166,25 @@ private:
 };
 
 /**
+* A is in as exists operation which return binary output
+* res := in_range_val if signal exists otherwise out_range_val
+*/
+class ExistsCalculator : public SimpleCalculator {
+public:
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	ExistsCalculator() { calculator_name = "exists"; keep_only_in_range = true; need_time = true; };
+	/// @snippet RepCalculators.cpp ExistsCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
+
+	bool do_calc(const vector<float> &vals, float &res) const;
+};
+
+/**
 * A simple class for calculating virtual signals. please reffer to SimpleCalculator to see which
 * calculation are supported right now
 */
@@ -1177,7 +1196,6 @@ public:
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
 	int time_channel = 0; ///<the time channel
-	bool pass_time_last = false; ///< pass last signal as time
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1219,7 +1237,7 @@ public:
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
-
+	bool pass_time_last = false; ///< pass last signal as time
 	/// from a calculator name to the list of required signals
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)

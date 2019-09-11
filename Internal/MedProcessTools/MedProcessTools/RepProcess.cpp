@@ -2491,6 +2491,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new MultiplyCalculator();
 	else if (calc_type == "set" || calc_type == "calc_set")
 		return new SetCalculator();
+	else if (calc_type == "exists" || calc_type == "calc_exists")
+		return new ExistsCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());
@@ -2526,7 +2528,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.clear();
 	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 	vector<bool> all_sigs_static(T_Last);
-	all_sigs_static[T_TimeStamp] = true;
+	//all_sigs_static[T_TimeStamp] = true;
 	all_sigs_static[T_Value] = true;
 	all_sigs_static[T_ValShort2] = true;
 	all_sigs_static[T_ValShort4] = true;
@@ -2542,6 +2544,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);
+	pass_time_last = calculator_logic->need_time;
 }
 
 //.......................................................................................
@@ -2602,7 +2605,10 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
-			static_signals_values[i] = usv.Val(0);
+			if (usv.n_val_channels > 0)
+				static_signals_values[i] = usv.Val(0);
+			else
+				static_signals_values[i] = usv.Time(0);
 		}
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -2630,7 +2636,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							collected_vals[i] = static_signals_values[i];
 						}
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
+							if (work_channel > 0)
+								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}

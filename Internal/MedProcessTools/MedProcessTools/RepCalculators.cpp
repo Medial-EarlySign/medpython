@@ -393,6 +393,37 @@ bool SetCalculator::do_calc(const vector<float> &vals, float &res) const {
 	}
 	return true;
 }
+//.............................EXISTS CALCULATOR.........................................
+int ExistsCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [ExistsCalculator::init]
+		if (it->first == "in_range_val")
+			in_range_val = stof(it->second);
+		else if (it->first == "out_range_val")
+			out_range_val = stof(it->second);
+		else
+			MTHROW_AND_ERR("Error in ExistsCalculator::init - Unsupported argument \"%s\"\n",
+				it->first.c_str());
+		//! [ExistsCalculator::init]
+	}
+	return 0;
+}
+void ExistsCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (!(input_signals.size() == 1 && output_signals.size() == 1))
+		MTHROW_AND_ERR("Error ExistsCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
+}
+void ExistsCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
+	_virtual_signals.push_back(pair<string, int>("exists_" + input_signals[0], T_DateVal));
+}
+bool ExistsCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
+	if (vals.back() > 0)
+		res = vals.back();
+	else
+		return !keep_only_in_range;
+	return true; //always return
+}
 //.......................................................................................
 
 //.......................................................................................
