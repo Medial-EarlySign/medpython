@@ -2636,7 +2636,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							collected_vals[i] = static_signals_values[i];
 						}
 						else {
-							if (work_channel > 0)
+							if (work_channel >= 0)
 								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
