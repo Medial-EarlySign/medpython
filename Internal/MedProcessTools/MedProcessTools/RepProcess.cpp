@@ -2643,27 +2643,32 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 
 					if (no_missings(collected_vals, missing_value)) {
 						float prev_val = missing_value;
-						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
-							--final_size; //override last value
-							prev_val = v_vals[final_size];
-						}
-						if (v_times.size() < final_size + 1) {
-							v_times.resize(final_size + 1);
-							v_vals.resize(n_vals * final_size + n_vals);
-						}
-						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-						v_vals[n_vals * final_size + n_vals - 1] = calculator_logic->do_calc(collected_vals);
-						for (int kk = 0; kk < n_vals - 1; ++kk)
-							v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+						float res_calc;
+						bool legal_val = calculator_logic->do_calc(collected_vals, res_calc);
+						if (legal_val) {
+							if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+								--final_size; //override last value
+								prev_val = v_vals[final_size];
+							}
+							if (v_times.size() < final_size + 1) {
+								v_times.resize(final_size + 1);
+								v_vals.resize(n_vals * final_size + n_vals);
+							}
+							v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 
-						if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
-							++final_size;
-							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
-						}
-						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
-							v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
-							//Pay attention it still update rest value channels
-							++final_size;
+							v_vals[n_vals * final_size + n_vals - 1] = res_calc;
+							for (int kk = 0; kk < n_vals - 1; ++kk)
+								v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+
+							if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
+								++final_size;
+								last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+							}
+							else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+								v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
+								//Pay attention it still update rest value channels
+								++final_size;
+							}
 						}
 					}
 				}
