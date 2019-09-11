@@ -2781,11 +2781,11 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 			if (v_times.size() < 2 * final_size + 1) {
 				v_times.resize(2 * final_size + 2);
-				v_vals.resize(2 * final_size + 2);
+				v_vals.resize(num_val_channels * final_size + num_val_channels);
 			}
 			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 			for (int k = 0; k < num_val_channels; ++k)
-				v_vals[2 * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
+				v_vals[num_val_channels * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
