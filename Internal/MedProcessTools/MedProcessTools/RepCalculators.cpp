@@ -417,9 +417,9 @@ void ExistsCalculator::list_output_signals(const vector<string> &input_signals, 
 	_virtual_signals.push_back(pair<string, int>("exists_" + input_signals[0], T_DateVal));
 }
 bool ExistsCalculator::do_calc(const vector<float> &vals, float &res) const {
-	res = missing_value;
+	res = out_range_val;
 	if (vals.back() > 0)
-		res = vals.back();
+		res = in_range_val;
 	else
 		return !keep_only_in_range;
 	return true; //always return
