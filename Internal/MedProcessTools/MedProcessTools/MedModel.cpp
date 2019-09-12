@@ -354,8 +354,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			post_processors[i]->init_post_processor(*this);
 
 		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+		MedTimer pp_timer("post_processors"); pp_timer.start();
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(features);
+		pp_timer.take_curr_time();
+		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
 
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
