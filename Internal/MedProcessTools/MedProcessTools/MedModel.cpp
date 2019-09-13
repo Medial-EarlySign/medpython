@@ -1145,8 +1145,9 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 	signalNames = targetSignalNames;
 
 	// Collect from processors itertively
-	for (int i = (int)rep_processors.size() - 1; i > 0; i--)
+	for (int i = (int)rep_processors.size() - 1; i >= 0; i--) {
 		rep_processors[i]->get_required_signal_names(signalNames, signalNames);
+	}
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {

@@ -202,7 +202,7 @@ public:
 	ADD_CLASS_NAME(MedModel)
 		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
 
-		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
