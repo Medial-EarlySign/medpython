@@ -975,7 +975,7 @@ void RepBasicOutlierCleaner::dprint(const string &pref, int rp_flag)
 {
 	if (rp_flag > 0)
 		MLOG("%s :: BasicOutlierCleaner: signal: %d %s : v_channel %d : doTrim %d trimMax %f trimMin %f : doRemove %d : removeMax %f removeMin %f\n",
-			pref.c_str(),signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
+			pref.c_str(), signalId, signalName.c_str(), val_channel, params.doTrim, trimMax, trimMin, params.doRemove, removeMax, removeMin);
 }
 
 //=======================================================================================
@@ -1185,7 +1185,7 @@ void RepConfiguredOutlierCleaner::print()
 
 // Defulat initialization
 void RepRuleBasedOutlierCleaner::init_defaults() {
-	
+
 	processor_type = REP_PROCESS_RULEBASED_OUTLIER_CLEANER;
 	// consider all rules if none is given specifically
 	for (const auto &rule : rules2Signals)
@@ -1372,7 +1372,7 @@ void RepRuleBasedOutlierCleaner::init_attributes() {
 void RepRuleBasedOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	for (const auto &reqSig : req_signals)reqSignalIds.insert(sigs.sid(reqSig));
 	for (const auto &affSig : aff_signals)affSignalIds.insert(sigs.sid(affSig));
-	
+
 	// Keep names for logging.
 	for (int affSig_id : affSignalIds)
 		affected_ids_to_name[affSig_id] = sigs.name(affSig_id);
@@ -1390,12 +1390,12 @@ void RepRuleBasedOutlierCleaner::init_tables(MedDictionarySections& dict, MedSig
 	affected_by_rules.clear();
 
 	for (int i = 0; i < rulesToApply.size(); i++) {
-		
+
 		// build set of the participating signals
 		string removal_signal;
 		if (rules2RemoveSignal.find(rulesToApply[i]) != rules2RemoveSignal.end())
 			removal_signal = rules2RemoveSignal.at(rulesToApply[i]);
-		
+
 		for (auto& sname : rules2Signals[rulesToApply[i]]) {
 			int thisSid = dict.id(sname);
 			rules_sids[rulesToApply[i]].push_back(thisSid);
@@ -2408,6 +2408,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		if (field == "calculator") calculator = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "work_channel") work_channel = stoi(entry.second);
+		else if (field == "time_channel") time_channel = stoi(entry.second);
 		else if (field == "max_time_search_range") max_time_search_range = stoi(entry.second);
 		else if (field == "calculator_init_params") calculator_init_params = entry.second;
 		else if (field == "names") boost::split(V_names, entry.second, boost::is_any_of(",:"));
@@ -2465,6 +2466,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(signals[i]);
 
 	calculator_logic->validate_arguments(signals, V_names);
+	pass_time_last = calculator_logic->need_time;
 
 	return 0;
 
@@ -2489,6 +2491,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new MultiplyCalculator();
 	else if (calc_type == "set" || calc_type == "calc_set")
 		return new SetCalculator();
+	else if (calc_type == "exists" || calc_type == "calc_exists")
+		return new ExistsCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());
@@ -2524,7 +2528,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.clear();
 	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
 	vector<bool> all_sigs_static(T_Last);
-	all_sigs_static[T_TimeStamp] = true;
+	//all_sigs_static[T_TimeStamp] = true;
 	all_sigs_static[T_Value] = true;
 	all_sigs_static[T_ValShort2] = true;
 	all_sigs_static[T_ValShort4] = true;
@@ -2540,6 +2544,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);
+	pass_time_last = calculator_logic->need_time;
 }
 
 //.......................................................................................
@@ -2600,7 +2605,10 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
-			static_signals_values[i] = usv.Val(0);
+			if (usv.n_val_channels > 0)
+				static_signals_values[i] = usv.Val(0);
+			else
+				static_signals_values[i] = usv.Time(0);
 		}
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
@@ -2621,39 +2629,53 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 				//iterate on time ordered of signals - Let's try to calc signal:
 				bool can_calc = is_in_time_range(rec.usvs, idx, active_id, max_time_search_range, signals_time_unit, max_diff);
 				if (can_calc) {
-					vector<float> collected_vals(sigs_ids.size());
+					vector<float> collected_vals(sigs_ids.size() + int(pass_time_last));
 					int time_idx = 0;
 					for (size_t i = 0; i < sigs_ids.size(); ++i) {
-						if (static_input_signals[i])
+						if (static_input_signals[i]) {
 							collected_vals[i] = static_signals_values[i];
+						}
 						else {
-							collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
+							if (work_channel >= 0)
+								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
 							++time_idx;
 						}
 					}
+					if (pass_time_last) {
+						if (rec.usvs.empty())
+							collected_vals.back() = missing_value;
+						else
+							collected_vals.back() = rec.usvs[0].Time(idx[0] - 1, time_channel);
+					}
+
 					if (no_missings(collected_vals, missing_value)) {
 						float prev_val = missing_value;
-						if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
-							--final_size; //override last value
-							prev_val = v_vals[final_size];
-						}
-						if (v_times.size() < final_size + 1) {
-							v_times.resize(final_size + 1);
-							v_vals.resize(n_vals * final_size + n_vals);
-						}
-						v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-						v_vals[n_vals * final_size + n_vals - 1] = calculator_logic->do_calc(collected_vals);
-						for (int kk = 0; kk < n_vals - 1; ++kk)
-							v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+						float res_calc;
+						bool legal_val = calculator_logic->do_calc(collected_vals, res_calc);
+						if (legal_val) {
+							if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+								--final_size; //override last value
+								prev_val = v_vals[final_size];
+							}
+							if (v_times.size() < final_size + 1) {
+								v_times.resize(final_size + 1);
+								v_vals.resize(n_vals * final_size + n_vals);
+							}
+							v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 
-						if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
-							++final_size;
-							last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
-						}
-						else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
-							v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
-							//Pay attention it still update rest value channels
-							++final_size;
+							v_vals[n_vals * final_size + n_vals - 1] = res_calc;
+							for (int kk = 0; kk < n_vals - 1; ++kk)
+								v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+
+							if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
+								++final_size;
+								last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
+							}
+							else if (last_time == rec.usvs[active_id].Time(idx[active_id] - 1)) {
+								v_vals[n_vals * final_size + n_vals - 1] = prev_val; //return previous val that was not missing
+								//Pay attention it still update rest value channels
+								++final_size;
+							}
 						}
 					}
 				}
@@ -2694,6 +2716,7 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 		if (field == "names") output_name = entry.second;
 		else if (field == "signals") signals = boost::split(signals, entry.second, boost::is_any_of(","));
 		else if (field == "unconditional") unconditional = stoi(entry.second) > 0;
+		else if (field == "num_val_channels") num_val_channels = stoi(entry.second);
 		else if (field == "rp_type") {}
 		else if (field == "factors") {
 			boost::split(tokens, entry.second, boost::is_any_of(","));
@@ -2718,7 +2741,14 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	if (num_val_channels == 2)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	else if (num_val_channels == 1)
+		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
+	else if (num_val_channels == 0)
+		virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
+	else
+		MTHROW_AND_ERR("Error RepCombineSignals::init num_val_channels should be [0-2]\n");
 
 	return 0;
 }
@@ -2758,11 +2788,11 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 			if (v_times.size() < 2 * final_size + 1) {
 				v_times.resize(2 * final_size + 2);
-				v_vals.resize(2 * final_size + 2);
+				v_vals.resize(num_val_channels * final_size + num_val_channels);
 			}
 			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
-			v_vals[2 * final_size] = rec.usvs[active_id].Val(idx[active_id] - 1);
-			v_vals[2 * final_size + 1] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, 1);
+			for (int k = 0; k < num_val_channels; ++k)
+				v_vals[num_val_channels * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
@@ -2793,9 +2823,9 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 				signals[i].c_str());
 		SignalInfo &si = sigs.Sid2Info[sigs_ids[i]];
 
-		if (si.n_val_channels < 2)
-			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain 2 val channels\n",
-				signals[i].c_str());
+		if (si.n_val_channels < num_val_channels)
+			MTHROW_AND_ERR("ERROR in RepCombineSignals::init_tables - input signal %s should contain %d val channels\n",
+				signals[i].c_str(), num_val_channels);
 	}
 	req_signal_ids.clear();
 	req_signal_ids.insert(sigs_ids.begin(), sigs_ids.end());
@@ -3186,6 +3216,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "ranges_sig_name") { ranges_name = entry.second; }
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
 		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
@@ -3276,6 +3307,12 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) doRemove = false;
 				break;
 			}
+
+			if ((doRemove && get_values_in_range) || ((!doRemove) && (!get_values_in_range)))
+				doRemove = true;
+			else
+				doRemove = false;
+
 			if (!doRemove) {
 				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t);
 				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);

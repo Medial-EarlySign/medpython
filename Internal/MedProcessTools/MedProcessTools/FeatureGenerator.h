@@ -857,6 +857,7 @@ public:
 	bool verbose_full; ///< If true will print a lot - table of all stats for each code
 	string verbose_full_file; ///< output file for verbose_full debug in learn
 	string feature_prefix; ///< additional prefix to add to name to describe the feature
+	bool generate_with_counts; ///< If true will generate feature with counts not just as set
 
 	void set_signal_ids(MedSignals& sigs);
 
@@ -881,7 +882,7 @@ public:
 	int nfeatures();
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix, generate_with_counts)
 };
 
 //=======================================

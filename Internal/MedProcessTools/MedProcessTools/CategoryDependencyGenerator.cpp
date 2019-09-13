@@ -41,6 +41,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	verbose_full = false;
 	feature_prefix = "";
 	verbose_full_file = "";
+	generate_with_counts = false;
 
 	req_signals = { "BYEAR", "GENDER" };
 }
@@ -123,6 +124,8 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			max_depth = med_stoi(it->second);
 		else if (it->first == "max_parents")
 			max_parents = med_stoi(it->second);
+		else if (it->first == "generate_with_counts")
+			generate_with_counts = med_stoi(it->second) > 0;
 		else if (it->first == "fg_type") {}
 		else
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for CategoryDependencyGenerator\n", it->first.c_str())
@@ -659,14 +662,17 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 void CategoryDependencyGenerator::set_names() {
 	names.resize(top_codes.size());
+	string op_name = "set";
+	if (generate_with_counts)
+		op_name = "count";
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
 		if (!feature_prefix.empty())
-			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.%s.win_%d_%d",
-				signalName.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
+			snprintf(buff, sizeof(buff), "%s.category_dep_%s_%s.%s.win_%d_%d",
+				signalName.c_str(), op_name.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
 		else
-			snprintf(buff, sizeof(buff), "%s.category_dep_set_%s.win_%d_%d",
-				signalName.c_str(), top_codes[i].c_str(), win_from, win_to);
+			snprintf(buff, sizeof(buff), "%s.category_dep_%s_%s.win_%d_%d",
+				signalName.c_str(), op_name.c_str(), top_codes[i].c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
 }
@@ -699,12 +705,11 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 			for (int i = 0; i < rec.usv.len; i++) {
 				int itime = rec.usv.Time(i, time_channel);
 				if (itime > max_time) break;
-				if (itime >= min_time && lut[(int)rec.usv.Val(i, val_channel)]) {
-					val = 1;
-					break;
-				}
+				if (itime >= min_time && lut[(int)rec.usv.Val(i, val_channel)])
+					++val;
 			}
-
+			if (!generate_with_counts)
+				val = val > 0;
 			p_feat[i] = val;
 		}
 	}

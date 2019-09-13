@@ -59,17 +59,23 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set aside parts of the learning set required for post-processors training
 	vector<MedSamples> post_processors_learning_sets;
-	MedSamples model_learning_set;
-	split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
+	//MedSamples model_learning_set;
+	//split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
 
-	return learn(rep, model_learning_set, post_processors_learning_sets, start_stage, end_stage);
+	return learn(rep, *_samples,  post_processors_learning_sets, start_stage, end_stage);
 }
 
 // Learn with multiple MedSamples
 //.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets, MedModelStage start_stage, MedModelStage end_stage) {
+int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
 
 	MedTimer timer;
+
+	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
+	vector<MedSamples> post_processors_learning_sets;
+	MedSamples model_learning_set;
+	split_learning_set(model_learning_set_orig, post_processors_learning_sets_orig, post_processors_learning_sets, model_learning_set);
+
 
 	LearningSet = &model_learning_set;
 
@@ -348,8 +354,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			post_processors[i]->init_post_processor(*this);
 
 		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+		MedTimer pp_timer("post_processors"); pp_timer.start();
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(features);
+		pp_timer.take_curr_time();
+		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
 
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
@@ -1743,6 +1752,140 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 			post_processors_learning_sets[assignments[i] - 1].idSamples.push_back(inSamples.idSamples[i]);
 	}
 }
+
+
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets_orig, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set)
+{
+	post_processors_learning_sets.resize(post_processors.size());
+
+	// deciding which ids should be randomized/splut
+	// we use all ids from inSamples, and add also all ids from the post_processors learning sets that have use_p > 0 or use_split>=0
+	unordered_set<int> all_ids;
+	for (auto &ids : inSamples.idSamples) all_ids.insert(ids.id);
+	for (int j=0; j<post_processors.size(); j++)
+		if (post_processors[j]->use_p > 0 || post_processors[j]->use_split >= 0) {
+			for (auto &s : post_processors_learning_sets_orig[j].idSamples)
+				all_ids.insert(s.id);
+		}
+
+	vector<int> v_ids(all_ids.begin(), all_ids.end());
+	int nIds = (int)v_ids.size();
+	vector<int> assignments(nIds, 0);
+	unordered_map<int, int> id2assignment;
+
+	// Assign to post-processors
+	int idx = 1;
+	int nFreeIds = nIds;
+	for (int iId = 0; iId < nIds; iId++)
+		id2assignment[v_ids[iId]] = 0;
+	for (PostProcessor *processor : post_processors) {
+		float use_p = processor->get_use_p();
+		int use_split = processor->get_use_split();
+		if (use_p > 0 && use_split >= 0)
+			MTHROW_AND_ERR("Split_Learning_Set: At most one of use_p (%f) & use_split (%d) allowed for post-processor\n", use_p, use_split);
+		if (use_p > 0) {
+			// Adjust use_p according to free ids
+			float eff_use_p = (use_p * nIds) / nFreeIds;
+			if (eff_use_p > 1.0)
+				MTHROW_AND_ERR("Split_Learning_Set: Inconsistency at selection of subset for post-process learning : Not enough ids left for post-processor #%d\n", idx);
+
+			// Assign
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && (globalRNG::rand() / (globalRNG::max() + 1.0)) < eff_use_p) {
+					assignments[iId] = idx;
+					id2assignment[v_ids[iId]] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-p = %f , total ids = %d, before assignment, left with %d ids\n",
+					idx, processor->use_p, nIds, nFreeIds);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-p = %f\n", nAssigned, nIds, idx, processor->use_p);
+			nFreeIds -= nAssigned;
+		}
+		else if (use_split >= 0) {
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && inSamples.idSamples[iId].split == use_split) {
+					assignments[iId] = idx;
+					id2assignment[v_ids[iId]] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-split = %d\n", idx, use_split);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-split = %d\n", nAssigned, nIds, idx, use_split);
+			nFreeIds -= nAssigned;
+		}
+
+		if (nFreeIds == 0)
+			MTHROW_AND_ERR("Split_Learning_Set: Left with no ids after processor #%d\n", idx);
+		idx++;
+	}
+
+	MLOG("Split_Learning_Set: Assigned %d ids out of %d to model learning set\n", nFreeIds, nIds);
+
+	// Create MedSamples
+	model_learning_set.time_unit = inSamples.time_unit;
+	for (auto& learning_set : post_processors_learning_sets)
+		learning_set.time_unit = inSamples.time_unit;
+
+	for (auto &s : inSamples.idSamples)
+		if (id2assignment[s.id] == 0)
+			model_learning_set.idSamples.push_back(s);
+
+	
+	if (post_processors.size() > 0) {
+		if (post_processors_learning_sets_orig.size() == post_processors.size()) {
+			MLOG("Split_Learning_Set: Building lists from given post processors lists\n");
+			// case user gave lists to work with
+			// In this case we have several options:
+			// (1) No use_p and use_split are given : in this case we take the orig list as is (!!)
+			// (2) use_p given : we make sure not to use ids from orig that were not selected for this case in idSamples (but leave the others).
+			// (3) use_split given : choose by split
+			for (int j = 0; j < post_processors.size(); j++) {
+
+
+				if (post_processors[j]->use_p > 0 || post_processors[j]->use_split >= 0) {
+
+					for (int i = 0; i < post_processors_learning_sets_orig[j].idSamples.size(); i++) {
+						int id = post_processors_learning_sets_orig[j].idSamples[i].id;
+						if (id2assignment.find(id) == id2assignment.end() || id2assignment[id] == j+1)
+							post_processors_learning_sets[j].idSamples.push_back(post_processors_learning_sets_orig[j].idSamples[i]);
+					}
+
+				}
+				else {
+					post_processors_learning_sets[j] = post_processors_learning_sets_orig[j];
+				}
+
+				MLOG("Split_Learning_Set: post processor %d : orig %d ids : selected %d ids ( use_p is %f , use_split is %d )\n",
+					j, post_processors_learning_sets[j].idSamples.size(), post_processors_learning_sets_orig[j].idSamples.size(), post_processors[j]->use_p, post_processors[j]->use_split);
+			}
+		}
+		else
+		{
+			// case we need to build lists from inSamples
+
+			MLOG("Split_Learning_Set: Building lists from selected learning set members\n");
+			for (int i = 0; i < nIds; i++) {
+				if (assignments[i] != 0)
+					post_processors_learning_sets[assignments[i] - 1].idSamples.push_back(inSamples.idSamples[i]);
+			}
+
+		}
+	}
+
+
+
+}
+
 
 // Adjust model according to signals available in repository
 //--------------------------------------------------------------------------------------------------------

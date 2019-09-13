@@ -598,8 +598,8 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,
-		nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
+		ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,
+			nRem_attr_suffix, verbose_file, print_summary, print_summary_critical_cleaned)
 
 private:
 	///ruleUsvs hold the signals in the order they appear in the rule in the rules2Signals above
@@ -947,7 +947,7 @@ public:
 	// serialization. meta-data file is kept for information but not used in apply
 	void print();
 	ADD_CLASS_NAME(RepPanelCompleter)
-	ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals,virtual_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, panel_signal_names, missing_val, sim_val_handler, original_sig_res, final_sig_res, sig_conversion_factors, metadata_file, req_signals, aff_signals, virtual_signals)
 
 private:
 
@@ -1017,12 +1017,14 @@ public:
 	float missing_value = (float)MED_MAT_MISSING_VALUE; ///< missing value 
 	string calculator_name = ""; ///< just for debuging
 	int work_channel = 0; ///< the working channel
+	bool need_time = false; ///< if needed time
+	bool keep_only_in_range = false; ///< keeps only in range values
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
 	///validates correctness of inputs
 	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
-	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
+	virtual bool do_calc(const vector<float> &vals, float &res) const = 0; ///< the calc option
 	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) = 0; ///< list output signals with default naming
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
@@ -1044,13 +1046,13 @@ public:
 	float power_base = 1; ///< power base input
 	float power_mone = 1; ///< power mone input
 
-	RatioCalculator() { calculator_name = "ratio"; };
+	RatioCalculator() { calculator_name = "ratio"; keep_only_in_range = false; };
 	/// @snippet RepCalculators.cpp RatioCalculator::init
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1062,12 +1064,12 @@ public:
 	float ethnicity = 0; ///< ethnicity, for now only support 0
 	bool mdrd = false; ///< If true will use MDRD calculation
 
-	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; };
+	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; need_time = true; keep_only_in_range = true; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1075,12 +1077,14 @@ public:
 */
 class logCalculator : public SimpleCalculator {
 public:
-	logCalculator() { calculator_name = "log"; };
+	logCalculator() { calculator_name = "log"; keep_only_in_range = false; };
 
+	/// @snippet RepCalculators.cpp logCalculator::init
+	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1097,7 +1101,7 @@ public:
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1116,7 +1120,7 @@ public:
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1135,7 +1139,7 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1156,9 +1160,28 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 private:
 	vector<char> Flags;
+};
+
+/**
+* A is in as exists operation which return binary output
+* res := in_range_val if signal exists otherwise out_range_val
+*/
+class ExistsCalculator : public SimpleCalculator {
+public:
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	ExistsCalculator() { calculator_name = "exists"; keep_only_in_range = true; need_time = true; };
+	/// @snippet RepCalculators.cpp ExistsCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
+
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1172,6 +1195,7 @@ public:
 
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
+	int time_channel = 0; ///<the time channel
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1205,11 +1229,15 @@ public:
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel)
+			signals, V_names, req_signals, aff_signals, virtual_signals, work_channel, time_channel)
+		void post_deserialization() {
+		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
+		pass_time_last = p->need_time; delete p;
+	}
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
-
+	bool pass_time_last = false; ///< pass last signal as time
 	/// from a calculator name to the list of required signals
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)
@@ -1436,8 +1464,11 @@ public:
 	string output_name; ///< names of signal created by the processor
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
+	int num_val_channels; ///< number of val channels
 
-	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
+	RepCombineSignals() {
+		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2;
+	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
@@ -1558,6 +1589,7 @@ public:
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
+	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
@@ -1580,7 +1612,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type)
+		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, output_type, get_values_in_range)
 
 		/// <summary> Print processors information </summary>
 		void print();

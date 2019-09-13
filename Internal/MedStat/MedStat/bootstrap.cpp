@@ -316,6 +316,94 @@ template<typename T> inline int binary_search_position_last(const T *begin, cons
 	}
 }
 
+Mem_Iterator::Mem_Iterator(const vector<int> &pids, const vector<int> &cohort_indexes, float p_sample_ratio, int p_sample_per_pid, int seed) {
+	sample_per_pid = p_sample_per_pid;
+	sample_ratio = p_sample_ratio;
+	random_device rd;
+	if (seed == 0)
+		_rd_gen = mt19937(rd());
+	else
+		_rd_gen = mt19937(seed);
+
+	if (cohort_indexes.empty())
+		MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - empty cohort_indexes\n");
+	if (pids.size() <= cohort_indexes.front())
+		MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - got index in cohort_indexes[%zu]=%d which is bigger than pids %zu\n",
+		(size_t)0, cohort_indexes.front(), pids.size());
+	int min_pid = pids[cohort_indexes.front()], max_pid = pids[cohort_indexes.front()];
+	for (size_t i = 1; i < cohort_indexes.size(); ++i)
+	{
+		int ii = cohort_indexes[i];
+		if (ii >= pids.size())
+			MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - got index in cohort_indexes[%zu]=%d which is bigger than pids %zu\n",
+				i, cohort_indexes[i], pids.size());
+		if (pids[ii] < min_pid)
+			min_pid = pids[ii];
+		if (pids[ii] > max_pid)
+			max_pid = pids[ii];
+	}
+
+	pid_to_inds.resize(max_pid - min_pid + 1);
+	ind_to_pid.reserve(max_pid - min_pid + 1);
+	for (int ii : cohort_indexes) {
+		int pid_ind_val = pids[ii] - min_pid;
+		if (pid_to_inds[pid_ind_val].empty())
+			ind_to_pid.push_back(pid_ind_val);
+		pid_to_inds[pid_ind_val].push_back(int(ii));
+	}
+
+	cohort_size = int(sample_ratio * ind_to_pid.size());
+	//choose pids:
+
+
+	cohort_idx = cohort_indexes;
+	tot_rec_cnt = (int)pids.size();
+}
+
+void Mem_Iterator::fetch_selection(mt19937 &rd_gen, vector<int> &indexes) const {
+	indexes.clear();
+	if (sample_per_pid > 0)
+		indexes.reserve(cohort_size * sample_per_pid);
+	else
+		indexes.reserve(tot_rec_cnt);
+	uniform_int_distribution<> rand_pids(0, (int)ind_to_pid.size() - 1);
+	for (size_t k = 0; k < cohort_size; ++k)
+	{
+		int ind_pid = rand_pids(rd_gen);
+		int pid_idx_sel = ind_to_pid[ind_pid];
+		//if (pid_idx_sel >= pid_to_inds.size())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - pid_idx_sel(%d) >= pid_to_inds.size(%zu)\n",
+		//		pid_idx_sel, pid_to_inds.size());
+		const vector<int> &ind_vec = pid_to_inds[pid_idx_sel]; //the indexes of current pid:
+		//if (ind_vec.empty())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - ind_vec is empty\n");
+		//subsample if needed:
+		if (sample_per_pid == 0)
+			indexes.insert(indexes.end(), ind_vec.begin(), ind_vec.end());
+		else {
+			uniform_int_distribution<> sel_rnd(0, (int)ind_vec.size() - 1);
+			//with repeats:
+			for (size_t i = 0; i < sample_per_pid; ++i)
+			{
+				int rnd_sel = sel_rnd(rd_gen);
+				indexes.push_back(ind_vec[rnd_sel]);
+			}
+		}
+	}
+}
+
+void Mem_Iterator::fetch_selection(vector<int> &indexes) const {
+	mt19937 rd_cop = _rd_gen;
+	fetch_selection(rd_cop, indexes);
+}
+
+void Mem_Iterator::fetch_selection_external(vector<int> &indexes) const {
+	fetch_selection(indexes);
+}
+
+void Mem_Iterator::fetch_selection_external(mt19937 &rd_gen, vector<int> &indexes) const {
+	fetch_selection(rd_gen, indexes);
+}
 
 #pragma endregion
 
@@ -324,6 +412,22 @@ int get_checksum(const vector<int> &pids) {
 	for (int pid : pids)
 		checksum = (checksum + pid) & 0xFFFF;
 	return checksum;
+}
+
+void prepare_for_bootstrap(const vector<int> &pids,
+	const map<string, vector<float>> &additional_info, FilterCohortFunc &filter_cohort
+	, void *cohort_params, float sample_ratio, int sample_per_pid, int seed, vector<int> &indexes) {
+	vector<int>  filtered_indexes;
+	filtered_indexes.clear();
+	filtered_indexes.reserve((int)pids.size());
+
+	for (size_t j = 0; j < pids.size(); ++j)
+		if (filter_cohort(additional_info, (int)j, cohort_params)) {
+			filtered_indexes.push_back((int)j);
+		}
+
+	Mem_Iterator iterator(pids, filtered_indexes, sample_ratio, sample_per_pid, seed);
+	iterator.fetch_selection(indexes);
 }
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
@@ -357,6 +461,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
+	Mem_Iterator mem_iter;
+	if (sample_per_pid == 0) {
+		vector<int> empty_all(pids.size());
+		for (size_t i = 0; i < pids.size(); ++i)
+			empty_all[i] = (int)i;
+		mem_iter = Mem_Iterator(pids, empty_all, sample_ratio, sample_per_pid, seed);
+	}
 	map<string, vector<float>> all_measures;
 	iterator.sample_all_no_sampling = true;
 	//iterator.sample_per_pid = 0; //take all samples in Obs
@@ -412,58 +523,36 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
 
-		mt19937 rd_gen;
-		if (seed > 0)
-			rd_gen = mt19937(seed);
-		else {
-			random_device rd;
-			rd_gen = mt19937(rd());
-		}
-		unordered_map<int, vector<int>> pid_to_inds;
-		for (size_t i = 0; i < pids.size(); ++i)
-			pid_to_inds[pids[i]].push_back(int(i));
-
-		int cohort_size = int(sample_ratio * pid_to_inds.size());
-		int cnt_i = 0;
-		vector<int> ind_to_pid((int)pid_to_inds.size());
-		for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+		vector<mt19937> rd_gen(omp_get_max_threads());
+		random_device rd;
+		for (size_t i = 0; i < rd_gen.size(); ++i)
 		{
-			ind_to_pid[cnt_i] = it->first;
-			++cnt_i;
+			if (seed > 0)
+				rd_gen[i] = mt19937(seed);
+			else
+				rd_gen[i] = mt19937(rd());
 		}
-		//choose pids:
-		uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
 
 		//other sampling - sample pids and take all thier data:
 		//now sample cohort 
 
-		int done_cnt = 0;
-		time_t start = time(NULL);
-		time_t last_time_print = start;
+		MedProgress done_cnt("bootstrap_progress", loopCnt, 30, 1);
 #pragma omp parallel for schedule(dynamic,1)
 		for (int i = 0; i < loopCnt; ++i)
 		{
-			vector<int> selected_pids(cohort_size);
-			for (size_t k = 0; k < cohort_size; ++k)
-			{
-				int ind_pid = rand_pids(rd_gen);
-				selected_pids[k] = ind_to_pid[ind_pid];
-			}
-
 			//create preds, y for all seleceted pids:
-			vector<float> selected_preds, selected_y, selected_weights;
-			for (size_t k = 0; k < selected_pids.size(); ++k)
+			vector<int> idx;
+			mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
+			vector<float> selected_preds(idx.size()), selected_y(idx.size()), selected_weights;
+			if (weights != NULL && !weights->empty())
+				selected_weights.resize(idx.size());
+			for (size_t k = 0; k < idx.size(); ++k)
 			{
-				int pid = selected_pids[k];
-				vector<int> ind_vec = pid_to_inds[pid];
-				for (int ind : ind_vec)
-				{
-					selected_preds.push_back(preds[ind]);
-					selected_y.push_back(y[ind]);
-					if (weights != NULL && !weights->empty()) {
-						selected_weights.push_back(weights->at(ind));
-					}
-				}
+				int ind = idx[k];
+				selected_preds[k] = preds[ind];
+				selected_y[k] = y[ind];
+				if (weights != NULL && !weights->empty())
+					selected_weights[k] = weights->at(ind);
 			}
 
 			iterator.set_static(&selected_y, &selected_preds, &selected_weights, i);
@@ -500,15 +589,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
 			}
-#pragma omp atomic
-			++done_cnt;
-			if ((int)difftime(time(NULL), last_time_print) >= 30) {
-				last_time_print = time(NULL);
-				float time_elapsed = (float)difftime(time(NULL), start);
-				float estimate_time = float(loopCnt - done_cnt) / done_cnt * time_elapsed;
-				MLOG("%s: Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes\n",
-					cohort_name.c_str(), done_cnt, loopCnt, 100.0*(done_cnt / float(loopCnt)), time_elapsed / 60, estimate_time / 60.0);
-			}
+
+			done_cnt.update();
 		}
 	}
 
@@ -978,12 +1060,15 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		return res;
 	}
 	if (params->show_warns) {
-		bool has_neg = false;
-		for (size_t i = 0; i < true_rate.size() && !has_neg; ++i) 
-			has_neg = true_rate[i] < 0;
+		int last_idx = -1;
+		for (size_t i = 0; i < true_rate.size(); ++i) {
+			if (true_rate[i] < 0)
+				last_idx = (int)i;
+		}
 
-		if (has_neg)
-			MWARN("true positive has negative values - outcome fix is too aggresive\n");
+		if (last_idx > -1 && false_rate[last_idx] / f_sum >= 0.005)
+			MWARN("true positive has negative values - outcome fix is too aggresive (index=%d, fpr=%2.1f%%, sens=%2.1f%%)\n",
+				last_idx, 100 * false_rate[last_idx] / f_sum, 100 * true_rate[last_idx] / float(!trunc_max ? t_sum : tt_cnt));
 	}
 	for (size_t i = 0; i < true_rate.size(); ++i)
 		if (true_rate[i] < 0)
@@ -1458,7 +1543,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		i = 1; //first point is always before
 		while (i < true_rate.size() && curr_wp_score_ind < score_points.size())
 		{
-			score_c = unique_scores[true_rate.size()-i-1];
+			score_c = unique_scores[true_rate.size() - i - 1];
 
 			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
 				score_prev = unique_scores[true_rate.size() - i];
@@ -1471,7 +1556,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					tot_diff = 1; //take prev - first apeareance
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
-					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind],false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
 					res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
