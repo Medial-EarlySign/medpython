@@ -131,6 +131,8 @@ public:
 	// time unit , currently supporting Date and Minutes
 	int rep_time_unit = MedTime::Date; // default is Date.
 
+	MedModel model_rep_processors;
+
 	int read_config(const string &config_fname);
 
 };
@@ -182,6 +184,7 @@ public:
 		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views); 
 	}
 
+	int init_rep_processors(MedPidRepository &rep);
 
 private:
 	// builders for html

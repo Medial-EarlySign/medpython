@@ -141,6 +141,9 @@ int MedPlotlyParams::read_config(const string &fname)
 				else if (fields[0] == "TIME_UNIT") {
 					rep_time_unit = med_time_converter.string_to_type(fields[1]);
 				}
+				else if (fields[0] == "REP_PROCESSORS") {
+					model_rep_processors.init_from_json_file(fields[1]);
+				}
 			}
 		}
 	}
@@ -1079,5 +1082,15 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 	shtml += "</body>\n";
 	shtml += "</html>\n";
 
+	return 0;
+}
+
+int MedPatientPlotlyDate::init_rep_processors(MedPidRepository &rep) {
+	if (!params.model_rep_processors.rep_processors.empty()) {
+		//do something:
+		params.model_rep_processors.fit_for_repository(rep);
+
+
+	}
 	return 0;
 }
