@@ -132,6 +132,8 @@ public:
 	int rep_time_unit = MedTime::Date; // default is Date.
 
 	MedModel model_rep_processors;
+	bool load_dynamically = true;
+	vector<int> phisical_read_sigs;
 
 	int read_config(const string &config_fname);
 
@@ -146,7 +148,7 @@ public:
 	string color = ""; // if empty will use default color lists
 
 	ChartTimeSign() {};
-	ChartTimeSign(int t, const string &_name, const string _color) { time=t; name=_name; color=_color; }
+	ChartTimeSign(int t, const string &_name, const string _color) { time = t; name = _name; color = _color; }
 	int init(map<string, string>& _map);
 
 	// example of how to initialize a vector:
@@ -162,7 +164,45 @@ public:
 	int from_date = 0;
 	int to_date = 0;
 
-	
+
+};
+
+class PidDataRec {
+public:
+	PidRec rec_static;
+	PidDynamicRec rec_dynamic;
+	bool use_dynamic = false;
+
+	void uget(int sid, UniversalSigVec &usv) {
+		if (use_dynamic)
+			rec_dynamic.uget(sid, rec_dynamic.get_n_versions() - 1, usv);
+		else
+			rec_static.uget(sid, usv);
+	}
+	void uget(const string &sid, UniversalSigVec &usv) {
+		if (use_dynamic)
+			rec_dynamic.uget(sid, rec_dynamic.get_n_versions() - 1, usv);
+		else
+			rec_static.uget(sid, usv);
+	}
+	void *get(const string &sid, int &len) {
+		if (use_dynamic)
+			return rec_dynamic.get(sid, rec_dynamic.get_n_versions() - 1, len);
+		else
+			return rec_static.get(sid, len);
+	}
+	int pid() {
+		if (use_dynamic)
+			return rec_dynamic.pid;
+		else
+			return rec_static.pid;
+	}
+	MedRepository *my_base_rep() {
+		if (use_dynamic)
+			return rec_dynamic.my_base_rep;
+		else
+			return rec_static.my_base_rep;
+	}
 };
 
 //=========================================================================================================
@@ -179,28 +219,28 @@ public:
 
 	// gets a pid record and returns a string representing the html for its view page based on configuration
 	// mode is either file (for an html file:/// version) or server (for use with a web server returning it)
-	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view);
-	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times) { 
-		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views); 
+	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidDataRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view);
+	int get_rec_html(string &shtml, LocalViewsParams &lvp, PidDataRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times) {
+		return get_rec_html(shtml, lvp, rec, mode, sign_times, params.views);
 	}
 
-	int init_rep_processors(MedPidRepository &rep);
+	int init_rep_processors(MedPidRepository &rep, const string &rep_conf);
 
 private:
 	// builders for html
 	int add_html_header(string &shtml, const string &mode);
-	int add_basic_demographics(string &shtml, PidRec &rec, vector<ChartTimeSign> &times);
-	int add_panel_chart(string &shtml, LocalViewsParams &lvp, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times);
-	int add_drugs_heatmap(string &shtml, PidRec &rec);
+	int add_basic_demographics(string &shtml, PidDataRec &rec, vector<ChartTimeSign> &times);
+	int add_panel_chart(string &shtml, LocalViewsParams &lvp, PidDataRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times);
+	int add_drugs_heatmap(string &shtml, PidDataRec &rec);
 
 	// THIN_RC report
-	void add_thin_rc_chart(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
+	void add_thin_rc_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times);
 
 	// categorical signal , add as table
-	void add_categorical_table(string sig, string &shtml, PidRec &rec, const vector<ChartTimeSign> &times);
+	void add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times);
 
 	// heatmap creation
-	void get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);
+	void get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);
 
 
 	// adding a specific dataset of a sepcific sig + channel
@@ -212,7 +252,7 @@ private:
 
 	// helpers
 	string  date_to_string(int date);
-	string	time_to_string(int time, int time_unit); 
+	string	time_to_string(int time, int time_unit);
 	string	time_to_string(int time) { return time_to_string(time, params.rep_time_unit); }
 	void get_usv_min_max(UniversalSigVec &usv, float &vmin, float &vmax);
 
