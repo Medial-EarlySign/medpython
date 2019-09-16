@@ -938,6 +938,7 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
+
 	// Prepare new Features
 	int samples_size = (int)features.samples.size();
 	for (auto& rec : value2feature) {
@@ -1195,7 +1196,7 @@ void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req
 	if (out_req_features.empty())
 		in_req_features.clear();
 	else {
-		out_req_features = in_req_features;
+		in_req_features = out_req_features;
 		// If active, than add original 
 		if (are_features_affected(out_req_features))
 			in_req_features.insert(resolved_feature_name);

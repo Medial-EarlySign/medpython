@@ -99,6 +99,62 @@ private:
 };
 
 /**
+* A class which fetches the samples in bootstrap manner in memort way. \n
+* The object selects indexes in each bootstrap
+* fetches the samples in randomization by index vector
+* in the future - choose dynamically the faster Iterator to use Lazy_Iterator or Mem_Iterator
+*/
+class Mem_Iterator {
+public:
+	//no calc
+	Mem_Iterator() {}
+
+	/// <summary>
+	/// The Ctor
+	/// @param pids a reference to pids vector - without selection
+	/// @param cohort_indexes a reference to selected indexes from cohort filter to bootstrap indexes from
+	/// @param p_sample_ratio a sample ratio parameter for the bootstrap (0-1]
+	/// @param p_sample_per_pid a sample count per patient
+	/// (num of threads or the bootstrap loop count).
+	/// @param seed if 0 will use random device to select seed for randomization
+	/// </summary>
+	Mem_Iterator(const vector<int> &pids, const vector<int> &cohort_indexes, float p_sample_ratio, int p_sample_per_pid, int seed);
+
+	/// <summary>
+	/// Inline function to fetch indexes
+	/// </summary>
+	inline void fetch_selection(vector<int> &indexes) const;
+
+	/// <summary>
+	/// external function to fetch indexes
+	/// </summary>
+	void fetch_selection_external(vector<int> &indexes) const;
+
+	/// <summary>
+	/// Inline function to fetch indexes - for multi thread - provide random generator
+	/// </summary>
+	inline void fetch_selection(mt19937 &rd_gen, vector<int> &indexes) const;
+
+	/// <summary>
+	/// external function to fetch indexes  - for multi thread - provide random generator
+	/// </summary>
+	void fetch_selection_external(mt19937 &rd_gen, vector<int> &indexes) const;
+
+	//sampling params:
+	float sample_ratio; ///<the sample ratio of the patients out of all patients in each bootstrap
+	int sample_per_pid; ///<how many samples to take for each patients. 0 - means no sampling take all sample for patient
+private:
+	//internal structure - one time init
+	mt19937 _rd_gen;
+
+	int cohort_size;
+	int tot_rec_cnt;
+	vector<vector<int>> pid_to_inds;
+	vector<int> ind_to_pid;
+	vector<int> cohort_idx;
+};
+
+/**
 * A base class for measurements parameter
 */
 class Measurement_Params {
@@ -200,7 +256,7 @@ public:
 	float score_resolution; ///< score resultion to contorl bining for speed up calculation. 0 means no binning resulotion
 	bool fix_label_to_binary; ///< If True will change label value to be binary 0,1 (default is True)
 	Incident_Stats inc_stats; ///< the incedince data if provided for general population. look for Incident_Stats for more info
-	
+
 	/// <summary>
 	/// Default Ctor
 	/// </summary>
@@ -228,7 +284,7 @@ public:
 	int init(map<string, string>& map);
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
-	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score,use_score_working_points,
+	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score, use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
 };
 
@@ -281,7 +337,7 @@ public:
 	ADD_SERIALIZATION_FUNCS(param_name, min_range, max_range)
 };
 
-struct ROC_And_Filter_Params: public Measurement_Params {
+struct ROC_And_Filter_Params : public Measurement_Params {
 	ROC_Params *roc_params;
 	vector<Filter_Param> *filter;
 };
@@ -386,6 +442,23 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	PreprocessScoresFunc preprocess_scores = NULL, Measurement_Params *preprocess_scores_params = NULL,
 	float sample_ratio = (float)1.0, int sample_per_pid = 1,
 	int loopCnt = 500, int seed = 0, bool binary_outcome = true);
+
+/// <summary>
+/// @param pids the pids vector
+/// @param additional_info the data vector for filtering
+/// @param filter_cohort The cohorts definition - the filtering function
+/// @param cohort_params Additional parameters for the filtering cohort function
+/// @param sample_ratio A number in range (0,1] for subsampling the samples
+/// @param sample_per_pid How many samples to sample on each id
+/// @param seed The random seed. If 0 will use random_device to create random seed
+/// @param indexes the selected indexes results for the bootstrap
+/// <returns>
+/// Returns indexes vector
+/// </returns>
+/// </summary>
+void prepare_for_bootstrap(const vector<int> &pids,
+	const map<string, vector<float>> &additional_info, FilterCohortFunc &filter_cohort
+	, void *cohort_params, float sample_ratio, int sample_per_pid, int seed, vector<int> &indexes);
 
 /// <summary>
 /// Will output the bootstrap results into file in TAB delimeted format. each line is cohort and the

@@ -354,8 +354,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			post_processors[i]->init_post_processor(*this);
 
 		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+		MedTimer pp_timer("post_processors"); pp_timer.start();
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(features);
+		pp_timer.take_curr_time();
+		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
 
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
@@ -1151,8 +1154,9 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 	signalNames = targetSignalNames;
 
 	// Collect from processors itertively
-	for (int i = (int)rep_processors.size() - 1; i > 0; i--)
+	for (int i = (int)rep_processors.size() - 1; i >= 0; i--) {
 		rep_processors[i]->get_required_signal_names(signalNames, signalNames);
+	}
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
@@ -1766,7 +1770,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 		}
 
 	vector<int> v_ids(all_ids.begin(), all_ids.end());
-	int nIds = v_ids.size();
+	int nIds = (int)v_ids.size();
 	vector<int> assignments(nIds, 0);
 	unordered_map<int, int> id2assignment;
 

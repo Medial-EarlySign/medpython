@@ -1018,12 +1018,13 @@ public:
 	string calculator_name = ""; ///< just for debuging
 	int work_channel = 0; ///< the working channel
 	bool need_time = false; ///< if needed time
+	bool keep_only_in_range = false; ///< keeps only in range values
 
 	///init function of calculator
 	virtual int init(map<string, string>& mapper) { return 0; };
 	///validates correctness of inputs
 	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
-	virtual float do_calc(const vector<float> &vals) const = 0; ///< the calc option
+	virtual bool do_calc(const vector<float> &vals, float &res) const = 0; ///< the calc option
 	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) = 0; ///< list output signals with default naming
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
@@ -1045,13 +1046,13 @@ public:
 	float power_base = 1; ///< power base input
 	float power_mone = 1; ///< power mone input
 
-	RatioCalculator() { calculator_name = "ratio"; };
+	RatioCalculator() { calculator_name = "ratio"; keep_only_in_range = false; };
 	/// @snippet RepCalculators.cpp RatioCalculator::init
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1063,12 +1064,12 @@ public:
 	float ethnicity = 0; ///< ethnicity, for now only support 0
 	bool mdrd = false; ///< If true will use MDRD calculation
 
-	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; need_time = true; };
+	eGFRCalculator() { calculator_name = "eGFR_CKD_EPI"; need_time = true; keep_only_in_range = true; };
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1076,12 +1077,14 @@ public:
 */
 class logCalculator : public SimpleCalculator {
 public:
-	logCalculator() { calculator_name = "log"; };
+	logCalculator() { calculator_name = "log"; keep_only_in_range = false; };
 
+	/// @snippet RepCalculators.cpp logCalculator::init
+	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1098,7 +1101,7 @@ public:
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1117,7 +1120,7 @@ public:
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1136,7 +1139,7 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1157,9 +1160,28 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
-	float do_calc(const vector<float> &vals) const;
+	bool do_calc(const vector<float> &vals, float &res) const;
 private:
 	vector<char> Flags;
+};
+
+/**
+* A is in as exists operation which return binary output
+* res := in_range_val if signal exists otherwise out_range_val
+*/
+class ExistsCalculator : public SimpleCalculator {
+public:
+	float in_range_val = 1; ///< return value when within range
+	float out_range_val = 0; ///< return value when not within range
+
+	ExistsCalculator() { calculator_name = "exists"; keep_only_in_range = true; need_time = true; };
+	/// @snippet RepCalculators.cpp ExistsCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals);
+
+	bool do_calc(const vector<float> &vals, float &res) const;
 };
 
 /**
@@ -1174,7 +1196,6 @@ public:
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
 	int time_channel = 0; ///<the time channel
-	bool pass_time_last = false; ///< pass last signal as time
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1216,7 +1237,7 @@ public:
 
 private:
 	// definitions and defaults for each calculator - all must be filled in for a new calculator
-
+	bool pass_time_last = false; ///< pass last signal as time
 	/// from a calculator name to the list of required signals
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)
@@ -1443,8 +1464,11 @@ public:
 	string output_name; ///< names of signal created by the processor
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
+	int num_val_channels; ///< number of val channels
 
-	RepCombineSignals() { processor_type = REP_PROCESS_COMBINE; output_name = ""; }
+	RepCombineSignals() {
+		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2;
+	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 

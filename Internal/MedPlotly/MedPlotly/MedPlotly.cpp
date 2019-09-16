@@ -7,7 +7,9 @@
 #include <MedUtils/MedUtils/MedGlobalRNG.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#ifdef __unix__
 #include <unistd.h>
+#endif
 
 //------------------------------------------------------------------------------------------------
 int SignalParams::init(map<string, string>& _map)
@@ -141,6 +143,12 @@ int MedPlotlyParams::read_config(const string &fname)
 				else if (fields[0] == "TIME_UNIT") {
 					rep_time_unit = med_time_converter.string_to_type(fields[1]);
 				}
+				else if (fields[0] == "REP_PROCESSORS") {
+					model_rep_processors.init_from_json_file(fields[1]);
+				}
+				else if (fields[0] == "LOAD_DYNAMICALLY") {
+					load_dynamically = med_stoi(fields[1]) > 0;
+				}
 			}
 		}
 	}
@@ -165,7 +173,7 @@ int MedPatientPlotlyDate::add_html_header(string &shtml, const string &mode)
 }
 
 //------------------------------------------------------------------------------------------------
-int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vector<ChartTimeSign> &times)
+int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidDataRec &rec, vector<ChartTimeSign> &times)
 {
 	float age;
 	int len;
@@ -186,7 +194,7 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vec
 	MLOG("add_basic_demographics 2 death is %d (len %d)\n", death, usv.len);
 	shtml += "<h1> Patient Report </h1>\n";
 
-	shtml += "<h3> pid " + to_string(rec.pid) + " , ";
+	shtml += "<h3> pid " + to_string(rec.pid()) + " , ";
 	if (gender == 1)
 		shtml += "Male , ";
 	else
@@ -220,7 +228,7 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vec
 			else
 				shtml += " date: " + date_to_string(t.time);
 			if (t.name != "") shtml += " [" + t.name + "] ";
-			shtml +="</h3>\n";
+			shtml += "</h3>\n";
 		}
 	}
 
@@ -230,14 +238,14 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidRec &rec, vec
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs)
+void MedPatientPlotlyDate::get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs)
 {
 	int month_granularity = params.dhm_params.granularity_months; // 1 , 2, 3, 4, 6, 12 (should divide 12)
 	string drug_sig = params.dhm_params.drug_sig;
 	int hmap_min_date = params.dhm_params.min_date;
 	int h_lines = (int)drugs.size();
 
-	if (rec.my_base_rep->sigs.sid(drug_sig) < 0) return; // working with a rep with no Drug signal...
+	if (rec.my_base_rep()->sigs.sid(drug_sig) < 0) return; // working with a rep with no Drug signal...
 
 	// read drug data
 	UniversalSigVec usv;
@@ -251,19 +259,19 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 	// calculate min/max cells dates, xdays and xdates
 	int min_date = usv.Time(0, 0);
 	if (min_date < hmap_min_date) min_date = hmap_min_date;
-	int max_date = usv.Time(usv.len-1, 0);
-	min_date = (min_date/10000)*10000+101;
-	max_date = (max_date/10000)*10000+(12-month_granularity)*100 + 1;
+	int max_date = usv.Time(usv.len - 1, 0);
+	min_date = (min_date / 10000) * 10000 + 101;
+	max_date = (max_date / 10000) * 10000 + (12 - month_granularity) * 100 + 1;
 	vector<int> xdays;
 	xdates.clear();
 	int t = min_date;
-	while (t<=max_date) {
+	while (t <= max_date) {
 		int days = med_time_converter.convert_date(MedTime::Days, t);
 		xdates.push_back(t);
 		xdays.push_back(days);
 
-		t += (month_granularity)*100;
-		if (t % 10000 > 1231) t = (t/10000 + 1)*10000 + 101;
+		t += (month_granularity) * 100;
+		if (t % 10000 > 1231) t = (t / 10000 + 1) * 10000 + 101;
 	}
 	max_date = t;
 	xdays.push_back(med_time_converter.convert_date(MedTime::Days, t));
@@ -272,20 +280,20 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 	hmap.resize(h_lines);
 
 	vector<int> drug_days;
-	for (int i=0; i<usv.len; i++)
+	for (int i = 0; i < usv.len; i++)
 		drug_days.push_back(med_time_converter.convert_date(MedTime::Days, usv.Time(i, 0)));
 
-	int section_id = rec.my_base_rep->dict.section_id(drug_sig);
+	int section_id = rec.my_base_rep()->dict.section_id(drug_sig);
 	vector<int> sets_sum(h_lines, 0);
 	int first_nonz = 99999999, last_nonz = 0;
-	for (int s=0; s<h_lines; s++) {
+	for (int s = 0; s < h_lines; s++) {
 		vector<unsigned char> lut;
 		string drug_group = drugs[s];
-		rec.my_base_rep->dict.prep_sets_indexed_lookup_table(section_id, params.drugs_groups[drug_group], lut);
+		rec.my_base_rep()->dict.prep_sets_indexed_lookup_table(section_id, params.drugs_groups[drug_group], lut);
 		hmap[s].resize(xdates.size(), (float)0);
-		int last_day_counted = xdays[0]-1;
+		int last_day_counted = xdays[0] - 1;
 		int curr_cell = 0;
-		for (int i=0; i<usv.len; i++) {
+		for (int i = 0; i < usv.len; i++) {
 			if (lut[(int)usv.Val(i, 0)]) {
 				//MLOG("Taking the drug at i=%d %d,%d\n", i, usv.Time(i,0), (int)usv.Val(i, 1));
 				if (usv.n_val_channels() > 1)
@@ -298,18 +306,18 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 				if (usv.n_val_channels() > 1)
 					to_day = drug_days[i] + (int)usv.Val(i, 1);
 				if (to_day > last_day_counted) {
-					int from_day = max(last_day_counted+1, drug_days[i]);
+					int from_day = max(last_day_counted + 1, drug_days[i]);
 					// get the curr_cell from_day is contained in
-					while ((curr_cell < xdays.size()-1) && (xdays[curr_cell+1] <= from_day)) curr_cell++;
-					if (curr_cell >= xdays.size()-1) break; // we finished this part
+					while ((curr_cell < xdays.size() - 1) && (xdays[curr_cell + 1] <= from_day)) curr_cell++;
+					if (curr_cell >= xdays.size() - 1) break; // we finished this part
 					int left = to_day - from_day;
 					if (to_day < xdays[0]) left = 0;
 					//MLOG("from %d , to %d , curr %d , left %d\n", from_day, to_day, curr_cell, left);
 					while (left > 0) {
-						if (from_day + left < xdays[curr_cell+1]) {
+						if (from_day + left < xdays[curr_cell + 1]) {
 							// all contained in current
 							//MLOG("add1: before : from %d , to %d , curr %d , left %d\n", from_day, to_day, curr_cell, left);
-							hmap[s][curr_cell] += (float)(left+1);
+							hmap[s][curr_cell] += (float)(left + 1);
 							last_day_counted = to_day;
 							left = 0;
 							//MLOG("add1: after : from %d , to %d , curr %d , left %d\n", from_day, to_day, curr_cell, left);
@@ -317,9 +325,9 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 						else {
 							// count to the end and advance to next 
 							//MLOG("add2: before : from %d , to %d , curr %d , left %d add %d \n", from_day, to_day, curr_cell, left, xdays[curr_cell+1] - from_day);
-							hmap[s][curr_cell] += (float)(xdays[curr_cell+1] - from_day);
+							hmap[s][curr_cell] += (float)(xdays[curr_cell + 1] - from_day);
 							curr_cell++;
-							if (curr_cell >= xdays.size()-1) break; // we finished this part
+							if (curr_cell >= xdays.size() - 1) break; // we finished this part
 							from_day = xdays[curr_cell];
 							left = to_day - from_day;
 							last_day_counted = from_day - 1;
@@ -331,8 +339,8 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 		}
 
 		// hmap[s] needs to be normalized to coverage
-		for (int i=0; i<hmap[s].size(); i++)
-			hmap[s][i] /= (float)(xdays[i+1] - xdays[i]);
+		for (int i = 0; i < hmap[s].size(); i++)
+			hmap[s][i] /= (float)(xdays[i + 1] - xdays[i]);
 	}
 
 	// Shrinkage
@@ -341,21 +349,21 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 	first_nonz = first_nonz - 20000;
 	last_nonz = last_nonz + 10000;
 	int start_cell = -1, end_cell = -1;
-	for (int i=0; i<xdates.size(); i++) {
+	for (int i = 0; i < xdates.size(); i++) {
 		if (first_nonz >= xdates[i]) start_cell++;
 		if (last_nonz >= xdates[i]) end_cell++;
 	}
 	if (start_cell < 0) start_cell = 0;
 	_xdates.clear();
 	//MLOG("min_date %d max_date %d first_nonz %d last_nonz %d start_cell %d end_cell %d xdates.size %d\n", min_date, max_date, first_nonz, last_nonz, start_cell, end_cell, xdates.size());
-	for (int i=start_cell; i<=end_cell; i++) _xdates.push_back(xdates[i]);
+	for (int i = start_cell; i <= end_cell; i++) _xdates.push_back(xdates[i]);
 	_hmap.clear();
 	_sets_names.clear();
-	for (int s=0; s<sets_sum.size(); s++) {
+	for (int s = 0; s < sets_sum.size(); s++) {
 		if (sets_sum[s] > 0) {
 			_sets_names.push_back(drugs[s]);
 			_hmap.push_back({});
-			for (int i=start_cell; i<=end_cell; i++) _hmap.back().push_back(hmap[s][i]);
+			for (int i = start_cell; i <= end_cell; i++) _hmap.back().push_back(hmap[s][i]);
 		}
 	}
 
@@ -365,13 +373,13 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 
 #if 0
 	MLOG("xdates: ");
-	for (int i=0; i<xdates.size(); i++) MLOG("[%d] %d:%d ", i, xdates[i], xdays[i]);
+	for (int i = 0; i < xdates.size(); i++) MLOG("[%d] %d:%d ", i, xdates[i], xdays[i]);
 	MLOG("\n");
-	for (int s=0; s<sets.size(); s++) {
+	for (int s = 0; s < sets.size(); s++) {
 		MLOG("%s : ", sets[s][0].c_str());
-		for (int i=0; i<hmap[s].size(); i++) MLOG("[%d] %f ", i, hmap[s][i]);
+		for (int i = 0; i < hmap[s].size(); i++) MLOG("[%d] %f ", i, hmap[s][i]);
 		MLOG("\n");
-	}
+}
 #endif
 
 }
@@ -379,8 +387,8 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 //----------------------------------------------------------------------------------------
 string MedPatientPlotlyDate::date_to_string(int date)
 {
-	int y = date/10000;
-	int m = (date % 10000)/100;
+	int y = date / 10000;
+	int m = (date % 10000) / 100;
 	int d = date % 100;
 
 	string s = "'" + to_string(y) + "-" + to_string(m) + "-" + to_string(d) + "'";
@@ -414,8 +422,8 @@ void MedPatientPlotlyDate::get_usv_min_max(UniversalSigVec &usv, float &vmin, fl
 {
 	vmin = (float)1e10;
 	vmax = -vmin;
-	for (int chan=0; chan<usv.n_val_channels(); chan++)
-		for (int i=0; i<usv.len; i++) {
+	for (int chan = 0; chan < usv.n_val_channels(); chan++)
+		for (int i = 0; i < usv.len; i++) {
 			float v = usv.Val(i, chan);
 			if (v < vmin) vmin = v;
 			if (v > vmax) vmax = v;
@@ -426,8 +434,8 @@ void MedPatientPlotlyDate::get_usv_min_max(UniversalSigVec &usv, float &vmin, fl
 void MedPatientPlotlyDate::add_xy_js(string &shtml, UniversalSigVec &usv, int time_chan, int chan, int null_zeros_flag, string prefix)
 {
 	// dates
-	shtml += prefix+"x: [";
-	for (int i=0; i<usv.len; i++) {
+	shtml += prefix + "x: [";
+	for (int i = 0; i < usv.len; i++) {
 		shtml += time_to_string(usv.Time(i, time_chan));
 		if (i < usv.len - 1)	shtml += ",";
 	}
@@ -435,7 +443,7 @@ void MedPatientPlotlyDate::add_xy_js(string &shtml, UniversalSigVec &usv, int ti
 
 	// vals
 	shtml += prefix + "y: [";
-	for (int i=0; i<usv.len; i++) {
+	for (int i = 0; i < usv.len; i++) {
 		float v = usv.Val(i, chan);
 		if (null_zeros_flag == 0 || v > 0)
 			shtml += to_string(v);
@@ -451,8 +459,8 @@ void MedPatientPlotlyDate::add_xy_js(string &shtml, UniversalSigVec &usv, int ti
 void MedPatientPlotlyDate::add_xy_js(string &shtml, vector<int> &dates, vector<float> &vals, int null_zeros_flag, string prefix)
 {
 	// dates
-	shtml += prefix+"x: [";
-	for (int i=0; i<dates.size(); i++) {
+	shtml += prefix + "x: [";
+	for (int i = 0; i < dates.size(); i++) {
 		shtml += time_to_string(dates[i]);
 		if (i < dates.size() - 1)	shtml += ",";
 	}
@@ -460,7 +468,7 @@ void MedPatientPlotlyDate::add_xy_js(string &shtml, vector<int> &dates, vector<f
 
 	// vals
 	shtml += prefix + "y: [";
-	for (int i=0; i<vals.size(); i++) {
+	for (int i = 0; i < vals.size(); i++) {
 		float v = vals[i];
 		if (null_zeros_flag == 0 || v > 0)
 			shtml += to_string(v);
@@ -485,7 +493,7 @@ void MedPatientPlotlyDate::add_dataset_js(string &shtml, UniversalSigVec &usv, i
 	shtml += prefix + "\tline: {shape: 'spline', width: 2, smoothing: 0.75},\n";
 	shtml += prefix + "\tyaxis: 'y" + to_string(yaxis) + "',\n";
 	if (null_zeros_flag) shtml += prefix + "\tconnectgaps: true,\n";
-	shtml += prefix + "\tname: '" + sig +"'\n";
+	shtml += prefix + "\tname: '" + sig + "'\n";
 
 	// close it
 	shtml += prefix + "};\n";
@@ -512,11 +520,11 @@ void MedPatientPlotlyDate::add_bg_dataset_js(string &shtml, vector<int> &dates, 
 	shtml += prefix + "\tmode: 'none',\n";
 	shtml += prefix + "\thoverinfo: 'none',\n";
 	shtml += prefix + "\tfill: 'tozeroy',\n";
-	shtml += prefix + "\tfillcolor: '"+color+"',\n";
+	shtml += prefix + "\tfillcolor: '" + color + "',\n";
 	shtml += prefix + "\tline: {shape: 'hv'},\n";
 	shtml += prefix + "\tyaxis: 'y" + to_string(yaxis) + "',\n";
 	if (null_zeros_flag) shtml += prefix + "\tconnectgaps: true,\n";
-	shtml += prefix + "\tname: '" + name +"'\n";
+	shtml += prefix + "\tname: '" + name + "'\n";
 
 	// close it
 	shtml += prefix + "};\n";
@@ -524,7 +532,7 @@ void MedPatientPlotlyDate::add_bg_dataset_js(string &shtml, vector<int> &dates, 
 
 
 //----------------------------------------------------------------------------------------
-int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, PidRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times)
+int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, PidDataRec &rec, const PanelInfo &pi, const vector<ChartTimeSign> &times)
 {
 	//int pid = rec.pid;
 	int def_time_chan = 0;
@@ -552,7 +560,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	string shtml_sets;
 	int n_yaxis = (int)pi.sigs.size();
 	vector<float> vmin(pi.sigs.size()), vmax(pi.sigs.size());
-	for (int i=0; i<pi.sigs.size(); i++) {
+	for (int i = 0; i < pi.sigs.size(); i++) {
 		rec.uget(pi.sigs[i], usv);
 		//MLOG("Read sig %s, got %d elements in usv\n", pi.sigs[i].c_str(), usv.len);
 		int time_chan = def_time_chan;
@@ -560,8 +568,8 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 			time_chan = params.sig_params[pi.sigs[i]].time_chan;
 
 		tot_len += usv.len;
-		for (int chan=0; chan<usv.n_val_channels(); chan++) {
-			add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), i+1, pi.sigs[i]);
+		for (int chan = 0; chan < usv.n_val_channels(); chan++) {
+			add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), i + 1, pi.sigs[i]);
 		}
 		get_usv_min_max(usv, vmin[i], vmax[i]);
 	}
@@ -569,15 +577,15 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	if (tot_len == 0) return 0;
 
 	if (pi.drugs.size() > 0) {
-		for (int i=0; i<pi.drugs.size(); i++) {
+		for (int i = 0; i < pi.drugs.size(); i++) {
 			vector<string> dname;
 			vector<int> xdates;
 			vector<vector<float>> hmap;
 			get_drugs_heatmap(rec, xdates, dname, hmap, { pi.drugs[i] });
-			if (xdates.size()>0 && hmap.size()>0) {
+			if (xdates.size() > 0 && hmap.size() > 0) {
 				string color = PlotlyColorDefaults::bg_opaque_colors[i % PlotlyColorDefaults::bg_opaque_colors.size()];
 				if (i < pi.drug_colors.size()) color = pi.drug_colors[i];
-				add_bg_dataset_js(shtml_sets, xdates, hmap[0], 0, color, "\t\t", "set" + to_string(++cnt), n_yaxis+1, pi.drugs[i]);
+				add_bg_dataset_js(shtml_sets, xdates, hmap[0], 0, color, "\t\t", "set" + to_string(++cnt), n_yaxis + 1, pi.drugs[i]);
 				n_yaxis++;
 				vmin.push_back(0);
 				vmax.push_back(0);
@@ -591,7 +599,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	// set height , width, and block_mode
 	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(pwidth) + "px;height:" + to_string(pheight) + "px;";
 	if (block_mode) shtml += "display: inline-block;";
-	shtml+= "\"></div>\n";
+	shtml += "\"></div>\n";
 	shtml += "\t<script>\n";
 
 	shtml += shtml_sets;
@@ -604,12 +612,12 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	float psize = (float)0.98;
 	// deal with multiple yaxis
 	// deal with multiple yaxis
-	for (int i=0; i<n_yaxis; i++) {
+	for (int i = 0; i < n_yaxis; i++) {
 		if (i == 0)
-			shtml += "\t\t\tyaxis" + to_string(i+1) +": {title: '" + titles[i] + "', showline: false";
+			shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {title: '" + titles[i] + "', showline: false";
 
 		if (i > 0) {
-			shtml += "\t\t\tyaxis" + to_string(i+1) +": {showline: false";
+			shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {showline: false";
 			//shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize+0.02*i) + ", tick: '', showticklabels: false";
 			shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize) + ", tick: '', showticklabels: false";
 		}
@@ -625,13 +633,13 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 			from_t.pop_back();
 			from_t += " 00:00'";
 			to_t.pop_back();
-			to_t += " 23:59'";			
+			to_t += " 23:59'";
 		}
 	}
 
-	shtml += "\t\t\txaxis: { omain: [0," + to_string(psize) +"], ";
+	shtml += "\t\t\txaxis: { omain: [0," + to_string(psize) + "], ";
 	if (from_t != "") shtml += "range: [" + from_t + "," + to_t + "], ";
-	if (params.rep_time_unit == MedTime::Date) 
+	if (params.rep_time_unit == MedTime::Date)
 		shtml += "hoverformat: '%Y/%m/%d'},\n";
 	else
 		shtml += "hoverformat: '%Y/%m/%d %H:%M'},\n";
@@ -651,10 +659,10 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 
 	// prep data variable
 	shtml += "\t\tvar data = [";
-	for (int i=0; i<cnt; i++) {
-		string set_name = "set" + to_string(i+1);
+	for (int i = 0; i < cnt; i++) {
+		string set_name = "set" + to_string(i + 1);
 		shtml += set_name;
-		if (i < cnt-1) shtml += ",";
+		if (i < cnt - 1) shtml += ",";
 	}
 	shtml += "];\n";
 
@@ -667,7 +675,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const vector<ChartTimeSign> &times)
+void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times)
 {
 	//int pid = rec.pid;
 	//int time_chan = 0;
@@ -675,16 +683,16 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	int pheight = 600; //vm["pheight"].as<int>();
 	int block_mode = 0; //vm["block_mode"].as<int>();
 	int rc_acc_days = 60;
-	unordered_map<string, double> code2wgt ={ { "0", 0.1 },{ "1", 0.1 },{ "2", 0.1 },{ "3", 0.1 },{ "4", 0.1 },{ "5", 0.5 },{ "6", 0.1 },{ "7", 1.0 },{ "8", 0.1 },{ "9", 0.1 },
+	unordered_map<string, double> code2wgt = { { "0", 0.1 },{ "1", 0.1 },{ "2", 0.1 },{ "3", 0.1 },{ "4", 0.1 },{ "5", 0.5 },{ "6", 0.1 },{ "7", 1.0 },{ "8", 0.1 },{ "9", 0.1 },
 	{ "A", 2.0 },{ "B", 5.0 },{ "C", 2.5 },{ "D", 1.5 },{ "E", 1.5 },{ "F", 2.0 },{ "G", 3.0 },{ "H", 3.0 },{ "J", 2.0 },{ "K", 1.0 },
 	{ "L", 2.5 },{ "M", 0.8 },{ "N", 1.0 },{ "P", 1.0 },{ "Q", 2.0 },{ "R", 0.9 },{ "S", 1.0 },{ "T", 1.0 },{ "U", 2.0 },{ "Z", 0.1 }
 	};
 	double p_decay = 0.5, q_decay = 0.2;
 	double alpha;
 
-	alpha = -log(q_decay/p_decay)/(double)rc_acc_days;
+	alpha = -log(q_decay / p_decay) / (double)rc_acc_days;
 
-	if (rec.my_base_rep->sigs.sid("RC") <= 0)
+	if (rec.my_base_rep()->sigs.sid("RC") <= 0)
 		return; // NO RC signal, nothing to do, maybe not THIN??
 
 	// plan:
@@ -703,8 +711,8 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 
 	int curr_date = 0;
 	//int curr_days = 0;
-	int section_id = rec.my_base_rep->dict.section_id("RC");
-	for (int i=0; i<usv.len; i++) {
+	int section_id = rec.my_base_rep()->dict.section_id("RC");
+	for (int i = 0; i < usv.len; i++) {
 		int i_date = usv.Time(i, 0);
 		int i_val = (int)usv.Val(i, 0);
 		int d = med_time_converter.convert_date(MedTime::Days, i_date);
@@ -716,7 +724,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 			while (j >= 0) {
 				int ddays = d - days[j];
 				if (ddays > rc_acc_days) break;
-				double factor = p_decay * exp(-alpha*(double)ddays);
+				double factor = p_decay * exp(-alpha * (double)ddays);
 				y += (float)factor*days_cnt[j];
 				j--;
 			}
@@ -729,9 +737,9 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 
 		// recover curr text
 		string curr_text = "";
-		if (rec.my_base_rep->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep->dict.dict(section_id)->Id2Names.end())
-			for (int j = 0; j < rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val].size(); j++) {
-				string sname = rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val][j];
+		if (rec.my_base_rep()->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep()->dict.dict(section_id)->Id2Names.end())
+			for (int j = 0; j < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); j++) {
+				string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][j];
 				string scode = sname.substr(0, 1);
 
 				curr_text += "|" + sname;
@@ -753,14 +761,14 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	// prep x , y, text arrays
 	string ax, ay, atext;
 	float ymax = 0, ymin = 9999999;
-	for (int i=0; i<xdates.size(); i++) {
+	for (int i = 0; i < xdates.size(); i++) {
 		ax += xdates[i];
 		ay += to_string(yvals[i]);
 		atext += "\"" + hovertext[i] + "\"";
 		if (yvals[i] > ymax) ymax = yvals[i];
 		if (yvals[i] < ymin) ymin = yvals[i];
 		//atext += "\"TTT" + to_string(i) + "\"";
-		if (i < xdates.size()-1) {
+		if (i < xdates.size() - 1) {
 			ax += ",";
 			ay += ",";
 			atext += ",";
@@ -776,7 +784,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	//<div id="chart" style="width:1200px;height:500px;"></div>
 	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(pwidth) + "px;height:" + to_string(pheight) + "px;";
 	if (block_mode) shtml += "display: inline-block;";
-	shtml+= "\"></div>\n";
+	shtml += "\"></div>\n";
 	shtml += "\t<script>\n";
 
 	shtml += "\t\tvar set1 = {\n";
@@ -809,7 +817,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 	//if (time > 0) shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(time) + ", y0: " + to_string(ymin) + ", x1: " + date_to_string(time) + ", y1: " + to_string(ymax) + "}]\n";
 	shtml += "\t\t};\n";
 
-	shtml += "\t\tPlotly.plot('" + div_name+"', [set1], layout);\n";
+	shtml += "\t\tPlotly.plot('" + div_name + "', [set1], layout);\n";
 
 	shtml += "\t</script>\n";
 
@@ -817,7 +825,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidRec &rec, const v
 
 
 //-------------------------------------------------------------------------------------------------------------------------------
-void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidRec &rec, const vector<ChartTimeSign> &times)
+void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times)
 {
 	//int pid = rec.pid;
 	//int time_chan = 0;
@@ -825,7 +833,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 	int pheight = 600; //vm["pheight"].as<int>();
 	int block_mode = 0; //vm["block_mode"].as<int>();
 
-	if (rec.my_base_rep->sigs.sid(sig) <= 0)
+	if (rec.my_base_rep()->sigs.sid(sig) <= 0)
 		return; // NO  signal, nothing to do, maybe wrong repository??
 
 
@@ -837,7 +845,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 
 	if (usv.len == 0) return; // nothing to do - 0 RC records.
 
-	int section_id = rec.my_base_rep->dict.section_id(sig);
+	int section_id = rec.my_base_rep()->dict.section_id(sig);
 
 	int bypass = 0;
 	if (sig == "Drug") bypass = 1;
@@ -852,7 +860,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 	}
 	for (int i = 0; i < usv.n_val_channels(); i++) {
 		channels_names.push_back(sig + "(" + to_string(i) + ")");
-		if (rec.my_base_rep->sigs.is_categorical_channel(sig, i))
+		if (rec.my_base_rep()->sigs.is_categorical_channel(sig, i))
 			lengths.push_back(0);
 		else
 			lengths.push_back(100);
@@ -870,20 +878,20 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 	for (int i = 0; i < usv.len; i++) {
 
 		int k = 0;
-		
+
 		// dates
-		for (int j=0; j<usv.n_time_channels(); j++)
-			string_channels[k++].push_back(date_to_string(usv.Time(i,j)));
+		for (int j = 0; j < usv.n_time_channels(); j++)
+			string_channels[k++].push_back(date_to_string(usv.Time(i, j)));
 
 		// values
 		for (int j = 0; j < usv.n_val_channels(); j++) {
-			if (rec.my_base_rep->sigs.is_categorical_channel(sig, j)) {
+			if (rec.my_base_rep()->sigs.is_categorical_channel(sig, j)) {
 				// categorial
 				int i_val = (int)usv.Val(i, j);
 				string curr_text = "";
-				if (rec.my_base_rep->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep->dict.dict(section_id)->Id2Names.end())
-					for (int n = 0; n < rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val].size(); n++) {
-						string sname = rec.my_base_rep->dict.dict(section_id)->Id2Names[i_val][n];
+				if (rec.my_base_rep()->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep()->dict.dict(section_id)->Id2Names.end())
+					for (int n = 0; n < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); n++) {
+						string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][n];
 						if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
 						curr_text += " | " + sname;
 					}
@@ -894,7 +902,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 			}
 			else {
 				// numerical
-				string_channels[k++].push_back("'" + to_string(usv.Val(i,j)) + "'");
+				string_channels[k++].push_back("'" + to_string(usv.Val(i, j)) + "'");
 			}
 		}
 
@@ -958,7 +966,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidR
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidRec &rec)
+int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidDataRec &rec)
 {
 	vector<int> xdates;
 	vector<vector<float>> hmap;
@@ -974,41 +982,41 @@ int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidRec &rec)
 	//int pid = rec.pid;
 	//int time_chan = 0;
 	int dwidth = params.dhm_params.width;
-	int dheight = params.dhm_params.height + 30*(int)sets_names.size();
+	int dheight = params.dhm_params.height + 30 * (int)sets_names.size();
 	int block_mode = 0;
 
 	string div_name = "div_drug_heatmap" + to_string(rand_N(10000));
 
 	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(dwidth) + "px;height:" + to_string(dheight) + "px;";
 	if (block_mode) shtml += "display: inline-block;";
-	shtml+= "\"></div>\n";
+	shtml += "\"></div>\n";
 	shtml += "\t<script>\n";
 
 	// xValues is xdates
 	shtml += "\t\tvar xValues = [";
-	for (int i=0; i<xdates.size(); i++) {
+	for (int i = 0; i < xdates.size(); i++) {
 		//MLOG("====> xValues %d : %d\n", i, xdates[i]);
-		shtml += date_to_string(xdates[i]); if (i<xdates.size()-1) shtml += ",";
+		shtml += date_to_string(xdates[i]); if (i < xdates.size() - 1) shtml += ",";
 	}
 	shtml += "];\n";
 
 	// yValues is the sets names
 	shtml += "\t\tvar yValues = [";
-	for (int i=0; i<sets_names.size(); i++) {
-		shtml += "'" + sets_names[i] + "'"; if (i<sets_names.size()-1) shtml += ",";
+	for (int i = 0; i < sets_names.size(); i++) {
+		shtml += "'" + sets_names[i] + "'"; if (i < sets_names.size() - 1) shtml += ",";
 	}
 	shtml += "];\n";
 
 	// zValues is tje actual heatmap
 	shtml += "\t\tvar zValues = [";
-	for (int i=0; i<sets_names.size(); i++) {
+	for (int i = 0; i < sets_names.size(); i++) {
 		shtml += "[";
-		for (int j=0; j<xdates.size(); j++) {
+		for (int j = 0; j < xdates.size(); j++) {
 			shtml += to_string(hmap[i][j]);
-			if (j<xdates.size()-1) shtml += ",";
+			if (j < xdates.size() - 1) shtml += ",";
 		}
 		shtml += "]";
-		if (i<sets_names.size()-1) shtml += ",";
+		if (i < sets_names.size() - 1) shtml += ",";
 	}
 	shtml += "];\n";
 
@@ -1031,7 +1039,7 @@ int MedPatientPlotlyDate::add_drugs_heatmap(string &shtml, PidRec &rec)
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------
-int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, PidRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view)
+int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, PidDataRec &rec, const string &mode, const vector<ChartTimeSign> &sign_times, const vector<string> &view)
 {
 	shtml = "";
 
@@ -1046,7 +1054,7 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 	MLOG("After demographics\n");
 	for (auto v : view) {
 		MLOG("Working on view %s\n", v.c_str());
-		bool is_categorial = (rec.my_base_rep->sigs.has_any_categorical_channel(v) > 0);
+		bool is_categorial = (rec.my_base_rep()->sigs.has_any_categorical_channel(v) > 0);
 		if (v == "MEMBERSHIP") is_categorial = true;
 		if (v == "demographic") {
 			add_basic_demographics(shtml, rec, local_sign_times);
@@ -1054,10 +1062,11 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 		else if (params.panels.find(v) != params.panels.end()) {
 			// add a panel
 			add_panel_chart(shtml, lvp, rec, params.panels[v], local_sign_times);
-		} else if (v == "RC") {
+		}
+		else if (v == "RC") {
 			add_thin_rc_chart(shtml, rec, local_sign_times);
 		}
-		else if (rec.my_base_rep->sigs.sid(v) > 0 && is_categorial==0) {
+		else if (rec.my_base_rep()->sigs.sid(v) > 0 && is_categorial == 0) {
 			// add a signal (as a simple panel)
 			int null_zeros = -1;
 			int log_scale = -1;
@@ -1078,11 +1087,32 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 			add_categorical_table(v, shtml, rec, local_sign_times);
 		}
 	}
-	
+
 	// add_RCs_to_js(rep, vm, shtml);
 	MLOG("Finished preparing\n");
 	shtml += "</body>\n";
 	shtml += "</html>\n";
 
+	return 0;
+}
+
+int MedPatientPlotlyDate::init_rep_processors(MedPidRepository &rep, const string &rep_conf) {
+	if (!params.model_rep_processors.rep_processors.empty()) {
+		//do something:
+		params.model_rep_processors.fit_for_repository(rep);
+		params.model_rep_processors.collect_and_add_virtual_signals(rep);
+
+		params.all_need_sigs = rep.sigs.signals_names; //with virtual signals
+		medial::repository::prepare_repository(rep, params.all_need_sigs, params.phisical_read_sigs, &params.model_rep_processors.rep_processors);
+
+		vector<int> all_pids;
+		if (!params.load_dynamically) {
+			if (rep.read_all(rep_conf, all_pids, params.phisical_read_sigs) < 0) {
+				MTHROW_AND_ERR("could not read repository \"%s\"\n", rep_conf.c_str());
+			}
+			vector<string> temp;
+			medial::repository::prepare_repository(rep, params.all_need_sigs, temp, &params.model_rep_processors.rep_processors); //prepare again after reading
+		}
+	}
 	return 0;
 }

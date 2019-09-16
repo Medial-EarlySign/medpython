@@ -21,6 +21,8 @@ int RatioCalculator::init(map<string, string>& mapper) {
 			power_base = stof(it->second);
 		else if (it->first == "power_mone")
 			power_mone = stof(it->second);
+		else if (it->first == "keep_only_in_range")
+			keep_only_in_range = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in RatioCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -54,12 +56,12 @@ void RatioCalculator::list_output_signals(const vector<string> &input_signals, v
 			work_channel);
 }
 
-float RatioCalculator::do_calc(const vector<float> &vals) const {
+bool RatioCalculator::do_calc(const vector<float> &vals, float &res) const {
 	//assumes vals is 2 values vector = {V1, V2} for calculating := V1 / V2 * factor
-	float res = missing_value;
+	res = missing_value;
 	if (vals[1] != 0)
 		res = pow(vals[0], power_mone) / pow(vals[1], power_base) * factor;
-	return res;
+	return true;
 }
 //.......................................eGFR Calculator................................
 int eGFRCalculator::init(map<string, string>& mapper) {
@@ -70,6 +72,8 @@ int eGFRCalculator::init(map<string, string>& mapper) {
 			ethnicity = stoi(it->second);
 		else if (it->first == "mdrd")
 			mdrd = stoi(it->second) > 0;
+		else if (it->first == "keep_only_in_range")
+			keep_only_in_range = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in eGFRCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -97,24 +101,39 @@ void eGFRCalculator::list_output_signals(const vector<string> &input_signals, ve
 		MTHROW_AND_ERR("ERROR in eGFRCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
-float eGFRCalculator::do_calc(const vector<float> &vals) const {
+bool eGFRCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
 	if (vals[0] <= 0)
-		return missing_value;
+		return !keep_only_in_range;
 	if (vals.size() != 4)
 		MTHROW_AND_ERR("Error eGFRCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
 			vals.size());
 	//input: creatinine, gender, byear, time
 	int year = (int)vals[2]; //BYEAR
 	int time = (int)vals[3]; //TIME
-	
+
 	float age = med_time_converter.get_age(time, MedTime::Date, year);
 	//age, creatinine, gender, ethnicity
 	if (!mdrd)
-		return round(get_eGFR_CKD_EPI(age, vals[0], vals[1], ethnicity));
+		res = round(get_eGFR_CKD_EPI(age, vals[0], vals[1], ethnicity));
 	else
-		return  round(get_eGFR_MDRD(age, vals[0], vals[1], ethnicity));
+		res = round(get_eGFR_MDRD(age, vals[0], vals[1], ethnicity));
+	return true;
 }
 //.................................LOG CALCULATOR.......................................
+int logCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [logCalculator::init]
+		if (it->first == "keep_only_in_range")
+			keep_only_in_range = stoi(it->second) > 0;
+		else
+			MTHROW_AND_ERR("Error in logCalculator::init - Unsupported argument \"%s\"\n",
+				it->first.c_str());
+		//! [logCalculator::init]
+	}
+	return 0;
+}
 void logCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error logCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
@@ -127,10 +146,13 @@ void logCalculator::list_output_signals(const vector<string> &input_signals, vec
 	else
 		MTHROW_AND_ERR("ERROR in logCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
-float logCalculator::do_calc(const vector<float> &vals) const {
-	if (vals[0] <= 0)
-		return missing_value;
-	return log(vals[0]);
+bool logCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
+	if (vals[0] > 0)
+		res = log(vals[0]);
+	else
+		return !keep_only_in_range;
+	return true; //always return
 }
 //...................................SUM CALCULATOR.....................................
 int SumCalculator::init(map<string, string>& mapper) {
@@ -146,6 +168,8 @@ int SumCalculator::init(map<string, string>& mapper) {
 		}
 		else if (it->first == "b0")
 			b0 = stof(it->second);
+		else if (it->first == "keep_only_in_range")
+			keep_only_in_range = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in SumCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -186,12 +210,12 @@ void SumCalculator::list_output_signals(const vector<string> &input_signals, vec
 		MTHROW_AND_ERR("ERROR in SumCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
-float SumCalculator::do_calc(const vector<float> &vals) const {
+bool SumCalculator::do_calc(const vector<float> &vals, float &res) const {
 	//no missing values
-	float res = b0;
+	res = b0;
 	for (size_t i = 0; i < vals.size(); ++i)
 		res += factors[i] * vals[i];
-	return res;
+	return !keep_only_in_range || res > 0;
 }
 //...................................RANGE CALCULATOR...................................
 int RangeCalculator::init(map<string, string>& mapper) {
@@ -234,12 +258,14 @@ void RangeCalculator::list_output_signals(const vector<string> &input_signals, v
 		MTHROW_AND_ERR("ERROR in RangeCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
-float RangeCalculator::do_calc(const vector<float> &vals) const {
+bool RangeCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
 	float v = vals[0];
 	if (v >= min_range && v <= max_range)
-		return in_range_val;
+		res = in_range_val;
 	else
-		return out_range_val;
+		res = out_range_val;
+	return true;
 }
 //.................................MULTIPLY CALCULATOR...................................
 int MultiplyCalculator::init(map<string, string>& mapper) {
@@ -297,11 +323,12 @@ void MultiplyCalculator::list_output_signals(const vector<string> &input_signals
 		MTHROW_AND_ERR("ERROR in MultiplyCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
 }
 
-float MultiplyCalculator::do_calc(const vector<float> &vals) const {
-	double res = b0;
+bool MultiplyCalculator::do_calc(const vector<float> &vals, float &res) const {
+	double res_d = b0;
 	for (size_t i = 0; i < vals.size(); ++i)
-		res *= pow(vals[i], powers[i]);
-	return res;
+		res_d *= pow(vals[i], powers[i]);
+	res = res_d;
+	return true;
 }
 //.............................SET CALCULATOR.........................................
 int SetCalculator::init(map<string, string>& mapper) {
@@ -316,6 +343,8 @@ int SetCalculator::init(map<string, string>& mapper) {
 			in_range_val = stof(it->second);
 		else if (it->first == "out_range_val")
 			out_range_val = stof(it->second);
+		else if (it->first == "keep_only_in_range")
+			keep_only_in_range = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in SumCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -351,12 +380,49 @@ void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, c
 	dict.prep_sets_lookup_table(section_id, sets, Flags);
 }
 
-float SetCalculator::do_calc(const vector<float> &vals) const {
+bool SetCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
 	float v = vals[0];
 	if (Flags[v])
-		return in_range_val;
+		res = in_range_val;
+	else {
+		if (keep_only_in_range)
+			return false;
+		else
+			res = out_range_val;
+	}
+	return true;
+}
+//.............................EXISTS CALCULATOR.........................................
+int ExistsCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [ExistsCalculator::init]
+		if (it->first == "in_range_val")
+			in_range_val = stof(it->second);
+		else if (it->first == "out_range_val")
+			out_range_val = stof(it->second);
+		else
+			MTHROW_AND_ERR("Error in ExistsCalculator::init - Unsupported argument \"%s\"\n",
+				it->first.c_str());
+		//! [ExistsCalculator::init]
+	}
+	return 0;
+}
+void ExistsCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (!(input_signals.size() == 1 && output_signals.size() == 1))
+		MTHROW_AND_ERR("Error ExistsCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
+}
+void ExistsCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, int>> &_virtual_signals) {
+	_virtual_signals.push_back(pair<string, int>("exists_" + input_signals[0], T_DateVal));
+}
+bool ExistsCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = out_range_val;
+	if (vals.back() > 0)
+		res = in_range_val;
 	else
-		return out_range_val;
+		return !keep_only_in_range;
+	return true; //always return
 }
 //.......................................................................................
 
