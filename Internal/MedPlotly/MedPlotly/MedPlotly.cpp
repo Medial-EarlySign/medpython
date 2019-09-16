@@ -288,10 +288,15 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidRec &rec, vector<int> &_xdates, 
 		for (int i=0; i<usv.len; i++) {
 			if (lut[(int)usv.Val(i, 0)]) {
 				//MLOG("Taking the drug at i=%d %d,%d\n", i, usv.Time(i,0), (int)usv.Val(i, 1));
-				sets_sum[s] += (int)usv.Val(i, 1);
+				if (usv.n_val_channels() > 1)
+					sets_sum[s] += (int)usv.Val(i, 1);
+				else
+					sets_sum[s] += 30; // default of month for cases with no second channel
 				if (usv.Time(i, 0) < first_nonz && usv.Time(i, 0) >= min_date) first_nonz = usv.Time(i, 0);
 				if (usv.Time(i, 0) > last_nonz && usv.Time(i, 0) <= max_date) last_nonz = usv.Time(i, 0);
-				int to_day = drug_days[i] + (int)usv.Val(i, 1);
+				int to_day = drug_days[i] + 30;
+				if (usv.n_val_channels() > 1)
+					to_day = drug_days[i] + (int)usv.Val(i, 1);
 				if (to_day > last_day_counted) {
 					int from_day = max(last_day_counted+1, drug_days[i]);
 					// get the curr_cell from_day is contained in
