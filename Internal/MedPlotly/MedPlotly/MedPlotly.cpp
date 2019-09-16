@@ -1097,18 +1097,16 @@ int MedPatientPlotlyDate::init_rep_processors(MedPidRepository &rep, const strin
 		params.model_rep_processors.fit_for_repository(rep);
 		params.model_rep_processors.collect_and_add_virtual_signals(rep);
 
-		vector<int> all_sigs = rep.sigs.signals_ids; //with virtual signals
-		medial::repository::prepare_repository(rep, all_sigs, params.phisical_read_sigs, &params.model_rep_processors.rep_processors);
+		params.all_need_sigs = rep.sigs.signals_names; //with virtual signals
+		medial::repository::prepare_repository(rep, params.all_need_sigs, params.phisical_read_sigs, &params.model_rep_processors.rep_processors);
 
 		vector<int> all_pids;
 		if (!params.load_dynamically) {
 			if (rep.read_all(rep_conf, all_pids, params.phisical_read_sigs) < 0) {
 				MTHROW_AND_ERR("could not read repository \"%s\"\n", rep_conf.c_str());
 			}
-			vector<int> temp;
-			params.model_rep_processors.fit_for_repository(rep);
-			params.model_rep_processors.collect_and_add_virtual_signals(rep);
-			medial::repository::prepare_repository(rep, all_sigs, temp, &params.model_rep_processors.rep_processors); //prepare again after reading
+			vector<string> temp;
+			medial::repository::prepare_repository(rep, params.all_need_sigs, temp, &params.model_rep_processors.rep_processors); //prepare again after reading
 		}
 	}
 	return 0;

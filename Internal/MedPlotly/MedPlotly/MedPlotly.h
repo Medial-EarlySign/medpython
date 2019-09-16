@@ -133,7 +133,8 @@ public:
 
 	MedModel model_rep_processors;
 	bool load_dynamically = true;
-	vector<int> phisical_read_sigs;
+	vector<string> phisical_read_sigs;
+	vector<string> all_need_sigs;
 
 	int read_config(const string &config_fname);
 

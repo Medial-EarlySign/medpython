@@ -101,7 +101,7 @@ VIEW	DIAGNOSIS,Drug,Vaccination,ADMISSION,VISIT,MEMBERSHIP
 
 REP_PROCESSORS	/server/UsersData/Alon/MR/Projects/Shared/Projects/configs/Influenza/NWP/medmodel_jsons/rep_process.json
 #If true will call rep.read_all for each patient call, otherwise will read_all on all patient and will just access memory
-LOAD_DYNAMICALLY	0
+LOAD_DYNAMICALLY	1
 
 
 
