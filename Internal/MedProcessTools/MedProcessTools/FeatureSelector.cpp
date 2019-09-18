@@ -975,7 +975,7 @@ void TagFeatureSelector::dprint(const string &pref, int fp_flag) {
 		string tags_rem_str = medial::io::get_list(removed_tags);
 		string final_list = medial::io::get_list(selected, "\n");
 		MLOG("%s :: TagFeatureSelector :: selected_tags(%zu)=[%s], removed_tags(%zu)=[%s]\n",
-			pref.c_str(), tags_str.size(), tags_str.c_str(), tags_rem_str.size(), tags_rem_str.c_str());
+			pref.c_str(), selected_tags.size(), tags_str.c_str(), removed_tags.size(), tags_rem_str.c_str());
 		for (size_t i = 0; i < global_logger.fds[LOCAL_SECTION].size(); ++i)
 			fprintf(global_logger.fds[LOCAL_SECTION][i], "selected(%zu):\n%s\n", selected.size(), final_list.c_str());
 	}
