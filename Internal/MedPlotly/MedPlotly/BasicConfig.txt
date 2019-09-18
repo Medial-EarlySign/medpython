@@ -37,8 +37,10 @@ SIG	CKD_State,DM_Registry	null_zeros=0;log_scale=0
 DRUG_GROUP	Diabetes	ATC_A10_____
 DRUG_GROUP	Insulin	ATC_A10A____
 DRUG_GROUP	Non-Insulin	ATC_A10B____
-DRUG_GROUP	Metformin	ATC_A10B_A__,ATC_A10B_G__
-DRUG_GROUP	Sulphinil_Urea	ATC_A10B_B__,ATC_A10B_C__,ATC_A10B_H__
+DRUG_GROUP	Metformin	ATC_A10B_A__
+DRUG_GROUP	TZDs	ATC_A10B_G__
+DRUG_GROUP	Sulphinil_Urea	ATC_A10B_B__,ATC_A10B_C__
+DRUG_GROUP	DPP4	ATC_A10B_H__
 DRUG_GROUP	alphaGlucosidaseI	ATC_A10B_F__
 DRUG_GROUP	glp1	ATC_A10B_J__
 DRUG_GROUP	sglt2I	ATC_A10B_K__
@@ -71,7 +73,7 @@ DRUG_GROUP	AntiAnemic	ATC_B03_____
 # panels definition:
 # format:
 # PANEL <params>
-PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI,DM_Registry;drugs=Insulin,Non-Insulin;width=900;height=600
+PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI;drugs=Insulin,Non-Insulin,Metformin,TZDs,Sulphinil_Urea,DPP4,alphaGlucosidaseI,glp1,sglt2I;width=900;height=600
 PANEL	name=P_Cholesterol;title=Cholesterol_Panel;sigs=LDL,Cholesterol,HDL,Triglycerides;drugs=Statins;width=900;height=600
 PANEL	name=P_BP;title=BP_Panel;sigs=BP,PULSE;drugs=Diuretics,Beta_blockers,Calcium_channels,AceI;width=900;height=600;log_scale=0
 PANEL	name=P_Renal;title=Renal;sigs=Creatinine,eGFR_CKD_EPI,Urea,UrineAlbumin,UrineCreatinine,Urine_Microalbumin;width=900;height=600

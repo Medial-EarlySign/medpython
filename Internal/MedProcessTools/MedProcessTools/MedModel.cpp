@@ -1426,7 +1426,7 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 	rep_processors->swap(filtered_processors);
 }
 
-void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+void medial::repository::prepare_repository(const vector<int> &pids, const string &RepositoryPath,
 	MedModel &mod, MedPidRepository &rep) {
 	MLOG("Reading repo file [%s]\n", RepositoryPath.c_str());
 	unordered_set<string> req_names;
@@ -1444,10 +1444,15 @@ void medial::repository::prepare_repository(const MedSamples &samples, const str
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
 
-	vector<int> pids;
-	samples.get_ids(pids);
 	if (rep.read_all(RepositoryPath, pids, sigs) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
+}
+
+void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+	MedModel &mod, MedPidRepository &rep) {
+	vector<int> pids;
+	samples.get_ids(pids);
+	prepare_repository(pids, RepositoryPath, mod, rep);
 }
 
 vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
