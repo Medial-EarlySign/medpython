@@ -264,6 +264,10 @@ namespace medial {
 			vector<string> &phisical_signal_read, vector<RepProcessor *> *rep_processors = NULL);
 
 		/// \brief removes uneeded rep_processors based on model
+		void prepare_repository(const vector<int> &pids, const string &RepositoryPath,
+			MedModel &mod, MedPidRepository &rep);
+
+		/// \brief removes uneeded rep_processors based on model
 		void prepare_repository(const MedSamples &samples, const string &RepositoryPath,
 			MedModel &mod, MedPidRepository &rep);
 	}
