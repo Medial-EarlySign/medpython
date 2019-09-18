@@ -978,6 +978,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		pr_points[i] /= 100.0;
 	vector<float> score_points = params->working_point_Score; // Working Score points
 	sort(score_points.begin(), score_points.end());
+	reverse(score_points.begin(), score_points.end());
 
 	unordered_map<float, vector<float>> thresholds_labels;
 	unordered_map<float, vector<float>> thresholds_weights;
@@ -1545,6 +1546,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		{
 			score_c = unique_scores[true_rate.size() - i - 1];
 
+			if (curr_wp_score_ind < score_points.size()) cerr << "Comparing " << score_c << " to " << score_points[curr_wp_score_ind] << " ...\n";
 			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
 				score_prev = unique_scores[true_rate.size() - i];
 
