@@ -1545,8 +1545,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		while (i < true_rate.size() && curr_wp_score_ind < score_points.size())
 		{
 			score_c = unique_scores[true_rate.size() - i - 1];
-
-			if (curr_wp_score_ind < score_points.size()) cerr << "Comparing " << score_c << " to " << score_points[curr_wp_score_ind] << " ...\n";
 			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
 				score_prev = unique_scores[true_rate.size() - i];
 
