@@ -118,7 +118,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 
 		// Generate First and Last Dates and dates vector
 		// Map between status to <First Date, Last Date>
-		map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER, {NA_SMOKING_DATE,NA_SMOKING_DATE}} ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE }},{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
+		map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
 		vector<int> dates = {};
 		genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, testDate, smokingStatusDates, dates);
 
@@ -417,8 +417,11 @@ void UnifiedSmokingGenerator::genSmokingRanges(vector<pair<SMOKING_STATUS, int>>
 
 	for (int k = 1; k < smokingStatusVec.size(); ++k)
 	{
+		if (birthDate < MedTime::MIN_DATE_SUPPORT)
+			break;
 		SMOKING_STATUS currStatus = smokingStatusVec[k].first;
 		int currDate = smokingStatusVec[k].second;
+		if (currDate < MedTime::MIN_DATE_SUPPORT) { continue; }
 		if (currStatus != groupStatus)
 		{
 			if (((groupStatus == NEVER_SMOKER) || (groupStatus == UNKNOWN_SMOKER)) && (currStatus == CURRENT_SMOKER))
@@ -609,7 +612,7 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 
 				else
 					// check next status:
-					if (i + 2 < smokingStatusVec.size())
+					if (i + 2 <  smokingStatusVec.size())
 						if (smokingStatusVec[i + 2].first == EX_SMOKER)
 						{
 							deltaTime = (float)med_time_converter.diff_times(smokingStatusVec[i + 2].second, smokingStatusVec[i].second, MedTime::Date, MedTime::Days);
