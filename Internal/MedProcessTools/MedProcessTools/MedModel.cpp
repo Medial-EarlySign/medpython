@@ -1683,7 +1683,7 @@ int MedModel::get_nfeatures()
 		if (generator->names.empty()) //if the generation is dynamic names will be empty - fetch count from nfeatures
 			res += generator->nfeatures();
 	}
-	res += ftr_names.size();
+	res += (int)ftr_names.size();
 	
 	// next is done in order to return feature list sorted in the order it will be in the final matrix
 	return res;
