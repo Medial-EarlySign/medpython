@@ -59,17 +59,23 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 	// Set aside parts of the learning set required for post-processors training
 	vector<MedSamples> post_processors_learning_sets;
-	MedSamples model_learning_set;
-	split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
+	//MedSamples model_learning_set;
+	//split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
 
-	return learn(rep, model_learning_set, post_processors_learning_sets, start_stage, end_stage);
+	return learn(rep, *_samples, post_processors_learning_sets, start_stage, end_stage);
 }
 
 // Learn with multiple MedSamples
 //.......................................................................................
-int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set, vector<MedSamples>& post_processors_learning_sets, MedModelStage start_stage, MedModelStage end_stage) {
+int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
 
 	MedTimer timer;
+
+	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
+	vector<MedSamples> post_processors_learning_sets;
+	MedSamples model_learning_set;
+	split_learning_set(model_learning_set_orig, post_processors_learning_sets_orig, post_processors_learning_sets, model_learning_set);
+
 
 	LearningSet = &model_learning_set;
 
@@ -78,7 +84,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set, vecto
 		MTHROW_AND_ERR("MedModel::Learn - Not enough samples given for post-processors learning");
 
 	//init to check we have remove all we can (or if need to create virtual signals?):
-	set_affected_signal_ids(rep.dict);
+	fit_for_repository(rep);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
 		MERR("FAILED collect_and_add_virtual_signals\n");
@@ -252,14 +258,17 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		return -1;
 	}
 
-	//init to check we have remove all we can (or if need to create virtual signals?):
-	set_affected_signal_ids(rep.dict);
-	// init virtual signals
-	if (collect_and_add_virtual_signals(rep) < 0) {
-		MERR("FAILED collect_and_add_virtual_signals\n");
-		return -1;
-	}
+	//only perform when needed
+	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
+		//init to check we have remove all we can (or if need to create virtual signals?):
+		fit_for_repository(rep);
+		// init virtual signals
+		if (collect_and_add_virtual_signals(rep) < 0) {
+			MERR("FAILED collect_and_add_virtual_signals\n");
+			return -1;
+		}
 
+	}
 	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
 
 	// Build sets of required features at each stage of processing
@@ -345,8 +354,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			post_processors[i]->init_post_processor(*this);
 
 		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+		MedTimer pp_timer("post_processors"); pp_timer.start();
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(features);
+		pp_timer.take_curr_time();
+		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
 
 		if (samples.insert_preds(features) != 0) {
 			MERR("Insertion of predictions to samples failed\n");
@@ -383,9 +395,12 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 	vector<int> rc(generators.size(), 0);
 	//omp_set_nested(true);
 
-//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
-	for (int i = 0; i < generators.size(); i++)
+	MedProgress progress("MedModel::learn_feature_generators", (int)generators.size(), 60, 1);
+	//#pragma omp parallel for //num_threads(4) //schedule(dynamic)
+	for (int i = 0; i < generators.size(); i++) {
 		rc[i] = generators[i]->learn(rep, *learn_samples, rep_processors);
+		progress.update();
+	}
 
 	for (auto RC : rc) if (RC < 0)	return -1;
 	return 0;
@@ -667,7 +682,8 @@ string MedModel::make_absolute_path(const string& main_file, const string& small
 		(main_file_path.size() == 0)
 		)
 		return small_file;
-	string abs = main_file_path + '/' + small_file;
+
+	string abs = main_file_path + path_sep() + small_file;
 	if (use_cwd)
 		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	else
@@ -702,12 +718,9 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	string fname;
 	if (small_file == "")
 		fname = main_file;
-	else {
-		if (add_change_path)
-			fname = small_file;
-		else
-			fname = make_absolute_path(main_file, small_file, add_change_path);
-	}
+	else
+		fname = make_absolute_path(main_file, small_file, false);
+
 	ifstream inf(fname);
 	if (!inf)
 		MTHROW_AND_ERR("can't open json file [%s] for read\n", fname.c_str());
@@ -735,7 +748,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 		boost::split(tokens, json_ref, boost::is_any_of(";"));
 		if (tokens.empty())
 			MTHROW_AND_ERR("could not parse [%s]", it->str(0).c_str());
-		string small_file = tokens[0];
+		string small_file_inc = tokens[0];
 		vector<string> my_alterations;
 		for (int i = 1; i < tokens.size(); i++)
 			my_alterations.push_back(tokens[i]);
@@ -750,7 +763,7 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 				boost::algorithm::split_regex(existing_fields, existing_alt, boost::regex("::"));
 				if (fields[0] == existing_fields[0]) {
 					MLOG_D("alteration [%s] overriden in the context of [%s] to [%s]\n",
-						fields[0].c_str(), small_file.c_str(), existing_fields[1].c_str());
+						fields[0].c_str(), small_file_inc.c_str(), existing_fields[1].c_str());
 					overriden = true;
 				}
 			}
@@ -759,13 +772,14 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 		}
 		out_string += orig.substr(last_char, it->position() - last_char);
 		if (add_change_path) {
-			boost::filesystem::path json_p(small_file);
-			string pth = json_p.parent_path().string();
+			boost::filesystem::path json_p(small_file_inc);
+			boost::filesystem::path json_par(fname);
+			string pth = boost::filesystem::absolute(json_p.parent_path(), json_par.parent_path()).string();
 			snprintf(buff, sizeof(buff), "{\"action_type\":\"change_path:%s\"},\n", pth.c_str());
 			add_path = string(buff);
 			out_string += add_path;
 		}
-		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file, add_change_path);
+		out_string += json_file_to_string(recursion_level + 1, main_file, my_alterations, small_file_inc, add_change_path);
 		if (add_change_path) {
 			snprintf(buff, sizeof(buff), "\n,{\"action_type\":\"change_path:%s\"}\n", run_current_path.c_str());
 			add_path = string(buff);
@@ -1152,8 +1166,9 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 	signalNames = targetSignalNames;
 
 	// Collect from processors itertively
-	for (int i = (int)rep_processors.size() - 1; i > 0; i--)
+	for (int i = (int)rep_processors.size() - 1; i >= 0; i--) {
 		rep_processors[i]->get_required_signal_names(signalNames, signalNames);
+	}
 
 	// collect virtuals
 	for (RepProcessor *processor : rep_processors) {
@@ -1454,14 +1469,13 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 	rep_processors->swap(filtered_processors);
 }
 
-void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+void medial::repository::prepare_repository(const vector<int> &pids, const string &RepositoryPath,
 	MedModel &mod, MedPidRepository &rep) {
 	MLOG("Reading repo file [%s]\n", RepositoryPath.c_str());
 	unordered_set<string> req_names;
-	if (rep.read_config(RepositoryPath) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(RepositoryPath) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
-	for (RepProcessor *processor : mod.rep_processors)
-		processor->set_affected_signal_ids(rep.dict);
+	mod.fit_for_repository(rep);
 	mod.filter_rep_processors();
 
 	mod.get_required_signal_names(req_names);
@@ -1473,10 +1487,15 @@ void medial::repository::prepare_repository(const MedSamples &samples, const str
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
 
-	vector<int> pids;
-	samples.get_ids(pids);
 	if (rep.read_all(RepositoryPath, pids, sigs) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
+}
+
+void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+	MedModel &mod, MedPidRepository &rep) {
+	vector<int> pids;
+	samples.get_ids(pids);
+	prepare_repository(pids, RepositoryPath, mod, rep);
 }
 
 vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
@@ -1485,7 +1504,7 @@ vector<string> medial::repository::prepare_repository(MedPidRepository &rep, con
 	vector<unordered_set<string>> current_req_signal_names;
 	if (rep_processors != NULL && !rep_processors->empty()) {
 		for (RepProcessor *processor : *rep_processors)
-			processor->set_affected_signal_ids(rep.dict);
+			processor->fit_for_repository(rep);
 		collect_and_add_virtual_signals_static(rep, *rep_processors);
 		//init to check if need to remove (may seem it can remove after init)
 		filter_rep_processors(needed_sigs, rep_processors);
@@ -1687,7 +1706,31 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 	return 0;
 }
 
+//-----------------------------------------------------------------------------------------------------------------
+int MedModel::get_nfeatures()
+{
+	int res = 0;
+	// in this case we collect all feature generator names
+	vector<unordered_set<string> > req_features_vec;
+	build_req_features_vec(req_features_vec); //from all feature processor
 
+	unordered_set<string> ftr_names = req_features_vec[feature_processors.size()];
+	if (ftr_names.empty()) {
+		// in this case we collect all feature generator names
+		for (FeatureGenerator *generator : generators)
+			generator->get_generated_features(ftr_names);
+	}
+
+	unordered_set<string> names;
+	for (FeatureGenerator *generator : generators) {
+		if (generator->names.empty()) //if the generation is dynamic names will be empty - fetch count from nfeatures
+			res += generator->nfeatures();
+	}
+	res += (int)ftr_names.size();
+	
+	// next is done in order to return feature list sorted in the order it will be in the final matrix
+	return res;
+}
 //-----------------------------------------------------------------------------------------------------------------
 void MedModel::get_generated_features_names(vector<string> &feat_names)
 {
@@ -1783,6 +1826,176 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 }
 
 
+//------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets_orig, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set)
+{
+	post_processors_learning_sets.resize(post_processors.size());
+
+	// deciding which ids should be randomized/splut
+	// we use all ids from inSamples, and add also all ids from the post_processors learning sets that have use_p > 0 or use_split>=0
+	unordered_set<int> all_ids;
+	for (auto &ids : inSamples.idSamples) all_ids.insert(ids.id);
+	for (int j = 0; j < post_processors.size(); j++)
+		if (post_processors[j]->use_p > 0 || post_processors[j]->use_split >= 0) {
+			for (auto &s : post_processors_learning_sets_orig[j].idSamples)
+				all_ids.insert(s.id);
+		}
+
+	vector<int> v_ids(all_ids.begin(), all_ids.end());
+	int nIds = (int)v_ids.size();
+	vector<int> assignments(nIds, 0);
+	unordered_map<int, int> id2assignment;
+
+	// Assign to post-processors
+	int idx = 1;
+	int nFreeIds = nIds;
+	for (int iId = 0; iId < nIds; iId++)
+		id2assignment[v_ids[iId]] = 0;
+	for (PostProcessor *processor : post_processors) {
+		float use_p = processor->get_use_p();
+		int use_split = processor->get_use_split();
+		if (use_p > 0 && use_split >= 0)
+			MTHROW_AND_ERR("Split_Learning_Set: At most one of use_p (%f) & use_split (%d) allowed for post-processor\n", use_p, use_split);
+		if (use_p > 0) {
+			// Adjust use_p according to free ids
+			float eff_use_p = (use_p * nIds) / nFreeIds;
+			if (eff_use_p > 1.0)
+				MTHROW_AND_ERR("Split_Learning_Set: Inconsistency at selection of subset for post-process learning : Not enough ids left for post-processor #%d\n", idx);
+
+			// Assign
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && (globalRNG::rand() / (globalRNG::max() + 1.0)) < eff_use_p) {
+					assignments[iId] = idx;
+					id2assignment[v_ids[iId]] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-p = %f , total ids = %d, before assignment, left with %d ids\n",
+					idx, processor->use_p, nIds, nFreeIds);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-p = %f\n", nAssigned, nIds, idx, processor->use_p);
+			nFreeIds -= nAssigned;
+		}
+		else if (use_split >= 0) {
+			int nAssigned = 0;
+			for (int iId = 0; iId < nIds; iId++) {
+				if (assignments[iId] == 0 && inSamples.idSamples[iId].split == use_split) {
+					assignments[iId] = idx;
+					id2assignment[v_ids[iId]] = idx;
+					nAssigned++;
+				}
+			}
+
+			if (nAssigned == 0)
+				MTHROW_AND_ERR("Split_Learning_Set:: Failed to assign any ids to post-processor #%d - use-split = %d\n", idx, use_split);
+
+			MLOG("Split_Learning_Set: Assigned %d ids out of %d to post-processor #%d with use-split = %d\n", nAssigned, nIds, idx, use_split);
+			nFreeIds -= nAssigned;
+		}
+
+		if (nFreeIds == 0)
+			MTHROW_AND_ERR("Split_Learning_Set: Left with no ids after processor #%d\n", idx);
+		idx++;
+	}
+
+	MLOG("Split_Learning_Set: Assigned %d ids out of %d to model learning set\n", nFreeIds, nIds);
+
+	// Create MedSamples
+	model_learning_set.time_unit = inSamples.time_unit;
+	for (auto& learning_set : post_processors_learning_sets)
+		learning_set.time_unit = inSamples.time_unit;
+
+	for (auto &s : inSamples.idSamples)
+		if (id2assignment[s.id] == 0)
+			model_learning_set.idSamples.push_back(s);
+
+
+	if (post_processors.size() > 0) {
+		if (post_processors_learning_sets_orig.size() == post_processors.size()) {
+			MLOG("Split_Learning_Set: Building lists from given post processors lists\n");
+			// case user gave lists to work with
+			// In this case we have several options:
+			// (1) No use_p and use_split are given : in this case we take the orig list as is (!!)
+			// (2) use_p given : we make sure not to use ids from orig that were not selected for this case in idSamples (but leave the others).
+			// (3) use_split given : choose by split
+			for (int j = 0; j < post_processors.size(); j++) {
+
+
+				if (post_processors[j]->use_p > 0 || post_processors[j]->use_split >= 0) {
+
+					for (int i = 0; i < post_processors_learning_sets_orig[j].idSamples.size(); i++) {
+						int id = post_processors_learning_sets_orig[j].idSamples[i].id;
+						if (id2assignment.find(id) == id2assignment.end() || id2assignment[id] == j + 1)
+							post_processors_learning_sets[j].idSamples.push_back(post_processors_learning_sets_orig[j].idSamples[i]);
+					}
+
+				}
+				else {
+					post_processors_learning_sets[j] = post_processors_learning_sets_orig[j];
+				}
+
+				MLOG("Split_Learning_Set: post processor %d : orig %d ids : selected %d ids ( use_p is %f , use_split is %d )\n",
+					j, post_processors_learning_sets[j].idSamples.size(), post_processors_learning_sets_orig[j].idSamples.size(), post_processors[j]->use_p, post_processors[j]->use_split);
+			}
+		}
+		else
+		{
+			// case we need to build lists from inSamples
+
+			MLOG("Split_Learning_Set: Building lists from selected learning set members\n");
+			for (int i = 0; i < nIds; i++) {
+				if (assignments[i] != 0)
+					post_processors_learning_sets[assignments[i] - 1].idSamples.push_back(inSamples.idSamples[i]);
+			}
+
+		}
+	}
+
+
+
+}
+
+
+// Adjust model according to signals available in repository
+//--------------------------------------------------------------------------------------------------------
+void MedModel::fit_for_repository(MedPidRepository& rep) {
+
+	// Currently - only RepProcessors are adjustable
+	for (RepProcessor *processor : rep_processors)
+		processor->fit_for_repository(rep);
+}
+
+// loading a repository (optionally allowing for adjustment to model according to available signals)
+//--------------------------------------------------------------------------------------------------------
+void MedModel::load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment) {
+
+	vector<int> empty_ids_list;
+	load_repository(configFile, empty_ids_list, rep, allow_adjustment);
+}
+
+void MedModel::load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment) {
+
+	// Adjust Model
+	if (allow_adjustment) {
+		if (rep.init(configFile) < 0)
+			MTHROW_AND_ERR("Cannot initialize repository from %s\n", configFile.c_str());
+		fit_for_repository(rep);
+	}
+
+	// Get Required signals
+	vector<string> req_signals;
+	get_required_signal_names(req_signals);
+
+	// Read Repository
+	MLOG("Reading Repository from %s\n", configFile.c_str());
+	if (rep.read_all(configFile, ids, req_signals) != 0)
+		MTHROW_AND_ERR("Read repository from %s failed\n", configFile.c_str());
+}
+
+
 //========================================================================================================
 // medial::medmodel:: functions
 //========================================================================================================
@@ -1794,9 +2007,9 @@ void medial::medmodel::apply(MedModel &model, MedSamples &samples, string rep_fn
 	vector<string> rsigs;
 
 	MedPidRepository rep;
-	if (rep.read_config(rep_fname) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(rep_fname) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_fname.c_str());
-	model.set_affected_signal_ids(rep.dict);
+	model.fit_for_repository(rep);
 	model.get_required_signal_names(req_sigs);
 	for (auto &s : req_sigs) rsigs.push_back(s);
 

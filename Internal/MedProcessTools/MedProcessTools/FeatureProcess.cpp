@@ -636,6 +636,7 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
+	default_moment = missing_value; //initialize
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
 
@@ -872,6 +873,13 @@ void FeatureImputer::update_req_features_vec(unordered_set<string>& out_req_feat
 	}
 }
 
+void FeatureImputer::dprint(const string &pref, int fp_flag) {
+	if (fp_flag > 0) {
+		MLOG("%s :: FP type %d(%s) : feature_name %s :: default_moment %f \n", pref.c_str(), 
+			processor_type, my_class_name().c_str(), feature_name.c_str(), default_moment);
+	}
+}
+
 //=======================================================================================
 // OneHotFeatProcessor
 //=======================================================================================
@@ -937,6 +945,7 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
+
 
 	// Prepare new Features
 	int samples_size = (int)features.samples.size();
@@ -1019,13 +1028,13 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 
 	// Get all values
 	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values, (int) features.samples.size());
+	get_all_values(features, resolved_feature_name, ids, values, (int)features.samples.size());
 
 	// Learn Probs
 	int nlabels = target_labels.empty() ? 1 : (int)target_labels.size();
 	map<float, int> nums;
 	vector<map<float, int>> pos_nums(nlabels);
-	int overall_num=0;
+	int overall_num = 0;
 	vector<int> overall_pos_num(nlabels);
 
 	if (target_labels.empty()) { // Binary outcome
@@ -1077,7 +1086,7 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 // Apply
 //.......................................................................................
 int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
-	
+
 	cerr << "Apply\n";
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
@@ -1095,7 +1104,7 @@ int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 					data[i] = probs[0][data[i]];
 			}
 		}
-	} 
+	}
 	else { // Multiple outcomes. new features
 
 		// Prepare new Features
@@ -1154,7 +1163,7 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 			vector<string> labels;
 			boost::split(labels, entry.second, boost::is_any_of(","));
 			for (int i = 0; i < (int)labels.size(); i++)
-				target_labels[stof(labels[i])]= i;
+				target_labels[stof(labels[i])] = i;
 		}
 		else if (field == "all_labels") all_labels = (med_stoi(entry.second) != 0);
 		else if (field != "names" && field != "fp_type" && field != "tag")
@@ -1195,7 +1204,7 @@ void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req
 	if (out_req_features.empty())
 		in_req_features.clear();
 	else {
-		out_req_features = in_req_features;
+		in_req_features = out_req_features;
 		// If active, than add original 
 		if (are_features_affected(out_req_features))
 			in_req_features.insert(resolved_feature_name);

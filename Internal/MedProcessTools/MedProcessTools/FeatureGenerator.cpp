@@ -1440,12 +1440,14 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 // get the number of samples in [win_to, win_from] before time
 float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
+	if (usv.len <= 0)
+		return 0;
 	int min_time, max_time;
 	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
-	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
+	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
 	return 0;
 }
 

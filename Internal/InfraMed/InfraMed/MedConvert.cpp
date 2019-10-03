@@ -18,6 +18,7 @@
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
 #include <boost/algorithm/string/replace.hpp>
+#include <boost/filesystem.hpp>
 
 
 using namespace boost;
@@ -259,6 +260,15 @@ int MedConvert::prep_sids_to_load()
 	return 0;
 }
 
+//fetch file name
+void get_rel_filename(vector<string> &paths) {
+	for (size_t i = 0; i < paths.size(); i++)
+	{
+		boost::filesystem::path pt(paths[i]);
+		paths[i] = pt.filename().string();
+	}
+}
+
 //------------------------------------------------
 int MedConvert::read_all(const string &config_fname)
 {
@@ -360,6 +370,9 @@ int MedConvert::read_all(const string &config_fname)
 	if (add_path_to_name_IM(out_path, repository_config_fname) == -1 ||
 		add_path_to_name_IM(out_path, sig_fnames) == -1)
 		return -1;
+	if (create_signals_config() < 0)
+		MTHROW_AND_ERR("MedConvert: read_all(): failed generating signals config file\n");
+	get_rel_filename(sig_fnames);
 
 	// Create repository config file
 	if (create_repository_config() < 0)
@@ -368,7 +381,7 @@ int MedConvert::read_all(const string &config_fname)
 	// Copy dict files as-is to output directory
 	if (copy_files_IM(path, out_path, dict_fnames) < 0)
 		MTHROW_AND_ERR("MedConvert : read_all() : failed copying files from in to out directory\n");
-
+	
 	// add path to more files + fix paths
 	if (add_path_to_name_IM(path, dict_fnames) == -1 ||
 		add_path_to_name_IM(out_path, index_fnames) == -1 ||
@@ -381,8 +394,7 @@ int MedConvert::read_all(const string &config_fname)
 	if (create_indexes() < 0)
 		MTHROW_AND_ERR("MedConvert: read_all(): failed generating new data and indexes\n");
 
-	if (create_signals_config() < 0)
-		MTHROW_AND_ERR("MedConvert: read_all(): failed generating signals config file\n");
+	
 
 	return 0;
 }
@@ -496,7 +508,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										if (sigs.is_categorical_channel(sid, 0))
 											cd.val = dict.get_id_or_throw(section, fields[2]);
 										else cd.val = med_stof(fields[2]);
-									} 
+									}
 									else // backward compatible with date 0 trick to load value only data
 										if (sigs.is_categorical_channel(sid, 0))
 											cd.val = dict.get_id_or_throw(section, fields[3]);
@@ -616,25 +628,25 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									break;
 
 								case T_TimeShort4:
-									
+
 									cd.time = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
-									
+
 									if (sigs.is_categorical_channel(sid, 0))
 										cd.val1 = dict.get_id_or_throw(section, fields[3]);
 									else cd.val1 = med_stof(fields[3]);
-									
+
 									if (sigs.is_categorical_channel(sid, 1))
 										cd.val2 = dict.get_id_or_throw(section, fields[4]);
 									else cd.val2 = med_stof(fields[4]);
-									
+
 									if (sigs.is_categorical_channel(sid, 2))
 										cd.val3 = dict.get_id_or_throw(section, fields[5]);
 									else cd.val3 = med_stof(fields[5]);
-									
+
 									if (sigs.is_categorical_channel(sid, 3))
 										cd.val4 = dict.get_id_or_throw(section, fields[6]);
 									else cd.val4 = med_stof(fields[6]);
-																		
+
 									break;
 
 								default:
@@ -1076,7 +1088,7 @@ int MedConvert::write_indexes(pid_data &curr)
 	// getting rid of duplicates
 	vector<collected_data>::iterator it;
 	for (i = 0; i < curr.raw_data.size(); i++) {
-		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [](const collected_data &v1, const collected_data &v2) {return cd_to_tuple(v1) == cd_to_tuple(v2);});
+		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [](const collected_data &v1, const collected_data &v2) {return cd_to_tuple(v1) == cd_to_tuple(v2); });
 		curr.raw_data[i].resize(distance(curr.raw_data[i].begin(), it));
 	}
 
@@ -1142,7 +1154,7 @@ int MedConvert::write_indexes(pid_data &curr)
 						int sid_type = serial2siginfo[i].type; //sigs.type(sid);
 						int sid_fno = serial2siginfo[i].fno; //sid2fno[sid];
 
-						if ((ilen>0) && (sid_fno == fno) && (sid_type >= 0 && sid_type < T_Last)) {
+						if ((ilen > 0) && (sid_fno == fno) && (sid_type >= 0 && sid_type < T_Last)) {
 
 							//int sid = serial2sid[i];
 							unsigned short file_n = fno;

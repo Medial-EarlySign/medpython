@@ -322,6 +322,7 @@ public:
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 	void set_am_matrix(string s) { am_matrix = s;  }
+	void get_am_rep_signals(unordered_set<string> &am_sigs) { ma.get_rep_signals(am_sigs); } // returns the available 
 };
 
 //===============================================================================

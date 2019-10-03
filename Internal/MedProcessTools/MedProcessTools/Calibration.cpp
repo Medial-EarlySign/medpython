@@ -403,7 +403,7 @@ void Calibrator::Apply(MedFeatures &matrix) const {
 	Apply(matrix.samples);
 }
 
-void get_weights(const vector<MedSample>& orig_samples, const string &attr, vector<float> &weights) {
+bool get_weights(const vector<MedSample>& orig_samples, const string &attr, vector<float> &weights) {
 	bool has_miss = false, found = false;
 	weights.resize(orig_samples.size(), 1); //give 1 weights to all
 	for (size_t i = 0; i < orig_samples.size(); ++i) {
@@ -418,6 +418,7 @@ void get_weights(const vector<MedSample>& orig_samples, const string &attr, vect
 		MWARN("Warning get_weights: has weights for some of the samples\n");
 	else if (found)
 		MLOG("Read Weights from samples attr %s\n", attr.c_str());
+	return found;
 }
 
 int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const int samples_time_unit) {
@@ -464,6 +465,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		samples.push_back(e);
 	}
 	std::sort(samples.begin(), samples.end(), comp_sample_pred);
+	weights.clear(); //reorder weigths to samples
+	get_weights(samples, weights_attr_name, weights);
+
 	MLOG("eligible samples [%d] cases [%d]\n", int(samples.size()), cases);
 	int max_samples_per_bin = 0;
 	int max_cases_per_bin = 0;
@@ -621,15 +625,26 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		{
 			calibration_entry ce;
 			ce.bin = i + 1;
-			ce.min_pred = cals[(int)min_r[i]].min_pred;
-			ce.max_pred = cals[(int)max_r[i]].max_pred;
+			int min_idx_bin, max_idx_bin;
+			if (max_r[i] >= cals.size())
+				max_idx_bin = (int)cals.size() - 1;
+			else
+				max_idx_bin = (int)max_r[i];
+			if (min_r[i] < 0)
+				min_idx_bin = -1;
+			else
+				min_idx_bin = (int)min_r[i];
+			++min_idx_bin;
+
+			ce.min_pred = cals[min_idx_bin].min_pred;
+			ce.max_pred = cals[max_idx_bin].max_pred;
 			ce.cnt_controls = 0; ce.cnt_cases = 0;
 			ce.cnt_controls_no_w = 0;  ce.cnt_cases_no_w = 0;
 			ce.controls_per_time_slot.resize(km_time_slots + 1);
 			ce.cases_per_time_slot.resize(km_time_slots + 1);
 			ce.mean_pred = 0;
 			int cnt = 0;
-			for (int j = (int)min_r[i]; j <= (int)max_r[i]; ++j)
+			for (int j = min_idx_bin; j <= max_idx_bin; ++j)
 			{
 				ce.cnt_controls += cals[j].cnt_controls;
 				ce.cnt_cases += cals[j].cnt_cases;
@@ -654,8 +669,12 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				ce.mean_outcome = map_r[i];
 			}
 			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
-			new_cals.push_back(ce);
+			new_cals[i] = ce;
 		}
+		reverse(new_cals.begin(), new_cals.end());
+		for (size_t i = 0; i < new_cals.size(); ++i)
+			new_cals[i].bin = (int)i + 1;
+
 		cals = move(new_cals);
 	}
 	//smooth calc
@@ -852,6 +871,7 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	MLOG_D("Learning calibration on %d ids\n", (int)orig_samples.size());
 
 	vector<float> preds, labels, weights;
+	bool has_w;
 	switch (calibration_type)
 	{
 	case CalibrationTypes::probability_time_window:
@@ -872,6 +892,30 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	case CalibrationTypes::probability_isotonic:
 		collect_preds_labels(orig_samples, preds, labels);
 		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, verbose);
+		//If has weights: apply them:
+		has_w = get_weights(orig_samples, weights_attr_name, weights);
+		if (has_w) {
+			//recalc probs for each bin, based on created bins:
+			map_prob.clear();
+			map_prob.resize(min_range.size(), 0);
+			vector<double> cnts(min_range.size());
+			for (size_t i = 0; i < preds.size(); ++i)
+			{
+				//find bin idx
+				int bin_idx = 0;
+				while (bin_idx < map_prob.size() &&
+					!((preds[i] > min_range[bin_idx] || bin_idx == map_prob.size() - 1) &&
+					(preds[i] <= max_range[bin_idx] || bin_idx == 0)))
+					++bin_idx;
+				//count in bin and outcome
+				cnts[bin_idx] += weights[i];
+				map_prob[bin_idx] += (labels[i] > 0) * weights[i];
+			}
+			//calc average prob:
+			for (size_t i = 0; i < map_prob.size(); ++i)
+				if (cnts[i] > 0)
+					map_prob[i] /= cnts[i];
+		}
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",

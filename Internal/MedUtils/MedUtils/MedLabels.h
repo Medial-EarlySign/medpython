@@ -107,6 +107,11 @@ public:
 	SamplingRes get_samples(int pid, int time, vector<MedSample> &samples, bool show_conflicts = false) const;
 
 	/// <summary>
+	/// update outcome and outcomeTime keeping everything else
+	/// </summary>
+	SamplingRes get_samples(int pid, const vector<MedSample> &samples, vector<MedSample> &new_samples, bool show_conflicts = false) const;
+
+	/// <summary>
 	/// returns label value for time points
 	/// </summary>
 	SamplingRes get_samples(int pid, const vector<int> &times, vector<MedSample> &samples, bool show_conflicts = false) const;

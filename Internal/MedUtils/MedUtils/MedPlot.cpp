@@ -119,7 +119,7 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 }
 
 void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title, const string &xName
-	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type)
+	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type, const string &mode)
 {
 	string x_name = "x";
 	string y_name = "y";
@@ -158,7 +158,7 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 		const map<float, float> &dmap = data[i];
 
 		//rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
-		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines',\n " + x_name + ": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: '" + mode + "',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -226,7 +226,7 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 
 void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title,
 	const string &xName, const string &yName, const vector<string> &seriesNames,
-	int refreshTime) {
+	int refreshTime, const string &mode) {
 
 	string x_name = "x";
 	string y_name = "y";
@@ -260,7 +260,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 	{
 		const vector<pair<float, float>> &dmap = data[i];
 
-		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: 'markers',\n " + x_name + ": [";
+		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: '" + mode + "',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
 		}
@@ -298,7 +298,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 	rep += "var data = [";
 	for (size_t i = 0; i < data.size(); ++i)
 		rep += " series" + to_string(i) + ", ";
-	
+
 	rep = rep.substr(0, rep.size() - 2);
 	rep += " ]; \n";
 
@@ -569,9 +569,10 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	vector<map<float, float>> allData;
 	vector<map<float, float>> allPPV;
 	vector<map<float, float>> allSensPPV;
-	vector<map<float, float>> allSensPR;
+	vector<map<float, float>> allSensPR, allPRPPV, allPRSens;
 	vector<double> auc((int)all_preds.size());
 	vector<float> empty_vec;
+	map<float, float> ref_graph;
 	for (size_t i = 0; i < all_preds.size(); ++i)
 	{
 		const vector<float> &preds = all_preds[i];
@@ -584,6 +585,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		map<float, float> false_ppv;
 		map<float, float> xy;
 		map<float, float> sens_ppv, sens_pr;
+		map<float, float> pr_ppv, pr_sens;
 		for (size_t k = 0; k < true_rate.size(); ++k)
 		{
 			false_true[100 * false_rate[k]] = 100 * true_rate[k];
@@ -594,6 +596,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 			}
 			sens_ppv[float((int)(100 * true_rate[k]))] = ppv[k];
 			sens_pr[float((int)(100 * true_rate[k]))] = pr[k];
+			float rounded_pr = (float)((int)(1000 * pr[k])) / 10;
+			pr_ppv[rounded_pr] = 100 * ppv[k];
+			pr_sens[rounded_pr] = 100 * true_rate[k];
 		}
 		auc[i] = false_rate.back() * true_rate.back() / 2; //"auc" - saved in reversed order from smallest score to highest score)
 		for (int k = (int)true_rate.size() - 1; k > 0; --k)
@@ -601,8 +606,9 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 
 
 		if (i == 0) {
-			down_sample_graph(xy);
-			allData.push_back(xy);
+			ref_graph = xy;
+			down_sample_graph(ref_graph);
+			//allData.push_back(xy);
 		}
 		down_sample_graph(false_true);
 		down_sample_graph(false_ppv);
@@ -610,6 +616,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		allPPV.push_back(false_ppv);
 		allSensPPV.push_back(sens_ppv);
 		allSensPR.push_back(sens_pr);
+		allPRPPV.push_back(pr_ppv);
+		allPRSens.push_back(pr_sens);
 		vector<map<float, float>> model_false_scores;
 		down_sample_graph(th_false);
 		model_false_scores.push_back(th_false);
@@ -618,6 +626,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		createHtmlGraph(baseOut + path_sep() + fname + "_False_Thresholds.html", model_false_scores,
 			"False rate as function of thresholds", "Prediction Threshold score value", "False Positive Rate");
 	}
+	if (!all_preds.empty())
+		allData.push_back(ref_graph);
 	vector<string> data_titles(modelNames);
 	//append Auc to titles
 	char buff[200];
@@ -625,12 +635,14 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		snprintf(buff, sizeof(buff), "%s (AUC=%1.3f)", data_titles[i].c_str(), auc[i]);
 		data_titles[i] = string(buff);
 	}
-	data_titles.insert(data_titles.begin(), "x=y reference");
+	data_titles.push_back("x=y reference");
 	createHtmlGraph(baseOut + path_sep() + "ROC.html", allData, "ROC curve", "False Positive Rate", "True Positive Rate", data_titles);
 	data_titles = vector<string>(modelNames);
 	createHtmlGraph(baseOut + path_sep() + "PPV.html", allPPV, "PPV curve", "False Positive Rate", "Positive Predictive Value", data_titles);
 	createHtmlGraph(baseOut + path_sep() + "SensPPV.html", allSensPPV, "PPV by Sensitivity", "Sensitivity", "Positive Predictive Value", data_titles);
 	createHtmlGraph(baseOut + path_sep() + "SensPR.html", allSensPR, "PR by Sensitivity", "Sensitivity", "Positivity Rate", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "PRPPV.html", allPRPPV, "PPV by PR", "PR", "Positive Predictive Value", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "PRSens.html", allPRSens, "Sensitivity by PR", "PR", "Sensitivity", data_titles);
 
 
 	if (print_y)

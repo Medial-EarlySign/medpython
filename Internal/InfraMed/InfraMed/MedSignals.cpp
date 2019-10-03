@@ -55,6 +55,7 @@ string MedRep::get_type_generic_spec(SigType t)
 }
 
 //-----------------------------------------------------------------------------------------------
+
 int MedRep::get_type_size(SigType t)
 {
 	switch (t) {
@@ -303,7 +304,6 @@ int MedSignals::read(const string &fname)
 						info.description = "";
 					else
 						info.description = fields[4];
-					
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
@@ -577,7 +577,6 @@ int MedSignals::insert_virtual_signal(const string &sig_name, const string& sign
 	return new_sid; // returning the new sid (always positive) as the rc
 }
 
-
 //-----------------------------------------------------------------------------------------------
 int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
 {
@@ -628,6 +627,26 @@ void UniversalSigVec_old::init(const SignalInfo &info)
 
 	type = T_Last;
 
+}
+
+// returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
+int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) > time_bound)
+			return i;
+	}
+	return -1;
+}
+
+// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
+int UniversalSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) >= time_bound)
+			return i;
+	}
+	return -1;
 }
 
 

@@ -140,7 +140,7 @@ bool has_element(const vector<Filter_Param> &vec, const string &val) {
 			return true;
 	return false;
 }
-void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
+void init_model(MedModel &mdl, MedPidRepository& rep, const string &json_model,
 	const string &rep_path, const vector<int> &pids_to_take) {
 	if (!json_model.empty()) {
 		MLOG("Adding new features using %s\n", json_model.c_str());
@@ -159,10 +159,9 @@ void init_model(MedModel &mdl, MedRepository& rep, const string &json_model,
 	if (need_gender)
 		mdl.add_gender();
 	//read only dicts of rep:
-	if (rep.read_config(rep_path) < 0 || rep.dict.read(rep.dictionary_fnames) < 0)
+	if (rep.init(rep_path) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", rep_path.c_str());
-	for (RepProcessor *processor : mdl.rep_processors)
-		processor->set_affected_signal_ids(rep.dict);
+	mdl.fit_for_repository(rep);
 	mdl.filter_rep_processors();
 
 	unordered_set<string> req_names;
