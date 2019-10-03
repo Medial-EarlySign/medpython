@@ -316,6 +316,94 @@ template<typename T> inline int binary_search_position_last(const T *begin, cons
 	}
 }
 
+Mem_Iterator::Mem_Iterator(const vector<int> &pids, const vector<int> &cohort_indexes, float p_sample_ratio, int p_sample_per_pid, int seed) {
+	sample_per_pid = p_sample_per_pid;
+	sample_ratio = p_sample_ratio;
+	random_device rd;
+	if (seed == 0)
+		_rd_gen = mt19937(rd());
+	else
+		_rd_gen = mt19937(seed);
+
+	if (cohort_indexes.empty())
+		MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - empty cohort_indexes\n");
+	if (pids.size() <= cohort_indexes.front())
+		MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - got index in cohort_indexes[%zu]=%d which is bigger than pids %zu\n",
+		(size_t)0, cohort_indexes.front(), pids.size());
+	int min_pid = pids[cohort_indexes.front()], max_pid = pids[cohort_indexes.front()];
+	for (size_t i = 1; i < cohort_indexes.size(); ++i)
+	{
+		int ii = cohort_indexes[i];
+		if (ii >= pids.size())
+			MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - got index in cohort_indexes[%zu]=%d which is bigger than pids %zu\n",
+				i, cohort_indexes[i], pids.size());
+		if (pids[ii] < min_pid)
+			min_pid = pids[ii];
+		if (pids[ii] > max_pid)
+			max_pid = pids[ii];
+	}
+
+	pid_to_inds.resize(max_pid - min_pid + 1);
+	ind_to_pid.reserve(max_pid - min_pid + 1);
+	for (int ii : cohort_indexes) {
+		int pid_ind_val = pids[ii] - min_pid;
+		if (pid_to_inds[pid_ind_val].empty())
+			ind_to_pid.push_back(pid_ind_val);
+		pid_to_inds[pid_ind_val].push_back(int(ii));
+	}
+
+	cohort_size = int(sample_ratio * ind_to_pid.size());
+	//choose pids:
+
+
+	cohort_idx = cohort_indexes;
+	tot_rec_cnt = (int)pids.size();
+}
+
+void Mem_Iterator::fetch_selection(mt19937 &rd_gen, vector<int> &indexes) const {
+	indexes.clear();
+	if (sample_per_pid > 0)
+		indexes.reserve(cohort_size * sample_per_pid);
+	else
+		indexes.reserve(tot_rec_cnt);
+	uniform_int_distribution<> rand_pids(0, (int)ind_to_pid.size() - 1);
+	for (size_t k = 0; k < cohort_size; ++k)
+	{
+		int ind_pid = rand_pids(rd_gen);
+		int pid_idx_sel = ind_to_pid[ind_pid];
+		//if (pid_idx_sel >= pid_to_inds.size())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - pid_idx_sel(%d) >= pid_to_inds.size(%zu)\n",
+		//		pid_idx_sel, pid_to_inds.size());
+		const vector<int> &ind_vec = pid_to_inds[pid_idx_sel]; //the indexes of current pid:
+		//if (ind_vec.empty())
+		//	MTHROW_AND_ERR("Error Mem_Iterator::fetch_selection - ind_vec is empty\n");
+		//subsample if needed:
+		if (sample_per_pid == 0)
+			indexes.insert(indexes.end(), ind_vec.begin(), ind_vec.end());
+		else {
+			uniform_int_distribution<> sel_rnd(0, (int)ind_vec.size() - 1);
+			//with repeats:
+			for (size_t i = 0; i < sample_per_pid; ++i)
+			{
+				int rnd_sel = sel_rnd(rd_gen);
+				indexes.push_back(ind_vec[rnd_sel]);
+			}
+		}
+	}
+}
+
+void Mem_Iterator::fetch_selection(vector<int> &indexes) const {
+	mt19937 rd_cop = _rd_gen;
+	fetch_selection(rd_cop, indexes);
+}
+
+void Mem_Iterator::fetch_selection_external(vector<int> &indexes) const {
+	fetch_selection(indexes);
+}
+
+void Mem_Iterator::fetch_selection_external(mt19937 &rd_gen, vector<int> &indexes) const {
+	fetch_selection(rd_gen, indexes);
+}
 
 #pragma endregion
 
@@ -324,6 +412,22 @@ int get_checksum(const vector<int> &pids) {
 	for (int pid : pids)
 		checksum = (checksum + pid) & 0xFFFF;
 	return checksum;
+}
+
+void prepare_for_bootstrap(const vector<int> &pids,
+	const map<string, vector<float>> &additional_info, FilterCohortFunc &filter_cohort
+	, void *cohort_params, float sample_ratio, int sample_per_pid, int seed, vector<int> &indexes) {
+	vector<int>  filtered_indexes;
+	filtered_indexes.clear();
+	filtered_indexes.reserve((int)pids.size());
+
+	for (size_t j = 0; j < pids.size(); ++j)
+		if (filter_cohort(additional_info, (int)j, cohort_params)) {
+			filtered_indexes.push_back((int)j);
+		}
+
+	Mem_Iterator iterator(pids, filtered_indexes, sample_ratio, sample_per_pid, seed);
+	iterator.fetch_selection(indexes);
 }
 
 map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
@@ -357,6 +461,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
+	Mem_Iterator mem_iter;
+	if (sample_per_pid == 0) {
+		vector<int> empty_all(pids.size());
+		for (size_t i = 0; i < pids.size(); ++i)
+			empty_all[i] = (int)i;
+		mem_iter = Mem_Iterator(pids, empty_all, sample_ratio, sample_per_pid, seed);
+	}
 	map<string, vector<float>> all_measures;
 	iterator.sample_all_no_sampling = true;
 	//iterator.sample_per_pid = 0; //take all samples in Obs
@@ -412,58 +523,36 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = true;
 
-		mt19937 rd_gen;
-		if (seed > 0)
-			rd_gen = mt19937(seed);
-		else {
-			random_device rd;
-			rd_gen = mt19937(rd());
-		}
-		unordered_map<int, vector<int>> pid_to_inds;
-		for (size_t i = 0; i < pids.size(); ++i)
-			pid_to_inds[pids[i]].push_back(int(i));
-
-		int cohort_size = int(sample_ratio * pid_to_inds.size());
-		int cnt_i = 0;
-		vector<int> ind_to_pid((int)pid_to_inds.size());
-		for (auto it = pid_to_inds.begin(); it != pid_to_inds.end(); ++it)
+		vector<mt19937> rd_gen(omp_get_max_threads());
+		random_device rd;
+		for (size_t i = 0; i < rd_gen.size(); ++i)
 		{
-			ind_to_pid[cnt_i] = it->first;
-			++cnt_i;
+			if (seed > 0)
+				rd_gen[i] = mt19937(seed);
+			else
+				rd_gen[i] = mt19937(rd());
 		}
-		//choose pids:
-		uniform_int_distribution<> rand_pids(0, (int)pid_to_inds.size() - 1);
 
 		//other sampling - sample pids and take all thier data:
 		//now sample cohort 
 
-		int done_cnt = 0;
-		time_t start = time(NULL);
-		time_t last_time_print = start;
+		MedProgress done_cnt("bootstrap_progress", loopCnt, 30, 1);
 #pragma omp parallel for schedule(dynamic,1)
 		for (int i = 0; i < loopCnt; ++i)
 		{
-			vector<int> selected_pids(cohort_size);
-			for (size_t k = 0; k < cohort_size; ++k)
-			{
-				int ind_pid = rand_pids(rd_gen);
-				selected_pids[k] = ind_to_pid[ind_pid];
-			}
-
 			//create preds, y for all seleceted pids:
-			vector<float> selected_preds, selected_y, selected_weights;
-			for (size_t k = 0; k < selected_pids.size(); ++k)
+			vector<int> idx;
+			mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
+			vector<float> selected_preds(idx.size()), selected_y(idx.size()), selected_weights;
+			if (weights != NULL && !weights->empty())
+				selected_weights.resize(idx.size());
+			for (size_t k = 0; k < idx.size(); ++k)
 			{
-				int pid = selected_pids[k];
-				vector<int> ind_vec = pid_to_inds[pid];
-				for (int ind : ind_vec)
-				{
-					selected_preds.push_back(preds[ind]);
-					selected_y.push_back(y[ind]);
-					if (weights != NULL && !weights->empty()) {
-						selected_weights.push_back(weights->at(ind));
-					}
-				}
+				int ind = idx[k];
+				selected_preds[k] = preds[ind];
+				selected_y[k] = y[ind];
+				if (weights != NULL && !weights->empty())
+					selected_weights[k] = weights->at(ind);
 			}
 
 			iterator.set_static(&selected_y, &selected_preds, &selected_weights, i);
@@ -500,15 +589,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
 			}
-#pragma omp atomic
-			++done_cnt;
-			if ((int)difftime(time(NULL), last_time_print) >= 30) {
-				last_time_print = time(NULL);
-				float time_elapsed = (float)difftime(time(NULL), start);
-				float estimate_time = float(loopCnt - done_cnt) / done_cnt * time_elapsed;
-				MLOG("%s: Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes\n",
-					cohort_name.c_str(), done_cnt, loopCnt, 100.0*(done_cnt / float(loopCnt)), time_elapsed / 60, estimate_time / 60.0);
-			}
+
+			done_cnt.update();
 		}
 	}
 
@@ -894,6 +976,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	sort(pr_points.begin(), pr_points.end());
 	for (size_t i = 0; i < pr_points.size(); ++i)
 		pr_points[i] /= 100.0;
+	vector<float> score_points = params->working_point_Score; // Working Score points
+	sort(score_points.begin(), score_points.end());
+	reverse(score_points.begin(), score_points.end());
 
 	unordered_map<float, vector<float>> thresholds_labels;
 	unordered_map<float, vector<float>> thresholds_weights;
@@ -966,7 +1051,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			false_rate[st_size - i] = float(f_sum);
 		}
 
-	if (f_cnt == 0 || t_sum <= 0) {
+	if (f_cnt <= 0 || t_sum <= 0) {
 		if (params->show_warns) {
 			if (t_sum <= 0)
 				MWARN("no positives exists in cohort\n");
@@ -975,6 +1060,21 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		}
 		return res;
 	}
+	if (params->show_warns) {
+		int last_idx = -1;
+		for (size_t i = 0; i < true_rate.size(); ++i) {
+			if (true_rate[i] < 0)
+				last_idx = (int)i;
+		}
+
+		if (last_idx > -1 && false_rate[last_idx] / f_sum >= 0.005)
+			MWARN("true positive has negative values - outcome fix is too aggresive (index=%d, fpr=%2.1f%%, sens=%2.1f%%)\n",
+				last_idx, 100 * false_rate[last_idx] / f_sum, 100 * true_rate[last_idx] / float(!trunc_max ? t_sum : tt_cnt));
+	}
+	for (size_t i = 0; i < true_rate.size(); ++i)
+		if (true_rate[i] < 0)
+			true_rate[i] = 0;
+
 	for (size_t i = 0; i < true_rate.size(); ++i) {
 		true_rate[i] /= float(!trunc_max ? t_sum : tt_cnt);
 		false_rate[i] /= float(f_sum);
@@ -985,10 +1085,10 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
 	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
-	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0;
+	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0;
 	int i = 0;
 
-	float ppv_c, pr_prev, ppv_prev, pr_c, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
+	float ppv_c, pr_prev, ppv_prev, pr_c, score_c, score_prev, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
 	if (use_wp) {
 		//fpr points:
 		i = 1;
@@ -1426,7 +1526,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
 						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
 							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
-						res[format_working_point("RR@SENS", pr_points[curr_wp_pr_ind])] =
+						res[format_working_point("RR@PR", pr_points[curr_wp_pr_ind])] =
 							float(ppv / FOR);
 					}
 					else
@@ -1435,6 +1535,156 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 
 				++curr_wp_pr_ind;
+				continue;
+			}
+			++i;
+		}
+
+		//handle score points:
+		i = 1; //first point is always before
+		while (i < true_rate.size() && curr_wp_score_ind < score_points.size())
+		{
+			score_c = unique_scores[true_rate.size() - i - 1];
+			if (curr_wp_score_ind < score_points.size() && score_c <= score_points[curr_wp_score_ind]) { //passed work_point - take 2 last points for measure - by distance from wp
+				score_prev = unique_scores[true_rate.size() - i];
+
+				float prev_diff = score_prev - score_points[curr_wp_score_ind];
+				float curr_diff = score_points[curr_wp_score_ind] - score_c;
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("PPV@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("NPV@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT Score=%f, prev_Score%f, next_Score=%f\n",
+						score_points[curr_wp_score_ind], score_prev, score_c);
+#endif //  WARN_SKIP_WP
+					++curr_wp_score_ind;
+					continue; //skip working point - diff is too big
+				}
+
+				if (params->incidence_fix > 0) {
+					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
+				}
+				else {
+					pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+						(t_sum + f_sum));
+					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(t_sum + f_sum));
+				}
+				res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff));
+
+				res[format_working_point("FPR@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (false_rate[i] * (prev_diff / tot_diff) + false_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point("SPEC@SCORE", score_points[curr_wp_score_ind], false)] = 100 * ((1 - false_rate[i]) * (prev_diff / tot_diff) + (1 - false_rate[i - 1]) * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
+				}
+				else {
+					ppv_c = float((true_rate[i] * t_sum) /
+						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					if (false_rate[i - 1] > 0 || true_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
+				}
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
+				res[format_working_point("PPV@SCORE", score_points[curr_wp_score_ind], false)] = 100 * ppv;
+				res[format_working_point("SENS@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (true_rate[i] * (prev_diff / tot_diff) + true_rate[i - 1] * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
+				}
+				else {
+					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
+						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
+				}
+				res[format_working_point("NPV@SCORE", score_points[curr_wp_score_ind], false)] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = float(ppv / params->incidence_fix);
+				else
+					res[format_working_point("LIFT@SCORE", score_points[curr_wp_score_ind], false)] = float(ppv /
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = or_prev;
+				else
+					res[format_working_point("OR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = rr_prev;
+					else
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] =
+							float(ppv / FOR);
+					}
+					else
+
+						res[format_working_point("RR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
+				}
+
+				++curr_wp_score_ind;
 				continue;
 			}
 			++i;
@@ -2292,6 +2542,8 @@ int ROC_Params::init(map<string, string>& map) {
 			parse_vector(param_value, working_point_FPR);
 		else if (param_name == "working_point_pr")
 			parse_vector(param_value, working_point_PR);
+		else if (param_name == "working_point_score")
+			parse_vector(param_value, working_point_Score);
 		else if (param_name == "working_point_sens")
 			parse_vector(param_value, working_point_SENS);
 		else if (param_name == "show_warns")

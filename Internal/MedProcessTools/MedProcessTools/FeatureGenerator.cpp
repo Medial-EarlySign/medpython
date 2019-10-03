@@ -704,6 +704,27 @@ int GenderGenerator::init(map<string, string>& mapper) {
 //=======================================================================================
 // Singleton
 //=======================================================================================
+
+//.......................................................................................
+int SingletonGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
+
+	// Learn mapping from string to value (not relying on dictionary ...)
+	if (rep.sigs.Sid2Info[signalId].is_categorical_per_val_channel[0]) {
+		int section_id = rep.dict.section_id(signalName);
+
+		int idx = 0;
+		for (auto& rec : rep.dict.dicts[section_id].Name2Id)
+			name2Value[rec.first] = idx++;
+
+		name2Value["SINGLETON_UNKNOWN"] = idx;
+	}
+
+	get_id2Value(rep.dict);
+
+	return 0;
+}
+
+//.......................................................................................
 int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 	// Sanity check
@@ -719,8 +740,11 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	else {
 		if (sets.size() == 0)
 		{
-			// Normal Singleton, just return value
-			value = (float)((int)(rec.usv.Val(0)));
+			// Normal Singleton
+			if (id2Value.empty()) // Values as is
+				value = (float)((int)(rec.usv.Val(0)));
+			else // dictionaries
+				value = id2Value[(int)(rec.usv.Val(0))];
 		}
 		else
 		{
@@ -735,6 +759,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	return 0;
 }
 
+//.......................................................................................
 void SingletonGenerator::set_names()
 {
 	if (names.empty()) {
@@ -752,7 +777,9 @@ void SingletonGenerator::set_names()
 	}
 }
 
+//.......................................................................................
 void SingletonGenerator::init_tables(MedDictionarySections& dict) {
+
 	//MLOG("sets size = %d \n", lut.size());
 	if (sets.size() > 0) {
 		// This is a categorial variable.
@@ -763,13 +790,38 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
 		}
 	}
-	else
+	else {
 		lut.clear();
+		get_id2Value(dict);
+	}
 
 	return;
 }
 
-// Init
+//.......................................................................................
+void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
+
+	if (!name2Value.empty()) {
+		int section_id = dict.section_id(signalName);
+
+		int max_id = 1;
+		if (dict.dicts[section_id].Id2Name.size() > 0)
+			max_id = dict.dicts[section_id].Id2Name.rbegin()->first;
+		else
+			MTHROW_AND_ERR("SingletonGenerator::init_tables() : Got an empty Id2Name...\n");
+
+		id2Value.resize(max_id + 1, (float)0);
+
+		for (auto& rec : dict.dicts[section_id].Id2Name) {
+			if (name2Value.find(rec.second) == name2Value.end())
+				id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			else
+				id2Value[rec.first] = name2Value[rec.second];
+		}
+
+
+	}
+}
 //.......................................................................................
 int SingletonGenerator::init(map<string, string>& mapper) {
 
@@ -796,8 +848,16 @@ int SingletonGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+//.......................................................................................
+void SingletonGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples) {
+	FeatureGenerator::prepare(features, rep, samples);
+	if (sets.size() == 0)
+		for (auto& rec : name2Value)
+			features.attributes[names[0]].value2Name[rec.second] = rec.first;
+}
+
 //=======================================================================================
-// ComorbidityGenerator
+// RangeFeatGenerator
 //=======================================================================================
 
 //................................................................................................................
@@ -1380,12 +1440,14 @@ float BasicFeatGenerator::uget_category_set_sum(PidDynamicRec &rec, UniversalSig
 // get the number of samples in [win_to, win_from] before time
 float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
+	if (usv.len <= 0)
+		return 0;
 	int min_time, max_time;
 	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
 	int i, j;
 	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
 	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
-	if (usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
+	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
 	return 0;
 }
 
@@ -1655,7 +1717,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 
 	}
 
-	return (float)time_sum/div_factor;
+	return (float)time_sum / div_factor;
 }
 
 //=======================================================================================

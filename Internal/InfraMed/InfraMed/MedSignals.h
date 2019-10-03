@@ -771,6 +771,13 @@ public:
 
 	SigType get_type() const { return type; }
 
+	// helper functions for common operations
+	//----------------------------------------
+	// returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
+	int get_index_gt_time_bound(int time_chan, int time_bound);
+	// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
+	int get_index_ge_time_bound(int time_chan, int time_bound);
+
 protected:
 	SigType type = T_Last; // type of the embedded signal
 	int _time_unit = MedTime::Undefined;

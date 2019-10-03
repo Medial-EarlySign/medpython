@@ -157,8 +157,8 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 			for (int j : group_inds)
 				if (abs_cov_features(j, i) > alphas[i])
 					alphas[i] = abs_cov_features(j, i);
-				//alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
-			//alphas[i] /= group_normalization_factor;
+			//alphas[i] += abs_cov_features(j, i) * abs(contribs[j]);
+		//alphas[i] /= group_normalization_factor;
 		}
 	}
 
@@ -172,7 +172,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 
-	if (cov_features.m.empty() && !group_by_sum)
+	if (cov_features.m.empty() && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -232,7 +232,24 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 		}
 
+		normalization_factor = 0;
+		if (normalize_vals > 0) {
+			for (const auto &e : group_explain) normalization_factor += abs(e.second);
+
+			if (normalization_factor > 0)
+				for (auto &e : group_explain) e.second /= normalization_factor;
+		}
+
 		explain_list = move(group_explain);
+	}
+	else {
+		normalization_factor = 0;
+		if (normalize_vals > 0) {
+			for (const auto &e : explain_list) normalization_factor += abs(e.second);
+
+			if (normalization_factor > 0)
+				for (auto &e : explain_list) e.second /= normalization_factor;
+		}
 	}
 }
 
@@ -240,7 +257,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 void ExplainProcessings::process(map<string, float> &explain_list, unsigned char *missing_value_mask) const
 {
 	process(explain_list);
-	if (zero_missing == 0 || missing_value_mask==NULL) 	return;
+	if (zero_missing == 0 || missing_value_mask == NULL) 	return;
 
 
 	if (!group_by_sum) {
@@ -274,7 +291,7 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 	}
 
 
-	
+
 }
 
 int ModelExplainer::init(map<string, string> &mapper) {

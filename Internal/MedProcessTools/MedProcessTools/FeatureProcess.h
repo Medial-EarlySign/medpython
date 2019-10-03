@@ -453,8 +453,9 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
 
+		void dprint(const string &pref, int fp_flag);
 	/// debug and print
 	void print();
 

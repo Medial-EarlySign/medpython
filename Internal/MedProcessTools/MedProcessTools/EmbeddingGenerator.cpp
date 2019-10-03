@@ -123,6 +123,7 @@ int EmbeddingGenerator::generate_by_rec(PidDynamicRec& rec, MedFeatures& feature
 //-------------------------------------------------------------------------------------------------------------------------
 void EmbeddingGenerator::prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples)
 {
+	FeatureGenerator::prepare(features, rep, samples);
 	emc.prep_models_batches(rep, samples);
 }
 

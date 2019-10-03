@@ -3,6 +3,7 @@
 #include "MedProcessTools/MedProcessTools/FeatureGenerator.h"
 #include "MedProcessTools/MedProcessTools/MedProcessUtils.h"
 #include "Logger/Logger/Logger.h"
+#include <omp.h>
 
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -155,7 +156,7 @@ int BinnedLmEstimates::init(map<string, string>& mapper) {
 
 //..............................................................................
 void BinnedLmEstimates::set_sampling_strategy(string& strategy) {
-	
+
 	boost::to_lower(strategy);
 
 	if (strategy == "all" || strategy == "take_all")
@@ -201,15 +202,20 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
 
 	// Collect Data
-	int len, byear, gender, age;
-	PidDynamicRec rec;
+	
+	int nthreads = omp_get_max_threads();
+	vector<PidDynamicRec> recs(nthreads);
 
 	vector<float> values;
 	vector<int> ages, times, genders;
 	vector<int> id_firsts(nids), id_lasts(nids);
 
-	UniversalSigVec usv, ageUsv;
-	for (unsigned int i = 0; i < nids; i++) {
+#pragma omp parallel for
+	for (int i = 0; i < nids; i++) {
+		UniversalSigVec usv, ageUsv;
+		int len, byear, gender, age;
+		int n_th = omp_get_thread_num();
+		PidDynamicRec &rec = recs[n_th];
 		int id = samples.idSamples[i].id;
 
 		// Gender
@@ -218,11 +224,13 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 		gender = (int)(genderSignal[0].val);
 
 		// Get signal (if not virtual)
+#pragma omp critical
 		id_firsts[i] = (int)ages.size();
 		if (rep.sigs.Sid2Info[signalId].virtual_sig == 0) {
 			rep.uget(id, signalId, usv);
 
 			if (usv.len == 0) {
+#pragma omp critical
 				id_lasts[i] = id_firsts[i];
 				continue;
 			}
@@ -249,26 +257,27 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 
 			// Apply Processors
 			vector<vector<float>> dummy_attributes_mat;
-			for (unsigned int i = 0; i < processors.size(); i++)
-				processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
+			for (unsigned int j = 0; j < processors.size(); ++j)
+				processors[j]->conditional_apply(rec, time_points, current_required_signal_ids[j], dummy_attributes_mat);
 
 			// Collect values and ages
 			rec.uget(signalId, 0, usv);
-			for (int i = 0; i < usv.len; i++) {
-				if (sampling_strategy != BINNED_LM_TAKE_ALL && usv.Time(i, time_channel) > last_time_point)
+#pragma omp critical
+			for (int j = 0; j < usv.len; ++j) {
+				if (sampling_strategy != BINNED_LM_TAKE_ALL && usv.Time(j, time_channel) > last_time_point)
 					break;
-				values.push_back(usv.Val(i, val_channel));
-				get_age(usv.Time(i, time_channel), time_unit_sig, age, byear);
+				values.push_back(usv.Val(j, val_channel));
+				get_age(usv.Time(j, time_channel), time_unit_sig, age, byear);
 				ages.push_back(age);
 				genders.push_back(gender);
-				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(i, time_channel)));
+				times.push_back(med_time_converter.convert_times(time_unit_sig, time_unit_periods, usv.Time(j, time_channel)));
 				nvalues++;
 			}
 		}
 		else {
 			// BYear/Age
 			prepare_for_age(rep, id, ageUsv, age, byear);
-
+#pragma omp critical
 			for (int j = 0; j < usv.len; j++) {
 				if (sampling_strategy != BINNED_LM_TAKE_ALL && usv.Time(i, time_channel) > last_time_point)
 					break;
@@ -281,6 +290,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 				nvalues++;
 			}
 		}
+#pragma omp critical
 		id_lasts[i] = id_firsts[i] + nvalues - 1;
 	}
 

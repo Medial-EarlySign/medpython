@@ -60,6 +60,9 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	try {
 		if (ma.init_model_from_file(model_fname.c_str()) < 0)
 			return AM_ERROR_LOAD_READ_MODEL_ERR;
+		if (ma.model_check_required_signals() < 0)
+			return AM_ERROR_LOAD_MISSING_REQ_SIGS;
+
 	}
 	catch (...) {
 		return AM_ERROR_LOAD_READ_MODEL_ERR;
@@ -131,7 +134,8 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		int sid = rep.sigs.Name2Sid[sig];
 		int Values_i = 0;
 		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
-		for (int i=0; i<Values_len; i++) {
+		int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+		for (int i=0; i<n_elem; i++) {
 			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
 				float val = -1;
 				if (!rep.sigs.is_categorical_channel(sid, j)) {

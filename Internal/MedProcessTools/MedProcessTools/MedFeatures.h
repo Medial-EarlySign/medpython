@@ -19,9 +19,11 @@ public:
 	bool imputed = false; ///< indicator that the feature has been imputed and does not contain missing values
 	float denorm_mean = 0.0, denorm_sdv = 1.0; ///< Mean and Standard deviation for de-normalization
 
+	unordered_map<float, string> value2Name; ///< map value to name (e.g. for naming one-hot feature processor)
+
 	// Serialization
 	ADD_CLASS_NAME(FeatureAttr)
-	ADD_SERIALIZATION_FUNCS(normalized, imputed , denorm_mean, denorm_sdv)
+	ADD_SERIALIZATION_FUNCS(normalized, imputed , denorm_mean, denorm_sdv, value2Name)
 };
 
 //.......................................................................................

@@ -11,6 +11,7 @@
 #include <cmath>
 #include <cstring>
 #include <cstdint>
+#include <stdexcept>
 
 #include <limits>
 #include <vector>
@@ -129,7 +130,18 @@ namespace LightGBM {
           cur_cnt_inbin = 0;
           if (!is_big_count_value[i]) {
             --rest_bin_cnt;
-            mean_bin_size = rest_sample_cnt / static_cast<double>(rest_bin_cnt);
+		
+			 if (rest_bin_cnt > 0) 
+				mean_bin_size = rest_sample_cnt / static_cast<double>(rest_bin_cnt);
+			 else {
+				 if (i != num_distinct_values - 2) {//not last element
+			        Log::Warning("Going to divide by zero GreedyFindBin (rest_bin_cnt == 0) - in bin.cpp i=%d, till_last=%d, bin_cnt=%d, max_bin=%d, rest_sample_cnt=%d"
+					,i ,num_distinct_values - 2, bin_cnt, max_bin, rest_sample_cnt);
+					
+					//throw std::logic_error("Going to divide by zero GreedyFindBin");
+				 }
+				 break; //should be ok to break always
+			 }
           }
         }
       }
