@@ -277,7 +277,7 @@ int MedSignals::read(const string &fname)
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
-#ifdef NEW_USV
+
 					if (type == T_Generic) {
 						if (type_fields.size() < 2) {
 							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
@@ -295,11 +295,7 @@ int MedSignals::read(const string &fname)
 						info.bytes_len = MedRep::get_type_size((SigType)type);
 						MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
-#else
-					info.bytes_len = MedRep::get_type_size((SigType)type);					
-					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
-					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
-#endif
+
 					if (fields.size() == 4)
 						info.description = "";
 					else
@@ -596,7 +592,7 @@ int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
 //================================================================================================
 // UniversalSigVec
 //================================================================================================
-void UniversalSigVec_old::init(const SignalInfo &info)
+void UniversalSigVec_legacy::init(const SignalInfo &info)
 {
 	_time_unit = info.time_unit;
 	if (info.type == (int)type) return; // no need to init, same type as initiated
@@ -630,7 +626,7 @@ void UniversalSigVec_old::init(const SignalInfo &info)
 }
 
 // returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
-int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
+int UniversalSigVec_legacy::get_index_gt_time_bound(int time_chan, int time_bound)
 {
 	for (int i = 0; i < len; i++) {
 		if (Time(i, time_chan) > time_bound)
@@ -640,7 +636,7 @@ int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
 }
 
 // returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
-int UniversalSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
+int UniversalSigVec_legacy::get_index_ge_time_bound(int time_chan, int time_bound)
 {
 	for (int i = 0; i < len; i++) {
 		if (Time(i, time_chan) >= time_bound)

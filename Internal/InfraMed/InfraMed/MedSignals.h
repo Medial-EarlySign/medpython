@@ -17,18 +17,18 @@ using namespace std;
 #define N_SignalTypes
 
 
-//#define NEW_USV
 
-#ifdef NEW_USV
+
+#ifndef USE_LEGACY_USV
 class GenericSigVec;
 class GenericSigVec_mem;
 typedef class GenericSigVec UniversalSigVec;
 typedef class GenericSigVec_mem UniversalSigVec_mem;
 #else // legacy USV
-class UniversalSigVec_old;
-class UniversalSigVec_mem_old;
-typedef class UniversalSigVec_old UniversalSigVec;
-typedef class UniversalSigVec_mem_old UniversalSigVec_mem;
+class UniversalSigVec_legacy;
+class UniversalSigVec_mem_legacy;
+typedef class UniversalSigVec_legacy UniversalSigVec;
+typedef class UniversalSigVec_mem_legacy UniversalSigVec_mem;
 #endif
 
 
@@ -722,7 +722,7 @@ public:
 };
 
 
-class UniversalSigVec_old {
+class UniversalSigVec_legacy {
 public:
 	void *data;
 	int len;		// type len (not bytes len)
@@ -809,14 +809,14 @@ protected:
 * Managed memory version of UniversalSigVec.
 * for example when allocating new virtual records
 */
-class UniversalSigVec_mem_old : public UniversalSigVec_old {
+class UniversalSigVec_mem_legacy : public UniversalSigVec_legacy {
 public:
 	bool manage;
-	UniversalSigVec_mem_old() {
+	UniversalSigVec_mem_legacy() {
 		manage = false;
 	}
 
-	~UniversalSigVec_mem_old() {
+	~UniversalSigVec_mem_legacy() {
 		if (len > 0 && data != NULL && manage) {
 			delete[](char *)data;
 			data = NULL;
@@ -824,7 +824,7 @@ public:
 		}
 	}
 
-	void set(const UniversalSigVec_old &s) {
+	void set(const UniversalSigVec_legacy &s) {
 		data = s.data;
 		len = s.len;
 		manage = false;
