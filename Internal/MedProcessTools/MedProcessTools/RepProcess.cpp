@@ -2605,7 +2605,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
-			if (usv.n_val_channels > 0)
+			if (usv.n_val_channels() > 0)
 				static_signals_values[i] = usv.Val(0);
 			else
 				static_signals_values[i] = usv.Time(0);
