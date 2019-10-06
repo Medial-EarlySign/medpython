@@ -110,6 +110,14 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 	XGDMatrixFree(h_test);
 }
 
+void MedXGB::export_predictor(const string &output_fname)
+{
+	if (XGBoosterSaveModel(my_learner, output_fname.c_str()) < 0)
+	{
+		MTHROW_AND_ERR("MedXGB::export_predictor failed. couldn't write %s \n", output_fname.c_str());
+	}
+}
+
 int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	vector<float> w;
 	for (int i = 0; i < nsamples; i++)

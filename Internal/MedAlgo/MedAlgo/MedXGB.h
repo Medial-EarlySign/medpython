@@ -132,6 +132,8 @@ public:
 	
 	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
+	void export_predictor(const string &output_fname);
+
 	int n_preds_per_sample() const;
 
 	void pre_serialization() {
