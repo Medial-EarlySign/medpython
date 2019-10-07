@@ -25,7 +25,7 @@
 #define MED_DEFAULT_MIN_TRIM			-1e9
 #define MED_DEFAULT_MAX_TRIM			 1e9
 
-using namespace std ;
+using namespace std;
 
 // general useful routines for various statistics given two vectors (usually score + labels)
 
@@ -61,12 +61,12 @@ namespace medial {
 		/// <returns> Kendall's Tau, -2.0 if cannot calculate, output n = number of cleaned values  </returns>
 		template <typename T, typename S> double kendall_tau_without_cleaning(const vector<T> &v1, const vector<S> &v2, bool is01Vec1 = false, bool is01Vec2 = false);
 		template <typename T> double kendall_tau(const vector<T> &v1, const vector<T> &v2, T missing_value, int &n, bool is01Vec1 = false, bool is01Vec2 = false);
-		
+
 		/// <summary> _q version for a more efficient version if there are only few possibilities fo v1/v2 </summary>
 		/// <summary> This version also has optional weights </summary>
 		template <typename T, typename S> double kendall_tau_without_cleaning_q(const vector<T> &v1, const vector<S> &v2, const vector<float> *weights = NULL);
-		template <typename T, typename S> double kendall_tau_q(const vector<T> &v1, const vector<S> &v2, T missing_val1, S missing_val2, int& n, 
-			const vector<float> *weights= NULL);
+		template <typename T, typename S> double kendall_tau_q(const vector<T> &v1, const vector<S> &v2, T missing_val1, S missing_val2, int& n,
+			const vector<float> *weights = NULL);
 
 		/// <summary> calculate mutual information given vectors of counts and co-counts. n = number of non-empty bins </summary>
 		/// <returns> mutual information, -1.0 if cannot calculate </returns>
@@ -166,12 +166,15 @@ namespace medial {
 
 		/// <summary>get a vector of values, a vector of probabilities, and returning a matching vector of values such that Prob(x<=pvals[i])=p[i] </summary>
 		/// <summary>currently, there is no in-place version </summary>
-		template<class T> void get_percentiles(vector<T> &vals, vector<float> &p, vector<T> &out_pvals, int only_positive_flag=false);
+		template<class T> void get_percentiles(vector<T> &vals, vector<float> &p, vector<T> &out_pvals, int only_positive_flag = false);
 		/// <summary>get a vector of values and weights, a float 0<=q<=1, and returning the   element of the vector that the weights to its left(after sorting) sum to q of the total weights. 
 		/// <summary>All this done in average linear time
-		template<typename T> T get_quantile(vector<T> vals,vector<float> w, float q);
+		template<typename T> T get_quantile(vector<T> vals, vector<float> w, float q);
 		/// <summary> gets a vector of values, and checks the best way to round it at the 10^-3 to 10^3 (at 10x steps) range. </summary>
 		float get_best_rounding(vector<float>& vals, vector<float>& res, vector<int>& counts, float missing_value = -1);
+
+		double chi_square_table(double grp1_cntrl, double grp1_cases, double grp2_cntrl, double grp2_cases,
+			int smooth_balls = 0, float allowed_error = 0);
 	}
 }
 
