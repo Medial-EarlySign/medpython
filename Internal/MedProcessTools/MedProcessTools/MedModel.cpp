@@ -62,7 +62,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	//MedSamples model_learning_set;
 	//split_learning_set(*_samples, post_processors_learning_sets, model_learning_set);
 
-	return learn(rep, *_samples,  post_processors_learning_sets, start_stage, end_stage);
+	return learn(rep, *_samples, post_processors_learning_sets, start_stage, end_stage);
 }
 
 // Learn with multiple MedSamples
@@ -1426,7 +1426,7 @@ void filter_rep_processors(const vector<string> &current_req_signal_names, vecto
 	rep_processors->swap(filtered_processors);
 }
 
-void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+void medial::repository::prepare_repository(const vector<int> &pids, const string &RepositoryPath,
 	MedModel &mod, MedPidRepository &rep) {
 	MLOG("Reading repo file [%s]\n", RepositoryPath.c_str());
 	unordered_set<string> req_names;
@@ -1444,10 +1444,15 @@ void medial::repository::prepare_repository(const MedSamples &samples, const str
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
 
-	vector<int> pids;
-	samples.get_ids(pids);
 	if (rep.read_all(RepositoryPath, pids, sigs) < 0)
 		MTHROW_AND_ERR("ERROR could not read repository %s\n", RepositoryPath.c_str());
+}
+
+void medial::repository::prepare_repository(const MedSamples &samples, const string &RepositoryPath,
+	MedModel &mod, MedPidRepository &rep) {
+	vector<int> pids;
+	samples.get_ids(pids);
+	prepare_repository(pids, RepositoryPath, mod, rep);
 }
 
 vector<string> medial::repository::prepare_repository(MedPidRepository &rep, const vector<string> &needed_sigs,
@@ -1658,7 +1663,31 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 	return 0;
 }
 
+//-----------------------------------------------------------------------------------------------------------------
+int MedModel::get_nfeatures()
+{
+	int res = 0;
+	// in this case we collect all feature generator names
+	vector<unordered_set<string> > req_features_vec;
+	build_req_features_vec(req_features_vec); //from all feature processor
 
+	unordered_set<string> ftr_names = req_features_vec[feature_processors.size()];
+	if (ftr_names.empty()) {
+		// in this case we collect all feature generator names
+		for (FeatureGenerator *generator : generators)
+			generator->get_generated_features(ftr_names);
+	}
+
+	unordered_set<string> names;
+	for (FeatureGenerator *generator : generators) {
+		if (generator->names.empty()) //if the generation is dynamic names will be empty - fetch count from nfeatures
+			res += generator->nfeatures();
+	}
+	res += (int)ftr_names.size();
+	
+	// next is done in order to return feature list sorted in the order it will be in the final matrix
+	return res;
+}
 //-----------------------------------------------------------------------------------------------------------------
 void MedModel::get_generated_features_names(vector<string> &feat_names)
 {
@@ -1763,7 +1792,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 	// we use all ids from inSamples, and add also all ids from the post_processors learning sets that have use_p > 0 or use_split>=0
 	unordered_set<int> all_ids;
 	for (auto &ids : inSamples.idSamples) all_ids.insert(ids.id);
-	for (int j=0; j<post_processors.size(); j++)
+	for (int j = 0; j < post_processors.size(); j++)
 		if (post_processors[j]->use_p > 0 || post_processors[j]->use_split >= 0) {
 			for (auto &s : post_processors_learning_sets_orig[j].idSamples)
 				all_ids.insert(s.id);
@@ -1840,7 +1869,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 		if (id2assignment[s.id] == 0)
 			model_learning_set.idSamples.push_back(s);
 
-	
+
 	if (post_processors.size() > 0) {
 		if (post_processors_learning_sets_orig.size() == post_processors.size()) {
 			MLOG("Split_Learning_Set: Building lists from given post processors lists\n");
@@ -1856,7 +1885,7 @@ void MedModel::split_learning_set(MedSamples& inSamples, vector<MedSamples>& pos
 
 					for (int i = 0; i < post_processors_learning_sets_orig[j].idSamples.size(); i++) {
 						int id = post_processors_learning_sets_orig[j].idSamples[i].id;
-						if (id2assignment.find(id) == id2assignment.end() || id2assignment[id] == j+1)
+						if (id2assignment.find(id) == id2assignment.end() || id2assignment[id] == j + 1)
 							post_processors_learning_sets[j].idSamples.push_back(post_processors_learning_sets_orig[j].idSamples[i]);
 					}
 

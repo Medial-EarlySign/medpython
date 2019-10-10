@@ -202,6 +202,14 @@ public:
 			"isn't supported for " + model_name + " yet.");
 	};
 
+	virtual void export_predictor(const string &output_fname) {
+		string model_name = "model_id=" + to_string(classifier_type);
+		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
+			model_name = predictor_type_to_name[classifier_type];
+		throw logic_error("ERROR:: operation export_predictor "
+			"isn't supported for " + model_name + " yet.");
+	}
+
 	/// <summary>
 	/// calibration for probability using training data
 	/// @param x The training matrix

@@ -395,8 +395,6 @@ public:
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);
 
-	virtual ~AlgoMarker() { ClearData(); Unload(); };
-
 };
 
 

@@ -1,8 +1,8 @@
 // This is the main DLL file.
-
 #ifdef _WIN32
 #pragma warning(disable:4996)
 #endif
+
 
 #include "SigSum_AlgoMarker.h"
 // This is the main DLL file.
@@ -746,14 +746,21 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 	{
 		newData->TimeStamps[i] = TimeStamps[i];
 	}
-
 	newData->Values = (char**)malloc(Values_len * sizeof(char*));
 	//To send to AddData
 	float * values = (float *)malloc(Values_len * sizeof(float));
 	for (size_t i = 0; i < Values_len; i++)
 	{
+		values[i] = 0.0;
+	}
+	for (size_t i = 0; i < Values_len; i++)
+	{
 		newData->Values[i] = Values[i];
-		values[i] = i;
+		std::string stringValue(Values[i]);
+		for (char& c : stringValue)
+		{
+			values[i]= values[i]+ (int)c;
+		}
 	}
 	newData->Values_len = Values_len;
 

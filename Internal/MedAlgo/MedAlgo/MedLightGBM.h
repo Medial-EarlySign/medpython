@@ -231,6 +231,8 @@ public:
 	void predict_single(const vector<float> &x, vector<float> &preds) const;
 	void predict_single(const vector<double> &x, vector<double> &preds) const;
 
+	void export_predictor(const string & output_fname);
+
 	// serializations
 	void pre_serialization() {
 		model_as_string = "";

@@ -470,3 +470,16 @@ void MedLightGBM::predict_single(const vector<double> &x, vector<double> &preds)
 	double *out_result = &preds[0];
 	_boosting->Predict(x.data(), out_result, &early_stop_);
 }
+
+void MedLightGBM::export_predictor(const string &output_fname)
+{
+	string predictor_str;
+	mem_app.serialize_to_string(predictor_str);
+	ofstream ofs(output_fname, std::ios::binary);
+	if (!ofs)
+	{
+		MTHROW_AND_ERR("MedLightGBM::export_predictor failed. couldn't write %s \n", output_fname.c_str());
+	}
+	ofs << predictor_str;
+	ofs.close();
+}

@@ -974,8 +974,10 @@ void TagFeatureSelector::dprint(const string &pref, int fp_flag) {
 		string tags_str = medial::io::get_list(selected_tags);
 		string tags_rem_str = medial::io::get_list(removed_tags);
 		string final_list = medial::io::get_list(selected, "\n");
-		MLOG("%s :: TagFeatureSelector :: selected_tags=[%s], removed_tags=[%s], selected:\n%s\n",
-			pref.c_str(), tags_str.c_str(), tags_rem_str.c_str(), final_list.c_str());
+		MLOG("%s :: TagFeatureSelector :: selected_tags(%zu)=[%s], removed_tags(%zu)=[%s]\n",
+			pref.c_str(), selected_tags.size(), tags_str.c_str(), removed_tags.size(), tags_rem_str.c_str());
+		for (size_t i = 0; i < global_logger.fds[LOCAL_SECTION].size(); ++i)
+			fprintf(global_logger.fds[LOCAL_SECTION][i], "selected(%zu):\n%s\n", selected.size(), final_list.c_str());
 	}
 }
 
@@ -1011,9 +1013,9 @@ int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 	MedPredictor *model = MedPredictor::make_predictor(predictor, predictor_params);
 	vector<float> feat_importance;
 	model->learn(features);
-	
+
 	model->calc_feature_importance(feat_importance, importance_params, &features);
-	
+
 	vector<pair<string, float>> features_scores((int)feat_importance.size());
 	map<string, vector<float>>::iterator it = features.data.begin();
 	for (size_t i = 0; i < feat_importance.size(); ++i)
@@ -1202,7 +1204,7 @@ void IterativeFeatureSelector::retrace(MedFeatures& features, unordered_set<int>
 	MedBootstrapResult bootstrapper;
 	map<string, vector<string> > featureFamilies;
 	vector<int> orig_folds(nSamples);
-	pre_learn(features, bootstrapper, featureFamilies,orig_folds);
+	pre_learn(features, bootstrapper, featureFamilies, orig_folds);
 
 	// Sanity
 	for (string& family : families_order) {
