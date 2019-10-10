@@ -141,6 +141,28 @@ int MedDictionary::read(const string &fname)
 }
 
 //-----------------------------------------------------------------------------------------------
+void MedDictionary::push_new_set(int set_id, int member_id)
+{
+	pair<int, int> p;
+	p.first = set_id;
+	p.second = member_id;
+
+	int first_def = 1;
+	if (MemberInSet.find(p) != MemberInSet.end()) first_def = 0;
+
+	MemberInSet[p] = 1;
+
+	if (first_def) {
+		if (Set2Members.find(set_id) == Set2Members.end())
+			Set2Members[set_id] = vector<int>();
+		Set2Members[set_id].push_back(member_id);
+		if (Member2Sets.find(member_id) == Member2Sets.end())
+			Member2Sets[member_id] = vector<int>();
+		Member2Sets[member_id].push_back(set_id);
+	}
+}
+
+//-----------------------------------------------------------------------------------------------
 int MedDictionary::id_list(vector<string> &names, vector<int> &ids)
 {
 	int rc = 0;

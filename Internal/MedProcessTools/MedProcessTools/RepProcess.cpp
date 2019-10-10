@@ -6,6 +6,7 @@
 #include "RepProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <cmath>
+#include <iomanip>
 
 //=======================================================================================
 // RepProcessors
@@ -47,6 +48,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_HISTORY_LIMIT;
 	else if (processor_name == "create_registry")
 		return REP_PROCESS_CREATE_REGISTRY;
+	else if (processor_name == "bit_signal")
+		return REP_PROCESS_CREATE_BIT_SIGNAL;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -72,6 +75,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepAggregateSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
 	CONDITIONAL_NEW_CLASS(dname, RepCreateRegistry);
+	CONDITIONAL_NEW_CLASS(dname, RepCreateBitSignal);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -137,6 +141,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepHistoryLimit;
 	else if (processor_type == REP_PROCESS_CREATE_REGISTRY)
 		return new RepCreateRegistry;
+	else if (processor_type == REP_PROCESS_CREATE_BIT_SIGNAL)
+		return new RepCreateBitSignal;
 	else
 		return NULL;
 
@@ -146,7 +152,7 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 //.......................................................................................
 RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type, string init_string) {
 
-	//MLOG("Processor type is %d\n", (int)processor_type);
+	//MLOG("Processor type is %d init_string is %s\n", (int)processor_type, init_string.c_str());
 	RepProcessor *newRepProcessor = make_processor(processor_type);
 	if (newRepProcessor->init_from_string(init_string) < 0)
 		MTHROW_AND_ERR("Cannot init RepProcessor of type %d with init string \'%s\'\n", processor_type, init_string.c_str());
@@ -3399,6 +3405,281 @@ void RepAggregateSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 void RepAggregateSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
 	dict.SectionName2Id[output_name] = dict.section_id(signalName);
 }
+
+//-------------------------------------------------------------------------------------------------------
+// RepCreateBitSignal
+//-------------------------------------------------------------------------------------------------------
+
+//-------------------------------------------------------------------------------------------------------
+int RepCreateBitSignal::init(map<string, string> &mapper) {
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepAggregateSignal::init]
+		if (field == "in_sig") in_sig = entry.second;
+		else if (field == "out_virtual") out_virtual = entry.second;
+		else if (field == "t_chan") t_chan = med_stoi(entry.second);
+		else if (field == "c_chan") c_chan = med_stoi(entry.second);
+		else if (field == "duration_chan") duration_chan = med_stoi(entry.second);
+		else if (field == "min_duration") min_duration = med_stoi(entry.second);
+		else if (field == "max_duration") max_duration = med_stoi(entry.second);
+		else if (field == "dont_look_back") dont_look_back = med_stoi(entry.second);
+		else if (field == "min_clip_time")  min_clip_time = med_stoi(entry.second);
+		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
+		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
+		else if (field == "categories") {
+
+			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
+
+			vector<string> s1;
+			boost::split(s1, entry.second, boost::is_any_of(":"));
+			categories_names.clear();
+			categories_sets.clear();
+			for (int i = 0; i < s1.size(); i += 2) {
+				categories_names.push_back(s1[i]);
+				vector<string> s2;
+				boost::split(s2, s1[i + 1], boost::is_any_of(","));
+				categories_sets.push_back(s2);
+			}
+
+		}
+		else if (field == "rp_type") {}
+		else MTHROW_AND_ERR("Error in RepCreateBitSignal::init - Unsupported param \"%s\"\n", field.c_str());
+		//! [RepCreateBitSignal::init]
+	}
+	if (in_sig.empty())
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - in_sig must be passed\n");
+	if (out_virtual.empty())
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - out_virtual must be passed\n");
+	if (categories_names.empty())
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - empty categories is not allowed\n");
+
+	aff_signals.clear();
+	aff_signals.insert(out_virtual);
+	req_signals.clear();
+	req_signals.insert(in_sig);
+	virtual_signals.clear();
+	virtual_signals.push_back(pair<string, int>(out_virtual, T_DateVal));
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------
+void RepCreateBitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
+	_virtual_signals[out_virtual] = virtual_signals.front().second;
+}
+
+//-------------------------------------------------------------------------------------------------------
+void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+	v_out_sid = sigs.sid(out_virtual);
+	if (v_out_sid < 0)	MTHROW_AND_ERR("Error in RepAggregateSignal::init_tables - virtual output signal %s not found\n", out_virtual.c_str());
+
+	aff_signal_ids.clear();
+	aff_signal_ids.insert(v_out_sid); // ??? : is this needed ???
+
+	in_sid = sigs.sid(in_sig);
+	if (in_sid < 0)	MTHROW_AND_ERR("Error in RepAggregateSignal::init_tables - input signal %s not found\n", in_sig.c_str());
+	req_signal_ids.clear();
+	req_signal_ids.insert(in_sid);  // ??? : is this needed ???
+
+	// preparing lut tables
+	int section_id = dict.section_id(in_sig);
+	for (int i = 0; i < categories_names.size(); i++) {
+		categories_luts.push_back({});
+		dict.dicts[section_id].prep_sets_lookup_table(categories_sets[i], categories_luts.back());
+	}
+
+	// making sure our virtual signal is marked as categorical on channel 0
+	sigs.Sid2Info[v_out_sid].is_categorical_per_val_channel[0] = 1;
+
+	// Dictionary for virtual signal (if needed)
+	if (dict.section_id(out_virtual) == 0) {
+		dict.add_section(out_virtual);
+		int newSectionId = dict.section_id(out_virtual);
+
+		// The dictionary contains 2^N raw values (N = number of categories)
+		// + N categories for sets 
+		int N = (int)categories_names.size();
+		registry_values.clear();
+		int n_combinations = (int)(1 << N);
+		for (int i = 0; i < n_combinations; i++) {
+			stringstream stream;
+			stream << "BITS_0x"	<< setfill('0') << setw(sizeof(int) * 2) << hex << i;
+			string s(stream.str());
+			registry_values.push_back(s);
+			dict.dicts[newSectionId].push_new_def(s, i);
+			string better_name = "CATEGS";
+			if (i == 0) better_name += "_NONE";
+			else {
+				for (int j = 0; j < N; j++)
+					if (i & (1 << j))
+						better_name += "_" + categories_names[j];
+			}
+			dict.dicts[newSectionId].push_new_def(better_name, i);
+
+		}
+		for (int i = 0; i < N; i++)
+			registry_values.push_back(categories_names[i]);
+
+		// insert new defs
+		for (int i=n_combinations; i<(int)registry_values.size(); i++)
+			dict.dicts[newSectionId].push_new_def(registry_values[i], (int)i);
+
+		// insert sets
+		for (int i = 0; i < n_combinations; i++) {
+			for (int j=0; j<N; j++)
+				if (i & (1 << j)) {
+					dict.dicts[newSectionId].push_new_set(n_combinations + j, i);
+				}
+		}
+	}
+
+
+}
+//-------------------------------------------------------------------------------------------------------
+void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
+	//dict.SectionName2Id[out_virtual] = dict.section_id(in_sig);
+}
+
+
+int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
+
+	if (time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch\n");
+		return -1;
+	}
+	if (v_out_sid < 0)
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::_apply - v_out_sid is not initialized - bad call\n");
+
+	// plan:
+	// Go over versions:
+	// For each version, calculate a list of time intervals in which the category is contained.
+	// Then at the end , unite them to the proper states and push as a signal
+	//
+
+	int N = (int)categories_names.size();
+	allVersionsIterator vit(rec, { in_sid });
+	UniversalSigVec usv;
+	int maskN = (1 << N) - 1;
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(in_sid, iver, usv);
+
+		//MLOG("working on iver %d , time %d dont_look_back %d\n", iver, time_points[iver], dont_look_back);
+		int max_look_at_time = med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration);
+		//MLOG("max_look_at_time %d\n", max_look_at_time);
+
+		// calculating a time interval for each category
+		vector<vector<category_time_interval>> time_intervals(N, { category_time_interval() });
+		for (int i = 0; i < usv.len; i++) {
+			int i_time = (int)usv.Time(i, t_chan);
+			if (i_time <= max_look_at_time) {
+				int i_val = (int)usv.Val(i, c_chan);
+				int duration = (int)usv.Val(i, duration_chan);
+				if (duration < min_duration) duration = min_duration;
+				if (duration > max_duration) duration = max_duration;
+				int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, duration, time_unit_duration);
+				for (int j = 0; j < N; j++) {
+
+					if (categories_luts[j][i_val]) {
+						if (time_intervals[j].back().first_appearance == 0) {
+							// case it is the first interval
+							time_intervals[j].back().set(i_time, i_time, 1, to_time);
+						}
+						else if (i_time > time_intervals[j].back().last_time) {
+							// starting too long after current interval, hence starting a new one
+							time_intervals[j].push_back(category_time_interval(i_time, i_time, 1, to_time));
+						}
+						else if (to_time > time_intervals[j].back().last_time) {
+							// means we need to extend the time_interval 
+							time_intervals[j].back().last_appearance = i_time;
+							time_intervals[j].back().n_appearances++;
+							time_intervals[j].back().last_time = to_time;
+						}
+					}
+
+				}
+			}
+		}
+
+		// now packing these into states
+		// first step : get a single chain of events
+		// we encode the events with a +1 on the index, positive for start, and negative for end
+		vector<category_event_state> ev;
+		for (int j = 0; j<N; j++)
+			for (auto &e : time_intervals[j]) 
+				//if (e.first > 0) {
+				if (e.first_appearance > 0) {
+
+					ev.push_back(category_event_state(e.first_appearance, e.last_time, j, 1));
+					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
+
+				}
+
+		// sorting the pairs, by date, and within each date: first the ends , then the starts
+		sort(ev.begin(), ev.end());
+
+		// now clipping last parts of intervals in cases where a change in category happened.
+		// We define a change in category in the following situation:
+		// (1) It happened at least min_clip_time after the last appearance.
+		// (2) It happened before the the last time
+		// (3) A different category started at the exact same time.
+
+		for (int i = 0; i < ev.size(); i++) {
+			if (ev[i].type == 0) {
+				int min_time = med_time_converter.add_subtract_time(ev[i].appear_time, time_unit_sig, min_clip_time, time_unit_duration);
+				if (min_time < ev[i].time) {
+					for (int j = i-1; j > 0; j--) {
+						if (ev[j].type) {
+							if (ev[j].time < min_time)
+								break;
+							if (ev[j].categ != ev[i].categ)
+								ev[i].time = ev[j].time;
+						}
+					}
+				}
+			}
+		}
+
+		// sorting again as we may have touched times
+		sort(ev.begin(), ev.end());
+
+		// actually creating the states
+		vector<pair<int, int>> states; // date , encoded N bits state
+		if (usv.len > 0) {
+			int first_date = usv.Time(0);
+			states.push_back(pair<int, int>(first_date, 0));
+			for (auto &e : ev) {
+
+				if (states.back().first < e.time)
+					states.push_back(pair<int, int>(e.time, states.back().second));
+				if (e.type == 1) {
+					states.back().second |= (1 << e.categ);
+				}
+				else {
+					states.back().second &= (maskN ^ (1 << e.categ));
+				}
+			}
+		}
+
+		// packing and pushing new virtual signal
+		vector<int> v_times;
+		vector<float> v_vals;
+		if (states.size() > 0) {
+			for (auto &e : states) {
+				v_times.push_back(e.first);
+				v_vals.push_back((float)e.second);
+			}
+			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
+		}
+
+
+	}
+
+
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------------------------------------
 
 void update_collected(vector<float> &collected, vector<int> collected_times[], int start_time, int end_time) {
 	//iterate throght collected and remove indexes with no intersect with start_time->end_time
