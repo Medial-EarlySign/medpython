@@ -59,6 +59,7 @@ public:
 
 	// APIs to push new values into a dictionary
 	void push_new_def(string name, int id); // { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
+	void push_new_set(int set_id, int member_id);
 
 private:
 	map<string, int> used;
