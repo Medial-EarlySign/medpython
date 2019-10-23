@@ -46,7 +46,7 @@ public:
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
-	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal
+	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows)
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
 	map<string, vector<int>> groupName2Inds;
