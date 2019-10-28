@@ -410,6 +410,8 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 
 	bool get_next = true;
 	collected_data cd;
+	GenericSigVec cd_sv;
+	cd_sv.set_data(&cd.buf[0], 1);
 	string vfield, vfield2;
 	int i;
 	int sid;
@@ -456,16 +458,17 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							// Registry file //format: pid , stage(string) , date, location(number)	// tab delimited 
 
 							try {
+								cd_sv.init_from_sigtype(T_DateVal);
 								// Cancer_Location
 								i = sid2serial[dict.id(string("Cancer_Location"))];
-								cd.date = med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode);
-								cd.val = (float)(dict.id(fields[3]));
+								cd_sv.setTime(0,0,med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
+								cd_sv.setVal(0,0,(float)(dict.id(fields[3])));
 								curr.raw_data[i].push_back(cd);
 
 								// Cancer_Stage
 								i = sid2serial[dict.id(string("Cancer_Stage"))];
-								cd.date = med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode);
-								cd.val = (float)(med_stoi(fields[1]));
+								cd_sv.setTime(0,0,med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
+								cd_sv.setVal(0,0,(float)(med_stoi(fields[1])));
 								curr.raw_data[i].push_back(cd);
 
 								curr_fstat.n_parsed_lines++;
@@ -492,6 +495,10 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 							try {
 								i = sid2serial[sid];
 								SignalInfo& info = sigs.Sid2Info[sid];
+								cd_sv.init(info);
+								if (cd_sv.size() > MAX_COLLECTED_DATA_SIZE) {
+									MTHROW_AND_ERR("ERROR: cd_sv.size() (%d) > MAX_COLLECTED_DATA_SIZE (%d), Please Increase MAX_COLLECTED_DATA_SIZE\n", (int)cd_sv.size() , (int)MAX_COLLECTED_DATA_SIZE);
+								}
 								int time_unit = info.time_unit == MedTime::Undefined ? default_time_unit : info.time_unit;
 								if (file_type == 3) {
 									// backward compatibility - if file type is DATA_S (3), then all val channels are assumed categorical
@@ -503,152 +510,218 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 								switch (sigs.type(sid)) {
 
 								case T_Value:
-									cd.date = 0;
+									//cd.date = 0;
 									if (fields.size() == 3) {
 										if (sigs.is_categorical_channel(sid, 0))
-											cd.val = dict.get_id_or_throw(section, fields[2]);
-										else cd.val = med_stof(fields[2]);
+											cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[2]));
+										else cd_sv.setVal(0, 0, med_stof(fields[2]));
 									}
 									else // backward compatible with date 0 trick to load value only data
 										if (sigs.is_categorical_channel(sid, 0))
-											cd.val = dict.get_id_or_throw(section, fields[3]);
-										else cd.val = med_stof(fields[3]);
+											cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
+										else cd_sv.setVal(0, 0, med_stof(fields[3]));
 										break;
 
 								case T_DateVal:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[3]);
-									else cd.val = med_stof(fields[3]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal(0, 0, med_stof(fields[3]));
 									break;
 
 								case T_TimeVal:
-									cd.time = stoll(fields[2]);
+									cd_sv.setTime<long long>(0, 0, stoll(fields[2]));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[3]);
-									else cd.val = med_stof(fields[3]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal(0, 0, med_stof(fields[3]));
 									break;
 
 								case T_DateRangeVal:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
-									cd.date2 = med_time_converter.convert_datetime_safe(time_unit, fields[3], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
+									cd_sv.setTime(0, 1, med_time_converter.convert_datetime_safe(time_unit, fields[3], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[4]);
-									else cd.val = med_stof(fields[4]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal(0, 0, med_stof(fields[4]));
 									break;
 
 								case T_TimeStamp:
-									cd.time = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime<long long>(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									break;
 
 								case T_TimeRangeVal:
-									cd.time = stoll(fields[2]);
-									cd.time2 = stoll(fields[3]);
+									cd_sv.setTime<long long>(0, 0, stoll(fields[2]));
+									cd_sv.setTime<long long>(0, 1, stoll(fields[3]));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[4]);
-									else cd.val = med_stof(fields[4]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal(0, 0, med_stof(fields[4]));
 									break;
 
 								case T_DateVal2:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[3]);
-									else cd.val = med_stof(fields[3]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal(0, 0, med_stof(fields[3]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[4]);
-									else cd.val2 = (unsigned short)med_stoi(fields[4]);
+										cd_sv.setVal<unsigned short>(0, 1, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal<unsigned short>(0, 1, (unsigned short)med_stoi(fields[4]));
 									break;
 
 								case T_TimeLongVal:
-									cd.time = stoll(fields[2]);
+									
+									cd_sv.setTime<long long>(0, 0, stoll(fields[2]));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.longVal = (long long)dict.get_id_or_throw(section, fields[3]);
-									else cd.longVal = med_stof(fields[3]);
+										cd_sv.setVal<long long>(0, 0, (long long)dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<long long>(0, 0, med_stof(fields[3]));
 									break;
 
 								case T_DateShort2:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val1 = dict.get_id_or_throw(section, fields[3]);
-									else cd.val1 = med_stof(fields[3]);
+										cd_sv.setVal<short>(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<short>(0, 0, med_stof(fields[3]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[4]);
-									else cd.val2 = med_stof(fields[4]);
+										cd_sv.setVal<short>(0, 1, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal<short>(0, 1, med_stof(fields[4]));
 									break;
 
 								case T_ValShort2:
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val1 = dict.get_id_or_throw(section, fields[2]);
-									else cd.val1 = med_stof(fields[2]);
+										cd_sv.setVal<short>(0, 0, dict.get_id_or_throw(section, fields[2]));
+									else cd_sv.setVal<short>(0, 0, med_stof(fields[2]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[3]);
-									else cd.val2 = med_stof(fields[3]);
+										cd_sv.setVal<short>(0, 1, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<short>(0, 1, med_stof(fields[3]));
 									break;
 
 								case T_ValShort4:
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val1 = dict.get_id_or_throw(section, fields[2]);
-									else cd.val1 = med_stof(fields[2]);
+										cd_sv.setVal<short>(0, 0, dict.get_id_or_throw(section, fields[2]));
+									else cd_sv.setVal<short>(0, 0, med_stof(fields[2]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[3]);
-									else cd.val2 = med_stof(fields[3]);
+										cd_sv.setVal<short>(0, 1, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<short>(0, 1, med_stof(fields[3]));
 									if (sigs.is_categorical_channel(sid, 2))
-										cd.val3 = dict.get_id_or_throw(section, fields[4]);
-									else cd.val3 = med_stof(fields[4]);
+										cd_sv.setVal<short>(0, 2, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal<short>(0, 2, med_stof(fields[4]));
 									if (sigs.is_categorical_channel(sid, 3))
-										cd.val3 = dict.get_id_or_throw(section, fields[5]);
-									else cd.val3 = med_stof(fields[5]);
+										cd_sv.setVal<short>(0, 3, dict.get_id_or_throw(section, fields[5]));
+									else cd_sv.setVal<short>(0, 3, med_stof(fields[5]));
 									break;
 								case T_CompactDateVal:
-									cd.date = (int)med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime<unsigned short>(0, 0, (int)med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val1 = dict.get_id_or_throw(section, fields[3]);
-									else cd.val1 = (unsigned short)med_stoi(fields[3]);
+										cd_sv.setVal<unsigned short>(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<unsigned short>(0, 0, (unsigned short)med_stoi(fields[3]));
 									break;
 
 								case T_DateRangeVal2:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
-									cd.date2 = med_time_converter.convert_datetime_safe(time_unit, fields[3], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
+									cd_sv.setTime(0, 1, med_time_converter.convert_datetime_safe(time_unit, fields[3], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[4]);
-									else cd.val = med_stof(fields[4]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal(0, 0, med_stof(fields[4]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.f_val2 = dict.get_id_or_throw(section, fields[5]);
-									else cd.f_val2 = med_stof(fields[5]);
+										cd_sv.setVal(0, 1, dict.get_id_or_throw(section, fields[5]));
+									else cd_sv.setVal(0, 1, med_stof(fields[5]));
 									break;
 
 								case T_DateFloat2:
-									cd.date = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val = dict.get_id_or_throw(section, fields[3]);
-									else cd.val = med_stof(fields[3]);
+										cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal(0, 0, med_stof(fields[3]));
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.f_val2 = dict.get_id_or_throw(section, fields[4]);
-									else cd.f_val2 = med_stof(fields[4]);
+										cd_sv.setVal(0, 1, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal(0, 1, med_stof(fields[4]));
 									break;
 
 								case T_TimeShort4:
 
-									cd.time = med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode);
+									cd_sv.setTime<long long>(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
 
 									if (sigs.is_categorical_channel(sid, 0))
-										cd.val1 = dict.get_id_or_throw(section, fields[3]);
-									else cd.val1 = med_stof(fields[3]);
+										cd_sv.setVal<unsigned short>(0, 0, dict.get_id_or_throw(section, fields[3]));
+									else cd_sv.setVal<unsigned short>(0, 0, med_stof(fields[3]));
 
 									if (sigs.is_categorical_channel(sid, 1))
-										cd.val2 = dict.get_id_or_throw(section, fields[4]);
-									else cd.val2 = med_stof(fields[4]);
+										cd_sv.setVal<unsigned short>(0, 1, dict.get_id_or_throw(section, fields[4]));
+									else cd_sv.setVal<unsigned short>(0, 1, med_stof(fields[4]));
 
 									if (sigs.is_categorical_channel(sid, 2))
-										cd.val3 = dict.get_id_or_throw(section, fields[5]);
-									else cd.val3 = med_stof(fields[5]);
+										cd_sv.setVal<unsigned short>(0, 2, dict.get_id_or_throw(section, fields[5]));
+									else cd_sv.setVal<unsigned short>(0, 2, med_stof(fields[5]));
 
 									if (sigs.is_categorical_channel(sid, 3))
-										cd.val4 = dict.get_id_or_throw(section, fields[6]);
-									else cd.val4 = med_stof(fields[6]);
+										cd_sv.setVal<unsigned short>(0, 3, dict.get_id_or_throw(section, fields[6]));
+									else cd_sv.setVal<unsigned short>(0, 3, med_stof(fields[6]));
 
 									break;
+								case T_Generic:
+								{
+									int field_i = 2;
+									for (int tchan = 0; tchan < cd_sv.n_time; tchan++) {
+										switch (cd_sv.time_channel_types[tchan]) {
 
+										case GenericSigVec::type_enc::UINT8:   //unsigned char
+										case GenericSigVec::type_enc::UINT32:  //unsigned int
+										case GenericSigVec::type_enc::UINT64:  //unsigned long long
+										case GenericSigVec::type_enc::INT8:    //char
+										case GenericSigVec::type_enc::INT16:   //short
+										case GenericSigVec::type_enc::FLOAT32: //float
+										case GenericSigVec::type_enc::FLOAT64: //double
+										case GenericSigVec::type_enc::FLOAT80: //long double
+
+										case GenericSigVec::type_enc::INT32:   //int
+											cd_sv.setTime(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
+											break;
+                                        //TODO: figure out when to use stoll and time_converter
+										case GenericSigVec::type_enc::INT64:   //long long
+											cd_sv.setTime<long long>(0, tchan, stoll(fields[field_i]));
+											break;
+										case GenericSigVec::type_enc::UINT16:  //unsigned short
+											cd_sv.setTime<unsigned short>(0, tchan, (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
+											break;
+										}
+										field_i++;
+									}
+									for (int vchan = 0; vchan < cd_sv.n_val; vchan++) {
+										switch (cd_sv.val_channel_types[vchan]) {
+
+										case GenericSigVec::type_enc::UINT8:   //unsigned char
+										case GenericSigVec::type_enc::UINT32:  //unsigned int
+										case GenericSigVec::type_enc::INT8:    //char
+										case GenericSigVec::type_enc::INT32:   //int
+										case GenericSigVec::type_enc::INT64:   //long long
+										case GenericSigVec::type_enc::FLOAT64: //double
+										case GenericSigVec::type_enc::FLOAT80: //long double
+
+										case GenericSigVec::type_enc::FLOAT32: //float
+											if (sigs.is_categorical_channel(sid, vchan))
+												cd_sv.setVal(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
+											else cd_sv.setVal(0, vchan, med_stof(fields[field_i]));
+											break;
+
+										case GenericSigVec::type_enc::UINT16:  //unsigned short
+											if (sigs.is_categorical_channel(sid, vchan))
+												cd_sv.setVal<unsigned short>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
+											else cd_sv.setVal<unsigned short>(0, vchan, (unsigned short)med_stoi(fields[field_i]));
+											break;
+										case GenericSigVec::type_enc::UINT64:  //unsigned long long
+											if (sigs.is_categorical_channel(sid, vchan))
+												cd_sv.setVal<long long>(0, vchan, (long long)dict.get_id_or_throw(section, fields[field_i]));
+											else cd_sv.setVal<long long>(0, vchan, med_stof(fields[field_i]));
+											break;
+										case GenericSigVec::type_enc::INT16:   //short
+											if (sigs.is_categorical_channel(sid, vchan))
+												cd_sv.setVal<short>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
+											else cd_sv.setVal<short>(0, vchan, med_stof(fields[field_i]));
+											break;
+										}
+										field_i++;
+									}
+
+									break;
+								}
 								default:
 									MTHROW_AND_ERR("MedConvert: get_next_signal: unknown signal type %d for sid %d\n",
 										sigs.type(sid), sid);
@@ -1067,9 +1140,11 @@ int MedConvert::write_all_indexes(vector<int> &all_pids)
 
 	return 0;
 }
+/*
 auto cd_to_tuple(const collected_data & v1) -> decltype(std::tie(v1.date, v1.date2, v1.time, v1.time, v1.time2, v1.val, v1.longVal, v1.val1, v1.val2, v1.val3, v1.val4, v1.f_val2)) {
 	return std::tie(v1.date, v1.date2, v1.time, v1.time, v1.time2, v1.val, v1.longVal, v1.val1, v1.val2, v1.val3, v1.val4, v1.f_val2);
 }
+*/
 //------------------------------------------------
 int MedConvert::write_indexes(pid_data &curr)
 {
@@ -1078,17 +1153,24 @@ int MedConvert::write_indexes(pid_data &curr)
 	// first we sort all elements by time
 	int i;
 	for (i = 0; i < curr.raw_data.size(); i++) {
+		GenericSigVec gsv1;
+		auto& info = sigs.Sid2Info[serial2siginfo[i].sid];
+		gsv1.init(info);
 		sort(curr.raw_data[i].begin(), curr.raw_data[i].end(),
-			[](const collected_data &v1, const collected_data &v2)
+			[&](const collected_data &v1, const collected_data &v2)
 		{
-			return cd_to_tuple(v1) < cd_to_tuple(v2);
+			return gsv1.compareTimeLt(&v1.buf[0], 0, &v2.buf[0], 0);
 		});
 	}
 
 	// getting rid of duplicates
 	vector<collected_data>::iterator it;
 	for (i = 0; i < curr.raw_data.size(); i++) {
-		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [](const collected_data &v1, const collected_data &v2) {return cd_to_tuple(v1) == cd_to_tuple(v2); });
+		int struct_size = sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
+		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [=](const collected_data &v1, const collected_data &v2) {
+			return memcmp(v1.buf, v2.buf, struct_size) == 0;
+			//return cd_to_tuple(v1) == cd_to_tuple(v2); 
+		});
 		curr.raw_data[i].resize(distance(curr.raw_data[i].begin(), it));
 	}
 
@@ -1160,7 +1242,7 @@ int MedConvert::write_indexes(pid_data &curr)
 							unsigned short file_n = fno;
 							unsigned long long pos = data_f_pos[fno];
 							int len = 0;
-
+							/*
 							if (sid_type == T_Value) {
 								len = (int)sizeof(SVal)*ilen;
 								SVal sv;
@@ -1320,6 +1402,15 @@ int MedConvert::write_indexes(pid_data &curr)
 									data_f[fno]->write((char *)&sts4, sizeof(STimeShort4));
 								}
 							}
+							*/
+
+							//if (sid_type == T_Generic) {
+								int struct_len = (int)sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
+								len = struct_len*ilen;
+								for (int j = 0; j < ilen; j++) {
+									data_f[fno]->write((char *)&(curr.raw_data[i][j].buf[0]), struct_len);
+								}
+							//}
 
 
 							//MLOG("writing to fno %d : sid %d file_n %d pos %ld len %d\n", fno, sid, file_n, pos, len);
