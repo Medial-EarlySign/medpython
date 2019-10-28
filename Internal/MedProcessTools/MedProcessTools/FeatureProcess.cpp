@@ -903,6 +903,8 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
+	string out_prefix = resolved_feature_name;
+	boost::replace_first(out_prefix, feature_name, index_feature_prefix);
 
 	// Get all values
 	vector<float> values;
@@ -915,7 +917,10 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	;
 	for (float value : all_values) {
-		value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
+#pragma omp critical
+		// value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
+		value2feature[value] = out_prefix + "_";
+		
 		if (features.attributes[resolved_feature_name].value2Name.empty())
 			value2feature[value] += to_string(value);
 		else if (value == features.medf_missing_value)
@@ -992,6 +997,45 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	return 0;
 }
 
+/// check if a set of features is affected by the current processor
+//.......................................................................................
+bool OneHotFeatProcessor::are_features_affected(unordered_set<string>& out_req_features) {
+
+	// If empty = all features are required
+	if (out_req_features.empty())
+		return true;
+
+	// Otherwise - check in generated features
+	for (auto& rec : value2feature) {
+		string feature_name = rec.second;
+		if (out_req_features.find(feature_name) != out_req_features.end())
+			return true;
+	}
+
+	if (add_other &&out_req_features.find(other_feature_name) != out_req_features.end())
+		return true;
+
+	return false;
+}
+
+/// update sets of required as input according to set required as output to processor
+//.......................................................................................
+void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
+
+	// If empty, keep as is
+	if (out_req_features.empty())
+		in_req_features.clear();
+	else {
+		in_req_features = out_req_features;
+		// If active, than add original 
+		if (are_features_affected(out_req_features))
+			in_req_features.insert(resolved_feature_name);
+	}
+}
+
+
+
+
 //=======================================================================================
 // GetProbFeatProcessor
 //=======================================================================================
@@ -1058,7 +1102,7 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 		}
 
 		for (auto& rec : target_labels)
-			feature_names[rec.first] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + feature_name + "_" + to_string(rec.first);
+			feature_names[rec.first] = resolved_feature_name + "_" + to_string(rec.first);
 	}
 
 	if (overall_num == 0)
@@ -1165,44 +1209,6 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 
 	return 0;
 }
-
-
-/// check if a set of features is affected by the current processor
-//.......................................................................................
-bool OneHotFeatProcessor::are_features_affected(unordered_set<string>& out_req_features) {
-
-	// If empty = all features are required
-	if (out_req_features.empty())
-		return true;
-
-	// Otherwise - check in generated features
-	for (auto& rec : value2feature) {
-		string feature_name = rec.second;
-		if (out_req_features.find(feature_name) != out_req_features.end())
-			return true;
-	}
-
-	if (add_other &&out_req_features.find(other_feature_name) != out_req_features.end())
-		return true;
-
-	return false;
-}
-
-/// update sets of required as input according to set required as output to processor
-//.......................................................................................
-void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) {
-
-	// If empty, keep as is
-	if (out_req_features.empty())
-		in_req_features.clear();
-	else {
-		in_req_features = out_req_features;
-		// If active, than add original 
-		if (are_features_affected(out_req_features))
-			in_req_features.insert(resolved_feature_name);
-	}
-}
-
 
 
 //=======================================================================================
