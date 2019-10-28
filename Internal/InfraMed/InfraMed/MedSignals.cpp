@@ -25,34 +25,6 @@ extern MedLogger global_logger;
 using namespace std;
 using namespace boost;
 
-//-----------------------------------------------------------------------------------------------
-string MedRep::get_type_generic_spec(SigType t)
-{
-	switch (t) {
-
-	case T_Value: return "V(f)";					//  0
-	case T_DateVal: return "T(i),V(f)";				//  1
-	case T_TimeVal: return "T(l),V(f),p,p,p,p";		//  2
-	case T_DateRangeVal: return "T(i,i),V(f)";		//  3
-	case T_TimeStamp: return "T(l)";				//  4
-	case T_TimeRangeVal: return "T(l,l),V(f),p,p,p,p"; //  5
-	case T_DateVal2: return "T(i),V(f,us),p,p";		//  6
-	case T_TimeLongVal: return "T(l),V(l)";			//  7
-	case T_DateShort2: return "T(i),V(s,s)";		//  8
-	case T_ValShort2: return "V(s,s)";				//  9
-	case T_ValShort4: return "V(s,s,s,s)";			// 10
-	case T_CompactDateVal: return "T(us),V(us)";	// 11
-	case T_DateRangeVal2: return "T(i,i),V(f,f)";	// 12
-	case T_DateFloat2: return "T(i),V(f,f)";		// 13
-	case T_TimeRange: return "T(l,l)";				// 14
-	case T_TimeShort4: return "T(i),p,p,p,p,V(s,s,s,s)"; //15
-
-	default:
-		MTHROW_AND_ERR("Cannot get generic spec of signal type %d\n", t);
-	}
-
-	return 0;
-}
 
 //-----------------------------------------------------------------------------------------------
 
@@ -286,13 +258,23 @@ int MedSignals::read(const string &fname)
 						if(generic_signal_types.count(type_fields[1]))
 							info.generic_signal_spec = generic_signal_types.at(type_fields[1]);
 						else info.generic_signal_spec = type_fields[1];
-						info.bytes_len = GenericSigVec(info.generic_signal_spec).size();
+						GenericSigVec gsv(info.generic_signal_spec);
+						info.bytes_len = gsv.size();
+						info.time_channel_offsets = gsv.time_channel_offsets;
+						info.val_channel_offsets = gsv.val_channel_offsets;
+						info.time_channel_types = gsv.time_channel_types;
+						info.val_channel_types = gsv.val_channel_types;
 						MedRep::get_type_channels(info.generic_signal_spec, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
 					else
 					{
-						info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
+						info.generic_signal_spec = GenericSigVec::get_type_generic_spec((SigType)type);
+						GenericSigVec gsv(info.generic_signal_spec);
 						info.bytes_len = MedRep::get_type_size((SigType)type);
+						info.time_channel_offsets = gsv.time_channel_offsets;
+						info.val_channel_offsets = gsv.val_channel_offsets;
+						info.time_channel_types = gsv.time_channel_types;
+						info.val_channel_types = gsv.val_channel_types;
 						MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 					}
 
@@ -524,7 +506,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	info.bytes_len = MedRep::get_type_size((SigType)type);
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
-	info.generic_signal_spec = MedRep::get_type_generic_spec((SigType)type);
+	info.generic_signal_spec = GenericSigVec::get_type_generic_spec((SigType)type);
 	if (my_repo != NULL)
 		info.time_unit = my_repo->time_unit;
 	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
@@ -719,6 +701,38 @@ int GenericSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
 	return -1;
 }
 
+void GenericSigVec::init_from_sigtype(SigType sigtype) {
+	init_from_spec(get_type_generic_spec(sigtype));
+}
+
+string GenericSigVec::get_type_generic_spec(SigType t)
+{
+	switch (t) {
+
+	case T_Value: return "V(f)";					//  0
+	case T_DateVal: return "T(i),V(f)";				//  1
+	case T_TimeVal: return "T(l),V(f),p,p,p,p";		//  2
+	case T_DateRangeVal: return "T(i,i),V(f)";		//  3
+	case T_TimeStamp: return "T(l)";				//  4
+	case T_TimeRangeVal: return "T(l,l),V(f),p,p,p,p"; //  5
+	case T_DateVal2: return "T(i),V(f,us),p,p";		//  6
+	case T_TimeLongVal: return "T(l),V(l)";			//  7
+	case T_DateShort2: return "T(i),V(s,s)";		//  8
+	case T_ValShort2: return "V(s,s)";				//  9
+	case T_ValShort4: return "V(s,s,s,s)";			// 10
+	case T_CompactDateVal: return "T(us),V(us)";	// 11
+	case T_DateRangeVal2: return "T(i,i),V(f,f)";	// 12
+	case T_DateFloat2: return "T(i),V(f,f)";		// 13
+	case T_TimeRange: return "T(l,l)";				// 14
+	case T_TimeShort4: return "T(i),p,p,p,p,V(s,s,s,s)"; //15
+
+	default:
+		MTHROW_AND_ERR("Cannot get generic spec of signal type %d\n", t);
+	}
+
+	return 0;
+}
+
 void GenericSigVec::init_from_spec(const string& signalSpec) {
 	struct_size = 0;
 	n_time = 0;
@@ -765,8 +779,8 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			if (in_val_chan)
 				throw runtime_error(string("Expecting val chan at ") + to_string(i) + " in " + signalSpec);
 			in_time_chan = true;
-			cur_chan_offset = time_channel_offsets;
-			cur_chan_type = time_channel_types;
+			cur_chan_offset = &time_channel_offsets[0];
+			cur_chan_type = &time_channel_types[0];
 			cur_chan_top = &n_time;
 			break;
 		case 'v':
@@ -774,8 +788,8 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			if (in_time_chan)
 				throw runtime_error(string("Expecting time chan at ") + to_string(i) + " in " + signalSpec);
 			in_time_chan = true;
-			cur_chan_offset = val_channel_offsets;
-			cur_chan_type = val_channel_types;
+			cur_chan_offset = &val_channel_offsets[0];
+			cur_chan_type = &val_channel_types[0];
 			cur_chan_top = &n_val;
 			break;
 
@@ -855,4 +869,6 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 		i++;
 	}
 }
+
+
 
