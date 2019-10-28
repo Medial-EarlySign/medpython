@@ -90,3 +90,4 @@ void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int f
 int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feature_matrix(mat_fname); };
 MPSerializableObject MPModel::asSerializable() { return MPSerializableObject(o); }
 void MPModel::fit_for_repository(MPPidRepository &rep) { o->fit_for_repository(*rep.o); }
+void MPModel::calc_contribs(MPMat &mat, MPMat &mat_out) { o->predictor->calc_feature_contribs(*mat.o, *mat_out.o); }

@@ -375,6 +375,33 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 			grouped_ftrs[i] = true;
 		}
 	}
+	else if (file_name == "BY_SIGNAL_CATEG") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			int idx = 0;
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_")) {
+				word = tokens[1];
+				idx = 1;
+			}
+			if (idx + 1 < tokens.size()) {
+				if (boost::starts_with(tokens[idx + 1], "category_")) {
+					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					word += "." + tokens[idx + 1];
+				}
+			}
+
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
+	}
 	else {
 		// Read Grouping
 		ifstream inf(file_name);

@@ -11,6 +11,7 @@
 #include "MedBART.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <External/Eigen/Core>
+#include <cmath>
 
 #if NEW_COMPLIER
 #include "MedVW.h"
@@ -492,7 +493,7 @@ size_t MedPredictor::predictor_serialize(unsigned char *blob) {
 //.......................................................................................
 
 void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
-	fprintf(fp, "%s: %s ()\n", prefix.c_str(),predictor_type_to_name[classifier_type].c_str());
+	fprintf(fp, "%s: %s ()\n", prefix.c_str(), predictor_type_to_name[classifier_type].c_str());
 }
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
@@ -769,21 +770,69 @@ int MedPredictor::predict(MedFeatures& ftrs_data) const {
 		MTHROW_AND_ERR("Learned Feature model size was %d, request feature size for predict was %d\n",
 			features_count, (int)ftrs_data.data.size());
 
-	// Build X
-	MedMat<float> x;
-	ftrs_data.get_as_matrix(x);
+	//split to bulks if too big to fit into memory:
+	double max_samples = 0.95 *(INT_MAX / (double)ftrs_data.data.size());
+	int samples_in_bucket = (int)max_samples;
+	int smp_cnt = 0;
+	if (!ftrs_data.data.empty())
+		smp_cnt = (int)ftrs_data.data.begin()->second.size();
 
-	// Predict
-	vector<float> preds;
-	if (predict(x, preds) < 0)
-		return -1;
+	if (smp_cnt <= samples_in_bucket) {
+		// Build X
+		MedMat<float> x;
+		ftrs_data.get_as_matrix(x);
 
-	int n = n_preds_per_sample();
-	ftrs_data.samples.resize(preds.size() / n);
-	for (int i = 0; i < x.nrows; i++) {
-		ftrs_data.samples[i].prediction.resize(n);
-		for (int j = 0; j < n; j++)
-			ftrs_data.samples[i].prediction[j] = preds[i*n + j];
+		// Predict
+		vector<float> preds;
+		if (predict(x, preds) < 0)
+			return -1;
+
+		int n = n_preds_per_sample();
+		ftrs_data.samples.resize(preds.size() / n);
+		for (int i = 0; i < x.nrows; i++) {
+			ftrs_data.samples[i].prediction.resize(n);
+			for (int j = 0; j < n; j++)
+				ftrs_data.samples[i].prediction[j] = preds[i*n + j];
+		}
+	}
+	else {
+		MWARN("matrix is (%d X %zu) - too big to fit 4 bytes memory address - split into batches\n",
+			smp_cnt, ftrs_data.data.size());
+
+		vector<string> dummay_empty_sigs;
+		vector<int> batch_ids(samples_in_bucket);
+		int total_proc = 0;
+		int n = n_preds_per_sample();
+		if (ftrs_data.samples.size() < smp_cnt)
+			ftrs_data.samples.resize(smp_cnt);
+		MedProgress progress_pred("MedPredictor::predict", (int)ceil(double(ftrs_data.samples.size()) / samples_in_bucket), 30, 1);
+		while (total_proc < ftrs_data.samples.size()) {
+			//adjust batch size if needed:
+			if (total_proc + samples_in_bucket > ftrs_data.samples.size()) {
+				samples_in_bucket = (int)ftrs_data.samples.size() - total_proc;
+				batch_ids.resize(samples_in_bucket);
+			}
+			for (int i = 0; i < samples_in_bucket; ++i)
+				batch_ids[i] = total_proc + i; //continue for last id - total_proc
+
+			// Build X
+			MedMat<float> x;
+			ftrs_data.get_as_matrix(x, dummay_empty_sigs, batch_ids);
+
+			// Predict
+			vector<float> preds;
+			if (predict(x, preds) < 0)
+				return -1;
+
+			for (int i = 0; i < x.nrows; ++i) {
+				ftrs_data.samples[total_proc + i].prediction.resize(n);
+				for (int j = 0; j < n; ++j)
+					ftrs_data.samples[total_proc + i].prediction[j] = preds[i*n + j];
+			}
+
+			total_proc += samples_in_bucket;
+			progress_pred.update();
+		}
 	}
 
 	return 0;
@@ -799,21 +848,21 @@ void MedPredictor::predict_single(const vector<double> &x, vector<double> &preds
 
 void MedPredictor::calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features)
 {
-	MedMat<float> feat_mat,contribs_mat; 
+	MedMat<float> feat_mat, contribs_mat;
 	if (features == NULL)
 		MTHROW_AND_ERR("SHAP values feature importance requires features \n");
-	
+
 	features->get_as_matrix(feat_mat);
 	calc_feature_contribs(feat_mat, contribs_mat);
 	for (int j = 0; j < contribs_mat.ncols; ++j)
 	{
 		float col_sum = 0;
-		
+
 		for (int i = 0; i < contribs_mat.nrows; ++i)
 		{
 			col_sum += abs(contribs_mat.get(i, j));
 		}
-		features_importance_scores[j] = col_sum/(float)contribs_mat.nrows;
+		features_importance_scores[j] = col_sum / (float)contribs_mat.nrows;
 	}
 }
 

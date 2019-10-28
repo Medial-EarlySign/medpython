@@ -17,12 +17,12 @@ extern MedLogger global_logger;
 //...............................................................................................................................
 // Pearson Correlation
 template <typename T> float _pearson_corr(const vector<T> &v1, const vector<T> &v2, const vector<float>& w) {
-	
+
 	if (v1.size() != v2.size() || w.size() != v1.size())
 		MTHROW_AND_ERR("Length inconsistency in calculating Pearson correlation\n");
 
 	int len = (int)v1.size();
-	
+
 	if (len == 0)
 		return -2.0;
 
@@ -60,10 +60,11 @@ template float _pearson_corr<double>(const vector<double> &v1, const vector<doub
 
 template <typename T> float medial::performance::pearson_corr_without_cleaning(const vector<T> &v1, const vector<T> &v2, const vector<float> *weights) {
 
-	if (weights == NULL) {  
+	if (weights == NULL) {
 		vector<float> w(v1.size(), 1.0);
 		return _pearson_corr(v1, v2, w);
-	} else		
+	}
+	else
 		return _pearson_corr(v1, v2, *weights);
 
 }
@@ -107,8 +108,8 @@ template <typename T, typename S> float medial::performance::spearman_corr_witho
 	vector<pair<float, int> > v1_i(len), v2_i(len);
 
 	for (int i = 0; i < len; i++) {
-		v1_i[i] = { (float) v1[i],i };
-		v2_i[i] = { (float) v2[i],i };
+		v1_i[i] = { (float)v1[i],i };
+		v2_i[i] = { (float)v2[i],i };
 	}
 
 	sort(v1_i.begin(), v1_i.end(), [](const pair<float, int>& left, const pair<float, int>& right) { return left.first < right.first; });
@@ -196,7 +197,7 @@ template <typename T> float medial::performance::rmse(const vector<T> &preds, co
 
 	n = (int)clean_preds.size();
 	if (weights != NULL)
-		return medial::performance::rmse_without_cleaning(clean_preds,clean_y, &clean_w);
+		return medial::performance::rmse_without_cleaning(clean_preds, clean_y, &clean_w);
 	else
 		return medial::performance::rmse_without_cleaning(clean_preds, clean_y);
 }
@@ -309,7 +310,7 @@ template <typename T> float medial::performance::accuracy(const vector<T> &preds
 	double res = 0;
 	if (weights == NULL || weights->empty()) {
 		for (size_t i = 0; i < y.size(); ++i)
-			res +=((T)y[i] == preds[i]);
+			res += ((T)y[i] == preds[i]);
 		return float(res / y.size());
 	}
 	else {
@@ -750,7 +751,7 @@ float medial::performance::mutual_information(vector<int>& x, vector<int>& y, in
 	// Collect
 	vector<int> xCounts(nXbins, 0), yCounts(nYbins, 0), coCounts(nXbins*nYbins, 0);
 	n = 0;
-	for (unsigned int i = 0; i<x.size(); i++) {
+	for (unsigned int i = 0; i < x.size(); i++) {
 		if (x[i] >= 0 && y[i] >= 0) {
 			xCounts[x[i]]++;
 			yCounts[y[i]]++;
@@ -764,7 +765,7 @@ float medial::performance::mutual_information(vector<int>& x, vector<int>& y, in
 		return -1.0;
 	}
 
-	return mutual_information(xCounts, yCounts, coCounts,n);
+	return mutual_information(xCounts, yCounts, coCounts, n);
 }
 
 float medial::performance::mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n) {
@@ -791,7 +792,7 @@ float medial::performance::mutual_information(vector<int>& xCounts, vector<int>&
 // AUC
 //.........................................................................................................................................
 template <typename T> float medial::performance::auc(vector<T> &preds, vector<float> &y) {
-	
+
 	vector<pair<double, double>> preds_y;
 
 	if (preds.size() != y.size())
@@ -799,7 +800,7 @@ template <typename T> float medial::performance::auc(vector<T> &preds, vector<fl
 
 	preds_y.resize(preds.size());
 	for (int i = 0; i < preds.size(); i++) {
-		preds_y[i].first = (double) preds[i];
+		preds_y[i].first = (double)preds[i];
 		preds_y[i].second = y[i];
 	}
 
@@ -879,11 +880,11 @@ template<typename T> float medial::performance::auc_q(const vector<T> &preds, co
 	if (weights == NULL || weights->empty()) {
 		vector<float> w(preds.size(), 1.0);
 		return _auc_q_weighted(preds, y, w);
-	} 
+	}
 	else
 		return _auc_q_weighted(preds, y, *weights);
 
-	
+
 }
 template float medial::performance::auc_q<float>(const vector<float> &preds, const vector<float> &y, const vector<float>* weights);
 template float medial::performance::auc_q<double>(const vector<double> &preds, const vector<float> &y, const vector<float>* weights);
@@ -1061,7 +1062,7 @@ template <typename T> void medial::performance::multicateg_get_max_pred(vector<T
 	for (i = 0; i < nsamples; i++) {
 		float max = probs[i*ncateg];
 		int max_j = 0;
-		for (j = 1; j<ncateg; j++) {
+		for (j = 1; j < ncateg; j++) {
 			if (probs[i*ncateg + j] > max) {
 				max = probs[i*ncateg + j];
 				max_j = j;
@@ -1070,7 +1071,7 @@ template <typename T> void medial::performance::multicateg_get_max_pred(vector<T
 		max_pred[i] = (float)max_j;
 	}
 
-	return ;
+	return;
 }
 template void medial::performance::multicateg_get_max_pred<float>(vector<float> &probs, int nsamples, int ncateg, vector<float> &max_pred);
 template void medial::performance::multicateg_get_max_pred<double>(vector<double> &probs, int nsamples, int ncateg, vector<float> &max_pred);
@@ -1115,8 +1116,8 @@ template <typename T> void medial::performance::multicateg_get_error_rate(vector
 	for (i = 0; i < nsamples; i++) {
 
 		if (max_preds[i] != (T)y[i]) err_rate++;
-		rms += fact * (max_preds[i] - (T) y[i])*(max_preds[i] - (T) y[i]);
-		avg_rms += fact * (avg_preds[i] - (T) y[i])*(avg_preds[i] - (T) y[i]);
+		rms += fact * (max_preds[i] - (T)y[i])*(max_preds[i] - (T)y[i]);
+		avg_rms += fact * (avg_preds[i] - (T)y[i])*(avg_preds[i] - (T)y[i]);
 
 	}
 
@@ -1150,7 +1151,7 @@ template <typename T> void medial::performance::get_quantized_breakdown(vector<T
 
 	}
 
-	return ;
+	return;
 }
 template void medial::performance::get_quantized_breakdown<float>(vector<float> &preds, vector<float> &y, vector<float> &bounds, MedMat<int> &counts);
 template void medial::performance::get_quantized_breakdown<double>(vector<double> &preds, vector<double> &y, vector<double> &bounds, MedMat<int> &counts);
@@ -1160,7 +1161,7 @@ template <typename T> void medial::performance::print_quantized_breakdown(MedMat
 {
 	MOUT("Quantized results distribution:\n");
 	for (int i = 0; i < cnt.nrows; i++) {
-		MOUT("preds %7.2lf - %7.2lf ::", (double) bounds[i], (double)bounds[i + 1]);
+		MOUT("preds %7.2lf - %7.2lf ::", (double)bounds[i], (double)bounds[i + 1]);
 		for (int j = 0; j < cnt.ncols; j++) {
 			MOUT(" %6d", cnt(i, j));
 		}
@@ -1177,7 +1178,7 @@ template void medial::performance::print_quantized_breakdown<double>(MedMat<int>
 // Momments: mean
 //...............................................................................................................................
 template <typename T> double medial::stats::mean_without_cleaning(const vector<T> &v, const vector<float> *weights) {
-	
+
 	bool has_weights = weights != NULL && !weights->empty();
 
 	double s = 0, c = 0;
@@ -1191,7 +1192,7 @@ template <typename T> double medial::stats::mean_without_cleaning(const vector<T
 		for (size_t i = 0; i < v.size(); ++i)
 			s += v[i];
 	}
-	
+
 	if (c == 0)
 		MTHROW_AND_ERR("No values (with weights!=0) given for mean_without_cleaning. Cannot return anything valid\n");
 
@@ -1236,7 +1237,7 @@ template <typename T> double medial::stats::std_without_cleaning(const vector<T>
 	if (has_weights)
 		for (size_t i = 0; i < v.size(); ++i) {
 			s += (*weights)[i] * (v[i] - mean) * (v[i] - mean);
-			c += (*weights)[i] ;
+			c += (*weights)[i];
 		}
 	else {
 		c = (double)v.size();
@@ -1286,7 +1287,7 @@ template double medial::stats::std<double>(const vector<double> &v, double mean,
 // Momments : backward compatible version for get_mean_and_atd
 //...............................................................................................................................
 void medial::stats::get_mean_and_std(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, int& n, bool do_missing) {
-	
+
 	double c = 0;
 	double s = 0;
 	n = 0;
@@ -1434,7 +1435,7 @@ template void medial::stats::get_histogram_without_cleaning<float>(vector<float>
 template void medial::stats::get_histogram_without_cleaning<double>(vector<double>& v, vector<pair<double, float> >& hist, bool in_place);
 
 template<typename T> void medial::stats::get_histogram(vector<T>& v, T missing_value, int& n, vector<pair<T, float> >& hist) {
-	
+
 	vector<T> v_(v.size());
 
 	n = 0;
@@ -1483,10 +1484,10 @@ template<typename T> void medial::stats::get_percentiles(vector<T> &vals, vector
 	int n = (int)vals.size();
 	int n0 = 0;
 	if (only_positive_flag) {
-		while (n0<n && vals[n0] <= 0) n0++;
+		while (n0 < n && vals[n0] <= 0) n0++;
 	}
 	out_pvals.resize(p.size(), 0);
-	for (int i = 0; i<p.size(); i++) {
+	for (int i = 0; i < p.size(); i++) {
 		int k = n0 + (int)((float)(n - n0)*p[i]);
 		if (k < 0) k = 0;
 		if (k >= n) k = n - 1;
@@ -1494,13 +1495,13 @@ template<typename T> void medial::stats::get_percentiles(vector<T> &vals, vector
 	}
 }
 template<typename T>
-T inPlaceQuantile(T *vals, float *w ,float wq,int length)
+T inPlaceQuantile(T *vals, float *w, float wq, int length)
 {
 	int pIndex = length - 1;
 	double weightToIndex = 0;
-	for (int i = 0; i < pIndex; i++) 
+	for (int i = 0; i < pIndex; i++)
 		if (vals[i] > vals[pIndex]) {
-			
+
 
 			T dummy = vals[pIndex];
 			vals[pIndex] = vals[i];
@@ -1516,29 +1517,29 @@ T inPlaceQuantile(T *vals, float *w ,float wq,int length)
 			i--;
 		}
 		else weightToIndex += w[i];
-	
-	if(weightToIndex<=wq && weightToIndex+w[pIndex]>=wq)
-		return(vals[pIndex]);
-	if (wq<weightToIndex)return(inPlaceQuantile(vals,w, wq,pIndex));
-	return(inPlaceQuantile(vals + pIndex, w+pIndex,wq-weightToIndex,length-pIndex));
-	
+
+		if (weightToIndex <= wq && weightToIndex + w[pIndex] >= wq)
+			return(vals[pIndex]);
+		if (wq < weightToIndex)return(inPlaceQuantile(vals, w, wq, pIndex));
+		return(inPlaceQuantile(vals + pIndex, w + pIndex, wq - weightToIndex, length - pIndex));
+
 }
 template<typename T>
-T medial::stats::get_quantile(vector<T> vals, vector<float> w ,float q)
+T medial::stats::get_quantile(vector<T> vals, vector<float> w, float q)
 {
 	if (vals.size() == 1)return(vals[0]);
-	if(vals.size()!=w.size())	MTHROW_AND_ERR("Length inconsistency in calculating Quantile\n");
+	if (vals.size() != w.size())	MTHROW_AND_ERR("Length inconsistency in calculating Quantile\n");
 	float sumW = 0;
 	for (auto&& ww : w)sumW += ww;
 
-	double wq = sumW*q;
-	return T(inPlaceQuantile(vals.data(),w.data(),wq,(int)vals.size()));
+	double wq = sumW * q;
+	return T(inPlaceQuantile(vals.data(), w.data(), wq, (int)vals.size()));
 }
 template void medial::stats::get_percentiles<float>(vector<float> &vals, vector<float> &p, vector<float> &out_pvals, int only_positive_flag);
 template void medial::stats::get_percentiles<double>(vector<double> &vals, vector<float> &p, vector<double> &out_pvals, int only_positive_flag);
 
-template float medial::stats::get_quantile<float>(vector<float> vals,vector<float> w, float q);
-template double medial::stats::get_quantile<double>(vector<double> vals,vector<float> w, float q);
+template float medial::stats::get_quantile<float>(vector<float> vals, vector<float> w, float q);
+template double medial::stats::get_quantile<double>(vector<double> vals, vector<float> w, float q);
 
 // Chi-Square
 //.........................................................................................................................................
@@ -1591,15 +1592,15 @@ double medial::stats::chi2_n_x_m(vector<int> &cnts, int n, int m)
 float medial::stats::get_best_rounding(vector<float> &vals, vector<float>& res, vector<int> &counts, float missing_value)
 {
 	int n_r = 7;
-	res = {(float)0.001,(float)0.01,(float)0.1,1,10,100,1000};
-	vector<int> cnts(n_r,0);
+	res = { (float)0.001,(float)0.01,(float)0.1,1,10,100,1000 };
+	vector<int> cnts(n_r, 0);
 
 	// find best rounder for each value and count them
-	for (int i=0; i<vals.size(); i++) {
-		for (int j=n_r-1; j>=0; j--) {
+	for (int i = 0; i < vals.size(); i++) {
+		for (int j = n_r - 1; j >= 0; j--) {
 			if (vals[i] != 0 && vals[i] != missing_value) {
-				float vr = ((float)((int)((vals[i]/res[j]))));
-				if (abs((float)(vals[i]/res[j])-vr) == 0) {
+				float vr = ((float)((int)((vals[i] / res[j]))));
+				if (abs((float)(vals[i] / res[j]) - vr) == 0) {
 					cnts[j]++;
 					break;
 				}
@@ -1611,7 +1612,7 @@ float medial::stats::get_best_rounding(vector<float> &vals, vector<float>& res, 
 
 	// return most common rounder
 	int best = 0, best_cnt = 0;
-	for (int j=0; j<n_r; j++) {		
+	for (int j = 0; j < n_r; j++) {
 		if (cnts[j] > best_cnt) {
 			best = j;
 			best_cnt = cnts[j];
@@ -1621,3 +1622,40 @@ float medial::stats::get_best_rounding(vector<float> &vals, vector<float>& res, 
 	return res[best];
 }
 
+double medial::stats::chi_square_table(double grp1_cntrl, double grp1_cases, double grp2_cntrl, double grp2_cases,
+	int smooth_balls, float allowed_error) {
+	//calc over all ages
+	double regScore = 0;
+	double totCnt = 0;
+	vector<double> R(2);
+	vector<double> C(2);
+	totCnt = grp1_cntrl + grp2_cntrl + grp1_cases + grp2_cases;
+
+	vector<double> probs = { grp1_cntrl,grp1_cases,grp2_cntrl, grp2_cases }; //the forth numbers - float with fix
+	if (smooth_balls > 0)
+		for (size_t j = 0; j < 4; ++j)
+			probs[j] = probs[j] + (smooth_balls * C[j % 2] / totCnt);  /* add smooth addition */
+
+	totCnt = 0;
+	R[0] = probs[0] + probs[1];
+	R[1] = probs[2 + 0] + probs[2 + 1];
+	C[0] = probs[0] + probs[2]; //how much controls
+	C[1] = probs[1] + probs[1 + 2]; //how much cases
+	for (size_t j = 0; j < probs.size(); ++j)
+		totCnt += probs[j];
+
+	for (size_t j = 0; j < probs.size(); ++j)
+	{
+		double	Qij = probs[j];
+		double Eij = (R[j / 2] * C[j % 2]) / totCnt;
+		double Dij = abs(Qij - Eij) - (allowed_error / 100) * Eij;
+		if (Dij < 0)
+			Dij = 0;
+
+		if (Eij > 0)
+			regScore += (Dij * Dij) / (Eij); //Chi-square
+	}
+
+
+	return regScore;
+}
