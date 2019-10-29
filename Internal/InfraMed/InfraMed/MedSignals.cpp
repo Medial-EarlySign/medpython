@@ -705,6 +705,11 @@ void GenericSigVec::init_from_sigtype(SigType sigtype) {
 	init_from_spec(get_type_generic_spec(sigtype));
 }
 
+void GenericSigVec::init_from_repo(MedRepository& repo, int sid) {
+	this->init(repo.sigs.Sid2Info[sid]);
+}
+
+
 string GenericSigVec::get_type_generic_spec(SigType t)
 {
 	switch (t) {

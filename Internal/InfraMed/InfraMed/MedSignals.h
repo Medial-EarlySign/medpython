@@ -907,6 +907,22 @@ public:
 			}
 			return type_enc::UNDEFINED;
 		}
+		static int bytes_len(unsigned char enct) {
+			switch (enct) {
+			case type_enc::INT32:   return sizeof(int);
+			case type_enc::INT64:   return sizeof(long long);
+			case type_enc::UINT16:  return sizeof(unsigned short);
+			case type_enc::UINT8:   return sizeof(unsigned char);
+			case type_enc::UINT32:  return sizeof(unsigned int);
+			case type_enc::UINT64:  return sizeof(unsigned long long);
+			case type_enc::INT8:    return sizeof(char);
+			case type_enc::INT16:   return sizeof(short);
+			case type_enc::FLOAT32: return sizeof(float);
+			case type_enc::FLOAT64: return sizeof(double);
+			case type_enc::FLOAT80: return sizeof(long double);
+			}
+			return 0;
+		}
 	};
 	void *data;
 	int len;		// type len (not bytes len)
@@ -987,6 +1003,7 @@ public:
 
 	void init_from_spec(const string& signalSpec);
 	void init_from_sigtype(SigType sigtype);
+	void init_from_repo(MedRepository& repo, int sid);
 
 	template<typename T = int>
 	T Time(int idx, int chan) const { return Time<T>(idx, chan, data); }
