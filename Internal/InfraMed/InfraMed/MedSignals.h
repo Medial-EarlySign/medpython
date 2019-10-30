@@ -1052,7 +1052,7 @@ public:
 	T Val(int idx, int chan) const { return Val<T>(idx, chan, data); }
 
 	template<typename T = float>
-	T Val(int idx, int chan, void* data_) const {
+	T Val(int idx, int chan, const void* data_) const {
 		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
 		switch (val_channel_types[chan]) {
 		case type_enc::FLOAT32: return (T)(*(float*)(field_ptr));
@@ -1128,6 +1128,12 @@ public:
 			if (this->Time(idx1, tchan, data1) > this->Time(idx2, tchan, data2))
 				return false;
 			if (this->Time(idx1, tchan, data1) < this->Time(idx2, tchan, data2))
+				return true;
+		}
+		for (int vchan = 0; vchan < n_val; vchan++) {
+			if (this->Val(idx1, vchan, data1) > this->Val(idx2, vchan, data2))
+				return false;
+			if (this->Val(idx1, vchan, data1) < this->Val(idx2, vchan, data2))
 				return true;
 		}
 		return false;
