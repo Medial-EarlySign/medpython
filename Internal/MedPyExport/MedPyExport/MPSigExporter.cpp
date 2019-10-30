@@ -693,7 +693,7 @@ void MPSigExporter::get_all_data() {
 			ci.is_timechan = false;
 			data_vec.push_back(ci);
 		}
-		for (int tchan = 0; tchan < sv.n_val; tchan++) {
+		for (int tchan = 0; tchan < sv.n_time; tchan++) {
 			chan_info ci;
 			ci.data_key = string("time") + to_string(tchan);
 			ci.rec_count = this->record_count;
