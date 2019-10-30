@@ -676,7 +676,8 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											break;
                                         //TODO: figure out when to use stoll and time_converter
 										case GenericSigVec::type_enc::INT64:   //long long
-											cd_sv.setTime<long long>(0, tchan, stoll(fields[field_i]));
+											//cd_sv.setTime<long long>(0, tchan, stoll(fields[field_i]));
+											cd_sv.setTime<long long>(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
 											break;
 										case GenericSigVec::type_enc::UINT16:  //unsigned short
 											cd_sv.setTime<unsigned short>(0, tchan, (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
