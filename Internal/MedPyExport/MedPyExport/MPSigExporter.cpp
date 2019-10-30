@@ -679,20 +679,7 @@ void MPSigExporter::get_all_data() {
 		
 		//o->usv_init(, sv);
 		sv.init_from_repo(*o, this->sig_id);
-		for (int vchan = 0; vchan < sv.n_val; vchan++) {			
-			chan_info ci;
-			ci.data_key = string("val") + to_string(vchan);
-			ci.rec_count = this->record_count;
-			ci.gsv_type = sv.val_channel_types[vchan];
-			ci.gsv_type_offset = sv.val_channel_offsets[vchan];
-			ci.gsv_type_bytes_len = GenericSigVec::type_enc::bytes_len(ci.gsv_type);
-			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
-			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
-			ci.buf = (char*)malloc(ci.buf_bytes_len);
-			ci.gsv_chan_num = vchan;
-			ci.is_timechan = false;
-			data_vec.push_back(ci);
-		}
+
 		for (int tchan = 0; tchan < sv.n_time; tchan++) {
 			chan_info ci;
 			ci.data_key = string("time") + to_string(tchan);
@@ -705,6 +692,21 @@ void MPSigExporter::get_all_data() {
 			ci.buf = (char*)malloc(ci.buf_bytes_len);
 			ci.gsv_chan_num = tchan;
 			ci.is_timechan = true;
+			data_vec.push_back(ci);
+		}
+
+		for (int vchan = 0; vchan < sv.n_val; vchan++) {			
+			chan_info ci;
+			ci.data_key = string("val") + to_string(vchan);
+			ci.rec_count = this->record_count;
+			ci.gsv_type = sv.val_channel_types[vchan];
+			ci.gsv_type_offset = sv.val_channel_offsets[vchan];
+			ci.gsv_type_bytes_len = GenericSigVec::type_enc::bytes_len(ci.gsv_type);
+			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
+			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
+			ci.buf = (char*)malloc(ci.buf_bytes_len);
+			ci.gsv_chan_num = vchan;
+			ci.is_timechan = false;
 			data_vec.push_back(ci);
 		}
 		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
