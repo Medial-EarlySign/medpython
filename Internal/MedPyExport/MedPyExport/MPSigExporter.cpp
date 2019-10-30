@@ -719,8 +719,8 @@ void MPSigExporter::get_all_data() {
 				pid_vec[cur_row] = pid;
 				for(auto& ci : data_vec){
 					memcpy(&ci.buf[cur_row*ci.gsv_type_bytes_len], &data[ci.gsv_type_offset], ci.gsv_type_bytes_len);
-					data += sv.struct_size;
 				}
+				data += sv.struct_size;
 				cur_row++;
 			}
 		}
