@@ -680,7 +680,12 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											cd_sv.setTime<long long>(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
 											break;
 										case GenericSigVec::type_enc::UINT16:  //unsigned short
-											cd_sv.setTime<unsigned short>(0, tchan, (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
+											if (1) {
+												int value = (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode);
+												if (value < 0)
+													MTHROW_AND_ERR("MedConvert: get_next_signal: Detected attempt to assign negative number (%d) into unsigned time channel %d :: curr_line is '%s'\n", value, tchan, curr_line.c_str());
+												cd_sv.setTime<unsigned short>(0, tchan, value);
+											}
 											break;
 										}
 										field_i++;
@@ -705,7 +710,12 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										case GenericSigVec::type_enc::UINT16:  //unsigned short
 											if (sigs.is_categorical_channel(sid, vchan))
 												cd_sv.setVal<unsigned short>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
-											else cd_sv.setVal<unsigned short>(0, vchan, (unsigned short)med_stoi(fields[field_i]));
+											else { 
+												auto value = med_stoi(fields[field_i]);
+												if (value < 0)
+													MTHROW_AND_ERR("MedConvert: get_next_signal: Detected attempt to assign negative number (%d) into unsigned value channel %d :: curr_line is '%s'\n", value, vchan, curr_line.c_str());
+												cd_sv.setVal<unsigned short>(0, vchan, (unsigned short)value);
+											}
 											break;
 										case GenericSigVec::type_enc::UINT64:  //unsigned long long
 											if (sigs.is_categorical_channel(sid, vchan))
