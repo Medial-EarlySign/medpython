@@ -35,6 +35,7 @@ typedef enum {
 	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
+	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1710,6 +1711,100 @@ private:
 	int in_sid = -1;
 };
 
+//---------------------------------------------------------------------------------------------------------------
+// helper structures for RepCreateBitSignal:
+//---------------------------------------------------------------------------------------------------------------
+struct category_time_interval {
+	int first_appearance = 0;
+	int last_appearance = 0;
+	int n_appearances = 0;
+	int last_time = 0;
+
+	category_time_interval() {};
+	category_time_interval(int _first, int _last, int _n, int _last_time) { first_appearance = _first; last_appearance = _last; n_appearances = _n; last_time = _last_time; }
+
+	void set(int _first, int _last, int _n, int _last_time) { first_appearance = _first; last_appearance = _last; n_appearances = _n; last_time = _last_time; }
+};
+
+struct category_event_state {
+	int time = 0;
+	int appear_time = 0;
+	int categ = 0; 
+	int type = 0; // 0 : stop, 1: start, 2: last appearance
+
+	category_event_state() {};
+	category_event_state(int _time, int _appear_time, int _categ, int _type) { time = _time; appear_time = _appear_time; categ = _categ; type = _type; }
+	void set(int _time, int _appear_time, int _categ, int _type) { time = _time; appear_time = _appear_time; categ = _categ; type = _type; }
+
+
+	bool operator <(const category_event_state &c) const {
+		if (time < c.time) return true;
+		if (time > c.time) return false;
+		if (type < c.type) return true;
+		if (type > c.type) return false;
+		//if (end_time < c.end_time) return true;
+		return false;
+	}
+};
+//---------------------------------------------------------------------------------------------------------------
+// RepCreateBitSignal
+// Given N<32 categories defined as groups of sets on a categorial signal, creates a united signal
+// holding in bit j the occurance of each category. Each occurance of a category at time t implies 
+// a time span of [t, t+max(min_duration, duration in signal (if available))] in which we define it as 
+// occuring.
+// The resulted signal includes each time point in which any of the categories changed, and the new "state" 
+// at each such time point. "0" state starts at the first sig time point (unless it starts with the category).
+// This is useful for example when working on drugs for a specific conditions (such as diabetes drugs)
+// It then creates all states of treatment for the patient in a single easy to use signal.
+// A virtual dictionary will be added as well.
+// 
+//---------------------------------------------------------------------------------------------------------------
+class RepCreateBitSignal : public RepProcessor {
+public:
+	string in_sig = ""; ///< the name of input categorial signal
+	string out_virtual = ""; ///< the name of the output virtual signal
+	int t_chan = 0; ///< time channel for categorial data
+	int c_chan = 0; ///< channel for categorial data
+	int duration_chan = 1; ///< if >=0 the channel of duration for the categorial signal
+	int min_duration = 60; ///< minimal duration of a category
+	int max_duration = 180; ///< maximal duration of a category
+	int dont_look_back = 7; ///< how many days back to not look at in in_sig. This is usefull in many cases
+	int min_clip_time = 7; ///< minimal number of days to consider clipping after due to change to other drugs.
+	vector<string> categories_names; ///< the names of the categories to create, categories_names[j] will sit at bit j (1 << j)
+	vector<vector<string>> categories_sets; ///< the sets defining each category.
+	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
+	int time_unit_duration = MedTime::Days; ///< time unit of the duration (both in signal and in min_duration)
+
+	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
+
+	/// @snippet RepProcess.cpp RepAggregateSignal::init
+	int init(map<string, string>& mapper);
+	void add_virtual_signals(map<string, int> &_virtual_signals);
+	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict) {};
+	void set_affected_signal_ids(MedDictionarySections& dict) {};
+	
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be 
+	/// implemented for all inheriting classes 
+	/// </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	//void print();
+	ADD_CLASS_NAME(RepCreateBitSignal)
+	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration)
+
+private:
+	int v_out_sid = -1;
+	int in_sid = -1;
+	vector<vector<char>> categories_luts;
+	vector<string> registry_values;
+};
+
+//---------------------------------------------------------------------------------------------------------------
+
+
 //.......................................................................................
 /** RepCheckReq does not actually process the repository but rather check each
 	sample for compliance with some requirment, and adjust the sample's corresponding
@@ -1838,4 +1933,5 @@ MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateRegistry)
+MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
 #endif

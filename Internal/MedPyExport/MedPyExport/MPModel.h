@@ -85,6 +85,7 @@ public:
 	int learn_feature_processors(MPFeatures &features);
 	int apply_feature_processors(MPFeatures &features);
 	void fit_for_repository(MPPidRepository &rep);
+	void calc_contribs(MPMat &mat, MPMat &mat_out);
 
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors

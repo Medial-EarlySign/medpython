@@ -849,7 +849,7 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 
 	int bypass = 0;
 	if (sig == "Drug") bypass = 1;
-	boost::regex regf_1("^dc\\d{8}");
+	boost::regex regf_1("^dc:\\d{8}");
 	vector<vector<string>> string_channels;
 	vector<string> channels_names;
 	vector<int> lengths;
