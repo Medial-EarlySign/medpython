@@ -897,10 +897,10 @@ public:
 		static unsigned char encode(char c, bool isSigned = false) {
 			unsigned char _is_signed = isSigned ? type_enc::SIGNED : 0;
 			switch (c) {
-			case 'c': return _is_signed | type_enc::INT8;
-			case 's': return _is_signed | type_enc::INT16;
-			case 'i': return _is_signed | type_enc::INT32;
-			case 'l': return _is_signed | type_enc::INT64;
+			case 'c': return _is_signed | type_enc::UINT8;
+			case 's': return _is_signed | type_enc::UINT16;
+			case 'i': return _is_signed | type_enc::UINT32;
+			case 'l': return _is_signed | type_enc::UINT64;
 			case 'f': return type_enc::FLOAT32;
 			case 'd': return type_enc::FLOAT64;
 			case 'D': return type_enc::FLOAT80;
