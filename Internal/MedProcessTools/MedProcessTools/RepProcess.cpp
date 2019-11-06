@@ -2747,8 +2747,8 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	virtual_signals.clear();
 	virtual_signals_generic.clear();
 	string const_str = "T(i),T(i)";
-	for (size_t i = 0; i <= num_val_channels; ++i)
-		const_str += "V(f)";
+	for (size_t i = 0; i < num_val_channels; ++i)
+		const_str += ",V(f)";
 	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
@@ -2866,7 +2866,7 @@ int RepSignalRate::init(map<string, string> &mapper) {
 	virtual_signals_generic.clear();
 	string const_str = "T(i),T(i)";
 	for (size_t i = 0; i <= work_channel; ++i)
-		const_str += "V(f)";
+		const_str += ",V(f)";
 	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
