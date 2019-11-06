@@ -2452,7 +2452,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(req_s);
 
 	// add V_names
-	vector<pair<string, int>> default_virtual_signals;
+	vector<pair<string, string>> default_virtual_signals;
 	calculator_logic->list_output_signals(signals, default_virtual_signals);
 	if (V_names.size() == 0) {
 		//fetch from default:
@@ -2464,9 +2464,11 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	// add names to required, affected and virtual_signals
 	aff_signals.clear();
 	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
 	for (int i = 0; i < V_names.size(); i++) {
 		aff_signals.insert(V_names[i]);
-		virtual_signals.push_back({ V_names[i], default_virtual_signals[i].second });
+		virtual_signals_generic.push_back({ V_names[i], default_virtual_signals[i].second });
 	}
 	for (int i = 0; i < signals.size(); i++)
 		req_signals.insert(signals[i]);
@@ -2475,10 +2477,6 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	pass_time_last = calculator_logic->need_time;
 
 	return 0;
-
-
-	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
-	return -1;
 }
 
 SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {

@@ -13,6 +13,7 @@
 #include <iostream>
 #include <memory>
 #include <cstring>
+#include <array>
 
 using namespace std;
 
@@ -659,10 +660,10 @@ inline int compact_date_to_date(unsigned short cd) {
 //=============================================================================================================
 class SignalInfo {
 public:
-	array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
-	array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
-	array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
-	array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
 
 	int sid;
 	string name;
@@ -969,10 +970,10 @@ public:
 	int n_time;
 	int n_val;
 
-	array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
-	array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
-	array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
-	array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
 
 	void set_data(void* _data, int _len) {
 		data = _data;

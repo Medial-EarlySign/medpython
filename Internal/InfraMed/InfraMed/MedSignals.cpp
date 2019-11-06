@@ -43,7 +43,7 @@ int MedRep::get_type_size(SigType t)
 
 	case T_DateRangeVal:
 		return ((int)sizeof(SDateRangeVal));
-	
+
 	case T_DateRangeVal2:
 		return ((int)sizeof(SDateRangeVal2));
 
@@ -153,7 +153,7 @@ int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int 
 
 	case T_TimeShort4:
 		return MedRep::get_type_channels_info<STimeShort4>(time_unit, n_time_chans, n_val_chans);
-	
+
 	case T_Generic:
 		MTHROW_AND_ERR("Cannot get channels for generic signal by SigType, please use the function get_type_channels(string sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans)")
 
@@ -255,11 +255,11 @@ int MedSignals::read(const string &fname)
 							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
 							return -1;
 						}
-						if(generic_signal_types.count(type_fields[1]))
+						if (generic_signal_types.count(type_fields[1]))
 							info.generic_signal_spec = generic_signal_types.at(type_fields[1]);
 						else info.generic_signal_spec = type_fields[1];
 						GenericSigVec gsv(info.generic_signal_spec);
-						info.bytes_len = gsv.size();
+						info.bytes_len = (int)gsv.size();
 						info.time_channel_offsets = gsv.time_channel_offsets;
 						info.val_channel_offsets = gsv.val_channel_offsets;
 						info.time_channel_types = gsv.time_channel_types;
@@ -312,7 +312,7 @@ int MedSignals::read(const string &fname)
 					info.time_unit = MedTime::Undefined;
 					if (my_repo != NULL)
 						info.time_unit = my_repo->time_unit;
-					if (fields.size() >= 8){
+					if (fields.size() >= 8) {
 						int time_unit = med_stoi(fields[7]);
 						if (time_unit != MedTime::Undefined)
 							info.time_unit = time_unit;
@@ -496,7 +496,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	}
 
 	int new_sid = _allocate_new_signal(sig_name);
-	if(new_sid < 0)
+	if (new_sid < 0)
 		return -1;
 
 	SignalInfo info;
@@ -536,8 +536,8 @@ int MedSignals::insert_virtual_signal(const string &sig_name, const string& sign
 	info.name = sig_name;
 	info.type = T_Generic;
 	info.generic_signal_spec = signalSpec;
-	
-	info.bytes_len = GenericSigVec(info.generic_signal_spec).size();
+
+	info.bytes_len = (int)GenericSigVec(info.generic_signal_spec).size();
 
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
@@ -593,7 +593,7 @@ void UniversalSigVec_legacy::init(const SignalInfo &info)
 		//case T_TimeLongVal: set_funcs<STimeLongVal>(); return;
 	case T_DateShort2: set_funcs<SDateShort2>(); return;
 	case T_ValShort2: set_funcs<SValShort2>(); return;
-	case T_ValShort4: set_funcs<SValShort4>(); return;	
+	case T_ValShort4: set_funcs<SValShort4>(); return;
 		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
 	case T_TimeRange: set_funcs<STimeRange>(); return;
 	case T_TimeShort4: set_funcs<STimeShort4>(); return;
