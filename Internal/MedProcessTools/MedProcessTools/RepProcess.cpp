@@ -2640,8 +2640,12 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							collected_vals[i] = static_signals_values[i];
 						}
 						else {
-							if (work_channel >= 0)
-								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
+							if (work_channel >= 0) {
+								int sel_chanl = work_channel;
+								if (sel_chanl >= rec.usvs[time_idx].n_val_channels())
+									sel_chanl = rec.usvs[time_idx].n_val_channels() - 1;
+								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, sel_chanl);
+							}
 							++time_idx;
 						}
 					}
@@ -2668,8 +2672,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 
 							v_vals[n_vals * final_size + n_vals - 1] = res_calc;
-							for (int kk = 0; kk < n_vals - 1; ++kk)
-								v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+							for (int kk = 0; kk < n_vals - 1; ++kk) //copy from first
+								v_vals[n_vals * final_size + kk] = rec.usvs[0].Val(idx[0] - 1, kk);
 
 							if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
 								++final_size;
@@ -2728,6 +2732,8 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 			for (size_t i = 0; i < tokens.size(); ++i)
 				factors[i] = stof(tokens[i]);
 		}
+		else if (field == "factor_channel")
+			factor_channel = med_stoi(entry.second);
 		else MTHROW_AND_ERR("Error in RepCombineSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCombineSignals::init]
 	}
@@ -2793,7 +2799,7 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			}
 			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 			for (int k = 0; k < num_val_channels; ++k)
-				v_vals[num_val_channels * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
+				v_vals[num_val_channels * final_size + k] = (k == factor_channel ? factors[active_id] : 1) * rec.usvs[active_id].Val(idx[active_id] - 1, k);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
@@ -3049,7 +3055,10 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		for (int i = 0; i < rec.usvs[0].len; ++i) {
 			int time = rec.usvs[0].Time(i);
 			float orig_val = rec.usvs[0].Val(i);
-			int idx = Flags[orig_val];
+			int kv_idx = (int)orig_val;
+			//if (kv_idx >= Flags.size())
+			//	MTHROW_AND_ERR("Error got value %d outside dict(%zu)\n", kv_idx, Flags.size());
+			int idx = Flags[kv_idx];
 
 			v_times[idx].push_back(time);
 			v_times[idx].push_back(0);

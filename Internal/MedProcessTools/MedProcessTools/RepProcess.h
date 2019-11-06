@@ -1200,7 +1200,7 @@ public:
 
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
-	int time_channel = 0; ///<the time channel
+	int time_channel = 0; ///<the time channel. todo in the future - accept array with same order and size of signals
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1469,10 +1469,11 @@ public:
 	string output_name; ///< names of signal created by the processor
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
+	int factor_channel; ///< the factor_channel_number
 	int num_val_channels; ///< number of val channels
 
 	RepCombineSignals() {
-		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2;
+		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2; factor_channel = 1;
 	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
