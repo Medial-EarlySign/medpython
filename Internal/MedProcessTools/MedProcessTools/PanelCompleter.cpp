@@ -145,8 +145,9 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 
 	// Missing sigs are virtual signals
 	virtual_signals.clear();
+	virtual_signals_generic.clear();
 	for (const string &sig : missing_sigs) {
-		virtual_signals.push_back(pair<string, int>(sig, T_DateVal));
+		virtual_signals_generic.push_back(pair<string, string>(sig, "T(i),V(f)"));
 		MWARN("Warning: RepPanelCompleter:: add virtual signal %s\n", sig.c_str());
 	}
 

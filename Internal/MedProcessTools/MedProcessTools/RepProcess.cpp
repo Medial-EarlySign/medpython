@@ -2745,14 +2745,11 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
-	if (num_val_channels == 2)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
-	else if (num_val_channels == 1)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
-	else if (num_val_channels == 0)
-		virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
-	else
-		MTHROW_AND_ERR("Error RepCombineSignals::init num_val_channels should be [0-2]\n");
+	virtual_signals_generic.clear();
+	string const_str = "T(i),T(i)";
+	for (size_t i = 0; i <= num_val_channels; ++i)
+		const_str += "V(f)";
+	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
 }
@@ -2866,16 +2863,13 @@ int RepSignalRate::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
-	if (work_channel == 0)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
-	else
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	virtual_signals_generic.clear();
+	string const_str = "T(i),T(i)";
+	for (size_t i = 0; i <= work_channel; ++i)
+		const_str += "V(f)";
+	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
-}
-
-void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -2989,8 +2983,10 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
 	for (size_t i = 0; i < names.size(); ++i)
-		virtual_signals.push_back(pair<string, int>(names[i], T_DateRangeVal2));
+		virtual_signals_generic.push_back(pair<string, string>(names[i], "T(i),T(i),V(f),V(f)"));
 
 	return 0;
 }
@@ -3023,11 +3019,6 @@ void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) 
 	if (si.n_val_channels < 2)
 		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain 2 val channels\n",
 			input_name.c_str());
-}
-
-void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	for (size_t i = 0; i < names.size(); ++i)
-		_virtual_signals[names[i]] = virtual_signals[i].second;
 }
 
 void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -3109,7 +3100,9 @@ int RepAggregationPeriod::init(map<string, string>& mapper) {
 
 	aff_signals.insert(output_name);
 	req_signals.insert(input_name);
-	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
+	virtual_signals.clear();
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(output_name, "T(l,l)"));
 
 	return 0;
 }
@@ -3132,10 +3125,6 @@ void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& 
 			output_name.c_str());
 
 	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
-}
-
-void RepAggregationPeriod::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals[0].second;
 }
 
 int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -3209,9 +3198,17 @@ void RepAggregationPeriod::print() {
 // BasicRangeCleaner
 //=======================================================================================
 
+bool _is_numeric(const std::string& s)
+{
+	return !s.empty() && std::find_if(s.begin(),
+		s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
 {
 	MLOG("In RepBasicRangeCleaner init\n");
+	output_type = -1;
+	string output_type_s = "";
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepBasicRangeCleaner::init]
@@ -3221,7 +3218,12 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
-		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
+		else if (field == "output_type") {
+			if (_is_numeric(entry.second))
+				output_type = med_stoi(entry.second);
+			else
+				output_type_s = entry.second;
+		}// needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
 	}
@@ -3239,7 +3241,13 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 	req_signals.insert(ranges_name);
 	aff_signals.insert(output_name);
 
-	virtual_signals.push_back(pair<string, int>(output_name, output_type));
+	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
+	if (output_type_s.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, GenericSigVec::get_type_generic_spec(SigType(output_type))));
+	else
+		virtual_signals_generic.push_back(pair<string, string>(output_name, output_type_s));
 	return 0;
 }
 
@@ -3250,10 +3258,6 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.insert(signal_id);
 	req_signal_ids.insert(ranges_id);
 	aff_signal_ids.insert(output_id);
-}
-
-void RepBasicRangeCleaner::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals[0].second;
 }
 
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
@@ -3367,13 +3371,10 @@ int RepAggregateSignal::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signalName);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal));
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(output_name, "T(i),V(f)"));
 
 	return 0;
-}
-
-void RepAggregateSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepAggregateSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -3456,15 +3457,13 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(in_sig);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(out_virtual, T_DateVal));
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
 
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------------------------
-void RepCreateBitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[out_virtual] = virtual_signals.front().second;
-}
 
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -3501,7 +3500,7 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 		int n_combinations = (int)(1 << N);
 		for (int i = 0; i < n_combinations; i++) {
 			stringstream stream;
-			stream << "BITS_0x"	<< setfill('0') << setw(sizeof(int) * 2) << hex << i;
+			stream << "BITS_0x" << setfill('0') << setw(sizeof(int) * 2) << hex << i;
 			string s(stream.str());
 			registry_values.push_back(s);
 			dict.dicts[newSectionId].push_new_def(s, i);
@@ -3519,12 +3518,12 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 			registry_values.push_back(categories_names[i]);
 
 		// insert new defs
-		for (int i=n_combinations; i<(int)registry_values.size(); i++)
+		for (int i = n_combinations; i < (int)registry_values.size(); i++)
 			dict.dicts[newSectionId].push_new_def(registry_values[i], (int)i);
 
 		// insert sets
 		for (int i = 0; i < n_combinations; i++) {
-			for (int j=0; j<N; j++)
+			for (int j = 0; j < N; j++)
 				if (i & (1 << j)) {
 					dict.dicts[newSectionId].push_new_set(n_combinations + j, i);
 				}
@@ -3602,8 +3601,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		// first step : get a single chain of events
 		// we encode the events with a +1 on the index, positive for start, and negative for end
 		vector<category_event_state> ev;
-		for (int j = 0; j<N; j++)
-			for (auto &e : time_intervals[j]) 
+		for (int j = 0; j < N; j++)
+			for (auto &e : time_intervals[j])
 				//if (e.first > 0) {
 				if (e.first_appearance > 0) {
 
@@ -3625,7 +3624,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (ev[i].type == 0) {
 				int min_time = med_time_converter.add_subtract_time(ev[i].appear_time, time_unit_sig, min_clip_time, time_unit_duration);
 				if (min_time < ev[i].time) {
-					for (int j = i-1; j > 0; j--) {
+					for (int j = i - 1; j > 0; j--) {
 						if (ev[j].type) {
 							if (ev[j].time < min_time)
 								break;

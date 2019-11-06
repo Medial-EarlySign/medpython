@@ -1393,10 +1393,10 @@ private:
 	const map<string, RegistryTypes> name2type = { { "dm" , REP_REGISTRY_DM }, {"ht", REP_REGISTRY_HT }, {"proteinuria", REP_REGISTRY_PROTEINURIA}, {"ckd", REP_REGISTRY_CKD} };
 
 	// output signal name + type
-	const map<RegistryTypes, vector<pair<string, int>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry",T_TimeRangeVal}}},
-																		  { REP_REGISTRY_HT,{{"HT_Registry",T_TimeRangeVal}}},
-																		  { REP_REGISTRY_PROTEINURIA, {{"Proteinuria_State", T_DateVal}}} ,
-																		  { REP_REGISTRY_CKD, {{"CKD_Registry", T_DateVal}}} };
+	const map<RegistryTypes, vector<pair<string, string>>> type2Virtuals = { { REP_REGISTRY_DM,{{"DM_Registry", "T(l,l),V(f)"}}},
+																		  { REP_REGISTRY_HT,{{"HT_Registry", "T(l,l),V(f)"}}},
+																		  { REP_REGISTRY_PROTEINURIA, {{"Proteinuria_State", "T(i),V(f)"}}} ,
+																		  { REP_REGISTRY_CKD, {{"CKD_Registry", "T(i),V(f)"}}} };
 
 	// required signals
 	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{"Glucose","HbA1C","Drug","RC"}},
@@ -1510,7 +1510,6 @@ public:
 
 	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; }
 
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
 	/// initialize signal ids
@@ -1561,8 +1560,6 @@ public:
 		processor_type = REP_PROCESS_AGGREGATION_PERIOD;
 	}
 
-	void add_virtual_signals(map<string, int> &_virtual_signals);
-
 	/// initialize signal ids
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
@@ -1593,7 +1590,7 @@ public:
 	int ranges_id; ///< id of signal the defines ranges
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
-	int output_type; ///< output signal type - should be identical to input signal type default to range + val type
+	int output_type; ///< output signal type - should be identical to input signal type default to range + val type. Or string for generic type
 	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
 
 	/// <summary> default constructor </summary>
@@ -1601,8 +1598,6 @@ public:
 		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1), output_id(-1), time_channel(0), output_type(3) {
 		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
 	}
-
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 
 	/// initialize signal ids
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
@@ -1640,7 +1635,6 @@ public:
 
 	/// @snippet RepProcess.cpp RepSignalRate::init
 	int init(map<string, string>& mapper);
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
@@ -1690,7 +1684,6 @@ public:
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
 	int init(map<string, string>& mapper);
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
@@ -1779,7 +1772,6 @@ public:
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
 	int init(map<string, string>& mapper);
-	void add_virtual_signals(map<string, int> &_virtual_signals);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
