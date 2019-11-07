@@ -195,6 +195,11 @@ int MedSignals::read(string path, vector<string> &sfnames)
 }
 
 //-----------------------------------------------------------------------------------------------
+static bool str_is_int_number(const std::string &str)
+{
+	return !str.empty() && str.find_first_not_of("0123456789") == std::string::npos;
+}
+
 int MedSignals::read(const string &fname)
 {
 	lock_guard<mutex> guard(insert_signal_mutex);
@@ -240,24 +245,36 @@ int MedSignals::read(const string &fname)
 					signals_ids.push_back(sid);
 					vector<string> type_fields;
 					split(type_fields, fields[3], boost::is_any_of(":"));
-					int type = stoi(type_fields[0]);
-					if (type<0 || type>(int)T_Last) {
-						MERR("MedSignals: read: type %d not recognized in line %s\n", curr_line.c_str());
-						return -1;
+					int type = -1;
+					string generic_type_spec_or_alias = "";
+					if (str_is_int_number(type_fields[0])) {
+						type = stoi(type_fields[0]);
+						if (type<0 || type>(int)T_Last) {
+							MERR("MedSignals: read: type %d not recognized in line '%s'\n", type, curr_line.c_str());
+							return -1;
+						}
+						if (type == T_Generic && type_fields.size() < 2) {
+							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
+							return -1;
+						}
+						if (type == T_Generic && type_fields.size() >= 2) {
+							generic_type_spec_or_alias = type_fields[1];
+						}
 					}
+					else {
+						type = T_Generic;
+						generic_type_spec_or_alias = type_fields[0];
+					}
+
 					SignalInfo info;
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
 
 					if (type == T_Generic) {
-						if (type_fields.size() < 2) {
-							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
-							return -1;
-						}
-						if (generic_signal_types.count(type_fields[1]))
-							info.generic_signal_spec = generic_signal_types.at(type_fields[1]);
-						else info.generic_signal_spec = type_fields[1];
+						if (generic_signal_types.count(generic_type_spec_or_alias))
+							info.generic_signal_spec = generic_signal_types.at(generic_type_spec_or_alias);
+						else info.generic_signal_spec = generic_type_spec_or_alias;
 						GenericSigVec gsv(info.generic_signal_spec);
 						info.bytes_len = (int)gsv.size();
 						info.time_channel_offsets = gsv.time_channel_offsets;
