@@ -811,7 +811,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 	//MLOG("id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
 
 	if (usv.len == 0 && min_Nvals > 0) return 0;
-	if (min_Nvals <= 0) return 1;
+	//if (min_Nvals <= 0) return 1;
 
 	// Special handling of age through byear
 	if (use_byear) {
@@ -836,6 +836,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 
 		// go over all values
 		int nvals = 0;
+		int nvals_in_range = 0;
 		for (int i=0; i<usv.len; i++) {
 
 			// check if in relevant window
@@ -844,17 +845,21 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 			int dtime = ref_time - i_time_converted;
 			//MLOG("id %d i_time %d %f %d time %d %d dtime %d win %d %d\n", sample.id, i_time, usv.Val(i, val_channel), i_time_converted, sample.time, ref_time, dtime, win_from, win_to);
 			if (dtime < win_from) break;
+			nvals++;
 			if (dtime <= win_to) {
 				// in relevant time window, checking the value range
 				float i_val = usv.Val(i, val_channel);
 				//MLOG("i %d id %d i_val %f min %f max %f minNvals %d\n", i, sample.id, i_val, min_val, max_val, min_Nvals);
 				if (i_val >= min_val && i_val <= max_val) {
-					nvals++;
-					if (nvals >= min_Nvals)
+					nvals_in_range++;
+					if (min_Nvals > 0 && nvals_in_range >= min_Nvals)
 						return 1;
 				}
 			}
 		}
+
+		if (min_Nvals < 0 && nvals == nvals_in_range)
+			return 1;
 	}
 
 	return 0;
