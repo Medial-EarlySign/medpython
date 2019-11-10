@@ -781,6 +781,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			cur_chan_offset = nullptr;
 			cur_chan_type = nullptr;
 			cur_chan_top = nullptr;
+			chan_is_signed = true;
 			break;
 		case '(':
 			if (prev_char != 'v' && prev_char != 'V' && prev_char != 't' && prev_char != 'T')
@@ -809,7 +810,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 		case 'V':
 			if (in_time_chan)
 				throw runtime_error(string("Expecting time chan at ") + to_string(i) + " in " + signalSpec);
-			in_time_chan = true;
+			in_val_chan = true;
 			cur_chan_offset = &val_channel_offsets[0];
 			cur_chan_type = &val_channel_types[0];
 			cur_chan_top = &n_val;
