@@ -579,6 +579,47 @@ void MedDictionary::push_new_def(string name, int id)
 	Id2Names[id].push_back(name); 
 }
 
+//-----------------------------------------------------------------------------------------------
+int MedDictionary::write_to_file(string fout, int mode)
+{
+	if (fout == "") return 0;
+
+	ofstream out_f;
+
+	out_f.open(fout);
+
+	if (!out_f.is_open())
+		MTHROW_AND_ERR("Failed to write dictionary to file %s\n", fout.c_str());
+
+	// write section
+	if (section_name.size() > 0) {
+		out_f << "SECTION\t";
+		for (auto it=section_name.begin(); it!=section_name.end(); it++) {
+			out_f << *it;
+			if (it != section_name.end())
+				out_f << ",";
+		}
+		out_f << "\n";
+	}
+
+	if (mode >= 1) {
+		for (auto &e : Id2Names) {
+			for (auto &s : e.second) {
+				out_f << "DEF\t" << e.first << "\t" << s << "\n";
+			}
+		}
+	}
+
+	if (mode >= 2) {
+		for (auto &e : Set2Members) {
+			for (auto &s : e.second) {
+				out_f << "SET\t" << Id2Name[e.first] << "\t" << Id2Name[s] << "\n";
+			}
+		}
+	}
+
+	return 0;
+}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //-----------------------------------------------------------------------------------------------
