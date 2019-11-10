@@ -3426,6 +3426,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "min_clip_time")  min_clip_time = med_stoi(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
+		else if (field == "print_dict") print_dict = entry.second;
 		else if (field == "categories") {
 
 			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
@@ -3531,6 +3532,8 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 					dict.dicts[newSectionId].push_new_set(n_combinations + j, i);
 				}
 		}
+
+		if (print_dict != "") dict.dicts[newSectionId].write_to_file(print_dict);
 	}
 
 

@@ -1771,6 +1771,9 @@ public:
 	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
 	int time_unit_duration = MedTime::Days; ///< time unit of the duration (both in signal and in min_duration)
 
+	// next will NOT be serialized, and is here for debug reasons
+	string print_dict = "";
+
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
