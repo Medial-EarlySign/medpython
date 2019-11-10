@@ -868,14 +868,14 @@ void RangeFeatGenerator::set_names() {
 	string name = signalName + ".";
 
 	switch (type) {
-	case FTR_RANGE_CURRENT:	name += "current"; break;
-	case FTR_RANGE_LATEST:	name += "latest"; break;
+	case FTR_RANGE_CURRENT:	name += "current_" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_LATEST:	name += "latest_" + ((sets.size() > 0) ? sets[0] : ""); break;
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
-	case FTR_RANGE_EVER:	name += "ever_" + sets[0]; break;
-	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + sets[0]; break;
+	case FTR_RANGE_EVER:	name += "ever_" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + ((sets.size() > 0) ? sets[0] : ""); break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
-	case FTR_RANGE_TIME_COVERED: name += "time_covered"; break;
+	case FTR_RANGE_TIME_COVERED: name += "time_covered_" + ((sets.size() > 0) ? sets[0] : ""); break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
