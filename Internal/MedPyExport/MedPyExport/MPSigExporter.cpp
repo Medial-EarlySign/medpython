@@ -31,6 +31,24 @@ MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDP
 }
 
 
+static int convert_sv_type_to_npy_val_type(int sv_type){
+	switch (sv_type) {
+	case GenericSigVec::type_enc::INT32:   return (int)MED_NPY_TYPE::values::NPY_INT;  //int
+	case GenericSigVec::type_enc::INT64:   return (int)MED_NPY_TYPE::values::NPY_LONGLONG;  //long long
+	case GenericSigVec::type_enc::UINT16:  return (int)MED_NPY_TYPE::values::NPY_USHORT;  //unsigned short
+	case GenericSigVec::type_enc::UINT8:   return (int)MED_NPY_TYPE::values::NPY_UBYTE;  //unsigned char
+	case GenericSigVec::type_enc::UINT32:  return (int)MED_NPY_TYPE::values::NPY_UINT;  //unsigned int
+	case GenericSigVec::type_enc::UINT64:  return (int)MED_NPY_TYPE::values::NPY_ULONGLONG;  //unsigned long long
+	case GenericSigVec::type_enc::INT8:    return (int)MED_NPY_TYPE::values::NPY_CHAR;  //char
+	case GenericSigVec::type_enc::INT16:   return (int)MED_NPY_TYPE::values::NPY_SHORT;  //short
+	case GenericSigVec::type_enc::FLOAT32: return (int)MED_NPY_TYPE::values::NPY_FLOAT;  //float
+	case GenericSigVec::type_enc::FLOAT64: return (int)MED_NPY_TYPE::values::NPY_DOUBLE;  //double
+	case GenericSigVec::type_enc::FLOAT80: return (int)MED_NPY_TYPE::values::NPY_LONGDOUBLE;  //long double
+	}
+	return (int)MED_NPY_TYPE::values::NPY_NOTYPE;
+}
+
+
 int MPSigExporter::__get_key_id_or_throw(const string& key) {
 	for (int i = 0; i < data_keys.size();++i)
 		if (data_keys[i] == key) return i;
@@ -641,8 +659,93 @@ void MPSigExporter::get_all_data() {
 	}
 	break;
 
+	case SigType::T_Generic:
+	{
+		typedef struct {
+			string data_key;
+			char* buf = nullptr; 
+			int buf_bytes_len = 0; 
+			int gsv_type = 0;
+			int gsv_type_offset = 0;
+			int npy_type = 0; 
+			int gsv_type_bytes_len = 0; 
+			int gsv_chan_num = -1;
+			int rec_count = 0;
+			bool is_timechan = false;
+		} chan_info;
+		data_keys = vector<string>();
+		vector<chan_info> data_vec;
+		UniversalSigVec sv;
+		
+		//o->usv_init(, sv);
+		sv.init_from_repo(*o, this->sig_id);
+
+		for (int tchan = 0; tchan < sv.n_time; tchan++) {
+			chan_info ci;
+			ci.data_key = string("time") + to_string(tchan);
+			ci.rec_count = this->record_count;
+			ci.gsv_type = sv.time_channel_types[tchan];
+			ci.gsv_type_offset = sv.time_channel_offsets[tchan];
+			ci.gsv_type_bytes_len = GenericSigVec::type_enc::bytes_len(ci.gsv_type);
+			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
+			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
+			ci.buf = (char*)malloc(ci.buf_bytes_len);
+			ci.gsv_chan_num = tchan;
+			ci.is_timechan = true;
+			data_vec.push_back(ci);
+		}
+
+		for (int vchan = 0; vchan < sv.n_val; vchan++) {			
+			chan_info ci;
+			ci.data_key = string("val") + to_string(vchan);
+			ci.rec_count = this->record_count;
+			ci.gsv_type = sv.val_channel_types[vchan];
+			ci.gsv_type_offset = sv.val_channel_offsets[vchan];
+			ci.gsv_type_bytes_len = GenericSigVec::type_enc::bytes_len(ci.gsv_type);
+			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
+			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
+			ci.buf = (char*)malloc(ci.buf_bytes_len);
+			ci.gsv_chan_num = vchan;
+			ci.is_timechan = false;
+			data_vec.push_back(ci);
+		}
+		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
+		
+		int cur_row = 0;
+		for (int pid : this->pids) {
+			o->uget(pid, this->sig_id, sv);
+			const char* data = (const char*)sv.data;
+			if (sv.len == 0)
+				continue;
+			for (int i = 0; i < sv.len; i++) {
+				pid_vec[cur_row] = pid;
+				for(auto& ci : data_vec){
+					memcpy(&ci.buf[cur_row*ci.gsv_type_bytes_len], &data[ci.gsv_type_offset], ci.gsv_type_bytes_len);
+				}
+				data += sv.struct_size;
+				cur_row++;
+			}
+		}
+		data_keys.push_back("pid");
+		data_column.push_back(pid_vec);
+		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
+		
+		for (auto& ci : data_vec) {
+			data_keys.push_back(ci.data_key);
+			data_column.push_back(ci.buf);
+			data_column_nptype.push_back(ci.npy_type);
+		}
+
+		for (auto& ci : data_vec) {
+			if (!ci.is_timechan)
+				gen_cat_dict(ci.data_key, ci.gsv_chan_num);
+		}
+	}
+	break;
+
+
 	default:
-		throw runtime_error("MedPy: sig type not supported");
+		throw runtime_error(string("MedPy: sig type not supported: ")+to_string(this->sig_type));
 		break;
 	}
 }

@@ -375,6 +375,33 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 			grouped_ftrs[i] = true;
 		}
 	}
+	else if (file_name == "BY_SIGNAL_CATEG") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			int idx = 0;
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_")) {
+				word = tokens[1];
+				idx = 1;
+			}
+			if (idx + 1 < tokens.size()) {
+				if (boost::starts_with(tokens[idx + 1], "category_")) {
+					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					word += "." + tokens[idx + 1];
+				}
+			}
+
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
+	}
 	else {
 		// Read Grouping
 		ifstream inf(file_name);
@@ -432,8 +459,18 @@ void ModelExplainer::dprint(const string &pref) const {
 	string predictor_nm = "";
 	if (original_predictor != NULL)
 		predictor_nm = original_predictor->my_class_name();
-	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
-		predictor_nm.c_str());
+	string filters_str = "", processing_str = "";
+	char buffer[5000];
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s", 
+		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
+		, processing.zero_missing, processing.grouping.c_str());
+	processing_str = string(buffer);
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f", 
+		filters.sort_mode, filters.max_count, filters.sum_ratio);
+	filters_str = string(buffer);
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), attr_name.c_str(),
+		processing_str.c_str(), filters_str.c_str());
 }
 
 bool comp_score_str(const pair<string, float> &pr1, const pair<string, float> &pr2) {
@@ -1164,8 +1201,20 @@ void ShapleyExplainer::dprint(const string &pref) const {
 	string predictor_nm = "";
 	if (original_predictor != NULL)
 		predictor_nm = original_predictor->my_class_name();
-	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
-		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
+	string filters_str = "", processing_str = "";
+	char buffer[5000];
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
+		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
+		, processing.zero_missing, processing.grouping.c_str());
+	processing_str = string(buffer);
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
+		filters.sort_mode, filters.max_count, filters.sum_ratio);
+	filters_str = string(buffer);
+
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n", 
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), 
+		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		processing_str.c_str(), filters_str.c_str());
 }
 
 void LimeExplainer::_init(map<string, string> &mapper) {
@@ -1302,8 +1351,20 @@ void LimeExplainer::dprint(const string &pref) const {
 	string predictor_nm = "";
 	if (original_predictor != NULL)
 		predictor_nm = original_predictor->my_class_name();
-	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s\n", pref.c_str(), processor_type, my_class_name().c_str(),
-		predictor_nm.c_str(), GeneratorType_toStr(gen_type).c_str());
+	string filters_str = "", processing_str = "";
+	char buffer[5000];
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
+		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
+		, processing.zero_missing, processing.grouping.c_str());
+	processing_str = string(buffer);
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
+		filters.sort_mode, filters.max_count, filters.sum_ratio);
+	filters_str = string(buffer);
+
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		processing_str.c_str(), filters_str.c_str());
 }
 
 void LinearExplainer::_init(map<string, string> &mapper) {

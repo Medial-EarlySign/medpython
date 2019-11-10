@@ -738,6 +738,17 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			print_channel_helper(sid, 2, v[i].val3);
 			print_channel_helper(sid, 3, v[i].val4);
 		}
+		else if (sigs.type(sid) == T_Generic) {
+			GenericSigVec v;
+			v.init(sigs.Sid2Info[sid]);
+			v.set_data(data, 1);
+			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
+				MOUT(" %d ", convert_date(v.Time(i, tchan), sid).c_str());
+			}
+			for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
+				print_channel_helper(sid, vchan, v.Val(i, vchan));
+			}
+		}
 
 		if (sigs.has_any_categorical_channel(sid))
 			MOUT(" :\n");
@@ -811,6 +822,22 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 				+ get_channel_info(sid, 1, v[i].val2) + " "
 				+ get_channel_info(sid, 2, v[i].val3) + " "
 				+ get_channel_info(sid, 3, v[i].val4);
+		}
+		else if (sigs.type(sid) == T_Generic) {
+			GenericSigVec v;
+			v.init(sigs.Sid2Info[sid]);
+			v.set_data(data,1);
+			bool is_first = true;
+			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
+				if (is_first) is_first = false;
+				else out += " ";
+				out += to_string(v.Time(i, tchan));
+			}
+			for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
+				if (is_first) is_first = false;
+				else out += " ";
+				out += get_channel_info(sid, vchan, v.Val(i, vchan));
+			}
 		}
 
 
@@ -893,6 +920,23 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, i
 				+ get_channel_info(sid, 2, v[i].val3) + " "
 				+ get_channel_info(sid, 3, v[i].val4);
 		}
+		else if (sigs.type(sid) == T_Generic) {
+			GenericSigVec v;
+			v.init(sigs.Sid2Info[sid]);
+			v.set_data(data, 1);
+			if (v.Time(i) < from || v.Time(i) > to) continue;
+			bool is_first = true;
+			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
+				if (is_first) is_first = false;
+				else out += " ";
+				out += to_string(v.Time(i, tchan));
+			}
+			for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
+				if (is_first) is_first = false;
+				else out += " ";
+				out += get_channel_info(sid, vchan, v.Val(i, vchan));
+			}
+		}
 		MOUT("%s\n", out.c_str());
 	}
 
@@ -962,7 +1006,22 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, i
 			+ get_channel_info(sid, 2, v[i].val3) + " "
 			+ get_channel_info(sid, 3, v[i].val4);
 	}
-
+	else if (sigs.type(sid) == T_Generic) {
+		GenericSigVec v;
+		v.init(sigs.Sid2Info[sid]);
+		v.set_data(data, 1);
+		bool is_first = true;
+		for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
+			if (is_first) is_first = false;
+			else out += " ";
+			out += to_string(v.Time(i, tchan));
+		}
+		for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
+			if (is_first) is_first = false;
+			else out += " ";
+			out += get_channel_info(sid, vchan, v.Val(i, vchan));
+		}
+	}
 
 	MOUT("%s\n", out.c_str());
 
@@ -1092,10 +1151,46 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 		}
 		else if (sigs.type(sid) == T_TimeShort4) {
 			STimeShort4 *v = (STimeShort4 *)data;
-			MOUT("%lld,", v[i].time);
-			if (dict_val)
-				MOUT("%d,%d,%d,%d,", (int)v[i].val1, (int)v[i].val2, (int)v[i].val3, (int)v[i].val4);
-			else MOUT("%f,%f,%f,%f,", v[i].val1, v[i].val2, v[i].val3, v[i].val4);
+			//All values are always int 
+			MOUT("%d,%d,%lld,%d,%d,%d,", val = (int)v[i].val1, (int)v[i].val2, v[i].time, 0, (int)v[i].val3, (int)v[i].val4);
+		} else if (sigs.type(sid) == T_Generic) {
+			// The format is:
+			// (pid,sid,sname,stype,len,i,) ...  val,val2,date1,date2,val3,val4,desc1,desc2,extra1,extra2
+			GenericSigVec v;
+			v.init(sigs.Sid2Info[sid]);
+			v.set_data(data, 1);
+			// val chan #1 (.. or dict val or 0)
+			if (v.n_val_channels() > 0) {
+				if (dict_val) {
+					val = v.Val<int>(i, 0);
+					MOUT("%d,", v.Val<int>(i, 0));
+				} else MOUT("%f,", v.Val(i, 0));
+			} else MOUT("0,");
+			//val chan #2
+			if (v.n_val_channels() > 1) {
+				MOUT("%f,", v.Val(i, 1));
+			}
+			else MOUT("0,");
+			//time chan #1
+			if (v.n_time_channels() > 0) {
+				MOUT("%d,", v.Time(i, 0));
+			}
+			else MOUT("0,");
+			//time chan #2
+			if (v.n_time_channels() > 1) {
+				MOUT("%d,", v.Time(i, 1));
+			}
+			else MOUT("0,");
+			// val chan #3
+			if (v.n_val_channels() > 2) {
+				MOUT("%f,", v.Val(i, 2));
+			}
+			else MOUT("0,");
+			//val chan #4
+			if (v.n_val_channels() > 3) {
+				MOUT("%f,", v.Val(i, 3));
+			}
+			else MOUT("0,");
 		}
 		if (dict_val && dict.dict(section_id)->Id2Names.find(val) != dict.dict(section_id)->Id2Names.end()) {
 			for (size_t j = 0; j < 2; j++)

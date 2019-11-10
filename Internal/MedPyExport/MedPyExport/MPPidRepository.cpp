@@ -41,7 +41,7 @@ int MPPidRepository::init(const std::string &conf_fname) { return o->init(conf_f
 const std::vector<int>& MPPidRepository::MEDPY_GET_pids() { return o->index.pids; };
 int MPPidRepository::sig_id(const std::string& signame) { return o->dict.id(signame); };
 int MPPidRepository::sig_type(const std::string& signame) { return o->sigs.type(signame); };
-MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) { MPSigVectorAdaptor ret; o->uget(pid, sid, *(ret.o)); return ret; };
+MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) { MPSigVectorAdaptor ret; o->uget(pid, sid, *((UniversalSigVec*)(ret.o))); return ret; };
 
 std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, const std::vector<std::string> &set_names) {
 	vector<char> lut_cvec;
@@ -59,34 +59,34 @@ MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(in
 }
 
 // ****************************** MPSig      *********************************
-MPSig::MPSig(UniversalSigVec* _o, int index) : o(_o), idx(index) {  };
+MPSig::MPSig(void* _o, int index) : o(_o), idx(index) {  };
 MPSig::MPSig(const MPSig& other) { o = other.o; idx = other.idx; };
 
 
-int MPSig::time(int chan) { return o->Time(idx, chan); }
-float MPSig::val(int chan) { return o->Val(idx, chan); }
-int MPSig::timeU(int to_time_unit) { return o->TimeU(idx, to_time_unit); }
-int MPSig::date(int chan) { return o->Date(idx, chan); }
-int MPSig::years(int chan) { return o->Years(idx, chan); }
-int MPSig::months(int chan) { return o->Months(idx, chan); }
-int MPSig::days(int chan) { return o->Days(idx, chan); }
-int MPSig::hours(int chan) { return o->Hours(idx, chan); }
-int MPSig::minutes(int chan) { return o->Minutes(idx, chan); }
+int MPSig::time(int chan) { return ((UniversalSigVec*)o)->Time(idx, chan); }
+float MPSig::val(int chan) { return ((UniversalSigVec*)o)->Val(idx, chan); }
+int MPSig::timeU(int to_time_unit) { return ((UniversalSigVec*)o)->TimeU(idx, to_time_unit); }
+int MPSig::date(int chan) { return ((UniversalSigVec*)o)->Date(idx, chan); }
+int MPSig::years(int chan) { return ((UniversalSigVec*)o)->Years(idx, chan); }
+int MPSig::months(int chan) { return ((UniversalSigVec*)o)->Months(idx, chan); }
+int MPSig::days(int chan) { return ((UniversalSigVec*)o)->Days(idx, chan); }
+int MPSig::hours(int chan) { return ((UniversalSigVec*)o)->Hours(idx, chan); }
+int MPSig::minutes(int chan) { return ((UniversalSigVec*)o)->Minutes(idx, chan); }
 
 // ****************************** MPSigVectorAdaptor      *********************
 
 MPSigVectorAdaptor::MPSigVectorAdaptor() { o = new UniversalSigVec(); };
-MPSigVectorAdaptor::MPSigVectorAdaptor(const MPSigVectorAdaptor& other) { o = new UniversalSigVec(); *(this->o) = *(other.o); };
-MPSigVectorAdaptor::~MPSigVectorAdaptor() { delete o; };
+MPSigVectorAdaptor::MPSigVectorAdaptor(const MPSigVectorAdaptor& other) { o = new UniversalSigVec(); *((UniversalSigVec*)(this->o)) = *((UniversalSigVec*)(other.o)); };
+MPSigVectorAdaptor::~MPSigVectorAdaptor() { delete ((UniversalSigVec*)o); };
 
-int MPSigVectorAdaptor::__len__() { return o->len; };
+int MPSigVectorAdaptor::__len__() { return ((UniversalSigVec*)o)->len; };
 MPSig MPSigVectorAdaptor::__getitem__(int i) { return MPSig(o, i); };
 
-int MPSigVectorAdaptor::MEDPY_GET_type() { return o->get_type(); }
+int MPSigVectorAdaptor::MEDPY_GET_type() { return ((UniversalSigVec*)o)->get_type(); }
 
-int MPSigVectorAdaptor::MEDPY_GET_n_time_channels() { return o->n_time_channels(); }
-int MPSigVectorAdaptor::MEDPY_GET_n_val_channels() { return o->n_val_channels(); }
-int MPSigVectorAdaptor::MEDPY_GET_time_unit() { return o->time_unit(); }
-int MPSigVectorAdaptor::MEDPY_GET_size() { return (int)o->size(); }
+int MPSigVectorAdaptor::MEDPY_GET_n_time_channels() { return ((UniversalSigVec*)o)->n_time_channels(); }
+int MPSigVectorAdaptor::MEDPY_GET_n_val_channels() { return ((UniversalSigVec*)o)->n_val_channels(); }
+int MPSigVectorAdaptor::MEDPY_GET_time_unit() { return ((UniversalSigVec*)o)->time_unit(); }
+int MPSigVectorAdaptor::MEDPY_GET_size() { return (int)(((UniversalSigVec*)o)->size()); }
 
 
