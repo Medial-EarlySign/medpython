@@ -68,6 +68,14 @@ typedef std::vector vector;
   }
 %}
 
+%typemap(in) unsigned long long %{
+  $1 = PyLong_AsUnsignedLongLong($input);
+  if ($1 == -1 && PyErr_Occurred()) {
+    PyErr_Clear();
+    PyErr_Format(PyExc_TypeError, "Parameter must be an integer (unsigned long long) type, but got %s", Py_TYPE($input)->tp_name);
+    return NULL;
+  }
+%}
 
 %include "MedPython.h"
 

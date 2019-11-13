@@ -35,14 +35,14 @@ MPIdSamplesVectorAdaptor MPSamples::MEDPY_GET_idSamples() { return MPIdSamplesVe
 int MPSample::MEDPY_GET_outcomeTime() { return o->outcomeTime; };
 void MPSample::MEDPY_SET_outcomeTime(int new_outcome_time) { o->outcomeTime = new_outcome_time; };
 
-void MPSample::MEDPY_GET_prediction(MEDPY_NP_OUTPUT(float** out_predbuf, int* out_predbuf_len)) {
-	*out_predbuf_len = (int)o->prediction.size();
+void MPSample::MEDPY_GET_prediction(MEDPY_NP_OUTPUT(float** out_predbuf, unsigned long long* out_predbuf_len)) {
+	*out_predbuf_len = o->prediction.size();
 	int bufsize = sizeof(float)*(*out_predbuf_len);
 	*out_predbuf = (float*)malloc(bufsize);
 	memcpy((void*)(*out_predbuf), (void*)(o->prediction.data()), bufsize);
 }
 
-void MPSample::MEDPY_SET_prediction(MEDPY_NP_INPUT(float* in_predbuf, int in_predbuf_len)) {
+void MPSample::MEDPY_SET_prediction(MEDPY_NP_INPUT(float* in_predbuf, unsigned long long in_predbuf_len)) {
 	if (in_predbuf_len <= 0) {
 		o->prediction.clear();
 		return;
@@ -151,17 +151,17 @@ int MPSamples::write_to_bin_file(const string& file_name) { return val_or_except
 int MPSamples::read_from_file(const string& file_name) { return val_or_exception(o->read_from_file(file_name),"Cannot read Samples from file "+file_name); };
 int MPSamples::write_to_file(const string& file_name) { return val_or_exception(o->write_to_file(file_name),"Cannot write Samples to file " + file_name); };
 
-void MPSamples::get_preds(MEDPY_NP_OUTPUT(float** preds_buf, int* preds_buf_len)) {
+void MPSamples::get_preds(MEDPY_NP_OUTPUT(float** preds_buf, unsigned long long* preds_buf_len)) {
 	vector<float> ret;
 	o->get_preds(ret);
 	vector_to_buf(ret, preds_buf, preds_buf_len);
 }
-void MPSamples::get_y(MEDPY_NP_OUTPUT(float** y_buf, int* y_buf_len)) {
+void MPSamples::get_y(MEDPY_NP_OUTPUT(float** y_buf, unsigned long long* y_buf_len)) {
 	vector<float> ret;
 	o->get_y(ret);
 	vector_to_buf(ret, y_buf, y_buf_len);
 }
-void MPSamples::get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len)) {
+void MPSamples::get_categs(MEDPY_NP_OUTPUT(float** categs_buf, unsigned long long* categs_buf_len)) {
 	vector<float> ret;
 	o->get_categs(ret);
 	vector_to_buf(ret, categs_buf, categs_buf_len);
@@ -362,7 +362,7 @@ void MPSamples::dilute(float prob) { return o->dilute((float)prob); };
 int MPSamples::MEDPY_GET_time_unit() { return o->time_unit; };
 void MPSamples::MEDPY_SET_time_unit(int new_time_unit) { o->time_unit = new_time_unit; };
 
-void MPSamples::get_ids(MEDPY_NP_OUTPUT(int** ids, int* num_ids)) {
+void MPSamples::get_ids(MEDPY_NP_OUTPUT(int** ids, unsigned long long* num_ids)) {
 	vector<int> ids_vec;
 	o->get_ids(ids_vec);
 	vector_to_buf(ids_vec, ids, num_ids);

@@ -27,8 +27,8 @@ public:
 	int MEDPY_GET_outcomeTime();
 	void MEDPY_SET_outcomeTime(int new_outcome_time);
 
-	void MEDPY_GET_prediction(MEDPY_NP_OUTPUT(float** out_predbuf, int* out_predbuf_len));
-	void MEDPY_SET_prediction(MEDPY_NP_INPUT(float* in_predbuf, int in_predbuf_len));
+	void MEDPY_GET_prediction(MEDPY_NP_OUTPUT(float** out_predbuf, unsigned long long* out_predbuf_len));
+	void MEDPY_SET_prediction(MEDPY_NP_INPUT(float* in_predbuf, unsigned long long in_predbuf_len));
 
 /*
 	map<string, float> attributes;	///< Attribute(s) - empty if non given
@@ -128,7 +128,7 @@ public:
 	void clear();
 
 	int insert_preds(MPFeatures& featuresData);
-	void get_ids(MEDPY_NP_OUTPUT(int** ids, int* num_ids));
+	void get_ids(MEDPY_NP_OUTPUT(int** ids, unsigned long long* num_ids));
 
 	void append(MPSamples& newSamples);
 	int read_from_bin_file(const string& file_name);
@@ -137,9 +137,9 @@ public:
 	int read_from_file(const string& file_name);
 	int write_to_file(const string& fname);
 	
-	void get_preds(MEDPY_NP_OUTPUT(float** preds_buf, int* preds_buf_len));
-	void get_y(MEDPY_NP_OUTPUT(float** y_buf, int* y_buf_len));
-	void get_categs(MEDPY_NP_OUTPUT(float** categs_buf, int* categs_buf_len));
+	void get_preds(MEDPY_NP_OUTPUT(float** preds_buf, unsigned long long* preds_buf_len));
+	void get_y(MEDPY_NP_OUTPUT(float** y_buf, unsigned long long* y_buf_len));
+	void get_categs(MEDPY_NP_OUTPUT(float** categs_buf, unsigned long long* categs_buf_len));
 	
 	MPSampleVectorAdaptor export_to_sample_vec();
 	void import_from_sample_vec(MPSampleVectorAdaptor& vec_samples, bool allow_split_inconsistency = false);

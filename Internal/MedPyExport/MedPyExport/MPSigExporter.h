@@ -21,8 +21,9 @@ public:
 	std::string sig_name;
 	int sig_id = -1;
 	int sig_type = -1;
-	int record_count = -1;
-	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids);
+	size_t record_count = 0;
+	bool record_count_updated = false;
+	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids);
 	void update_record_count();
 	void get_all_data();
 	void clear() {
@@ -35,9 +36,9 @@ public:
 		vector<int>().swap(data_column_nptype);
 	}
 
-	void transfer_column(const std::string& key, MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype));
+	void transfer_column(const std::string& key, MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype));
 	void __getitem__(const std::string& key,
-		MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
+		MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype))
 	{
 		transfer_column(key, outarr1, outarr1_sz, outarr1_npytype);
 	};
@@ -69,7 +70,7 @@ public:
 	MPSigExporter_iter(const MPSigExporter_iter& orig) : obj(orig.obj), keys(orig.keys) {}
 	//The return type of both string and the NumPy outarr will result in a [str,outarr] list which is good 
 	//in this case because that makes it convertible to dict easily.
-	std::string next(MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype)) {
+	std::string next(MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype)) {
 		if (iterator >= keys.size()) {
 			obj->clear();
 			throw StopIterator();
