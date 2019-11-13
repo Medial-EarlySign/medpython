@@ -461,11 +461,11 @@ void ModelExplainer::dprint(const string &pref) const {
 		predictor_nm = original_predictor->my_class_name();
 	string filters_str = "", processing_str = "";
 	char buffer[5000];
-	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s", 
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
 		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
 		, processing.zero_missing, processing.grouping.c_str());
 	processing_str = string(buffer);
-	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f", 
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, attr_name=%s, processing={%s}, filters={%s}\n",
@@ -872,7 +872,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	int nftrs = x_mat.ncols;
 	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
 	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
-	vector<int> missing_hist(nftrs + 1);
+	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1);
 
 	if (!train_mat.samples.front().prediction.empty())
 		for (size_t i = 0; i < labels.size(); ++i)
@@ -894,6 +894,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		}
 		if (verbose_learn)
 			MLOG("Adding %d Data points\n", add_new_data);
+		MedProgress add_progress("Add_Train_Data", add_new_data, 30, 1);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
@@ -919,6 +920,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 					curr_row[j] = missing_value;
 			}
 			labels.push_back(labels[row_sel]);
+			add_progress.update();
 		}
 		x_mat.add_rows(rows_m);
 	}
@@ -927,6 +929,8 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
+		if (i >= train_mat.samples.size())
+			++added_missing_hist[miss_cnts[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
@@ -934,6 +938,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	}
 	if (verbose_learn) {
 		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -1211,8 +1216,8 @@ void ShapleyExplainer::dprint(const string &pref) const {
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 
-	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n", 
-		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), 
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
 		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
