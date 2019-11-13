@@ -22,7 +22,7 @@ public:
 
 	MPMat();
 	MPMat(int n_rows, int n_cols);
-	MPMat(float *IN_ARRAY2, int DIM1, int DIM2);
+	MPMat(float *IN_ARRAY2, unsigned long long DIM1, unsigned long long DIM2);
 
 	~MPMat();
 	
@@ -32,10 +32,10 @@ public:
 	 * This, as you might have guessed, can cause the segfault-making kind of issues when data is manipulated and changed.
 	 */
 	
-	void get_numpy_copy(float** ARGOUTVIEWM_ARRAY2, int* DIM1, int* DIM2);
-	void get_numpy_view_unsafe(float** ARGOUTVIEW_ARRAY2, int* DIM1, int* DIM2);
-	void test(float** ARGOUTVIEWM_ARRAY2, int* DIM1, int* DIM2, int n_rows, int n_cols);
-	void load_numpy(float* IN_ARRAY2, int DIM1, int DIM2);
+	void get_numpy_copy(float** ARGOUTVIEWM_ARRAY2, unsigned long long* DIM1, unsigned long long* DIM2);
+	void get_numpy_view_unsafe(float** ARGOUTVIEW_ARRAY2, unsigned long long* DIM1, unsigned long long* DIM2);
+	void test(float** ARGOUTVIEWM_ARRAY2, unsigned long long* DIM1, unsigned long long* DIM2, int n_rows, int n_cols);
+	void load_numpy(float* IN_ARRAY2, unsigned long long DIM1, unsigned long long DIM2);
 
 	static int MEDPY_GET_Normalize_Cols();
 	static int MEDPY_GET_Normalize_Rows();
@@ -49,13 +49,13 @@ public:
 	float __getitem__(const std::vector<int>& index);
 	void __setitem__(const std::vector<int>& index, float val);
 
-	void MEDPY_GET_row_ids(MEDPY_NP_OUTPUT(int** out_row_ids_buf, int* out_row_ids_buf_len));
-	void MEDPY_SET_row_ids(MEDPY_NP_INPUT(int* row_ids_buf, int row_ids_buf_len));
+	void MEDPY_GET_row_ids(MEDPY_NP_OUTPUT(int** out_row_ids_buf, unsigned long long* out_row_ids_buf_len));
+	void MEDPY_SET_row_ids(MEDPY_NP_INPUT(int* row_ids_buf, unsigned long long row_ids_buf_len));
 
 	std::vector<std::string> MEDPY_GET_signals();
 	
-	void MEDPY_GET_avg(MEDPY_NP_OUTPUT(int** avg_buf, int* avg_buf_len));
-	void MEDPY_GET_std(MEDPY_NP_OUTPUT(int** std_buf, int* std_buf_len));
+	void MEDPY_GET_avg(MEDPY_NP_OUTPUT(int** avg_buf, unsigned long long* avg_buf_len));
+	void MEDPY_GET_std(MEDPY_NP_OUTPUT(int** std_buf, unsigned long long* std_buf_len));
 
 	int MEDPY_GET_normalized_flag();
 	void MEDPY_SET_normalized_flag(int newval);
@@ -85,24 +85,24 @@ public:
 	//void reorder_by_col(vector<int> &col_order);
 
 	void add_rows(MPMat& m_add);
-	void add_rows(MEDPY_NP_INPUT(float* m_add, int nrows_to_add));
+	void add_rows(MEDPY_NP_INPUT(float* m_add, unsigned long long nrows_to_add));
 	void add_cols(MPMat& m_add);
-	void add_cols(MEDPY_NP_INPUT(float* m_add, int ncols_to_add));
+	void add_cols(MEDPY_NP_INPUT(float* m_add, unsigned long long ncols_to_add));
 
 	// get a row or a column to a vector
-	void get_row(int i_row, MEDPY_NP_OUTPUT(float** rowv, int* rowv_n)) const;
-	void get_col(int i_col, MEDPY_NP_OUTPUT(float** colv, int* colv_n)) const;
+	void get_row(int i_row, MEDPY_NP_OUTPUT(float** rowv, unsigned long long* rowv_n)) const;
+	void get_col(int i_col, MEDPY_NP_OUTPUT(float** colv, unsigned long long* colv_n)) const;
 
-	void normalize(int norm_type, MEDPY_NP_INPUT(float* wgts, int wgts_n));
+	void normalize(int norm_type, MEDPY_NP_INPUT(float* wgts, unsigned long long wgts_n));
 	void normalize(int norm_type = Normalize_Cols);
 
-	void normalize(MEDPY_NP_INPUT(float* external_avg, int external_avg_n), MEDPY_NP_INPUT(float* external_std, int external_std_n), int norm_type = 1);
+	void normalize(MEDPY_NP_INPUT(float* external_avg, unsigned long long external_avg_n), MEDPY_NP_INPUT(float* external_std, unsigned long long external_std_n), int norm_type = 1);
 
-	void get_cols_avg_std(MEDPY_NP_OUTPUT(float** buf_avg, int* buf_avg_n), MEDPY_NP_OUTPUT(float** buf_std, int* buf_std_n));
+	void get_cols_avg_std(MEDPY_NP_OUTPUT(float** buf_avg, unsigned long long* buf_avg_n), MEDPY_NP_OUTPUT(float** buf_std, unsigned long long* buf_std_n));
 	void set_signals(std::vector<std::string> & sigs);
 
-	void load(float *IN_ARRAY2, int DIM1, int DIM2);
-	void load_transposed(float *IN_ARRAY2, int DIM1, int DIM2);
+	void load(float *IN_ARRAY2, unsigned long long DIM1, unsigned long long DIM2);
+	void load_transposed(float *IN_ARRAY2, unsigned long long DIM1, unsigned long long DIM2);
 	void load(MPMat& x);
 	MPSerializableObject asSerializable();
 

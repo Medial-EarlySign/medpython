@@ -12,7 +12,7 @@
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
 
-MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids) : o(rep.o), sig_name(signame_str) {
+MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids) : o(rep.o), sig_name(signame_str) {
 	if (rep.loadsig(signame_str) != 0)
 		throw runtime_error("could not load signal");
 	sig_id = rep.sig_id(sig_name);
@@ -96,7 +96,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 
 void MPSigExporter::get_all_data() {
 
-	if (this->record_count <= 0)
+	if (!this->record_count_updated)
 		update_record_count();
 
 	switch (this->sig_type) {
@@ -110,11 +110,20 @@ void MPSigExporter::get_all_data() {
 		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
 		int* date_vec = (int*)malloc(sizeof(int)*this->record_count);;
 		float* val_vec = (float*)malloc(sizeof(float)*this->record_count);;
+		if (pid_vec == nullptr)
+			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " bytes for pid column record_count = "+to_string(this->record_count));
+
+		if (date_vec == nullptr)
+			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " for date channel");
+
+		if (val_vec == nullptr)
+			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(float)*this->record_count) + " for value channel");
 
 		int len;
 		SDateVal *sdv = nullptr;
-		int cur_row = 0;
-		for (int pid : this->pids) {
+		size_t cur_row = 0;
+		for (size_t j = 0; j < this->pids.size();j++) {
+			int pid = this->pids[j];
 			sdv = (SDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
 				continue;
@@ -146,7 +155,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -177,7 +186,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		STimeVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (STimeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -212,7 +221,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SDateRangeVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SDateRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -250,7 +259,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		STimeRangeVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (STimeRangeVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -286,7 +295,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		STimeStamp *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (STimeStamp *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -317,7 +326,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SDateVal2 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SDateVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -355,7 +364,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		STimeLongVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (STimeLongVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -390,7 +399,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SDateShort2 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SDateShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -428,7 +437,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SValShort2 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SValShort2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -465,7 +474,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SValShort4 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SValShort4 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -508,7 +517,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SCompactDateVal *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SCompactDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -544,7 +553,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SDateRangeVal2 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SDateRangeVal2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -586,7 +595,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		SDateFloat2 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (SDateFloat2 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -625,7 +634,7 @@ void MPSigExporter::get_all_data() {
 
 		int len;
 		STimeShort4 *sdv = nullptr;
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			sdv = (STimeShort4 *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -690,6 +699,8 @@ void MPSigExporter::get_all_data() {
 			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
 			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
 			ci.buf = (char*)malloc(ci.buf_bytes_len);
+			if(ci.buf == nullptr)
+				throw runtime_error(string("Failed allocating memory of size ")+to_string(ci.buf_bytes_len)+" for time channel "+to_string(tchan));
 			ci.gsv_chan_num = tchan;
 			ci.is_timechan = true;
 			data_vec.push_back(ci);
@@ -705,13 +716,18 @@ void MPSigExporter::get_all_data() {
 			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
 			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
 			ci.buf = (char*)malloc(ci.buf_bytes_len);
+			if (ci.buf == nullptr)
+				throw runtime_error(string("Failed allocating memory of size ") + to_string(ci.buf_bytes_len) + " for value channel " + to_string(vchan));
 			ci.gsv_chan_num = vchan;
 			ci.is_timechan = false;
 			data_vec.push_back(ci);
 		}
 		int* pid_vec = (int*)malloc(sizeof(int)*this->record_count);
+		if (pid_vec == nullptr)
+			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " for pid column");
+
 		
-		int cur_row = 0;
+		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			o->uget(pid, this->sig_id, sv);
 			const char* data = (const char*)sv.data;
@@ -752,7 +768,7 @@ void MPSigExporter::get_all_data() {
 
 void MPSigExporter::update_record_count() {
 	int rec_len;
-	int total_len = 0;
+	size_t total_len = 0;
 	if (this->sig_id == -1 || this->sig_type == -1) {
 		this->record_count = 0;
 		return;
@@ -762,11 +778,12 @@ void MPSigExporter::update_record_count() {
 		o->get(pid, this->sig_id, rec_len);
 		total_len += rec_len;
 	}
+	record_count_updated = true;
 	this->record_count = total_len;
 }
 
 void MPSigExporter::transfer_column(const std::string& key,
-	MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
+	MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype))
 {
 	int key_index = __get_key_id_or_throw(key);
 	*outarr1 = data_column[key_index];

@@ -143,16 +143,21 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
       use_all_pids = 1
       pids=list()
     if pids is None: pids=list()
-    sigexporter = self.export_to_numpy(sig_name_str, pids, use_all_pids)
-    df = pd.DataFrame.from_dict(dict(sigexporter))
+    df = self.export_to_numpy(sig_name_str, pids, use_all_pids)
+    cat_dict = dict()
+    if translate:
+      for fld in df.get_categorical_fields():
+        cat_dict[fld] = dict(df.get_categorical_field_dict(fld))
+    df = dict(df)
+    df = pd.DataFrame.from_dict(df)
     if float32to64:
       for column_name in df:
         if df[column_name].dtype == np.float32:
            df[column_name] = df[column_name].astype(np.float64)
     if not translate:
       return df
-    for field in sigexporter.get_categorical_fields():
-        df[field] = df[field].astype('category').cat.rename_categories(dict(sigexporter.get_categorical_field_dict(field)))
+    for fld in cat_dict:
+        df[fld] = df[fld].astype('category').cat.rename_categories(cat_dict[fld])
     return df
 
 def __features__to_df_imp(self):

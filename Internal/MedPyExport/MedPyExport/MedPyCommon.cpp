@@ -101,7 +101,7 @@ MPIntIntMapAdaptor::~MPIntIntMapAdaptor() { if (o_owned) delete o; };
 int MPIntIntMapAdaptor::__len__() { return (int)o->size(); };
 int MPIntIntMapAdaptor::__getitem__(int i) { return o->operator[](i); };
 void MPIntIntMapAdaptor::__setitem__(int i, int val) { o->operator[](i) = val; };
-void MPIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len)) 
+void MPIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, unsigned long long* intkeys_out_buf_len)) 
 {
 	vector<int> ret;
 	ret.reserve(o->size());
@@ -182,11 +182,11 @@ MPStringVecFloatMapAdaptor::MPStringVecFloatMapAdaptor(const MPStringVecFloatMap
 MPStringVecFloatMapAdaptor::MPStringVecFloatMapAdaptor(std::map<std::string, std::vector<float> >* ptr) { o_owned = false; o = ptr; };
 MPStringVecFloatMapAdaptor::~MPStringVecFloatMapAdaptor() { if (o_owned) delete o; };
 int MPStringVecFloatMapAdaptor::__len__() { return (int)o->size(); };
-void MPStringVecFloatMapAdaptor::__getitem__(std::string key, MEDPY_NP_OUTPUT(float** float_out_buf, int* float_out_buf_len)) {
+void MPStringVecFloatMapAdaptor::__getitem__(std::string key, MEDPY_NP_OUTPUT(float** float_out_buf, unsigned long long* float_out_buf_len)) {
 	auto& fvec = o->operator[](key);
 	vector_to_buf(fvec, float_out_buf, float_out_buf_len);
 };
-void MPStringVecFloatMapAdaptor::__setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, int float_in_buf_len)) { 
+void MPStringVecFloatMapAdaptor::__setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, unsigned long long float_in_buf_len)) {
 	vector<float> fvec;
 	buf_to_vector(float_in_buf, float_in_buf_len, fvec);
 	o->operator[](key) = fvec;
@@ -231,7 +231,7 @@ MPIntPairIntIntMapAdaptor::MPIntPairIntIntMapAdaptor(std::map<int, std::pair<int
 MPIntPairIntIntMapAdaptor::~MPIntPairIntIntMapAdaptor() { if (o_owned) delete o; };
 int MPIntPairIntIntMapAdaptor::__len__() { return (int)o->size(); };
 
-void MPIntPairIntIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len)) {
+void MPIntPairIntIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, unsigned long long* int_out_buf_len)) {
 	if (o->count(key) < 1)
 		throw runtime_error(string("Key Error:")+std::to_string(key));
 	*int_out_buf = (int*)malloc(sizeof(int)*2);
@@ -241,7 +241,7 @@ void MPIntPairIntIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_o
 	(*int_out_buf)[1] = v.second;
 }
 
-void MPIntPairIntIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) {
+void MPIntPairIntIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len)) {
 	if (int_in_buf_len <= 1 || int_in_buf == nullptr)
 		throw runtime_error("map value type is a 2 item array");
 	auto& v = o->operator[](key);
@@ -249,7 +249,7 @@ void MPIntPairIntIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_
 	v.second = int_in_buf[1];
 }
 
-void MPIntPairIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len))
+void MPIntPairIntIntMapAdaptor::keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, unsigned long long* intkeys_out_buf_len))
 {
 	vector<int> ret;
 	ret.reserve(o->size());
@@ -341,11 +341,11 @@ MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(const MPIntVecIntMapAdaptor& other)
 MPIntVecIntMapAdaptor::MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr) { o_owned = false; o = ptr; };
 MPIntVecIntMapAdaptor::~MPIntVecIntMapAdaptor() { if (o_owned) delete o; };
 int MPIntVecIntMapAdaptor::__len__() { return (int)o->size(); };
-void MPIntVecIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len)) {
+void MPIntVecIntMapAdaptor::__getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, unsigned long long* int_out_buf_len)) {
 	auto& fvec = o->operator[](key);
 	vector_to_buf(fvec, int_out_buf, int_out_buf_len);
 };
-void MPIntVecIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) {
+void MPIntVecIntMapAdaptor::__setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len)) {
 	vector<int> fvec;
 	buf_to_vector(int_in_buf, int_in_buf_len, fvec);
 	o->operator[](key) = fvec;

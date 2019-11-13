@@ -23,7 +23,7 @@ public:
 	"returns -1 if fails\n"
 	"reading a repository for a group of pids and signals.Empty group means all of it.");
 	int read_all(const std::string &conf_fname);
-	int read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), const std::vector<std::string> &signals_to_take);
+	int read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), const std::vector<std::string> &signals_to_take);
 
 	int read_all_i(const std::string &conf_fname, const std::vector<int> &pids_to_take, const std::vector<int> &signals_to_take);
 
@@ -67,7 +67,7 @@ public:
 	
 	MEDPY_DOC(export_to_numpy, "export_to_numpy(str_signame) -> SigExporter\n"
 	"  Returns the signal data represented as a list of numpy arrays, one for each field");
-	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids);
+	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids);
 };
 
 

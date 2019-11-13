@@ -36,7 +36,7 @@ void MPPandasAdaptor::push_categorial(const string& col_name, std::vector<int> i
 };
 
 void MPPandasAdaptor::export_column(const std::string& key,
-	MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
+	MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype))
 {
 	auto& col = __get_col_or_throw(key);
 	if (col.is_own) {
@@ -53,7 +53,7 @@ void MPPandasAdaptor::export_column(const std::string& key,
 	columns.erase(key);
 }
 
-void MPPandasAdaptor::import_column(const string &col_name, void* IN_ARRAY1, int DIM1, int NPYDTC1, bool make_a_copy) {
+void MPPandasAdaptor::import_column(const string &col_name, void* IN_ARRAY1, unsigned long long DIM1, int NPYDTC1, bool make_a_copy) {
 	if (columns.count(col_name) > 0)
 		throw runtime_error("PandasAdaptor: already have a column by this name");
 	auto& col = columns[col_name];
