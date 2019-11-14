@@ -951,7 +951,8 @@ public:
 
 	void init(const SignalInfo &info) { 
 		_time_unit = info.time_unit; 
-		if (info.time_channel_types[0] != 0 && info.val_channel_types[0] != 0) {
+		if (info.n_time_channels > 0 && info.time_channel_types[0] != 0
+			&& info.n_val_channels && info.val_channel_types[0] != 0) {
 			time_channel_offsets = info.time_channel_offsets;
 			val_channel_offsets = info.val_channel_offsets;
 			time_channel_types = info.time_channel_types;

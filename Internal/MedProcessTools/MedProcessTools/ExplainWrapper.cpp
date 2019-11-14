@@ -1009,14 +1009,15 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	}
 	int N_TOTAL_TH = omp_get_max_threads();
 
+	bool outer_parallel = matrix.samples.size() >= N_TOTAL_TH;
 	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
-#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
+#pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		vector<float> features_coeff;
 		float pred_shap = 0;
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, *group_inds, *group_names, features_coeff,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL);
+			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
