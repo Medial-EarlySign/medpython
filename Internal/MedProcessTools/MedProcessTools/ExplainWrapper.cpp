@@ -870,9 +870,10 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
+	int nftrs_grp = (int)processing.group2Inds.size();
 	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
 	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
-	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1);
+	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
 
 	if (!train_mat.samples.front().prediction.empty())
 		for (size_t i = 0; i < labels.size(); ++i)
@@ -883,17 +884,18 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		original_predictor->predict(tt, labels);
 	}
 	if (add_new_data > 0) {
+		//processing.group2Inds.size()
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
 		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
 		double log_max_opts = log(add_new_data) / log(2.0);
-		if (log_max_opts >= nftrs) {
+		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
 				MWARN("Warning: you have request to sample masks without repeats, but it can't be done. setting sample with repeats\n");
 			sample_masks_with_repeats = true;
 		}
 		if (verbose_learn)
-			MLOG("Adding %d Data points\n", add_new_data);
+			MLOG("Adding %d Data points (has %d features with %d groups)\n", add_new_data, nftrs, nftrs_grp);
 		MedProgress add_progress("Add_Train_Data", add_new_data, 30, 1);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
@@ -901,25 +903,36 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			//select row:
 			int row_sel = rnd_row(gen);
 
-			vector<bool> curr_mask; curr_mask.reserve(nftrs);
-			for (int j = 0; j < nftrs; ++j)
-				curr_mask.push_back(x_mat(row_sel, j) != missing_value);
+			vector<bool> curr_mask; curr_mask.resize(nftrs_grp);
+			for (int j = 0; j < nftrs_grp; ++j) {
+				bool has_missing = false;
+				for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+					has_missing = x_mat(row_sel, processing.group2Inds[j][k]) == missing_value;
+				curr_mask[j] = !has_missing;
+			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
 
 			//commit mask to curr_row
-			for (int j = 0; j < nftrs; ++j)
+			int msn_cnt = 0;
+			for (int j = 0; j < nftrs_grp; ++j)
 			{
-				if (curr_mask[j])
-					curr_row[j] = x_mat(row_sel, j);
-				else
-					curr_row[j] = missing_value;
+				if (curr_mask[j]) {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						curr_row[processing.group2Inds[j][k]] = x_mat(row_sel, processing.group2Inds[j][k]);
+				}
+				else {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						curr_row[processing.group2Inds[j][k]] = missing_value;
+				}
+				msn_cnt += int(!curr_mask[j]); //how many missings
 			}
 			labels.push_back(labels[row_sel]);
+			++added_grp_hist[msn_cnt];
 			add_progress.update();
 		}
 		x_mat.add_rows(rows_m);
@@ -939,6 +952,8 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	if (verbose_learn) {
 		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
 		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
+		if (added_grp_hist.size() < 300)
+			medial::print::print_vec(added_grp_hist, "grp hist", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -951,7 +966,12 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		vector<float> train_p;
 		retrain_predictor->predict(x_mat, train_p);
 		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
-		MLOG("RMSE=%2.4f on train for model\n", rmse);
+		float mean_pred, std_labels;
+		medial::stats::get_mean_and_std_without_cleaning(labels, mean_pred, std_labels);
+		float r_square = MED_MAT_MISSING_VALUE;
+		if (std_labels > 0)
+			r_square = 1 - (rmse / std_labels);
+		MLOG("RMSE=%2.4f on train for model, R_Square=%2.3f\n", rmse, r_square);
 	}
 }
 
