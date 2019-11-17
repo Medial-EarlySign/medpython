@@ -683,6 +683,8 @@ public:
 
 	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0);val_channel_offsets.fill(0); };
 
+	void set_gsv_spec(const string &gsv_spec_str);
+
 };
 class MedRepository;
 //===================================================================
