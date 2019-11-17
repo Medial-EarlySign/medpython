@@ -1636,11 +1636,9 @@ double medial::shapley::get_c(int p1, int p2, int end_l) {
 
 void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sample, int max_tests,
 	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index, const vector<string> &groupNames
-	, vector<float> &features_coeff,
+	, vector<float> &features_coeff, mt19937 &gen,
 	bool sample_masks_with_repeats, float select_from_all, bool uniform_rand, bool use_shuffle,
 	bool verbose) {
-
-	mt19937 gen(globalRNG::rand());
 
 	int ngrps = (int)group2index.size();
 

@@ -1011,13 +1011,45 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 
 	bool outer_parallel = matrix.samples.size() >= N_TOTAL_TH;
 	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
+	//make thread safe create copy of predictor
+	vector<MedPredictor *> pred_threads(1);
+	vector<mt19937> gen_threads(1);
+	random_device rd;
+	if (outer_parallel) {
+		pred_threads.resize(N_TOTAL_TH);
+		gen_threads.resize(N_TOTAL_TH);
+		size_t sz_pred = predictor->get_size();
+		unsigned char *blob_pred = new unsigned char[sz_pred];
+		sz_pred = predictor->serialize(blob_pred);
+		for (size_t i = 0; i < pred_threads.size(); ++i)
+		{
+			pred_threads[i] = (MedPredictor *)medial::models::copyInfraModel(predictor, false);
+			pred_threads[i]->deserialize(blob_pred);
+			gen_threads[i] = mt19937(rd());
+		}
+		delete blob_pred;
+	}
+	else
+		gen_threads[0] = mt19937(rd());
+	
+
 #pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
+		int th_n;
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, *group_inds, *group_names, features_coeff,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+		MedPredictor *curr_p = predictor;
+		if (outer_parallel) {
+			th_n = omp_get_thread_num();
+			curr_p = pred_threads[th_n];
+		}
+		else
+			th_n = 0;
+
+		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
+			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all, 
+			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
@@ -1034,6 +1066,9 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 
 		progress.update();
 	}
+	if (outer_parallel)
+		for (size_t i = 0; i < pred_threads.size(); ++i)
+			delete pred_threads[i];
 }
 
 string GeneratorType_toStr(GeneratorType type) {
