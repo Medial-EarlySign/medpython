@@ -1216,8 +1216,8 @@ void dense_independent(const TreeEnsemble& trees, const ExplanationDataset &data
 void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDataset &data,
 	tfloat *out_contribs, tfloat transform(const tfloat, const tfloat)) {
 
-	
-	MedProgress progress("SHAPLEY", data.num_X, 15,50);
+
+	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
 	// build explanation for each sample
 #pragma omp parallel for
 	for (int i = 0; i < data.num_X; ++i) {
@@ -1860,6 +1860,7 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 		}
 
 		vector<vector<bool>> all_opts;
+		vector<int> opt_s_sizes(max_loop);
 		if (grps_opts <= 20 && (iter_all || float(nchoose) / max_tests >= select_from_all)) {
 			list_all_options_binary(grps_opts, all_opts);
 			vector<bool> empty_vec(grps_opts), full_vec(grps_opts, true);
@@ -1880,6 +1881,13 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 		}
 		else
 			sample_options_SHAP(grps_opts, all_opts, max_loop, gen, false, use_random_sample, false);
+		//populate opt_s_sizes with mask sizes
+		for (int i = 0; i < max_loop; ++i) {
+			int f_cnt = 0;
+			for (size_t j = 0; j < all_opts[i].size(); ++j)
+				f_cnt += int(all_opts[i][j]);
+			opt_s_sizes[i] = f_cnt;
+		}
 
 		//complete all_opts to nfeats size using groups:
 		bool deafult_not_selected = true; //mark all the rest(missing values that aren't tested) as fixed to missing value
@@ -1954,20 +1962,16 @@ template<typename T> void medial::shapley::explain_shapley(const MedFeatures &ma
 			curr_smp_pos += cnt_1 + cnt_2;
 		}
 
-		vector<int> opt_s_sizes(max_loop);
-		vector<int> sizes_hist(ngrps); //can't pass ngrps - feature_i is excluded
+		vector<int> sizes_hist(ngrps); //can't pass ngrps - feature_i is excluded. uses grps_opts:=ngrps-1
 		for (int i = 0; i < max_loop; ++i) {
-			int f_cnt = 0;
-			for (size_t j = 0; j < all_opts[i].size(); ++j)
-				f_cnt += int(all_opts[i][j]);
-			opt_s_sizes[i] = f_cnt;
+			int f_cnt = opt_s_sizes[i];
 			++sizes_hist[f_cnt];
 		}
 		int non_zero_grp_sampled = 0;
 		for (size_t i = 0; i < ngrps; ++i)
 			if (sizes_hist[i] > 0)
 				++non_zero_grp_sampled;
-		
+
 		for (int i = 0; i < max_loop; ++i) {
 			float score_without, score_with;
 			int f_cnt = opt_s_sizes[i];
@@ -2112,7 +2116,7 @@ void get_lime_weights(const MedFeatures& data, int isample, MedFeatures& p_featu
 	}
 
 	for (int i = 0; i < n; i++)
-		wgts[i] = exp(-wgts[i]/data.data.size());
+		wgts[i] = exp(-wgts[i] / data.data.size());
 }
 
 // Get shapley weights -
@@ -2127,8 +2131,8 @@ void get_shapley_weights(int n, int ngrps, vector<int>&ks, vector<float>& wgts) 
 	for (int k : ks)
 		nk[k]++;
 
-//	for (int i = 1; i < ngrps; i++)
-//		cerr << i << " " << nk[i] << " " << (ngrps - 1.0) / ((nk[i] * i * (ngrps - i))) << "\n";
+	//	for (int i = 1; i < ngrps; i++)
+	//		cerr << i << " " << nk[i] << " " << (ngrps - 1.0) / ((nk[i] * i * (ngrps - i))) << "\n";
 
 	for (int i = 0; i < n; i++)
 		wgts[i] = (ngrps - 1.0) / ((nk[ks[i]] * ks[i] * (ngrps - ks[i])));
@@ -2139,7 +2143,7 @@ void get_shapley_weights(int n, int ngrps, vector<int>&ks, vector<float>& wgts) 
 void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
 	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
-	
+
 	int N_TH = omp_get_max_threads();
 	vector<mt19937> gen(N_TH);
 
@@ -2284,11 +2288,11 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			get_shapley_weights(n, eff_ngrps, ks, wgts);
 
 		double s1 = 0.0, s2 = 0.0;
-		for (int i = 0;i < n; i++) {
+		for (int i = 0; i < n; i++) {
 			s1 += fabs(wgts[i]);
 			s2 += wgts[i] * wgts[i];
 		}
-		sample_size_sum +=  s1 * s1 / s2;
+		sample_size_sum += s1 * s1 / s2;
 
 		// Get predictions for samples
 		model->predict(p_features);
@@ -2307,7 +2311,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 		if (eff_ngrps == ngrps) {
 			train.transposed_flag = 1;
-			
+
 			train.normalize(train.Normalize_Rows);
 			medial::stats::get_mean_and_std_without_cleaning(preds, mean, std);
 			for (unsigned int i = 0; i < preds.size(); i++)
@@ -2354,6 +2358,6 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		tm.update();
 	}
 
-	MLOG("LimeExplainer: mean effective sample size for %d and % f = %f\n", n, p,sample_size_sum/nsamples);
+	MLOG("LimeExplainer: mean effective sample size for %d and % f = %f\n", n, p, sample_size_sum / nsamples);
 
 }
