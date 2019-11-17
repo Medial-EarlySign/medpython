@@ -951,20 +951,14 @@ public:
 
 	void init(const SignalInfo &info) { 
 		_time_unit = info.time_unit; 
-		if (info.n_time_channels > 0 && info.time_channel_types[0] != 0
-			&& info.n_val_channels && info.val_channel_types[0] != 0) {
-			time_channel_offsets = info.time_channel_offsets;
-			val_channel_offsets = info.val_channel_offsets;
-			time_channel_types = info.time_channel_types;
-			val_channel_types = info.val_channel_types;
+		time_channel_offsets = info.time_channel_offsets;
+		val_channel_offsets = info.val_channel_offsets;
+		time_channel_types = info.time_channel_types;
+		val_channel_types = info.val_channel_types;
 
-			struct_size = info.bytes_len;
-			n_time = info.n_time_channels;
-			n_val = info.n_val_channels;
-		}
-		else {
-			init_from_spec(info.generic_signal_spec);
-		}
+		struct_size = info.bytes_len;
+		n_time = info.n_time_channels;
+		n_val = info.n_val_channels;
 	}
 
 	int struct_size;
@@ -980,7 +974,7 @@ public:
 		data = _data;
 		len = _len;
 	}
-	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) {}
+	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
 	GenericSigVec(const string& signalSpec, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_spec(signalSpec); }
 	GenericSigVec(SigType sigtype, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_sigtype(sigtype); }
 	GenericSigVec(const GenericSigVec& other) { *this = other; }
