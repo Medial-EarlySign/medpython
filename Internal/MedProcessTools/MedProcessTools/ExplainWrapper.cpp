@@ -1020,7 +1020,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 		gen_threads.resize(N_TOTAL_TH);
 		size_t sz_pred = predictor->get_size();
 		unsigned char *blob_pred = new unsigned char[sz_pred];
-		sz_pred = predictor->serialize(blob_pred);
+		predictor->serialize(blob_pred);
 		for (size_t i = 0; i < pred_threads.size(); ++i)
 		{
 			pred_threads[i] = (MedPredictor *)medial::models::copyInfraModel(predictor, false);
@@ -1191,9 +1191,18 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	//copy sample for each thread:
 	random_device rd;
 	vector<mt19937> gen_thread(MAX_Threads);
+	vector<MedPredictor *> predictor_cp(MAX_Threads);
 	for (size_t i = 0; i < gen_thread.size(); ++i)
 		gen_thread[i] = mt19937(globalRNG::rand());
 	_sampler->prepare(sampler_sampling_args);
+	size_t sz_pred = original_predictor->get_size();
+	unsigned char *blob_pred = new unsigned char[sz_pred];
+	original_predictor->serialize(blob_pred);
+	for (size_t i = 0; i < predictor_cp.size(); ++i) {
+		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+		predictor_cp[i]->deserialize(blob_pred);
+	}
+	delete blob_pred;
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
@@ -1202,7 +1211,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		int n_th = omp_get_thread_num();
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, predictor_cp[n_th]
 			, *group_inds, *group_names, *_sampler, gen_thread[n_th], 1, sampler_sampling_args, features_coeff,
 			use_random_sampling, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
 			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
@@ -1222,6 +1231,8 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 
 		progress.update();
 	}
+	for (size_t i = 0; i < predictor_cp.size(); ++i)
+		delete predictor_cp[i];
 }
 
 void ShapleyExplainer::post_deserialization() {
