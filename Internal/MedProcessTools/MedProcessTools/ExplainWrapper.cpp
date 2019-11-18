@@ -1027,7 +1027,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			pred_threads[i]->deserialize(blob_pred);
 			gen_threads[i] = mt19937(rd());
 		}
-		delete blob_pred;
+		delete []blob_pred;
 	}
 	else
 		gen_threads[0] = mt19937(rd());
@@ -1202,7 +1202,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 		predictor_cp[i]->deserialize(blob_pred);
 	}
-	delete blob_pred;
+	delete []blob_pred;
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
