@@ -15,8 +15,12 @@
 
 using namespace std;
 
+#define MAX_COLLECTED_DATA_SIZE 56   // = previous sizeof(collected_data)
+
 class collected_data {
 	public:
+		char buf[MAX_COLLECTED_DATA_SIZE];
+		/*
 		int type;
 		int date;
 		long long time ;
@@ -29,8 +33,11 @@ class collected_data {
 		short val4;
 		long long longVal ;
 		float f_val2;
-
-		void zero() { type = 0; date = 0; val = 0; date2 = 0; time = 0; time2 = 0; longVal = 0; val1 = 0; val2 = 0; val3 = 0; val4 = 0; f_val2 = 0; }
+		*/
+		void zero() { 
+			memset(buf,0,sizeof(buf));
+			//type = 0; date = 0; val = 0; date2 = 0; time = 0; time2 = 0; longVal = 0; val1 = 0; val2 = 0; val3 = 0; val4 = 0; f_val2 = 0; 
+		}
 };
 
 

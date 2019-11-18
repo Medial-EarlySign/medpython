@@ -476,10 +476,10 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 
 // Virtual Signals names : Get the virtual signals map
 //.......................................................................................
-void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals)
+void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic)
 {
 	for (auto& processor : processors)
-		processor->add_virtual_signals(_virtual_signals);
+		processor->add_virtual_signals(_virtual_signals, _virtual_signals_generic);
 }
 
 // Add req_signals to set only if processor is required for any of preReqSignalNames
@@ -2452,7 +2452,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 		req_signals.insert(req_s);
 
 	// add V_names
-	vector<pair<string, int>> default_virtual_signals;
+	vector<pair<string, string>> default_virtual_signals;
 	calculator_logic->list_output_signals(signals, default_virtual_signals);
 	if (V_names.size() == 0) {
 		//fetch from default:
@@ -2464,9 +2464,11 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	// add names to required, affected and virtual_signals
 	aff_signals.clear();
 	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
 	for (int i = 0; i < V_names.size(); i++) {
 		aff_signals.insert(V_names[i]);
-		virtual_signals.push_back({ V_names[i], default_virtual_signals[i].second });
+		virtual_signals_generic.push_back({ V_names[i], default_virtual_signals[i].second });
 	}
 	for (int i = 0; i < signals.size(); i++)
 		req_signals.insert(signals[i]);
@@ -2475,10 +2477,6 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 	pass_time_last = calculator_logic->need_time;
 
 	return 0;
-
-
-	MERR("RepCalcSigs: ERROR: calculator %s not defined\n", calculator.c_str());
-	return -1;
 }
 
 SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
@@ -2550,6 +2548,8 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);
+	vector<pair<string, string>> default_virtual_signals;
+	calculator_logic->list_output_signals(signals, default_virtual_signals); //init calculator
 	pass_time_last = calculator_logic->need_time;
 }
 
@@ -2611,7 +2611,7 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
-			if (usv.n_val_channels > 0)
+			if (usv.n_val_channels() > 0)
 				static_signals_values[i] = usv.Val(0);
 			else
 				static_signals_values[i] = usv.Time(0);
@@ -2642,8 +2642,12 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							collected_vals[i] = static_signals_values[i];
 						}
 						else {
-							if (work_channel >= 0)
-								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, work_channel);
+							if (work_channel >= 0) {
+								int sel_chanl = work_channel;
+								if (sel_chanl >= rec.usvs[time_idx].n_val_channels())
+									sel_chanl = rec.usvs[time_idx].n_val_channels() - 1;
+								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, sel_chanl);
+							}
 							++time_idx;
 						}
 					}
@@ -2670,8 +2674,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 							v_times[final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 
 							v_vals[n_vals * final_size + n_vals - 1] = res_calc;
-							for (int kk = 0; kk < n_vals - 1; ++kk)
-								v_vals[n_vals * final_size + kk] = rec.usvs[active_id].Val(idx[active_id] - 1, kk);
+							for (int kk = 0; kk < n_vals - 1; ++kk) //copy from first
+								v_vals[n_vals * final_size + kk] = rec.usvs[0].Val(idx[0] - 1, kk);
 
 							if (v_vals[n_vals * final_size + n_vals - 1] != missing_value) { //insert only legal values (missing_value when ilegal)!
 								++final_size;
@@ -2730,6 +2734,8 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 			for (size_t i = 0; i < tokens.size(); ++i)
 				factors[i] = stof(tokens[i]);
 		}
+		else if (field == "factor_channel")
+			factor_channel = med_stoi(entry.second);
 		else MTHROW_AND_ERR("Error in RepCombineSignals::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCombineSignals::init]
 	}
@@ -2747,14 +2753,11 @@ int RepCombineSignals::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signals.begin(), signals.end());
 	virtual_signals.clear();
-	if (num_val_channels == 2)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
-	else if (num_val_channels == 1)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
-	else if (num_val_channels == 0)
-		virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
-	else
-		MTHROW_AND_ERR("Error RepCombineSignals::init num_val_channels should be [0-2]\n");
+	virtual_signals_generic.clear();
+	string const_str = "T(i),T(i)";
+	for (size_t i = 0; i < num_val_channels; ++i)
+		const_str += ",V(f)";
+	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
 }
@@ -2798,7 +2801,7 @@ int RepCombineSignals::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			}
 			v_times[2 * final_size] = rec.usvs[active_id].Time(idx[active_id] - 1);
 			for (int k = 0; k < num_val_channels; ++k)
-				v_vals[num_val_channels * final_size + k] = factors[active_id] * rec.usvs[active_id].Val(idx[active_id] - 1, k);
+				v_vals[num_val_channels * final_size + k] = (k == factor_channel ? factors[active_id] : 1) * rec.usvs[active_id].Val(idx[active_id] - 1, k);
 			++final_size;
 
 			last_time = rec.usvs[active_id].Time(idx[active_id] - 1);
@@ -2868,16 +2871,13 @@ int RepSignalRate::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
-	if (work_channel == 0)
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal));
-	else
-		virtual_signals.push_back(pair<string, int>(output_name, T_DateRangeVal2));
+	virtual_signals_generic.clear();
+	string const_str = "T(i),T(i)";
+	for (size_t i = 0; i <= work_channel; ++i)
+		const_str += ",V(f)";
+	virtual_signals_generic.push_back(pair<string, string>(output_name, const_str));
 
 	return 0;
-}
-
-void RepSignalRate::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -2991,8 +2991,10 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
 	for (size_t i = 0; i < names.size(); ++i)
-		virtual_signals.push_back(pair<string, int>(names[i], T_DateRangeVal2));
+		virtual_signals_generic.push_back(pair<string, string>(names[i], "T(i),T(i),V(f),V(f)"));
 
 	return 0;
 }
@@ -3027,11 +3029,6 @@ void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) 
 			input_name.c_str());
 }
 
-void RepSplitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	for (size_t i = 0; i < names.size(); ++i)
-		_virtual_signals[names[i]] = virtual_signals[i].second;
-}
-
 void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < names.size(); ++i)
 		dict.SectionName2Id[names[i]] = dict.section_id(input_name);
@@ -3060,7 +3057,10 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		for (int i = 0; i < rec.usvs[0].len; ++i) {
 			int time = rec.usvs[0].Time(i);
 			float orig_val = rec.usvs[0].Val(i);
-			int idx = Flags[orig_val];
+			int kv_idx = (int)orig_val;
+			//if (kv_idx >= Flags.size())
+			//	MTHROW_AND_ERR("Error got value %d outside dict(%zu)\n", kv_idx, Flags.size());
+			int idx = Flags[kv_idx];
 
 			v_times[idx].push_back(time);
 			v_times[idx].push_back(0);
@@ -3111,7 +3111,9 @@ int RepAggregationPeriod::init(map<string, string>& mapper) {
 
 	aff_signals.insert(output_name);
 	req_signals.insert(input_name);
-	virtual_signals.push_back(pair<string, int>(output_name, T_TimeRange));
+	virtual_signals.clear();
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(output_name, "T(l,l)"));
 
 	return 0;
 }
@@ -3134,10 +3136,6 @@ void RepAggregationPeriod::init_tables(MedDictionarySections& dict, MedSignals& 
 			output_name.c_str());
 
 	aff_signal_ids.insert(V_ids.begin(), V_ids.end());
-}
-
-void RepAggregationPeriod::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals[0].second;
 }
 
 int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -3211,9 +3209,17 @@ void RepAggregationPeriod::print() {
 // BasicRangeCleaner
 //=======================================================================================
 
+bool _is_numeric(const std::string& s)
+{
+	return !s.empty() && std::find_if(s.begin(),
+		s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
+}
+
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
 {
 	MLOG("In RepBasicRangeCleaner init\n");
+	output_type = -1;
+	string output_type_s = "";
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepBasicRangeCleaner::init]
@@ -3223,7 +3229,12 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
-		else if (field == "output_type") output_type = med_stoi(entry.second); // needs to match the input signal type! defaults to range-value signal (3)
+		else if (field == "output_type") {
+			if (_is_numeric(entry.second))
+				output_type = med_stoi(entry.second);
+			else
+				output_type_s = entry.second;
+		}// needs to match the input signal type! defaults to range-value signal (3)
 		else MTHROW_AND_ERR("Error in RepBasicRangeCleaner::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepBasicRangeCleaner::init]
 	}
@@ -3241,7 +3252,13 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 	req_signals.insert(ranges_name);
 	aff_signals.insert(output_name);
 
-	virtual_signals.push_back(pair<string, int>(output_name, output_type));
+	virtual_signals.clear();
+	virtual_signals_generic.clear();
+
+	if (output_type_s.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, GenericSigVec::get_type_generic_spec(SigType(output_type))));
+	else
+		virtual_signals_generic.push_back(pair<string, string>(output_name, output_type_s));
 	return 0;
 }
 
@@ -3252,10 +3269,6 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.insert(signal_id);
 	req_signal_ids.insert(ranges_id);
 	aff_signal_ids.insert(output_id);
-}
-
-void RepBasicRangeCleaner::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals[0].second;
 }
 
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
@@ -3369,13 +3382,10 @@ int RepAggregateSignal::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(signalName);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(output_name, T_DateVal));
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(output_name, "T(i),V(f)"));
 
 	return 0;
-}
-
-void RepAggregateSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[output_name] = virtual_signals.front().second;
 }
 
 void RepAggregateSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -3426,6 +3436,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "min_clip_time")  min_clip_time = med_stoi(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
+		else if (field == "print_dict") print_dict = entry.second;
 		else if (field == "categories") {
 
 			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
@@ -3458,15 +3469,13 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 	req_signals.clear();
 	req_signals.insert(in_sig);
 	virtual_signals.clear();
-	virtual_signals.push_back(pair<string, int>(out_virtual, T_DateVal));
+	virtual_signals_generic.clear();
+	virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
 
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------------------------
-void RepCreateBitSignal::add_virtual_signals(map<string, int> &_virtual_signals) {
-	_virtual_signals[out_virtual] = virtual_signals.front().second;
-}
 
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -3503,7 +3512,7 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 		int n_combinations = (int)(1 << N);
 		for (int i = 0; i < n_combinations; i++) {
 			stringstream stream;
-			stream << "BITS_0x"	<< setfill('0') << setw(sizeof(int) * 2) << hex << i;
+			stream << "BITS_0x" << setfill('0') << setw(sizeof(int) * 2) << hex << i;
 			string s(stream.str());
 			registry_values.push_back(s);
 			dict.dicts[newSectionId].push_new_def(s, i);
@@ -3521,16 +3530,18 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 			registry_values.push_back(categories_names[i]);
 
 		// insert new defs
-		for (int i=n_combinations; i<(int)registry_values.size(); i++)
+		for (int i = n_combinations; i < (int)registry_values.size(); i++)
 			dict.dicts[newSectionId].push_new_def(registry_values[i], (int)i);
 
 		// insert sets
 		for (int i = 0; i < n_combinations; i++) {
-			for (int j=0; j<N; j++)
+			for (int j = 0; j < N; j++)
 				if (i & (1 << j)) {
 					dict.dicts[newSectionId].push_new_set(n_combinations + j, i);
 				}
 		}
+
+		if (print_dict != "") dict.dicts[newSectionId].write_to_file(print_dict);
 	}
 
 
@@ -3604,8 +3615,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		// first step : get a single chain of events
 		// we encode the events with a +1 on the index, positive for start, and negative for end
 		vector<category_event_state> ev;
-		for (int j = 0; j<N; j++)
-			for (auto &e : time_intervals[j]) 
+		for (int j = 0; j < N; j++)
+			for (auto &e : time_intervals[j])
 				//if (e.first > 0) {
 				if (e.first_appearance > 0) {
 
@@ -3627,7 +3638,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (ev[i].type == 0) {
 				int min_time = med_time_converter.add_subtract_time(ev[i].appear_time, time_unit_sig, min_clip_time, time_unit_duration);
 				if (min_time < ev[i].time) {
-					for (int j = i-1; j > 0; j--) {
+					for (int j = i - 1; j > 0; j--) {
 						if (ev[j].type) {
 							if (ev[j].time < min_time)
 								break;

@@ -203,6 +203,7 @@ public:
 	vector<int> pids;
 	vector<string> sigs;
     map<int, MedIdSamples* > pid2samples;
+	map<string, vector<map<int, string> > > sig_dict_cached;
 
     void load(const string& rep_fname, const string& model_fname, const string& samples_fname="",bool read_signals=true) {
 		// read model file
@@ -243,6 +244,10 @@ public:
 		for (auto &id : samples.idSamples)
 			pid2samples[id.id] = &id;		
     }
+
+	void get_sig_dict_cached(const string& cat_prefix = "", bool force_cat_prefix = false) {
+		sig_dict_cached = get_sig_dict(cat_prefix, force_cat_prefix);
+	}
 
 	map<string, vector<map<int, string> > > get_sig_dict(const string& cat_prefix="", bool force_cat_prefix=false) {
 		map<string, vector<map<int, string> > > sig_dict;
@@ -483,6 +488,7 @@ public:
 			MLOG("(INFO) force_add_data=%d\n", ((int)force_add_data));
 			MLOG("(INFO) Will use %s API to insert data\n", (so_functions::so->AM_API_AddDataStr == nullptr || force_add_data) ? "AddData()" : "AddDataStr()");
 		}
+
 	    for (auto &sig : sigs) {
 			int sid = rep.sigs.Name2Sid[sig];
 //			int section_id = rep.dict.section_id(sig);
@@ -539,12 +545,11 @@ public:
 				}
 				else {
 					if (usv.n_val_channels() > 0) {
-						map<string, vector<map<int, string> > > sig_dict = get_sig_dict();
 						if (p_times != nullptr) nelem = nelem_before;
 						for (int i = 0; i < nelem; i++)
 							for (int j = 0; j < usv.n_val_channels(); j++) {
 								if (rep.sigs.is_categorical_channel(sid, j)) {
-									str_vals[i_val++] = sig_dict.at(sig)[j].at((int)(usv.Val(i, j))); //rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
+									str_vals[i_val++] = sig_dict_cached.at(sig)[j].at((int)(usv.Val(i, j))); //rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
 								}
 								else {
 									str_vals[i_val++] = precision_float_to_string(usv.Val(i, j));
@@ -586,6 +591,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 	MLOG("=====> now running get_preds_from_algomarker()\n");
     
 	MLOG("Going over %d pids\n", d.pids.size());
+	d.get_sig_dict_cached();
 	for (auto pid : d.pids) {
         d.am_add_data(am, pid, INT_MAX, force_add_data);
     }
@@ -715,6 +721,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 	int n_tested = 0;
 
 	MedTimer timer;
+	d.get_sig_dict_cached();
 	timer.start();
 	for (auto &id : d.samples.idSamples){
 		for (auto &s : id.samples) {

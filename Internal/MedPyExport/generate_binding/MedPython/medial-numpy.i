@@ -3252,28 +3252,28 @@
 /* Concrete instances of the %numpy_typemaps() macro: Each invocation
  * below applies all of the typemaps above to the specified data type.
  */
-%numpy_typemaps(char              , NPY_BYTE     , int, int)
-%numpy_typemaps(signed char       , NPY_BYTE     , int, int)
-%numpy_typemaps(unsigned char     , NPY_UBYTE    , int, int)
-%numpy_typemaps(short             , NPY_SHORT    , int, int)
-%numpy_typemaps(unsigned short    , NPY_USHORT   , int, int)
-%numpy_typemaps(int               , NPY_INT      , int, int)
-%numpy_typemaps(unsigned int      , NPY_UINT     , int, int)
-%numpy_typemaps(long              , NPY_LONG     , int, int)
-%numpy_typemaps(unsigned long     , NPY_ULONG    , int, int)
-%numpy_typemaps(long long         , NPY_LONGLONG , int, int)
-%numpy_typemaps(unsigned long long, NPY_ULONGLONG, int, int)
-%numpy_typemaps(float             , NPY_FLOAT    , int, int)
-%numpy_typemaps(double            , NPY_DOUBLE   , int, int)
-%numpy_typemaps(int8_t            , NPY_INT8     , int, int)
-%numpy_typemaps(int16_t           , NPY_INT16    , int, int)
-%numpy_typemaps(int32_t           , NPY_INT32    , int, int)
-%numpy_typemaps(int64_t           , NPY_INT64    , int, int)
-%numpy_typemaps(uint8_t           , NPY_UINT8    , int, int)
-%numpy_typemaps(uint16_t          , NPY_UINT16   , int, int)
-%numpy_typemaps(uint32_t          , NPY_UINT32   , int, int)
-%numpy_typemaps(uint64_t          , NPY_UINT64   , int, int)
-%numpy_typemaps(void              , NPY_VOID     , int, int)
+%numpy_typemaps(char              , NPY_BYTE     , unsigned long long, int)
+%numpy_typemaps(signed char       , NPY_BYTE     , unsigned long long, int)
+%numpy_typemaps(unsigned char     , NPY_UBYTE    , unsigned long long, int)
+%numpy_typemaps(short             , NPY_SHORT    , unsigned long long, int)
+%numpy_typemaps(unsigned short    , NPY_USHORT   , unsigned long long, int)
+%numpy_typemaps(int               , NPY_INT      , unsigned long long, int)
+%numpy_typemaps(unsigned int      , NPY_UINT     , unsigned long long, int)
+%numpy_typemaps(long              , NPY_LONG     , unsigned long long, int)
+%numpy_typemaps(unsigned long     , NPY_ULONG    , unsigned long long, int)
+%numpy_typemaps(long long         , NPY_LONGLONG , unsigned long long, int)
+%numpy_typemaps(unsigned long long, NPY_ULONGLONG, unsigned long long, int)
+%numpy_typemaps(float             , NPY_FLOAT    , unsigned long long, int)
+%numpy_typemaps(double            , NPY_DOUBLE   , unsigned long long, int)
+%numpy_typemaps(int8_t            , NPY_INT8     , unsigned long long, int)
+%numpy_typemaps(int16_t           , NPY_INT16    , unsigned long long, int)
+%numpy_typemaps(int32_t           , NPY_INT32    , unsigned long long, int)
+%numpy_typemaps(int64_t           , NPY_INT64    , unsigned long long, int)
+%numpy_typemaps(uint8_t           , NPY_UINT8    , unsigned long long, int)
+%numpy_typemaps(uint16_t          , NPY_UINT16   , unsigned long long, int)
+%numpy_typemaps(uint32_t          , NPY_UINT32   , unsigned long long, int)
+%numpy_typemaps(uint64_t          , NPY_UINT64   , unsigned long long, int)
+%numpy_typemaps(void              , NPY_VOID     , unsigned long long, int)
 
 
 /* ***************************************************************
@@ -3294,8 +3294,8 @@
 
 %include <std_complex.i>
 
-%numpy_typemaps(std::complex<float>,  NPY_CFLOAT , int, int)
-%numpy_typemaps(std::complex<double>, NPY_CDOUBLE, int, int)
+%numpy_typemaps(std::complex<float>,  NPY_CFLOAT , unsigned long long, int)
+%numpy_typemaps(std::complex<double>, NPY_CDOUBLE, unsigned long long, int)
 
 #endif
 

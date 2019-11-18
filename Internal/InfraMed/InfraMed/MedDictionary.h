@@ -61,6 +61,9 @@ public:
 	void push_new_def(string name, int id); // { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
 	void push_new_set(int set_id, int member_id);
 
+	// write to file : mode=1: only defs, mode=2: defs+sets
+	int write_to_file(string fout, int mode = 1);
+
 private:
 	map<string, int> used;
 

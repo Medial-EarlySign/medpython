@@ -52,7 +52,7 @@ public:
 	MPFeatures(const MPFeatures& other);
 	
 	MPStringVecFloatMapAdaptor MEDPY_GET_data();
-	void MEDPY_GET_weights(MEDPY_NP_OUTPUT(float** float_out_buf, int* float_out_buf_len));
+	void MEDPY_GET_weights(MEDPY_NP_OUTPUT(float** float_out_buf, unsigned long long* float_out_buf_len));
 	MPSampleVectorAdaptor MEDPY_GET_samples();
 	MPIntPairIntIntMapAdaptor MEDPY_GET_pid_pos_len();
 
@@ -72,7 +72,7 @@ public:
 
 	void get_as_matrix(MPMat& mat) const;
 	void get_as_matrix(MPMat& mat, vector<string> names) const;
-	void get_as_matrix(MPMat& mat, const vector<string> names, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) const;
+	void get_as_matrix(MPMat& mat, const vector<string> names, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len)) const;
 
 	void set_as_matrix(MPMat& mat);
 	void append_samples(MPIdSamples& in_samples);

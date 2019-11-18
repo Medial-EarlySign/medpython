@@ -15,7 +15,7 @@ class MPPandasAdaptor {
 	class column_record {
 	public:
 		void* data;
-		int num_elements;
+		unsigned long long num_elements;
 		MED_NPY_TYPE nptype;
 		bool is_own;
 		column_record() : data(nullptr), num_elements(0), nptype(MED_NPY_TYPES::NPY_NOTYPE), is_own(true) {}
@@ -50,9 +50,9 @@ public:
 		columns.clear();
 	}
 
-	void export_column(const std::string& key, MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype));
+	void export_column(const std::string& key, MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype));
 	void __getitem__(const std::string& key,
-		MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype))
+		MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype))
 	{
 		export_column(key, outarr1, outarr1_sz, outarr1_npytype);
 	};
@@ -71,7 +71,7 @@ public:
 		}
 		return ret;
 	}
-	void import_column(const string &col_name, void* IN_ARRAY1, int DIM1, int NPYDTC1, bool make_a_copy = false);
+	void import_column(const string &col_name, void* IN_ARRAY1, unsigned long long DIM1, int NPYDTC1, bool make_a_copy = false);
 #ifndef SWIG
 	void push_categorial(const string& col_name, std::vector<int> index_column, std::vector<std::string> categories);
 	void push_column(const string &col_name, void* arr, int arr_size, const string& ctype_str, bool make_a_copy = false) {
@@ -101,7 +101,7 @@ public:
 	MPPandasAdaptor_iter(const MPPandasAdaptor_iter& orig) : obj(orig.obj), keys(orig.keys) {}
 	//The return type of both string and the NumPy outarr will result in a [str,outarr] list which is good 
 	//in this case because that makes it convertible to dict easily.
-	std::string next(MEDPY_NP_VARIANT_OUTPUT(void** outarr1, int* outarr1_sz, int* outarr1_npytype)) {
+	std::string next(MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype)) {
 		if (iterator >= keys.size()) {
 			obj->clear();
 			throw StopIterator();

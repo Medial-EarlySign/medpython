@@ -25,7 +25,9 @@ extern MedLogger global_logger;
 using namespace std;
 using namespace boost;
 
+
 //-----------------------------------------------------------------------------------------------
+
 int MedRep::get_type_size(SigType t)
 {
 	switch (t) {
@@ -41,7 +43,7 @@ int MedRep::get_type_size(SigType t)
 
 	case T_DateRangeVal:
 		return ((int)sizeof(SDateRangeVal));
-	
+
 	case T_DateRangeVal2:
 		return ((int)sizeof(SDateRangeVal2));
 
@@ -78,11 +80,24 @@ int MedRep::get_type_size(SigType t)
 	case T_TimeShort4:
 		return ((int) sizeof(STimeShort4));
 
+	case T_Generic:
+		MTHROW_AND_ERR("Cannot get size of generic signal, you have to instantiate a gsv and call size()\n");
 
 	default:
 		MTHROW_AND_ERR("Cannot get size of signal type %d\n", t);
 	}
 
+	return 0;
+}
+
+//-----------------------------------------------------------------------------------------------
+int MedRep::get_type_channels(const string& sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans)
+{
+	GenericSigVec gsv;
+	gsv.init_from_spec(sigSpec);
+	n_time_chans = gsv.n_time_channels();
+	n_val_chans = gsv.n_val_channels();
+	time_unit = MedTime::Undefined;
 	return 0;
 }
 
@@ -139,6 +154,8 @@ int MedRep::get_type_channels(SigType t, int &time_unit, int &n_time_chans, int 
 	case T_TimeShort4:
 		return MedRep::get_type_channels_info<STimeShort4>(time_unit, n_time_chans, n_val_chans);
 
+	case T_Generic:
+		MTHROW_AND_ERR("Cannot get channels for generic signal by SigType, please use the function get_type_channels(string sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans)")
 
 	default:
 		MTHROW_AND_ERR("Cannot get channels for signal type %d\n", t);
@@ -178,6 +195,11 @@ int MedSignals::read(string path, vector<string> &sfnames)
 }
 
 //-----------------------------------------------------------------------------------------------
+static bool str_is_int_number(const std::string &str)
+{
+	return !str.empty() && str.find_first_not_of("0123456789") == std::string::npos;
+}
+
 int MedSignals::read(const string &fname)
 {
 	lock_guard<mutex> guard(insert_signal_mutex);
@@ -192,6 +214,7 @@ int MedSignals::read(const string &fname)
 	fnames.push_back(fname); // TBD : check that we didn't already load this file
 	string curr_line;
 	MLOG_D("Working on signals file %s\n", fname.c_str());
+	map<string, string> generic_signal_types;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 			if (curr_line[curr_line.size() - 1] == '\r')
@@ -199,8 +222,16 @@ int MedSignals::read(const string &fname)
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
 			MLOG_D("MedSignals: read: file %s line %s\n", fname.c_str(), curr_line.c_str());
-			if (fields.size() >= 4 && fields[0].compare(0, 6, "SIGNAL") == 0) {
+			if (fields.size() >= 3 && fields[0].compare(0, 19, "GENERIC_SIGNAL_TYPE") == 0) {
+				// line format: GENERIC_SIGNAL_TYPE <name> <signal_spec>
+				string generic_type_name = fields[1];
+				string generic_type_spec = fields[2];
+				generic_signal_types[generic_type_name] = generic_type_spec;
+			}
+			else if (fields.size() >= 4 && fields[0].compare(0, 6, "SIGNAL") == 0) {
 				// line format: SIGNAL <name> <signal id> <signal type num> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
+				// or, for a generic signal type use:
+				// SIGNAL <name> <signal id> 16:<generic_signal_type> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
 
 				int sid = stoi(fields[2]);
 				if (Name2Sid.find(fields[1]) != Name2Sid.end() || Sid2Name.find(sid) != Sid2Name.end()) {
@@ -212,22 +243,46 @@ int MedSignals::read(const string &fname)
 					Sid2Name[sid] = fields[1];
 					signals_names.push_back(fields[1]);
 					signals_ids.push_back(sid);
-					int type = stoi(fields[3]);
-					if (type<0 || type>(int)T_Last) {
-						MERR("MedSignals: read: type %d not recognized in line %s\n", curr_line.c_str());
-						return -1;
+					vector<string> type_fields;
+					split(type_fields, fields[3], boost::is_any_of(":"));
+					int type = -1;
+					string generic_type_spec_or_alias = "";
+					if (str_is_int_number(type_fields[0])) {
+						type = stoi(type_fields[0]);
+						if (type<0 || type>(int)T_Last) {
+							MERR("MedSignals: read: type %d not recognized in line '%s'\n", type, curr_line.c_str());
+							return -1;
+						}
+						if (type == T_Generic && type_fields.size() < 2) {
+							MERR("MedSignals: read: type %d (T_Generic) expects type specification (16:[format_id]) in line '%s'\n", type, curr_line.c_str());
+							return -1;
+						}
+						if (type == T_Generic && type_fields.size() >= 2) {
+							generic_type_spec_or_alias = type_fields[1];
+						}
 					}
+					else {
+						type = T_Generic;
+						generic_type_spec_or_alias = type_fields[0];
+					}
+
 					SignalInfo info;
 					info.sid = sid;
 					info.name = fields[1];
 					info.type = type;
-					info.bytes_len = MedRep::get_type_size((SigType)type);
+
+					if (type == T_Generic) {
+						if (generic_signal_types.count(generic_type_spec_or_alias))
+							info.set_gsv_spec(generic_signal_types.at(generic_type_spec_or_alias));
+						else info.set_gsv_spec(generic_type_spec_or_alias);
+					}
+					else
+						info.set_gsv_spec(GenericSigVec::get_type_generic_spec((SigType)type));
+
 					if (fields.size() == 4)
 						info.description = "";
 					else
 						info.description = fields[4];
-					// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
-					MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
 					if (sid >= Sid2Info.size()) {
 						SignalInfo si;
 						si.sid = -1;
@@ -258,7 +313,7 @@ int MedSignals::read(const string &fname)
 					info.time_unit = MedTime::Undefined;
 					if (my_repo != NULL)
 						info.time_unit = my_repo->time_unit;
-					if (fields.size() >= 8){
+					if (fields.size() >= 8) {
 						int time_unit = med_stoi(fields[7]);
 						if (time_unit != MedTime::Undefined)
 							info.time_unit = time_unit;
@@ -401,25 +456,20 @@ int MedSignals::fno(int sid)
 }
 
 
+
 //-----------------------------------------------------------------------------------------------
-int MedSignals::insert_virtual_signal(const string &sig_name, int type)
+int MedSignals::_allocate_new_signal(const string &sig_name)
 {
-	// lock to allow concurrency
-	lock_guard<mutex> guard(insert_signal_mutex);
-
+	int new_sid = -1;
 	if (Name2Sid.find(sig_name) != Name2Sid.end()) {
+		new_sid = -1;
 		MERR("MedSignals: ERROR: Can't insert %s as virtual , it already exists\n", sig_name.c_str());
-		return -1;
-	}
-
-	if (type<0 || type>(int)T_Last) {
-		MERR("MedSignals: ERROR: Can't insert virtual signal %s : type %d not recognized\n", sig_name.c_str(), type);
 		return -1;
 	}
 
 	// get_max_sid used currently, we will enter our sig_name as this + 1
 	int max_sid = Sid2Name.rbegin()->first;
-	int new_sid = max_sid + 1;
+	new_sid = max_sid + 1;
 
 	// take care of all basic tables: Name2Sid , Sid2Name, signal_names, signal_ids, Sid2Info
 	Name2Sid[sig_name] = new_sid;
@@ -427,6 +477,28 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	signals_names.push_back(sig_name);
 	signals_ids.push_back(new_sid);
 
+	// take care of sid2serial
+	sid2serial.resize(new_sid + 1, -1); // resize to include current new_sid
+	sid2serial[new_sid] = (int)signals_ids.size() - 1; // -1 since serials start at 0
+
+	return new_sid; // returning the new sid (always positive) as the rc
+}
+
+
+//-----------------------------------------------------------------------------------------------
+int MedSignals::insert_virtual_signal(const string &sig_name, int type)
+{
+	// lock to allow concurrency
+	lock_guard<mutex> guard(insert_signal_mutex);
+
+	if (type<0 || type>(int)T_Last) {
+		MERR("MedSignals: ERROR: Can't insert virtual signal %s : type %d not recognized\n", sig_name.c_str(), type);
+		return -1;
+	}
+
+	int new_sid = _allocate_new_signal(sig_name);
+	if (new_sid < 0)
+		return -1;
 
 	SignalInfo info;
 	info.sid = new_sid;
@@ -435,6 +507,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	info.bytes_len = MedRep::get_type_size((SigType)type);
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
+	info.set_gsv_spec(GenericSigVec::get_type_generic_spec((SigType)type));
 	if (my_repo != NULL)
 		info.time_unit = my_repo->time_unit;
 	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
@@ -446,10 +519,36 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	}
 	Sid2Info[new_sid] = info;
 
-	// take care of sid2serial
-	sid2serial.resize(new_sid + 1, -1); // resize to include current new_sid
-	sid2serial[new_sid] = (int)signals_ids.size() - 1; // -1 since serials start at 0
+	return new_sid; // returning the new sid (always positive) as the rc
+}
 
+//-----------------------------------------------------------------------------------------------
+int MedSignals::insert_virtual_signal(const string &sig_name, const string& signalSpec)
+{
+	// lock to allow concurrency
+	lock_guard<mutex> guard(insert_signal_mutex);
+
+	int new_sid = _allocate_new_signal(sig_name);
+	if (new_sid < 0)
+		return -1;
+
+	SignalInfo info;
+	info.sid = new_sid;
+	info.name = sig_name;
+	info.type = T_Generic;
+	info.set_gsv_spec(signalSpec);
+
+	info.description = "Virtual Signal";
+	info.virtual_sig = 1;
+	if (my_repo != NULL)
+		info.time_unit = my_repo->time_unit;
+
+	if (new_sid >= Sid2Info.size()) {
+		SignalInfo si;
+		si.sid = -1;
+		Sid2Info.resize(new_sid + 1, si);
+	}
+	Sid2Info[new_sid] = info;
 
 	return new_sid; // returning the new sid (always positive) as the rc
 }
@@ -473,7 +572,7 @@ int MedSignals::get_sids(vector<string> &sigs, vector<int> &sids)
 //================================================================================================
 // UniversalSigVec
 //================================================================================================
-void UniversalSigVec::init(const SignalInfo &info)
+void UniversalSigVec_legacy::init(const SignalInfo &info)
 {
 	_time_unit = info.time_unit;
 	if (info.type == (int)type) return; // no need to init, same type as initiated
@@ -492,10 +591,12 @@ void UniversalSigVec::init(const SignalInfo &info)
 		//case T_TimeLongVal: set_funcs<STimeLongVal>(); return;
 	case T_DateShort2: set_funcs<SDateShort2>(); return;
 	case T_ValShort2: set_funcs<SValShort2>(); return;
-	case T_ValShort4: set_funcs<SValShort4>(); return;	
+	case T_ValShort4: set_funcs<SValShort4>(); return;
 		//case T_CompactDateVal: set_funcs<SCompactDateVal>(); return;
 	case T_TimeRange: set_funcs<STimeRange>(); return;
 	case T_TimeShort4: set_funcs<STimeShort4>(); return;
+	case T_Generic:
+		MTHROW_AND_ERR("UniversalSigVec::init - legacy implementation of USV cannot initialize generic signal types\n");
 	default:
 		MTHROW_AND_ERR("UniversalSigVec::init unknown type %d\n", info.type);
 	}
@@ -505,7 +606,7 @@ void UniversalSigVec::init(const SignalInfo &info)
 }
 
 // returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
-int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
+int UniversalSigVec_legacy::get_index_gt_time_bound(int time_chan, int time_bound)
 {
 	for (int i = 0; i < len; i++) {
 		if (Time(i, time_chan) > time_bound)
@@ -515,7 +616,7 @@ int UniversalSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
 }
 
 // returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
-int UniversalSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
+int UniversalSigVec_legacy::get_index_ge_time_bound(int time_chan, int time_bound)
 {
 	for (int i = 0; i < len; i++) {
 		if (Time(i, time_chan) >= time_bound)
@@ -577,3 +678,211 @@ int MedSignalsPrintVecByType(ostream &os, int sig_type, void* vec, int len_bytes
 	}
 	return 0;
 }
+
+// returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
+int GenericSigVec::get_index_gt_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) > time_bound)
+			return i;
+	}
+	return -1;
+}
+
+// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
+int GenericSigVec::get_index_ge_time_bound(int time_chan, int time_bound)
+{
+	for (int i = 0; i < len; i++) {
+		if (Time(i, time_chan) >= time_bound)
+			return i;
+	}
+	return -1;
+}
+
+void GenericSigVec::init_from_sigtype(SigType sigtype) {
+	init_from_spec(get_type_generic_spec(sigtype));
+}
+
+void GenericSigVec::init_from_repo(MedRepository& repo, int sid) {
+	this->init(repo.sigs.Sid2Info[sid]);
+}
+
+
+string GenericSigVec::get_type_generic_spec(SigType t)
+{
+	switch (t) {
+
+	case T_Value: return "V(f)";					//  0
+	case T_DateVal: return "T(i),V(f)";				//  1
+	case T_TimeVal: return "T(l),V(f),p,p,p,p";		//  2
+	case T_DateRangeVal: return "T(i,i),V(f)";		//  3
+	case T_TimeStamp: return "T(l)";				//  4
+	case T_TimeRangeVal: return "T(l,l),V(f),p,p,p,p"; //  5
+	case T_DateVal2: return "T(i),V(f,us),p,p";		//  6
+	case T_TimeLongVal: return "T(l),V(l)";			//  7
+	case T_DateShort2: return "T(i),V(s,s)";		//  8
+	case T_ValShort2: return "V(s,s)";				//  9
+	case T_ValShort4: return "V(s,s,s,s)";			// 10
+	case T_CompactDateVal: return "T(us),V(us)";	// 11
+	case T_DateRangeVal2: return "T(i,i),V(f,f)";	// 12
+	case T_DateFloat2: return "T(i),V(f,f)";		// 13
+	case T_TimeRange: return "T(l,l)";				// 14
+	case T_TimeShort4: return "T(i),p,p,p,p,V(s,s,s,s)"; //15
+
+	default:
+		MTHROW_AND_ERR("Cannot get generic spec of signal type %d\n", t);
+	}
+
+	return 0;
+}
+
+void GenericSigVec::init_from_spec(const string& signalSpec) {
+	struct_size = 0;
+	n_time = 0;
+	n_val = 0;
+	int i = 0;
+	char prev_char = '\0';
+	bool in_val_chan = false, in_time_chan = false;
+	bool chan_is_signed = true;
+	int* cur_chan_offset = nullptr;
+	unsigned char* cur_chan_type = nullptr;
+	int* cur_chan_top = nullptr;
+
+	//rtrim:
+	//signalSpec.erase(std::find_if(signalSpec.rbegin(), signalSpec.rend(), [](int ch) { return !std::isspace(ch); }).base(), signalSpec.end());
+
+	while (i < signalSpec.length())
+	{
+		char cur_char = signalSpec.at(i);
+		//cout << "spec='" << signalSpec << "' parsing char '" << cur_char << "' at " << to_string(i) << endl;
+		switch (cur_char) {
+		case ')':
+			in_val_chan = false;
+			in_time_chan = false;
+			cur_chan_offset = nullptr;
+			cur_chan_type = nullptr;
+			cur_chan_top = nullptr;
+			chan_is_signed = true;
+			break;
+		case '(':
+			if (prev_char != 'v' && prev_char != 'V' && prev_char != 't' && prev_char != 'T')
+				throw runtime_error(string("char ')' expected after T or V at ") + to_string(i) + " in '" + signalSpec + "'");
+			chan_is_signed = true;
+			break;
+		case 'u':
+			//case 'U':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			chan_is_signed = false;
+			break;
+		case ',':
+			chan_is_signed = true;
+			break;
+		case 't':
+		case 'T':
+			if (in_val_chan)
+				throw runtime_error(string("Expecting val chan at ") + to_string(i) + " in " + signalSpec);
+			in_time_chan = true;
+			cur_chan_offset = &time_channel_offsets[0];
+			cur_chan_type = &time_channel_types[0];
+			cur_chan_top = &n_time;
+			break;
+		case 'v':
+		case 'V':
+			if (in_time_chan)
+				throw runtime_error(string("Expecting time chan at ") + to_string(i) + " in " + signalSpec);
+			in_val_chan = true;
+			cur_chan_offset = &val_channel_offsets[0];
+			cur_chan_type = &val_channel_types[0];
+			cur_chan_top = &n_val;
+			break;
+
+		case 'c':
+			//case 'C':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(char);
+			break;
+
+		case 's':
+			//case 'S':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(short);
+			break;
+
+			//case 'I':
+		case 'i':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(int);
+			break;
+
+		case 'l':
+			//case 'L':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(long long);
+			break;
+
+			//case 'F':
+		case 'f':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(float);
+			break;
+
+		case 'D':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(long double);
+		case 'd':
+			if (!in_time_chan && !in_val_chan)
+				throw runtime_error(string("Expecting T( or V( channel specifier before '") + cur_char + "' at " + to_string(i) + " in '" + signalSpec + "'");
+			cur_chan_offset[*cur_chan_top] = struct_size;
+			cur_chan_type[*cur_chan_top] = type_enc::encode(cur_char, chan_is_signed);
+			(*cur_chan_top)++;
+			struct_size += sizeof(double);
+			break;
+
+		case 'p': /* add padding byte */
+			struct_size += sizeof(char);
+			break;
+		default:
+			throw runtime_error(string("Unrecognized channel type '") + signalSpec.at(i) + "'");// in '"+signalSpec+"' at char "+to_string(i));
+		}
+		prev_char = cur_char;
+		i++;
+	}
+}
+
+void SignalInfo::set_gsv_spec(const string &gsv_spec_str) {
+	generic_signal_spec = gsv_spec_str;
+	GenericSigVec gsv(generic_signal_spec);
+	bytes_len = (int)gsv.size();
+	time_channel_offsets = gsv.time_channel_offsets;
+	val_channel_offsets = gsv.val_channel_offsets;
+	time_channel_types = gsv.time_channel_types;
+	val_channel_types = gsv.val_channel_types;
+	MedRep::get_type_channels(generic_signal_spec, time_unit, n_time_channels, n_val_channels);
+}
+
+

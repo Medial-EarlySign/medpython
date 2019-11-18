@@ -11,10 +11,28 @@
 #include <algorithm>
 #include <MedTime/MedTime/MedTime.h>
 #include <iostream>
+#include <memory>
+#include <cstring>
+#include <array>
 
 using namespace std;
 
 #define N_SignalTypes
+#define GENERIC_SIG_VEC_MAX_CHANNELS 10
+
+
+#ifndef USE_LEGACY_USV
+class GenericSigVec;
+class GenericSigVec_mem;
+typedef class GenericSigVec UniversalSigVec;
+typedef class GenericSigVec_mem UniversalSigVec_mem;
+#else // legacy USV
+class UniversalSigVec_legacy;
+class UniversalSigVec_mem_legacy;
+typedef class UniversalSigVec_legacy UniversalSigVec;
+typedef class UniversalSigVec_mem_legacy UniversalSigVec_mem;
+#endif
+
 
 enum SigType {
 	T_Value = 0,		// 0 :: single float Value
@@ -33,12 +51,14 @@ enum SigType {
 	T_DateFloat2,	// 13 :: date + 2 float values
 	T_TimeRange,	// 14 :: time-time
 	T_TimeShort4,   // 15 :: time + 4 shorts
+	T_Generic,
 	T_Last
 };		//    :: next free slot for type id
 
 namespace MedRep {
 	int get_type_size(SigType t);
 	int get_type_channels(SigType t, int &time_unit, int &n_time_chans, int &n_val_chans);
+	int get_type_channels(const string& sigSpec, int &time_unit, int &n_time_chans, int &n_val_chans);
 	template <class T> int get_type_channels_info(int &time_unit, int &n_time_chans, int &n_val_chans) {
 		time_unit = T::time_unit();
 		n_time_chans = T::n_time_channels();
@@ -640,11 +660,17 @@ inline int compact_date_to_date(unsigned short cd) {
 //=============================================================================================================
 class SignalInfo {
 public:
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
+
 	int sid;
 	string name;
 	int type;
 	int bytes_len;
 	string description;
+	string generic_signal_spec;
 	int fno; // currently each signal is in a single data and index file. This helps make things faster and is doable.
 	int shift;
 	float factor;
@@ -655,13 +681,17 @@ public:
 	int is_categorical_per_val_channel[5] = { 0, 0, 0, 0, 0 }; // when 1, channel doens't hold numerical values but rather pointers to a dict
 	string unit_of_measurement_per_val_channel[5] = { "", "", "", "", "" };
 
-	SignalInfo() { fno = -1; };
+	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0);val_channel_offsets.fill(0); };
+
+	void set_gsv_spec(const string &gsv_spec_str);
+
 };
 class MedRepository;
 //===================================================================
 // Signals file handler
 //===================================================================
 class MedSignals {
+	int _allocate_new_signal(const string &sig_name);
 public:
 	vector<string> fnames;
 	string signals_to_files;
@@ -696,11 +726,12 @@ public:
 	// this option allows adding new signals definitions to the class, that were not defined in the files.
 	// this is useful when using repositories to calculate new features, etc.
 	int insert_virtual_signal(const string &sig_name, int type);
+	int insert_virtual_signal(const string &sig_name, const string& signalSpec);
 	int get_sids(vector<string> &sigs, vector<int> &sids);
 };
 
 
-class UniversalSigVec {
+class UniversalSigVec_legacy {
 public:
 	void *data;
 	int len;		// type len (not bytes len)
@@ -787,14 +818,14 @@ protected:
 * Managed memory version of UniversalSigVec.
 * for example when allocating new virtual records
 */
-class UniversalSigVec_mem : public UniversalSigVec {
+class UniversalSigVec_mem_legacy : public UniversalSigVec_legacy {
 public:
 	bool manage;
-	UniversalSigVec_mem() {
+	UniversalSigVec_mem_legacy() {
 		manage = false;
 	}
 
-	~UniversalSigVec_mem() {
+	~UniversalSigVec_mem_legacy() {
 		if (len > 0 && data != NULL && manage) {
 			delete[](char *)data;
 			data = NULL;
@@ -802,7 +833,7 @@ public:
 		}
 	}
 
-	void set(const UniversalSigVec &s) {
+	void set(const UniversalSigVec_legacy &s) {
 		data = s.data;
 		len = s.len;
 		manage = false;
@@ -848,6 +879,298 @@ template <class T> int MedSignalsPrintVec(ostream& os, T *vec, int n_elem)
 	return 0;
 }
 
+class GenericSigVec {
+public:
+	class type_enc
+	{
+	public:
+		static constexpr const unsigned char UNDEFINED = 0b00000000;
+		static constexpr const unsigned char SIGNED = 0b00000001;
+		static constexpr const unsigned char UINT8 = 0b00000010;  //unsigned char
+		static constexpr const unsigned char UINT16 = 0b00000100;  //unsigned short
+		static constexpr const unsigned char UINT32 = 0b00001000;  //unsigned int
+		static constexpr const unsigned char UINT64 = 0b00010000;  //unsigned long long
+		static constexpr const unsigned char INT8 = 0b00000011;  //char
+		static constexpr const unsigned char INT16 = 0b00000101;  //short
+		static constexpr const unsigned char INT32 = 0b00001001;  //int
+		static constexpr const unsigned char INT64 = 0b00010001;  //long long
+		static constexpr const unsigned char FLOAT32 = 0b00100000;  //float
+		static constexpr const unsigned char FLOAT64 = 0b01000000;  //double
+		static constexpr const unsigned char FLOAT80 = 0b10000000;  //long double
+		static unsigned char encode(char c, bool isSigned = false) {
+			unsigned char _is_signed = isSigned ? type_enc::SIGNED : 0;
+			switch (c) {
+			case 'c': return _is_signed | type_enc::UINT8;
+			case 's': return _is_signed | type_enc::UINT16;
+			case 'i': return _is_signed | type_enc::UINT32;
+			case 'l': return _is_signed | type_enc::UINT64;
+			case 'f': return type_enc::FLOAT32;
+			case 'd': return type_enc::FLOAT64;
+			case 'D': return type_enc::FLOAT80;
+			}
+			return type_enc::UNDEFINED;
+		}
+		static int bytes_len(unsigned char enct) {
+			switch (enct) {
+			case type_enc::INT32:   return sizeof(int);
+			case type_enc::INT64:   return sizeof(long long);
+			case type_enc::UINT16:  return sizeof(unsigned short);
+			case type_enc::UINT8:   return sizeof(unsigned char);
+			case type_enc::UINT32:  return sizeof(unsigned int);
+			case type_enc::UINT64:  return sizeof(unsigned long long);
+			case type_enc::INT8:    return sizeof(char);
+			case type_enc::INT16:   return sizeof(short);
+			case type_enc::FLOAT32: return sizeof(float);
+			case type_enc::FLOAT64: return sizeof(double);
+			case type_enc::FLOAT80: return sizeof(long double);
+			}
+			return 0;
+		}
+	};
+	void *data;
+	int len;		// type len (not bytes len)
+	
+	int n_time_channels() const { return n_time; };
+	int n_val_channels() const { return n_val; };
 
+	// time unit & unitless time
+	int time_unit() const { return _time_unit; };
+	int Time_ch_vec(int idx, int chan, void * data_) const { return Time<int>(idx, chan, data); } // Time(idx,chan)
+	void SetVal_ch_vec(int idx, int chan, float _val, void *data_) { setVal(idx, chan, _val, data_); };
+
+	inline void Set(int idx, int *times, float *vals) { Set(idx, times, vals, data); }
+
+	inline void Set(int idx, int *times, float *vals, void* data_)
+	{
+		for (int chan = 0; chan < n_time; ++chan)
+			setTime(idx, chan, times[chan], (char*)data_);
+
+		for (int chan = 0; chan < n_val; ++chan)
+			setVal(idx, chan, vals[chan], (char*)data_);
+	}
+
+	size_t size() const { return struct_size; }
+
+	void init(const SignalInfo &info) { 
+		_time_unit = info.time_unit; 
+		time_channel_offsets = info.time_channel_offsets;
+		val_channel_offsets = info.val_channel_offsets;
+		time_channel_types = info.time_channel_types;
+		val_channel_types = info.val_channel_types;
+
+		struct_size = info.bytes_len;
+		n_time = info.n_time_channels;
+		n_val = info.n_val_channels;
+	}
+
+	int struct_size;
+	int n_time;
+	int n_val;
+
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_offsets;
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_offsets;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
+	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
+
+	void set_data(void* _data, int _len) {
+		data = _data;
+		len = _len;
+	}
+	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
+	GenericSigVec(const string& signalSpec, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_spec(signalSpec); }
+	GenericSigVec(SigType sigtype, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_sigtype(sigtype); }
+	GenericSigVec(const GenericSigVec& other) { *this = other; }
+
+	void copy_signal_metadata(const GenericSigVec& other) {
+		struct_size = other.struct_size;
+		n_time = other.n_time;
+		n_val = other.n_val;
+		_time_unit = other._time_unit;
+		time_channel_offsets = other.time_channel_offsets;
+		time_channel_types = other.time_channel_types;
+		val_channel_offsets = other.val_channel_offsets;
+		val_channel_types = other.val_channel_types;
+	}
+
+	GenericSigVec& operator=(const GenericSigVec& other) {
+		data = other.data;
+		len = other.len;
+		copy_signal_metadata(other);
+		return *this;
+	}
+
+	void init_from_spec(const string& signalSpec);
+	void init_from_sigtype(SigType sigtype);
+	void init_from_repo(MedRepository& repo, int sid);
+
+	template<typename T = int>
+	T Time(int idx, int chan) const { return Time<T>(idx, chan, data); }
+
+	template<typename T = int>
+	T Time(int idx, int chan, const void* data_) const {
+		auto field_ptr = ((const char*)data_) + idx * struct_size + time_channel_offsets[chan];
+		switch (time_channel_types[chan]) {
+		case type_enc::INT32:   return (T)(*(int*)(field_ptr));
+		case type_enc::INT64:   return (T)(*(long long*)(field_ptr));
+		case type_enc::UINT16:  return (T)(*(unsigned short*)(field_ptr));
+		case type_enc::UINT8:   return (T)(*(unsigned char*)(field_ptr));
+		case type_enc::UINT32:  return (T)(*(unsigned int*)(field_ptr));
+		case type_enc::UINT64:  return (T)(*(unsigned long long*)(field_ptr));
+		case type_enc::INT8:    return (T)(*(char*)(field_ptr));
+		case type_enc::INT16:   return (T)(*(short*)(field_ptr));
+		case type_enc::FLOAT32: return (T)(*(float*)(field_ptr));
+		case type_enc::FLOAT64: return (T)(*(double*)(field_ptr));
+		case type_enc::FLOAT80: return (T)(*(long double*)(field_ptr));
+		}
+		return 0;
+	}
+
+	template<typename T = int>
+	void setTime(int idx, int chan, T new_val) { setTime<T>(idx, chan, new_val, data); }
+
+	template<typename T = int>
+	void setTime(int idx, int chan, T new_val, void* data_) {
+		auto field_ptr = ((char*)data_) + idx * struct_size + time_channel_offsets[chan];
+		switch (time_channel_types[chan]) {
+		case type_enc::INT32:   (*(int*)(field_ptr)) = (int)new_val; return;
+		case type_enc::INT64:   (*(long long*)(field_ptr)) = (long long)new_val; return;
+		case type_enc::UINT16:  (*(unsigned short*)(field_ptr)) = (unsigned short)new_val; return;
+		case type_enc::UINT8:   (*(unsigned char*)(field_ptr)) = (unsigned char)new_val; return;
+		case type_enc::UINT32:  (*(unsigned int*)(field_ptr)) = (unsigned int)new_val; return;
+		case type_enc::UINT64:  (*(unsigned long long*)(field_ptr)) = (unsigned long long)new_val; return;
+		case type_enc::INT8:    (*(char*)(field_ptr)) = (char)new_val; return;
+		case type_enc::INT16:   (*(short*)(field_ptr)) = (short)new_val; return;
+		case type_enc::FLOAT32: (*(float*)(field_ptr)) = (float)new_val; return;
+		case type_enc::FLOAT64: (*(double*)(field_ptr)) = (double)new_val; return;
+		case type_enc::FLOAT80: (*(long double*)(field_ptr)) = (long double)new_val; return;
+		}
+	}
+
+	template<typename T = float>
+	T Val(int idx, int chan) const { return Val<T>(idx, chan, data); }
+
+	template<typename T = float>
+	T Val(int idx, int chan, const void* data_) const {
+		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
+		switch (val_channel_types[chan]) {
+		case type_enc::FLOAT32: return (T)(*(float*)(field_ptr));
+		case type_enc::INT16:   return (T)(*(short*)(field_ptr));
+		case type_enc::UINT16:  return (T)(*(unsigned short*)(field_ptr));
+		case type_enc::UINT8:   return (T)(*(unsigned char*)(field_ptr));
+		case type_enc::UINT32:  return (T)(*(unsigned int*)(field_ptr));
+		case type_enc::UINT64:  return (T)(*(unsigned long long*)(field_ptr));
+		case type_enc::INT8:    return (T)(*(char*)(field_ptr));
+		case type_enc::INT32:   return (T)(*(int*)(field_ptr));
+		case type_enc::INT64:   return (T)(*(long long*)(field_ptr));
+		case type_enc::FLOAT64: return (T)(*(double*)(field_ptr));
+		case type_enc::FLOAT80: return (T)(*(long double*)(field_ptr));
+		}
+		return 0;
+	}
+
+	template<typename T = float>
+	void setVal(int idx, int chan, T new_val) { setVal<T>(idx, chan, new_val, data); }
+
+	template<typename T = float>
+	void setVal(int idx, int chan, T new_val, void* data_) {
+		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
+		switch (val_channel_types[chan]) {
+		case type_enc::FLOAT32: (*(float*)(field_ptr)) = (float)new_val; return;
+		case type_enc::INT16:   (*(short*)(field_ptr)) = (short)new_val; return;
+		case type_enc::UINT16:  (*(unsigned short*)(field_ptr)) = (unsigned short)new_val; return;
+		case type_enc::UINT8:   (*(unsigned char*)(field_ptr)) = (unsigned char)new_val; return;
+		case type_enc::UINT32:  (*(unsigned int*)(field_ptr)) = (unsigned int)new_val; return;
+		case type_enc::UINT64:  (*(unsigned long long*)(field_ptr)) = (unsigned long long)new_val; return;
+		case type_enc::INT8:    (*(char*)(field_ptr)) = (char)new_val; return;
+		case type_enc::INT32:   (*(int*)(field_ptr)) = (int)new_val; return;
+		case type_enc::INT64:   (*(long long*)(field_ptr)) = (long long)new_val; return;
+		case type_enc::FLOAT64: (*(double*)(field_ptr)) = (double)new_val; return;
+		case type_enc::FLOAT80: (*(long double*)(field_ptr)) = (long double)new_val; return;
+		}
+	}
+
+	// channel 0 easy API
+	inline int Time(int idx) const { return Time(idx, 0); }
+	inline float Val(int idx) const { return Val(idx, 0); }
+
+	inline int TimeU(int idx, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx)); }
+	inline int Date(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx)); }
+	inline int Years(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx)); }
+	inline int Months(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx)); }
+	inline int Days(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx)); }
+	inline int Hours(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx)); }
+	inline int Minutes(int idx) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx)); }
+
+	// general channel API
+	inline int TimeU(int idx, int chan, int to_time_unit) const { return med_time_converter.convert_times(time_unit(), to_time_unit, Time(idx, chan)); }
+	inline int Date(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Date, Time(idx, chan)); }
+	inline int Years(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Years, Time(idx, chan)); }
+	inline int Months(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Months, Time(idx, chan)); }
+	inline int Days(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Days, Time(idx, chan)); }
+	inline int Hours(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Hours, Time(idx, chan)); }
+	inline int Minutes(int idx, int chan) const { return med_time_converter.convert_times(time_unit(), MedTime::Minutes, Time(idx, chan)); }
+
+	template <class S> void set_funcs() const { /* Do nothing */ }
+
+	SigType get_type() const { return type; }
+
+	// helper functions for common operations
+	//----------------------------------------
+	// returns the first index i in the usv that has Time(i, time_chan) > time_bound, if none : return -1
+	int get_index_gt_time_bound(int time_chan, int time_bound);
+	// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
+	int get_index_ge_time_bound(int time_chan, int time_bound);
+
+    bool compareTimeLt(const void* data1, int idx1, const void* data2, int idx2) const {
+		for (int tchan = 0; tchan < n_time; tchan++) {
+			if (this->Time(idx1, tchan, data1) > this->Time(idx2, tchan, data2))
+				return false;
+			if (this->Time(idx1, tchan, data1) < this->Time(idx2, tchan, data2))
+				return true;
+		}
+		for (int vchan = 0; vchan < n_val; vchan++) {
+			if (this->Val(idx1, vchan, data1) > this->Val(idx2, vchan, data2))
+				return false;
+			if (this->Val(idx1, vchan, data1) < this->Val(idx2, vchan, data2))
+				return true;
+		}
+		return false;
+	}
+
+	bool compareData(int idx, const GenericSigVec& other_gsv, int other_idx) const {
+		return std::memcmp(((const char*)data) + idx * struct_size, ((const char*)other_gsv.data) + other_idx * struct_size, struct_size)==0;
+	}
+
+	static string get_type_generic_spec(SigType t);
+
+protected:
+	const SigType type = T_Generic; // type of the generic signal
+	int _time_unit = MedTime::Undefined;
+};
+
+/**
+* Managed memory version of UniversalSigVec.
+* for example when allocating new virtual records
+*/
+class GenericSigVec_mem : public GenericSigVec {
+public:
+	bool manage;
+	GenericSigVec_mem() {
+		manage = false;
+	}
+
+	~GenericSigVec_mem() {
+		if (len > 0 && data != NULL && manage) {
+			delete[](char *)data;
+			data = NULL;
+			len = 0;
+		}
+	}
+
+	void set(const GenericSigVec &s) {
+		manage = false;
+		GenericSigVec::operator=(s);
+	}
+};
 
 #endif

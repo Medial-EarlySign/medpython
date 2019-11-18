@@ -56,6 +56,16 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	if (n_val_ch == 0) tdata = NULL;
 
 	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
+	if (type == T_Generic) {
+		GenericSigVec gsv;
+		gsv.init(my_rep->sigs.Sid2Info[sid]);
+		gsv.set_data(&elem[0], n_elem);
+		for (int i = 0; i < n_elem; i++) {
+			gsv.Set(i, tdata, vdata);
+		}
+		if (tdata) tdata += n_time_ch;
+		if (vdata) vdata += n_val_ch;
+	}else
 	for (int i=0; i<n_elem; i++) {
 		if (MedSignalsSingleElemFill(type, &elem[len_bytes*i], tdata, vdata) < 0) {
 			MERR("ERROR: InMemRepData::insertData failed fill element %d/%d.", i, n_elem);

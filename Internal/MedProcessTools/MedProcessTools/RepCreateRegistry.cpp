@@ -68,17 +68,19 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 	if (time_unit == -1)
 		time_unit = global_default_time_unit;
 
-	// Input/Output signal names
-	virtual_signals = type2Virtuals.at(registry);
+	// Input/Output signal names]
+	virtual_signals.clear();
+	virtual_signals_generic.clear();
+	virtual_signals_generic = type2Virtuals.at(registry);
 	if (!names.empty()) {
 		if (names.size() != type2Virtuals.at(registry).size())
 			MTHROW_AND_ERR("Wrong number of names supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), names.size(),
 				type2Virtuals.at(registry).size());
 		for (size_t i = 0; i < names.size(); i++)
-			virtual_signals[i].first = names[i];
+			virtual_signals_generic[i].first = names[i];
 	}
 
-	MLOG_D("virtual 0 : %s\n", virtual_signals[0].first.c_str());
+	MLOG_D("virtual 0 : %s\n", virtual_signals_generic[0].first.c_str());
 
 	if (!signals.empty()) {
 		if (signals.size() != type2reqSigs.at(registry).size())
@@ -122,7 +124,7 @@ void RepCreateRegistry::init_lists() {
 		req_signals.insert(signalName);
 
 	aff_signals.clear();
-	for (auto& rec : virtual_signals)
+	for (auto& rec : virtual_signals_generic)
 		aff_signals.insert(rec.first);
 }
 
@@ -132,7 +134,7 @@ void RepCreateRegistry::init_lists() {
 void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 
 	virtual_ids.clear();
-	for (auto& rec : virtual_signals)
+	for (auto& rec : virtual_signals_generic)
 		virtual_ids.push_back(sigs.sid(rec.first));
 
 	req_signal_ids.clear();
@@ -150,10 +152,10 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 
 	// Dictionary
 	if (!registry_values.empty()) {
-		dict.add_section(virtual_signals[0].first);
-		int newSectionId = dict.section_id(virtual_signals[0].first);
-		for (size_t i = 1; i < virtual_signals.size(); i++)
-			dict.connect_to_section(virtual_signals[i].first, newSectionId);
+		dict.add_section(virtual_signals_generic[0].first);
+		int newSectionId = dict.section_id(virtual_signals_generic[0].first);
+		for (size_t i = 1; i < virtual_signals_generic.size(); i++)
+			dict.connect_to_section(virtual_signals_generic[i].first, newSectionId);
 
 		for (size_t i = 0; i < registry_values.size(); i++)
 			dict.dicts[newSectionId].push_new_def(registry_values[i], (int)i);
