@@ -194,8 +194,9 @@ public:
 //.......................................................................................
 typedef enum {
 	SMPL_MATCH_SIGNAL, ///< Match by value of signal
-	SMPL_MATCH_AGE,	   ///<  Match by age
-	SMPL_MATCH_TIME,   ///<  Match by time
+	SMPL_MATCH_AGE,	   ///< Match by age
+	SMPL_MATCH_TIME,   ///< Match by time
+	SMPL_MATCH_FTR,   ///< Match by value of feature
 	SMPL_MATCH_LAST
 } SampleMatchingType;
 
@@ -210,6 +211,7 @@ public:
 
 	// Matching details
 	string signalName; ///< signal name for matching by signal
+	string featureName,resolvedFeatureName; ///< feature name for matching by feature
 	int timeWindow, windowTimeUnit ; ///< time-window info For matching by signal
 	int matchingTimeUnit; ///< time-unit for matching by time
 	float resolution ; ///< binnning resolution
@@ -220,8 +222,9 @@ public:
 	int signalTimeUnit; ///< matching signal time-unit
 
 	// Serialization
+	// Serialization
 	ADD_CLASS_NAME(matchingParams)
-	ADD_SERIALIZATION_FUNCS(match_type, signalName, timeWindow, matchingTimeUnit, resolution)
+	ADD_SERIALIZATION_FUNCS(match_type, signalName, featureName, timeWindow, matchingTimeUnit, resolution)
 };
 
 //.......................................................................................
@@ -234,9 +237,8 @@ public:
 * <br>
 *	- Each sample is assigned to a bin according to the vector of strata.
 *	  The optimal case/control sampling ratio is then found, when each control that is
-*	  removed costs 1 point and each case costs eventToControlPriceRatio points. The
-*	  maximal control to case ratio is set by matchMaxRatio. One ratio is decided, sampling
-*	  is perfored randomly within each bin.
+*	  removed costs 1 point and each case costs eventToControlPriceRatio points. 
+*     Once ratio is decided, sampling is perfored randomly within each bin.
 */
 //.......................................................................................
 class MatchingSampleFilter : public SampleFilter {
@@ -245,7 +247,6 @@ public:
 	vector<matchingParams> matchingStrata; ///< Matching parameters
 
 	float eventToControlPriceRatio = 100.0; ///< Cost of removing case relative to removing control
-	float matchMaxRatio = 10.0; ///< Maximal control/case ratio
 	int verbose = 0; ///< control level of debug printing
 
 	// helpers
@@ -271,13 +272,13 @@ public:
 	bool isAgeRequired();
 	/// <summary> Indexing of a single sample according to strata </summary>
 	/// <returns> 0 upon success, -1 upon finding an illegal strata definition </returns>
-	int getSampleSignature(MedSample& sample, MedRepository& rep, string& signature);
+	int getSampleSignature(MedSample& sample, MedFeatures& features, int i, MedRepository& rep, string& signature);
 	/// <summary> add indexing of a single sample according to a single stratum to sample's index </summary>
 	/// <returns> 0 upon success, -1 upon finding an illegal strata definition </returns>
-	int addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature);
+	int addToSampleSignature(MedSample& sample, matchingParams& stratum, MedFeatures& features, int i, MedRepository& rep, string& signature);
 	/// <summary> initialize values of requried helpers </summary>
-	/// <returns> 0 upon success, -1 if any of the required signals does not appear in the dictionary </returns>
-	int initHelpers(MedSamples& inSamples, MedRepository& rep);
+	/// <returns> 0 upon success, -1 if any of the required signals does not appear in the dictionary or any of the required features is not given </returns>
+	int initHelpers(MedSamples& inSamples, MedFeatures& features, MedRepository& rep);
 	/// <summary>  Get all signals required for matching </summary>
 	void get_required_signals(vector<string>& req_sigs);
 
@@ -287,13 +288,15 @@ public:
 	/// <returns>  -1 if repository is required, 0 othereise </returns>
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
-	/// <summary> Utility for Matching optimization : find optimal case/control ratio. </summary>
-	/// <summary> the price of giving up 1 control is 1.0, the price of giving up 1 event is w </summary>
-	float get_pairing_ratio(map<string, pair<int, int>> cnts, float w);
+	/// <summary> Filter with matrix + repository
+	int _filter(MedFeatures& features, MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples);
+	/// <summary> Filter with matrix 
+	/// <returns>  -1 if repository is required, 0 othereise </returns>
+	int _filter(MedFeatures& features, MedSamples& inSamples, MedSamples& outSamples);
 
 	// Serialization
 	ADD_CLASS_NAME(MatchingSampleFilter)
-	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, matchMaxRatio)
+	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio)
 };
 
 //.......................................................................................

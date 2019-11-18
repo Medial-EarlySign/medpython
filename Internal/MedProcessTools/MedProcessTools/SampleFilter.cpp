@@ -2,6 +2,8 @@
 #include "Logger/Logger/Logger.h"
 #include "InfraMed/InfraMed/InfraMed.h"
 #include "InfraMed/InfraMed/MedPidRepository.h"
+#include "MedProcessTools/MedProcessTools/MedFeatures.h"
+#include "MedProcessTools/MedProcessTools/FeatureProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string.hpp>
@@ -268,7 +270,6 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "priceRatio") eventToControlPriceRatio = med_stof(entry.second);
-		else if (field == "maxRatio") matchMaxRatio = med_stof(entry.second);
 		else if (field == "verbose") verbose = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
@@ -326,6 +327,16 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 		newStrata.timeWindow = (fields.size() > 3) ? (int)stof(fields[3]) : (int)1.0;
 		newStrata.windowTimeUnit = (fields.size() > 4) ? med_time_converter.string_to_type(fields[4]) : global_default_windows_time_unit;
 	}
+	else if (fields[0] == "feature") {
+		if (fields.size() > 3 || fields.size() < 2) {
+			MERR("Wrong number of features for matching strata\n");
+			return -1;
+		}
+
+		newStrata.match_type = SMPL_MATCH_FTR;
+		newStrata.featureName = fields[1];
+		newStrata.resolution = (fields.size() > 2) ? stof(fields[2]) : (float)1.0;
+	}
 	else if (fields[0] == "gender") {
 		if (fields.size() != 1) {
 			MERR("Wrong number of features for matching strata\n");
@@ -348,102 +359,30 @@ int MatchingSampleFilter::addMatchingStrata(string& init_string) {
 }
 
 // Filter with repository
-// Find signature of each sample according to matching strata, thus assigning samples (cases+controls) to bins
-// Find optimal case-control matching ratio according to bins and relative puhishment for
-// removing cases and controls (eventToControlPriceRatio). Adjust ratio to maximal allowed 
-// ratio (matchMaxRatio) and then sample randomly from each bin.
-//.......................................................................................
+// Find signature of each sample according to matching strata and then use match_by_general()
+//...........................................................................................
 int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
+	// Create a MedFatures object ..
+	MedFeatures features;
+	inSamples.export_to_sample_vec(features.samples);
+
 	// Init helpers
-	if (initHelpers(inSamples, rep) < 0)
+	if (initHelpers(inSamples, features, rep) < 0)
 		return -1;
 
 	// Mark samples according to strata
-	map<string, pair<int, int>> cnts;
-	map<string, vector<pair<int,int>>> control_ids;
-	map<string, vector<pair<int, int>>> event_ids;
+	vector<string> signatures(features.samples.size());
 
-	string signature;
-	pair<int, int> p0(0, 0);
-	vector<pair<int, int>> empty;
-
-	for (unsigned int idIdx = 0; idIdx < inSamples.idSamples.size(); idIdx++) {
-		for (unsigned int sampleIdx = 0; sampleIdx < inSamples.idSamples[idIdx].samples.size(); sampleIdx++) {
-
-			MedSample& sample = inSamples.idSamples[idIdx].samples[sampleIdx];
-			getSampleSignature(sample, rep, signature);
-
-			if (cnts.find(signature) == cnts.end()) {
-				cnts[signature] = p0;
-				control_ids[signature] = empty;
-				event_ids[signature] = empty;
-			}
-
-			if (sample.outcome > 0) {
-				cnts[signature].first++;
-				event_ids[signature].push_back({ idIdx,sampleIdx });
-			}
-			else {
-				cnts[signature].second++;
-				control_ids[signature].push_back({ idIdx,sampleIdx });
-			}
-		}
-	}
-
-	// Identify pairing ratio
-	float opt_factor = get_pairing_ratio(cnts, eventToControlPriceRatio);
-	float factor = opt_factor;
-	if (factor > matchMaxRatio) {
-		if (verbose) MLOG("updating factor {%8.3f} to maxFactor=%.3f\n", factor, matchMaxRatio);
-		factor = matchMaxRatio;
-	}
-	else if (factor < 1 / matchMaxRatio) {
-		if (verbose) MLOG("updating factor {%8.3f} to 1/(maxFactor=%.3f)\n", factor, matchMaxRatio);
-		factor = 1/matchMaxRatio;
-	}
-	if (verbose) MLOG("opt ratio is %8.3f (effective factor = %8.3f)\n", opt_factor, factor);
-
-
-	// sample controls and events
-	int n_events = 0, n_ctrl = 0;
-	vector<pair<int, int>> selected;
-	for (auto it = cnts.begin(); it != cnts.end(); it++) {
-		signature = it->first;
-		int ev_cnt = it->second.first;
-		int ctrl_cnt = it->second.second;
-		if (ev_cnt == 0 || ctrl_cnt == 0)
-			continue;
-		int ntake_ctrl = (int)((float)ev_cnt * factor);
-		//if (ntake == 0) ntake = 1 + (int)factor/2;
-		if (ntake_ctrl > (int)control_ids[signature].size()) ntake_ctrl = (int)control_ids[signature].size();
-
-		int ntake_ev = (int)((float)ctrl_cnt / factor);
-		//if (ntake == 0) ntake = 1 + (int)factor/2;
-		if (ntake_ev > (int)event_ids[signature].size()) ntake_ev = (int)event_ids[signature].size();
-
-		random_shuffle(control_ids[signature].begin(), control_ids[signature].end());
-		random_shuffle(event_ids[signature].begin(), event_ids[signature].end());
-		for (int i = 0; i<ntake_ctrl; i++)
-			selected.push_back(control_ids[signature][i]);
-		for (int i = 0; i<ntake_ev; i++)
-			selected.push_back(event_ids[signature][i]);
-		n_ctrl += ntake_ctrl;
-		n_events += ntake_ev;
-		if (verbose) MLOG("%s : ntake_ctrl: %d/%d ntake_ev: %d/%d total size is %d\n", signature.c_str(), ntake_ctrl, control_ids[signature].size(),ntake_ev, event_ids[signature].size(), n_ctrl+n_events);
-	}
-
-	MLOG("Added %d controls, %d events, with a factor of %f\n", n_ctrl, n_events, n_events, factor);
-
-	// Fill outSamples
-	sort(selected.begin(), selected.end(), [](const pair<int, int> &v1, const pair<int, int> &v2) {return (v1.first < v2.first || (v1.first == v2.first && v1.second < v2.second)); });
-	for (unsigned int i = 0; i < selected.size(); i++) {
-		if (i == 0 || selected[i].first != selected[i - 1].first)
-			outSamples.idSamples.push_back(MedIdSamples(inSamples.idSamples[selected[i].first].id));
-		outSamples.idSamples.back().samples.push_back(inSamples.idSamples[selected[i].first].samples[selected[i].second]);
-	}
+	for (unsigned int i = 0; i < signatures.size(); i++)
+		getSampleSignature(features.samples[i], features, i, rep, signatures[i]);
+	
+	// Do the filtering
+	vector<int> filtered;
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, (verbose>0));
+	outSamples.import_from_sample_vec(features.samples);
 
 	return 0;
 
@@ -462,6 +401,45 @@ int MatchingSampleFilter::_filter(MedSamples& inSamples, MedSamples& outSamples)
 		MedRepository dummyRep;
 		return filter(dummyRep, inSamples, outSamples);
 	}
+}
+
+// Filter with matrix (return -1 if repository is required)
+//.......................................................................................
+int MatchingSampleFilter::_filter(MedFeatures& features, MedSamples& inSamples, MedSamples& outSamples) {
+
+
+	if (isRepRequired()) {
+		MERR("Cannot perform required matching without repository\n");
+		return -1;
+	}
+	else {
+
+		MedRepository dummyRep;
+		return _filter(features, dummyRep, inSamples, outSamples);
+	}
+}
+
+// Filter with matrix + repository
+//.......................................................................................
+int MatchingSampleFilter::_filter(MedFeatures& features, MedRepository& rep, MedSamples& inSamples, MedSamples& outSamples) {
+
+	// Init helpers
+	if (initHelpers(inSamples, features, rep) < 0)
+		return -1;
+
+	// Mark samples according to strata
+	vector<string> signatures(features.samples.size());
+
+	for (unsigned int i = 0; i < signatures.size(); i++)
+		getSampleSignature(features.samples[i], features, i, rep, signatures[i]);
+
+	// Do the filtering
+	vector<int> filtered;
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, (verbose>0));
+	outSamples.import_from_sample_vec(features.samples);
+
+
+	return 0;
 }
 
 // Utilities
@@ -490,8 +468,9 @@ bool MatchingSampleFilter::isAgeRequired() {
 }
 
 // initialize values of helpers
+// return 0 upon success, -1 if any of the required signals does not appear in the dictionary or any of the required features is not given </returns>
 //.......................................................................................
-int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep) {
+int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedFeatures& features, MedRepository& rep) {
 
 	// Helpers
 	// Time unit from samples
@@ -524,17 +503,24 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedRepository& rep)
 		}
 	}
 
+	// Check features
+	FeatureProcessor dummy;
+	for (matchingParams& stratum : matchingStrata) {
+		if (stratum.match_type == SMPL_MATCH_FTR)
+			stratum.resolvedFeatureName = dummy.resolve_feature_name(features, stratum.featureName);
+	}
+
 	return 0;
 }
 
 // Indexing of a single sample according to strata
 // an index is a colon-separated string of bins per stratum
 //.......................................................................................
-int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedRepository& rep, string& signature) {
+int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedFeatures& features, int i, MedRepository& rep, string& signature) {
 
 	signature = "";
 	for (auto& stratum : matchingStrata) {
-		if (addToSampleSignature(sample, stratum, rep, signature) < 0)
+		if (addToSampleSignature(sample, stratum, features, i, rep, signature) < 0)
 			return -1;
 	}
 
@@ -543,7 +529,7 @@ int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedRepository& r
 
 // add indexing of a single sample according to a single stratum to sample's index
 //.......................................................................................
-int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams& stratum, MedRepository& rep, string& signature) {
+int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams& stratum, MedFeatures& features, int i, MedRepository& rep, string& signature) {
 
 	int len, age;
 	UniversalSigVec usv;
@@ -561,6 +547,10 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 		age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
 		
 		bin = (int)((float)age / stratum.resolution);
+		signature += to_string(bin) + ":";
+	}
+	else if (stratum.match_type == SMPL_MATCH_FTR) {
+		bin = (int)(features.data[stratum.resolvedFeatureName][i] / stratum.resolution);
 		signature += to_string(bin) + ":";
 	}
 	else if (stratum.match_type == SMPL_MATCH_SIGNAL) {
@@ -599,60 +589,6 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	}
 
 	return 0;
-}
-
-// search for the optimal ratio between control/case samples
-// the price of giving up 1 control is 1.0, the price of giving up 1 case is w 
-//.......................................................................................
-float MatchingSampleFilter::get_pairing_ratio(map<string, pair<int, int>> cnts, float w) {
-
-	// Get all ratios
-	vector<float> ratios;
-	for (auto& rec : cnts) {
-		int ev_cnt = rec.second.first;
-		int ctrl_cnt = rec.second.second;
-		if (ev_cnt > 0 && ctrl_cnt > 0)
-			ratios.push_back((float)(ctrl_cnt) / (float)(ev_cnt));
-	}
-	sort(ratios.begin(), ratios.end());
-
-	MLOG("min ratio %8.3f max ratio %8.3f\n", ratios[0], ratios[ratios.size() - 1]);
-
-	// Find Optimal ratio - cnt1 and cnt2 are the overall number of samples we're giving up on 
-	int opt_cnt1 = -1, opt_cnt2 = -1;
-	float opt_r = 0;
-	for (float r : ratios) {
-
-		int cnt1 = 0, cnt2 = 0;
-		for (auto it = cnts.begin(); it != cnts.end(); it++) {
-			int ev_cnt = it->second.first;
-			int ctrl_cnt = it->second.second;
-			if (ev_cnt == 0.0)
-				cnt1 += ctrl_cnt;
-			else if (ctrl_cnt == 0.0)
-				cnt2 += ev_cnt;
-			else {
-				double iratio = (float)(ctrl_cnt) / (float)(ev_cnt);
-				if (iratio < r)
-					// more events than we want, have to give up on some:
-					cnt2 += (ev_cnt - (int)(ctrl_cnt / r + 0.5));
-				else
-					cnt1 += (ctrl_cnt - (int)(ev_cnt * r + 0.5));
-			}
-		}
-		double current_price = cnt1 + w*cnt2;
-		double opt_price = opt_cnt1 + w*opt_cnt2;
-
-		if (opt_r == 0 || current_price < opt_price) {
-			opt_r = r;
-			opt_cnt1 = cnt1;
-			opt_cnt2 = cnt2;
-		}
-		if (verbose) MLOG("ratio %8.3f price %8.3f (lose %d events, %d controls) \t opt ratio %8.3f lose %d events and %d controls = price of %8.3f \n", r, current_price, cnt2, cnt1, opt_r, opt_cnt2, opt_cnt1, opt_price);
-
-	}
-
-	return opt_r;
 }
 
 //Get all signals required  for matching

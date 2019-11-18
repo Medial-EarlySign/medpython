@@ -401,10 +401,10 @@ int max_ind_map(const map<string, int> &m) {
 int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 {
 	vector<string> pre_fields = { "serial" }; //fields that appears in all modes: without_weights, with_weights
-	vector<string> fields_order = { "id", "time", "outcome", "outcome_time", "split" }; //fields for MedSample
-	string weight_field_anme = "weight"; //weight field name if appear
+	vector<string> sample_fields = { "id", "time", "outcome", "outcome_time", "split" }; //fields for MedSample
 	string pred_prefix = "pred_";
 	string attr_prefix = "attr_";
+	string weight_attr = "attr_train_weight";
 	string str_attr_prefix = "str_attr_";
 
 	if (!file_exists(csv_fname))
@@ -420,20 +420,14 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 	string curr_line;
 	vector<string> names;
 
-	map<string, int> pos_fields_no_weight;
-	add_to_map(pos_fields_no_weight, pre_fields);
-	map<string, int> pos_fields_weight = pos_fields_no_weight;
-	int sz = (int)pos_fields_weight.size();
-	pos_fields_weight[weight_field_anme] = sz;
-	add_to_map(pos_fields_weight, fields_order);
-	add_to_map(pos_fields_no_weight, fields_order);
-	vector<string> fields_order_no_weight, fields_order_weight;
-	op_map(pos_fields_weight, fields_order_weight);
-	op_map(pos_fields_no_weight, fields_order_no_weight);
-	vector<string> *curr_fields_order = &fields_order_no_weight;
-	map<string, int> *curr_pos_fields = &pos_fields_no_weight;
+	map<string, int> pos_fields;
+	add_to_map(pos_fields, pre_fields);
+	add_to_map(pos_fields, sample_fields);
+	vector<string> fields_order;
+	op_map(pos_fields, fields_order);
 	map<string, int> pos_attr, pos_str_attr;
 	vector<int> pos_preds;
+	int pos_weight = -1;
 
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
@@ -442,6 +436,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 		int idx = 0;
 		if (ncols == -1) { // Header line	
 			string curr_f;
+			// Pre Fields
 			for (; idx < pre_fields.size(); ++idx) {
 				curr_f = pre_fields[idx];
 				if (fields[idx].compare(curr_f) != 0) {
@@ -450,18 +445,14 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 					assert(fields[idx].compare(curr_f) == 0);
 				}
 			}
-			if (fields[idx].compare(fields_order_weight[idx]) == 0) {
-				++idx;
-				curr_fields_order = &fields_order_weight;
-				curr_pos_fields = &pos_fields_weight;
-			}
 
-			for (; idx < curr_pos_fields->size(); ++idx)
+			// Sample Fields
+			for (; idx < pos_fields.size(); ++idx)
 			{
-				curr_f = curr_fields_order->at(idx);
+				curr_f = fields_order.at(idx);
 				if (fields[idx].compare(curr_f) != 0) {
 					MLOG("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s\n",
-						curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str());
+						curr_line.c_str(), curr_f.c_str(), idx, pos_fields.size(), fields[idx].c_str());
 					assert(fields[idx].compare(curr_f) == 0);
 				}
 			}
@@ -474,6 +465,9 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 
 			// Attributes
 			while (idx < fields.size() && boost::starts_with(fields[idx], attr_prefix)) {
+				if (fields[idx] == weight_attr)
+					pos_weight = idx;
+
 				string name = fields[idx].substr(attr_prefix.size());
 				pos_attr[name] = idx;
 				++idx;
@@ -502,17 +496,17 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 			//skip pre fields: serial
 			++idx;
 
-			if (curr_pos_fields->find(weight_field_anme) != curr_pos_fields->end()) {
-				weights.push_back(stof(fields[curr_pos_fields->at(weight_field_anme)]));
+			if (pos_weight != -1) {
+				weights.push_back(stof(fields[pos_weight]));
 				++idx;
 			}
 
 			MedSample newSample;
-			newSample.parse_from_string(fields, *curr_pos_fields, pos_preds, pos_attr, pos_str_attr, time_unit, (int)read_time_raw, ",");
+			newSample.parse_from_string(fields, pos_fields, pos_preds, pos_attr, pos_str_attr, time_unit, (int)read_time_raw, ",");
 
 			samples.push_back(newSample);
 			//advance idx in fields to last pos:
-			idx = (int)curr_pos_fields->size();
+			idx = (int)pos_fields.size();
 
 			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
 				idx = pos_preds.back() + 1;
@@ -1014,6 +1008,9 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			cost += cost_val;
 		}
 
+		if (print_verbose)
+			MLOG("Sampling ratio = %2.3f - Cost = %2.3f removing [%d,%d]\n", curr_target, cost, tot_0_rem, tot_1_rem);
+
 		if (best_cost == -1 || cost < best_cost) {
 			best_cost = cost;
 			r_target = curr_target;
@@ -1076,10 +1073,6 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 		all_groups.erase(all_groups.begin() + skip_grp_indexs[k]);
 
 	//Commit on all records:
-	MedFeatures filtered;
-	filtered.time_unit = data_records.time_unit;
-	filtered.attributes = data_records.attributes;
-
 	for (size_t k = 0; k < list_label_groups.size(); ++k) //for 0 and 1:
 		for (auto it = list_label_groups[k].begin(); it != list_label_groups[k].end(); ++it) //for each year
 		{
@@ -1432,6 +1425,45 @@ void MedFeatures::noise_data(float r)
 		for (int i = 0; i < len; i++) {
 			float noise = r * (rand_1()*2.0f - 1.0f);
 			p_data[i] = p_data[i] + noise;
+		}
+	}
+
+}
+
+// Sort Features by id + time
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::samples_sort() {
+
+	int nSamples = (int)samples.size();
+	vector<pair<int, MedSample>> sorted_inds(nSamples);
+	for (int i = 0; i < nSamples; i++) {
+		sorted_inds[i].first = i;
+		sorted_inds[i].second = samples[i];
+	}
+
+	sort(sorted_inds.begin(), sorted_inds.end(),
+		[](const pair<int, MedSample> &c1, const pair<int, MedSample> &c2) {return ((c1.second.id < c2.second.id) || (c1.second.id == c2.second.id && c1.second.time < c2.second.time));});
+
+	vector<MedSample> origSamples =samples;
+	for (int i = 0; i < nSamples; i++)
+		samples[i] = origSamples[sorted_inds[i].first];
+
+	if (weights.size()) {
+		vector<float> origWeights = weights;
+		for (int i = 0; i < nSamples; i++)
+			weights[i] = origWeights[sorted_inds[i].first];
+	}
+
+	for (auto& rec : data) {
+		string name = rec.first;
+		vector<float> origData = data[name];
+		for (int i = 0; i < nSamples; i++)
+			data[name][i] = origData[sorted_inds[i].first];
+
+		if (masks.find(name) != masks.end()) {
+			vector<unsigned char> origMask = masks[name];
+			for (int i = 0; i < nSamples; i++)
+				masks[name][i] = origMask[sorted_inds[i].first];
 		}
 	}
 
