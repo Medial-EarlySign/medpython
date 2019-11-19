@@ -61,21 +61,21 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 		return;
 	int section_id = o->dict.section_id(sig_name);
 	void* arr = data_column[key_index];
-	int arr_sz = this->record_count;
+	size_t arr_sz = this->record_count;
 	int arr_npytype = data_column_nptype[key_index];
 	std::unordered_set<int> values;
 	switch (arr_npytype) {
 	case (int)MED_NPY_TYPES::NPY_FLOAT: 
-		{float* tarr = (float*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{float* tarr = (float*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
 		break;
 	case (int)MED_NPY_TYPES::NPY_USHORT: 
-		{unsigned short* tarr = (unsigned short*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{unsigned short* tarr = (unsigned short*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
 		break;
 	case (int)MED_NPY_TYPES::NPY_LONGLONG: 
-		{long long* tarr = (long long*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{long long* tarr = (long long*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
 		break;
 	case (int)MED_NPY_TYPES::NPY_SHORT: 
-		{short* tarr = (short*)arr; for (int i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{short* tarr = (short*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
 		break;
 	default:
 		throw runtime_error("MedPy: categorical value type not supported, we only have values of types float, unsigned short, long long, short");
