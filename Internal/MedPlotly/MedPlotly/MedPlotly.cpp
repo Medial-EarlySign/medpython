@@ -379,7 +379,7 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdat
 		MLOG("%s : ", sets[s][0].c_str());
 		for (int i = 0; i < hmap[s].size(); i++) MLOG("[%d] %f ", i, hmap[s][i]);
 		MLOG("\n");
-}
+	}
 #endif
 
 }
@@ -543,6 +543,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	int log_scale = (pi.log_scale < 0) ? params.log_scale_default : pi.log_scale;
 
 	vector<string> titles = pi.sigs;
+	vector<int> series_sz(pi.sigs.size());
 
 	// div_name
 	string div_name = "div";
@@ -572,6 +573,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 			add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), i + 1, pi.sigs[i]);
 		}
 		get_usv_min_max(usv, vmin[i], vmax[i]);
+		series_sz[i] = usv.len;
 	}
 
 	if (tot_len == 0) return 0;
@@ -590,11 +592,11 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 				vmin.push_back(0);
 				vmax.push_back(0);
 				titles.push_back(pi.drugs[i]);
+				series_sz.push_back((int)xdates.size());
 			}
 		}
 
 	}
-
 
 	// set height , width, and block_mode
 	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(pwidth) + "px;height:" + to_string(pheight) + "px;";
@@ -612,17 +614,26 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	float psize = (float)0.98;
 	// deal with multiple yaxis
 	// deal with multiple yaxis
+	int show_y_axes = 0;
 	for (int i = 0; i < n_yaxis; i++) {
-		if (i == 0)
-			shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {title: '" + titles[i] + "', showline: false";
-
-		if (i > 0) {
+		bool need_to_show = series_sz[i] > 0;
+		if (need_to_show) {
+			if (show_y_axes == 0)
+				shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {title: '" + titles[i] + "', showline: false";
+			if (show_y_axes == 1) {
+				shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {title: '" + titles[i] + "', showline: false";
+				shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize) + ", tick: '', showticklabels: true";
+			}
+		}
+		if (!need_to_show || show_y_axes > 1) {
 			shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {showline: false";
 			//shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize+0.02*i) + ", tick: '', showticklabels: false";
 			shtml += ", overlaying: 'y', side: 'right', position: " + to_string(psize) + ", tick: '', showticklabels: false";
 		}
 		if (log_scale && vmin[i] > 0 && usv.n_val_channels() < 2) shtml += ",type: 'log', autorange: true";
 		shtml += "},\n";
+		if (need_to_show)
+			++show_y_axes;
 	}
 	// xaxis setup
 	string from_t, to_t;
