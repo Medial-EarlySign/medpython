@@ -649,7 +649,10 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 			string ts = date_to_string(t.time);
 			if (t.name == "Death") ts = time_to_string(t.time);
 			shtml += "{type: 'line', x0: " + ts + ", y0: " + to_string(vmin[0]);
-			shtml += ", x1: " + ts + ", y1: " + to_string(vmax[0]);
+			float max_sel = vmax[0];
+			if (abs(max_sel - vmin[0]) < 1e-4)
+				max_sel += (float)0.1; //that it will create a real line
+			shtml += ", x1: " + ts + ", y1: " + to_string(max_sel);
 			string color = t.color; //"'black'";
 			shtml += ", line: { color: " + color + "} },";
 		}
