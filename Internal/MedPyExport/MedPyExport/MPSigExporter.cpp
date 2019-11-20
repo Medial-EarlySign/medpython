@@ -12,7 +12,7 @@
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
 
-MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids) : o(rep.o), sig_name(signame_str) {
+MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag) : o(rep.o), sig_name(signame_str), translate(translate_flag!=0) {
 	if (rep.loadsig(signame_str) != 0)
 		throw runtime_error("could not load signal");
 	sig_id = rep.sig_id(sig_name);
@@ -56,42 +56,73 @@ int MPSigExporter::__get_key_id_or_throw(const string& key) {
 }
 
 void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
+	if (!translate) return;
 	int key_index = __get_key_id_or_throw(field_name);
 	if (!o->sigs.is_categorical_channel(sig_id, channel))
 		return;
 	int section_id = o->dict.section_id(sig_name);
 	void* arr = data_column[key_index];
 	size_t arr_sz = this->record_count;
+	int* new_arr = nullptr;
 	int arr_npytype = data_column_nptype[key_index];
-	std::unordered_set<int> values;
+	if (arr_npytype != (int)MED_NPY_TYPES::NPY_INT)
+		new_arr = (int*)malloc(sizeof(int)*arr_sz);
+	//std::unordered_set<int> values;
 	switch (arr_npytype) {
 	case (int)MED_NPY_TYPES::NPY_FLOAT: 
-		{float* tarr = (float*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{float* tarr = (float*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i]=(int)tarr[i]; }
 		break;
 	case (int)MED_NPY_TYPES::NPY_USHORT: 
-		{unsigned short* tarr = (unsigned short*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{unsigned short* tarr = (unsigned short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
 		break;
 	case (int)MED_NPY_TYPES::NPY_LONGLONG: 
-		{long long* tarr = (long long*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{long long* tarr = (long long*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
 		break;
 	case (int)MED_NPY_TYPES::NPY_SHORT: 
-		{short* tarr = (short*)arr; for (size_t i = 0; i < arr_sz; ++i) values.insert((int)tarr[i]); }
+		{short* tarr = (short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
+		break;
+	case (int)MED_NPY_TYPES::NPY_INT:
+		{new_arr = (int*)arr; }
 		break;
 	default:
+		if (new_arr) free(new_arr);
 		throw runtime_error("MedPy: categorical value type not supported, we only have values of types float, unsigned short, long long, short");
 		break;
 	}
 	auto& Id2Names = o->dict.dict(section_id)->Id2Names;
-	std::map<int, std::string> cat_dict;
-	for (int raw_val : values) {
-		if (!Id2Names.count(raw_val)) continue;
-		auto& names = Id2Names[raw_val];
-		if (names.size() == 0) { cat_dict[raw_val] = ""; continue; }
-		cat_dict[raw_val] = names[0];
-		for (int j = 1; j < names.size(); j++)
-			cat_dict[raw_val] += string("|") + names[j];
+	std::unordered_map<int, int> translation_dict;
+	std::vector<std::string> category;
+	category.push_back("Undefined Category");  // category[0] , (code 0) is undefined
+	for (size_t i = 0; i < arr_sz;i++) {
+		int raw_val = new_arr[i];
+		if (translation_dict.count(raw_val) == 0) {
+			do {
+				if (!Id2Names.count(raw_val)) {
+					translation_dict[raw_val] = 0;
+					break;
+				}
+				auto& names = Id2Names[raw_val];
+				if (names.size() == 0) { 
+					translation_dict[raw_val] = 0; 
+					break;
+				}
+				string cat_name = "";
+				cat_name = names[0];
+				for (int j = 1; j < names.size(); j++)
+					cat_name += string("|") + names[j];
+				category.push_back(cat_name);
+				translation_dict[raw_val] = category.size() - 1;
+			} while (0);
+		}
+		new_arr[i] = translation_dict[raw_val];
 	}
-	categories[field_name] = cat_dict;
+	if (arr_npytype != (int)MED_NPY_TYPES::NPY_INT) {
+		free(data_column[key_index]);
+		data_column[key_index] = new_arr;
+		data_column_nptype[key_index] = (int)MED_NPY_TYPES::NPY_INT;
+	}
+
+	categories[field_name] = category;
 };
 
 void MPSigExporter::get_all_data() {

@@ -54,8 +54,8 @@ std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, c
 	return lut_bvec;
 }
 
-MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids) {
-	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids);
+MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag) {
+	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids, translate_flag);
 }
 
 // ****************************** MPSig      *********************************
