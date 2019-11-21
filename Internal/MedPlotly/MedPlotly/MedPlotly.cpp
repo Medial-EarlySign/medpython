@@ -542,8 +542,8 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	int null_zeros = (pi.null_zeros < 0) ? params.null_zeros_default : pi.null_zeros;
 	int log_scale = (pi.log_scale < 0) ? params.log_scale_default : pi.log_scale;
 
-	vector<string> titles = pi.sigs;
-	vector<int> series_sz(pi.sigs.size());
+	vector<string> titles;
+	vector<int> series_sz;
 
 	// div_name
 	string div_name = "div";
@@ -559,8 +559,9 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	int cnt = 0;
 	int tot_len = 0;
 	string shtml_sets;
-	int n_yaxis = (int)pi.sigs.size();
+	//int n_yaxis = (int)pi.sigs.size();
 	vector<float> vmin(pi.sigs.size()), vmax(pi.sigs.size());
+	int ser_num = 0;
 	for (int i = 0; i < pi.sigs.size(); i++) {
 		rec.uget(pi.sigs[i], usv);
 		//MLOG("Read sig %s, got %d elements in usv\n", pi.sigs[i].c_str(), usv.len);
@@ -569,13 +570,23 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 			time_chan = params.sig_params[pi.sigs[i]].time_chan;
 
 		tot_len += usv.len;
-		for (int chan = 0; chan < usv.n_val_channels(); chan++) {
-			add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), i + 1, pi.sigs[i]);
-		}
-		get_usv_min_max(usv, vmin[i], vmax[i]);
-		series_sz[i] = usv.len;
-	}
+		if (usv.len > 0) {
+			for (int chan = 0; chan < usv.n_val_channels(); chan++) {
+				string tit_name = pi.sigs[i];
+				//if (usv.n_val_channels() > 1)
+				//	tit_name += "_ch_" + to_string(chan);
+				add_dataset_js(shtml_sets, usv, time_chan, chan, null_zeros, "\t\t", "set" + to_string((++cnt)), ser_num + 1, tit_name);
+				//add to title channel + series_sz:
 
+			}
+			titles.push_back(pi.sigs[i]);
+			series_sz.push_back(usv.len);
+			++ser_num;
+			get_usv_min_max(usv, vmin[i], vmax[i]);
+		}
+	}
+	int max_sigs_data = ser_num;
+	int n_yaxis = ser_num;
 	if (tot_len == 0) return 0;
 
 	if (pi.drugs.size() > 0) {
@@ -593,6 +604,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 				vmax.push_back(0);
 				titles.push_back(pi.drugs[i]);
 				series_sz.push_back((int)xdates.size());
+				++ser_num;
 			}
 		}
 
@@ -615,8 +627,8 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 	// deal with multiple yaxis
 	// deal with multiple yaxis
 	int show_y_axes = 0;
-	for (int i = 0; i < n_yaxis; i++) {
-		bool need_to_show = series_sz[i] > 0;
+	for (int i = 0; i < ser_num; i++) {
+		bool need_to_show = series_sz[i] > 0 && i < max_sigs_data;
 		if (need_to_show) {
 			if (show_y_axes == 0)
 				shtml += "\t\t\tyaxis" + to_string(i + 1) + ": {title: '" + titles[i] + "', showline: false";
