@@ -128,12 +128,13 @@ ___fix_vecmap_iter()
 """
 External Methods in addition to api
 """
-def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True):
+def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True):
     """get_sig(signame [, translate=True][, pids=None, float32to64=True]) -> Pandas DataFrame
          translate : If True, will decode categorical fields into a readable representation in Pandas
          pid : If list is provided, will load only pids from the given list
                If 'All' is provided, will use all available pids
          float32to64 : If True, will convert all float32 columns to float64
+         free_signal : If True, will free signal memory as soon as it is loaded into export arrays
     """
     import pandas as pd
     import numpy as np
@@ -142,7 +143,7 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
       use_all_pids = 1
       pids=list()
     if pids is None: pids=list()
-    df = self.export_to_numpy(sig_name_str, pids, use_all_pids, int(translate))
+    df = self.export_to_numpy(sig_name_str, pids, use_all_pids, int(translate), int(free_signal))
     cat_dict = dict()
     if translate:
       for fld in df.get_categorical_fields():
