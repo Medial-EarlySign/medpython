@@ -729,6 +729,8 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 	vector<int> days;
 	vector<float> days_cnt;
 	vector<string> hovertext;
+	vector<string> xdates_flat;
+	vector<string> ylabels_flat;
 
 	UniversalSigVec usv;
 	rec.uget("RC", usv);
@@ -742,6 +744,7 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 		int i_date = usv.Time(i, 0);
 		int i_val = (int)usv.Val(i, 0);
 		int d = med_time_converter.convert_date(MedTime::Days, i_date);
+		xdates_flat.push_back(date_to_string(i_date));
 		if (d != curr_date) {
 			days.push_back(d); days_cnt.push_back(0);
 			xdates.push_back(date_to_string(i_date));
@@ -779,13 +782,14 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 			}
 		replace(curr_text.begin(), curr_text.end(), '\"', '@');
 		replace(curr_text.begin(), curr_text.end(), '\'', '@');
+		ylabels_flat.push_back(curr_text);
 
 		if (hovertext.back() != "") hovertext.back() += "<br>";
 		hovertext.back() += curr_text;
 	}
 
 	// prep x , y, text arrays
-	string ax, ay, atext;
+	string ax, ay, atext, ax_flat = "", ay_flat = "";
 	float ymax = 0, ymin = 9999999;
 	for (int i = 0; i < xdates.size(); i++) {
 		ax += xdates[i];
@@ -801,6 +805,15 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 		}
 		//MLOG("i %d :: days %d,%d :: xdate %s :: yval %d :: %s\n", i, days[i], days_cnt[i], xdates[i].c_str(), yvals[i], hovertext[i].c_str());
 	}
+	for (int i = 0; i < xdates_flat.size(); ++i)
+	{
+		ax_flat += xdates_flat[i];
+		ay_flat += "\"" + ylabels_flat[i] + "\"";
+		if (i < xdates_flat.size() - 1) {
+			ax_flat += ",";
+			ay_flat += ",";
+		}
+	}
 
 	// write RC div
 	// div_name
@@ -812,24 +825,24 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 	if (block_mode) shtml += "display: inline-block;";
 	shtml += "\"></div>\n";
 	shtml += "\t<script>\n";
-
-	shtml += "\t\tvar set1 = {\n";
-	shtml += "\t\t\tx: [" + ax + "],\n";
-	shtml += "\t\t\ty: [" + ay + "],\n";
-	shtml += "\t\t\ttext: [" + atext + "],\n";
-	shtml += "\t\t\tyaxis: 'y1',\n";
-	shtml += "\t\t\ttype: 'scatter',\n";
-	shtml += "\t\t\tname: 'ReadCodes',\n";
-	shtml += "\t\t\tmode: 'lines+markers',\n";
-	shtml += "\t\t\tline: {shape: 'spline', width: 2, smoothing: 0.75},\n";
-	shtml += "\t\t\thoverinfo: 'x+text'\n";
-	shtml += "\t\t};\n";
+	shtml += "\t\tvar x_data= [" + ax_flat + "];\n";
+	shtml += "\t\tvar y_labels= [" + ay_flat + "];\n";
+	shtml += "\t\tvar uniq_vals = Array.from(new Set(y_labels));\n\n";
+	shtml += "function makeTrace(i) {\n";
+	shtml += "\t//search_val = uniq_vals[i];\n\tsearch_val = i;\n\tvar filt_x = [];\n";
+	shtml += "\tvar filt_y = [];\n\tvar ii;\n\tfor (ii = 0; ii < x_data.length; ii++) {\n";
+	shtml += "\t\tif (y_labels[ii] == search_val) {\n\t\t\tfilt_x.push(x_data[ii]);\n";
+	shtml += "\t\t\tfilt_y.push(y_labels[ii]);\n\t\t}\n\t}\n\t\n    return {\n\t\ty: filt_y,\n\t\tx: filt_x,\n";
+	shtml += "        line: { \n            shape: 'spline' \n           //, color: 'red'\n";
+	shtml += "        }\n\t\t,visible: true\n\t\t,name : search_val\n\n    };\n";
+	shtml += "}\n\t\n\t\tvar all_graphs = uniq_vals.map(makeTrace);\n";
 
 	shtml += "\t\tvar layout ={\n";
 	shtml += "\t\t\ttitle: 'ReadCodes',\n";
-	shtml += "\t\t\tyaxis: {autorange: true},\n";
+	shtml += "\t\t\tyaxis: {autorange: true, showticklabels: false},\n";
+	shtml += "\t\t\tshowlegend: true\n";
 	if (times.size() > 0) {
-		shtml += "\t\t\tshapes: [";
+		shtml += "\t\t\t,shapes: [";
 		for (auto &t : times) {
 			shtml += "{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(ymin);
 			shtml += ", x1: " + date_to_string(t.time) + ", y1: " + to_string(ymax);
@@ -842,10 +855,20 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 
 	//if (time > 0) shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(time) + ", y0: " + to_string(ymin) + ", x1: " + date_to_string(time) + ", y1: " + to_string(ymax) + "}]\n";
 	shtml += "\t\t};\n";
+	shtml += "function update_graph() {\n\t\t\t//leave only visible in all_graphs\n";
+	shtml += "\t\t\tvar search_txt = document.getElementById('search_text').value;\n\n";
+	shtml += "\tvar sel_graphs = [];\n\tfor (i = 0; i < uniq_vals.length; i++) {\n";
+	shtml += "\t\tif (uniq_vals[i].match(search_txt) != null) {\n";
+	shtml += "\t\t\tsel_graphs.push(all_graphs[i]);\n\t\t}\n\t}\n";
+	shtml += "\t\t\tPlotly.purge('" + div_name + "');\n";
+	shtml += "\t\t\tPlotly.newPlot('" + div_name + "', sel_graphs, layout);\n\t\t};";
 
-	shtml += "\t\tPlotly.plot('" + div_name + "', [set1], layout);\n";
+
+	shtml += "\t\tPlotly.plot('" + div_name + "', all_graphs, layout);\n";
 
 	shtml += "\t</script>\n";
+	shtml += "<label for=\"search_text\">search for</label>";
+	shtml += "\t<input type=\"text\" id=\"search_text\" name=\"search_text\" onchange=\"update_graph();\"></input>\n";
 
 }
 
