@@ -45,6 +45,9 @@ public:
 		transfer_column(key, outarr1, outarr1_sz, outarr1_npytype);
 	};
 	MPSigExporter_iter __iter__();
+/*	int __len__() {
+		return (int)data_column.size();
+	}*/
 	
 	std::vector<std::string> get_categorical_field_dict(const std::string& field)
 	{

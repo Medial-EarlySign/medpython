@@ -122,7 +122,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 		data_column_nptype[key_index] = (int)MED_NPY_TYPES::NPY_INT;
 	}
 
-	categories[field_name] = category;
+	categories[field_name].swap(category);
 };
 
 void MPSigExporter::get_all_data() {
