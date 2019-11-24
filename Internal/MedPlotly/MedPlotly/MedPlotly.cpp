@@ -385,11 +385,15 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdat
 }
 
 //----------------------------------------------------------------------------------------
-string MedPatientPlotlyDate::date_to_string(int date)
+string MedPatientPlotlyDate::date_to_string(int date, bool fix_days_valid)
 {
 	int y = date / 10000;
 	int m = (date % 10000) / 100;
 	int d = date % 100;
+	if (fix_days_valid && d == 0)
+		d = 1;
+	if (fix_days_valid && m == 0)
+		m = 1;
 
 	string s = "'" + to_string(y) + "-" + to_string(m) + "-" + to_string(d) + "'";
 	return s;
@@ -701,68 +705,33 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
-void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times)
+void MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
+	const vector<ChartTimeSign> &times, const string &sig_name, string &div_name)
 {
-	//int pid = rec.pid;
-	//int time_chan = 0;
 	int pwidth = 1200; //vm["pwidth"].as<int>();
 	int pheight = 600; //vm["pheight"].as<int>();
 	int block_mode = 0; //vm["block_mode"].as<int>();
-	int rc_acc_days = 60;
-	unordered_map<string, double> code2wgt = { { "0", 0.1 },{ "1", 0.1 },{ "2", 0.1 },{ "3", 0.1 },{ "4", 0.1 },{ "5", 0.5 },{ "6", 0.1 },{ "7", 1.0 },{ "8", 0.1 },{ "9", 0.1 },
-	{ "A", 2.0 },{ "B", 5.0 },{ "C", 2.5 },{ "D", 1.5 },{ "E", 1.5 },{ "F", 2.0 },{ "G", 3.0 },{ "H", 3.0 },{ "J", 2.0 },{ "K", 1.0 },
-	{ "L", 2.5 },{ "M", 0.8 },{ "N", 1.0 },{ "P", 1.0 },{ "Q", 2.0 },{ "R", 0.9 },{ "S", 1.0 },{ "T", 1.0 },{ "U", 2.0 },{ "Z", 0.1 }
-	};
-	double p_decay = 0.5, q_decay = 0.2;
-	double alpha;
 
-	alpha = -log(q_decay / p_decay) / (double)rc_acc_days;
 
-	if (rec.my_base_rep()->sigs.sid("RC") <= 0)
+	if (rec.my_base_rep()->sigs.sid(sig_name) <= 0)
 		return; // NO RC signal, nothing to do, maybe not THIN??
 
 	// plan:
 	// calculate some accumulator in a time window and add a point of (x=time,y=accumulator,text=drugs in day x)
 
-	vector<string> xdates;
-	vector<float> yvals;
-	vector<int> days;
-	vector<float> days_cnt;
-	vector<string> hovertext;
 	vector<string> xdates_flat;
 	vector<string> ylabels_flat;
 
 	UniversalSigVec usv;
-	rec.uget("RC", usv);
+	rec.uget(sig_name, usv);
 
 	if (usv.len == 0) return; // nothing to do - 0 RC records.
 
-	int curr_date = 0;
-	//int curr_days = 0;
-	int section_id = rec.my_base_rep()->dict.section_id("RC");
+	int section_id = rec.my_base_rep()->dict.section_id(sig_name);
 	for (int i = 0; i < usv.len; i++) {
 		int i_date = usv.Time(i, 0);
 		int i_val = (int)usv.Val(i, 0);
-		int d = med_time_converter.convert_date(MedTime::Days, i_date);
-		xdates_flat.push_back(date_to_string(i_date));
-		if (d != curr_date) {
-			days.push_back(d); days_cnt.push_back(0);
-			xdates.push_back(date_to_string(i_date));
-			float y = 0;
-			int j = (int)days_cnt.size() - 1;
-			while (j >= 0) {
-				int ddays = d - days[j];
-				if (ddays > rc_acc_days) break;
-				double factor = p_decay * exp(-alpha * (double)ddays);
-				y += (float)factor*days_cnt[j];
-				j--;
-			}
-			yvals.push_back(y);
-			hovertext.push_back("");
-		}
-		curr_date = d;
-		//days_cnt.back()++;
-		//yvals.back()++;
+		xdates_flat.push_back(date_to_string(i_date, true));
 
 		// recover curr text
 		string curr_text = "";
@@ -770,41 +739,18 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 			for (int j = 0; j < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); j++) {
 				string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][j];
 				string scode = sname.substr(0, 1);
-
-				curr_text += "|" + sname;
-
-				if (j == 0) { // assumes the first name is the READCODE !!!!!!!!
-					float wgt = (float)code2wgt[scode];
-					days_cnt.back() += wgt;
-					yvals.back() += wgt;
-					//MLOG("date %d sname= %s :: scode = %s :: weight = %f :: acc %f\n", i_date, sname.c_str(), scode.c_str(), code2wgt[scode], days_cnt.back());
-				}
+				if (!curr_text.empty())
+					curr_text += "|";
+				curr_text += sname;
 			}
 		replace(curr_text.begin(), curr_text.end(), '\"', '@');
 		replace(curr_text.begin(), curr_text.end(), '\'', '@');
 		ylabels_flat.push_back(curr_text);
 
-		if (hovertext.back() != "") hovertext.back() += "<br>";
-		hovertext.back() += curr_text;
 	}
 
 	// prep x , y, text arrays
-	string ax, ay, atext, ax_flat = "", ay_flat = "";
-	float ymax = 0, ymin = 9999999;
-	for (int i = 0; i < xdates.size(); i++) {
-		ax += xdates[i];
-		ay += to_string(yvals[i]);
-		atext += "\"" + hovertext[i] + "\"";
-		if (yvals[i] > ymax) ymax = yvals[i];
-		if (yvals[i] < ymin) ymin = yvals[i];
-		//atext += "\"TTT" + to_string(i) + "\"";
-		if (i < xdates.size() - 1) {
-			ax += ",";
-			ay += ",";
-			atext += ",";
-		}
-		//MLOG("i %d :: days %d,%d :: xdate %s :: yval %d :: %s\n", i, days[i], days_cnt[i], xdates[i].c_str(), yvals[i], hovertext[i].c_str());
-	}
+	string ax_flat = "", ay_flat = "";
 	for (int i = 0; i < xdates_flat.size(); ++i)
 	{
 		ax_flat += xdates_flat[i];
@@ -817,13 +763,16 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 
 	// write RC div
 	// div_name
-	string div_name = "div_RC_";
-	div_name += to_string(rand_N(10000));
+	if (div_name.empty()) {
+		div_name = "div_" + sig_name + "_";
+		div_name += to_string(rand_N(10000));
+	}
 
 	//<div id="chart" style="width:1200px;height:500px;"></div>
 	shtml += "\t<div id=\"" + div_name + "\" style=\"width:" + to_string(pwidth) + "px;height:" + to_string(pheight) + "px;";
 	if (block_mode) shtml += "display: inline-block;";
 	shtml += "\"></div>\n";
+
 	shtml += "\t<script>\n";
 	shtml += "\t\tvar x_data= [" + ax_flat + "];\n";
 	shtml += "\t\tvar y_labels= [" + ay_flat + "];\n";
@@ -838,14 +787,14 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 	shtml += "}\n\t\n\t\tvar all_graphs = uniq_vals.map(makeTrace);\n";
 
 	shtml += "\t\tvar layout ={\n";
-	shtml += "\t\t\ttitle: 'ReadCodes',\n";
+	shtml += "\t\t\ttitle: '" + sig_name + "',\n";
 	shtml += "\t\t\tyaxis: {autorange: true, showticklabels: false},\n";
 	shtml += "\t\t\tshowlegend: true\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\t,shapes: [";
 		for (auto &t : times) {
-			shtml += "{type: 'line', x0: " + date_to_string(t.time) + ", y0: " + to_string(ymin);
-			shtml += ", x1: " + date_to_string(t.time) + ", y1: " + to_string(ymax);
+			shtml += "{type: 'line', yref:\"paper\", x0: " + date_to_string(t.time) + ", ";
+			shtml += "y0: 0, x1: " + date_to_string(t.time) + ", y1: 1";
 			string color = t.color; //"'black'";
 			shtml += ", line: { color: " + color + "} },";
 		}
@@ -853,28 +802,52 @@ void MedPatientPlotlyDate::add_thin_rc_chart(string &shtml, PidDataRec &rec, con
 
 	}
 
-	//if (time > 0) shtml += "\t\t\tshapes: [{type: 'line', x0: " + date_to_string(time) + ", y0: " + to_string(ymin) + ", x1: " + date_to_string(time) + ", y1: " + to_string(ymax) + "}]\n";
 	shtml += "\t\t};\n";
-	shtml += "function update_graph() {\n\t\t\t//leave only visible in all_graphs\n";
-	shtml += "\t\t\tvar search_txt = document.getElementById('search_text').value;\n\n";
-	shtml += "\tvar sel_graphs = [];\n\tfor (i = 0; i < uniq_vals.length; i++) {\n";
-	shtml += "\t\tif (uniq_vals[i].match(search_txt) != null) {\n";
-	shtml += "\t\t\tsel_graphs.push(all_graphs[i]);\n\t\t}\n\t}\n";
-	shtml += "\t\t\tPlotly.purge('" + div_name + "');\n";
-	shtml += "\t\t\tPlotly.newPlot('" + div_name + "', sel_graphs, layout);\n\t\t};";
-
-
 	shtml += "\t\tPlotly.plot('" + div_name + "', all_graphs, layout);\n";
 
 	shtml += "\t</script>\n";
-	shtml += "<label for=\"search_text\">search for</label>";
-	shtml += "\t<input type=\"text\" id=\"search_text\" name=\"search_text\" onchange=\"update_graph();\"></input>\n";
-
 }
 
+void MedPatientPlotlyDate::add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table) {
+	shtml += "<script>\n";
+	shtml += "\tfunction update_graph() {\n\t\t//leave only visible in all_graphs\n";
+	shtml += "\t\tvar search_txt = document.getElementById('search_text').value;\n\n";
+	shtml += "\t\tvar reg_opt = document.getElementById('case_sens');\n";
+	shtml += "\t\tvar reg_flg = reg_opt.options[reg_opt.selectedIndex].value;\n";
+	shtml += "\t\tvar flgs = '';\n\t\t\tif (reg_flg =='1') {\n";
+	shtml += "\t\t\tflgs ='i';\n\t\t}\n";
+	shtml += "\t\tvar sel_graphs = [];\n\t\tfor (i = 0; i < uniq_vals.length; i++) {\n";
+	shtml += "\t\t\tif (uniq_vals[i].match(new RegExp(search_txt, flgs)) != null) {\n";
+	shtml += "\t\t\t\tsel_graphs.push(all_graphs[i]);\n\t\t}\n\t}\n";
+	shtml += "\t\tvar xdata =[];\n\t\tvar ydata =[];\n";
+	shtml += "\t\tfor (i = 0; i < x_data.length; i++) {\n";
+	shtml += "\t\t\tif (y_labels[i].match(new RegExp(search_txt, flgs)) != null) {\n";
+	shtml += "\t\t\t\txdata.push(x_data[i]);\n\t\t\t\tydata.push(y_labels[i]);\n\t\t\t}\n\t\t}\n";
+	shtml += "\t\tvar sel_table_data = [ xdata, ydata];\n";
+	shtml += "\t\tvar table_data = [{\n\t\t\ttype: 'table', columnwidth: [100,1100], \n";
+	shtml += "\t\t\theader: {\n\t\t\t\tvalues: [[\"<b>(Time, 0) </b> \"],[\"<b>RC(0) </b> \"]],\n";
+	shtml += "\t\t\t\talign: \"left\", line: {width: 1, color : 'black'}, \n";
+	shtml += "\t\t\t\tfill : {color: \"blue\"}, \n\t\t\t\tfont : {family: \"Arial\",";
+	shtml += " size : 12, color : \"white\"}\n\t\t\t},\n\t\t\tcells: { \n";
+	shtml += "\t\t\t\tvalues: sel_table_data, \n\t\t\t\talign : \"left\", \n";
+	shtml += "\t\t\t\tline : {color: \"black\", width : 1},\t\n";
+	shtml += "\t\t\t\tfont : {family: \"Arial\", size : 11, color : [\"black\"]}} \n\t\t}];\n";
+	shtml += "\t\tPlotly.purge('" + div_chart + "');\n";
+	shtml += "\t\tPlotly.newPlot('" + div_chart + "', sel_graphs, layout);\n";
+	shtml += "\t\tPlotly.purge('" + div_table + "');\n";
+	shtml += "\t\tPlotly.newPlot('" + div_table + "', table_data);\n\t};\n";
+	shtml += "</script>\n";
+
+	shtml += "\t<label for=\"search_text\">search for " + sig_name + "</label>\n";
+	shtml += "\t<input type=\"text\" id=\"search_text\" name=\"search_text\" onchange=\"update_graph();\"></input>\n";
+	shtml += "\t<select id=\"case_sens\" onchange=\"update_graph();\">\n";
+	shtml += "\t\t<option value=\"0\">Case Sensitive</option>\n";
+	shtml += "\t\t<option value=\"1\">Case Insensitive</option>\n\t</select>\n";
+}
 
 //-------------------------------------------------------------------------------------------------------------------------------
-void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times)
+void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidDataRec &rec,
+	const vector<ChartTimeSign> &times, string &div_name)
 {
 	//int pid = rec.pid;
 	//int time_chan = 0;
@@ -942,7 +915,9 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 					for (int n = 0; n < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); n++) {
 						string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][n];
 						if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
-						curr_text += " | " + sname;
+						if (!curr_text.empty())
+							curr_text += "|";
+						curr_text += sname;
 					}
 				replace(curr_text.begin(), curr_text.end(), '\"', '@');
 				replace(curr_text.begin(), curr_text.end(), '\'', '@');
@@ -962,8 +937,10 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 
 	// write RC div
 	// div_name
-	string div_name = "div_" + sig + "_";
-	div_name += to_string(rand_N(10000));
+	if (div_name.empty()) {
+		div_name = "div_" + sig + "_";
+		div_name += to_string(rand_N(10000));
+	}
 
 
 	//<div id="chart" style="width:1200px;height:500px;"></div>
@@ -1010,8 +987,6 @@ void MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 	shtml += "\t\tPlotly.plot('" + div_name + "', table_data);\n";
 
 	shtml += "\t</script>\n";
-
-	//MLOG("shtml : %s\n", shtml.c_str());
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
@@ -1112,9 +1087,6 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 			// add a panel
 			add_panel_chart(shtml, lvp, rec, params.panels[v], local_sign_times);
 		}
-		else if (v == "RC") {
-			add_thin_rc_chart(shtml, rec, local_sign_times);
-		}
 		else if (rec.my_base_rep()->sigs.sid(v) > 0 && is_categorial == 0) {
 			// add a signal (as a simple panel)
 			int null_zeros = -1;
@@ -1133,7 +1105,11 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 
 
 		if (is_categorial) {
-			add_categorical_table(v, shtml, rec, local_sign_times);
+			string div_chart = "div_" + v + to_string(rand_N(10000));
+			string div_table = "div_" + v + to_string(rand_N(10000));
+			add_categorical_chart(shtml, rec, local_sign_times, v, div_chart);
+			add_search_box(shtml, v, div_chart, div_table); //put search boxin the middle
+			add_categorical_table(v, shtml, rec, local_sign_times, div_table);
 		}
 	}
 

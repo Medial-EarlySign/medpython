@@ -235,10 +235,12 @@ private:
 	int add_drugs_heatmap(string &shtml, PidDataRec &rec);
 
 	// THIN_RC report
-	void add_thin_rc_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times);
+	void add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, const string &sig_name, string &div_name);
+
+	void add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table);
 
 	// categorical signal , add as table
-	void add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times);
+	void add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, string &div_name);
 
 	// heatmap creation
 	void get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);
@@ -252,7 +254,7 @@ private:
 	void add_bg_dataset_js(string &shtml, vector<int> &dates, vector<float> &vals, int null_zeros_flag, string color, string prefix, string sname, int yaxis, string name);
 
 	// helpers
-	string  date_to_string(int date);
+	string  date_to_string(int date, bool fix_days_valid = false);
 	string	time_to_string(int time, int time_unit);
 	string	time_to_string(int time) { return time_to_string(time, params.rep_time_unit); }
 	void get_usv_min_max(UniversalSigVec &usv, float &vmin, float &vmax);
