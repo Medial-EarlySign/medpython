@@ -235,12 +235,12 @@ private:
 	int add_drugs_heatmap(string &shtml, PidDataRec &rec);
 
 	// THIN_RC report
-	void add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, const string &sig_name, string &div_name);
+	bool add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, const string &sig_name, string &div_name);
 
 	void add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table);
 
 	// categorical signal , add as table
-	void add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, string &div_name);
+	bool add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, string &div_name);
 
 	// heatmap creation
 	void get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdates, vector<string> &_sets_names, vector<vector<float>> &_hmap, const vector<string> &drugs);
