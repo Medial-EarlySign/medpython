@@ -1491,7 +1491,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, num_val_channels, factor_channel)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
