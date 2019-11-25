@@ -819,6 +819,7 @@ public:
 	string bootstrap_params = "sample_per_pid:1"; ///< parameters for bootstrapping ('/' separaters)
 	string msr_params = "AUC"; ///< measurements parameters for bootstrap performance evaluation
 	bool work_on_sets = false; ///< work on sets of features according to signals
+	bool group_to_sigs = false; ///< If true will group ungroupd_names to signals
 	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
 	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
