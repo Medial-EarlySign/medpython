@@ -635,8 +635,8 @@ inline void *MedRepository::uget(int pid, int sid, UniversalSigVec_legacy &usv)
 
 inline void *MedRepository::uget(int pid, int sid, GenericSigVec &gsv)
 {
-	if (gsv.struct_size == 0)
-		gsv.init(sigs.Sid2Info[sid]);
+	gsv.init(sigs.Sid2Info[sid]);
+	
 	gsv.data = (char*)get(pid, sid, gsv.len);
 	return gsv.data;
 }

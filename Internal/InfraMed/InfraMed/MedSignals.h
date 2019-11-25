@@ -951,7 +951,8 @@ public:
 
 	size_t size() const { return struct_size; }
 
-	void init(const SignalInfo &info) { 
+	void init(const SignalInfo &info) {
+		if (sid == info.sid) return;
 		_time_unit = info.time_unit; 
 		time_channel_offsets = info.time_channel_offsets;
 		val_channel_offsets = info.val_channel_offsets;
@@ -961,6 +962,8 @@ public:
 		struct_size = info.bytes_len;
 		n_time = info.n_time_channels;
 		n_val = info.n_val_channels;
+
+		sid = info.sid;
 	}
 
 	int struct_size;
@@ -972,17 +975,20 @@ public:
 	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> time_channel_types;
 	std::array<unsigned char, GENERIC_SIG_VEC_MAX_CHANNELS> val_channel_types;
 
+	int sid;
+
 	void set_data(void* _data, int _len) {
 		data = _data;
 		len = _len;
 	}
-	GenericSigVec() : data(nullptr), len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
+	GenericSigVec() : data(nullptr), sid(-1) ,len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
 	GenericSigVec(const string& signalSpec, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_spec(signalSpec); }
 	GenericSigVec(SigType sigtype, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_sigtype(sigtype); }
 	GenericSigVec(const GenericSigVec& other) { *this = other; }
 
 	void copy_signal_metadata(const GenericSigVec& other) {
 		struct_size = other.struct_size;
+		sid = other.sid;
 		n_time = other.n_time;
 		n_val = other.n_val;
 		_time_unit = other._time_unit;
