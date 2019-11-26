@@ -2206,6 +2206,10 @@ void merge_down(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_t
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
 
 	//insert new union
+	if (size_to_ind.size() <= new_size) {
+		//MWARN("Warn - size_to_ind reach end\n");
+		size_to_ind.resize(new_size + 1);
+	}
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
 void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_ind, set<int> &sizes,
@@ -2234,6 +2238,10 @@ void merge_up(vector<int> &ind_to_size, vector<vector<pair<int, int>>> &size_to_
 	size_to_ind[to_merge_size].erase(size_to_ind[to_merge_size].begin() + erase_index);
 
 	//insert new union set:
+	if (size_to_ind.size() <= new_size) {
+		//MWARN("Warn - size_to_ind reach end\n");
+		size_to_ind.resize(new_size + 1);
+	}
 	size_to_ind[new_size].push_back(pair<int, int>(first_pos, second_pos));
 }
 
