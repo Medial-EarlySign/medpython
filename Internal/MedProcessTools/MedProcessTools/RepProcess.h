@@ -1366,6 +1366,9 @@ public:
 	int init(map<string, string>& mapper);
 	void init_lists();
 
+	void post_deserialization();
+
+
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
