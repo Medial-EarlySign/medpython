@@ -82,7 +82,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
-	MWARN("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
+	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -121,9 +121,9 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new OneHotFeatProcessor;
 	else if (processor_type == FTR_PROCESS_GET_PROB)
 		return new GetProbFeatProcessor;
-	else
-		return NULL;
-
+	else 
+		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
+	
 }
 
 //.......................................................................................
