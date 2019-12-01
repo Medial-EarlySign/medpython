@@ -364,9 +364,9 @@ void IterativeFeatureSelector::retraceBottom2TopSelection(MedFeatures& features,
 		selectedFamilies.insert(order[i]);
 
 	// From start to end
-	for (int i=start; i<=end; i++) {
+	for (int i = start; i <= end; i++) {
 		selectedFamilies.insert(order[i]);
-		
+
 		// names
 		vector<string> selectedFeatures;
 		for (string ftr : resolved_required)
@@ -545,10 +545,27 @@ void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<
 
 				if (fields.size() == 1)
 					featureFamilies[name] = { name };
-				else if (ungroupd_names.find(fields[1]) != ungroupd_names.end())
-					featureFamilies[fields[1] + "." + fields[2]].push_back(name);
-				else
-					featureFamilies[fields[1]].push_back(name);
+				else {
+					if (ungroupd_names.find(fields[0]) == ungroupd_names.end() &&
+						(fields.size() < 2 || ungroupd_names.find(fields[1]) == ungroupd_names.end())) {
+						//no grouping sig
+						featureFamilies[fields[1]].push_back(name);
+					}
+					else {
+						int ind = -1;
+						if (ungroupd_names.find(fields[0]) != ungroupd_names.end())
+							ind = 0;
+						else if (fields.size() > 2 && ungroupd_names.find(fields[1]) != ungroupd_names.end())
+							ind = 1;
+						if (ind == -1)
+							MTHROW_AND_ERR("Error - Bug. invalid state:IterativeFeatureSelector::get_features_families \n");
+
+						if (!group_to_sigs)
+							featureFamilies[fields[ind] + "." + fields[ind + 1]].push_back(name);
+						else
+							featureFamilies[fields[ind]].push_back(name);
+					}
+				}
 			}
 		}
 	}

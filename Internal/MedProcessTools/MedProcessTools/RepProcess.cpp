@@ -2548,6 +2548,8 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		calculator_logic->missing_value = missing_value;
 	}
 	calculator_logic->init_tables(dict, sigs, signals);
+	vector<pair<string, string>> default_virtual_signals;
+	calculator_logic->list_output_signals(signals, default_virtual_signals); //init calculator
 	pass_time_last = calculator_logic->need_time;
 }
 

@@ -868,13 +868,13 @@ void MedSamples::export_to_sample_vec(vector<MedSample> &vec_samples) const
 
 // Create a MedSamples object from a vector of MedSample
 //.......................................................................................
-void MedSamples::import_from_sample_vec(vector<MedSample> &vec_samples, bool allow_split_inconsistency) {
+void MedSamples::import_from_sample_vec(const vector<MedSample> &vec_samples, bool allow_split_inconsistency) {
 
 	idSamples.clear();
 	map<int, int> id2idx;
 	map<int, int> id2split;
 
-	for (MedSample& sample : vec_samples) {
+	for (const MedSample& sample : vec_samples) {
 		if (id2idx.find(sample.id) == id2idx.end()) {
 			id2idx[sample.id] = (int)idSamples.size();
 

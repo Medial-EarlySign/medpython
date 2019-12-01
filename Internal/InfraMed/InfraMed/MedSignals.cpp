@@ -273,27 +273,11 @@ int MedSignals::read(const string &fname)
 
 					if (type == T_Generic) {
 						if (generic_signal_types.count(generic_type_spec_or_alias))
-							info.generic_signal_spec = generic_signal_types.at(generic_type_spec_or_alias);
-						else info.generic_signal_spec = generic_type_spec_or_alias;
-						GenericSigVec gsv(info.generic_signal_spec);
-						info.bytes_len = (int)gsv.size();
-						info.time_channel_offsets = gsv.time_channel_offsets;
-						info.val_channel_offsets = gsv.val_channel_offsets;
-						info.time_channel_types = gsv.time_channel_types;
-						info.val_channel_types = gsv.val_channel_types;
-						MedRep::get_type_channels(info.generic_signal_spec, info.time_unit, info.n_time_channels, info.n_val_channels);
+							info.set_gsv_spec(generic_signal_types.at(generic_type_spec_or_alias));
+						else info.set_gsv_spec(generic_type_spec_or_alias);
 					}
 					else
-					{
-						info.generic_signal_spec = GenericSigVec::get_type_generic_spec((SigType)type);
-						GenericSigVec gsv(info.generic_signal_spec);
-						info.bytes_len = MedRep::get_type_size((SigType)type);
-						info.time_channel_offsets = gsv.time_channel_offsets;
-						info.val_channel_offsets = gsv.val_channel_offsets;
-						info.time_channel_types = gsv.time_channel_types;
-						info.val_channel_types = gsv.val_channel_types;
-						MedRep::get_type_channels((SigType)type, info.time_unit, info.n_time_channels, info.n_val_channels);
-					}
+						info.set_gsv_spec(GenericSigVec::get_type_generic_spec((SigType)type));
 
 					if (fields.size() == 4)
 						info.description = "";
@@ -523,7 +507,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 	info.bytes_len = MedRep::get_type_size((SigType)type);
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
-	info.generic_signal_spec = GenericSigVec::get_type_generic_spec((SigType)type);
+	info.set_gsv_spec(GenericSigVec::get_type_generic_spec((SigType)type));
 	if (my_repo != NULL)
 		info.time_unit = my_repo->time_unit;
 	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
@@ -552,16 +536,13 @@ int MedSignals::insert_virtual_signal(const string &sig_name, const string& sign
 	info.sid = new_sid;
 	info.name = sig_name;
 	info.type = T_Generic;
-	info.generic_signal_spec = signalSpec;
-
-	info.bytes_len = (int)GenericSigVec(info.generic_signal_spec).size();
+	info.set_gsv_spec(signalSpec);
 
 	info.description = "Virtual Signal";
 	info.virtual_sig = 1;
 	if (my_repo != NULL)
 		info.time_unit = my_repo->time_unit;
-	// default time_units and channels ATM, time_unit may be optional as a parameter in the sig file in the future.
-	MedRep::get_type_channels(signalSpec, info.time_unit, info.n_time_channels, info.n_val_channels);
+
 	if (new_sid >= Sid2Info.size()) {
 		SignalInfo si;
 		si.sid = -1;
@@ -781,6 +762,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 			cur_chan_offset = nullptr;
 			cur_chan_type = nullptr;
 			cur_chan_top = nullptr;
+			chan_is_signed = true;
 			break;
 		case '(':
 			if (prev_char != 'v' && prev_char != 'V' && prev_char != 't' && prev_char != 'T')
@@ -809,7 +791,7 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 		case 'V':
 			if (in_time_chan)
 				throw runtime_error(string("Expecting time chan at ") + to_string(i) + " in " + signalSpec);
-			in_time_chan = true;
+			in_val_chan = true;
 			cur_chan_offset = &val_channel_offsets[0];
 			cur_chan_type = &val_channel_types[0];
 			cur_chan_top = &n_val;
@@ -892,5 +874,15 @@ void GenericSigVec::init_from_spec(const string& signalSpec) {
 	}
 }
 
+void SignalInfo::set_gsv_spec(const string &gsv_spec_str) {
+	generic_signal_spec = gsv_spec_str;
+	GenericSigVec gsv(generic_signal_spec);
+	bytes_len = (int)gsv.size();
+	time_channel_offsets = gsv.time_channel_offsets;
+	val_channel_offsets = gsv.val_channel_offsets;
+	time_channel_types = gsv.time_channel_types;
+	val_channel_types = gsv.val_channel_types;
+	MedRep::get_type_channels(generic_signal_spec, time_unit, n_time_channels, n_val_channels);
+}
 
 

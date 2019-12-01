@@ -1082,6 +1082,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "bootstrap_params") bootstrap_params = entry.second;
 		else if (field == "verbose") verbose = med_stoi(entry.second) > 0;
 		else if (field == "work_on_sets") work_on_sets = med_stoi(entry.second) > 0;
+		else if (field == "group_to_sigs") group_to_sigs = med_stoi(entry.second) > 0;
 		else if (field == "numToSelect") numToSelect = stoi(entry.second);
 		else if (field == "required") boost::split(required, entry.second, boost::is_any_of(","));
 		else if (field == "ignored") boost::split(ignored, entry.second, boost::is_any_of(","));
@@ -1132,6 +1133,12 @@ void IterativeFeatureSelector::pre_learn(MedFeatures& features, MedBootstrapResu
 
 	// Divide features into families based on signals
 	get_features_families(features, featureFamilies);
+	if (verbose) {
+		//print families:
+		for (const auto &it : featureFamilies)
+			MLOG("%s(%zu) :=> [%s]\n", it.first.c_str(), it.second.size(),
+				medial::io::get_list(it.second).c_str());
+	}
 
 	// Collect original splits
 	for (int i = 0; i < nSamples; i++)

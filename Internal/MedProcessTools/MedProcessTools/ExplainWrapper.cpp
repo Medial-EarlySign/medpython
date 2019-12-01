@@ -461,11 +461,11 @@ void ModelExplainer::dprint(const string &pref) const {
 		predictor_nm = original_predictor->my_class_name();
 	string filters_str = "", processing_str = "";
 	char buffer[5000];
-	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s", 
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
 		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
 		, processing.zero_missing, processing.grouping.c_str());
 	processing_str = string(buffer);
-	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f", 
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, attr_name=%s, processing={%s}, filters={%s}\n",
@@ -870,9 +870,10 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
+	int nftrs_grp = (int)processing.group2Inds.size();
 	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
 	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
-	vector<int> missing_hist(nftrs + 1);
+	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
 
 	if (!train_mat.samples.front().prediction.empty())
 		for (size_t i = 0; i < labels.size(); ++i)
@@ -883,42 +884,56 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		original_predictor->predict(tt, labels);
 	}
 	if (add_new_data > 0) {
+		//processing.group2Inds.size()
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
 		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
 		double log_max_opts = log(add_new_data) / log(2.0);
-		if (log_max_opts >= nftrs) {
+		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
 				MWARN("Warning: you have request to sample masks without repeats, but it can't be done. setting sample with repeats\n");
 			sample_masks_with_repeats = true;
 		}
 		if (verbose_learn)
-			MLOG("Adding %d Data points\n", add_new_data);
+			MLOG("Adding %d Data points (has %d features with %d groups)\n", add_new_data, nftrs, nftrs_grp);
+		MedProgress add_progress("Add_Train_Data", add_new_data, 30, 1);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
 			//select row:
 			int row_sel = rnd_row(gen);
 
-			vector<bool> curr_mask; curr_mask.reserve(nftrs);
-			for (int j = 0; j < nftrs; ++j)
-				curr_mask.push_back(x_mat(row_sel, j) != missing_value);
+			vector<bool> curr_mask; curr_mask.resize(nftrs_grp);
+			for (int j = 0; j < nftrs_grp; ++j) {
+				bool has_missing = false;
+				for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+					has_missing = x_mat(row_sel, processing.group2Inds[j][k]) == missing_value;
+				curr_mask[j] = !has_missing;
+			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs, gen, uniform_rand, use_shuffle);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
 
 			//commit mask to curr_row
-			for (int j = 0; j < nftrs; ++j)
+			int msn_cnt = 0;
+			for (int j = 0; j < nftrs_grp; ++j)
 			{
-				if (curr_mask[j])
-					curr_row[j] = x_mat(row_sel, j);
-				else
-					curr_row[j] = missing_value;
+				if (curr_mask[j]) {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						curr_row[processing.group2Inds[j][k]] = x_mat(row_sel, processing.group2Inds[j][k]);
+				}
+				else {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						curr_row[processing.group2Inds[j][k]] = missing_value;
+				}
+				msn_cnt += int(!curr_mask[j]); //how many missings
 			}
 			labels.push_back(labels[row_sel]);
+			++added_grp_hist[msn_cnt];
+			add_progress.update();
 		}
 		x_mat.add_rows(rows_m);
 	}
@@ -927,6 +942,8 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
+		if (i >= train_mat.samples.size())
+			++added_missing_hist[miss_cnts[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
@@ -934,6 +951,9 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	}
 	if (verbose_learn) {
 		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
+		if (added_grp_hist.size() < 300)
+			medial::print::print_vec(added_grp_hist, "grp hist", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -946,7 +966,12 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		vector<float> train_p;
 		retrain_predictor->predict(x_mat, train_p);
 		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
-		MLOG("RMSE=%2.4f on train for model\n", rmse);
+		float mean_pred, std_labels;
+		medial::stats::get_mean_and_std_without_cleaning(labels, mean_pred, std_labels);
+		float r_square = MED_MAT_MISSING_VALUE;
+		if (std_labels > 0)
+			r_square = 1 - (rmse / std_labels);
+		MLOG("RMSE=%2.4f on train for model, R_Square=%2.3f\n", rmse, r_square);
 	}
 }
 
@@ -984,14 +1009,47 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	}
 	int N_TOTAL_TH = omp_get_max_threads();
 
+	bool outer_parallel = matrix.samples.size() >= N_TOTAL_TH;
 	MedProgress progress("MissingShapley", (int)matrix.samples.size(), 15);
-#pragma omp parallel for if (matrix.samples.size() >= N_TOTAL_TH)
+	//make thread safe create copy of predictor
+	vector<MedPredictor *> pred_threads(1);
+	vector<mt19937> gen_threads(1);
+	random_device rd;
+	if (outer_parallel) {
+		pred_threads.resize(N_TOTAL_TH);
+		gen_threads.resize(N_TOTAL_TH);
+		size_t sz_pred = predictor->get_size();
+		unsigned char *blob_pred = new unsigned char[sz_pred];
+		predictor->serialize(blob_pred);
+		for (size_t i = 0; i < pred_threads.size(); ++i)
+		{
+			pred_threads[i] = (MedPredictor *)medial::models::copyInfraModel(predictor, false);
+			pred_threads[i]->deserialize(blob_pred);
+			gen_threads[i] = mt19937(rd());
+		}
+		delete []blob_pred;
+	}
+	else
+		gen_threads[0] = mt19937(rd());
+	
+
+#pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
+		int th_n;
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, predictor, missing_value, *group_inds, *group_names, features_coeff,
-			sample_masks_with_repeats, select_from_all, uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL);
+		MedPredictor *curr_p = predictor;
+		if (outer_parallel) {
+			th_n = omp_get_thread_num();
+			curr_p = pred_threads[th_n];
+		}
+		else
+			th_n = 0;
+
+		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
+			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all, 
+			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
@@ -1008,6 +1066,9 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 
 		progress.update();
 	}
+	if (outer_parallel)
+		for (size_t i = 0; i < pred_threads.size(); ++i)
+			delete pred_threads[i];
 }
 
 string GeneratorType_toStr(GeneratorType type) {
@@ -1130,9 +1191,18 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 	//copy sample for each thread:
 	random_device rd;
 	vector<mt19937> gen_thread(MAX_Threads);
+	vector<MedPredictor *> predictor_cp(MAX_Threads);
 	for (size_t i = 0; i < gen_thread.size(); ++i)
 		gen_thread[i] = mt19937(globalRNG::rand());
 	_sampler->prepare(sampler_sampling_args);
+	size_t sz_pred = original_predictor->get_size();
+	unsigned char *blob_pred = new unsigned char[sz_pred];
+	original_predictor->serialize(blob_pred);
+	for (size_t i = 0; i < predictor_cp.size(); ++i) {
+		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+		predictor_cp[i]->deserialize(blob_pred);
+	}
+	delete []blob_pred;
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
@@ -1141,7 +1211,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		int n_th = omp_get_thread_num();
 		vector<float> features_coeff;
 		float pred_shap = 0;
-		medial::shapley::explain_shapley(matrix, (int)i, n_masks, original_predictor
+		medial::shapley::explain_shapley(matrix, (int)i, n_masks, predictor_cp[n_th]
 			, *group_inds, *group_names, *_sampler, gen_thread[n_th], 1, sampler_sampling_args, features_coeff,
 			use_random_sampling, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
 			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
@@ -1161,6 +1231,8 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 
 		progress.update();
 	}
+	for (size_t i = 0; i < predictor_cp.size(); ++i)
+		delete predictor_cp[i];
 }
 
 void ShapleyExplainer::post_deserialization() {
@@ -1211,8 +1283,8 @@ void ShapleyExplainer::dprint(const string &pref) const {
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 
-	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n", 
-		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), 
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
 		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }

@@ -13,10 +13,10 @@ parser2 = re.compile(r'MEDPY_(?P<proptype>GET|SET)_(?P<propname>[A-Z0-9a-z_]+)')
 parser3 = re.compile(r'^\s*class\s+(?P<classname>[A-Za-z0-9]+)')
 first_word = re.compile(r'^[a-zA-Z_]*')
 io_conv_tbl = {
-  'INPUT': '%apply ({at}* IN_ARRAY1, int DIM1) {p}',
-  'OUTPUT':'%apply ({at}** ARGOUTVIEWM_ARRAY1, int* DIM1) {p}',
-  'VARIANT_OUTPUT':'%apply (void** ARGOUTMVAR_ARRAY1, int* DIM1, int* NPYDTC1) {p}',
-  'INPLACE':'%apply ({at}* INPLACE_ARRAY1, int DIM1) {p}' }
+  'INPUT': '%apply ({at}* IN_ARRAY1, unsigned long long DIM1) {p}',
+  'OUTPUT':'%apply ({at}** ARGOUTVIEWM_ARRAY1, unsigned long long* DIM1) {p}',
+  'VARIANT_OUTPUT':'%apply (void** ARGOUTMVAR_ARRAY1, unsigned long long* DIM1, int* NPYDTC1) {p}',
+  'INPLACE':'%apply ({at}* INPLACE_ARRAY1, unsigned long long DIM1) {p}' }
 
 
 

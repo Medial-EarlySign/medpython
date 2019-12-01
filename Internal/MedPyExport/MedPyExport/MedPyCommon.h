@@ -157,9 +157,9 @@ typedef MED_NPY_TYPE::values MED_NPY_TYPES;
 
 // "convert" a vector data buffer to a simple buffer allocated with malloc and a buffer size
 template<typename S, typename T>
-inline void vector_to_buf(vector<S> vec, T** buf, int* buf_size) {
+inline void vector_to_buf(vector<S> vec, T** buf, unsigned long long* buf_size) {
 	*buf = (T*)malloc(sizeof(T)*vec.size());
-	*buf_size = (int)vec.size();
+	*buf_size = vec.size();
 	std::memcpy(*buf, vec.data(), sizeof(T)*vec.size());
 	//
 	// TODO: 
@@ -170,9 +170,9 @@ inline void vector_to_buf(vector<S> vec, T** buf, int* buf_size) {
 
 //specialization for bool/char conversion
 template<>
-inline void vector_to_buf<bool, char>(vector<bool> vec, char** buf, int* buf_size) {
+inline void vector_to_buf<bool, char>(vector<bool> vec, char** buf, unsigned long long* buf_size) {
 	*buf = (char*)malloc(sizeof(char)*vec.size());
-	*buf_size = (int)vec.size();
+	*buf_size = vec.size();
 	for (int i = 0; i < vec.size(); ++i) {
 		(*buf)[i] = (vec[i] ? 1 : 0);
 	}
@@ -180,16 +180,16 @@ inline void vector_to_buf<bool, char>(vector<bool> vec, char** buf, int* buf_siz
 
 // "convert" a vector data buffer to a simple buffer allocated with malloc and a buffer size
 template<typename S, typename T>
-inline void buf_to_vector(S* buf, int buf_size, vector<T>& vec) {
+inline void buf_to_vector(S* buf, unsigned long long buf_size, vector<T>& vec) {
 	vec.resize(buf_size);
 	std::memcpy(vec.data(), buf, sizeof(S)*vec.size());
 }
 
 //specialization for bool/char conversion
 template<>
-inline void buf_to_vector<char, bool>(char* buf, int buf_size, vector<bool>& vec) {
+inline void buf_to_vector<char, bool>(char* buf, unsigned long long buf_size, vector<bool>& vec) {
 	vec.resize(buf_size);
-	for (int i = 0; i < buf_size; ++i) {
+	for (unsigned long long i = 0; i < buf_size; ++i) {
 		vec[i] = (buf[i] != 0);
 	}
 }
@@ -222,7 +222,7 @@ public:
 	int __len__();
 	int __getitem__(int i);
 	void __setitem__(int i, int val);
-	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, unsigned long long* intkeys_out_buf_len));
 	MEDPY_IGNORE(MPIntIntMapAdaptor& operator=(const MPIntIntMapAdaptor& other));
 };
 
@@ -251,8 +251,8 @@ public:
 	MEDPY_IGNORE(MPStringVecFloatMapAdaptor(std::map<std::string, std::vector<float> >* ptr));
 	~MPStringVecFloatMapAdaptor();
 	int __len__();
-	void __getitem__(std::string key, MEDPY_NP_OUTPUT(float** float_out_buf, int* float_out_buf_len));
-	void __setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, int float_in_buf_len));
+	void __getitem__(std::string key, MEDPY_NP_OUTPUT(float** float_out_buf, unsigned long long* float_out_buf_len));
+	void __setitem__(std::string key, MEDPY_NP_INPUT(float* float_in_buf, unsigned long long float_in_buf_len));
 	std::vector<std::string> keys();
 	MEDPY_IGNORE(MPStringVecFloatMapAdaptor& operator=(const MPStringVecFloatMapAdaptor& other));
 };
@@ -266,9 +266,9 @@ public:
 	MEDPY_IGNORE(MPIntPairIntIntMapAdaptor(std::map<int, std::pair<int, int> >* ptr));
 	~MPIntPairIntIntMapAdaptor();
 	int __len__();
-	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len));
-	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len));
-	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, int* intkeys_out_buf_len));
+	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, unsigned long long* int_out_buf_len));
+	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len));
+	void keys(MEDPY_NP_OUTPUT(int** intkeys_out_buf, unsigned long long* intkeys_out_buf_len));
 	MEDPY_IGNORE(MPIntPairIntIntMapAdaptor& operator=(const MPIntPairIntIntMapAdaptor& other));
 };
 
@@ -313,8 +313,8 @@ public:
 	MEDPY_IGNORE(MPIntVecIntMapAdaptor(std::map<int, std::vector<int> >* ptr));
 	~MPIntVecIntMapAdaptor();
 	int __len__();
-	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, int* int_out_buf_len));
-	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len));
+	void __getitem__(int key, MEDPY_NP_OUTPUT(int** int_out_buf, unsigned long long* int_out_buf_len));
+	void __setitem__(int key, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len));
 	std::vector<int> keys();
 	MEDPY_IGNORE(MPIntVecIntMapAdaptor& operator=(const MPIntVecIntMapAdaptor& other));
 };

@@ -22,7 +22,7 @@ int MPFeatures::MEDPY_GET_global_serial_id_cnt() { return MedFeatures::global_se
 void MPFeatures::MEDPY_SET_global_serial_id_cnt(int newval) { MedFeatures::global_serial_id_cnt = newval; };
 
 MPStringVecFloatMapAdaptor MPFeatures::MEDPY_GET_data() { return MPStringVecFloatMapAdaptor(&(o->data)); };
-void MPFeatures::MEDPY_GET_weights(MEDPY_NP_OUTPUT(float** float_out_buf, int* float_out_buf_len)) {
+void MPFeatures::MEDPY_GET_weights(MEDPY_NP_OUTPUT(float** float_out_buf, unsigned long long* float_out_buf_len)) {
 	vector_to_buf(o->weights, float_out_buf, float_out_buf_len);
 }
 MPSampleVectorAdaptor MPFeatures::MEDPY_GET_samples() { return MPSampleVectorAdaptor(&(o->samples)); };
@@ -42,7 +42,7 @@ std::vector<std::string> MPFeatures::get_feature_names() {
 
 void MPFeatures::get_as_matrix(MPMat& mat) const { o->get_as_matrix(*(mat.o)); };
 void MPFeatures::get_as_matrix(MPMat& mat, vector<string> names) const { o->get_as_matrix(*(mat.o), names); };
-void MPFeatures::get_as_matrix(MPMat& mat, const vector<string> names, MEDPY_NP_INPUT(int* int_in_buf, int int_in_buf_len)) const {
+void MPFeatures::get_as_matrix(MPMat& mat, const vector<string> names, MEDPY_NP_INPUT(int* int_in_buf, unsigned long long int_in_buf_len)) const {
 	vector<int> idx;
 	buf_to_vector(int_in_buf, int_in_buf_len, idx);
 	o->get_as_matrix(*(mat.o), names, idx);

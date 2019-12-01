@@ -82,7 +82,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
-	MWARN("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
+	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
 
@@ -121,9 +121,9 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new OneHotFeatProcessor;
 	else if (processor_type == FTR_PROCESS_GET_PROB)
 		return new GetProbFeatProcessor;
-	else
-		return NULL;
-
+	else 
+		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
+	
 }
 
 //.......................................................................................
@@ -558,16 +558,17 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 				data[i] -= mean;
 				if (normalizeSd)
 					data[i] /= sd;
+				if (resolution > 0) {
+					data[i] = roundf(data[i] * multiplier) / multiplier;
+					if (resolution_only)
+						data[i] = data[i] * sd + mean;
+				}
 			}
 			else if (fillMissing)
 				data[i] = 0;
 		}
 		if (!isfinite(data[i]))
-			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
-
-		if (resolution > 0) {
-			data[i] = roundf(data[i] * multiplier) / multiplier;
-		}
+			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);	
 	}
 
 	//MLOG("FeatureNormalizer::Apply() done for feature %s , mean %f sd %f size %d flags: normalized %d imputed %d\n", 
@@ -587,6 +588,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		//! [FeatureNormalizer::init]
 		if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "normalizeSd") normalizeSd = (med_stoi(entry.second) != 0);
+		else if (field == "resolution_only") resolution_only = (med_stoi(entry.second) != 0);
 		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "resolution") resolution = med_stoi(entry.second);

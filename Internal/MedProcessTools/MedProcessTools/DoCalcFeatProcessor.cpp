@@ -255,15 +255,21 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 	if (calc_type == "and") {
 		for (int i = 0; i < n_samples; i++) {
 			int res = 1;
-			bool all_are_missing = true;
+			bool any_missing = false;
 			for (int j = 0; j < p_sources.size(); j++) {
 				if (p_sources[j][i] != missing_value) {
-					all_are_missing = false;
 					res &= (p_sources[j][i] != 0.0);
 				}
+				else 
+					any_missing = true;
 			}
-			if (all_are_missing)
-				p_out[i] = missing_value;
+			if (any_missing)
+			{
+				if (!res)
+					p_out[i] = float(0);
+				else
+					p_out[i] = missing_value;
+			}
 			else
 				p_out[i] = (float)res;
 		}
@@ -271,15 +277,21 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 	else if (calc_type == "or") {
 		for (int i = 0; i < n_samples; i++) {
 			int res = 0;
-			bool all_are_missing = true;
+			bool any_missing = false;
 			for (int j = 0; j < p_sources.size(); j++) {
 				if (p_sources[j][i] != missing_value) {
-					all_are_missing = false;
 					res |= (p_sources[j][i] != 0.0);
 				}
+				else
+					any_missing = true;
 			}
-			if (all_are_missing)
-				p_out[i] = missing_value;
+			if (any_missing)
+			{
+				if (res)
+					p_out[i] = float(1);
+				else
+					p_out[i] = missing_value;
+			}
 			else
 				p_out[i] = (float)res;
 		}

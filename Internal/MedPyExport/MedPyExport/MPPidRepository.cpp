@@ -29,7 +29,7 @@ int MPPidRepository::read_all_s(const std::string &conf_fname, const std::vector
 	return o->read_all(conf_fname, pids_to_take, signals_to_take);
 };*/
 
-int MPPidRepository::read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), const std::vector<std::string> &signals_to_take)
+int MPPidRepository::read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), const std::vector<std::string> &signals_to_take)
 {
 	vector<int> pids_tt;
 	buf_to_vector(pids_to_take, num_pids_to_take, pids_tt);
@@ -54,8 +54,12 @@ std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, c
 	return lut_bvec;
 }
 
-MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, int num_pids_to_take), int use_all_pids) {
-	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids);
+MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig) {
+	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids, translate_flag, free_sig);
+}
+
+int MPPidRepository::free(string signame) {
+	return o->free(signame);
 }
 
 // ****************************** MPSig      *********************************

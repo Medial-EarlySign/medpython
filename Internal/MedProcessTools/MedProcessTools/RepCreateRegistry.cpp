@@ -128,6 +128,13 @@ void RepCreateRegistry::init_lists() {
 		aff_signals.insert(rec.first);
 }
 
+// making sure virtual_signals_generic exists
+//=======================================================================================
+void RepCreateRegistry::post_deserialization() {
+	if (virtual_signals_generic.empty())
+		MTHROW_AND_ERR("Error virtual_signals_generic not serialized - please call ModelConvertor to update model.  /server/Work/FrozenTools/ModelConvertor/ModelConvertor --input_model <input_model>  --output_model <output_model> \n");
+}
+
 
 // making sure V_ids and sigs_ids are initialized
 //=======================================================================================
