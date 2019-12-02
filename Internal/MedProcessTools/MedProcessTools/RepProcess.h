@@ -1771,7 +1771,8 @@ public:
 	vector<vector<string>> categories_sets; ///< the sets defining each category.
 	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
 	int time_unit_duration = MedTime::Days; ///< time unit of the duration (both in signal and in min_duration)
-
+	bool change_at_prescription_mode = false; ///<  change_at_prescription_mode = true - change signal at every prescription (only the relevant drugs). When false change only when prescription changes
+	MedDictionarySections *_dict; // for debug
 	// next will NOT be serialized, and is here for debug reasons
 	string print_dict = "";
 
@@ -1792,12 +1793,13 @@ public:
 
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration)
+	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode)
 
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
 	vector<vector<char>> categories_luts;
+	vector<char> all_cat_lut;
 	vector<string> registry_values;
 };
 

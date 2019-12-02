@@ -3453,6 +3453,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 			}
 
 		}
+		else if (field == "change_at_prescription_mode") change_at_prescription_mode = med_stoi(entry.second);
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateBitSignal::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateBitSignal::init]
@@ -3492,10 +3493,14 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 
 	// preparing lut tables
 	int section_id = dict.section_id(in_sig);
+	vector<string> categories_sets_aggregated;
 	for (int i = 0; i < categories_names.size(); i++) {
 		categories_luts.push_back({});
 		dict.dicts[section_id].prep_sets_lookup_table(categories_sets[i], categories_luts.back());
+		categories_sets_aggregated.insert(categories_sets_aggregated.end(), categories_sets[i].begin(), categories_sets[i].end());
 	}
+	dict.dicts[section_id].prep_sets_lookup_table(categories_sets_aggregated, all_cat_lut);
+	_dict = &dict;
 
 	// making sure our virtual signal is marked as categorical on channel 0
 	sigs.Sid2Info[v_out_sid].is_categorical_per_val_channel[0] = 1;
@@ -3655,9 +3660,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 		// actually creating the states
 		vector<pair<int, int>> states; // date , encoded N bits state
+
 		if (usv.len > 0) {
 			int first_date = usv.Time(0);
 			states.push_back(pair<int, int>(first_date, 0));
+
 			for (auto &e : ev) {
 
 				if (states.back().first < e.time)
@@ -3668,6 +3675,29 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				else {
 					states.back().second &= (maskN ^ (1 << e.categ));
 				}
+			}
+			if (change_at_prescription_mode)
+			{
+				vector<pair<int, int>> updated_states; // date , encoded N bits state
+				updated_states.push_back(pair<int, int>(first_date, 0));
+				vector<pair<int, int>>::iterator curr_state = states.begin();
+				int state;
+				for (int i = 0; i < usv.len; i++)
+				{
+					int i_time = (int)usv.Time(i, t_chan);
+					int i_val = (int)usv.Val(i, c_chan);
+					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
+					{
+						//MLOG("%d:%s is relevant: %d, duration: %f \n", i_time, (_dict->dicts[_dict->SectionName2Id["Drug"]].Id2Names[i_val][0]).c_str(), all_cat_lut[i_val], (float)usv.Val(i, 1));
+						while ((curr_state->first <= i_time) && (curr_state != states.end()))
+						{
+							state = curr_state->second;
+							curr_state++;
+						}
+						updated_states.push_back({ i_time , state });
+					}	
+				}
+				states = move(updated_states);
 			}
 		}
 
