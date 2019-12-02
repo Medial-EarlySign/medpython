@@ -706,7 +706,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 
 //-------------------------------------------------------------------------------------------------------------------------------
 bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
-	const vector<ChartTimeSign> &times, const string &sig_name, string &div_name)
+	const vector<ChartTimeSign> &times, const string &sig_name, string &div_name, bool show_legend)
 {
 	int pwidth = 1200; //vm["pwidth"].as<int>();
 	int pheight = 600; //vm["pheight"].as<int>();
@@ -789,7 +789,8 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	shtml += "\t\tvar layout_" + sig_name + " ={\n";
 	shtml += "\t\t\ttitle: '" + sig_name + "',\n";
 	shtml += "\t\t\tyaxis: {autorange: true, showticklabels: false},\n";
-	shtml += "\t\t\tshowlegend: true\n";
+	string legend_str = show_legend ? "true" : "false";
+	shtml += "\t\t\tshowlegend: " + legend_str + "\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\t,shapes: [";
 		for (auto &t : times) {
@@ -829,7 +830,7 @@ void MedPatientPlotlyDate::add_search_box(string &shtml, const string &sig_name,
 	shtml += "\t\t\t\tfor (j = 0; j < table_values_" + sig_name + ".length; j++) {\n";
 	shtml += "\t\t\t\t\tsel_table_data[j].push(table_values_" + sig_name + "[j][i]);\n\t\t\t\t}\n\t\t\t}\n";
 	shtml += "\t\t}\n";
-	
+
 	shtml += "\t\tvar header_names = table_data_" + sig_name + "[0].header.values;\n";
 	shtml += "\t\tvar col_sizes = table_data_" + sig_name + "[0].header.columnwidth;\n";
 	shtml += "\t\tvar table_data = [{\n\t\t\ttype: 'table', columnwidth: col_sizes, \n";
@@ -1089,7 +1090,11 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 	for (auto v : view) {
 		MLOG("Working on view %s\n", v.c_str());
 		bool is_categorial = (rec.my_base_rep()->sigs.has_any_categorical_channel(v) > 0);
-		if (v == "MEMBERSHIP") is_categorial = true;
+		if (v == "MEMBERSHIP") {
+			string div_table = "div_" + v + to_string(rand_N(10000));
+			add_categorical_table(v, shtml, rec, local_sign_times, div_table);
+			continue;
+		};
 		if (v == "demographic") {
 			add_basic_demographics(shtml, rec, local_sign_times);
 		}
@@ -1117,11 +1122,9 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 		if (is_categorial) {
 			string div_chart = "div_" + v + to_string(rand_N(10000));
 			string div_table = "div_" + v + to_string(rand_N(10000));
-			if (v != "MEMBERSHIP") {
-				bool has_values = add_categorical_chart(shtml, rec, local_sign_times, v, div_chart);
-				if (has_values)
-					add_search_box(shtml, v, div_chart, div_table); //put search boxin the middle
-			}
+			bool has_values = add_categorical_chart(shtml, rec, local_sign_times, v, div_chart, false);
+			if (has_values)
+				add_search_box(shtml, v, div_chart, div_table); //put search boxin the middle
 			add_categorical_table(v, shtml, rec, local_sign_times, div_table);
 		}
 	}
