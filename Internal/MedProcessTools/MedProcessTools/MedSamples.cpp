@@ -169,25 +169,29 @@ int MedSample::parse_from_string(const vector<string> &fields, const map<string,
 		}
 		else
 			MTHROW_AND_ERR("Couldn't find time in sample\n");
-		if (pos.find("outcome") != pos.end())
-			outcome = stof(fields[pos.at("outcome")]);
-		else
+		if (pos.find("outcome") != pos.end()) {
+			if (pos.at("outcome") >= 0)
+				outcome = stof(fields[pos.at("outcome")]);
+		} else
 			MTHROW_AND_ERR("Couldn't find outcome in sample\n");
 
 		string outcomeTime_name = "outcome_date";
 		if (pos.find("outcome_date") == pos.end())
 			outcomeTime_name = "outcome_time";
 		if (pos.find(outcomeTime_name) != pos.end()) {
-			if (raw_format)
-				outcomeTime = stoi(fields[pos.at(outcomeTime_name)]);
-			else
-				outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(outcomeTime_name)], 1);
+			if (pos.at(outcomeTime_name) >= 0) {
+				if (raw_format)
+					outcomeTime = stoi(fields[pos.at(outcomeTime_name)]);
+				else
+					outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(outcomeTime_name)], 1);
+			}
 		}
 		else
 			MTHROW_AND_ERR("Couldn't find outcome_date in sample\n");
 
 		if (pos.find("split") != pos.end() && fields.size() > pos.at("split"))
-			split = stoi(fields[pos.at("split")]);
+			if (pos.at("split") >= 0)
+				split = stoi(fields[pos.at("split")]);
 
 		for (int pos : pred_pos) {
 			if (pos != -1 && fields.size() > pos)

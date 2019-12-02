@@ -235,7 +235,8 @@ private:
 	int add_drugs_heatmap(string &shtml, PidDataRec &rec);
 
 	// THIN_RC report
-	bool add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, const string &sig_name, string &div_name);
+	bool add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, 
+		const string &sig_name, string &div_name, bool show_legend);
 
 	void add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table);
 
