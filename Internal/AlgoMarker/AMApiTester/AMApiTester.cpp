@@ -110,8 +110,8 @@ public:
 	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) { init(); };
 
 	char** get_charpp() {
-		int charpp_arr_sz=this->size()*sizeof(char**);
-		int charpp_buf_sz=0;
+		size_t charpp_arr_sz=this->size()*sizeof(char**);
+		size_t charpp_buf_sz=0;
 		for (auto& str : *this) {
 			charpp_buf_sz += str.size() + 1;
 		}
