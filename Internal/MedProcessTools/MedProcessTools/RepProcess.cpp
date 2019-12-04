@@ -3695,7 +3695,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 							curr_state++;
 						}
 						updated_states.push_back({ i_time , state });
-					}	
+					}
 				}
 				states = move(updated_states);
 			}
@@ -3874,7 +3874,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepBasicOutlierCleaner::init]
+		//! [RepHistoryLimit::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "win_from") win_from = med_stoi(entry.second);
@@ -3882,6 +3882,11 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		else if (field == "delete_sig") delete_sig = med_stoi(entry.second);
 		else if (field == "rep_time_unit") rep_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "take_last_events") take_last_events = med_stoi(entry.second);
+		else if (field == "unconditional") unconditional = med_stoi(entry.second) > 0;
+		else if (field != "rp_type")
+			MWARN("WARN :: RepHistoryLimit::init - unknown parameter %s - ignored\n", field.c_str());
+		//! [RepHistoryLimit::init]
 	}
 
 	init_lists();
@@ -3917,14 +3922,32 @@ int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector
 	vector<char> data;
 
 	if (delete_sig == 0) {
-		for (int ver = 0; ver < time_points.size(); ver++) {
+		if (win_from == 0 && win_to == 0 && take_last_events > 0) {
+			int ver = 0;
 			rec.uget(signalId, ver, usv);
-			int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
-			int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
-			int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
-			get_sub_usv_data(usv, from_time, to_time, data, len);
-			if (len < usv.len) {
-				rec.set_version_data(signalId, ver, &data[0], len);
+			int start_ind = usv.len - take_last_events;
+			if (start_ind < 0)
+				start_ind = 0;
+			char *udata = (char *)usv.data;
+			int element_size = (int)usv.size();
+			len = 0;
+			for (int i = start_ind; i < usv.len; ++i) {
+				for (int j = element_size * i; j < element_size*(i + 1); ++j)
+					data.push_back(udata[j]);
+				++len;
+			}
+			rec.set_version_data(signalId, ver, &data[0], len);
+		}
+		else {
+			for (int ver = 0; ver < time_points.size(); ver++) {
+				rec.uget(signalId, ver, usv);
+				int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
+				int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
+				int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
+				get_sub_usv_data(usv, from_time, to_time, data, len);
+				if (len < usv.len) {
+					rec.set_version_data(signalId, ver, &data[0], len);
+				}
 			}
 		}
 	}

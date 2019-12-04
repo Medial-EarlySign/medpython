@@ -1871,9 +1871,10 @@ public:
 	int time_channel = 0; ///< time channel to consider in cleaning
 	int win_time_unit = global_default_windows_time_unit;
 	int rep_time_unit = global_default_time_unit; // we assume this is also the samples time unit
-	int win_from;
-	int win_to;
+	int win_from = 0;
+	int win_to = 0;
 	int delete_sig = 0; /// simply delete the signal (set it's len to 0).
+	int take_last_events = -1; /// It given >0 and delete_sig==0 and win_from==0,win_to==0  will use only last events number in the signal to keep
 
 	// default init
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }
@@ -1887,7 +1888,7 @@ public:
 	// apply
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
-	// params parser
+	/// @snippet RepProcess.cpp RepHistoryLimit::init
 	int init(map<string, string>& mapper);
 
 	// helper
@@ -1897,7 +1898,7 @@ public:
 	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
-		ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to, delete_sig, take_last_events, req_signals, aff_signals)
 
 };
 
