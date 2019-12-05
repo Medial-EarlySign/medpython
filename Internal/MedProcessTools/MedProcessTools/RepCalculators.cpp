@@ -362,6 +362,7 @@ void SetCalculator::list_output_signals(const vector<string> &input_signals, vec
 	for (size_t i = 0; i <= work_channel; ++i)
 		construct_str += ",V(f)";
 	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	input_signal = input_signals.front();
 }
 
 void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
@@ -381,6 +382,10 @@ bool SetCalculator::do_calc(const vector<float> &vals, float &res) const {
 			res = out_range_val;
 	}
 	return true;
+}
+
+void SetCalculator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_signal] = sets;
 }
 //.............................EXISTS CALCULATOR.........................................
 int ExistsCalculator::init(map<string, string>& mapper) {

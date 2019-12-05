@@ -509,6 +509,12 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+void BasicFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME) {
+		signal_categories_in_use[signalName] = sets;
+	}
+}
+
 //.......................................................................................
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int outcomeTime) {
 
@@ -798,6 +804,10 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+void SingletonGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (sets.size() > 0)
+		signal_categories_in_use[signalName] = sets;
+}
 //.......................................................................................
 void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
 
@@ -942,6 +952,11 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 	else
 		lut.clear();
 	return;
+}
+
+void RangeFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF)
+		signal_categories_in_use[signalName] = sets;
 }
 
 // Init

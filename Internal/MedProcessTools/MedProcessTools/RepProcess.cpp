@@ -671,6 +671,27 @@ void RepMultiProcessor::make_summary() {
 		proc->make_summary();
 }
 
+void RepMultiProcessor::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	for (auto& proc : processors) {
+		unordered_map<string, vector<string>> local_use;
+		proc->get_required_signal_categories(local_use);
+		//do merge with signal_categories_in_use:
+		for (auto &it : local_use)
+		{
+			if (signal_categories_in_use.find(it.first) == signal_categories_in_use.end())
+				signal_categories_in_use[it.first] = move(it.second);
+			else {
+				//merge with existing:
+				unordered_set<string> existing_sets(signal_categories_in_use.at(it.first).begin(),
+					signal_categories_in_use.at(it.first).end());
+				existing_sets.insert(it.second.begin(), it.second.end());;
+				vector<string> uniq_vec(existing_sets.begin(), existing_sets.end());
+				signal_categories_in_use[it.first] = move(uniq_vec);
+			}
+		}
+	}
+}
+
 void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < processors.size(); ++i)
 		processors[i]->register_virtual_section_name_id(dict);
@@ -2553,6 +2574,23 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	pass_time_last = calculator_logic->need_time;
 }
 
+void RepCalcSimpleSignals::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	//should be called when calculator_logic is not null and list_output_signals was called
+	SimpleCalculator *p = calculator_logic;
+	if (p == NULL) {
+		//if after deserialization without call to init_tables
+		//realloc and close:
+		p = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty()) {
+			if (p->init_from_string(calculator_init_params) < 0)
+				MTHROW_AND_ERR("Cannot init calculator from \'%s\'\n", calculator_init_params.c_str());
+		}
+		p->missing_value = missing_value;
+		vector<pair<string, string>> default_virtual_signals;
+		p->list_output_signals(signals, default_virtual_signals); //init calculator
+	}
+	p->get_required_signal_categories(signal_categories_in_use);
+}
 //.......................................................................................
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
@@ -3081,6 +3119,10 @@ void RepSplitSignal::print() {
 		input_name.c_str(), medial::io::get_list(names).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
+void RepSplitSignal::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_name] = sets;
+}
+
 //=======================================================================================
 // RepAggregationPeriod
 //=======================================================================================
@@ -3204,6 +3246,9 @@ void RepAggregationPeriod::print() {
 		input_name.c_str(), output_name.c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
+void RepAggregationPeriod::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_name] = sets;
+}
 
 //=======================================================================================
 // BasicRangeCleaner
@@ -3550,6 +3595,14 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 	}
 
 
+}
+
+void RepCreateBitSignal::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	unordered_set<string> uniq_set;
+	for (const vector<string> &e : categories_sets)
+		uniq_set.insert(e.begin(), e.end());
+	vector<string> uniq_ls(uniq_set.begin(), uniq_set.end());
+	signal_categories_in_use[in_sig] = move(uniq_ls);
 }
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {

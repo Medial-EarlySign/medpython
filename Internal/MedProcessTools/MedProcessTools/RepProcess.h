@@ -109,8 +109,8 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
-	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) { 
-		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second; 
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) {
+		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second;
 		for (auto &v : virtual_signals_generic) _virtual_signals_generic[v.first] = v.second;
 	};
 
@@ -207,6 +207,9 @@ public:
 	///</summary>
 	virtual void make_summary() {};
 
+	/// returns for each used signal it's used categories
+	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
+
 	// Serialization (including type)
 	ADD_CLASS_NAME(RepProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, unconditional)
@@ -298,6 +301,8 @@ public:
 	void dprint(const string &pref, int rp_flag);
 
 	void make_summary();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	/// serialization
 	ADD_CLASS_NAME(RepMultiProcessor)
@@ -1034,6 +1039,8 @@ public:
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
+	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
+
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 
@@ -1152,6 +1159,8 @@ public:
 * res := in_range_val if is in set otherwise out_range_val
 */
 class SetCalculator : public SimpleCalculator {
+private:
+	string input_signal;
 public:
 	vector<string> sets;
 	float in_range_val = 1; ///< return value when within range
@@ -1166,6 +1175,8 @@ public:
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 private:
 	vector<char> Flags;
 };
@@ -1230,6 +1241,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
@@ -1380,6 +1393,8 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
 		ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, virtual_signals_generic, registry_values,
@@ -1528,6 +1543,8 @@ public:
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
@@ -1575,6 +1592,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	ADD_CLASS_NAME(RepAggregationPeriod)
 		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, virtual_signals_generic, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
@@ -1726,7 +1745,7 @@ struct category_time_interval {
 struct category_event_state {
 	int time = 0;
 	int appear_time = 0;
-	int categ = 0; 
+	int categ = 0;
 	int type = 0; // 0 : stop, 1: start, 2: last appearance
 
 	category_event_state() {};
@@ -1784,16 +1803,18 @@ public:
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
 	void set_affected_signal_ids(MedDictionarySections& dict) {};
-	
+
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be 
 	/// implemented for all inheriting classes 
 	/// </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode)
+		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode)
 
 private:
 	int v_out_sid = -1;

@@ -159,6 +159,10 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 	}
 }
 
+void CategoryDependencyGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[signalName] = top_codes;
+}
+
 template<class T> void apply_filter(vector<int> &indexes, const vector<T> &vecCnts
 	, double min_val, double max_val) {
 	vector<int> filtered_indexes;

@@ -120,7 +120,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 void RepCreateRegistry::init_lists() {
 
 	req_signals.clear();
-	for (string signalName : signals) 
+	for (string signalName : signals)
 		req_signals.insert(signalName);
 
 	aff_signals.clear();
@@ -184,6 +184,63 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		init_ckd_registry_tables(dict, sigs);
 }
 
+void RepCreateRegistry::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (registry == REP_REGISTRY_HT) {
+		string signal_name_diag = signals[rc_idx];
+		unordered_set<string> uniq_set_codes(ht_identifiers.begin(), ht_identifiers.end());
+		uniq_set_codes.insert(chf_identifiers.begin(), chf_identifiers.end());
+		uniq_set_codes.insert(mi_identifiers.begin(), mi_identifiers.end());
+		uniq_set_codes.insert(af_identifiers.begin(), af_identifiers.end());
+		vector<string> uniq_set_ls(uniq_set_codes.begin(), uniq_set_codes.end());
+		signal_categories_in_use[signal_name_diag] = move(uniq_set_ls);
+
+		string signal_name_drugs = signals[drug_idx];
+		unordered_set<string> uniq_set_drugs(ht_drugs.begin(), ht_drugs.end());
+		uniq_set_drugs.insert(ht_chf_drugs.begin(), ht_chf_drugs.end());
+		uniq_set_drugs.insert(ht_dm_drugs.begin(), ht_dm_drugs.end());
+		uniq_set_drugs.insert(ht_extra_drugs.begin(), ht_extra_drugs.end());
+		vector<string> uniq_set_ls_drugs(uniq_set_drugs.begin(), uniq_set_drugs.end());
+		signal_categories_in_use[signal_name_drugs] = move(uniq_set_ls_drugs);
+	}
+	else if (registry == REP_REGISTRY_DM) {
+		if (dm_drug_sig != "")
+			signal_categories_in_use[dm_drug_sig] = dm_drug_sets;
+		if (dm_diagnoses_sig != "")
+			signal_categories_in_use[dm_diagnoses_sig] = dm_diagnoses_sets;
+	}
+	else if (registry == REP_REGISTRY_PROTEINURIA) {
+		for (auto &c : urine_tests_categories) {
+			vector<string> f;
+			boost::split(f, c, boost::is_any_of(":"));
+			RegistryDecisionRanges rdr;
+			rdr.sig_name = f[0];
+			rdr.is_numeric = stoi(f[1]);
+			for (int j = 2; j < f.size(); j++) {
+				vector<string> f2;
+				boost::split(f2, f[j], boost::is_any_of(","));
+				if (rdr.is_numeric) {
+					rdr.ranges.push_back(pair<float, float>(stof(f2[0]), stof(f2[1])));
+				}
+				else {
+					rdr.categories.push_back(f2);
+				}
+			}
+			if (!rdr.is_numeric) {
+				unordered_set<string> flat_set;
+				for (vector<string> &e : rdr.categories)
+					flat_set.insert(e.begin(), e.end());
+				vector<string> flat_ls(flat_set.begin(), flat_set.end());
+				signal_categories_in_use[rdr.sig_name] = move(flat_ls);
+			}
+		}
+	}
+	else if (registry == REP_REGISTRY_CKD) {
+		//empty - no categories
+	}
+	else
+		MTHROW_AND_ERR("Unsupported registry type %d\n", registry);
+}
+
 // Applying
 /// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -216,7 +273,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			ckd_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
-		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
+		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++)
 			rec.set_version_universal_data(virtual_ids[ivir], iver, &(all_v_times[ivir][0]), &(all_v_vals[ivir][0]), final_sizes[ivir]);
 	}
 
@@ -255,7 +312,7 @@ void RepCreateRegistry::fillLookupTableForHTDrugs(MedDictionary& dict, vector<ch
 			fprintf(stderr, "prep_sets_lookup_table() : Found bad name %s :: not found in dictionary()\n", name.c_str());
 	}
 
-	for (int j = 0; j<sig_ids.size(); j++) {
+	for (int j = 0; j < sig_ids.size(); j++) {
 		queue<int> q;
 		q.push(sig_ids[j]);
 
@@ -285,7 +342,7 @@ void RepCreateRegistry::buildLookupTableForHTDrugs(MedDictionary& dict, vector<c
 
 }
 
-void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, 
+void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times,
 	vector<int>& final_sizes)
 {
 
@@ -299,7 +356,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			break;
 
 		int age = 1900 + med_time_converter.convert_times(signal_time_units[byear_idx], MedTime::Years, time) - byear;
-		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i,1) > 150) || (age < 60 && usvs[bp_idx].Val(i, 1)  > 140) || usvs[bp_idx].Val(i, 0)  > 90) ? 1 : 0;
+		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i, 1) > 150) || (age < 60 && usvs[bp_idx].Val(i, 1)  > 140) || usvs[bp_idx].Val(i, 0) > 90) ? 1 : 0;
 		data.push_back({ med_time_converter.convert_times(signal_time_units[byear_idx], MedTime::Days, time) , bpFlag });
 	}
 
@@ -309,7 +366,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		if (time_points.size() != 0 && time > time_points[iver])
 			break;
 
-		if (htDrugLut[(int)usvs[drug_idx].Val(i,0)])
+		if (htDrugLut[(int)usvs[drug_idx].Val(i, 0)])
 			data.push_back({ med_time_converter.convert_times(signal_time_units[drug_idx], MedTime::Days, time) , 20 + htDrugLut[usvs[drug_idx].Val(i,0)] });
 	}
 
@@ -361,7 +418,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			continue;
 
 		int bpStatusToPush = -1;
-		
+
 		// Background : CHF/MI/AF/DM
 		if (info == 4)
 			chfStatus = 1;
@@ -384,7 +441,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 				}
 				else if (info > 20) { // HT Drug, move to unclear (depending on background)
 									  // using drug-specific info : 21 = inidcative of HT. 22 = indicative of HT unless CHF. 23 = indicative of HT unless diabetes. 
-								      // 24 = indicative of HT unless CHF/MI/AF.
+									  // 24 = indicative of HT unless CHF/MI/AF.
 					if (info == 21 || (info == 22 && !chfStatus) || (info == 23 && !dmStatus) || (info == 24 && !chfStatus && !miStatus && !afStatus)) {
 						bpStatus = 1;
 						lastDrugDays = days;
@@ -434,7 +491,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 
 			// If end-time is given, we can stop now.
 			if (time_points.size() != 0) {
-				lastHT = med_time_converter.convert_times(global_default_time_unit,MedTime::Days,time_points[iver]);
+				lastHT = med_time_converter.convert_times(global_default_time_unit, MedTime::Days, time_points[iver]);
 				break;
 			}
 		}
@@ -448,7 +505,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	if (lastNorm > 0) {
 		final_sizes[0]++;
 		all_v_vals[0].push_back(0);
-		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days,time_unit,firstNorm));
+		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, firstNorm));
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, lastNorm));
 	}
 
@@ -477,7 +534,7 @@ void RepCreateRegistry::ht_init_defaults() {
 	pPath = getenv("MR_ROOT");
 
 	if (!ht_identifiers_given)
-		read_identifiers_list(pPath,"hyper_tension.desc", ht_identifiers);
+		read_identifiers_list(pPath, "hyper_tension.desc", ht_identifiers);
 
 	if (!chf_identifiers_given)
 		read_identifiers_list(pPath, "heart_failure_events.desc", chf_identifiers);
@@ -574,9 +631,9 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int i_val = (int)drug_usv.Val(i);
 			if (i_val < 0 || i_val > dm_drug_lut.size())
 				MTHROW_AND_ERR("ERROR in dm Registry drug_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_drug_lut.size());
-			if (dm_drug_lut.size()>0 && dm_drug_lut[i_val]) {
+			if (dm_drug_lut.size() > 0 && dm_drug_lut[i_val]) {
 				int severity = 4; // currently the first diabetic drug usage makes you diabetic for life.... this is extreme, but given this, we only need the first.
-				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DRUG, 1, severity)); 
+				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DRUG, 1, severity));
 				break;
 			}
 
@@ -594,8 +651,8 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			int i_val = (int)diag_usv.Val(i);
 			if (i_val < 0 || i_val > dm_diagnoses_lut.size())
 				MTHROW_AND_ERR("ERROR in dm Registry diagnoses_idx : got i_val %d while lut size is %d\n", i_val, (int)dm_diagnoses_lut.size());
-			if (dm_diagnoses_lut.size()>0 && dm_diagnoses_lut[i_val]) {
-				int severity = dm_diagnoses_severity; 
+			if (dm_diagnoses_lut.size() > 0 && dm_diagnoses_lut[i_val]) {
+				int severity = dm_diagnoses_severity;
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DIAGNOSES, 1, severity));
 				if (dm_diagnoses_severity >= 4) break;
 			}
@@ -609,7 +666,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	sort(evs.begin(), evs.end(), [](const RegistryEvent &v1, const RegistryEvent &v2) { return v1.time < v2.time; });
 
 	// applying rules
-	vector<pair<int, int>> ranges(3, pair<int,int>(-1,-1)); // 0: for healthy, 1: for prediabetic , 2: for diabetic
+	vector<pair<int, int>> ranges(3, pair<int, int>(-1, -1)); // 0: for healthy, 1: for prediabetic , 2: for diabetic
 
 	for (int j = 0; j < evs.size(); j++) {
 
@@ -670,7 +727,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 				}
 				continue;
 			}
-			
+
 
 		}
 
@@ -740,7 +797,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	all_v_vals[0].clear();
 	final_sizes[0] = 0;
 
-	for (int j=0; j<3; j++)
+	for (int j = 0; j < 3; j++)
 		if (ranges[j].first > 0) {
 			// push Healthy, Pre, or DM
 			all_v_vals[0].push_back((float)j);
@@ -756,7 +813,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
-}
+		}
 
 //===============================================================================================================================
 // Proteinuria (3 levels) code
@@ -877,7 +934,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 		else
 			if (p.second > time2val[p.first])
 				time2val[p.first] = p.second;
-	}
+}
 
 	// loading into all_v_times, all_v_vals, final_sizes
 	all_v_times[0].clear();
@@ -898,7 +955,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 		MLOG(" %d,%d :", e.first, e.second);
 	MLOG("\n");
 #endif
-}
+	}
 
 //===============================================================================================================================
 // CKD (5 levels) code
@@ -997,8 +1054,8 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 					if (ev.second > ckd_ev[i_time])
 						ckd_ev[i_time] = ev.second;
 			}
+			}
 		}
-	}
 
 	// loading into all_v_times, all_v_vals, final_sizes
 	all_v_times[0].clear();
@@ -1020,4 +1077,4 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 #endif
 
 
-}
+	}

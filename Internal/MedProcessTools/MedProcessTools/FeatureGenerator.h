@@ -141,6 +141,9 @@ public:
 	// Number of features generated
 	virtual int nfeatures() { return (int)names.size(); }
 
+	/// returns for each used signal it's used categories
+	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
+
 	// Filter generated features according to a set. return number of valid features
 	virtual int filter_features(unordered_set<string>& validFeatures);
 
@@ -275,6 +278,8 @@ public:
 
 	// Naming 
 	void set_names();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	// Constructor/Destructor
 	BasicFeatGenerator() : FeatureGenerator() { init_defaults(); };
@@ -419,6 +424,8 @@ public:
 	// Signal Ids
 	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id(signalName)); }
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	// Serialization
 	ADD_CLASS_NAME(SingletonGenerator)
@@ -637,6 +644,8 @@ public:
 
 	// Naming 
 	void set_names();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	/// The parsed fields from init command.
 	/// @snippet FeatureGenerator.cpp RangeFeatGenerator::init
@@ -880,6 +889,8 @@ public:
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	int nfeatures();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix, generate_with_counts)
