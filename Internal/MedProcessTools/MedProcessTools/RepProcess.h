@@ -1034,8 +1034,10 @@ public:
 	virtual int init(map<string, string>& mapper) { return 0; };
 	///validates correctness of inputs
 	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
-	virtual bool do_calc(const vector<float> &vals, float &res) const = 0; ///< the calc option
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) = 0; ///< list output signals with default naming
+	/// the calc option
+	virtual bool do_calc(const vector<float> &vals, float &res) const { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
+	/// list output signals with default naming
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
@@ -1045,6 +1047,12 @@ public:
 	static SimpleCalculator *make_calculator(const string &calc_type);
 
 	virtual ~SimpleCalculator() {};
+
+	void *new_polymorphic(string derived_class_name);
+
+	ADD_CLASS_NAME(SimpleCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
+		
 
 };
 
@@ -1065,6 +1073,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(RatioCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, factor, power_base, power_mone)
 };
 
 /**
@@ -1082,6 +1093,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(eGFRCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, ethnicity, mdrd)
 };
 
 /**
@@ -1097,6 +1111,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(logCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
 };
 
 /**
@@ -1114,6 +1131,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(SumCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, factors, b0)
 };
 
 /**
@@ -1133,6 +1153,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(RangeCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, min_range, max_range, in_range_val, out_range_val)
 };
 
 /**
@@ -1152,6 +1175,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(MultiplyCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, powers, b0)
 };
 
 /**
@@ -1159,8 +1185,6 @@ public:
 * res := in_range_val if is in set otherwise out_range_val
 */
 class SetCalculator : public SimpleCalculator {
-private:
-	string input_signal;
 public:
 	vector<string> sets;
 	float in_range_val = 1; ///< return value when within range
@@ -1177,8 +1201,12 @@ public:
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
+	ADD_CLASS_NAME(SetCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, input_signal, sets, in_range_val, out_range_val)
 private:
 	vector<char> Flags;
+	string input_signal = "";
 };
 
 /**
@@ -1198,6 +1226,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(ExistsCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, in_range_val, out_range_val)
 };
 
 /**
@@ -1247,10 +1278,22 @@ public:
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel)
+			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic)
 		void post_deserialization() {
 		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
-		pass_time_last = p->need_time; delete p;
+		pass_time_last = p->need_time;
+		delete p;
+		//if (calculator_logic == NULL) {
+		//	printf("write calculator_logic again for %s\n%s\n",
+		//		calculator.c_str(), calculator_init_params.c_str());
+		//	calculator_logic = SimpleCalculator::make_calculator(calculator);
+		//	if (!calculator_init_params.empty())
+		//		calculator_logic->init_from_string(calculator_init_params);
+		//	calculator_logic->missing_value = missing_value;
+		//	vector<pair<string, string>> default_virtual_signals;
+		//	calculator_logic->list_output_signals(signals, default_virtual_signals); //init calculator
+		//}
+		
 	}
 
 private:
@@ -1957,4 +2000,14 @@ MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateRegistry)
 MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
+
+MEDSERIALIZE_SUPPORT(SimpleCalculator)
+MEDSERIALIZE_SUPPORT(SetCalculator)
+MEDSERIALIZE_SUPPORT(MultiplyCalculator)
+MEDSERIALIZE_SUPPORT(logCalculator)
+MEDSERIALIZE_SUPPORT(RatioCalculator)
+MEDSERIALIZE_SUPPORT(eGFRCalculator)
+MEDSERIALIZE_SUPPORT(SumCalculator)
+MEDSERIALIZE_SUPPORT(RangeCalculator)
+MEDSERIALIZE_SUPPORT(ExistsCalculator)
 #endif

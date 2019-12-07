@@ -9,6 +9,19 @@
 
 #define LOCAL_SECTION LOG_REPCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+void *SimpleCalculator::new_polymorphic(string derived_class_name) {
+	CONDITIONAL_NEW_CLASS(derived_class_name, RatioCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, eGFRCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, logCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, SumCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, RangeCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, MultiplyCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, SetCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, ExistsCalculator);
+
+	MTHROW_AND_ERR("Warning in SimpleCalculator::new_polymorphic - Unsupported class %s\n", derived_class_name.c_str());
+}
+
 //....................................Ratio Calculator..................................
 int RatioCalculator::init(map<string, string>& mapper) {
 
