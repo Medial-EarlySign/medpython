@@ -155,6 +155,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("samples", po::value<string>()->default_value(""), "MedSamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "AlgoMarker configuration file")
+			("msgs_file", po::value<string>()->default_value(""), "file to save messages codes to")
+			("ignore_sig", po::value<string>()->default_value(""), "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("single", "Run test in single mode, instead of the default batch")
 			("print_msgs", "Print algomarker messages when testing batches or single (direct test always prints them)")
 			("only_am", "Test only the AlgoMarker API with no compare")
@@ -478,7 +480,7 @@ public:
 		return 0;
 	}
 
-    void am_add_data(AlgoMarker *am, int pid, int max_date=INT_MAX, bool force_add_data=false){
+    void am_add_data(AlgoMarker *am, int pid, int max_date, bool force_add_data, vector<string> ignore_sig) {
 		static bool print_once = false;
 		UniversalSigVec usv;
 	    int max_vals = 100000;
@@ -492,6 +494,8 @@ public:
 		}
 
 	    for (auto &sig : sigs) {
+			if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
+				continue;
 			int sid = rep.sigs.Name2Sid[sig];
 //			int section_id = rep.dict.section_id(sig);
 		    rep.uget(pid, sig, usv);
@@ -586,7 +590,7 @@ public:
 };
 
 //=================================================================================================================
-int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data)
+int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig)
 {
 	DynAM::AM_API_ClearData(am);
 
@@ -595,7 +599,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 	MLOG("Going over %d pids\n", d.pids.size());
 	d.get_sig_dict_cached();
 	for (auto pid : d.pids) {
-        d.am_add_data(am, pid, INT_MAX, force_add_data);
+        d.am_add_data(am, pid, INT_MAX, force_add_data, ignore_sig);
     }
 
     //ASK_AVI: Is this needed?
@@ -677,7 +681,10 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 		char **msgs_errs;
 		DynAM::AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
 		for (int i=0; i<n_msgs; i++) {
-			MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+			if (msgs_stream.is_open())
+				msgs_stream << "SharedMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t" << 0 << "\t" << 0 << "\t" << msg_codes[i] << "\t\"" << msgs_errs[i] << "\"" << endl;
+			else
+				MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
 		}
 
 		n_resp = DynAM::AM_API_GetResponsesNum(resp);
@@ -689,13 +696,19 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 
 			DynAM::AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 			for (int k=0; k<n_msgs; k++) {
-				MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
+				if (msgs_stream.is_open())
+					msgs_stream << "ResponseMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+				else
+					MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
 			}
 
 			for (int j=0; j<n_scores; j++) {
 				DynAM::AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
-				for (int k=0; k<n_msgs; k++) {
-					MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
+				for (int k=0; k<n_msgs; k++) { 
+					if (msgs_stream.is_open())
+						msgs_stream << "ScoreMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t" << j << "\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+					else
+						MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
 				}
 			}
 		}
@@ -713,7 +726,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data)
+int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig)
 {
 
 	DynAM::AM_API_ClearData(am);
@@ -729,7 +742,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 		for (auto &s : id.samples) {
 
 			// adding all data 
-			d.am_add_data(am, s.id, s.time, force_add_data);
+			d.am_add_data(am, s.id, s.time, force_add_data, ignore_sig);
 
 			// At this point we can send to the algomarker and ask for a score
 
@@ -811,7 +824,11 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 				char **msgs_errs;
 				DynAM::AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
 				for (int i=0; i<n_msgs; i++) {
-					MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", s.id, s.time, n_msgs, msg_codes[i], msgs_errs[i]);
+
+					if (msgs_stream.is_open())
+						msgs_stream << "SharedMessages\t" << s.id << "\t" << s.time << "\t" << 0 << "\t" << 0 << "\t" << 0 << "\t" << msg_codes[i] << "\t\"" << msgs_errs[i] << "\"" << endl;
+					else
+						MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", s.id, s.time, n_msgs, msg_codes[i], msgs_errs[i]);
 				}
 
 				n_resp = DynAM::AM_API_GetResponsesNum(resp);
@@ -823,13 +840,19 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 
 					DynAM::AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 					for (int k=0; k<n_msgs; k++) {
-						MLOG("pid %d time %d Response %d : Message %d : code %d : err: %s\n", s.id, s.time, i, k, msg_codes[k], msgs_errs[k]);
+						if (msgs_stream.is_open())
+							msgs_stream << "ResponseMessages\t" << s.id << "\t" << s.time << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+						else
+							MLOG("pid %d time %d Response %d : Message %d : code %d : err: %s\n", s.id, s.time, i, k, msg_codes[k], msgs_errs[k]);
 					}
 
 					for (int j=0; j<n_scores; j++) {
 						DynAM::AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
 						for (int k=0; k<n_msgs; k++) {
-							MLOG("pid %d time %d Response %d : score %d : Message %d : code %d : err: %s\n", s.id, s.time, i, j, k, msg_codes[k], msgs_errs[k]);
+							if (msgs_stream.is_open())
+								msgs_stream << "ScoreMessages\t" << s.id << "\t" << s.time << "\t" << i << "\t" << j << "\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+							else
+								MLOG("pid %d time %d Response %d : score %d : Message %d : code %d : err: %s\n", s.id, s.time, i, j, k, msg_codes[k], msgs_errs[k]);
 						}
 					}
 				}
@@ -1060,7 +1083,7 @@ int generate_data(const string& rep_file, const string& samples_file, const stri
 	return 0;
 }
 
-vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data){
+vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
 	vector<MedSample> res2;
 	AlgoMarker *test_am;
 
@@ -1082,14 +1105,25 @@ vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print
 	}
 
 	if (single)
-		get_preds_from_algomarker_single(test_am, res2, print_msgs, d, force_add_data);
+		get_preds_from_algomarker_single(test_am, res2, print_msgs, d, force_add_data, msgs_stream, ignore_sig);
 	else
-		get_preds_from_algomarker(test_am, res2, print_msgs, d, force_add_data);
+		get_preds_from_algomarker(test_am, res2, print_msgs, d, force_add_data, msgs_stream, ignore_sig);
 
     return res2;
 }
 
-vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples, const string& med_csv_file=""){
+vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples, const string& med_csv_file, vector<string> ignore_sig){
+	
+	if (ignore_sig.size()>0) {
+		string ppjson = "{\"pre_processors\":[{\"action_type\":\"rep_processor\",\"rp_type\":\"history_limit\",\"signal\":[";
+		ppjson += string("\"") + ignore_sig[0] + "\"";
+		for (int i = 1; i<ignore_sig.size(); i++)
+			ppjson += string(",\"") + ignore_sig[i] + "\"";
+		ppjson += "],\"delete_sig\":\"1\"}]}";
+		MLOG("Adding pre_processor = \n'%s'\n", ppjson.c_str());
+		model.add_pre_processors_json_string_to_model(ppjson, "");
+	}
+	
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
 
@@ -1139,10 +1173,10 @@ void compare_results(const vector<MedSample>& res1, const vector<MedSample>& res
 void save_sample_vec(vector<MedSample> sample_vec, const string& fname){
     MedSamples s;
     s.import_from_sample_vec(sample_vec);
-    s.write_to_file(fname);
+    s.write_to_file(fname, 4);
 }
 
-int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file, const string& med_csv_file, const string& am_csv_file, bool force_add_data) {
+int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file, const string& med_csv_file, const string& am_csv_file, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig) {
 	
 	DataLoader l;
 	MLOG("(II) Starting apply with:\n(II)   repdata_file='%s'\n(II)   mock_rep_file='%s'\n(II)   scores_file='%s' %s\n(II)   model_file='%s'\n(II)   scores_output_file='%s'\n(II)   amconfig_file='%s'\n"
@@ -1165,13 +1199,13 @@ int apply_data(const string& repdata_file, const string& mock_rep_file, const st
 
 	if (amconfig_file == "") {
 		MLOG("(II) Starting apply using Medial API\n");
-		auto ret = apply_med_api(l.rep, l.model, l.samples, med_csv_file);
+		auto ret = apply_med_api(l.rep, l.model, l.samples, med_csv_file, ignore_sig);
 		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
 		save_sample_vec(ret, scores_output_file);
 	}
 	else {
 		MLOG("(II) Starting apply using Algomarker API\n");
-		auto ret = apply_am_api(amconfig_file, l, false, false, am_csv_file, force_add_data);
+		auto ret = apply_am_api(amconfig_file, l, false, false, am_csv_file, force_add_data, msgs_stream, ignore_sig);
 		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
 		save_sample_vec(ret, scores_output_file);
 	}
@@ -1200,6 +1234,18 @@ int main(int argc, char *argv[])
 	string med_csv_file = vm["med_csv_file"].as<string>();
 	string am_csv_file = vm["am_csv_file"].as<string>();
 	bool force_add_data = vm.count("force_add_data") != 0;
+
+	vector<string> ignore_sig;
+	if (vm["ignore_sig"].as<string>() != "")
+		split(ignore_sig, vm["ignore_sig"].as<string>(), boost::is_any_of(","));
+
+	string msgs_file = (vm["msgs_file"].as<string>());
+	ofstream msgs_stream;
+	if (msgs_file != "") {
+		msgs_stream.open(msgs_file);
+		msgs_stream << "msg_type\tpid\tdate\ti\tj\tk\tcode\tmsg_text" << endl;
+	}
+
 
 	if (vm.count("generate_data")) {
 		if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
@@ -1231,7 +1277,7 @@ int main(int argc, char *argv[])
 			scores_file = vm["apply_dates_to_score"].as<string>();
 			score_to_date_format_is_samples = false;
 		}
-		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>(), med_csv_file, am_csv_file, force_add_data);
+		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>(), med_csv_file, am_csv_file, force_add_data, msgs_stream, ignore_sig);
 	}
 
 	bool test_am = true;
@@ -1259,7 +1305,7 @@ int main(int argc, char *argv[])
 
         samples2 = samples = d.samples;
 		if (test_med) {
-			res1 = apply_med_api(d.rep, d.model, samples, med_csv_file);
+			res1 = apply_med_api(d.rep, d.model, samples, med_csv_file, ignore_sig);
 			for (int i = 0; i<min(50, (int)res1.size()); i++) {
 				MLOG("#Res1 :: pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0]);
 			}
@@ -1278,7 +1324,7 @@ int main(int argc, char *argv[])
     vector<MedSample> res2;
     try{
 		if(test_am)
-			res2 = apply_am_api(vm["amconfig"].as<string>(), d, (vm.count("print_msgs")!=0),(vm.count("single")!=0) , am_csv_file, force_add_data);
+			res2 = apply_am_api(vm["amconfig"].as<string>(), d, (vm.count("print_msgs")!=0),(vm.count("single")!=0) , am_csv_file, force_add_data, msgs_stream, ignore_sig);
     }catch(runtime_error e){
       return -1;
     }
@@ -1290,6 +1336,9 @@ int main(int argc, char *argv[])
 
 	if(test_am && test_med)
 		compare_results(res1, res2);
+	
+	if (msgs_file != "")
+		msgs_stream.close();
 
     return 0;
 }
