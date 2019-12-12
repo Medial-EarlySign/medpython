@@ -6,6 +6,8 @@
 #include <boost/crc.hpp>
 #include <random>
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
 
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -285,7 +287,7 @@ int MedSample::parse_from_string(string &s, int time_unit)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, const string &delimeter) const
+void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, const string &delimeter, int pred_precision) const
 {
 	stringstream s_buff;
 	//s = "";
@@ -293,8 +295,15 @@ void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, con
 		<< delimeter << outcome << delimeter << med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, outcomeTime);
 
 	s_buff << delimeter << split;
+	int orig_precision = s_buff.precision();
+	if (pred_precision > 0)
+		s_buff << std::fixed << std::setprecision(pred_precision);
 	for (auto p : prediction)
 		s_buff << delimeter << p;
+	if (pred_precision > 0) {
+		std::cout << std::setprecision(orig_precision);
+		std::cout.unsetf(ios_base::floatfield);
+	}
 	map<string, string> str_map;
 	for (const auto &it : attributes)
 		str_map[it.first] = to_string(it.second);
@@ -676,7 +685,7 @@ int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& s
 // Return -2 upon prediction-length inconsistency
 // Return -3 upon attributes inconsistency
 //.......................................................................................
-int MedSamples::write_to_file(const string &fname)
+int MedSamples::write_to_file(const string &fname, int pred_precision)
 {
 	ofstream of(fname);
 
@@ -717,7 +726,7 @@ int MedSamples::write_to_file(const string &fname)
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, time_unit);
+			ss.write_to_string(sout, time_unit, true, string("\t") , pred_precision);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
