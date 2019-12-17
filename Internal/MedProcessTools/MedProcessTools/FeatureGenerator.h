@@ -10,6 +10,7 @@
 #include <MedTime/MedTime/MedTime.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <cfloat>
+#include <boost/regex.hpp>
 
 #define DEFAULT_FEAT_GNRTR_NTHREADS 8
 
@@ -827,7 +828,7 @@ private:
 	vector<string> top_codes;
 	vector<vector<char>> luts;
 
-	void get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex & remove_reg_pat);
+	void get_parents(int codeGroup, vector<int> &parents, const boost::regex &reg_pat, const boost::regex & remove_reg_pat);
 
 	void get_stats(const unordered_map<int, vector<vector<vector<int>>>> &categoryVal_to_stats,
 		vector<int> &all_signal_values, vector<int> &signal_indexes, vector<double> &valCnts, vector<double> &posCnts,
