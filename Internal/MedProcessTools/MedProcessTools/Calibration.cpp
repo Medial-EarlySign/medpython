@@ -1113,6 +1113,10 @@ calibration_entry Calibrator::calibrate_pred(float pred) {
 		res.bin = 0;
 		res.cnt_cases = 0;
 		res.cnt_controls = 0;
+		res.cnt_cases_no_w = 0;
+		res.cnt_controls_no_w = 0;
+		res.cumul_pct = 0;
+		res.kaplan_meier = 0;
 		return res;
 	}
 }

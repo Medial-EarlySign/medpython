@@ -261,7 +261,7 @@ public:
 	// constructor: 
 	QRF_Forest() {
 		qtrees.clear(); mode = 0; collect_oob = 0; oob_scores.clear(); keep_all_values = false; sparse_values = true; nthreads = 1; min_node_size = MIN_SPLIT_NODE_SIZE; get_only_this_categ = -1;
-		min_spread = 0; n_categ = -1; get_counts_flag = 0;
+		min_spread = 0; n_categ = -1; get_counts_flag = 0; take_all_samples = false; max_depth = 0;
 	}
 
 	int nthreads; // number of threads to use in building a forest, and in scoring it.

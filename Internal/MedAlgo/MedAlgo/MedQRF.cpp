@@ -223,7 +223,7 @@ void MedQRF::set_sampsize(float *y, int nsamples)
 
 	int max_ind = -1, max_val = 0;
 	int max2_val = 0;
-	for (int i = 0; i < params.n_categ; i++)
+	for (int i = 0; i < params.n_categ; i++) {
 		if (params.samp_vec[i] > max_val) {
 			max_ind = i;
 			max_val = params.samp_vec[i];
@@ -231,9 +231,10 @@ void MedQRF::set_sampsize(float *y, int nsamples)
 		else if (params.samp_vec[i] > max2_val) {
 			max2_val = params.samp_vec[i];
 		}
+	}
 
-		if ((float)max_val / (float)(1 + max2_val) > params.samp_factor)
-			params.samp_vec[max_ind] = (int)(params.samp_factor*(float)max2_val);
+	if ((float)max_val / (float)(1 + max2_val) > params.samp_factor)
+		params.samp_vec[max_ind] = (int)(params.samp_factor*(float)max2_val);
 
 }
 
@@ -343,7 +344,7 @@ int MedQRF::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 // Printing
 void MedQRF::print(FILE *fp, const string& prefix, int level) const {
-	
+
 	if (level == 0)
 		fprintf(fp, "%s: MedQRF ()\n", prefix.c_str());
 	else {

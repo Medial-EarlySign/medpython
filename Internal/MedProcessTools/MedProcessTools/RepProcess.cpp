@@ -1146,10 +1146,12 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 
 
 				for (auto& el : filteredValues)
-					if (el > 0)el = log(el);
-					else return(-1);
+					if (el > 0)
+						el = log(el);
+					else
+						return(-1);
 
-					learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
+				learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
 			}
 			if (thisDistHi == "norm")removeMax = borderHi;
 			else if (thisDistHi == "lognorm")removeMax = expf(logBorderHi);

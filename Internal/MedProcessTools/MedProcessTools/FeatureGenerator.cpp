@@ -1726,10 +1726,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 		if (curr_from < min_time) curr_from = min_time;
 		if (curr_to > max_time) curr_to = max_time;
 
-		if (curr_to >= curr_to) {
-			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
-		}
-
+		time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
 	}
 
 	return (float)time_sum / div_factor;

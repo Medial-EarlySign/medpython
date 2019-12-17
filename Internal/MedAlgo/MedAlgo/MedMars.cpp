@@ -202,11 +202,14 @@ size_t MedMars::serialize(unsigned char *blob) {
 	memcpy(blob + ptr, &nPreds, sizeof(int)); ptr += sizeof(int);
 	memcpy(blob + ptr, BestSet, sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
 	if (!Dirs.empty())
-		memcpy(blob + ptr, &Dirs[0], sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
+		memcpy(blob + ptr, &Dirs[0], sizeof(int) * nMaxTerms * nPreds);
+	ptr += sizeof(int) * nMaxTerms * nPreds;
 	if (!Cuts.empty())
-		memcpy(blob + ptr, &Cuts[0], sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
+		memcpy(blob + ptr, &Cuts[0], sizeof(double) * nMaxTerms * nPreds);
+	ptr += sizeof(double) * nMaxTerms * nPreds;
 	if (!Betas.empty())
-		memcpy(blob + ptr, &Betas[0], sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
+		memcpy(blob + ptr, &Betas[0], sizeof(double) * nMaxTerms);
+	ptr += sizeof(double) * nMaxTerms;
 
 	return ptr;
 }
@@ -229,13 +232,17 @@ size_t MedMars::deserialize(unsigned char *blob) {
 	Betas.resize(nMaxTerms);
 
 	// reading arrays
-	memcpy(BestSet, blob + ptr, sizeof(bool) * nMaxTerms); ptr += sizeof(bool) * nMaxTerms;
+	memcpy(BestSet, blob + ptr, sizeof(bool) * nMaxTerms);
+	ptr += sizeof(bool) * nMaxTerms;
 	if (!Dirs.empty())
-		memcpy(&Dirs[0], blob + ptr, sizeof(int) * nMaxTerms * nPreds); ptr += sizeof(int) * nMaxTerms * nPreds;
+		memcpy(&Dirs[0], blob + ptr, sizeof(int) * nMaxTerms * nPreds);
+	ptr += sizeof(int) * nMaxTerms * nPreds;
 	if (!Cuts.empty())
-		memcpy(&Cuts[0], blob + ptr, sizeof(double) * nMaxTerms * nPreds); ptr += sizeof(double) * nMaxTerms * nPreds;
+		memcpy(&Cuts[0], blob + ptr, sizeof(double) * nMaxTerms * nPreds);
+	ptr += sizeof(double) * nMaxTerms * nPreds;
 	if (!Betas.empty())
-		memcpy(&Betas[0], blob + ptr, sizeof(double) * nMaxTerms); ptr += sizeof(double) * nMaxTerms;
+		memcpy(&Betas[0], blob + ptr, sizeof(double) * nMaxTerms);
+	ptr += sizeof(double) * nMaxTerms;
 
 	return ptr;
 }

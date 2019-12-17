@@ -705,7 +705,7 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 			int time = med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time);
 			get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
-			bool val = 0;
+			int val = 0;
 			for (int i = 0; i < rec.usv.len; i++) {
 				int itime = rec.usv.Time(i, time_channel);
 				if (itime > max_time) break;

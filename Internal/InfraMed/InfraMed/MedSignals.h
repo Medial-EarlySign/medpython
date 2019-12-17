@@ -210,8 +210,10 @@ public:
 	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; }
 
 	bool operator<(const SDateRangeVal& s) {
-		if (this->date_start < s.date_start) return true; if (this->date_start > s.date_start) return false;
-		if (this->date_end < s.date_end) return true; if (this->date_end > s.date_end) return false;
+		if (this->date_start < s.date_start) return true;
+		if (this->date_start > s.date_start) return false;
+		if (this->date_end < s.date_end) return true; 
+		if (this->date_end > s.date_end) return false;
 		return (this->val < s.val);
 	}
 	bool operator==(const SDateRangeVal& s) { return (this->val == s.val && this->date_start == s.date_start && this->date_end == s.date_end); }
@@ -242,9 +244,12 @@ public:
 	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = vals[1]; }
 
 	bool operator<(const SDateRangeVal2& s) {
-		if (this->date_start < s.date_start) return true; if (this->date_start > s.date_start) return false;
-		if (this->date_end < s.date_end) return true; if (this->date_end > s.date_end) return false;
-		if (this->val < s.val) return true; if (this->val > val) return false;
+		if (this->date_start < s.date_start) return true; 
+		if (this->date_start > s.date_start) return false;
+		if (this->date_end < s.date_end) return true;
+		if (this->date_end > s.date_end) return false;
+		if (this->val < s.val) return true; 
+		if (this->val > s.val) return false;
 		return (this->val2 < s.val2);
 	}
 	bool operator==(const SDateRangeVal2& s) { return (this->val == s.val && this->val2 == s.val2 && this->date_start == s.date_start && this->date_end == s.date_end); }
@@ -274,8 +279,10 @@ public:
 	inline void Set(int *times, float *vals) { date = times[0]; val = vals[0]; val2 = vals[1]; }
 
 	bool operator<(const SDateFloat2& s) {
-		if (this->date < s.date) return true; if (this->date > s.date) return false;
-		if (this->val < s.val) return true; if (this->val > val) return false;
+		if (this->date < s.date) return true;
+		if (this->date > s.date) return false;
+		if (this->val < s.val) return true;
+		if (this->val > s.val) return false;
 		return (this->val2 < s.val2);
 	}
 	bool operator==(const SDateFloat2& s) { return (this->val == s.val && this->val2 == s.val2 && this->date == s.date); }
@@ -305,8 +312,10 @@ public:
 	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1]; val = vals[0]; }
 
 	bool operator<(const STimeRangeVal& s) {
-		if (this->time_start < s.time_start) return true; if (this->time_start > s.time_start) return false;
-		if (this->time_end < s.time_end) return true; if (this->time_end > s.time_end) return false;
+		if (this->time_start < s.time_start) return true; 
+		if (this->time_start > s.time_start) return false;
+		if (this->time_end < s.time_end) return true; 
+		if (this->time_end > s.time_end) return false;
 		return (this->val < s.val);
 	}
 	bool operator==(const STimeRangeVal& s) { return (this->val == s.val && this->time_start == s.time_start && this->time_end == s.time_end); }
@@ -332,12 +341,13 @@ public:
 	inline void SetVal(int chan, float _val) { return; };
 
 	inline void Set(long long _time_start, long long _time_end) { time_start = _time_start; time_end = _time_end; }
-	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1];  }
+	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1]; }
 
 	bool operator<(const STimeRange& s) {
-		if (this->time_start < s.time_start) return true; if (this->time_start > s.time_start) return false;
-		if (this->time_end < s.time_end) return true; 
-                return false;
+		if (this->time_start < s.time_start) return true; 
+		if (this->time_start > s.time_start) return false;
+		if (this->time_end < s.time_end) return true;
+		return false;
 	}
 	bool operator==(const STimeRange& s) { return (this->time_start == s.time_start && this->time_end == s.time_end); }
 
@@ -389,25 +399,32 @@ public:
 	}
 
 	bool operator<(const STimeShort4& s) {
-		if (this->time < s.time) return true; if (this->time > s.time) return false;
-		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
-		if (this->val2 < s.val2) return true; if (this->val2 > val2) return false;
-		if (this->val3 < s.val3) return true; if (this->val3 > val3) return false;
+		if (this->time < s.time) return true;
+		if (this->time > s.time) return false;
+		if (this->val1 < s.val1) return true; 
+		if (this->val1 > s.val1) return false;
+		if (this->val2 < s.val2) return true; 
+		if (this->val2 > s.val2) return false;
+		if (this->val3 < s.val3) return true; 
+		if (this->val3 > s.val3) return false;
 		return (this->val4 < s.val4);
 	}
-	bool operator==(const STimeShort4& s) { return (this->time == s.time 
-		&& this->val1 == s.val1 
-		&& this->val2 == s.val2
-		&& this->val3 == s.val3
-		&& this->val4 == s.val4); }
+	bool operator==(const STimeShort4& s) {
+		return (this->time == s.time
+			&& this->val1 == s.val1
+			&& this->val2 == s.val2
+			&& this->val3 == s.val3
+			&& this->val4 == s.val4);
+	}
 
-	friend ostream& operator<<(ostream& os, const STimeShort4& s) { 
+	friend ostream& operator<<(ostream& os, const STimeShort4& s) {
 		os << s.time << ":"
 			<< s.val1 << ","
 			<< s.val2 << ","
 			<< s.val3 << ","
 			<< s.val4;
-		return os; }
+		return os;
+	}
 };
 
 
@@ -458,8 +475,10 @@ public:
 	inline void Set(int *times, float *vals) { date = times[0]; val = vals[0]; val2 = (unsigned short)vals[1]; }
 
 	bool operator<(const SDateVal2& s) {
-		if (this->date < s.date) return true; if (this->date > s.date) return false;
-		if (this->val < s.val) return true; if (this->val > val) return false;
+		if (this->date < s.date) return true;
+		if (this->date > s.date) return false;
+		if (this->val < s.val) return true;
+		if (this->val > s.val) return false;
 		return (this->val2 < s.val2);
 	}
 	bool operator==(const SDateVal2& s) { return (this->date == s.date && this->val == s.val && this->val2 == s.val2); }
@@ -489,7 +508,8 @@ public:
 	inline void Set(int *times, float *vals) { time = (long long)times[0]; val = (long long)vals[0]; }
 
 	bool operator<(const STimeLongVal& s) {
-		if (this->time < s.time) return true; if (this->time > s.time) return false;
+		if (this->time < s.time) return true; 
+		if (this->time > s.time) return false;
 		return (this->val < s.val);
 	}
 	bool operator==(const STimeLongVal& s) { return (this->time == s.time && this->val == s.val); }
@@ -519,8 +539,10 @@ public:
 	inline void Set(int *times, float *vals) { date = times[0]; val1 = (short)vals[0]; val2 = (short)vals[1]; }
 
 	bool operator<(const SDateShort2& s) {
-		if (this->date < s.date) return true; if (this->date > s.date) return false;
-		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		if (this->date < s.date) return true;
+		if (this->date > s.date) return false;
+		if (this->val1 < s.val1) return true;
+		if (this->val1 > s.val1) return false;
 		return (this->val2 < s.val2);
 	}
 	bool operator==(const SDateShort2& s) { return (this->date == s.date && this->val1 == s.val1 && this->val2 == s.val2); }
@@ -547,7 +569,8 @@ public:
 	inline void Set(int *times, float *vals) { val1 = (short)vals[0]; val2 = (short)vals[1]; }
 
 	bool operator<(const SValShort2& s) {
-		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
+		if (this->val1 < s.val1) return true;
+		if (this->val1 > s.val1) return false;
 		return (this->val2 < s.val2);
 	}
 	bool operator==(const SValShort2& s) { return (this->val1 == s.val1 && this->val2 == s.val2); }
@@ -595,9 +618,12 @@ public:
 	inline void Set(int *times, float *vals) { val1 = (short)vals[0]; val2 = (short)vals[1]; val3 = (short)vals[2]; val4 = (short)vals[3]; }
 
 	bool operator<(const SValShort4& s) {
-		if (this->val1 < s.val1) return true; if (this->val1 > val1) return false;
-		if (this->val2 < s.val2) return true; if (this->val1 > val1) return false;
-		if (this->val3 < s.val3) return true; if (this->val1 > val1) return false;
+		if (this->val1 < s.val1) return true; 
+		if (this->val1 > s.val1) return false;
+		if (this->val2 < s.val2) return true; 
+		if (this->val1 > s.val1) return false;
+		if (this->val3 < s.val3) return true; 
+		if (this->val1 > s.val1) return false;
 		return (this->val4 < s.val4);
 	}
 	bool operator==(const SValShort4& s) { return (this->val1 == s.val1 && this->val2 == s.val2 && this->val3 == s.val3 && this->val4 == s.val4); }
@@ -681,7 +707,7 @@ public:
 	int is_categorical_per_val_channel[5] = { 0, 0, 0, 0, 0 }; // when 1, channel doens't hold numerical values but rather pointers to a dict
 	string unit_of_measurement_per_val_channel[5] = { "", "", "", "", "" };
 
-	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0);val_channel_offsets.fill(0); };
+	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0); val_channel_offsets.fill(0); };
 
 	void set_gsv_spec(const string &gsv_spec_str);
 
@@ -855,8 +881,8 @@ public:
 inline int MedSignals::sid(const string &name)
 {
 	if (Name2Sid.find(name) == Name2Sid.end())
-		return -1; return
-		Name2Sid[name];
+		return -1;
+	return Name2Sid[name];
 };
 
 //-----------------------------------------------------------------------------------------------
@@ -929,7 +955,7 @@ public:
 	};
 	void *data;
 	int len;		// type len (not bytes len)
-	
+
 	int n_time_channels() const { return n_time; };
 	int n_val_channels() const { return n_val; };
 
@@ -953,7 +979,7 @@ public:
 
 	void init(const SignalInfo &info) {
 		if (sid == info.sid) return;
-		_time_unit = info.time_unit; 
+		_time_unit = info.time_unit;
 		time_channel_offsets = info.time_channel_offsets;
 		val_channel_offsets = info.val_channel_offsets;
 		time_channel_types = info.time_channel_types;
@@ -981,7 +1007,7 @@ public:
 		data = _data;
 		len = _len;
 	}
-	GenericSigVec() : data(nullptr), sid(-1) ,len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
+	GenericSigVec() : data(nullptr), sid(-1), len(0), struct_size(0), n_time(0), n_val(0) { time_channel_offsets.fill(0); val_channel_offsets.fill(0); time_channel_types.fill(0); val_channel_types.fill(0); }
 	GenericSigVec(const string& signalSpec, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_spec(signalSpec); }
 	GenericSigVec(SigType sigtype, int time_unit = MedTime::Undefined) : GenericSigVec() { _time_unit = time_unit; init_from_sigtype(sigtype); }
 	GenericSigVec(const GenericSigVec& other) { *this = other; }
@@ -1127,7 +1153,7 @@ public:
 	// returns the first index i in the usv that has Time(i, time_chan) >= time_bound, if none : return -1
 	int get_index_ge_time_bound(int time_chan, int time_bound);
 
-    bool compareTimeLt(const void* data1, int idx1, const void* data2, int idx2) const {
+	bool compareTimeLt(const void* data1, int idx1, const void* data2, int idx2) const {
 		for (int tchan = 0; tchan < n_time; tchan++) {
 			if (this->Time(idx1, tchan, data1) > this->Time(idx2, tchan, data2))
 				return false;
@@ -1144,7 +1170,7 @@ public:
 	}
 
 	bool compareData(int idx, const GenericSigVec& other_gsv, int other_idx) const {
-		return std::memcmp(((const char*)data) + idx * struct_size, ((const char*)other_gsv.data) + other_idx * struct_size, struct_size)==0;
+		return std::memcmp(((const char*)data) + idx * struct_size, ((const char*)other_gsv.data) + other_idx * struct_size, struct_size) == 0;
 	}
 
 	static string get_type_generic_spec(SigType t);
