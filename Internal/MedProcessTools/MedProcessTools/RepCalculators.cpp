@@ -9,6 +9,19 @@
 
 #define LOCAL_SECTION LOG_REPCLEANER
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+void *SimpleCalculator::new_polymorphic(string derived_class_name) {
+	CONDITIONAL_NEW_CLASS(derived_class_name, RatioCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, eGFRCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, logCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, SumCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, RangeCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, MultiplyCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, SetCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, ExistsCalculator);
+
+	MTHROW_AND_ERR("Warning in SimpleCalculator::new_polymorphic - Unsupported class %s\n", derived_class_name.c_str());
+}
+
 //....................................Ratio Calculator..................................
 int RatioCalculator::init(map<string, string>& mapper) {
 
@@ -362,6 +375,7 @@ void SetCalculator::list_output_signals(const vector<string> &input_signals, vec
 	for (size_t i = 0; i <= work_channel; ++i)
 		construct_str += ",V(f)";
 	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	input_signal = input_signals.front();
 }
 
 void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
@@ -381,6 +395,10 @@ bool SetCalculator::do_calc(const vector<float> &vals, float &res) const {
 			res = out_range_val;
 	}
 	return true;
+}
+
+void SetCalculator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_signal] = sets;
 }
 //.............................EXISTS CALCULATOR.........................................
 int ExistsCalculator::init(map<string, string>& mapper) {

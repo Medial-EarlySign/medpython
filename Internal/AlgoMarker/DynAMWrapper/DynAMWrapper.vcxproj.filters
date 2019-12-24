@@ -15,9 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AlgoMarkerFlat.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="DynAMWrapper.h">
       <Filter>Header Files</Filter>
     </ClInclude>

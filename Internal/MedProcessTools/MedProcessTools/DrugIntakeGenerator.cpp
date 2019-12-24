@@ -53,6 +53,10 @@ void DrugIntakeGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+void DrugIntakeGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[signalName] = sets;
+}
+
 // Generate
 //.......................................................................................
 int DrugIntakeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {

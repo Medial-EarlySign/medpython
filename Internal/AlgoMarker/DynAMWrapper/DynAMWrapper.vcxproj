@@ -126,7 +126,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AlgoMarkerFlat.h" />
     <ClInclude Include="DynAMWrapper.h" />
   </ItemGroup>
   <ItemGroup>

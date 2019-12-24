@@ -59,6 +59,8 @@ public:
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	// Serialization
 	ADD_CLASS_NAME(DrugIntakeGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, tags, serial_id, win_from, win_to,time_unit_win, signalName, sets, names, req_signals, in_set_name, iGenerateWeights, timeRangeSignalName, timeRangeType , bound_outcomeTime)

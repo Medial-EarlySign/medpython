@@ -1443,6 +1443,46 @@ void MedModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int 
 	if (pp_flag > 0) for (auto& pp : post_processors) pp->dprint(pref);
 }
 
+void MedModel::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	for (auto& proc : rep_processors) {
+		unordered_map<string, vector<string>> local_use;
+		proc->get_required_signal_categories(local_use);
+		//do merge with signal_categories_in_use:
+		for (const auto &it : local_use)
+		{
+			if (signal_categories_in_use.find(it.first) == signal_categories_in_use.end())
+				signal_categories_in_use[it.first] = move(it.second);
+			else {
+				//merge with existing:
+				unordered_set<string> existing_sets(signal_categories_in_use.at(it.first).begin(),
+					signal_categories_in_use.at(it.first).end());
+				existing_sets.insert(it.second.begin(), it.second.end());;
+				vector<string> uniq_vec(existing_sets.begin(), existing_sets.end());
+				signal_categories_in_use[it.first] = move(uniq_vec);
+			}
+		}
+	}
+
+	for (const auto& proc : generators) {
+		unordered_map<string, vector<string>> local_use;
+		proc->get_required_signal_categories(local_use);
+		//do merge with signal_categories_in_use:
+		for (auto &it : local_use)
+		{
+			if (signal_categories_in_use.find(it.first) == signal_categories_in_use.end())
+				signal_categories_in_use[it.first] = move(it.second);
+			else {
+				//merge with existing:
+				unordered_set<string> existing_sets(signal_categories_in_use.at(it.first).begin(),
+					signal_categories_in_use.at(it.first).end());
+				existing_sets.insert(it.second.begin(), it.second.end());;
+				vector<string> uniq_vec(existing_sets.begin(), existing_sets.end());
+				signal_categories_in_use[it.first] = move(uniq_vec);
+			}
+		}
+	}
+}
+
 //.......................................................................................
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors) {
 	unordered_set<string> req_signal_names(current_req_signal_names.begin(), current_req_signal_names.end());

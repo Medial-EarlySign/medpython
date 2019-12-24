@@ -1,6 +1,5 @@
 #include "FeatureGenerator.h"
 #include <cmath>
-#include <regex>
 #include <MedUtils/MedUtils/MedRegistry.h>
 #include <omp.h>
 
@@ -159,6 +158,10 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 	}
 }
 
+void CategoryDependencyGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[signalName] = top_codes;
+}
+
 template<class T> void apply_filter(vector<int> &indexes, const vector<T> &vecCnts
 	, double min_val, double max_val) {
 	vector<int> filtered_indexes;
@@ -184,14 +187,14 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-bool any_regex_match(const regex &reg_pat, const vector<string> &nms) {
+bool any_regex_match(const boost::regex &reg_pat, const vector<string> &nms) {
 	bool res = false;
 	for (size_t i = 0; i < nms.size() && !res; ++i)
-		res = regex_match(nms[i], reg_pat);
+		res = boost::regex_match(nms[i], reg_pat);
 	return res;
 }
 
-void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const regex &reg_pat, const regex &remove_reg_pat) {
+void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const boost::regex &reg_pat, const boost::regex &remove_reg_pat) {
 
 	bool cached = false;
 #pragma omp critical
@@ -332,12 +335,12 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	vector<FeatureGenerator *> generators = { this };
 	unordered_set<int> extra_req_signal_ids;
 	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
-	regex reg_pat;
-	regex remove_reg_pat;
+	boost::regex reg_pat;
+	boost::regex remove_reg_pat;
 	if (!regex_filter.empty())
-		reg_pat = regex(regex_filter);
+		reg_pat = boost::regex(regex_filter);
 	if (!remove_regex_filter.empty())
-		remove_reg_pat = regex(remove_regex_filter);
+		remove_reg_pat = boost::regex(remove_regex_filter);
 
 	// Preparations
 	unordered_map<int, vector<vector<vector<int>>>> categoryVal_to_stats; //stats is gender,age, 4 ints counts:
@@ -701,7 +704,7 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 			int time = med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time);
 			get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
-			bool val = 0;
+			int val = 0;
 			for (int i = 0; i < rec.usv.len; i++) {
 				int itime = rec.usv.Time(i, time_channel);
 				if (itime > max_time) break;

@@ -671,6 +671,27 @@ void RepMultiProcessor::make_summary() {
 		proc->make_summary();
 }
 
+void RepMultiProcessor::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	for (auto& proc : processors) {
+		unordered_map<string, vector<string>> local_use;
+		proc->get_required_signal_categories(local_use);
+		//do merge with signal_categories_in_use:
+		for (auto &it : local_use)
+		{
+			if (signal_categories_in_use.find(it.first) == signal_categories_in_use.end())
+				signal_categories_in_use[it.first] = move(it.second);
+			else {
+				//merge with existing:
+				unordered_set<string> existing_sets(signal_categories_in_use.at(it.first).begin(),
+					signal_categories_in_use.at(it.first).end());
+				existing_sets.insert(it.second.begin(), it.second.end());;
+				vector<string> uniq_vec(existing_sets.begin(), existing_sets.end());
+				signal_categories_in_use[it.first] = move(uniq_vec);
+			}
+		}
+	}
+}
+
 void RepMultiProcessor::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < processors.size(); ++i)
 		processors[i]->register_virtual_section_name_id(dict);
@@ -1125,10 +1146,12 @@ int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& sampl
 
 
 				for (auto& el : filteredValues)
-					if (el > 0)el = log(el);
-					else return(-1);
+					if (el > 0)
+						el = log(el);
+					else
+						return(-1);
 
-					learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
+				learnDistributionBorders(logBorderHi, logBorderLo, filteredValues);
 			}
 			if (thisDistHi == "norm")removeMax = borderHi;
 			else if (thisDistHi == "lognorm")removeMax = expf(logBorderHi);
@@ -2553,6 +2576,23 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	pass_time_last = calculator_logic->need_time;
 }
 
+void RepCalcSimpleSignals::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	//should be called when calculator_logic is not null and list_output_signals was called
+	SimpleCalculator *p = calculator_logic;
+	if (p == NULL) {
+		//if after deserialization without call to init_tables
+		//realloc and close:
+		p = SimpleCalculator::make_calculator(calculator);
+		if (!calculator_init_params.empty()) {
+			if (p->init_from_string(calculator_init_params) < 0)
+				MTHROW_AND_ERR("Cannot init calculator from \'%s\'\n", calculator_init_params.c_str());
+		}
+		p->missing_value = missing_value;
+		vector<pair<string, string>> default_virtual_signals;
+		p->list_output_signals(signals, default_virtual_signals); //init calculator
+	}
+	p->get_required_signal_categories(signal_categories_in_use);
+}
 //.......................................................................................
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,
@@ -3081,6 +3121,10 @@ void RepSplitSignal::print() {
 		input_name.c_str(), medial::io::get_list(names).c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
+void RepSplitSignal::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_name] = sets;
+}
+
 //=======================================================================================
 // RepAggregationPeriod
 //=======================================================================================
@@ -3204,6 +3248,9 @@ void RepAggregationPeriod::print() {
 		input_name.c_str(), output_name.c_str(), medial::io::get_list(req_signals).c_str(), medial::io::get_list(aff_signals).c_str());
 }
 
+void RepAggregationPeriod::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use[input_name] = sets;
+}
 
 //=======================================================================================
 // BasicRangeCleaner
@@ -3453,6 +3500,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 			}
 
 		}
+		else if (field == "change_at_prescription_mode") change_at_prescription_mode = med_stoi(entry.second);
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateBitSignal::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateBitSignal::init]
@@ -3492,10 +3540,14 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 
 	// preparing lut tables
 	int section_id = dict.section_id(in_sig);
+	vector<string> categories_sets_aggregated;
 	for (int i = 0; i < categories_names.size(); i++) {
 		categories_luts.push_back({});
 		dict.dicts[section_id].prep_sets_lookup_table(categories_sets[i], categories_luts.back());
+		categories_sets_aggregated.insert(categories_sets_aggregated.end(), categories_sets[i].begin(), categories_sets[i].end());
 	}
+	dict.dicts[section_id].prep_sets_lookup_table(categories_sets_aggregated, all_cat_lut);
+	_dict = &dict;
 
 	// making sure our virtual signal is marked as categorical on channel 0
 	sigs.Sid2Info[v_out_sid].is_categorical_per_val_channel[0] = 1;
@@ -3545,6 +3597,14 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 	}
 
 
+}
+
+void RepCreateBitSignal::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	unordered_set<string> uniq_set;
+	for (const vector<string> &e : categories_sets)
+		uniq_set.insert(e.begin(), e.end());
+	vector<string> uniq_ls(uniq_set.begin(), uniq_set.end());
+	signal_categories_in_use[in_sig] = move(uniq_ls);
 }
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -3655,9 +3715,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 		// actually creating the states
 		vector<pair<int, int>> states; // date , encoded N bits state
+
 		if (usv.len > 0) {
 			int first_date = usv.Time(0);
 			states.push_back(pair<int, int>(first_date, 0));
+
 			for (auto &e : ev) {
 
 				if (states.back().first < e.time)
@@ -3668,6 +3730,29 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				else {
 					states.back().second &= (maskN ^ (1 << e.categ));
 				}
+			}
+			if (change_at_prescription_mode)
+			{
+				vector<pair<int, int>> updated_states; // date , encoded N bits state
+				updated_states.push_back(pair<int, int>(first_date, 0));
+				vector<pair<int, int>>::iterator curr_state = states.begin();
+				int state;
+				for (int i = 0; i < usv.len; i++)
+				{
+					int i_time = (int)usv.Time(i, t_chan);
+					int i_val = (int)usv.Val(i, c_chan);
+					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
+					{
+						//MLOG("%d:%s is relevant: %d, duration: %f \n", i_time, (_dict->dicts[_dict->SectionName2Id["Drug"]].Id2Names[i_val][0]).c_str(), all_cat_lut[i_val], (float)usv.Val(i, 1));
+						while ((curr_state->first <= i_time) && (curr_state != states.end()))
+						{
+							state = curr_state->second;
+							curr_state++;
+						}
+						updated_states.push_back({ i_time , state });
+					}
+				}
+				states = move(updated_states);
 			}
 		}
 
@@ -3844,7 +3929,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RepBasicOutlierCleaner::init]
+		//! [RepHistoryLimit::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "win_from") win_from = med_stoi(entry.second);
@@ -3852,6 +3937,11 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		else if (field == "delete_sig") delete_sig = med_stoi(entry.second);
 		else if (field == "rep_time_unit") rep_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "win_time_unit") win_time_unit = med_time_converter.string_to_type(entry.second);
+		else if (field == "take_last_events") take_last_events = med_stoi(entry.second);
+		else if (field == "unconditional") unconditional = med_stoi(entry.second) > 0;
+		else if (field != "rp_type")
+			MWARN("WARN :: RepHistoryLimit::init - unknown parameter %s - ignored\n", field.c_str());
+		//! [RepHistoryLimit::init]
 	}
 
 	init_lists();
@@ -3887,14 +3977,32 @@ int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector
 	vector<char> data;
 
 	if (delete_sig == 0) {
-		for (int ver = 0; ver < time_points.size(); ver++) {
+		if (win_from == 0 && win_to == 0 && take_last_events > 0) {
+			int ver = 0;
 			rec.uget(signalId, ver, usv);
-			int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
-			int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
-			int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
-			get_sub_usv_data(usv, from_time, to_time, data, len);
-			if (len < usv.len) {
-				rec.set_version_data(signalId, ver, &data[0], len);
+			int start_ind = usv.len - take_last_events;
+			if (start_ind < 0)
+				start_ind = 0;
+			char *udata = (char *)usv.data;
+			int element_size = (int)usv.size();
+			len = 0;
+			for (int i = start_ind; i < usv.len; ++i) {
+				for (int j = element_size * i; j < element_size*(i + 1); ++j)
+					data.push_back(udata[j]);
+				++len;
+			}
+			rec.set_version_data(signalId, ver, &data[0], len);
+		}
+		else {
+			for (int ver = 0; ver < time_points.size(); ver++) {
+				rec.uget(signalId, ver, usv);
+				int curr_time = med_time_converter.convert_times(rep_time_unit, win_time_unit, time_points[ver]);
+				int from_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_to);
+				int to_time = med_time_converter.convert_times(win_time_unit, rep_time_unit, curr_time - win_from);
+				get_sub_usv_data(usv, from_time, to_time, data, len);
+				if (len < usv.len) {
+					rec.set_version_data(signalId, ver, &data[0], len);
+				}
 			}
 		}
 	}

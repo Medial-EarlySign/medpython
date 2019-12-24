@@ -1499,7 +1499,7 @@ T inPlaceQuantile(T *vals, float *w, float wq, int length)
 {
 	int pIndex = length - 1;
 	double weightToIndex = 0;
-	for (int i = 0; i < pIndex; i++)
+	for (int i = 0; i < pIndex; i++) {
 		if (vals[i] > vals[pIndex]) {
 
 
@@ -1516,12 +1516,14 @@ T inPlaceQuantile(T *vals, float *w, float wq, int length)
 			pIndex--;
 			i--;
 		}
-		else weightToIndex += w[i];
+		else
+			weightToIndex += w[i];
+	}
 
-		if (weightToIndex <= wq && weightToIndex + w[pIndex] >= wq)
-			return(vals[pIndex]);
-		if (wq < weightToIndex)return(inPlaceQuantile(vals, w, wq, pIndex));
-		return(inPlaceQuantile(vals + pIndex, w + pIndex, wq - weightToIndex, length - pIndex));
+	if (weightToIndex <= wq && weightToIndex + w[pIndex] >= wq)
+		return(vals[pIndex]);
+	if (wq < weightToIndex)return(inPlaceQuantile(vals, w, wq, pIndex));
+	return(inPlaceQuantile(vals + pIndex, w + pIndex, wq - weightToIndex, length - pIndex));
 
 }
 template<typename T>

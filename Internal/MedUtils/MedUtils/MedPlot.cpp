@@ -119,8 +119,27 @@ void Build3Data(const vector<float> &x1, const vector<float> &x2,
 }
 
 void createHtmlGraph(const string &outPath, const vector<map<float, float>> &data, const string &title, const string &xName
-	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type, const string &mode)
+	, const string &yName, const vector<string> &seriesNames, int refreshTime, const string &chart_type, const string &mode, const string &template_str)
 {
+	vector<vector<pair<float, float>>> x_data(data.size());
+	for (size_t i = 0; i < data.size(); ++i)
+	{
+		x_data[i].resize(data[i].size());
+		int j = 0;
+		for (const auto &it : data[i])
+		{
+			x_data[i][j].first = it.first;
+			x_data[i][j].second = it.second;
+			++j;
+		}
+	}
+	createScatterHtmlGraph(outPath, x_data, title, xName, yName, seriesNames, refreshTime, chart_type, mode, template_str);
+}
+
+void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title,
+	const string &xName, const string &yName, const vector<string> &seriesNames,
+	int refreshTime, const string &chart_type, const string &mode, const string &template_str) {
+
 	string x_name = "x";
 	string y_name = "y";
 	if (chart_type == "pie") {
@@ -128,36 +147,24 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 		y_name = "values";
 	}
 
-	/*ifstream jsFile;
-	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
-	if (!jsFile.is_open()) {
-		throw logic_error("Unable to open js file");
-	}
-	string jsData((istreambuf_iterator<char>(jsFile)),
-		istreambuf_iterator<char>());
-	ofstream jsOut;*/
 	boost::filesystem::path p(outPath);
 	boost::filesystem::path outDir = p.parent_path();
 
-	/*cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
-	jsOut.open(outDir.string() + "/plotly-latest.min.js");
-	jsOut << jsData;
-	jsOut.close();*/
-
-	string content = get_html_template();
+	string content = template_str;
+	if (template_str.empty())
+		content = get_html_template();
 
 	size_t ind = content.find("{0}");
 	if (ind == string::npos) {
-		throw invalid_argument("Not Found in template");
+		throw invalid_argument("Not Found in template. need to contain string {0}\n");
 	}
 
 	string rep = "";
 
 	for (size_t i = 0; i < data.size(); ++i)
 	{
-		const map<float, float> &dmap = data[i];
+		const vector<pair<float, float>> &dmap = data[i];
 
-		//rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: 'lines+markers',\n " + x_name + ": [";
 		rep += "var series" + to_string(i) + " = {\n type: '" + chart_type + "',\n mode: '" + mode + "',\n " + x_name + ": [";
 		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
 			rep += float2Str(it->first) + ", ";
@@ -195,14 +202,14 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 
 	rep += "var data = [";
 	for (size_t i = 0; i < data.size(); ++i)
-	{
 		rep += " series" + to_string(i) + ", ";
-	}
+
 	rep = rep.substr(0, rep.size() - 2);
 	rep += " ]; \n";
 
 	rep += "var layout = { \n  title:'";
 	rep += title + "',\n ";
+
 	if (chart_type != "pie") {
 		rep += "xaxis: { title : '";
 		rep += xName;
@@ -210,111 +217,12 @@ void createHtmlGraph(const string &outPath, const vector<map<float, float>> &dat
 		rep += yName + "'},\n ";
 	}
 
-	rep += "height: 800, \n    width: 1200 \n }; ";
-
-	content.replace(ind, 3, rep);
-	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
-
-	ofstream myfile;
-	cerr << "writing: [" << outPath << "]\n";
-	myfile.open(outPath);
-	if (!myfile.good())
-		cerr << "IO Error: can't write " << outPath << endl;
-	myfile << content;
-	myfile.close();
-}
-
-void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<float, float>>> &data, const string &title,
-	const string &xName, const string &yName, const vector<string> &seriesNames,
-	int refreshTime, const string &mode) {
-
-	string x_name = "x";
-	string y_name = "y";
-
-	/*ifstream jsFile;
-	jsFile.open(BaseResourcePath + separator() + "plotly-latest.min.js");
-	if (!jsFile.is_open()) {
-	throw logic_error("Unable to open js file");
-	}
-	string jsData((istreambuf_iterator<char>(jsFile)),
-	istreambuf_iterator<char>());
-	ofstream jsOut;*/
-	boost::filesystem::path p(outPath);
-	boost::filesystem::path outDir = p.parent_path();
-
-	/*cerr << "writing: [" << outDir.string() + "/plotly-latest.min.js" << "]\n";
-	jsOut.open(outDir.string() + "/plotly-latest.min.js");
-	jsOut << jsData;
-	jsOut.close();*/
-
-	string content = get_html_template();
-
-	size_t ind = content.find("{0}");
-	if (ind == string::npos) {
-		throw invalid_argument("Not Found in template");
-	}
-
-	string rep = "";
-
-	for (size_t i = 0; i < data.size(); ++i)
-	{
-		const vector<pair<float, float>> &dmap = data[i];
-
-		rep += "var series" + to_string(i) + " = {\n type: '" + "scatter" + "',\n mode: '" + mode + "',\n " + x_name + ": [";
-		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
-			rep += float2Str(it->first) + ", ";
-		}
-		if (rep[rep.size() - 2] == ',') {
-			rep = rep.substr(0, rep.size() - 2);
-		}
-		rep += "], \n";
-
-		rep += y_name + ": [";
-		for (auto it = dmap.begin(); it != dmap.end(); ++it) {
-			rep += float2Str(it->second) + ", ";
-		}
-		if (rep[rep.size() - 2] == ',') {
-			rep = rep.substr(0, rep.size() - 2);
-		}
-		rep += "] \n";
-		if (seriesNames.size() > 0) {
-			if (seriesNames.size() != data.size()) {
-				throw invalid_argument("wrong number of series names passed with data graphs to plot");
-			}
-			rep += ", name: '";
-			rep += seriesNames[i];
-			rep += "' \n";
-		}
-		rep += "};\n";
-	}
-
-	if (refreshTime > 0) {
-		char buf[100];
-		snprintf(buf, 100, "setTimeout(function() { window.location.reload(1); }, %d);", refreshTime);
-		rep += buf;
-	}
-
-
-	rep += "var data = [";
-	for (size_t i = 0; i < data.size(); ++i)
-		rep += " series" + to_string(i) + ", ";
-
-	rep = rep.substr(0, rep.size() - 2);
-	rep += " ]; \n";
-
-	rep += "var layout = { \n  title:'";
-	rep += title + "',\n ";
-
-	rep += "xaxis: { title : '";
-	rep += xName;
-	rep += "'}, \n yaxis: { title: '";
-	rep += yName + "'},\n ";
-
 
 	rep += "height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
-	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
+	if (template_str.empty())
+		content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
 
 	ofstream myfile;
 	cerr << "writing: [" << outPath << "]\n";
