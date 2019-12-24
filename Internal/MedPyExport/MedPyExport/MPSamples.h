@@ -131,6 +131,8 @@ public:
 	void get_ids(MEDPY_NP_OUTPUT(int** ids, unsigned long long* num_ids));
 
 	void append(MPSamples& newSamples);
+	void subtract(MPSamples& _dont_use);
+	void split_train_test(MPSamples& train, MPSamples& test, float p_test);
 	int read_from_bin_file(const string& file_name);
 	int write_to_bin_file(const string& file_name);
 
