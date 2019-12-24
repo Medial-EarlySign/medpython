@@ -216,6 +216,9 @@ public:
 	/// <summary> removing all ids that appear in _dont_include from the current samples
 	void subtract(MedSamples &_dont_include);
 
+	/// <summary> gets p_test and splits by id , p_test of the ids into test, and the rest into train
+	void split_train_test(MedSamples &train, MedSamples &test, float p_test);
+
 	void flatten(vector<MedSample> &flat) const;
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>

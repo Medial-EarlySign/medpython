@@ -949,6 +949,21 @@ void MedSamples::subtract(MedSamples &_dont_include)
 	idSamples = new_list;
 }
 
+//.......................................................................................
+// gets p_test and splits by id , p_test of the ids into test, and the rest into train
+void MedSamples::split_train_test(MedSamples &train, MedSamples &test, float p_test)
+{
+	train.clear();
+	test.clear();
+
+	for (auto &id : idSamples)
+		if (rand_1() < p_test)
+			test.idSamples.push_back(id);
+		else
+			train.idSamples.push_back(id);
+
+}
+
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
 	ofstream fo;
 	if (!log_file.empty()) {
