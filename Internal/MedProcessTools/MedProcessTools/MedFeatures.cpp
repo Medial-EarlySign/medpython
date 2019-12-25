@@ -460,9 +460,34 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 			{
 				curr_f = curr_fields_order->at(idx);
 				if (fields[idx].compare(curr_f) != 0) {
-					MLOG("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s\n",
-						curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str());
-					assert(fields[idx].compare(curr_f) == 0);
+					//try also "outcomeTime":
+					if (curr_f == "outcome_time" && fields[idx].compare("outcomeTime") == 0)
+						continue;
+
+					//search for field in curr_fields_order from idx and above:
+					int found_idx = -1;
+					for (int s_id = idx + 1; s_id < curr_fields_order->size() && found_idx < 0; ++s_id)
+						if (fields[idx].compare(curr_fields_order->at(s_id)) == 0 || (curr_fields_order->at(s_id) == "outcome_time" && fields[idx].compare("outcomeTime") == 0))
+							found_idx = s_id;
+					//recover and change order:
+					if (found_idx >= 0) {
+						string found_pos = curr_fields_order->at(found_idx); //what found in fields position (to switch with)
+						string curr_pos = curr_fields_order->at(idx); //original expected at idx => will move to found_idx, will look for later
+
+						curr_fields_order->at(found_idx) = curr_pos;
+						curr_pos_fields->at(curr_pos) = found_idx;
+
+						curr_fields_order->at(idx) = found_pos; //what fields has currently
+						curr_pos_fields->at(found_pos) = idx;
+
+						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d).\n",
+							fields[idx].c_str(), found_idx, curr_f.c_str(), idx);
+					}
+					else {
+						MTHROW_AND_ERR("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s, expected=%s. expected_order=[%s]\n",
+							curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str(),
+							curr_f.c_str(), medial::io::get_list(*curr_fields_order).c_str());
+					}
 				}
 			}
 
