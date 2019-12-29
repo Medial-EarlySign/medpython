@@ -743,7 +743,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			v.init(sigs.Sid2Info[sid]);
 			v.set_data(data, 1);
 			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
-				MOUT(" %d ", convert_date(v.Time(i, tchan), sid).c_str());
+				MOUT(" %s ", convert_date(v.Time(i, tchan), sid).c_str());
 			}
 			for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
 				print_channel_helper(sid, vchan, v.Val(i, vchan));
