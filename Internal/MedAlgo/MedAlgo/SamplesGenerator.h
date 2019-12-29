@@ -118,6 +118,9 @@ private:
 	vector<vector<T>> allowed_values;
 	mt19937 _gen;
 	MaskedGANParams mg_params;
+	vector<float> mean_feature_vals;
+	vector<float> std_feature_vals;
+	bool norm_by_by_file;
 
 	T round_to_allowed_values(T in_value, const vector<T>& curr_allowed_values) const;
 	void set_params(void *params);

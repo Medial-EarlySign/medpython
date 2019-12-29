@@ -1305,10 +1305,15 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		}
 		//lets fix labels weight that cases will be less common
 		medial::models::get_pids_cv(predictor, new_data, nfolds, gen, preds);
-		predictor->calc_feature_importance(features_scores, "", NULL);
-
+		try {
+			predictor->calc_feature_importance(features_scores, "", NULL);
+		}
+		catch (exception &exp) {
+			//handle not implemented calc_feature_importance
+			features_scores.resize(population1.data.size());
+			MERR("%s\n", exp.what());
+		}
 	}
-
 
 	//print each feature dist in each population:
 	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
