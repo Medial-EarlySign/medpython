@@ -142,7 +142,7 @@ public:
 	void post_deserialization();
 
 	ADD_CLASS_NAME(MaskedGAN<T>)
-		ADD_SERIALIZATION_FUNCS(generator, allowed_values, mg_params)
+		ADD_SERIALIZATION_FUNCS(generator, allowed_values, mg_params, mean_feature_vals, std_feature_vals, norm_by_by_file)
 };
 
 /**
