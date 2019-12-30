@@ -803,7 +803,8 @@ MissingShapExplainer::MissingShapExplainer() {
 	uniform_rand = false;
 	use_shuffle = false;
 	add_new_data = 0;
-	change_learn_args = "";
+	predictor_args = "";
+	predictor_type = "";
 	verbose_learn = true;
 	no_relearn = false;
 	avg_bias_score = 0;
@@ -828,8 +829,10 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			select_from_all = med_stof(it->second);
 		else if (it->first == "add_new_data")
 			add_new_data = med_stoi(it->second);
-		else if (it->first == "change_learn_args")
-			change_learn_args = it->second;
+		else if (it->first == "predictor_type")
+			predictor_type = it->second;
+		else if (it->first == "predictor_args")
+			predictor_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
 		else
@@ -865,7 +868,10 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		retrain_predictor = original_predictor;
 		return;
 	}
-	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+	if (predictor_type.empty())
+		retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+	else
+		retrain_predictor = MedPredictor::make_predictor(predictor_type, predictor_args);
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
@@ -959,7 +965,8 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
 		x_mat.transpose();
 	//reweight train_mat:
-	retrain_predictor->init_from_string(change_learn_args);
+	if (predictor_type.empty() && !predictor_args.empty())
+		retrain_predictor->init_from_string(predictor_args);
 	retrain_predictor->learn(x_mat, labels, weights);
 	//test pref:
 	if (verbose_learn) {
@@ -1027,11 +1034,11 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			pred_threads[i]->deserialize(blob_pred);
 			gen_threads[i] = mt19937(rd());
 		}
-		delete []blob_pred;
+		delete[]blob_pred;
 	}
 	else
 		gen_threads[0] = mt19937(rd());
-	
+
 
 #pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
@@ -1048,7 +1055,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			th_n = 0;
 
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
-			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all, 
+			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
 			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
@@ -1202,7 +1209,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 		predictor_cp[i]->deserialize(blob_pred);
 	}
-	delete []blob_pred;
+	delete[]blob_pred;
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
