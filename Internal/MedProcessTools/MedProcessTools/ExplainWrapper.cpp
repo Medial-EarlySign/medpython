@@ -1166,6 +1166,7 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 		if (with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 		}
 		break;
 	case MISSING:
@@ -1284,6 +1285,7 @@ void ShapleyExplainer::load_GAN(MedPredictor *original_pred, const string &gan_p
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 
 	gen_type = GeneratorType::GAN;
 }
@@ -1369,6 +1371,7 @@ void LimeExplainer::init_sampler(bool with_sampler) {
 		if (with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 		}
 		break;
 	case MISSING:
@@ -1395,6 +1398,7 @@ void LimeExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 
 	gen_type = GeneratorType::GAN;
 }
