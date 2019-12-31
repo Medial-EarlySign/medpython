@@ -441,6 +441,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 		boost::split(fields, curr_line, boost::is_any_of(","));
 		int idx = 0;
 		if (ncols == -1) { // Header line	
+			vector<int> skiped_input_columns;
 			string curr_f;
 			for (; idx < pre_fields.size(); ++idx) {
 				curr_f = pre_fields[idx];
@@ -455,19 +456,18 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				curr_fields_order = &fields_order_weight;
 				curr_pos_fields = &pos_fields_weight;
 			}
-
 			for (; idx < curr_pos_fields->size(); ++idx)
 			{
 				curr_f = curr_fields_order->at(idx);
-				if (fields[idx].compare(curr_f) != 0) {
+				if (fields[idx + skiped_input_columns.size()].compare(curr_f) != 0) {
 					//try also "outcomeTime":
-					if (curr_f == "outcome_time" && fields[idx].compare("outcomeTime") == 0)
+					if (curr_f == "outcome_time" && fields[idx + skiped_input_columns.size()].compare("outcomeTime") == 0)
 						continue;
 
 					//search for field in curr_fields_order from idx and above:
 					int found_idx = -1;
 					for (int s_id = idx + 1; s_id < curr_fields_order->size() && found_idx < 0; ++s_id)
-						if (fields[idx].compare(curr_fields_order->at(s_id)) == 0 || (curr_fields_order->at(s_id) == "outcome_time" && fields[idx].compare("outcomeTime") == 0))
+						if (fields[idx + skiped_input_columns.size()].compare(curr_fields_order->at(s_id)) == 0 || (curr_fields_order->at(s_id) == "outcome_time" && fields[idx + skiped_input_columns.size()].compare("outcomeTime") == 0))
 							found_idx = s_id;
 					//recover and change order:
 					if (found_idx >= 0) {
@@ -480,15 +480,43 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 						curr_fields_order->at(idx) = found_pos; //what fields has currently
 						curr_pos_fields->at(found_pos) = idx;
 
-						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d).\n",
-							fields[idx].c_str(), found_idx, curr_f.c_str(), idx);
+						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
+							fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
 					}
 					else {
-						MTHROW_AND_ERR("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s, expected=%s. expected_order=[%s]\n",
-							curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str(),
-							curr_f.c_str(), medial::io::get_list(*curr_fields_order).c_str());
+						skiped_input_columns.push_back(idx);
+						MWARN("WARN: skipped field %s(%d) in header - saved for later\n", fields[idx].c_str(), idx);
+						--idx;
+						if (idx + 1 + skiped_input_columns.size() < fields.size())
+							continue;
+						else
+							MTHROW_AND_ERR("In field %s, idx=(%d / %zu), got_field_header=%s, expected=%s. expected_order=[%s]\nheader_line=%s\n",
+								curr_f.c_str(), idx, curr_pos_fields->size() - 1, fields[idx].c_str(),
+								curr_f.c_str(), medial::io::get_list(*curr_fields_order).c_str(), curr_line.c_str());
 					}
 				}
+			}
+			//fetch all skiped_input_columns:
+			for (int skip_idx : skiped_input_columns)
+			{
+				if (boost::starts_with(fields[skip_idx], pred_prefix)) {
+					pos_preds.push_back(skip_idx);
+					continue;
+				}
+				if (boost::starts_with(fields[skip_idx], attr_prefix)) {
+					string name = fields[skip_idx].substr(attr_prefix.size());
+					pos_attr[name] = skip_idx;
+					continue;
+				}
+				if (boost::starts_with(fields[skip_idx], str_attr_prefix)) {
+					string name = fields[skip_idx].substr(str_attr_prefix.size());
+					pos_str_attr[name] = skip_idx;
+					continue;
+				}
+				//features:
+				data[fields[skip_idx]] = vector<float>();
+				attributes[fields[skip_idx]].normalized = attributes[fields[skip_idx]].imputed = false;
+				names.push_back(fields[skip_idx]);
 			}
 
 			// Predictions
