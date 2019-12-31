@@ -187,6 +187,7 @@ public:
 	string predictor_args; ///< arguments to change in predictor - for example to change it into regression
 	string predictor_type;
 	bool verbose_learn; ///< If true will print more in learn
+	float max_weight; ///< the maximal weight number. if < 0 no limit
 
 	MissingShapExplainer();
 
@@ -198,7 +199,8 @@ public:
 
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
-			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name, predictor_type, predictor_args)
+			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
+			predictor_type, predictor_args, max_weight)
 };
 
 /// @enum

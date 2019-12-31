@@ -808,6 +808,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	verbose_learn = true;
 	no_relearn = false;
 	avg_bias_score = 0;
+	max_weight = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -835,6 +836,8 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			predictor_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
+		else if (it->first == "max_weight")
+			max_weight = med_stof(it->second);
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -955,6 +958,21 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
 		weights[i] = curr_mask_w;
 	}
+	if (max_weight > 0) {
+		float min_weight = 0;
+		if (!weights.empty())
+			min_weight = weights[0];
+		for (size_t i = 1; i < weights.size(); ++i)
+			if (weights[i] < min_weight)
+				min_weight = weights[i];
+		//normalize be max:
+		if (min_weight > 0)
+			for (size_t i = 1; i < weights.size(); ++i) {
+				weights[i] /= min_weight;
+				if (weights[i] > max_weight)
+					weights[i] = max_weight;
+			}
+	}
 	if (verbose_learn) {
 		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
 		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
@@ -973,12 +991,17 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		vector<float> train_p;
 		retrain_predictor->predict(x_mat, train_p);
 		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
+		float rmse_no_weights = medial::performance::rmse_without_cleaning(train_p, labels);
 		float mean_pred, std_labels;
 		medial::stats::get_mean_and_std_without_cleaning(labels, mean_pred, std_labels);
 		float r_square = MED_MAT_MISSING_VALUE;
-		if (std_labels > 0)
+		float r_square_no = MED_MAT_MISSING_VALUE;
+		if (std_labels > 0) {
 			r_square = 1 - (rmse / std_labels);
-		MLOG("RMSE=%2.4f on train for model, R_Square=%2.3f\n", rmse, r_square);
+			r_square_no = 1 - (rmse_no_weights / std_labels);
+		}
+		MLOG("RMSE=%2.4f, RMSE(no weights)=%2.4f on train for model, R_Square=%2.3f, R_Square(no weights)=%2.3f\n",
+			rmse, rmse_no_weights, r_square, r_square_no);
 	}
 }
 
