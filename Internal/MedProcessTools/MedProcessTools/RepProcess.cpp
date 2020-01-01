@@ -3007,6 +3007,7 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 		if (field == "input_name") input_name = entry.second;
 		else if (field == "names") boost::split(names, entry.second, boost::is_any_of(","));
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "factors") {
 			boost::split(tokens, entry.second, boost::is_any_of(","));
 			factors.resize(tokens.size());
@@ -3031,17 +3032,41 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 	req_signals.clear();
 	req_signals.insert(input_name);
 	virtual_signals.clear();
+
 	virtual_signals_generic.clear();
+	/*in_sid = rep.sigs.sid(input_name);
+	if (in_sid < 0)
+		MTHROW_AND_ERR("Error can't find signal %s in rep\n", input_name.c_str());
+	const SignalInfo &s_info = rep.sigs.Sid2Info[in_sid];
+	string type_gen = generate_signal_sig(s_info);*/
+	string type_gen = "T(i),T(i),V(f),V(f)";
 
 	for (size_t i = 0; i < names.size(); ++i)
-		virtual_signals_generic.push_back(pair<string, string>(names[i], "T(i),T(i),V(f),V(f)"));
+		virtual_signals_generic.push_back(pair<string, string>(names[i], type_gen));
 
 	return 0;
+}
+
+string generate_signal_sig(const SignalInfo &s_info) {
+	stringstream str;
+
+	if (s_info.n_time_channels > 0)
+		str << "T(" << s_info.time_channel_types[0] << ")";
+	for (size_t i = 1; i < s_info.n_time_channels; ++i)
+		str << ",T(" << GenericSigVec::type_enc::decode(s_info.time_channel_types[i]) << ")";
+	if (s_info.n_val_channels > 0)
+		str << "V(" << s_info.val_channel_types[0] << ")";
+	for (size_t i = 1; i < s_info.n_val_channels; ++i)
+		str << ",V(" << GenericSigVec::type_enc::decode(s_info.val_channel_types[i]) << ")";
+
+	return str.str();
 }
 
 void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 	//init Flags:
 	int section_id = dict.section_id(input_name);
+
+
 	dict.prep_sets_lookup_table(section_id, sets, Flags);
 
 	in_sid = sigs.sid(input_name);
@@ -3064,9 +3089,9 @@ void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) 
 
 	SignalInfo &si = sigs.Sid2Info[in_sid];
 
-	if (si.n_val_channels < 2)
-		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain 2 val channels\n",
-			input_name.c_str());
+	if (si.n_val_channels < val_channel)
+		MTHROW_AND_ERR("ERROR in RepSplitSignal::init_tables - input signal %s should contain  at least %d val channels\n",
+			input_name.c_str(), val_channel + 1);
 }
 
 void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -3095,17 +3120,15 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 		vector<vector<int>> v_times(names.size());
 		vector<vector<float>> v_vals(names.size());
 		for (int i = 0; i < rec.usvs[0].len; ++i) {
-			int time = rec.usvs[0].Time(i);
-			float orig_val = rec.usvs[0].Val(i);
-			int kv_idx = (int)orig_val;
+			int kv_idx = (int)rec.usvs[0].Val(i, val_channel);
 			//if (kv_idx >= Flags.size())
 			//	MTHROW_AND_ERR("Error got value %d outside dict(%zu)\n", kv_idx, Flags.size());
 			int idx = Flags[kv_idx];
 
-			v_times[idx].push_back(time);
-			v_times[idx].push_back(0);
-			v_vals[idx].push_back(orig_val); //chan 0
-			v_vals[idx].push_back(rec.usvs[0].Val(i, 1) * factors[idx]); //chan 1
+			for (size_t j = 0; j < rec.usvs[0].n_time_channels(); ++j)
+				v_times[idx].push_back(rec.usvs[0].Time(i, j));
+			for (size_t j = 0; j < rec.usvs[0].n_val_channels(); ++j)
+				v_vals[idx].push_back(rec.usvs[0].Val(i, j)* factors[j]);
 		}
 		// pushing virtual data into rec (into orig version)
 		for (size_t i = 0; i < names.size(); ++i)

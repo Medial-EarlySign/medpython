@@ -1569,8 +1569,9 @@ public:
 	vector<string> names; ///< names of signal created by the processor
 	vector<float> factors; ///< factor for each output signal
 	vector<string> sets; ///< the sets to check if signal value is in set
+	int val_channel;
 
-	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; }
+	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; val_channel = 0; }
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
@@ -1590,7 +1591,8 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, 
+			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
