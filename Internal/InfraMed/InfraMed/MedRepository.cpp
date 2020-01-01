@@ -2035,17 +2035,20 @@ int medial::repository::DateAdd(int refDate, int daysAdd) {
 }
 
 int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
-	int len, gend = -1;
-	void *data = rep.get(pid, sigCode, len);
+	int gend = -1;
+	UniversalSigVec usv;
 
-	if (len > 0) {
-		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
-			gend = (int)(*(SVal *)data).val;
-		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
-			gend = (int)(*(STimeStamp *)data).time;
+	rep.uget(pid, sigCode, usv);
+
+	if (usv.len > 0) {
+		if (usv.n_val_channels() > 0)
+			gend = (int)usv.Val(0);
+		else if (usv.n_time_channels() > 0)
+			gend = usv.Time(0);
 	}
 	return gend;
 }
+
 
 template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
