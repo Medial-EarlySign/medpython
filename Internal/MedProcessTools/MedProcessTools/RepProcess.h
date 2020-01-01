@@ -95,7 +95,7 @@ public:
 	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalName </summary>
 	virtual void set_signal(const string& _signalName) { return; };
 
-	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalId  </summary>
+	/// <summary> set signal-ids :  Should be implemented for inheriting classes that have signalId  </summary>
 	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
 	// Required Signals functions : get all signals that are required by the processor
@@ -1892,7 +1892,7 @@ public:
 	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
-		ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to)
+	ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to, req_signals, aff_signals)
 
 };
 
