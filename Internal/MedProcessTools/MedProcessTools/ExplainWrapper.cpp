@@ -803,10 +803,12 @@ MissingShapExplainer::MissingShapExplainer() {
 	uniform_rand = false;
 	use_shuffle = false;
 	add_new_data = 0;
-	change_learn_args = "";
+	predictor_args = "";
+	predictor_type = "";
 	verbose_learn = true;
 	no_relearn = false;
 	avg_bias_score = 0;
+	max_weight = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -828,10 +830,14 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			select_from_all = med_stof(it->second);
 		else if (it->first == "add_new_data")
 			add_new_data = med_stoi(it->second);
-		else if (it->first == "change_learn_args")
-			change_learn_args = it->second;
+		else if (it->first == "predictor_type")
+			predictor_type = it->second;
+		else if (it->first == "predictor_args")
+			predictor_args = it->second;
 		else if (it->first == "verbose_learn")
 			verbose_learn = stoi(it->second) > 0;
+		else if (it->first == "max_weight")
+			max_weight = med_stof(it->second);
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -865,7 +871,10 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		retrain_predictor = original_predictor;
 		return;
 	}
-	retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+	if (predictor_type.empty())
+		retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+	else
+		retrain_predictor = MedPredictor::make_predictor(predictor_type, predictor_args);
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
 	train_mat.get_as_matrix(x_mat);
@@ -949,6 +958,21 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
 		weights[i] = curr_mask_w;
 	}
+	if (max_weight > 0) {
+		float min_weight = 0;
+		if (!weights.empty())
+			min_weight = weights[0];
+		for (size_t i = 1; i < weights.size(); ++i)
+			if (weights[i] < min_weight)
+				min_weight = weights[i];
+		//normalize be max:
+		if (min_weight > 0)
+			for (size_t i = 1; i < weights.size(); ++i) {
+				weights[i] /= min_weight;
+				if (weights[i] > max_weight)
+					weights[i] = max_weight;
+			}
+	}
 	if (verbose_learn) {
 		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
 		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
@@ -959,19 +983,25 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
 		x_mat.transpose();
 	//reweight train_mat:
-	retrain_predictor->init_from_string(change_learn_args);
+	if (predictor_type.empty() && !predictor_args.empty())
+		retrain_predictor->init_from_string(predictor_args);
 	retrain_predictor->learn(x_mat, labels, weights);
 	//test pref:
 	if (verbose_learn) {
 		vector<float> train_p;
 		retrain_predictor->predict(x_mat, train_p);
 		float rmse = medial::performance::rmse_without_cleaning(train_p, labels, &weights);
+		float rmse_no_weights = medial::performance::rmse_without_cleaning(train_p, labels);
 		float mean_pred, std_labels;
 		medial::stats::get_mean_and_std_without_cleaning(labels, mean_pred, std_labels);
 		float r_square = MED_MAT_MISSING_VALUE;
-		if (std_labels > 0)
+		float r_square_no = MED_MAT_MISSING_VALUE;
+		if (std_labels > 0) {
 			r_square = 1 - (rmse / std_labels);
-		MLOG("RMSE=%2.4f on train for model, R_Square=%2.3f\n", rmse, r_square);
+			r_square_no = 1 - (rmse_no_weights / std_labels);
+		}
+		MLOG("RMSE=%2.4f, RMSE(no weights)=%2.4f on train for model, R_Square=%2.3f, R_Square(no weights)=%2.3f\n",
+			rmse, rmse_no_weights, r_square, r_square_no);
 	}
 }
 
@@ -1027,11 +1057,11 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			pred_threads[i]->deserialize(blob_pred);
 			gen_threads[i] = mt19937(rd());
 		}
-		delete []blob_pred;
+		delete[]blob_pred;
 	}
 	else
 		gen_threads[0] = mt19937(rd());
-	
+
 
 #pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
@@ -1048,7 +1078,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			th_n = 0;
 
 		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
-			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all, 
+			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
 			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
@@ -1136,6 +1166,7 @@ void ShapleyExplainer::init_sampler(bool with_sampler) {
 		if (with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 		}
 		break;
 	case MISSING:
@@ -1202,7 +1233,7 @@ void ShapleyExplainer::explain(const MedFeatures &matrix, vector<map<string, flo
 		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 		predictor_cp[i]->deserialize(blob_pred);
 	}
-	delete []blob_pred;
+	delete[]blob_pred;
 
 	MedProgress progress("ShapleyExplainer", (int)matrix.samples.size(), 15);
 #pragma omp parallel for if (matrix.samples.size() >= 2)
@@ -1254,6 +1285,7 @@ void ShapleyExplainer::load_GAN(MedPredictor *original_pred, const string &gan_p
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 
 	gen_type = GeneratorType::GAN;
 }
@@ -1339,6 +1371,7 @@ void LimeExplainer::init_sampler(bool with_sampler) {
 		if (with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 		}
 		break;
 	case MISSING:
@@ -1365,6 +1398,7 @@ void LimeExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path
 	this->original_predictor = original_pred;
 	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
 	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
 
 	gen_type = GeneratorType::GAN;
 }

@@ -106,6 +106,17 @@ template class SamplesGenerator<double>;
 template class GibbsSamplesGenerator<float>;
 template class GibbsSamplesGenerator<double>;
 
+int MaskedGANParams::init(map<string, string> &mapper) {
+	for (const auto it : mapper)
+	{
+		if (it.first == "keep_original_values")
+			keep_original_values = med_stoi(it.second) > 0;
+		else
+			MTHROW_AND_ERR("Error in MaskedGANParams::init Unsupported argument %s\n", it.first.c_str());
+	}
+	return 0;
+}
+
 // Masked GAN
 template<typename T> MaskedGAN<T>::MaskedGAN()
 	: SamplesGenerator<T>(true) {

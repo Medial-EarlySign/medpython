@@ -402,7 +402,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 {
 	vector<string> pre_fields = { "serial" }; //fields that appears in all modes: without_weights, with_weights
 	vector<string> fields_order = { "id", "time", "outcome", "outcome_time", "split" }; //fields for MedSample
-	string weight_field_anme = "weight"; //weight field name if appear
+	string weight_field_name = "weight"; //weight field name if appear
 	string pred_prefix = "pred_";
 	string attr_prefix = "attr_";
 	string str_attr_prefix = "str_attr_";
@@ -424,7 +424,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 	add_to_map(pos_fields_no_weight, pre_fields);
 	map<string, int> pos_fields_weight = pos_fields_no_weight;
 	int sz = (int)pos_fields_weight.size();
-	pos_fields_weight[weight_field_anme] = sz;
+	pos_fields_weight[weight_field_name] = sz;
 	add_to_map(pos_fields_weight, fields_order);
 	add_to_map(pos_fields_no_weight, fields_order);
 	vector<string> fields_order_no_weight, fields_order_weight;
@@ -433,14 +433,16 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 	vector<string> *curr_fields_order = &fields_order_no_weight;
 	map<string, int> *curr_pos_fields = &pos_fields_no_weight;
 	map<string, int> pos_attr, pos_str_attr;
+	unordered_map<string, int> feature_name_pos;
 	vector<int> pos_preds;
 
 	while (getline(inf, curr_line)) {
 		boost::trim(curr_line);
 		vector<string> fields;
 		boost::split(fields, curr_line, boost::is_any_of(","));
-		int idx = 0;
 		if (ncols == -1) { // Header line	
+			int idx = 0;
+			vector<int> skiped_input_columns;
 			string curr_f;
 			for (; idx < pre_fields.size(); ++idx) {
 				curr_f = pre_fields[idx];
@@ -455,19 +457,18 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				curr_fields_order = &fields_order_weight;
 				curr_pos_fields = &pos_fields_weight;
 			}
-
 			for (; idx < curr_pos_fields->size(); ++idx)
 			{
 				curr_f = curr_fields_order->at(idx);
-				if (fields[idx].compare(curr_f) != 0) {
+				if (fields[idx + skiped_input_columns.size()].compare(curr_f) != 0) {
 					//try also "outcomeTime":
-					if (curr_f == "outcome_time" && fields[idx].compare("outcomeTime") == 0)
+					if (curr_f == "outcome_time" && fields[idx + skiped_input_columns.size()].compare("outcomeTime") == 0)
 						continue;
 
 					//search for field in curr_fields_order from idx and above:
 					int found_idx = -1;
 					for (int s_id = idx + 1; s_id < curr_fields_order->size() && found_idx < 0; ++s_id)
-						if (fields[idx].compare(curr_fields_order->at(s_id)) == 0 || (curr_fields_order->at(s_id) == "outcome_time" && fields[idx].compare("outcomeTime") == 0))
+						if (fields[idx + skiped_input_columns.size()].compare(curr_fields_order->at(s_id)) == 0 || (curr_fields_order->at(s_id) == "outcome_time" && fields[idx + skiped_input_columns.size()].compare("outcomeTime") == 0))
 							found_idx = s_id;
 					//recover and change order:
 					if (found_idx >= 0) {
@@ -480,16 +481,50 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 						curr_fields_order->at(idx) = found_pos; //what fields has currently
 						curr_pos_fields->at(found_pos) = idx;
 
-						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d).\n",
-							fields[idx].c_str(), found_idx, curr_f.c_str(), idx);
+						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
+							fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
 					}
 					else {
-						MTHROW_AND_ERR("header_line=%s\nIn field %s, idx=(%d / %zu), got_field_header=%s, expected=%s. expected_order=[%s]\n",
-							curr_line.c_str(), curr_f.c_str(), idx, curr_pos_fields->size(), fields[idx].c_str(),
-							curr_f.c_str(), medial::io::get_list(*curr_fields_order).c_str());
+						skiped_input_columns.push_back(idx);
+						MWARN("WARN: skipped field %s(%d) in header - saved for later\n", fields[idx].c_str(), idx);
+						--idx;
+						if (idx + 1 + skiped_input_columns.size() < fields.size())
+							continue;
+						else
+							MTHROW_AND_ERR("In field %s, idx=(%d / %zu), got_field_header=%s, expected=%s. expected_order=[%s]\nheader_line=%s\n",
+								curr_f.c_str(), idx, curr_pos_fields->size() - 1, fields[idx].c_str(),
+								curr_f.c_str(), medial::io::get_list(*curr_fields_order).c_str(), curr_line.c_str());
 					}
 				}
 			}
+			//fetch all skiped_input_columns:
+			for (int skip_idx : skiped_input_columns)
+			{
+				if (boost::starts_with(fields[skip_idx], pred_prefix)) {
+					pos_preds.push_back(skip_idx);
+					MLOG("Added field %s(%d) into prediction fields\n", fields[skip_idx].c_str(), skip_idx);
+					continue;
+				}
+				if (boost::starts_with(fields[skip_idx], attr_prefix)) {
+					string name = fields[skip_idx].substr(attr_prefix.size());
+					pos_attr[name] = skip_idx;
+					MLOG("Added field %s(%d) into numeric attributes fields\n", fields[skip_idx].c_str(), skip_idx);
+					continue;
+				}
+				if (boost::starts_with(fields[skip_idx], str_attr_prefix)) {
+					string name = fields[skip_idx].substr(str_attr_prefix.size());
+					pos_str_attr[name] = skip_idx;
+					MLOG("Added field %s(%d) into string attributes fields\n", fields[skip_idx].c_str(), skip_idx);
+					continue;
+				}
+				//features:
+				data[fields[skip_idx]] = vector<float>();
+				attributes[fields[skip_idx]].normalized = attributes[fields[skip_idx]].imputed = false;
+				names.push_back(fields[skip_idx]);
+				feature_name_pos[fields[skip_idx]] = skip_idx;
+				MLOG("Added field %s(%d) into features\n", fields[skip_idx].c_str(), skip_idx);
+			}
+			idx += (int)skiped_input_columns.size();
 
 			// Predictions
 			while (idx < fields.size() && boost::starts_with(fields[idx], pred_prefix)) {
@@ -516,6 +551,7 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				data[fields[i]] = vector<float>();
 				attributes[fields[i]].normalized = attributes[fields[i]].imputed = false;
 				names.push_back(fields[i]);
+				feature_name_pos[fields[i]] = i;
 			}
 
 			ncols = (int)fields.size();
@@ -524,30 +560,16 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 			if (fields.size() != ncols)
 				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
-			//skip pre fields: serial
-			++idx;
-
-			if (curr_pos_fields->find(weight_field_anme) != curr_pos_fields->end()) {
-				weights.push_back(stof(fields[curr_pos_fields->at(weight_field_anme)]));
-				++idx;
-			}
+			if (curr_pos_fields->find(weight_field_name) != curr_pos_fields->end())
+				weights.push_back(stof(fields[curr_pos_fields->at(weight_field_name)]));
 
 			MedSample newSample;
 			newSample.parse_from_string(fields, *curr_pos_fields, pos_preds, pos_attr, pos_str_attr, time_unit, (int)read_time_raw, ",");
 
 			samples.push_back(newSample);
-			//advance idx in fields to last pos:
-			idx = (int)curr_pos_fields->size();
-
-			if (!pos_preds.empty() && idx < pos_preds.back() + 1)
-				idx = pos_preds.back() + 1;
-			if (!pos_attr.empty() && idx < max_ind_map(pos_attr) + 1)
-				idx = max_ind_map(pos_attr) + 1;
-			if (!pos_str_attr.empty() && idx < max_ind_map(pos_str_attr) + 1)
-				idx = max_ind_map(pos_str_attr) + 1;
 
 			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[idx++]));
+				data[names[i]].push_back(stof(fields[feature_name_pos[names[i]]]));
 		}
 	}
 
