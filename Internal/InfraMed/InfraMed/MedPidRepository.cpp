@@ -22,6 +22,9 @@ int MedPidRepository::create(string &rep_fname, int from_pid, int to_pid, int ju
 	pids_idx.clear();
 	pids_idx.set_min(from_pid);
 
+	if (jump <= 0)
+		jump = (to_pid - from_pid) / 4 + 1;
+
 	int curr_chunk = 0;
 
 	vector<unsigned char> pid_header(MAX_HEADER_SIZE);
