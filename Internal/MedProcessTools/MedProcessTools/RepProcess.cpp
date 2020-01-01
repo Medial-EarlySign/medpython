@@ -3125,10 +3125,18 @@ int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<
 			//	MTHROW_AND_ERR("Error got value %d outside dict(%zu)\n", kv_idx, Flags.size());
 			int idx = Flags[kv_idx];
 
-			for (size_t j = 0; j < rec.usvs[0].n_time_channels(); ++j)
+			/*for (size_t j = 0; j < rec.usvs[0].n_time_channels(); ++j)
 				v_times[idx].push_back(rec.usvs[0].Time(i, j));
 			for (size_t j = 0; j < rec.usvs[0].n_val_channels(); ++j)
-				v_vals[idx].push_back(rec.usvs[0].Val(i, j)* factors[j]);
+				v_vals[idx].push_back(rec.usvs[0].Val(i, j)* factors[j]);*/
+			v_times[idx].push_back(rec.usvs[0].Time(i, 0));
+			if (rec.usvs[0].n_time_channels() > 0)
+				v_times[idx].push_back(rec.usvs[0].Time(i, 1));
+			else
+				v_times[idx].push_back(0);
+			v_vals[idx].push_back(rec.usvs[0].Val(i, 0)* factors[0]);
+			if (rec.usvs[0].n_val_channels() > 0)
+				v_vals[idx].push_back(rec.usvs[0].Val(i, 1)* factors[1]);
 		}
 		// pushing virtual data into rec (into orig version)
 		for (size_t i = 0; i < names.size(); ++i)
