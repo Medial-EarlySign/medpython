@@ -381,7 +381,7 @@ int MedConvert::read_all(const string &config_fname)
 	// Copy dict files as-is to output directory
 	if (copy_files_IM(path, out_path, dict_fnames) < 0)
 		MTHROW_AND_ERR("MedConvert : read_all() : failed copying files from in to out directory\n");
-	
+
 	// add path to more files + fix paths
 	if (add_path_to_name_IM(path, dict_fnames) == -1 ||
 		add_path_to_name_IM(out_path, index_fnames) == -1 ||
@@ -394,7 +394,7 @@ int MedConvert::read_all(const string &config_fname)
 	if (create_indexes() < 0)
 		MTHROW_AND_ERR("MedConvert: read_all(): failed generating new data and indexes\n");
 
-	
+
 
 	return 0;
 }
@@ -461,14 +461,14 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 								cd_sv.init_from_sigtype(T_DateVal);
 								// Cancer_Location
 								i = sid2serial[dict.id(string("Cancer_Location"))];
-								cd_sv.setTime(0,0,med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
-								cd_sv.setVal(0,0,(float)(dict.id(fields[3])));
+								cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
+								cd_sv.setVal(0, 0, (float)(dict.id(fields[3])));
 								curr.raw_data[i].push_back(cd);
 
 								// Cancer_Stage
 								i = sid2serial[dict.id(string("Cancer_Stage"))];
-								cd_sv.setTime(0,0,med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
-								cd_sv.setVal(0,0,(float)(med_stoi(fields[1])));
+								cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(default_time_unit, fields[2], convert_mode));
+								cd_sv.setVal(0, 0, (float)(med_stoi(fields[1])));
 								curr.raw_data[i].push_back(cd);
 
 								curr_fstat.n_parsed_lines++;
@@ -497,7 +497,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 								SignalInfo& info = sigs.Sid2Info[sid];
 								cd_sv.init(info);
 								if (cd_sv.size() > MAX_COLLECTED_DATA_SIZE) {
-									MTHROW_AND_ERR("ERROR: cd_sv.size() (%d) > MAX_COLLECTED_DATA_SIZE (%d), Please Increase MAX_COLLECTED_DATA_SIZE\n", (int)cd_sv.size() , (int)MAX_COLLECTED_DATA_SIZE);
+									MTHROW_AND_ERR("ERROR: cd_sv.size() (%d) > MAX_COLLECTED_DATA_SIZE (%d), Please Increase MAX_COLLECTED_DATA_SIZE\n", (int)cd_sv.size(), (int)MAX_COLLECTED_DATA_SIZE);
 								}
 								int time_unit = info.time_unit == MedTime::Undefined ? default_time_unit : info.time_unit;
 								if (file_type == 3) {
@@ -516,11 +516,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 											cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[2]));
 										else cd_sv.setVal(0, 0, med_stof(fields[2]));
 									}
-									else // backward compatible with date 0 trick to load value only data
+									else { // backward compatible with date 0 trick to load value only data
 										if (sigs.is_categorical_channel(sid, 0))
 											cd_sv.setVal(0, 0, dict.get_id_or_throw(section, fields[3]));
-										else cd_sv.setVal(0, 0, med_stof(fields[3]));
-										break;
+										else
+											cd_sv.setVal(0, 0, med_stof(fields[3]));
+									}
+									break;
 
 								case T_DateVal:
 									cd_sv.setTime(0, 0, med_time_converter.convert_datetime_safe(time_unit, fields[2], convert_mode));
@@ -567,7 +569,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									break;
 
 								case T_TimeLongVal:
-									
+
 									cd_sv.setTime<long long>(0, 0, stoll(fields[2]));
 									if (sigs.is_categorical_channel(sid, 0))
 										cd_sv.setVal<long long>(0, 0, (long long)dict.get_id_or_throw(section, fields[3]));
@@ -674,7 +676,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										case GenericSigVec::type_enc::INT32:   //int
 											cd_sv.setTime(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
 											break;
-                                        //TODO: figure out when to use stoll and time_converter
+											//TODO: figure out when to use stoll and time_converter
 										case GenericSigVec::type_enc::INT64:   //long long
 											//cd_sv.setTime<long long>(0, tchan, stoll(fields[field_i]));
 											cd_sv.setTime<long long>(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
@@ -710,7 +712,7 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 										case GenericSigVec::type_enc::UINT16:  //unsigned short
 											if (sigs.is_categorical_channel(sid, vchan))
 												cd_sv.setVal<unsigned short>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
-											else { 
+											else {
 												auto value = med_stoi(fields[field_i]);
 												if (value < 0)
 													MTHROW_AND_ERR("MedConvert: get_next_signal: Detected attempt to assign negative number (%d) into unsigned value channel %d :: curr_line is '%s'\n", value, vchan, curr_line.c_str());
@@ -1416,11 +1418,11 @@ int MedConvert::write_indexes(pid_data &curr)
 							*/
 
 							//if (sid_type == T_Generic) {
-								int struct_len = (int)sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
-								len = struct_len*ilen;
-								for (int j = 0; j < ilen; j++) {
-									data_f[fno]->write((char *)&(curr.raw_data[i][j].buf[0]), struct_len);
-								}
+							int struct_len = (int)sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
+							len = struct_len * ilen;
+							for (int j = 0; j < ilen; j++) {
+								data_f[fno]->write((char *)&(curr.raw_data[i][j].buf[0]), struct_len);
+							}
 							//}
 
 

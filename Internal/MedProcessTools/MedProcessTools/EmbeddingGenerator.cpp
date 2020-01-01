@@ -84,6 +84,25 @@ void EmbeddingGenerator::init_tables(MedDictionarySections& dict)
 	emc.init_tables(dict);
 }
 
+void EmbeddingGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	unordered_map<string, vector<string>> sig_to_sets;
+	for (auto &es : emc.embed_sigs) {
+		if (es.type != ECTYPE_CATEGORIAL)
+			continue;
+
+		if (signal_categories_in_use.find(es.sig) == signal_categories_in_use.end())
+			signal_categories_in_use[es.sig] = es.categories_to_embed;
+		else {
+			//merge with existing:
+			unordered_set<string> existing_sets(signal_categories_in_use.at(es.sig).begin(),
+				signal_categories_in_use.at(es.sig).end());
+			existing_sets.insert(es.categories_to_embed.begin(), es.categories_to_embed.end());;
+			vector<string> uniq_vec(existing_sets.begin(), existing_sets.end());
+			signal_categories_in_use[es.sig] = move(uniq_vec);
+		}
+	}
+}
+
 //-------------------------------------------------------------------------------------------------------------------------
 int EmbeddingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data)
 {
@@ -116,7 +135,7 @@ int EmbeddingGenerator::generate_by_rec(PidDynamicRec& rec, MedFeatures& feature
 		}
 
 	}
-	
+
 	return 0;
 }
 

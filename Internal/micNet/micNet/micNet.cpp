@@ -400,7 +400,7 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 
 #pragma omp parallel for private(i) if (n_b>100 || k_out>100)
 		for (i = 0; i < n_b; i++) {
-			for (int j = 0; j < k_out; j++)
+			for (int j = 0; j < k_out; j++) {
 				if (batch_out(i, j) >= 0) {
 					grad_s(i, j) = lr_params(j, 0);
 					batch_out(i, j) *= lr_params(j, 0); // a
@@ -409,7 +409,8 @@ int micNode::forward_batch_leaky_relu(int do_grad_flag)
 					grad_s(i, j) = lr_params(j, 1);
 					batch_out(i, j) *= lr_params(j, 1); // b
 				}
-				grad_s(i, k_out) = 0;
+			}
+			grad_s(i, k_out) = 0;
 		}
 
 		//		print("debug forward after grad step:",1,6);
@@ -2217,7 +2218,7 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 
 #endif
 			// TBD: more measures....auc,corr, etc....
-		}
+			}
 
 		if (params.net_type == "autoencoder") {
 			MLOG("Eval autoencoder: preds %d x %d , y %d x %d nsamples %d\n", preds.nrows, preds.ncols, y.nrows, y.ncols, nsamples);
@@ -2232,10 +2233,10 @@ int micNet::eval(const string &name, MedMat<float> &x, MedMat<float> &y, NetEval
 					eval.lsq_loss += fact * (float)0.5*(preds(i, j) - y(i, j))*(preds(i, j) - y(i, j));
 				}
 		}
-	}
+		}
 
 	return 0;
-}
+	}
 
 int micNet::test_grad_numerical(int i_node, int i_in, int i_out, float epsilon)
 {

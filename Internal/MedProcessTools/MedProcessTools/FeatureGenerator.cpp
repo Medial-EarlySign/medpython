@@ -509,6 +509,12 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+void BasicFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME) {
+		signal_categories_in_use[signalName] = sets;
+	}
+}
+
 //.......................................................................................
 float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int outcomeTime) {
 
@@ -798,6 +804,10 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 	return;
 }
 
+void SingletonGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (sets.size() > 0)
+		signal_categories_in_use[signalName] = sets;
+}
 //.......................................................................................
 void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
 
@@ -869,13 +879,13 @@ void RangeFeatGenerator::set_names() {
 
 	switch (type) {
 	case FTR_RANGE_CURRENT:	name += "current_" + ((sets.size() > 0) ? sets[0] : ""); break;
-	case FTR_RANGE_LATEST:	name += "latest_" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_LATEST:	name += "latest" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_MIN:		name += "min"; break;
 	case FTR_RANGE_MAX:		name += "max"; break;
-	case FTR_RANGE_EVER:	name += "ever_" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_EVER:	name += "ever" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + ((sets.size() > 0) ? sets[0] : ""); break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
-	case FTR_RANGE_TIME_COVERED: name += "time_covered_" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -942,6 +952,11 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 	else
 		lut.clear();
 	return;
+}
+
+void RangeFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF)
+		signal_categories_in_use[signalName] = sets;
 }
 
 // Init
@@ -1711,10 +1726,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 		if (curr_from < min_time) curr_from = min_time;
 		if (curr_to > max_time) curr_to = max_time;
 
-		if (curr_to >= curr_to) {
-			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
-		}
-
+		time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
 	}
 
 	return (float)time_sum / div_factor;

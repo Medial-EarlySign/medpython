@@ -144,6 +144,8 @@ MPSamples::MPSamples(const MPSamples& other) {
 MPSamples::~MPSamples() { if(o_owned) delete o; o = nullptr; };
 
 void MPSamples::append(MPSamples& newSamples) { o->idSamples.insert(o->idSamples.end(), newSamples.o->idSamples.begin(), newSamples.o->idSamples.end()); }
+void MPSamples::subtract(MPSamples& _dont_use) { o->subtract(*(_dont_use.o)); }
+void MPSamples::split_train_test(MPSamples& train, MPSamples& test, float p_test) { o->split_train_test((*(train.o)), (*(test.o)), p_test); }
 
 int MPSamples::read_from_bin_file(const string& file_name) { return val_or_exception(o->read_from_bin_file(file_name), "Cannot read Samples from bin file "+file_name); }
 int MPSamples::write_to_bin_file(const string& file_name) { return val_or_exception(o->write_to_bin_file(file_name), "Cannot write Samples to bin file " + file_name); }

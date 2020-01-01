@@ -109,8 +109,8 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
-	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) { 
-		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second; 
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) {
+		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second;
 		for (auto &v : virtual_signals_generic) _virtual_signals_generic[v.first] = v.second;
 	};
 
@@ -207,6 +207,9 @@ public:
 	///</summary>
 	virtual void make_summary() {};
 
+	/// returns for each used signal it's used categories
+	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
+
 	// Serialization (including type)
 	ADD_CLASS_NAME(RepProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, unconditional)
@@ -298,6 +301,8 @@ public:
 	void dprint(const string &pref, int rp_flag);
 
 	void make_summary();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	/// serialization
 	ADD_CLASS_NAME(RepMultiProcessor)
@@ -1029,15 +1034,25 @@ public:
 	virtual int init(map<string, string>& mapper) { return 0; };
 	///validates correctness of inputs
 	virtual void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {};
-	virtual bool do_calc(const vector<float> &vals, float &res) const = 0; ///< the calc option
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) = 0; ///< list output signals with default naming
+	/// the calc option
+	virtual bool do_calc(const vector<float> &vals, float &res) const { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
+	/// list output signals with default naming
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
+
+	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
 
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 
 	virtual ~SimpleCalculator() {};
+
+	void *new_polymorphic(string derived_class_name);
+
+	ADD_CLASS_NAME(SimpleCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
+		
 
 };
 
@@ -1058,6 +1073,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(RatioCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, factor, power_base, power_mone)
 };
 
 /**
@@ -1075,6 +1093,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(eGFRCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, ethnicity, mdrd)
 };
 
 /**
@@ -1090,6 +1111,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(logCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
 };
 
 /**
@@ -1107,6 +1131,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(SumCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, factors, b0)
 };
 
 /**
@@ -1126,6 +1153,9 @@ public:
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(RangeCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, min_range, max_range, in_range_val, out_range_val)
 };
 
 /**
@@ -1145,6 +1175,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(MultiplyCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, powers, b0)
 };
 
 /**
@@ -1166,8 +1199,14 @@ public:
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
+	ADD_CLASS_NAME(SetCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, input_signal, sets, in_range_val, out_range_val)
 private:
 	vector<char> Flags;
+	string input_signal = "";
 };
 
 /**
@@ -1187,6 +1226,9 @@ public:
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(ExistsCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, in_range_val, out_range_val)
 };
 
 /**
@@ -1231,13 +1273,27 @@ public:
 
 	void print();
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel)
+			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic)
 		void post_deserialization() {
 		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
-		pass_time_last = p->need_time; delete p;
+		pass_time_last = p->need_time;
+		delete p;
+		//if (calculator_logic == NULL) {
+		//	printf("write calculator_logic again for %s\n%s\n",
+		//		calculator.c_str(), calculator_init_params.c_str());
+		//	calculator_logic = SimpleCalculator::make_calculator(calculator);
+		//	if (!calculator_init_params.empty())
+		//		calculator_logic->init_from_string(calculator_init_params);
+		//	calculator_logic->missing_value = missing_value;
+		//	vector<pair<string, string>> default_virtual_signals;
+		//	calculator_logic->list_output_signals(signals, default_virtual_signals); //init calculator
+		//}
+		
 	}
 
 private:
@@ -1366,6 +1422,9 @@ public:
 	int init(map<string, string>& mapper);
 	void init_lists();
 
+	void post_deserialization();
+
+
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
@@ -1376,6 +1435,8 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
@@ -1491,7 +1552,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, num_val_channels, factor_channel)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
@@ -1524,6 +1585,8 @@ public:
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
@@ -1572,6 +1635,8 @@ public:
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
 	void print();
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	ADD_CLASS_NAME(RepAggregationPeriod)
 		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, sets, period, req_signals, aff_signals, virtual_signals, virtual_signals_generic, time_unit_win, time_unit_sig, in_sid, V_ids, lut)
@@ -1723,7 +1788,7 @@ struct category_time_interval {
 struct category_event_state {
 	int time = 0;
 	int appear_time = 0;
-	int categ = 0; 
+	int categ = 0;
 	int type = 0; // 0 : stop, 1: start, 2: last appearance
 
 	category_event_state() {};
@@ -1768,7 +1833,8 @@ public:
 	vector<vector<string>> categories_sets; ///< the sets defining each category.
 	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
 	int time_unit_duration = MedTime::Days; ///< time unit of the duration (both in signal and in min_duration)
-
+	bool change_at_prescription_mode = false; ///<  change_at_prescription_mode = true - change signal at every prescription (only the relevant drugs). When false change only when prescription changes
+	MedDictionarySections *_dict; // for debug
 	// next will NOT be serialized, and is here for debug reasons
 	string print_dict = "";
 
@@ -1780,21 +1846,24 @@ public:
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
 	void set_affected_signal_ids(MedDictionarySections& dict) {};
-	
+
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be 
 	/// implemented for all inheriting classes 
 	/// </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration)
+		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode)
 
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
 	vector<vector<char>> categories_luts;
+	vector<char> all_cat_lut;
 	vector<string> registry_values;
 };
 
@@ -1866,9 +1935,10 @@ public:
 	int time_channel = 0; ///< time channel to consider in cleaning
 	int win_time_unit = global_default_windows_time_unit;
 	int rep_time_unit = global_default_time_unit; // we assume this is also the samples time unit
-	int win_from;
-	int win_to;
+	int win_from = 0;
+	int win_to = 0;
 	int delete_sig = 0; /// simply delete the signal (set it's len to 0).
+	int take_last_events = -1; /// It given >0 and delete_sig==0 and win_from==0,win_to==0  will use only last events number in the signal to keep
 
 	// default init
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }
@@ -1882,7 +1952,7 @@ public:
 	// apply
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
 
-	// params parser
+	/// @snippet RepProcess.cpp RepHistoryLimit::init
 	int init(map<string, string>& mapper);
 
 	// helper
@@ -1892,7 +1962,7 @@ public:
 	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
-	ADD_SERIALIZATION_FUNCS(signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to, req_signals, aff_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to, delete_sig, take_last_events, req_signals, aff_signals)
 
 };
 
@@ -1930,4 +2000,14 @@ MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateRegistry)
 MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
+
+MEDSERIALIZE_SUPPORT(SimpleCalculator)
+MEDSERIALIZE_SUPPORT(SetCalculator)
+MEDSERIALIZE_SUPPORT(MultiplyCalculator)
+MEDSERIALIZE_SUPPORT(logCalculator)
+MEDSERIALIZE_SUPPORT(RatioCalculator)
+MEDSERIALIZE_SUPPORT(eGFRCalculator)
+MEDSERIALIZE_SUPPORT(SumCalculator)
+MEDSERIALIZE_SUPPORT(RangeCalculator)
+MEDSERIALIZE_SUPPORT(ExistsCalculator)
 #endif

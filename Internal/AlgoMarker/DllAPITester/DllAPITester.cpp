@@ -38,11 +38,14 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("help", "produce help message")
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "repository file name")
 			("samples", po::value<string>()->default_value(""), "medsamples file to use")
+			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig" , po::value<string>()->default_value(""), "algo marker configuration file")
 			("direct_test", "split to a dedicated debug routine")
 			("single", "run test in single mode, instead of the default batch")
 			("print_msgs", "print algomarker messages when testing batches or single (direct test always prints them)")
+			("msgs_file", po::value<string>()->default_value("") , "file to save messages codes to")
+			("ignore_sig", po::value<string>()->default_value("") , "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
 			("date", po::value<long long>()->default_value(20180101), "test date")
@@ -91,7 +94,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 
 
 //=================================================================================================================
-int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, int print_msgs)
+int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, int print_msgs, ofstream& msgs_stream, vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
 
@@ -105,6 +108,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	MLOG("Going over %d pids\n", pids.size());
 	for (auto pid : pids)
 		for (auto &sig : sigs) {
+            if(std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
+				continue;
 			rep.uget(pid, sig, usv);
 			int nelem = usv.len;
 			if (nelem > 0) {
@@ -213,7 +218,10 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 		char **msgs_errs;
 		AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
 		for (int i=0; i<n_msgs; i++) {
-			MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
+			if (msgs_stream.is_open())
+				msgs_stream << "SharedMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t" << 0 << "\t" << 0 << "\t" << msg_codes[i] << "\t\"" << msgs_errs[i] << "\"" << endl;
+			else 
+				MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
 		}
 
 		n_resp = AM_API_GetResponsesNum(resp);
@@ -225,13 +233,19 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 			AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 			for (int k=0; k<n_msgs; k++) {
-				MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
+				if (msgs_stream.is_open())
+					msgs_stream << "ResponseMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+				else
+					MLOG("Response %d : Message %d : code %d : err: %s\n", i, k, msg_codes[k], msgs_errs[k]);
 			}
 
 			for (int j=0; j<n_scores; j++) {
 				AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
 				for (int k=0; k<n_msgs; k++) {
-					MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
+					if (msgs_stream.is_open())
+						msgs_stream << "ScoreMessages\t" << 0 << "\t" << 0 << "\t" << i << "\t" << j << "\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+					else
+						MLOG("Response %d : score %d : Message %d : code %d : err: %s\n", i, j, k, msg_codes[k], msgs_errs[k]);
 				}
 			}
 		}
@@ -249,7 +263,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, int print_msgs)
+int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, int print_msgs, ofstream& msgs_stream, vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
 
@@ -270,6 +284,8 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 
 			// adding all data 
 			for (auto &sig : sigs) {
+            	if(std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
+					continue;
 				rep.uget(s.id, sig, usv);
 				int nelem = usv.len;
 				if (nelem > 0) {
@@ -385,7 +401,10 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 				char **msgs_errs;
 				AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
 				for (int i=0; i<n_msgs; i++) {
-					MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", s.id, s.time, n_msgs, msg_codes[i], msgs_errs[i]);
+					if (msgs_stream.is_open())
+						msgs_stream << "SharedMessages\t" << s.id << "\t" << s.time << "\t" << 0 << "\t" << 0 << "\t" << 0 << "\t" << msg_codes[i] << "\t\"" << msgs_errs[i] << "\"" << endl;
+					else 
+						MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", s.id, s.time, n_msgs, msg_codes[i], msgs_errs[i]);
 				}
 
 				n_resp = AM_API_GetResponsesNum(resp);
@@ -397,13 +416,19 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 
 					AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 					for (int k=0; k<n_msgs; k++) {
-						MLOG("pid %d time %d Response %d : Message %d : code %d : err: %s\n", s.id, s.time, i, k, msg_codes[k], msgs_errs[k]);
+						if (msgs_stream.is_open())
+							msgs_stream << "ResponseMessages\t" << s.id << "\t" << s.time << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+						else
+							MLOG("pid %d time %d Response %d : Message %d : code %d : err: %s\n", s.id, s.time, i, k, msg_codes[k], msgs_errs[k]);
 					}
 
 					for (int j=0; j<n_scores; j++) {
 						AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
 						for (int k=0; k<n_msgs; k++) {
-							MLOG("pid %d time %d Response %d : score %d : Message %d : code %d : err: %s\n", s.id, s.time, i, j, k, msg_codes[k], msgs_errs[k]);
+							if (msgs_stream.is_open())
+								msgs_stream << "ScoreMessages\t" << s.id << "\t" << s.time << "\t" << i << "\t" << j << "\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
+							else 
+								MLOG("pid %d time %d Response %d : score %d : Message %d : code %d : err: %s\n", s.id, s.time, i, j, k, msg_codes[k], msgs_errs[k]);
 						}
 					}
 				}
@@ -444,6 +469,12 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 #endif
 
 //=============================================================================================================================
+void save_sample_vec(vector<MedSample> sample_vec, const string& fname){
+    MedSamples s;
+    s.import_from_sample_vec(sample_vec);
+    s.write_to_file(fname);
+}
+
 int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
 {
 
@@ -999,6 +1030,10 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	vector<string> ignore_sig;
+	if(vm["ignore_sig"].as<string>() != "")
+		split(ignore_sig, vm["ignore_sig"].as<string>(), boost::is_any_of(","));
+
 	unordered_set<string> sigs_set;
 	vector<string> sigs;
 	model.get_required_signal_names(sigs_set);
@@ -1030,8 +1065,15 @@ int main(int argc, char *argv[])
 	MedPidRepository rep;
 
 	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
-
-
+	if(ignore_sig.size()>0){
+		string ppjson="{\"pre_processors\":[{\"action_type\":\"rep_processor\",\"rp_type\":\"history_limit\",\"signal\":[";
+		ppjson += string("\"")+ignore_sig[0]+"\"";
+		for(int i=1;i<ignore_sig.size();i++)
+			ppjson += string(",\"")+ignore_sig[i]+"\"";
+		ppjson += "],\"delete_sig\":\"1\"}]}";
+		MLOG("Adding pre_processor = \n'%s'\n", ppjson.c_str());
+		model.add_pre_processors_json_string_to_model(ppjson,"");
+	}
 
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
@@ -1086,10 +1128,17 @@ int main(int argc, char *argv[])
 	vector<MedSample> res2;
 
 	int print_msgs = (vm.count("print_msgs")) ? 1 : 0;
+	string msgs_file = (vm["msgs_file"].as<string>());
+	ofstream msgs_stream;
+	if(msgs_file != ""){
+		msgs_stream.open(msgs_file);
+        msgs_stream << "msg_type\tpid\tdate\ti\tj\tk\tcode\tmsg_text" << endl;
+	}
+    
 	if (vm.count("single"))
-		get_preds_from_algomarker_single(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, print_msgs);
+		get_preds_from_algomarker_single(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, print_msgs, msgs_stream, ignore_sig);
 	else
-		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, print_msgs);
+		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, print_msgs, msgs_stream, ignore_sig);
 	for (int i=0; i<min(50, (int)res1.size()); i++) {
 		MLOG("#Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 	}
@@ -1118,6 +1167,10 @@ int main(int argc, char *argv[])
 	MLOG(">>>>>TEST1: test DLL API batch: total %d : n_similar %d : n_bad %d : n_miss %d\n", res1.size(), n_similar, nbad, n_miss);
 	if (nbad == 0) MLOG("PASSED\n"); else MLOG("FAILED\n");
 
+	if(msgs_file != "")
+		msgs_stream.close();
+    	if(vm["am_res_file"].as<string>()!="")
+        	save_sample_vec(res2, vm["am_res_file"].as<string>());
 }
 
 //

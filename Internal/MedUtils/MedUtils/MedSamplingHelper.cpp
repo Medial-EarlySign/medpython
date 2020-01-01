@@ -28,7 +28,7 @@ bool medial::sampling::in_time_window_simple(int pred_date, int start_time, int 
 	case TimeWindowMode::Within:
 		return  (pred_date >= start_time) && (pred_date <= end_time);
 	default:
-		MTHROW_AND_ERR("Error in in_time_window - unsupported mode - %d\n", mode);
+		MTHROW_AND_ERR("Error in in_time_window - unsupported mode - %d\n", (int)mode);
 	}
 }
 
@@ -208,7 +208,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 				final_selected = curr_index;
 			}
 			else
-				MTHROW_AND_ERR("Error in medial::sampling::get_label_for_sample - Unsupported conflict method %d\n", conflict_mode);
+				MTHROW_AND_ERR("Error in medial::sampling::get_label_for_sample - Unsupported conflict method %d\n", (int)conflict_mode);
 #pragma omp atomic
 			++conflict_count;
 			//break;

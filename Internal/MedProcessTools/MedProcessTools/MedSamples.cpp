@@ -6,6 +6,8 @@
 #include <boost/crc.hpp>
 #include <random>
 #include <algorithm>
+#include <iomanip>
+#include <iostream>
 
 #define LOCAL_SECTION MED_SAMPLES_CV
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -169,25 +171,29 @@ int MedSample::parse_from_string(const vector<string> &fields, const map<string,
 		}
 		else
 			MTHROW_AND_ERR("Couldn't find time in sample\n");
-		if (pos.find("outcome") != pos.end())
-			outcome = stof(fields[pos.at("outcome")]);
-		else
+		if (pos.find("outcome") != pos.end()) {
+			if (pos.at("outcome") >= 0)
+				outcome = stof(fields[pos.at("outcome")]);
+		} else
 			MTHROW_AND_ERR("Couldn't find outcome in sample\n");
 
 		string outcomeTime_name = "outcome_date";
 		if (pos.find("outcome_date") == pos.end())
 			outcomeTime_name = "outcome_time";
 		if (pos.find(outcomeTime_name) != pos.end()) {
-			if (raw_format)
-				outcomeTime = stoi(fields[pos.at(outcomeTime_name)]);
-			else
-				outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(outcomeTime_name)], 1);
+			if (pos.at(outcomeTime_name) >= 0) {
+				if (raw_format)
+					outcomeTime = stoi(fields[pos.at(outcomeTime_name)]);
+				else
+					outcomeTime = med_time_converter.convert_datetime_safe(time_unit, fields[pos.at(outcomeTime_name)], 1);
+			}
 		}
 		else
 			MTHROW_AND_ERR("Couldn't find outcome_date in sample\n");
 
 		if (pos.find("split") != pos.end() && fields.size() > pos.at("split"))
-			split = stoi(fields[pos.at("split")]);
+			if (pos.at("split") >= 0)
+				split = stoi(fields[pos.at("split")]);
 
 		for (int pos : pred_pos) {
 			if (pos != -1 && fields.size() > pos)
@@ -281,7 +287,7 @@ int MedSample::parse_from_string(string &s, int time_unit)
 
 // Write to string in new format
 //.......................................................................................
-void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, const string &delimeter) const
+void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, const string &delimeter, int pred_precision) const
 {
 	stringstream s_buff;
 	//s = "";
@@ -289,8 +295,15 @@ void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, con
 		<< delimeter << outcome << delimeter << med_time_converter.convert_times_S(time_unit, MedTime::DateTimeString, outcomeTime);
 
 	s_buff << delimeter << split;
+	int orig_precision = s_buff.precision();
+	if (pred_precision > 0)
+		s_buff << std::fixed << std::setprecision(pred_precision);
 	for (auto p : prediction)
 		s_buff << delimeter << p;
+	if (pred_precision > 0) {
+		std::cout << std::setprecision(orig_precision);
+		std::cout.unsetf(ios_base::floatfield);
+	}
 	map<string, string> str_map;
 	for (const auto &it : attributes)
 		str_map[it.first] = to_string(it.second);
@@ -672,7 +685,7 @@ int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& s
 // Return -2 upon prediction-length inconsistency
 // Return -3 upon attributes inconsistency
 //.......................................................................................
-int MedSamples::write_to_file(const string &fname)
+int MedSamples::write_to_file(const string &fname, int pred_precision)
 {
 	ofstream of(fname);
 
@@ -713,7 +726,7 @@ int MedSamples::write_to_file(const string &fname)
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, time_unit);
+			ss.write_to_string(sout, time_unit, true, string("\t") , pred_precision);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {
@@ -943,6 +956,21 @@ void MedSamples::subtract(MedSamples &_dont_include)
 		if (ids_to_remove.find(ids.id) != ids_to_remove.end())
 			new_list.push_back(ids);
 	idSamples = new_list;
+}
+
+//.......................................................................................
+// gets p_test and splits by id , p_test of the ids into test, and the rest into train
+void MedSamples::split_train_test(MedSamples &train, MedSamples &test, float p_test)
+{
+	train.clear();
+	test.clear();
+
+	for (auto &id : idSamples)
+		if (rand_1() < p_test)
+			test.idSamples.push_back(id);
+		else
+			train.idSamples.push_back(id);
+
 }
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {

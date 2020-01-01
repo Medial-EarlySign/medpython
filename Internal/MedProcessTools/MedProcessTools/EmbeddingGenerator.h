@@ -64,6 +64,8 @@ public:
 	// Init required tables
 	void init_tables(MedDictionarySections& dict);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	// in case of selection
 	int filter_features(unordered_set<string>& validFeatures) { return 1; }; // TODO: improve to push only selected columns
 

@@ -57,7 +57,7 @@ public:
 		const map<string, int>& str_attr_pos, int time_unit, int raw_format, const string &delimeter);
 
 	/// <summary> Write to string in new format </summary>
-	void write_to_string(string &s, int time_unit, bool write_attrib = true, const string &delimeter = "\t") const;
+	void write_to_string(string &s, int time_unit, bool write_attrib = true, const string &delimeter = "\t", int pred_precision = -1) const;
 
 	/// <summary> Get sample attributes </summary>
 	int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes) const;
@@ -174,7 +174,7 @@ public:
 
 	/// <summary>  Write to text file in new format  </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int write_to_file(const string &fname);
+	int write_to_file(const string &fname, int pred_precision=-1);
 
 	/// <summary> Extract a single vector of concatanated predictions </summary>
 	void get_preds(vector<float>& preds) const;
@@ -215,6 +215,9 @@ public:
 
 	/// <summary> removing all ids that appear in _dont_include from the current samples
 	void subtract(MedSamples &_dont_include);
+
+	/// <summary> gets p_test and splits by id , p_test of the ids into test, and the rest into train
+	void split_train_test(MedSamples &train, MedSamples &test, float p_test);
 
 	void flatten(vector<MedSample> &flat) const;
 

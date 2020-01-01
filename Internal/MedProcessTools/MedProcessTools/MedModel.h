@@ -173,6 +173,8 @@ public:
 
 	int collect_and_add_virtual_signals(MedRepository &rep);
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	/// Initialization : signal ids and tables
 	void init_all(MedDictionarySections& dict, MedSignals& sigs);
 

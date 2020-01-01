@@ -743,7 +743,7 @@ void MedRepository::print_vec_dict(void *data, int len, int pid, int sid)
 			v.init(sigs.Sid2Info[sid]);
 			v.set_data(data, 1);
 			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
-				MOUT(" %d ", convert_date(v.Time(i, tchan), sid).c_str());
+				MOUT(" %s ", convert_date(v.Time(i, tchan), sid).c_str());
 			}
 			for (int vchan = 0; vchan < v.n_val_channels(); ++vchan) {
 				print_channel_helper(sid, vchan, v.Val(i, vchan));
@@ -809,16 +809,16 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		}
 		else if (sigs.type(sid) == T_DateRangeVal2) {
 			SDateRangeVal2 *v = (SDateRangeVal2 *)data;
-			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date_start, sid) + " " + convert_date(v[i].date_end, sid) + " " + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_DateFloat2) {
 			SDateFloat2 *v = (SDateFloat2 *)data;
-			out += convert_date(v[i].date, sid) + " "  + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
+			out += convert_date(v[i].date, sid) + " " + get_channel_info(sid, 0, v[i].val) + " " + get_channel_info(sid, 1, v[i].val2);
 		}
 		else if (sigs.type(sid) == T_TimeShort4) {
 			STimeShort4 *v = (STimeShort4 *)data;
-			out += to_string(v[i].time) + " " 
-				+ get_channel_info(sid, 0, v[i].val1) + " " 
+			out += to_string(v[i].time) + " "
+				+ get_channel_info(sid, 0, v[i].val1) + " "
 				+ get_channel_info(sid, 1, v[i].val2) + " "
 				+ get_channel_info(sid, 2, v[i].val3) + " "
 				+ get_channel_info(sid, 3, v[i].val4);
@@ -826,7 +826,7 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid)
 		else if (sigs.type(sid) == T_Generic) {
 			GenericSigVec v;
 			v.init(sigs.Sid2Info[sid]);
-			v.set_data(data,1);
+			v.set_data(data, 1);
 			bool is_first = true;
 			for (int tchan = 0; tchan < v.n_time_channels(); ++tchan) {
 				if (is_first) is_first = false;
@@ -915,7 +915,7 @@ void MedRepository::long_print_vec_dict(void *data, int len, int pid, int sid, i
 			STimeShort4 *v = (STimeShort4 *)data;
 			if (v[i].time < from || v[i].time > to) continue;
 			out += to_string(v[i].time) + " "
-				+ get_channel_info(sid, 0, v[i].val1) + " " 
+				+ get_channel_info(sid, 0, v[i].val1) + " "
 				+ get_channel_info(sid, 1, v[i].val2) + " "
 				+ get_channel_info(sid, 2, v[i].val3) + " "
 				+ get_channel_info(sid, 3, v[i].val4);
@@ -1153,7 +1153,8 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 			STimeShort4 *v = (STimeShort4 *)data;
 			//All values are always int 
 			MOUT("%d,%d,%lld,%d,%d,%d,", val = (int)v[i].val1, (int)v[i].val2, v[i].time, 0, (int)v[i].val3, (int)v[i].val4);
-		} else if (sigs.type(sid) == T_Generic) {
+		}
+		else if (sigs.type(sid) == T_Generic) {
 			// The format is:
 			// (pid,sid,sname,stype,len,i,) ...  val,val2,date1,date2,val3,val4,desc1,desc2,extra1,extra2
 			GenericSigVec v;
@@ -1164,8 +1165,10 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 				if (dict_val) {
 					val = v.Val<int>(i, 0);
 					MOUT("%d,", v.Val<int>(i, 0));
-				} else MOUT("%f,", v.Val(i, 0));
-			} else MOUT("0,");
+				}
+				else MOUT("%f,", v.Val(i, 0));
+			}
+			else MOUT("0,");
 			//val chan #2
 			if (v.n_val_channels() > 1) {
 				MOUT("%f,", v.Val(i, 1));
@@ -1994,7 +1997,7 @@ int UsvsIterator::init(MedRepository *_rep, const vector<string> &_sig_names, co
 }
 
 //======================================================================================================================
-int UsvsIterator::read_pid(int pid) 
+int UsvsIterator::read_pid(int pid)
 {
 	for (int i = 0; i < usvs.size(); i++)
 		rep->uget(pid, sids[i], *usvs[i]);
@@ -2032,17 +2035,20 @@ int medial::repository::DateAdd(int refDate, int daysAdd) {
 }
 
 int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
-	int len, gend = -1;
-	void *data = rep.get(pid, sigCode, len);
+	int gend = -1;
+	UniversalSigVec usv;
 
-	if (len > 0) {
-		if (rep.sigs.Sid2Info[sigCode].type == T_Value)
-			gend = (int)(*(SVal *)data).val;
-		else if (rep.sigs.Sid2Info[sigCode].type == T_TimeStamp)
-			gend = (int)(*(STimeStamp *)data).time;
+	rep.uget(pid, sigCode, usv);
+
+	if (usv.len > 0) {
+		if (usv.n_val_channels() > 0)
+			gend = (int)usv.Val(0);
+		else if (usv.n_time_channels() > 0)
+			gend = usv.Time(0);
 	}
 	return gend;
 }
+
 
 template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
@@ -2116,6 +2122,47 @@ vector<int> medial::signal_hierarchy::sons_code_hierarchy(MedDictionarySections 
 	vector<int> sons;
 	dict.get_set_members(sectionId, group, sons);
 	return sons;
+}
+
+void medial::signal_hierarchy::sons_code_hierarchy_recursive(MedDictionarySections &dict,
+	const string &signalName, const string &code, vector<int> &flat_all_sons, int max_depth) {
+	int sectionId = dict.section_id(signalName);
+	//includes the code itself!
+
+	int code_id = dict.id(sectionId, code);
+	if (code_id < 0)
+		MTHROW_AND_ERR("Error in medial::signal_hierarchy::sons_code_hierarchy_recursive - can't find code %s in signal %s\n",
+			code.c_str(), signalName.c_str());
+
+	vector<int> last_layer_new_ids;
+	unordered_set<int> full_list;
+	full_list.insert(code_id);
+	last_layer_new_ids.push_back(code_id);
+	int depth_cnt = 0;
+	while (!last_layer_new_ids.empty()) {
+		vector<int> new_ids;
+		for (int id_in : last_layer_new_ids)
+		{
+			vector<int> fetch_ids;
+			dict.get_set_members(sectionId, id_in, fetch_ids);
+			for (int fetch_id : fetch_ids)
+			{
+				//not seen id - new one
+				if (full_list.find(fetch_id) == full_list.end()) {
+					full_list.insert(fetch_id);
+					new_ids.push_back(fetch_id);
+				}
+			}
+		}
+		last_layer_new_ids = move(new_ids);
+		++depth_cnt;
+		if (max_depth > 0 && depth_cnt >= max_depth)
+			break;
+	}
+
+	//return all ids in full_list
+	flat_all_sons.clear();
+	flat_all_sons.insert(flat_all_sons.end(), full_list.begin(), full_list.end());
 }
 
 string medial::signal_hierarchy::get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType) {

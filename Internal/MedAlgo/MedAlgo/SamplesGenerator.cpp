@@ -106,10 +106,22 @@ template class SamplesGenerator<double>;
 template class GibbsSamplesGenerator<float>;
 template class GibbsSamplesGenerator<double>;
 
+int MaskedGANParams::init(map<string, string> &mapper) {
+	for (const auto it : mapper)
+	{
+		if (it.first == "keep_original_values")
+			keep_original_values = med_stoi(it.second) > 0;
+		else
+			MTHROW_AND_ERR("Error in MaskedGANParams::init Unsupported argument %s\n", it.first.c_str());
+	}
+	return 0;
+}
+
 // Masked GAN
 template<typename T> MaskedGAN<T>::MaskedGAN()
 	: SamplesGenerator<T>(true) {
 	_gen = mt19937(globalRNG::rand());
+	norm_by_by_file = false;
 }
 
 template<typename T> void MaskedGAN<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
@@ -149,6 +161,12 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 					input(index, k) = (float)norm_dist(rnd_gen);
 					input(index, k + nFtrs) = mask_values(i, k);
 					input(index, k + 2 * nFtrs) = 1.0;
+					if (norm_by_by_file) {
+						//normalize values
+						input(index, k + nFtrs) = input(index, k + nFtrs) - mean_feature_vals[k];
+						if (std_feature_vals[k] > 0)
+							input(index, k + nFtrs) /= std_feature_vals[k];
+					}
 				}
 				else {
 					input(index, k) = (float)norm_dist(rnd_gen);
@@ -171,8 +189,16 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 			for (int k = 0; k < nFtrs; k++) {
 				if (masks[i][k])
 					data(index, k) = mask_values(i, k);
-				else if (!mg_params.keep_original_values)
-					data(index, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+				else {
+					//unorm if needed:
+					if (norm_by_by_file) {
+						//unorm outData:
+						if (std_feature_vals[k] > 0)
+							data(index, k) = data(index, k) * std_feature_vals[k] + mean_feature_vals[k];
+					}
+					if (!mg_params.keep_original_values)
+						data(index, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+				}
 			}
 			index++;
 		}
@@ -209,6 +235,12 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 			if (masks[i][k]) {
 				input(i, k) = Z(i, k);
 				input(i, k + nFtrs) = mask_values(i, k);
+				if (norm_by_by_file) {
+					//normalize values
+					input(i, k + nFtrs) = input(i, k + nFtrs) - mean_feature_vals[k];
+					if (std_feature_vals[k] > 0)
+						input(i, k + nFtrs) /= std_feature_vals[k];
+				}
 				input(i, k + 2 * nFtrs) = 1.0;
 			}
 			else {
@@ -227,8 +259,16 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 		for (int k = 0; k < nFtrs; k++) {
 			if (masks[i][k])
 				data(i, k) = mask_values(i, k);
-			else if (!mg_params.keep_original_values)
-				data(i, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+			else {
+				//unorm if needed:
+				if (norm_by_by_file) {
+					//unorm outData:
+					if (std_feature_vals[k] > 0)
+						data(i, k) = data(i, k) * std_feature_vals[k] + mean_feature_vals[k];
+				}
+				if (!mg_params.keep_original_values)
+					data(i, k) = round_to_allowed_values(data(i, k), allowed_values[k]);
+			}
 		}
 	}
 
@@ -253,6 +293,27 @@ template<> void MaskedGAN<float>::read_from_text_file(const string& file_name) {
 		allowed_values.push_back(vector<float>(fields.size()));
 		for (unsigned int i = 0; i < fields.size(); i++)
 			allowed_values.back()[i] = stof(fields[i]);
+	}
+
+	//check for norm file:
+	string norm_file_name = file_name + ".norm_vector";
+	if (file_exists(norm_file_name)) {
+		ifstream f_norm(norm_file_name);
+		norm_by_by_file = true;
+		string line;
+		getline(f_norm, line);
+		vector<string> tokens;
+		boost::split(tokens, line, boost::is_any_of(","));
+		mean_feature_vals.resize(tokens.size());
+		for (size_t i = 0; i < tokens.size(); ++i)
+			mean_feature_vals[i] = med_stof(tokens[i]);
+		getline(f_norm, line);
+		tokens.clear();
+		boost::split(tokens, line, boost::is_any_of(","));
+		std_feature_vals.resize(tokens.size());
+		for (size_t i = 0; i < tokens.size(); ++i)
+			std_feature_vals[i] = med_stof(tokens[i]);
+		f_norm.close();
 	}
 }
 

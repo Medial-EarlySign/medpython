@@ -104,6 +104,8 @@ public:
 */
 class MaskedGANParams : public SerializableObject {
 public:
+	int init(map<string, string> &mapper);
+
 	bool keep_original_values = false;
 	ADD_CLASS_NAME(MaskedGANParams)
 		ADD_SERIALIZATION_FUNCS(keep_original_values)
@@ -117,12 +119,17 @@ private:
 	ApplyKeras generator;
 	vector<vector<T>> allowed_values;
 	mt19937 _gen;
-	MaskedGANParams mg_params;
+	
+	vector<float> mean_feature_vals;
+	vector<float> std_feature_vals;
+	bool norm_by_by_file;
 
 	T round_to_allowed_values(T in_value, const vector<T>& curr_allowed_values) const;
 	void set_params(void *params);
 
 public:
+	MaskedGANParams mg_params;
+
 	MaskedGAN();
 
 	void prepare(void *params);
@@ -139,7 +146,7 @@ public:
 	void post_deserialization();
 
 	ADD_CLASS_NAME(MaskedGAN<T>)
-		ADD_SERIALIZATION_FUNCS(generator, allowed_values, mg_params)
+		ADD_SERIALIZATION_FUNCS(generator, allowed_values, mg_params, mean_feature_vals, std_feature_vals, norm_by_by_file)
 };
 
 /**

@@ -12,10 +12,12 @@ class MPSigExporter {
 	std::vector<std::string> data_keys;
 	std::vector<void*> data_column;
 	std::vector<int> data_column_nptype;
-	std::map<std::string, std::map<int, std::string> > categories;
+	std::map<std::string, std::vector<std::string> > categories;
 	int __get_key_id_or_throw(const string& key);
 	void gen_cat_dict(const string& field_name, int channel);
 	std::vector<int> pids;
+	bool translate;
+	bool free_sig;
 public:
 	std::vector<std::string> keys() { return data_keys; }
 	std::string sig_name;
@@ -23,7 +25,7 @@ public:
 	int sig_type = -1;
 	size_t record_count = 0;
 	bool record_count_updated = false;
-	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids);
+	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag);
 	void update_record_count();
 	void get_all_data();
 	void clear() {
@@ -34,6 +36,7 @@ public:
 		vector<string>().swap(data_keys);
 		vector<void*>().swap(data_column);
 		vector<int>().swap(data_column_nptype);
+		std::map<std::string, std::vector<std::string> >().swap(categories);
 	}
 
 	void transfer_column(const std::string& key, MEDPY_NP_VARIANT_OUTPUT(void** outarr1, unsigned long long* outarr1_sz, int* outarr1_npytype));
@@ -43,12 +46,15 @@ public:
 		transfer_column(key, outarr1, outarr1_sz, outarr1_npytype);
 	};
 	MPSigExporter_iter __iter__();
+/*	int __len__() {
+		return (int)data_column.size();
+	}*/
 	
-	MPIntStringMapAdaptor get_categorical_field_dict(const std::string& field)
+	std::vector<std::string> get_categorical_field_dict(const std::string& field)
 	{
 		if (categories.count(field) == 0)
 			throw runtime_error("MedPy: Not categorical key");		
-		return MPIntStringMapAdaptor(&categories[field]);
+		return categories[field];
 	};
 	std::vector<std::string> get_categorical_fields() {
 		std::vector<std::string> ret;

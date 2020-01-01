@@ -490,7 +490,7 @@ private:
 // simplifying iterations over several signals
 class UsvsIterator {
 public:
-	MedRepository *rep;
+	MedRepository * rep;
 	vector<string> sig_names;
 	vector<UniversalSigVec *> usvs;
 
@@ -635,8 +635,8 @@ inline void *MedRepository::uget(int pid, int sid, UniversalSigVec_legacy &usv)
 
 inline void *MedRepository::uget(int pid, int sid, GenericSigVec &gsv)
 {
-	if (gsv.struct_size == 0)
-		gsv.init(sigs.Sid2Info[sid]);
+	gsv.init(sigs.Sid2Info[sid]);
+
 	gsv.data = (char*)get(pid, sid, gsv.len);
 	return gsv.data;
 }
@@ -658,6 +658,9 @@ namespace medial {
 			const string &signalHirerchyType, int depth = 1, int max_nodes = 10);
 		/// \brief getting sons in hierarchy codes
 		vector<int> sons_code_hierarchy(MedDictionarySections &dict, const string &group, const string &signalHirerchyType);
+		/// \brief getting sons in hierarchy codes - recursively till leaves. max_depth ==0 means no limit
+		void sons_code_hierarchy_recursive(MedDictionarySections &dict,
+			const string &signalName, const string &code, vector<int> &flat_all_sons, int max_depth = 0);
 		/// \brief gets codes
 		string get_readcode_code(MedDictionarySections &dict, int id, const string &signalHirerchyType);
 	}

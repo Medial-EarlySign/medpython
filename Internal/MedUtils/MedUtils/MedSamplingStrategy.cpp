@@ -286,14 +286,25 @@ void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pai
 		const vector<pair<int, int>> &all_sample_options = filtered_opts[i];
 		if (all_sample_options.empty())
 			continue;
-		uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
-		for (size_t k = 0; k < take_count; ++k)
-		{
-			int choosed_index = current_rand(gen);
-			const pair<int, int> &choosed_option = all_sample_options[choosed_index];
-			int choosed_pid = choosed_option.first, choosed_time = choosed_option.second;
+		if (take_count > 0 && take_count < all_sample_options.size()) {
+			uniform_int_distribution<> current_rand(0, (int)all_sample_options.size() - 1);
+			vector<bool> seen_idx(all_sample_options.size());
+			for (size_t k = 0; k < take_count; ++k)
+			{
+				int choosed_index = current_rand(gen);
+				while (seen_idx[choosed_index])
+					choosed_index = current_rand(gen);
+				seen_idx[choosed_index] = true;
+				const pair<int, int> &choosed_option = all_sample_options[choosed_index];
+				int choosed_pid = choosed_option.first, choosed_time = choosed_option.second;
 
-			pid_options[choosed_pid].push_back(choosed_time);
+				pid_options[choosed_pid].push_back(choosed_time);
+			}
+		}
+		else {
+			//take all
+			for (size_t k = 0; k < all_sample_options.size(); ++k)
+				pid_options[all_sample_options[k].first].push_back(all_sample_options[k].second);
 		}
 	}
 }
@@ -570,4 +581,8 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 			samples_list_pid_dates.back().push_back(pair<int, int>(pid, candidate_date));
 	}
 
+}
+
+MedSamplingStick::MedSamplingStick() {
+	take_count = 0; //default of stick to signal
 }

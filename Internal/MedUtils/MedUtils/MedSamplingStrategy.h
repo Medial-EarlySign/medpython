@@ -167,6 +167,8 @@ public:
 	void init_sampler(MedRepository &rep);
 
 	int init(map<string, string>& map);
+
+	MedSamplingStick();
 };
 
 #endif

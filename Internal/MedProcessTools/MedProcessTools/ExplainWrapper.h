@@ -69,7 +69,7 @@ public:
 	void post_deserialization();
 
 	ADD_CLASS_NAME(ExplainProcessings)
-	ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
+		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
 };
 
 /**
@@ -184,8 +184,10 @@ public:
 	float select_from_all; ///< If max_test is beyond this percentage of all options than sample from all options (to speed up runtime)
 	bool uniform_rand; ///< it True will sample masks uniformlly
 	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
-	string change_learn_args; ///< arguments to change in predictor - for example to change it into regression
+	string predictor_args; ///< arguments to change in predictor - for example to change it into regression
+	string predictor_type;
 	bool verbose_learn; ///< If true will print more in learn
+	float max_weight; ///< the maximal weight number. if < 0 no limit
 
 	MissingShapExplainer();
 
@@ -197,7 +199,8 @@ public:
 
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
-			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name)
+			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
+			predictor_type, predictor_args, max_weight)
 };
 
 /// @enum
