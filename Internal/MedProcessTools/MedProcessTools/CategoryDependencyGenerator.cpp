@@ -361,6 +361,11 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	int N_tot_threads = omp_get_max_threads();
 	vector<PidDynamicRec> idRec(N_tot_threads);
 
+	if (verbose_full) {
+		MLOG("CategoryDependencyGenerator (signalId=%d, val_channel=%d): has %zu pids\n",
+			signalId, val_channel, samples.idSamples.size());
+	}
+
 	// Collect data
 #pragma omp parallel for schedule(dynamic,128)
 	for (int i = 0; i < samples.idSamples.size(); ++i)
@@ -507,7 +512,8 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				}
 
 	//filter regex if given:
-	if (!regex_filter.empty() || !remove_regex_filter.empty())
+	if (!regex_filter.empty() || !remove_regex_filter.empty()) {
+		int remove_regex_cnt = 0;
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
 			int base_code = it->first;
 			const vector<string> &names_ = categoryId_to_name.at(base_code);
@@ -518,9 +524,15 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 			if (found_match && !found_remove_match)
 				++it;
-			else
+			else {
 				it = categoryVal_to_stats.erase(it);
+				++remove_regex_cnt;
+			}
 		}
+		if (verbose)
+			MLOG("CategoryDependencyGenerator on %s - regex_filters left %zu(out of %d)\n",
+				signalName.c_str(), categoryVal_to_stats.size(), categoryVal_to_stats.size() + remove_regex_cnt);
+	}
 
 	ofstream fw_verbose;
 	bool use_file = false;
