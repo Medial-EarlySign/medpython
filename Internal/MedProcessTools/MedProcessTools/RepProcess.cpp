@@ -3008,6 +3008,7 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 		else if (field == "names") boost::split(names, entry.second, boost::is_any_of(","));
 		else if (field == "sets") boost::split(sets, entry.second, boost::is_any_of(","));
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
+		else if (field == "output_signal_type") output_signal_type = entry.second;
 		else if (field == "factors") {
 			boost::split(tokens, entry.second, boost::is_any_of(","));
 			factors.resize(tokens.size());
@@ -3039,10 +3040,10 @@ int RepSplitSignal::init(map<string, string>& mapper) {
 		MTHROW_AND_ERR("Error can't find signal %s in rep\n", input_name.c_str());
 	const SignalInfo &s_info = rep.sigs.Sid2Info[in_sid];
 	string type_gen = generate_signal_sig(s_info);*/
-	string type_gen = "T(i),T(i),V(f),V(f)";
+	//string type_gen = "T(i),T(i),V(f),V(f)";
 
 	for (size_t i = 0; i < names.size(); ++i)
-		virtual_signals_generic.push_back(pair<string, string>(names[i], type_gen));
+		virtual_signals_generic.push_back(pair<string, string>(names[i], output_signal_type));
 
 	return 0;
 }
@@ -3293,6 +3294,21 @@ bool _is_numeric(const std::string& s)
 		s.end(), [](char c) { return !std::isdigit(c); }) == s.end();
 }
 
+static unordered_map<string, int> range_op_enum_map = {
+	{ "all", (int)range_op_type::all },
+	{ "first", (int)range_op_type::first },
+	{ "last", (int)range_op_type::last }
+};
+
+range_op_type get_range_op(const string &op) {
+	if (range_op_enum_map.find(op) == range_op_enum_map.end()) {
+		string opts = medial::io::get_list(range_op_enum_map, ",");
+		MTHROW_AND_ERR("Error can't find option %s, available options are: [%s]\n",
+			op.c_str(), opts.c_str());
+	}
+	return range_op_type(range_op_enum_map.at(op));
+}
+
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
 {
 	MLOG("In RepBasicRangeCleaner init\n");
@@ -3307,6 +3323,9 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
+		else if (field == "range_operator") range_operator = get_range_op(entry.second);
+		else if (field == "range_val_channel") range_val_channel = med_stoi(entry.second);
+		else if (field == "sets") { boost::split(sets, entry.second, boost::is_any_of(",;")); }
 		else if (field == "output_type") {
 			if (_is_numeric(entry.second))
 				output_type = med_stoi(entry.second);
@@ -3347,6 +3366,11 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.insert(signal_id);
 	req_signal_ids.insert(ranges_id);
 	aff_signal_ids.insert(output_id);
+
+	if (range_val_channel > 0 && !sets.empty()) {
+		int sec_id = dict.section_id(signal_name);
+		dict.prep_sets_lookup_table(sec_id, sets, lut);
+	}
 }
 
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
@@ -3372,14 +3396,12 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 	set<int> set_ids;
 	set_ids.insert(signal_id);
 	set_ids.insert(ranges_id);
-	set_ids.insert(output_id);
 	allVersionsIterator vit(rec, set_ids);
-	rec.usvs.resize(3);
+	rec.usvs.resize(2);
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		// setup
 		rec.uget(signal_id, iver, rec.usvs[0]); // original signal
 		rec.uget(ranges_id, iver, rec.usvs[1]); // range signal
-		rec.uget(output_id, iver, rec.usvs[2]); // output - virtual signal
 		int time_channels = rec.usvs[0].n_time_channels();
 		int val_channels = rec.usvs[0].n_val_channels();
 		len = rec.usvs[0].len;
@@ -3393,17 +3415,38 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			int time = rec.usvs[0].Time(i, time_channel);
 			// remove element only if it doesn't appear in any range
 			bool doRemove = true;
-			//for (int j = 0; j < rec.usvs[1].len; j++) { // slower version
-			//	if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) {
-			//		doRemove = false;
-			//		break;
-			//	}
-			//}
-			for (; j < rec.usvs[1].len; j++) { // iterate over range signal
-				if (time > rec.usvs[1].Time(j, 1)) continue;
-				if (time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1)) doRemove = false;
+			switch (range_operator)
+			{
+			case all:
+				//increase till end or till end_time of signal passed time (sorted so no need to search after)
+				//or if has filter on sets - skip is not in set
+				while (j < rec.usvs[1].len && (time < rec.usvs[1].Time(j, 1) || (!lut.empty() &&
+					!lut[(int)rec.usvs[1].Val(j, range_val_channel)])))
+					++j;
 				break;
+			case first:
+				if (i == 0) {
+					j = 0;
+					//find first occourence if has set:
+					if (!lut.empty()) //can do once - only in first time
+						while (j < rec.usvs[1].len && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
+							++j;
+				}
+				break;
+			case last:
+				if (rec.usvs[1].len > 0 && i == 0) { //can do once - only in first time
+					j = rec.usvs[1].len - 1;
+					if (!lut.empty())
+						while (j > 0 && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
+							--j;
+				}
+				break;
+			default:
+				MTHROW_AND_ERR("Not Supported\n");
 			}
+
+			if (j < rec.usvs[1].len && time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1))
+				doRemove = false;
 
 			if ((doRemove && get_values_in_range) || ((!doRemove) && (!get_values_in_range)))
 				doRemove = true;
@@ -3413,15 +3456,19 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			if (!doRemove) {
 				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t);
 				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);
-				nKeep++;
+				++nKeep;
 			}
 		}
+
+		v_times.resize(nKeep * time_channels);
+		v_vals.resize(nKeep * time_channels);
 		// v_times and v_vals are likely longer than necessary, it's ok because nKeep defines which part of the vector is used.
 		rec.set_version_universal_data(output_id, iver, &v_times[0], &v_vals[0], nKeep);
 	}
 
 	return 0;
 }
+
 
 void RepBasicRangeCleaner::print()
 {
