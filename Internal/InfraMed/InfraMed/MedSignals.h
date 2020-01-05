@@ -212,7 +212,7 @@ public:
 	bool operator<(const SDateRangeVal& s) {
 		if (this->date_start < s.date_start) return true;
 		if (this->date_start > s.date_start) return false;
-		if (this->date_end < s.date_end) return true; 
+		if (this->date_end < s.date_end) return true;
 		if (this->date_end > s.date_end) return false;
 		return (this->val < s.val);
 	}
@@ -244,11 +244,11 @@ public:
 	inline void Set(int *times, float *vals) { date_start = times[0]; date_end = times[1]; val = vals[0]; val2 = vals[1]; }
 
 	bool operator<(const SDateRangeVal2& s) {
-		if (this->date_start < s.date_start) return true; 
+		if (this->date_start < s.date_start) return true;
 		if (this->date_start > s.date_start) return false;
 		if (this->date_end < s.date_end) return true;
 		if (this->date_end > s.date_end) return false;
-		if (this->val < s.val) return true; 
+		if (this->val < s.val) return true;
 		if (this->val > s.val) return false;
 		return (this->val2 < s.val2);
 	}
@@ -312,9 +312,9 @@ public:
 	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1]; val = vals[0]; }
 
 	bool operator<(const STimeRangeVal& s) {
-		if (this->time_start < s.time_start) return true; 
+		if (this->time_start < s.time_start) return true;
 		if (this->time_start > s.time_start) return false;
-		if (this->time_end < s.time_end) return true; 
+		if (this->time_end < s.time_end) return true;
 		if (this->time_end > s.time_end) return false;
 		return (this->val < s.val);
 	}
@@ -344,7 +344,7 @@ public:
 	inline void Set(int *times, float *vals) { time_start = (long long)times[0]; time_end = (long long)times[1]; }
 
 	bool operator<(const STimeRange& s) {
-		if (this->time_start < s.time_start) return true; 
+		if (this->time_start < s.time_start) return true;
 		if (this->time_start > s.time_start) return false;
 		if (this->time_end < s.time_end) return true;
 		return false;
@@ -401,11 +401,11 @@ public:
 	bool operator<(const STimeShort4& s) {
 		if (this->time < s.time) return true;
 		if (this->time > s.time) return false;
-		if (this->val1 < s.val1) return true; 
+		if (this->val1 < s.val1) return true;
 		if (this->val1 > s.val1) return false;
-		if (this->val2 < s.val2) return true; 
+		if (this->val2 < s.val2) return true;
 		if (this->val2 > s.val2) return false;
-		if (this->val3 < s.val3) return true; 
+		if (this->val3 < s.val3) return true;
 		if (this->val3 > s.val3) return false;
 		return (this->val4 < s.val4);
 	}
@@ -508,7 +508,7 @@ public:
 	inline void Set(int *times, float *vals) { time = (long long)times[0]; val = (long long)vals[0]; }
 
 	bool operator<(const STimeLongVal& s) {
-		if (this->time < s.time) return true; 
+		if (this->time < s.time) return true;
 		if (this->time > s.time) return false;
 		return (this->val < s.val);
 	}
@@ -618,11 +618,11 @@ public:
 	inline void Set(int *times, float *vals) { val1 = (short)vals[0]; val2 = (short)vals[1]; val3 = (short)vals[2]; val4 = (short)vals[3]; }
 
 	bool operator<(const SValShort4& s) {
-		if (this->val1 < s.val1) return true; 
+		if (this->val1 < s.val1) return true;
 		if (this->val1 > s.val1) return false;
-		if (this->val2 < s.val2) return true; 
+		if (this->val2 < s.val2) return true;
 		if (this->val1 > s.val1) return false;
-		if (this->val3 < s.val3) return true; 
+		if (this->val3 < s.val3) return true;
 		if (this->val1 > s.val1) return false;
 		return (this->val4 < s.val4);
 	}
@@ -935,6 +935,22 @@ public:
 			case 'D': return type_enc::FLOAT80;
 			}
 			return type_enc::UNDEFINED;
+		}
+		static char decode(unsigned char c, bool isSigned = false) {
+			switch (c) {
+			case  type_enc::INT8:
+			case  type_enc::UINT8: return 'c';
+			case  type_enc::INT16:
+			case  type_enc::UINT16: return 's';
+			case type_enc::INT32:
+			case type_enc::UINT32: return 'i';
+			case  type_enc::INT64:
+			case  type_enc::UINT64: return 'l';
+			case  type_enc::FLOAT32: return 'f';
+			case type_enc::FLOAT64: return 'd';
+			case type_enc::FLOAT80: return 'D';
+			}
+			return 0;
 		}
 		static int bytes_len(unsigned char enct) {
 			switch (enct) {

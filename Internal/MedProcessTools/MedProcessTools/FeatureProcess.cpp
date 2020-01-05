@@ -5,6 +5,7 @@
 
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
+#include "PredictorImputer.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -45,6 +46,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_ONE_HOT;
 	else if (processor_name == "get_prob")
 		return FTR_PROCESS_GET_PROB;
+	else if (processor_name == "predictor_imputer")
+		return FTR_PROCESS_PREDICTOR_IMPUTER;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -82,6 +85,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
+	CONDITIONAL_NEW_CLASS(dname, PredictorImputer);
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -121,6 +125,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new OneHotFeatProcessor;
 	else if (processor_type == FTR_PROCESS_GET_PROB)
 		return new GetProbFeatProcessor;
+	else if (processor_type == FTR_PROCESS_PREDICTOR_IMPUTER)
+		return new PredictorImputer;
 	else 
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
 	
@@ -231,9 +237,12 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			if (tag == "" || features.tags[name].find(tag) != features.tags[name].end())
 				features_to_process.push_back(name);
 		}
-		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d\n",
-			features_to_process.size(), members_type);
 		add_processors_set(members_type, features_to_process, init_string);
+		string tp_name = "";
+		if (!processors.empty()) 
+			tp_name = processors.back()->my_class_name();
+		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d(%s)\n",
+			features_to_process.size(), members_type, tp_name.c_str());
 	}
 
 	int RC = 0;

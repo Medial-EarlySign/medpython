@@ -672,16 +672,17 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 		shtml += "hoverformat: '%Y/%m/%d %H:%M'},\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\tshapes: [";
+		int tmp_i = 0;
 		for (auto &t : times) {
 			string ts = date_to_string(t.time);
 			if (t.name == "Death") ts = time_to_string(t.time);
-			shtml += "{type: 'line', x0: " + ts + ", y0: " + to_string(vmin[0]);
-			float max_sel = vmax[0];
-			if (abs(max_sel - vmin[0]) < 1e-4)
-				max_sel += (float)0.1; //that it will create a real line
-			shtml += ", x1: " + ts + ", y1: " + to_string(max_sel);
+			shtml += "{type: 'line', yref:\"paper\", x0: " + ts + ", y0: 0";
+			shtml += ", x1: " + ts + ", y1: 1";
 			string color = t.color; //"'black'";
-			shtml += ", line: { color: " + color + "} },";
+			shtml += ", line: { color: " + color + "} }";
+			++tmp_i;
+			if (tmp_i < times.size())
+				shtml += ",";
 		}
 		shtml += "]\n";
 	}
@@ -793,11 +794,16 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	shtml += "\t\t\tshowlegend: " + legend_str + "\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\t,shapes: [";
+		int tmp_i = 0;
 		for (auto &t : times) {
 			shtml += "{type: 'line', yref:\"paper\", x0: " + date_to_string(t.time) + ", ";
 			shtml += "y0: 0, x1: " + date_to_string(t.time) + ", y1: 1";
 			string color = t.color; //"'black'";
-			shtml += ", line: { color: " + color + "} },";
+			shtml += ", line: { color: " + color + "} }";
+			//if nor end:
+			++tmp_i;
+			if (tmp_i < times.size())
+				shtml += ",";
 		}
 		shtml += "]\n";
 
