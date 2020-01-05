@@ -90,10 +90,14 @@ public:
 	T missing_value;
 
 	// get/set
-	inline T operator ()(int i, int j) const { return m[((unsigned long long)i)*ncols + j]; }
-	inline T &operator ()(int i, int j) { return m[((unsigned long long)i)*ncols + j]; }
-	inline T get(int i, int j) const { return m[((unsigned long long)i)*ncols + j]; }
-	inline T& set(int i, int j) { return m[i*ncols + j]; }  // use var.set(i,j) = .... 
+	inline T operator ()(size_t i, size_t j) const { return m[i*ncols + j]; }
+
+	inline T &operator ()(size_t i, size_t j) { return m[i*ncols + j]; }
+
+	inline T get(size_t i, size_t j) const { return m[i*ncols + j]; }
+
+	inline T& set(size_t i, size_t j) { return m[i*ncols + j]; }  // use var.set(i,j) = .... 
+
 	inline MedMat<T>& operator=(MedMat<T> &&other) noexcept {
 		if (this != &other) {
 			m = move(other.m);
@@ -129,7 +133,7 @@ public:
 
 	// init
 	MedMat() { clear(); }
-	MedMat(int n_rows, int n_cols) { clear(); nrows = n_rows; ncols = n_cols; m.resize(((unsigned long long)nrows)*ncols); zero(); };
+	MedMat(int n_rows, int n_cols) { clear(); nrows = n_rows; ncols = n_cols; m.resize(nrows*ncols); zero(); };
 	MedMat(const MedMat<T> &other) {
 		m = other.m;
 		nrows = other.nrows;
@@ -156,12 +160,12 @@ public:
 	void set_val(T val) { fill(m.begin(), m.end(), val); } // set all matrix to a certain value.
 
 	// basic 
-		void clear() { m.clear(); row_ids.clear(); signals.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = (T)MED_MAT_MISSING_VALUE; }
+	void clear() { m.clear(); row_ids.clear(); signals.clear(); recordsMetadata.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = (T)MED_MAT_MISSING_VALUE; }
 	T *data_ptr() { if (m.size() > 0) return &m[0]; else return NULL; }
 	const T *data_ptr() const { if (m.size() > 0) return &m[0]; else return NULL; }
-	T *data_ptr(int r, int c) { if (m.size() > (unsigned long long)r*ncols + c) return &m[(unsigned long long)r*ncols + c]; else return NULL; }
-	int get_nrows() { return nrows; }
-	int get_ncols() { return ncols; }
+	T *data_ptr(size_t r, size_t c) { if (m.size() > r*ncols + c) return &m[r*ncols + c]; else return NULL; }
+	int get_nrows() { return (int)nrows; }
+	int get_ncols() { return (int)ncols; }
 	void resize(int n_rows, int n_cols) { nrows = n_rows; ncols = n_cols; m.resize(nrows*ncols); }
 
 	// i/o from specific format files
@@ -215,8 +219,8 @@ public:
 		if (std::is_floating_point<T>::value == false)
 			return true;
 
-		for (int i = 0; i < nrows; i++) {
-			for (int j = 0; j < ncols; j++) {
+		for (size_t i = 0; i < nrows; i++) {
+			for (size_t j = 0; j < ncols; j++) {
 				double x = (double)(m[i*ncols + j]);
 				if (!isfinite(x)) {
 					if (output)

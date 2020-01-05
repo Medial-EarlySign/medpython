@@ -30,7 +30,7 @@ void flags_to_indexes(vector<int> &flags, vector<int> &inds)
 int get_rand_medmat(MedMat<float> &A) // fills mat with uniform 0-1 numbers
 {
 	vector<float> &m = A.get_vec();
-	for (unsigned long long i=0; i<A.size(); i++) {
+	for (size_t i=0; i<A.size(); i++) {
 		m[i] = rand_1();
 	}
 	return 0;
