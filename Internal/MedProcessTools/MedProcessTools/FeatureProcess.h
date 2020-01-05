@@ -154,6 +154,8 @@ public:
 	string init_string;
 	int duplicate;
 	string tag;
+	bool use_parallel_learn;
+	bool use_parallel_apply;
 
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
@@ -162,7 +164,7 @@ public:
 	MultiFeatureProcessor() { init_defaults(); };
 	~MultiFeatureProcessor() { clear(); };
 
-	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; members_type = FTR_PROCESS_LAST; init_string = ""; tag = ""; };
+	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; members_type = FTR_PROCESS_LAST; init_string = ""; tag = ""; use_parallel_learn = true; use_parallel_apply = true; };
 
 	void clear();
 
@@ -200,7 +202,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MultiFeatureProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, members_type, init_string, duplicate, tag, processors)
+		ADD_SERIALIZATION_FUNCS(processor_type, members_type, init_string, duplicate, tag, processors, use_parallel_apply)
 };
 
 #define DEF_FTR_TRIMMING_SD_NUM 7
