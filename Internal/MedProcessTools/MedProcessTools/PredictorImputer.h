@@ -44,10 +44,11 @@ private:
 	int num_classes;
 	mt19937 gen;
 public:
-	float missing_value;
-	Predictor_Imputer_Params params;
-	bool verbose_learn;
-	bool find_real_value;
+	float missing_value; ///< missing value to look for to impute
+	Predictor_Imputer_Params params; ///< parameters for the predictor
+	bool verbose_learn; ///< if true will output more info when learning
+	bool find_real_value; ///< if true will round to most similar origianl value
+	bool debug; ///< if true will output verbose output in apply
 
 	PredictorImputer() : FeatureProcessor() { init_defaults(); }
 
@@ -70,7 +71,8 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(PredictorImputer)
 		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, params,
-			find_real_value, predictor, predictor_features, sorted_bin_vals, sorted_uniq_vals, calibrators, num_classes)
+			find_real_value, predictor, predictor_features, sorted_bin_vals, sorted_uniq_vals, calibrators, num_classes,
+			debug)
 };
 
 MEDSERIALIZE_SUPPORT(Predictor_Imputer_Params)

@@ -237,9 +237,12 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			if (tag == "" || features.tags[name].find(tag) != features.tags[name].end())
 				features_to_process.push_back(name);
 		}
-		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d\n",
-			features_to_process.size(), members_type);
 		add_processors_set(members_type, features_to_process, init_string);
+		string tp_name = "";
+		if (!processors.empty()) 
+			tp_name = processors.back()->my_class_name();
+		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d(%s)\n",
+			features_to_process.size(), members_type, tp_name.c_str());
 	}
 
 	int RC = 0;

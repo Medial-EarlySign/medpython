@@ -38,7 +38,8 @@ namespace LightGBM {
 	class MemApp : public Application {
 	public:
 		bool is_silent;
-		MemApp(int argc, char **argv) : Application::Application(argc, argv) { is_silent = false; };
+		bool only_fatal;
+		MemApp(int argc, char **argv) : Application::Application(argc, argv) { is_silent = false; only_fatal = false; };
 		MemApp() : Application::Application(0, NULL) { is_silent = false; }
 		//~MemApp() { Application::~Application(); };
 

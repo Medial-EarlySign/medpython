@@ -45,6 +45,7 @@ namespace LightGBM {
 	{
 		bool prev_silent = is_silent;
 		is_silent = false;
+		only_fatal = false;
 		is_silent = init_params.find("verbose") != init_params.end()
 			&& stoi(init_params.at("verbose")) <= 0;
 		is_silent |= (init_params.find("verbosity") != init_params.end()
@@ -53,6 +54,10 @@ namespace LightGBM {
 			&& stoi(init_params.at("silent")) > 0);
 		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
+		if (init_params.find("silent") != init_params.end() && stoi(init_params.at("silent")) > 1) {
+			Log::ResetLogLevel(LogLevel::Fatal);
+			only_fatal = true;
+		}
 
 		unordered_map<string, string> params;
 		for (auto &e : init_params) params[e.first] = e.second;
@@ -70,6 +75,8 @@ namespace LightGBM {
 	{
 		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
+		if (only_fatal)
+			Log::ResetLogLevel(LogLevel::Fatal);
 		Log::Info("init train data %d x %d\n", nrows, ncols);
 		if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
 
@@ -140,6 +147,8 @@ namespace LightGBM {
 	int MemApp::InitTrain(float *xdata, float *ydata, const float *weight, int nrows, int ncols) {
 		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
+		if (only_fatal)
+			Log::ResetLogLevel(LogLevel::Fatal);
 		if (config_.is_parallel) { Log::Info("parallel mode not supported yet for MedLightGBM !!"); return -1; }
 
 		// create boosting
@@ -169,6 +178,8 @@ namespace LightGBM {
 	void MemApp::Train() {
 		if (global_logger.levels[LOG_MEDALGO] > LOG_DEF_LEVEL || is_silent)
 			Log::ResetLogLevel(LogLevel::Warning);
+		if (only_fatal)
+			Log::ResetLogLevel(LogLevel::Fatal);
 		Log::Info("Started training...");
 		int total_iter = config_.num_iterations;
 		bool is_finished = false;

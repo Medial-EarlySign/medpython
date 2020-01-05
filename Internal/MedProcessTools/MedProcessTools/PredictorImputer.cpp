@@ -8,11 +8,15 @@ using namespace std;
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 Predictor_Imputer_Params::Predictor_Imputer_Params() {
-	predictor_type = "";
-	predictor_args = "";
-	num_class_setup = "";
-	calibration_string = "";
+	predictor_type = "lightgbm";
+	predictor_args = "objective=multiclass;metric=multi_logloss;verbose=0;num_threads=0;num_trees=80;"
+		"learning_rate=0.05;lambda_l2=0;metric_freq=50;is_training_metric=false;max_bin=255;min_data_in_leaf=30"
+		";feature_fraction=0.8;bagging_fraction=0.25;bagging_freq=4;is_unbalance=true;num_leaves=80;silent=2";
+	num_class_setup = "num_class";
+	calibration_string = "calibration_type=isotonic_regression;verbose=0";
 	calibration_save_ratio = (float)0.2;
+
+	bin_settings.init_from_string("split_method=iterative_merge;min_bin_count=100;binCnt=100");
 }
 
 int Predictor_Imputer_Params::init(map<string, string>& map) {
@@ -53,8 +57,8 @@ void PredictorImputer::init_defaults() {
 	resolved_feature_name = "";
 	verbose_learn = true;
 	find_real_value = true;
+	debug = false;
 
-	
 	random_device rd;
 	gen = mt19937(rd());
 }
@@ -74,13 +78,13 @@ int PredictorImputer::init(map<string, string>& mapper) {
 			verbose_learn = med_stoi(it.second) > 0;
 		else if (it.first == "find_real_value")
 			find_real_value = med_stoi(it.second) > 0;
-		else if (it.first != "fp_type" && it.first != "tag") {}
+		else if (it.first == "debug")
+			debug = med_stoi(it.second) > 0;
+		else if (it.first == "fp_type" || it.first == "tag") {}
 		else
 			MTHROW_AND_ERR("Error in PredictorImputer::init - unsupported argument %s\n", it.first.c_str());
 		//! [PredictorImputer::init]
 	}
-	if (feature_name.empty())
-		MTHROW_AND_ERR("Error in PredictorImputer::init - must provide feature_name\n");
 	if (params.predictor_type.empty())
 		MTHROW_AND_ERR("Error in PredictorImputer::init - must provide params with predictor_type\n");
 
@@ -88,6 +92,8 @@ int PredictorImputer::init(map<string, string>& mapper) {
 }
 
 int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
+	if (feature_name.empty())
+		MTHROW_AND_ERR("Error in PredictorImputer::Learn - must provide feature_name\n");
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	int feature_ind = -1;
 
@@ -101,7 +107,17 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		MTHROW_AND_ERR("Error in PredictorImputer::Learn - can't find feature %s index\n",
 			resolved_feature_name.c_str());
 
-	vector<float> feat_vals = features.data.at(resolved_feature_name);
+	const vector<float> &feat_vals_o = features.data.at(resolved_feature_name);
+	//clear missing_value id's:
+	vector<float> feat_vals;
+	feat_vals.reserve(feat_vals_o.size());
+	vector<int> non_miss_idx;
+	for (size_t i = 0; i < feat_vals_o.size(); ++i)
+		if (feat_vals_o[i] != missing_value) {
+			non_miss_idx.push_back((int)i);
+			feat_vals.push_back(feat_vals_o[i]);
+		}
+
 	int train_sz = (int)feat_vals.size();
 	int pred_num_feats = (int)features.data.size() - 1; //use all other feature execept this one to predict value
 	predictor_features.resize(pred_num_feats);
@@ -148,9 +164,10 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		label_vec[ii] = (float)map_categ.at(feat_vals[ii]);
 	//prepate train:
 	for (size_t ii = 0; ii < train_sz; ++ii) {
+		int real_idx = non_miss_idx[ii];
 		for (size_t jj = 0; jj < pred_num_feats; ++jj) {
 			int fixed_idx = (int)jj + int(jj >= feature_ind); //skip current feature
-			train_vec[ii* pred_num_feats + jj] = float(features.data.at(all_names[fixed_idx])[ii]);
+			train_vec[ii* pred_num_feats + jj] = float(features.data.at(all_names[fixed_idx])[real_idx]);
 		}
 	}
 
@@ -282,6 +299,8 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	}
 
 	//sample randomliy by preds (which are calibrated)
+	int print_ex = 0;
+	int max_exm = 10;
 	for (size_t i = 0; i < all_idx_to_impute.size(); ++i) {
 		//for each needed to impute:
 		double tot_num = 0;
@@ -292,12 +311,29 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		double sel = real_dist(gen);
 
 		//now select correspond bin value:
-		tot_num = 0;
+		double tot_num2 = 0;
 		int sel_idx = 0;
-		while (sel_idx < num_classes && tot_num + preds[curr_idx + sel_idx] < sel) {
-			tot_num += preds[curr_idx + sel_idx];
+		while (sel_idx < num_classes && tot_num2 + preds[curr_idx + sel_idx] < sel) {
+			tot_num2 += preds[curr_idx + sel_idx];
 			++sel_idx;
 		}
+		if (print_ex < max_exm) {
+			++print_ex;
+			stringstream input;
+			bool first = true;
+			for (const string &feat : predictor_features)
+			{
+				if (!first) {
+					input << ", ";
+					first = false;
+				}
+				input << feat << "=" << features.data.at(feat)[all_idx_to_impute[i]];
+			}
+			MLOG("DEBUG: feature %s :: [%s] => total_sum=%f, got = %f(%d), range= [%f, %f], parsed= %f\n",
+				feature_name.c_str(), input.str().c_str(), tot_num, sel, sel_idx, sorted_bin_vals[0], sorted_bin_vals.back(),
+				sorted_bin_vals[sel_idx]);
+		}
+
 		//now sel_idx is the index of the category:
 		if (sel_idx >= sorted_bin_vals.size())
 			sel_idx = (int)sorted_bin_vals.size() - 1;
