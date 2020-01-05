@@ -60,16 +60,19 @@ public:
 // mat(i,j) can be used to access the (i,j) element in the matrix for read or write.
 template <class T>
 class MedMat : public SerializableObject {
+private:
+	vector<T> m;
 public:
 
 	const static int Normalize_Cols = 1;
 	const static int Normalize_Rows = 2;
 
 	// data holders (major)
-	vector<T> m;
-	int nrows = 0;
-	int ncols = 0;
-	unsigned long long size() { return (unsigned long long)nrows*ncols; }
+	//vector<T> m;
+	unsigned long long nrows = 0;
+	unsigned long long ncols = 0;
+	unsigned long long size() const { return (unsigned long long)nrows*ncols; }
+	vector<T> &get_vec() { return m; }
 
 	// metadata holders
 	vector<int> row_ids;
@@ -156,10 +159,10 @@ public:
 		void clear() { m.clear(); row_ids.clear(); signals.clear(); nrows = 0; ncols = 0; normalized_flag = 0; transposed_flag = 0; missing_value = (T)MED_MAT_MISSING_VALUE; }
 	T *data_ptr() { if (m.size() > 0) return &m[0]; else return NULL; }
 	const T *data_ptr() const { if (m.size() > 0) return &m[0]; else return NULL; }
-	T *data_ptr(int r, int c) { if (m.size() > r*ncols + c) return &m[(unsigned long long)r*ncols + c]; else return NULL; }
+	T *data_ptr(int r, int c) { if (m.size() > (unsigned long long)r*ncols + c) return &m[(unsigned long long)r*ncols + c]; else return NULL; }
 	int get_nrows() { return nrows; }
 	int get_ncols() { return ncols; }
-	void resize(int n_rows, int n_cols) { nrows = n_rows; ncols = n_cols; m.resize((unsigned long long)n_rows*n_cols); }
+	void resize(int n_rows, int n_cols) { nrows = n_rows; ncols = n_cols; m.resize(nrows*ncols); }
 
 	// i/o from specific format files
 	int read_from_bin_file(const string &fname);

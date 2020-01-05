@@ -606,12 +606,12 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 	}
 
 	inf.close();
-	fprintf(stderr, "read %dX%d data\n", nrows, ncols);
+	fprintf(stderr, "read %lldX%lld data\n", nrows, ncols);
 	return 0;
 }
 
 template <class T> int MedMat<T>::write_to_csv_file(const string &fname) {
-	fprintf(stderr, "writing %s with %dX%d data\n", fname.c_str(), nrows, ncols);
+	fprintf(stderr, "writing %s with %lldX%lld data\n", fname.c_str(), nrows, ncols);
 	ofstream of;
 	of.open(fname, ios::out);
 	if (!of) {
