@@ -104,10 +104,11 @@ int ExplainProcessings::init(map<string, string> &map) {
 void ExplainProcessings::post_deserialization()
 {
 	abs_cov_features.clear();
-	if (cov_features.m.size() > 0) {
+	if (cov_features.size() > 0) {
 		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
-		for (int i = 0; i < cov_features.m.size(); i++)
-			abs_cov_features.m[i] = abs(cov_features.m[i]);
+		for (int i = 0; i < cov_features.nrows; i++)
+			for (int j = 0; j < cov_features.ncols; j++)
+				abs_cov_features(i,j) = abs(cov_features(i,j));
 	}
 
 	groupName2Inds.clear();
@@ -127,7 +128,9 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		fast_multiply_medmat_transpose(x_mat, x_mat, cov_features, 1, 1.0 / x_mat.nrows);
 
 		abs_cov_features = cov_features;
-		for (auto &x : abs_cov_features.m) x = abs(x);
+		for (int i = 0; i < cov_features.nrows; i++)
+			for (int j = 0; j < cov_features.ncols; j++)
+				abs_cov_features(i, j) = abs(abs_cov_features(i, j));
 
 		//// debug
 		//vector<string> f_names;
@@ -172,7 +175,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 
-	if (cov_features.m.empty() && !group_by_sum && normalize_vals <= 0)
+	if ((cov_features.size()==0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -191,9 +194,9 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 
 	//first do covarinace if has:
-	if (!cov_features.m.empty()) {
+	if (cov_features.size()>0) {
 		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
-			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%d, "
+			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%lld, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
 
 
@@ -201,7 +204,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 		if (group_by_sum) {
 			map<string, float> group_explain;
 			for (int i = 0; i < group2Inds.size(); i++) {
-				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.m, normalization_factor);
+				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.get_vec(), normalization_factor);
 			}
 			explain_list = move(group_explain);
 		}
@@ -227,7 +230,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			const string &grp_name = groupNames[i];
 			float contrib = 0.0f;
 			for (int ind : group2Inds[i])
-				contrib += orig_explain.m[ind];
+				contrib += orig_explain(ind,0);
 			group_explain[grp_name] = contrib;
 
 		}
@@ -330,9 +333,9 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (processing.zero_missing)
 		matrix.get_masks_as_mat(masks_mat);
 	//process:
-	for (size_t i = 0; i < explain_reasons.size(); ++i) {
+	for (int i = 0; i < (int)explain_reasons.size(); ++i) {
 		if (processing.zero_missing)
-			processing.process(explain_reasons[i], &masks_mat.m[i*masks_mat.ncols]);
+			processing.process(explain_reasons[i], masks_mat.data_ptr(i,0));
 		else
 			processing.process(explain_reasons[i]);
 	}
@@ -707,13 +710,13 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	string bias_name = "Prior_Score";
 	if (md == CONVERTED_TREES_IMPL) {
-		x.resize(x_mat.m.size());
+		x.resize(x_mat.size());
 		y.resize(matrix.samples.size());
 
-		x_missing = unique_ptr<bool>(new bool[x_mat.m.size()]);
-		for (size_t i = 0; i < x_mat.m.size(); ++i)
+		x_missing = unique_ptr<bool>(new bool[x_mat.size()]);
+		for (size_t i = 0; i < x_mat.size(); ++i)
 		{
-			x[i] = (double)x_mat.m[i];
+			x[i] = (double)x_mat.get_vec()[i];
 			//x_missing.get()[i] = x_mat.m[i] == missing_value;
 			x_missing.get()[i] = false; //In QRF no missing values
 		}
@@ -948,8 +951,8 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	}
 
 	// Add data with missing values according to sample masks
-	for (size_t i = 0; i < x_mat.nrows; ++i) {
-		miss_cnts[i] = msn_count<float>(&x_mat.m[i*nftrs], nftrs, missing_value);
+	for (int i = 0; i < x_mat.nrows; ++i) {
+		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i,0), nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
 		if (i >= train_mat.samples.size())
 			++added_missing_hist[miss_cnts[i]];
