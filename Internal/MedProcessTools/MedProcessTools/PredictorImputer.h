@@ -17,6 +17,7 @@ public:
 	string predictor_args; ///< predictor args for multi-class
 	string num_class_setup; ///< param to control number of classes if needed in predictor
 	BinSettings bin_settings; ///< binning method for each signal
+	int sub_sample; ///< if given > 0 will sun_sample training to increase speed of train
 
 	float calibration_save_ratio; ///< if given will use calibrate each prediction score on the saved_ratio. [0, 1]
 	string calibration_string; ///< if calibration_save_ratio > 0 will use this init for calibration string
@@ -27,7 +28,7 @@ public:
 
 	ADD_CLASS_NAME(Predictor_Imputer_Params)
 		ADD_SERIALIZATION_FUNCS(predictor_type, predictor_args,
-			num_class_setup, bin_settings, calibration_save_ratio, calibration_string)
+			num_class_setup, bin_settings, calibration_save_ratio, calibration_string, sub_sample)
 };
 
 /**

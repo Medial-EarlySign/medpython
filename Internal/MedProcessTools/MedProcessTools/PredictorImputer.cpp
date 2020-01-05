@@ -17,6 +17,7 @@ Predictor_Imputer_Params::Predictor_Imputer_Params() {
 	calibration_save_ratio = (float)0.2;
 
 	bin_settings.init_from_string("split_method=iterative_merge;min_bin_count=100;binCnt=100");
+	sub_sample = 0;
 }
 
 int Predictor_Imputer_Params::init(map<string, string>& map) {
@@ -80,7 +81,7 @@ int PredictorImputer::init(map<string, string>& mapper) {
 			find_real_value = med_stoi(it.second) > 0;
 		else if (it.first == "debug")
 			debug = med_stoi(it.second) > 0;
-		else if (it.first == "fp_type" || it.first == "tag") {}
+		else if (it.first == "fp_type" || it.first == "tag" || it.first == "use_parallel_learn" || it.first == "use_parallel_apply") {}
 		else
 			MTHROW_AND_ERR("Error in PredictorImputer::init - unsupported argument %s\n", it.first.c_str());
 		//! [PredictorImputer::init]
@@ -117,6 +118,17 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			non_miss_idx.push_back((int)i);
 			feat_vals.push_back(feat_vals_o[i]);
 		}
+	//if need to sub sample:
+	if (params.sub_sample > 0 && feat_vals.size() > params.sub_sample) {
+		shuffle(non_miss_idx.begin(), non_miss_idx.end(), gen);
+		non_miss_idx.resize(params.sub_sample);
+		//now sort again:
+		sort(non_miss_idx.begin(), non_miss_idx.end());
+		feat_vals.clear();
+		//select again:
+		for (int idx : non_miss_idx)
+			feat_vals.push_back(feat_vals_o[idx]);
+	}
 
 	int train_sz = (int)feat_vals.size();
 	int pred_num_feats = (int)features.data.size() - 1; //use all other feature execept this one to predict value
@@ -154,6 +166,8 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	predictor = MedPredictor::make_predictor(params.predictor_type, predictor_init);
 	if (verbose_learn)
 		MLOG("Feature %s has %d categories\n", resolved_feature_name.c_str(), class_num);
+	MedTimer tm;
+	tm.start();
 	//change labels to be 0 to K-1:
 	unordered_map<float, int> map_categ;
 	//calc by order:
@@ -240,6 +254,11 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	else
 		predictor->learn(train_vec, label_vec, (int)label_vec.size(), pred_num_feats);
 
+	tm.take_curr_time();
+	if (verbose_learn)
+		MLOG("Took %2.1 minutes to learn imputer for %s\n",
+			tm.diff_sec() / 60, feature_name.c_str());
+
 	return 0;
 }
 
@@ -323,10 +342,9 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 			bool first = true;
 			for (const string &feat : predictor_features)
 			{
-				if (!first) {
+				if (!first)
 					input << ", ";
-					first = false;
-				}
+				first = false;
 				input << feat << "=" << features.data.at(feat)[all_idx_to_impute[i]];
 			}
 			MLOG("DEBUG: feature %s :: [%s] => total_sum=%f, got = %f(%d), range= [%f, %f], parsed= %f\n",
