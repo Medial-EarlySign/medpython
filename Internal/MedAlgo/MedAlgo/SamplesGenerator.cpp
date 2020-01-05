@@ -139,7 +139,7 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 
 	// Sanity
 	if ((int)masks.size() != mask_values.nrows)
-		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%d samples)\n", (int)masks.size(), mask_values.nrows);
+		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%lld samples)\n", (int)masks.size(), mask_values.nrows);
 
 	if (mask_values.nrows == 0)
 		return;
@@ -216,7 +216,7 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 
 	// Sanity
 	if ((int)masks.size() != Z.nrows || Z.nrows != mask_values.nrows)
-		MTHROW_AND_ERR("size mismatch between mask (%d samples), Z (%d samples) and mask_values (%d samples)\n", (int)masks.size(), Z.nrows, mask_values.nrows);
+		MTHROW_AND_ERR("size mismatch between mask (%d samples), Z (%lld samples) and mask_values (%lld samples)\n", (int)masks.size(), Z.nrows, mask_values.nrows);
 
 	if (mask_values.nrows == 0)
 		return;

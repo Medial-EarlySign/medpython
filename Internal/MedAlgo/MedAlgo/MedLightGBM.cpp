@@ -437,8 +437,8 @@ void MedLightGBM::calc_feature_contribs(MedMat<float> &x, MedMat<float> &contrib
 	contribs.signals.push_back("b0");
 	contribs.recordsMetadata.insert(contribs.recordsMetadata.end(), x.recordsMetadata.begin(), x.recordsMetadata.end());
 
-	float *contribs_ptr = &contribs.m[0];
-	float *x_ptr = &x.m[0];
+	float *contribs_ptr = contribs.data_ptr();
+	float *x_ptr = x.data_ptr();
 	mem_app.PredictShap(x_ptr, nrows, ncols, contribs_ptr);
 }
 
