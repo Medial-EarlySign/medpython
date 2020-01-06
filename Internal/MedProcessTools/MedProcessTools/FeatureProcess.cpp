@@ -283,7 +283,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
 
 	int RC = 0;
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_conditional_apply(features, ids, req_features);
 #pragma omp critical
