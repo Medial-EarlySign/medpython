@@ -94,6 +94,7 @@ public:
 	Gibbs_Params params; ///< gibbs params
 	vector<PredictorOrEmpty<T>> feats_predictors; ///< gibbs_feature generators based on predictors
 	vector<string> all_feat_names; ///< all features names (saved in learn)
+	vector<string> impute_feat_names; ///< all features names (saved in learn)
 	vector<vector<T>> uniqu_value_bins; ///< to round samples to those resoultions! - important for no leak!
 
 	GibbsSampler();
@@ -143,7 +144,7 @@ public:
 	virtual ~GibbsSampler();
 
 	ADD_CLASS_NAME(GibbsSampler<T>)
-		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names)
+		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names, impute_feat_names)
 };
 
 MEDSERIALIZE_SUPPORT(PredictorOrEmpty<float>)

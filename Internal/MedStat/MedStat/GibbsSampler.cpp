@@ -192,6 +192,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
 		all_names.push_back(it->first);
 	all_feat_names = all_names;
+	impute_feat_names = learn_features;
 	int cohort_size = (int)cohort_data.begin()->second.size(); //assume not empty
 
 
@@ -207,7 +208,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 		}
 	}
 	else {
-		MedProgress progress("Learn_Gibbs", (int)all_names.size(), 30, 1);
+		MedProgress progress("Learn_Gibbs", (int)learn_features.size(), 30, 1);
 
 		int train_sz = int(cohort_size * params.selection_ratio);
 		if (params.selection_count > 0 && train_sz > params.selection_count)
@@ -495,19 +496,26 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				T val = current_sample[k];
 				//find best bin if needed:
 				if (sampling_params.find_real_value_bin && !mask->at(k)) {
-					int pos = medial::process::binary_search_position(uniqu_value_bins[k].data(), uniqu_value_bins[k].data() + uniqu_value_bins[k].size() - 1, val);
+					//find index in impute_feat_names
+					int learn_ind = -1;
+					for (size_t jj = 0; jj < impute_feat_names.size() && learn_ind < 0; ++jj)
+						if (all_feat_names[k] == impute_feat_names[jj])
+							learn_ind = (int)jj;
+					if (learn_ind < 0)
+						MTHROW_AND_ERR("Error GibbsSampler<T>::get_samples - Can't find feature %s in learned features\n", all_feat_names[k].c_str());
+					int pos = medial::process::binary_search_position(uniqu_value_bins[learn_ind].data(), uniqu_value_bins[learn_ind].data() + uniqu_value_bins[learn_ind].size() - 1, val);
 					if (pos == 0)
-						val = uniqu_value_bins[k][0];
+						val = uniqu_value_bins[learn_ind][0];
 					else {
-						if (pos >= uniqu_value_bins[k].size())
-							val = uniqu_value_bins[k].back();
+						if (pos >= uniqu_value_bins[learn_ind].size())
+							val = uniqu_value_bins[learn_ind].back();
 						else {
-							T diff_next = abs(val - uniqu_value_bins[k][pos]);
-							T diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
+							T diff_next = abs(val - uniqu_value_bins[learn_ind][pos]);
+							T diff_prev = abs(val - uniqu_value_bins[learn_ind][pos - 1]);
 							if (diff_prev < diff_next)
-								val = uniqu_value_bins[k][pos - 1];
+								val = uniqu_value_bins[learn_ind][pos - 1];
 							else
-								val = uniqu_value_bins[k][pos];
+								val = uniqu_value_bins[learn_ind][pos];
 						}
 					}
 				}
