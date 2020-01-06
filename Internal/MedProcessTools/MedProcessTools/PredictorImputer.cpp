@@ -146,7 +146,8 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		fast_access[i] = &features.data.at(all_names[i]);
 
 	//impute samples:
-	
+	if (verbose_apply)
+		MLOG("Start PredictorImputer::apply for %d samples\n", nsamples);
 	if (_sampler->use_vector_api) {
 		vector<bool> mask(features.data.size(), true);
 		MedMat<float> res; //the result matrix
@@ -176,7 +177,7 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		vector<mt19937> gens(N_TH);
 		for (size_t i = 0; i < N_TH; ++i)
 			gens[i] = mt19937(rd());
-		
+		MedProgress progress("PredictorImputer::apply", nsamples, 30, 10);
 #pragma omp parallel for
 		for (int i = 0; i < nsamples; ++i)
 		{
@@ -194,10 +195,11 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
 			_sampler->get_samples(gen_matrix, sampler_sampling_args, mask, x, thread_gen);
 			//copy to features!
-#pragma omp critical
+//#pragma omp critical
 			for (size_t k = 0; k < x.size(); ++k)
 				if (!mask[k])
 					fast_access[k]->at(i) = gen_matrix.at(all_names[k])[0];
+			progress.update();
 		}
 
 	}
