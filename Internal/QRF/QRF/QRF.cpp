@@ -253,7 +253,7 @@ int QuantizedRF::init_regression(float *X, float *Y, const float *W, int nfeat, 
 //-----------------------------------------------------------------------------------------------------------------------------------
 int QuantizedRF::init_all(float *X, int *Y, float *Yr, const float *W, int nfeat, int nsamples, int maxq)
 {
-	size_t i;
+	int i;
 
 	clear();
 
@@ -324,7 +324,7 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, const float *W, int nfeat
 		vector<short> qd;
 		for (size_t j = 0; j < nsamples; j++) {
 			vals[j].val = X[(size_t)nfeat*j + i];
-			vals[j].idx = j;
+			vals[j].idx = (int)j;
 		}
 
 		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_values[i], q_data[i]);

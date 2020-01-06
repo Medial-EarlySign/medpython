@@ -1104,35 +1104,6 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			delete pred_threads[i];
 }
 
-string GeneratorType_toStr(GeneratorType type) {
-	switch (type)
-	{
-	case GIBBS:
-		return "GIBBS";
-	case GAN:
-		return "GAN";
-	case MISSING:
-		return "MISSING";
-	case RANDOM_DIST:
-		return "RANDOM_DIST";
-	default:
-		MTHROW_AND_ERR("Unknown type %d\n", type);
-	}
-}
-GeneratorType GeneratorType_fromStr(const string &type) {
-	string tp = boost::to_upper_copy(type);
-	if (tp == "GAN")
-		return GeneratorType::GAN;
-	else if (tp == "GIBBS")
-		return GeneratorType::GIBBS;
-	else if (tp == "MISSING")
-		return GeneratorType::MISSING;
-	else if (tp == "RANDOM_DIST")
-		return GeneratorType::RANDOM_DIST;
-	else
-		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
-}
-
 void ShapleyExplainer::_init(map<string, string> &mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{

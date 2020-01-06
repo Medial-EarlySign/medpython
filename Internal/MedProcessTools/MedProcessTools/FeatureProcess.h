@@ -499,7 +499,7 @@ public:
 	virtual int _apply(MedFeatures& features, unordered_set<int>& ids);
 	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& out_req_features);
 
-	bool is_selctor() { return true; }
+	bool is_selector() { return true; }
 	bool are_features_affected(unordered_set<string>& out_req_features);
 
 	/// update sets of required as input according to set required as output to processor
