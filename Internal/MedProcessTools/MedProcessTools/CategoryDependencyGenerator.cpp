@@ -710,17 +710,17 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 		vector<char> &lut = luts[k];
 		float *p_feat = _p_data[k] + index;
 
-		for (int i = 0; i < num; i++) {
+		for (int i = 0; i < num; ++i) {
 			rec.uget(signalId, i);
 			int min_time, max_time;
 			int time = med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time);
 			get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time);
 
 			int val = 0;
-			for (int i = 0; i < rec.usv.len; i++) {
-				int itime = rec.usv.Time(i, time_channel);
+			for (int j = 0; j < rec.usv.len; ++j) {
+				int itime = rec.usv.Time(j, time_channel);
 				if (itime > max_time) break;
-				if (itime >= min_time && lut[(int)rec.usv.Val(i, val_channel)])
+				if (itime >= min_time && lut[(int)rec.usv.Val(j, val_channel)])
 					++val;
 			}
 			if (!generate_with_counts)
@@ -742,9 +742,14 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 			selected.push_back(i);
 	}
 
-	for (int i = 0; i < selected.size(); i++)
-		top_codes[i] = top_codes[selected[i]];
-	top_codes.resize(selected.size());
+	vector<string> filterd_codes(selected.size());
+	vector<vector<char>> filter_luts(selected.size());
+	for (int i = 0; i < selected.size(); i++) {
+		filterd_codes[i] = top_codes[selected[i]];
+		filter_luts[i] = luts[selected[i]];
+	}
+	top_codes = move(filterd_codes);
+	luts = move(filter_luts);
 	set_names();
 
 	return ((int)names.size());
