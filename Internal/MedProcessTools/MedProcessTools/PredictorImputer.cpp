@@ -146,7 +146,7 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		fast_access[i] = &features.data.at(all_names[i]);
 
 	//impute samples:
-	map<string, vector<float>> gen_matrix;
+	
 	if (_sampler->use_vector_api) {
 		vector<bool> mask(features.data.size(), true);
 		MedMat<float> res; //the result matrix
@@ -171,10 +171,20 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		}
 	}
 	else {
-		vector<float> x(features.data.size());
-		vector<bool> mask(features.data.size(), true);
-		for (size_t i = 0; i < nsamples; ++i)
+		random_device rd;
+		int N_TH = omp_get_max_threads();
+		vector<mt19937> gens(N_TH);
+		for (size_t i = 0; i < N_TH; ++i)
+			gens[i] = mt19937(rd());
+		
+#pragma omp parallel for
+		for (int i = 0; i < nsamples; ++i)
 		{
+			int th_n = omp_get_thread_num();
+			mt19937 &thread_gen = gens[th_n];
+			vector<float> x(features.data.size());
+			vector<bool> mask(features.data.size(), true);
+			map<string, vector<float>> gen_matrix;
 			for (size_t k = 0; k < x.size(); ++k)
 			{
 				x[k] = fast_access[k]->at(i);
@@ -182,8 +192,9 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 					imput_set.find(all_names[k]) == imput_set.end();
 			}
 
-			_sampler->get_samples(gen_matrix, sampler_sampling_args, mask, x, gen);
+			_sampler->get_samples(gen_matrix, sampler_sampling_args, mask, x, thread_gen);
 			//copy to features!
+#pragma omp critical
 			for (size_t k = 0; k < x.size(); ++k)
 				if (!mask[k])
 					fast_access[k]->at(i) = gen_matrix.at(all_names[k])[0];
