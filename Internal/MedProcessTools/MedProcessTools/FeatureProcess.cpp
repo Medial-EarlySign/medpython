@@ -1014,6 +1014,7 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	}
 
 	// Remove original, if required
+#pragma omp critical
 	if (rem_origin) {
 		features.data.erase(resolved_feature_name);
 		features.attributes.erase(resolved_feature_name);
