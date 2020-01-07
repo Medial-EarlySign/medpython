@@ -283,7 +283,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
 
 	int RC = 0;
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_conditional_apply(features, ids, req_features);
 #pragma omp critical
@@ -1014,6 +1014,7 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	}
 
 	// Remove original, if required
+#pragma omp critical
 	if (rem_origin) {
 		features.data.erase(resolved_feature_name);
 		features.attributes.erase(resolved_feature_name);

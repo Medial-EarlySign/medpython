@@ -467,9 +467,19 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 			current_sample[i] = mask_values->at(i); //init value - not fixed to be this value
 	}
 	vector<int> idx_iter; idx_iter.reserve(mask->size());
+	vector<int> feat_idx;  feat_idx.reserve(mask->size());
 	for (int i = 0; i < mask->size(); ++i)
-		if (!mask->at(i))
+		if (!mask->at(i)) {
 			idx_iter.push_back(i);
+			//find feature i index:
+			int learn_ind = -1;
+			for (size_t jj = 0; jj < impute_feat_names.size() && learn_ind < 0; ++jj)
+				if (all_feat_names[i] == impute_feat_names[jj])
+					learn_ind = (int)jj;
+			if (learn_ind < 0)
+				MTHROW_AND_ERR("Error GibbsSampler<T>::get_samples - Can't find feature %s in learned features\n", all_feat_names[i].c_str());
+			feat_idx.push_back(learn_ind);
+		}
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
 	//can parallel for random init of initiale values (just burn in)
@@ -477,6 +487,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
+		int curr_feat_i = 0;
 		for (int f_idx : idx_iter)
 		{
 			vector<T> curr_x(pred_num_feats);
@@ -485,9 +496,10 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				int fixxed_idx = (int)k + int(k >= f_idx);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
-			T val = feats_predictors[f_idx].get_sample(curr_x, rnd_gen); //based on dist (or predictor - value bin dist)
+			T val = feats_predictors[feat_idx[curr_feat_i]].get_sample(curr_x, rnd_gen); //based on dist (or predictor - value bin dist)
 
 			current_sample[f_idx] = val; //update current pos variable
+			++curr_feat_i;
 		}
 
 		if (i >= sampling_params.burn_in_count && ((i - sampling_params.burn_in_count) % sampling_params.jump_between_samples) == 0) {
