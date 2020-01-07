@@ -206,6 +206,9 @@ typedef enum {
 	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
 	FTR_RANGE_WIDTH = 20, ///< maximal value - minimal value in a given window time frame
 	FTR_CATEGORY_SET_FIRST_TIME = 21,
+	FTR_SUM_VALUE=22, ///<"sum" - sum of values in window
+	FTR_LAST_NTH_VALUE = 23, ///<"last_nth" : (set also N_th parameter to use), get the last N_th in window, 0 is last, 1 is last2, etc.
+	FTR_CATEGORY_SET_LAST_NTH = 24, ///<"category_set_last_nth" : (set also N_th parameter to use), check is the last N_th in window is in the given set
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -225,11 +228,13 @@ class BasicFeatGenerator : public FeatureGenerator {
 private:
 	// actual generators
 	float uget_last(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime); // Added the win as needed to be called on different ones in uget_win_delta
+	float uget_last_nth(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_first(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_last2(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_avg(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_max(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_min(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_sum(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_std(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_last_delta(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_last_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
@@ -237,6 +242,7 @@ private:
 	float uget_slope(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_win_delta(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int _d_win_from, int _d_win_to, int outcomeTime);
 	float uget_category_set(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_category_set_last_nth(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_count(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_sum(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_nsamples(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime);
@@ -273,6 +279,7 @@ public:
 	string in_set_name = "";					///< set name (if not given - take list of members)
 	bool bound_outcomeTime = false; ///< If true will truncate time window till outcomeTime
 	float min_value = -FLT_MAX, max_value = FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
+	int N_th = 0; ///< used in last_nth and category_set_last_nth 
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -336,7 +343,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig)
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th)
 
 };
 
@@ -590,6 +597,8 @@ typedef enum {
 	FTR_RANGE_RECURRENCE_COUNT = 6,
 	/// "time_covered"  : give a time window, sum up all the times in ranges that intersect the time window
 	FTR_RANGE_TIME_COVERED = 7,
+	/// "last_nth_time_len"  : gives the length (in win_time_unit) of the last_n range in the window. If in middle of range, cuts to current time
+	FTR_RANGE_LAST_NTH_TIME_LENGTH = 8,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -607,6 +616,7 @@ private:
 	float uget_range_time_diff(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_last_nth_time_len(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 
@@ -625,6 +635,7 @@ public:
 	vector<char> lut;							///< to be used when generating FTR_RANGE_EVER
 	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
 	int min_range_time = -1;					///< if different from -1, the minimum length for a range to be considered valid in window time units (else not checked)
+	int N_th = 0;								///< the index of the N-th range in order to consider in the last_nth_time_len option
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -671,7 +682,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win, div_factor)
+			time_unit_sig, time_unit_win, div_factor, N_th)
 };
 
 /**
