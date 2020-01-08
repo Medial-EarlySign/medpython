@@ -280,6 +280,7 @@ public:
 	bool bound_outcomeTime = false; ///< If true will truncate time window till outcomeTime
 	float min_value = -FLT_MAX, max_value = FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 	int N_th = 0; ///< used in last_nth and category_set_last_nth 
+	int zero_missing = 0; ///< in some cases of category_set (or others) we may want to get 0 instead of missing_value, turn this on for that
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -342,8 +343,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th)
+	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing)
 
 };
 
@@ -636,6 +637,7 @@ public:
 	int recurrence_delta = 30 * 24 * 60;		///< maximum time for a subsequent range signal to be considered a recurrence in in window time units
 	int min_range_time = -1;					///< if different from -1, the minimum length for a range to be considered valid in window time units (else not checked)
 	int N_th = 0;								///< the index of the N-th range in order to consider in the last_nth_time_len option
+	int zero_missing = 0;	///< in some cases we may want to get 0 instead of missing values
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -681,8 +683,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win, div_factor, N_th)
+	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
+			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing)
 };
 
 /**

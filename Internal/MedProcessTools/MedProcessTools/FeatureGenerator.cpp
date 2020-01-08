@@ -491,10 +491,11 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
 			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
-
+		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
+	}
 	return 0;
 }
 
@@ -596,7 +597,8 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field == "min_value") min_value = stof(entry.second);
 		else if (field == "max_value") max_value = stof(entry.second);
-		else if (field == "nth") N_th = stoi(entry.second);
+		else if (field == "nth" || field == "Nth") N_th = stoi(entry.second);
+		else if (field == "zero_missing") zero_missing = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
@@ -939,7 +941,8 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "recurrence_delta") recurrence_delta = med_stoi(entry.second);
 		else if (field == "min_range_time") min_range_time = med_stoi(entry.second);
 		else if (field == "div_factor") div_factor = med_stof(entry.second);
-		else if (field == "Nth") N_th = med_stoi(entry.second);
+		else if (field == "Nth" || field == "nth") N_th = med_stoi(entry.second);
+		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -1016,8 +1019,10 @@ int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time));
+		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
+	}
 
 	return 0;
 }
