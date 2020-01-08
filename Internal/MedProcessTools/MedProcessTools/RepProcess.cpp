@@ -3420,7 +3420,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			case all:
 				//increase till end or till end_time of signal passed time (sorted so no need to search after)
 				//or if has filter on sets - skip is not in set
-				while (j < rec.usvs[1].len && (time < rec.usvs[1].Time(j, 1) || (!lut.empty() &&
+				while (j < rec.usvs[1].len && (time > rec.usvs[1].Time(j, 1) || (!lut.empty() &&
 					!lut[(int)rec.usvs[1].Val(j, range_val_channel)])))
 					++j;
 				break;
