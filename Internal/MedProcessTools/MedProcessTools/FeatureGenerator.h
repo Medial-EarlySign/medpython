@@ -638,6 +638,7 @@ public:
 	int min_range_time = -1;					///< if different from -1, the minimum length for a range to be considered valid in window time units (else not checked)
 	int N_th = 0;								///< the index of the N-th range in order to consider in the last_nth_time_len option
 	int zero_missing = 0;	///< in some cases we may want to get 0 instead of missing values
+	int strict_times = 0;  ///< if on , will ignore cases in which the second time channel is after the prediction time
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -684,7 +685,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing)
+			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing, strict_times)
 };
 
 /**

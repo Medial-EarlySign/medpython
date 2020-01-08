@@ -943,6 +943,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "div_factor") div_factor = med_stof(entry.second);
 		else if (field == "Nth" || field == "nth") N_th = med_stoi(entry.second);
 		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
+		else if (field == "strict_times") strict_times = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -1823,7 +1824,10 @@ float RangeFeatGenerator::uget_range_last_nth_time_len(UniversalSigVec &usv, int
 		int curr_to = usv.Time(i, 1);
 
 		if (curr_from > max_time) continue; // skip cases 
-		if (curr_to > max_time) curr_to = max_time;
+		if (curr_to > max_time) {
+			if (strict_times) continue;
+			curr_to = max_time;
+		}
 
 		// we are at the right window, find the n-th
 		if (nth == N_th)
