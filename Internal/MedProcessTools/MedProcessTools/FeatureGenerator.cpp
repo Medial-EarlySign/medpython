@@ -1000,7 +1000,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
 	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
-	if (name == "last_nth_time_len")		return FTR_RANGE_TIME_COVERED;
+	if (name == "last_nth_time_len")		return FTR_RANGE_LAST_NTH_TIME_LENGTH;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
