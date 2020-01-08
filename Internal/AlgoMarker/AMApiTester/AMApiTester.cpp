@@ -110,12 +110,14 @@ public:
 	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) { init(); };
 
 	char** get_charpp() {
-		size_t charpp_arr_sz=this->size()*sizeof(char**);
+		if (this->size() == 0)
+			return nullptr;
+		size_t charpp_arr_sz=this->size()*sizeof(char*);
 		size_t charpp_buf_sz=0;
 		for (auto& str : *this) {
 			charpp_buf_sz += str.size() + 1;
 		}
-		charpp_buf_sz *= sizeof(char*);
+		charpp_buf_sz *= sizeof(char);
 		
 		charpp_arr = (char**)realloc(charpp_arr, charpp_arr_sz);
 		charpp_buf = (char*)realloc(charpp_buf, charpp_buf_sz);
@@ -133,11 +135,41 @@ public:
 			}
 			*charpp_buf_i = '\0';
 			charpp_buf_i++;
-			//charpp_arr.push_back(const_cast<char*>(str.data()));
 		}
 		return charpp_arr; //charpp_arr.data();
 	}
 };
+
+template<typename T>
+class get_volatile_data_adaptor {
+protected:
+	T* data_p;
+	size_t data_p_size;
+	int n_elem;
+public:
+	~get_volatile_data_adaptor() {
+		free(data_p);
+	};
+	
+	T* from_vec(const vector<T>& orig) {
+		n_elem = orig.size();
+		data_p_size = n_elem * sizeof(T);
+		if (data_p_size == 0)
+			return nullptr;
+		data_p = (T*)realloc(data_p, data_p_size);
+		memcpy(data_p, orig.data(), data_p_size);
+		return data_p;
+	};
+
+	get_volatile_data_adaptor(const vector<T>& orig) : n_elem(0), data_p_size(0) { data_p = (T*)malloc(1); from_vec(orig); }
+
+	T* get_volatile_data() {
+		if (data_p_size == 0)
+			return nullptr;
+		return data_p;
+	}
+};
+
 
 //=========================================================================================================
 int read_run_params(int argc, char *argv[], po::variables_map& vm) {
@@ -483,105 +515,96 @@ public:
     void am_add_data(AlgoMarker *am, int pid, int max_date, bool force_add_data, vector<string> ignore_sig) {
 		static bool print_once = false;
 		UniversalSigVec usv;
-	    int max_vals = 100000;
-    	vector<long long> times(max_vals);
-    	vector<float> vals(max_vals);
-		charpp_adaptor str_vals(max_vals);
+	    int reserve_capacity = 100000;
+    	vector<long long> times;
+    	vector<float> vals;
+		vector<bool> take_nelem;
+		charpp_adaptor str_vals;
+		times.reserve(reserve_capacity);
+		vals.reserve(reserve_capacity);
+		str_vals.reserve(reserve_capacity);
 		if (!print_once) {
 			print_once = true;
 			MLOG("(INFO) force_add_data=%d\n", ((int)force_add_data));
 			MLOG("(INFO) Will use %s API to insert data\n", (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) ? "AddData()" : "AddDataStr()");
 		}
-
+		
 	    for (auto &sig : sigs) {
 			if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 				continue;
 			int sid = rep.sigs.Name2Sid[sig];
 //			int section_id = rep.dict.section_id(sig);
-		    rep.uget(pid, sig, usv);
+			usv.init(rep.sigs.Sid2Info[sid]);
+			rep.uget(pid, sig, usv);
 		    int nelem = usv.len;
 		    if (nelem > 0) {
-			    long long *p_times = &times[0];
-			    float *p_vals = &vals[0];
-			    int i_time = 0;
-			    int i_val = 0;
-   
-			    int nelem_before = 0;
-   
-			    if (usv.n_time_channels() > 0) {
-				    for (int i=0; i<nelem; i++)
-					    for (int j=0; j<usv.n_time_channels(); j++) {
-						    if (usv.Time(i, j) <= max_date) nelem_before = i+1;
-						    else break;
-						    p_times[i_time++] = (long long)usv.Time(i, j);
-					    }
-			    }
-			    else
-				    p_times = NULL;
+				vals.clear();
+				times.clear();
+				take_nelem.resize(nelem);
+				
+				if (usv.n_time_channels() <= 0) {
+					std::fill(take_nelem.begin(), take_nelem.end(), true);
+				} else {
+					std::fill(take_nelem.begin(), take_nelem.end(), false);
+					for (int i = 0; i < nelem; i++) {
+						bool take_elem = true;
+						for (int j = 0; j < usv.n_time_channels(); j++) {
+							if (usv.Time(i, j) > max_date) {
+								take_elem = false;
+								break;
+							}
+						}
+						if (take_elem) {
+							for (int j = 0; j < usv.n_time_channels(); j++) {
+								times.push_back((long long)usv.Time(i, j));
+							}
+							take_nelem[i] = true;
+						}
+						else {
+							if(usv.n_time_channels()==1)
+								break;
+						}
+					}
+				}
 				
 				if (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) {
+					vals.clear();
 					if (usv.n_val_channels() > 0) {
-						if (p_times != nullptr) nelem = nelem_before;
-						for (int i = 0; i < nelem; i++)
+						for (int i = 0; i < nelem; i++) {
+							if (!take_nelem[i])
+								continue;
 							for (int j = 0; j < usv.n_val_channels(); j++)
-								p_vals[i_val++] = usv.Val(i, j);
+								vals.push_back(usv.Val(i, j));
+						}
 					}
-					else
-						p_vals = nullptr;
 
-					if ((i_val > 0) || (i_time > 0))
-						DynAM::AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
-
-					
-					/*
-					ofstream f;
-					f.open("/tmp/adddata.tsv", std::ofstream::out | std::ofstream::app);
-					f << sig << "\n\n";
-					f << "times\n";
-					for (int i = 0; i < i_time; i++) {
-						f << p_times[i] << '\n';
+					if ((times.size() > 0) || (vals.size() > 0)) {
+						get_volatile_data_adaptor<long long> p_times(times);
+						get_volatile_data_adaptor<float> p_vals(vals);
+						DynAM::AM_API_AddData(am, pid, sig.c_str(), times.size(), p_times.get_volatile_data(), vals.size(), p_vals.get_volatile_data());
 					}
-					f << "\nvals\n";
-					for (int i = 0; i < i_val; i++) {
-						f << p_vals[i] << '\n';
-					}
-					f.close();
-					*/
-					
 				}
 				else {
+					str_vals.clear();
 					if (usv.n_val_channels() > 0) {
-						if (p_times != nullptr) nelem = nelem_before;
-						for (int i = 0; i < nelem; i++)
+						for (int i = 0; i < nelem; i++) {
+							if (!take_nelem[i])
+								continue;
 							for (int j = 0; j < usv.n_val_channels(); j++) {
 								if (rep.sigs.is_categorical_channel(sid, j)) {
-									str_vals[i_val++] = sig_dict_cached.at(sig)[j].at((int)(usv.Val(i, j))); //rep.dict.dict(section_id)->Id2Name.at(usv.Val(i, j));
+									str_vals.push_back(sig_dict_cached.at(sig)[j].at((int)(usv.Val(i, j))));
 								}
 								else {
-									str_vals[i_val++] = precision_float_to_string(usv.Val(i, j));
+									str_vals.push_back(precision_float_to_string(usv.Val(i, j)));
 								}
-
 							}
+						}
 					}
-					else
-						p_vals = nullptr;
 
-					if ((i_val > 0) || (i_time > 0))
-						DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), i_time, p_times, i_val, str_vals.get_charpp());
-					/*
-					ofstream f;
-					f.open("/tmp/adddatastr.tsv", std::ofstream::out | std::ofstream::app);
-					f << sig << "\n\n";
-					f << "times\n";
-					for (int i = 0; i < i_time; i++) {
-						f << p_times[i] << '\n';
+					if ((times.size() > 0) || (str_vals.size() > 0)) {
+						get_volatile_data_adaptor<long long> p_times(times);
+						DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), times.size(), p_times.get_volatile_data(), str_vals.size(), str_vals.get_charpp());
 					}
-					f << "\nvals\n";
-					for (int i = 0; i < i_val; i++) {
-						f << str_vals[i] << '\n';
-					}
-					f.close();
-					*/
 				}
 		    }
 	    }
@@ -740,6 +763,8 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 	timer.start();
 	for (auto &id : d.samples.idSamples){
 		for (auto &s : id.samples) {
+			// clearing data in algomarker
+			DynAM::AM_API_ClearData(am);
 
 			// adding all data 
 			d.am_add_data(am, s.id, s.time, force_add_data, ignore_sig);
