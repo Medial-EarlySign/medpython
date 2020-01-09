@@ -322,9 +322,9 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, const float *W, int nfeat
 		vector<ValInd> vals(nsamples);
 		vector<float> quant_val;
 		vector<short> qd;
-		for (int j = 0; j < nsamples; j++) {
-			vals[j].val = X[nfeat*j + i];
-			vals[j].idx = j;
+		for (size_t j = 0; j < nsamples; j++) {
+			vals[j].val = X[(size_t)nfeat*j + i];
+			vals[j].idx = (int)j;
 		}
 
 		max_q[i] = quantize_no_loss(vals, nsamples, maxq, quant_values[i], q_data[i]);
@@ -1439,7 +1439,7 @@ void QuantizedRF::score_tree_by_index(float *x, int nfeat, QRF_ResTree &tree, in
 	int node = 0;
 
 	while (!tree.qnodes[node].is_leaf) {
-		if (x[nfeat*id + tree.qnodes[node].ifeat] <= tree.qnodes[node].split_val)
+		if (x[(size_t)nfeat*(size_t)id + (size_t)tree.qnodes[node].ifeat] <= tree.qnodes[node].split_val)
 			//		if (q_data[tree.qnodes[node].ifeat][id] <= tree.qnodes[node].split_val)
 			node = tree.qnodes[node].left;
 		else
@@ -1774,7 +1774,7 @@ int QRF_Forest::get_forest(double *x, double *y, int nfeat, int nsamples, int *s
 
 	// simply converting data to float *x, int *y and applying the regular call.
 
-	xf = new float[nsamples*nfeat];
+	xf = new float[(size_t)nsamples*(size_t)nfeat];
 	yi = new int[nsamples];
 
 	if (xf == NULL || yi == NULL) {
@@ -1783,7 +1783,7 @@ int QRF_Forest::get_forest(double *x, double *y, int nfeat, int nsamples, int *s
 		return -1;
 	}
 
-	for (int i = 0; i < nfeat*nsamples; i++)
+	for (size_t i = 0; i < (size_t)nfeat*(size_t)nsamples; i++)
 		xf[i] = (float)x[i];
 	for (int i = 0; i < nsamples; i++)
 		yi[i] = (int)y[i];
@@ -2108,7 +2108,7 @@ void get_score_thread(void *p)
 	vector<float> cnts(n_categ);
 
 	// Mat must be FLOAT & REGULAR transposed
-	for (int i = tp->from; i <= tp->to; i++) {
+	for (size_t i = tp->from; i <= tp->to; i++) {
 		float sum = 0;
 		float norm = 0;
 
@@ -2119,12 +2119,12 @@ void get_score_thread(void *p)
 
 		fill(cnts.begin(), cnts.end(), (float)0);
 
-		for (int j = 0; j < (*(tp->trees)).size(); j++) {
+		for (size_t j = 0; j < (*(tp->trees)).size(); j++) {
 			node = 0;
 
 			// Find relevant leaf
 			while (!(*trees)[j].qnodes[node].is_leaf) {
-				if (xf[i*nfeat + (*trees)[j].qnodes[node].ifeat] <= (*trees)[j].qnodes[node].split_val)
+				if (xf[i*(size_t)nfeat + (size_t)((*trees)[j].qnodes[node].ifeat)] <= (*trees)[j].qnodes[node].split_val)
 					node = (*trees)[j].qnodes[node].left;
 				else
 					node = (*trees)[j].qnodes[node].right;
@@ -2322,9 +2322,9 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res,
 				res[i] = resall[i*n_categ + get_only_this_categ];
 		else {
 			// of get_only_this_categ >= n_categ it is a sign for us to give out a full prediction vector for each sample
-			for (int i = 0; i < nsamples; i++) {
-				for (int j = 0; j < n_categ; j++)
-					res[i*n_categ + j] += resall[i*n_categ + j];
+			for (size_t i = 0; i < nsamples; i++) {
+				for (size_t j = 0; j < n_categ; j++)
+					res[i*(size_t)n_categ + j] += resall[i*(size_t)n_categ + j];
 			}
 
 		}
@@ -2339,16 +2339,16 @@ int QRF_Forest::score_samples(float *x_in, int nfeat, int nsamples, float *&res,
 int QRF_Forest::score_samples_t(double *x, int nfeat, int nsamples, double *&res)
 {
 	float *rf = (float *)new float[2 * nsamples];
-	float *xf = (float *) new float[nsamples*nfeat];
+	float *xf = (float *) new float[(size_t)nsamples*(size_t)nfeat];
 
 	if (xf == NULL || rf == NULL) {
 		fprintf(stderr, "qrf: score_samples_t: error: Can't allocate transposed mat\n"); fflush(stderr);
 		return -1;
 	}
 
-	for (int i = 0; i < nsamples; i++)
-		for (int j = 0; j < nfeat; j++)
-			xf[i*nfeat + j] = (float)x[j*nsamples + i];
+	for (size_t i = 0; i < nsamples; i++)
+		for (size_t j = 0; j < nfeat; j++)
+			xf[i*(size_t)nfeat + j] = (float)x[j*(size_t)nsamples + i];
 
 	int rc = score_samples(xf, nfeat, nsamples, rf);
 

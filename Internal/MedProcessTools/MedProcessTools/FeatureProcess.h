@@ -34,6 +34,7 @@ typedef enum {
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
 	FTR_PROCESS_ONE_HOT, ///< make one-hot features from a given feature
 	FTR_PROCESS_GET_PROB, ///< replace categorical feature with probability of outcome in training set
+	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -120,14 +121,14 @@ public:
 	/// Empty sets = require everything.
 	/// Default behaviour of simple processor - leave set as is
 	virtual void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features) { in_req_features = out_req_features; };
-	
+
 	/// allows testing if this feature processor is a selector
 	virtual bool is_selector() { return false; }
 
 	// Serialization (including type)
 	ADD_CLASS_NAME(FeatureProcessor)
-	ADD_SERIALIZATION_FUNCS(feature_name, resolved_feature_name, processor_type)
-	void *new_polymorphic(string derived_class_name);
+		ADD_SERIALIZATION_FUNCS(feature_name, resolved_feature_name, processor_type)
+		void *new_polymorphic(string derived_class_name);
 
 	size_t get_processor_size();
 	size_t processor_serialize(unsigned char *blob);
@@ -153,6 +154,8 @@ public:
 	string init_string;
 	int duplicate;
 	string tag;
+	bool use_parallel_learn;
+	bool use_parallel_apply;
 
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
@@ -161,7 +164,7 @@ public:
 	MultiFeatureProcessor() { init_defaults(); };
 	~MultiFeatureProcessor() { clear(); };
 
-	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; members_type = FTR_PROCESS_LAST; init_string = ""; tag = ""; };
+	void init_defaults() { processor_type = FTR_PROCESS_MULTI; duplicate = 0; members_type = FTR_PROCESS_LAST; init_string = ""; tag = ""; use_parallel_learn = true; use_parallel_apply = true; };
 
 	void clear();
 
@@ -199,7 +202,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MultiFeatureProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, members_type, init_string, duplicate, tag, processors)
+		ADD_SERIALIZATION_FUNCS(processor_type, members_type, init_string, duplicate, tag, processors, use_parallel_apply)
 };
 
 #define DEF_FTR_TRIMMING_SD_NUM 7
@@ -249,7 +252,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureBasicOutlierCleaner)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, params.doTrim, params.doRemove, trimMax, trimMin, removeMax, removeMin)
 
 };
 
@@ -303,7 +306,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only)
 
 };
 
@@ -348,7 +351,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(featureStrata)
-	ADD_SERIALIZATION_FUNCS(name, resolution, min, max, nValues)
+		ADD_SERIALIZATION_FUNCS(name, resolution, min, max, nValues)
 
 };
 /// When building startas on a set of several features, we build a cartesian product of their combinations:
@@ -385,7 +388,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(featureSetStrata)
-	ADD_SERIALIZATION_FUNCS(stratas, factors)
+		ADD_SERIALIZATION_FUNCS(stratas, factors)
 };
 
 /**
@@ -496,14 +499,14 @@ public:
 	virtual int _apply(MedFeatures& features, unordered_set<int>& ids);
 	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& out_req_features);
 
-	bool is_selctor() { return true; }
+	bool is_selector() { return true; }
 	bool are_features_affected(unordered_set<string>& out_req_features);
 
-/// update sets of required as input according to set required as output to processor
+	/// update sets of required as input according to set required as output to processor
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
-	
+
 	ADD_CLASS_NAME(FeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, missing_value, required, selected, numToSelect)
+		ADD_SERIALIZATION_FUNCS(processor_type, missing_value, required, selected, numToSelect)
 
 private:
 	/// Find set of selected features
@@ -538,7 +541,7 @@ public:
 
 	/// Momentum for SGD:
 	float stop_at_err = (float)1e-4;
-		
+
 	int nthreads = 12;
 
 	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; processor_type = FTR_PROCESSOR_LASSO_SELECTOR; };
@@ -548,7 +551,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(LassoSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
+		ADD_SERIALIZATION_FUNCS(processor_type, initMaxLambda, nthreads, missing_value, required, selected, numToSelect)
 
 private:
 	// Find set of selected features
@@ -579,7 +582,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(DgnrtFeatureRemvoer)
-	ADD_SERIALIZATION_FUNCS(processor_type, percentage, missing_value, selected)
+		ADD_SERIALIZATION_FUNCS(processor_type, percentage, missing_value, selected)
 
 private:
 	// Find set of selected features
@@ -636,7 +639,7 @@ public:
 	}
 
 	ADD_CLASS_NAME(univariateSelectionParams)
-	ADD_SERIALIZATION_FUNCS(method, minStat, nBins, binMethod, takeSquare, pDistance, max_samples)
+		ADD_SERIALIZATION_FUNCS(method, minStat, nBins, binMethod, takeSquare, pDistance, max_samples)
 };
 
 /**
@@ -663,7 +666,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(UnivariateFeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, params, missing_value, required, selected, numToSelect)
+		ADD_SERIALIZATION_FUNCS(processor_type, params, missing_value, required, selected, numToSelect)
 
 private:
 	// Scores 
@@ -706,7 +709,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MRMRFeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
+		ADD_SERIALIZATION_FUNCS(processor_type, params, penalty, penaltyMethod, missing_value, required, selected, numToSelect)
 
 private:
 	// Find set of selected features
@@ -764,7 +767,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TagFeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, selected)
+		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, selected)
 private:
 	// Find set of selected features
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
@@ -796,7 +799,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(ImportanceFeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, importance_params, minStat, selected)
+		ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, importance_params, minStat, selected)
 
 private:
 	// Find set of selected features
@@ -811,10 +814,10 @@ private:
 
 class IterativeFeatureSelector : public FeatureSelector {
 public:
-	string predictor ; ///<the predictor type - same as in the json file: qrf,lightgbm...
+	string predictor; ///<the predictor type - same as in the json file: qrf,lightgbm...
 	string predictor_params; ///<the predictor parameters
 	string predictor_params_file; ///<File with nFeatures-dependent predictor parameters
-	int nfolds=5; ///< number of folds for cross-validation
+	int nfolds = 5; ///< number of folds for cross-validation
 	vector<int> folds; ///< if given, perform only subset of the possible 'nfolds' folds in cross-validation
 	string mode = "top2bottom"; ///< 'top2bottom' or 'bottom2top'
 	string rates = "50:1,100:2,500:5,5000:10"; ///< instruction on rate of selection - comma separated pairs : #-bound:step
@@ -826,7 +829,7 @@ public:
 	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
 	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
-				
+
 	vector<int> rates_vec;
 	vector<string> predictor_params_vec;
 	string measurement_name;
@@ -856,8 +859,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
-	ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
-		required, ignored, numToSelect, selected, report)
+		ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
+			required, ignored, numToSelect, selected, report)
 
 private:
 	// Resolved names of required signals
@@ -907,9 +910,9 @@ public:
 
 	/// update sets of required as input according to set required as output to processor
 	ADD_CLASS_NAME(FeatureEncoder)
-	ADD_SERIALIZATION_FUNCS(processor_type, names)
+		ADD_SERIALIZATION_FUNCS(processor_type, names)
 
-	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
+		void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 };
 
@@ -923,7 +926,7 @@ public:
 	int subsample_count;///<subsample in the pca rows to speed up
 
 	ADD_CLASS_NAME(FeaturePCAParams)
-	ADD_SERIALIZATION_FUNCS(pca_top, pca_cutoff)
+		ADD_SERIALIZATION_FUNCS(pca_top, pca_cutoff)
 };
 
 /**
@@ -947,7 +950,7 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeaturePCA *>(processor)); }
 
 	ADD_CLASS_NAME(FeaturePCA)
-	ADD_SERIALIZATION_FUNCS(processor_type, names, params, selected_indexes, W)
+		ADD_SERIALIZATION_FUNCS(processor_type, names, params, selected_indexes, W)
 
 private:
 	MedMat<float> W;
@@ -996,7 +999,7 @@ public:
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	ADD_CLASS_NAME(OneHotFeatProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
@@ -1014,14 +1017,14 @@ public:
 
 	float missing_value = MED_MAT_MISSING_VALUE; ///< Missing Value
 	int overall_count = 5; ///< weight of overall probability
-	map<float,int> target_labels; ///< if given, create a new feature per target label
+	map<float, int> target_labels; ///< if given, create a new feature per target label
 	map<float, string> feature_names; ///< feature names if multiple target_labels are given
 	bool remove_origin = true; ///< determine whether to remove original if multiple target_labels are given
 	bool all_labels = false; ///< if given - take all labels as target-labels
 
 	vector<map<float, float>> probs; ///< actual probability per class
 	vector<float> overall_prob; ///< default prob for unknown classes
-	
+
 	// Constructor
 	GetProbFeatProcessor() : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; }
 	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
@@ -1042,7 +1045,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(GetProbFeatProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob, target_labels, remove_origin, feature_names);
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob, target_labels, remove_origin, feature_names);
 
 };
 

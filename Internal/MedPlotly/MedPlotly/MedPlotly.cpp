@@ -173,23 +173,30 @@ int MedPatientPlotlyDate::add_html_header(string &shtml, const string &mode)
 }
 
 //------------------------------------------------------------------------------------------------
+int fetch_usv_val(const UniversalSigVec &usv) {
+	int val = -1;
+	if (usv.len > 0) {
+		if (usv.n_val_channels() > 0)
+			val = (int)usv.Val(0);
+		else if (usv.n_time_channels() > 0)
+			val = usv.Time(0);
+	}
+	return val;
+}
 int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidDataRec &rec, vector<ChartTimeSign> &times)
 {
 	float age;
-	int len;
-	int death = 0;
 	UniversalSigVec usv;
 
 	MLOG("add_basic_demographics 1\n");
-	int byear = (int)(((SVal *)rec.get("BYEAR", len))[0].val);
-	int gender = (int)(((SVal *)rec.get("GENDER", len))[0].val);
+	rec.uget("BYEAR", usv);
+	int byear = fetch_usv_val(usv);
+	rec.uget("GENDER", usv);
+	int gender = fetch_usv_val(usv);
 	rec.uget("DEATH", usv);
-	if (usv.len > 0) {
-		if (usv.n_time_channels() > 0)
-			death = (int)usv.Time(0);
-		else
-			death = (int)usv.Val(0);
-	}
+	int death = fetch_usv_val(usv);
+	if (death < 0)
+		death = 0;
 
 	MLOG("add_basic_demographics 2 death is %d (len %d)\n", death, usv.len);
 	shtml += "<h1> Patient Report </h1>\n";
@@ -672,16 +679,17 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 		shtml += "hoverformat: '%Y/%m/%d %H:%M'},\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\tshapes: [";
+		int tmp_i = 0;
 		for (auto &t : times) {
 			string ts = date_to_string(t.time);
 			if (t.name == "Death") ts = time_to_string(t.time);
-			shtml += "{type: 'line', x0: " + ts + ", y0: " + to_string(vmin[0]);
-			float max_sel = vmax[0];
-			if (abs(max_sel - vmin[0]) < 1e-4)
-				max_sel += (float)0.1; //that it will create a real line
-			shtml += ", x1: " + ts + ", y1: " + to_string(max_sel);
+			shtml += "{type: 'line', yref:\"paper\", x0: " + ts + ", y0: 0";
+			shtml += ", x1: " + ts + ", y1: 1";
 			string color = t.color; //"'black'";
-			shtml += ", line: { color: " + color + "} },";
+			shtml += ", line: { color: " + color + "} }";
+			++tmp_i;
+			if (tmp_i < times.size())
+				shtml += ",";
 		}
 		shtml += "]\n";
 	}
@@ -706,7 +714,7 @@ int MedPatientPlotlyDate::add_panel_chart(string &shtml, LocalViewsParams &lvp, 
 
 //-------------------------------------------------------------------------------------------------------------------------------
 bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
-	const vector<ChartTimeSign> &times, const string &sig_name, string &div_name, bool show_legend)
+	const vector<ChartTimeSign> &times, const string &sig_name, string &div_name, bool show_legend, int channel)
 {
 	int pwidth = 1200; //vm["pwidth"].as<int>();
 	int pheight = 600; //vm["pheight"].as<int>();
@@ -719,7 +727,7 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	// plan:
 	// calculate some accumulator in a time window and add a point of (x=time,y=accumulator,text=drugs in day x)
 
-	vector<string> xdates_flat;
+	vector<string> xdates_flat, xdates_flat2;
 	vector<string> ylabels_flat;
 
 	UniversalSigVec usv;
@@ -728,9 +736,16 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	if (usv.len == 0) return false; // nothing to do - 0 RC records.
 
 	int section_id = rec.my_base_rep()->dict.section_id(sig_name);
+	bool has_range_time = usv.n_time_channels() > 1;
+
 	for (int i = 0; i < usv.len; i++) {
 		int i_date = usv.Time(i, 0);
-		int i_val = (int)usv.Val(i, 0);
+		int i_date2 = -1;
+		if (has_range_time) {
+			i_date2 = usv.Time(i, 1);
+			xdates_flat2.push_back(date_to_string(i_date2, true));
+		}
+		int i_val = (int)usv.Val(i, channel);
 		xdates_flat.push_back(date_to_string(i_date, true));
 
 		// recover curr text
@@ -749,22 +764,28 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 
 	}
 
+	string null_str = "null";
 	// prep x , y, text arrays
-	string ax_flat = "", ay_flat = "";
+	string ax_flat = "", ay_flat = "", ax_flat2 = "";
 	for (int i = 0; i < xdates_flat.size(); ++i)
 	{
 		ax_flat += xdates_flat[i];
 		ay_flat += "\"" + ylabels_flat[i] + "\"";
+		if (!xdates_flat2.empty())
+			ax_flat2 += xdates_flat2[i];
 		if (i < xdates_flat.size() - 1) {
 			ax_flat += ",";
 			ay_flat += ",";
+			if (!xdates_flat2.empty())
+				ax_flat2 += ",";
 		}
 	}
 
 	// write RC div
 	// div_name
+	string signame = sig_name + "_ch_" + to_string(channel);
 	if (div_name.empty()) {
-		div_name = "div_" + sig_name + "_";
+		div_name = "div_" + signame + "_";
 		div_name += to_string(rand_N(10000));
 	}
 
@@ -774,43 +795,65 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	shtml += "\"></div>\n";
 
 	shtml += "\t<script>\n";
-	shtml += "\t\tvar x_data_" + sig_name + "= [" + ax_flat + "];\n";
-	shtml += "\t\tvar y_labels_" + sig_name + "= [" + ay_flat + "];\n";
-	shtml += "\t\tvar uniq_vals_" + sig_name + " = Array.from(new Set(y_labels_" + sig_name + "));\n\n";
-	shtml += "function makeTrace_" + sig_name + "(i) {\n";
-	shtml += "\t//search_val = uniq_vals_" + sig_name + "[i];\n\tsearch_val = i;\n\tvar filt_x = [];\n";
-	shtml += "\tvar filt_y = [];\n\tvar ii;\n\tfor (ii = 0; ii < x_data_" + sig_name + ".length; ii++) {\n";
-	shtml += "\t\tif (y_labels_" + sig_name + "[ii] == search_val) {\n\t\t\tfilt_x.push(x_data_" + sig_name + "[ii]);\n";
-	shtml += "\t\t\tfilt_y.push(y_labels_" + sig_name + "[ii]);\n\t\t}\n\t}\n\t\n    return {\n\t\ty: filt_y,\n\t\tx: filt_x,\n";
+	shtml += "\t\tvar x_data_" + signame + "= [" + ax_flat + "];\n";
+	if (!ax_flat2.empty())
+		shtml += "\t\tvar x_data2_" + signame + "= [" + ax_flat2 + "];\n";
+	shtml += "\t\tvar y_labels_" + signame + "= [" + ay_flat + "];\n";
+	shtml += "\t\tvar uniq_vals_" + signame + " = Array.from(new Set(y_labels_" + signame + "));\n\n";
+	shtml += "function makeTrace_" + signame + "(i) {\n";
+	shtml += "\t//search_val = uniq_vals_" + signame + "[i];\n\tsearch_val = i;\n\tvar filt_x = [];\n";
+	shtml += "\tvar filt_y = [];\n\tvar ii;\n\tfor (ii = 0; ii < x_data_" + signame + ".length; ii++) {\n";
+	shtml += "\t\tif (y_labels_" + signame + "[ii] == search_val) {\n\t\t\t";
+	if (ax_flat2.empty()) {
+		shtml += "filt_x.push(x_data_" + signame + "[ii]);\n\t\t\t";
+		shtml += "filt_y.push(y_labels_" + signame + "[ii]);\n";
+	}
+	else {
+		//create triplet of x0,x1,null to y,y,y
+		shtml += "filt_x.push(x_data_" + signame + "[ii]);\n\t\t\t";
+		shtml += "filt_x.push(x_data2_" + signame + "[ii]);\n\t\t\t";
+		shtml += "filt_x.push(" + null_str + ");\n\t\t\t";
+		shtml += "filt_y.push(y_labels_" + signame + "[ii]);\n\t\t\t";
+		shtml += "filt_y.push(y_labels_" + signame + "[ii]);\n\t\t\t";
+		shtml += "filt_y.push(y_labels_" + signame + "[ii]);\n";
+	}
+	shtml += "\t\t}\n\t}\n\t\n";
+	shtml += "    return {\n\t\ty: filt_y,\n\t\tx: filt_x,\n";
 	shtml += "        line: { \n            shape: 'spline' \n           //, color: 'red'\n";
 	shtml += "        }\n\t\t,visible: true\n\t\t,name : search_val\n\n    };\n";
-	shtml += "}\n\t\n\t\tvar all_graphs_" + sig_name + " = uniq_vals_" + sig_name + ".map(makeTrace_" + sig_name + ");\n";
+	shtml += "}\n\n\t\tvar all_graphs_" + signame + " = uniq_vals_" + signame + ".map(makeTrace_" + signame + ");\n";
 
-	shtml += "\t\tvar layout_" + sig_name + " ={\n";
-	shtml += "\t\t\ttitle: '" + sig_name + "',\n";
+	shtml += "\t\tvar layout_" + signame + " ={\n";
+	shtml += "\t\t\ttitle: '" + signame + "',\n";
 	shtml += "\t\t\tyaxis: {autorange: true, showticklabels: false},\n";
 	string legend_str = show_legend ? "true" : "false";
 	shtml += "\t\t\tshowlegend: " + legend_str + "\n";
 	if (times.size() > 0) {
 		shtml += "\t\t\t,shapes: [";
+		int tmp_i = 0;
 		for (auto &t : times) {
 			shtml += "{type: 'line', yref:\"paper\", x0: " + date_to_string(t.time) + ", ";
 			shtml += "y0: 0, x1: " + date_to_string(t.time) + ", y1: 1";
 			string color = t.color; //"'black'";
-			shtml += ", line: { color: " + color + "} },";
+			shtml += ", line: { color: " + color + "} }";
+			//if nor end:
+			++tmp_i;
+			if (tmp_i < times.size())
+				shtml += ",";
 		}
 		shtml += "]\n";
 
 	}
 
 	shtml += "\t\t};\n";
-	shtml += "\t\tPlotly.plot('" + div_name + "', all_graphs_" + sig_name + ", layout_" + sig_name + ");\n";
+	shtml += "\t\tPlotly.plot('" + div_name + "', all_graphs_" + signame + ", layout_" + signame + ");\n";
 
 	shtml += "\t</script>\n";
 	return true;
 }
 
-void MedPatientPlotlyDate::add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table) {
+void MedPatientPlotlyDate::add_search_box(string &shtml, const string &signame, const string &div_chart, const string &div_table, int channel) {
+	string sig_name = signame + "_ch_" + to_string(channel);
 	shtml += "<script>\n";
 	shtml += "\tfunction update_graph_" + sig_name + "() {\n\t\t//leave only visible in all_graphs_ " + sig_name + "\n";
 	shtml += "\t\tvar search_txt = document.getElementById('search_text_" + sig_name + "').value;\n\n";
@@ -819,20 +862,20 @@ void MedPatientPlotlyDate::add_search_box(string &shtml, const string &sig_name,
 	shtml += "\t\tvar flgs = '';\n\t\t\tif (reg_flg =='1') {\n";
 	shtml += "\t\t\tflgs ='i';\n\t\t}\n";
 	shtml += "\t\tvar sel_graphs = [];\n\t\tfor (i = 0; i < uniq_vals_" + sig_name + ".length; i++) {\n";
-	shtml += "\t\t\tif (uniq_vals_" + sig_name + "[i].match(new RegExp(search_txt, flgs)) != null) {\n";
+	shtml += "\t\t\tif ( uniq_vals_" + sig_name + "[i] != null && " + "uniq_vals_" + sig_name + "[i].match(new RegExp(search_txt, flgs)) != null) {\n";
 	shtml += "\t\t\t\tsel_graphs.push(all_graphs_" + sig_name + "[i]);\n\t\t}\n\t}\n";
 	shtml += "\t\tvar xdata =[];\n\t\tvar ydata =[];\n";
 	shtml += "\t\tvar sel_table_data = [];\n";
-	shtml += "\t\tfor (i = 0; i < table_values_" + sig_name + ".length; i++) {\n";
+	shtml += "\t\tfor (i = 0; i < table_values_" + signame + ".length; i++) {\n";
 	shtml += "\t\t\tsel_table_data.push([]);\n\t\t}\n";
 	shtml += "\t\tfor (i = 0; i < y_labels_" + sig_name + ".length; i++) {\n";
 	shtml += "\t\t\tif (y_labels_" + sig_name + "[i].match(new RegExp(search_txt, flgs)) != null) {\n";
-	shtml += "\t\t\t\tfor (j = 0; j < table_values_" + sig_name + ".length; j++) {\n";
-	shtml += "\t\t\t\t\tsel_table_data[j].push(table_values_" + sig_name + "[j][i]);\n\t\t\t\t}\n\t\t\t}\n";
+	shtml += "\t\t\t\tfor (j = 0; j < table_values_" + signame + ".length; j++) {\n";
+	shtml += "\t\t\t\t\tsel_table_data[j].push(table_values_" + signame + "[j][i]);\n\t\t\t\t}\n\t\t\t}\n";
 	shtml += "\t\t}\n";
 
-	shtml += "\t\tvar header_names = table_data_" + sig_name + "[0].header.values;\n";
-	shtml += "\t\tvar col_sizes = table_data_" + sig_name + "[0].header.columnwidth;\n";
+	shtml += "\t\tvar header_names = table_data_" + signame + "[0].header.values;\n";
+	shtml += "\t\tvar col_sizes = table_data_" + signame + "[0].header.columnwidth;\n";
 	shtml += "\t\tvar table_data = [{\n\t\t\ttype: 'table', columnwidth: col_sizes, \n";
 	shtml += "\t\t\theader: {\n\t\t\t\tvalues: header_names,\n";
 	shtml += "\t\t\t\talign: \"left\", line: {width: 1, color : 'black'}, \n";
@@ -1087,9 +1130,16 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 	add_basic_demographics(shtml, rec, local_sign_times);
 
 	MLOG("After demographics\n");
-	for (auto v : view) {
+	unordered_set<string> seen_signal_chart;
+	for (const string &vvv : view) {
+		vector<string> tokens;
+		boost::split(tokens, vvv, boost::is_any_of("~")); //to get val_channel
+		string v = tokens[0];
+		int channel = 0;
+		if (tokens.size() > 1)
+			channel = med_stoi(tokens[1]);
 		MLOG("Working on view %s\n", v.c_str());
-		bool is_categorial = (rec.my_base_rep()->sigs.has_any_categorical_channel(v) > 0);
+		bool is_categorial = (rec.my_base_rep()->sigs.is_categorical_channel(v, channel) > 0);
 		if (v == "MEMBERSHIP") {
 			string div_table = "div_" + v + to_string(rand_N(10000));
 			add_categorical_table(v, shtml, rec, local_sign_times, div_table);
@@ -1122,10 +1172,13 @@ int MedPatientPlotlyDate::get_rec_html(string &shtml, LocalViewsParams &lvp, Pid
 		if (is_categorial) {
 			string div_chart = "div_" + v + to_string(rand_N(10000));
 			string div_table = "div_" + v + to_string(rand_N(10000));
-			bool has_values = add_categorical_chart(shtml, rec, local_sign_times, v, div_chart, false);
+			bool has_values = add_categorical_chart(shtml, rec, local_sign_times, v, div_chart, false, channel);
 			if (has_values)
-				add_search_box(shtml, v, div_chart, div_table); //put search boxin the middle
-			add_categorical_table(v, shtml, rec, local_sign_times, div_table);
+				add_search_box(shtml, v, div_chart, div_table, channel); //put search boxin the middle
+			if (seen_signal_chart.find(v) == seen_signal_chart.end()) {
+				add_categorical_table(v, shtml, rec, local_sign_times, div_table);
+				seen_signal_chart.insert(v);
+			}
 		}
 	}
 

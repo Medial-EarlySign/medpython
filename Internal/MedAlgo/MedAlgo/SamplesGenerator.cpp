@@ -7,6 +7,35 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
+string GeneratorType_toStr(GeneratorType type) {
+	switch (type)
+	{
+	case GIBBS:
+		return "GIBBS";
+	case GAN:
+		return "GAN";
+	case MISSING:
+		return "MISSING";
+	case RANDOM_DIST:
+		return "RANDOM_DIST";
+	default:
+		MTHROW_AND_ERR("Unknown type %d\n", type);
+	}
+}
+GeneratorType GeneratorType_fromStr(const string &type) {
+	string tp = boost::to_upper_copy(type);
+	if (tp == "GAN")
+		return GeneratorType::GAN;
+	else if (tp == "GIBBS")
+		return GeneratorType::GIBBS;
+	else if (tp == "MISSING")
+		return GeneratorType::MISSING;
+	else if (tp == "RANDOM_DIST")
+		return GeneratorType::RANDOM_DIST;
+	else
+		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
+}
+
 template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values) {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
 }
@@ -18,6 +47,16 @@ template<typename T> void SamplesGenerator<T>::get_samples(map<string, vector<T>
 }
 template<typename T> void SamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 	MTHROW_AND_ERR("SamplesGenerator<T>::Not Implemented\n");
+}
+template<typename T> void SamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
+	vector<string> all(data.size());
+	int ii = 0;
+	for (const auto &it : data)
+	{
+		all[ii] = it.first;
+		++ii;
+	}
+	learn(data, all, false);
 }
 
 template<typename T> SamplesGenerator<T>::SamplesGenerator() {
@@ -60,8 +99,8 @@ template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator(GibbsSample
 	no_need_to_clear_mem = no_need_clear_mem;
 }
 
-template<typename T> void GibbsSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
-	_gibbs->learn_gibbs(data);
+template<typename T> void GibbsSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
+	_gibbs->learn_gibbs(data, learn_features, skip_missing);
 }
 
 template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_name) {
@@ -139,7 +178,7 @@ template<> void MaskedGAN<float>::get_samples(MedMat<float> &data, int sample_pe
 
 	// Sanity
 	if ((int)masks.size() != mask_values.nrows)
-		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%d samples)\n", (int)masks.size(), mask_values.nrows);
+		MTHROW_AND_ERR("size mismatch between mask (%d samples) and mask_values (%lld samples)\n", (int)masks.size(), mask_values.nrows);
 
 	if (mask_values.nrows == 0)
 		return;
@@ -216,7 +255,7 @@ template<> void MaskedGAN<float>::get_samples_from_Z(MedMat<float> &data, void *
 
 	// Sanity
 	if ((int)masks.size() != Z.nrows || Z.nrows != mask_values.nrows)
-		MTHROW_AND_ERR("size mismatch between mask (%d samples), Z (%d samples) and mask_values (%d samples)\n", (int)masks.size(), Z.nrows, mask_values.nrows);
+		MTHROW_AND_ERR("size mismatch between mask (%d samples), Z (%lld samples) and mask_values (%lld samples)\n", (int)masks.size(), Z.nrows, mask_values.nrows);
 
 	if (mask_values.nrows == 0)
 		return;
@@ -396,7 +435,7 @@ template<typename T> MissingsSamplesGenerator<T>::MissingsSamplesGenerator(float
 template<typename T> MissingsSamplesGenerator<T>::MissingsSamplesGenerator()
 	: SamplesGenerator<T>(false) {}
 
-template<typename T> void MissingsSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
+template<typename T> void MissingsSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
 	names.reserve(data.size());
 	for (auto it = data.begin(); it != data.end(); ++it)
 		names.push_back(it->first);
@@ -412,7 +451,7 @@ template<typename T> RandomSamplesGenerator<T>::RandomSamplesGenerator(T mean_va
 	std_value = std_val;
 }
 
-template<typename T> void RandomSamplesGenerator<T>::learn(const map<string, vector<T>> &data) {
+template<typename T> void RandomSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
 	names.reserve(data.size());
 	for (auto it = data.begin(); it != data.end(); ++it)
 		names.push_back(it->first);

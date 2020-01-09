@@ -13,18 +13,19 @@
 
 Gibbs_Params::Gibbs_Params() {
 	kmeans = 0;
+	selection_count = 0;
 	max_iters = 500;
-	selection_ratio = (float)0.7;
+	selection_ratio = (float)1.0;
 
 	select_with_repeats = false;
-	calibration_save_ratio = 0;
-	calibration_string = "";
+	calibration_save_ratio = (float)0.2;
+	calibration_string = "calibration_type=isotonic_regression;verbose=0";
 
 	predictor_type = "lightgbm";
-	predictor_args = "objective=multiclassova;metric=multi_logloss;verbose=0;num_threads=15;"
-		"num_trees=250;learning_rate=0.05;lambda_l2=0;metric_freq=50;num_class=50";
+	predictor_args = "objective=multiclass;metric=multi_logloss;verbose=0;num_threads=0;"
+		"num_trees=100;learning_rate=0.05;lambda_l2=0;metric_freq=50";
 	num_class_setup = "num_class";
-	bin_settings.init_from_string("split_method=iterative_merge;binCnt=50");
+	bin_settings.init_from_string("split_method=iterative_merge;min_bin_count=100;binCnt=100");
 }
 
 GibbsSamplingParams::GibbsSamplingParams() {
@@ -44,6 +45,8 @@ int Gibbs_Params::init(map<string, string>& map) {
 			max_iters = med_stoi(it->second);
 		else if (it->first == "selection_ratio")
 			selection_ratio = med_stof(it->second);
+		else if (it->first == "selection_count")
+			selection_count = med_stoi(it->second);
 		else if (it->first == "select_with_repeats")
 			select_with_repeats = med_stoi(it->second) > 0;
 		else if (it->first == "predictor_type")
@@ -168,6 +171,17 @@ template<typename T> GibbsSampler<T>::GibbsSampler() {
 }
 
 template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data) {
+	vector<string> all(cohort_data.size());
+	int ii = 0;
+	for (const auto &it : cohort_data)
+	{
+		all[ii] = it.first;
+		++ii;
+	}
+	learn_gibbs(cohort_data, all, false);
+}
+
+template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<T>> &cohort_data, const vector<string> &learn_features, bool skip_missing) {
 	mt19937 gen(globalRNG::rand());
 	if (params.selection_ratio > 1) {
 		MWARN("Warning - GibbsSampler::learn_gibbs - params.selection_ratio is bigger than 1 - setting to 1");
@@ -178,26 +192,30 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 	for (auto it = cohort_data.begin(); it != cohort_data.end(); ++it)
 		all_names.push_back(it->first);
 	all_feat_names = all_names;
+	impute_feat_names = learn_features;
 	int cohort_size = (int)cohort_data.begin()->second.size(); //assume not empty
-	uniform_int_distribution<> rnd_num(0, cohort_size - 1);
 
-	feats_predictors.resize(all_names.size());
-	uniqu_value_bins.resize(all_names.size());
+
+	feats_predictors.resize(learn_features.size());
+	uniqu_value_bins.resize(learn_features.size());
 	int pred_num_feats = (int)cohort_data.size() - 1;
-	for (size_t i = 0; i < all_names.size(); ++i)
+	for (size_t i = 0; i < learn_features.size(); ++i)
 		feats_predictors[i].input_size = pred_num_feats;
 	if (pred_num_feats == 0) {
-		for (size_t i = 0; i < all_names.size(); ++i) {
+		for (size_t i = 0; i < learn_features.size(); ++i) {
 			//just test for values as distribution mean, variance
-			feats_predictors[i].sample_cohort = cohort_data.at(all_names[i]);
+			feats_predictors[i].sample_cohort = cohort_data.at(learn_features[i]);
 		}
 	}
 	else {
-		MedProgress progress("Learn_Gibbs", (int)all_names.size(), 30, 1);
+		MedProgress progress("Learn_Gibbs", (int)learn_features.size(), 30, 1);
 
 		int train_sz = int(cohort_size * params.selection_ratio);
+		if (params.selection_count > 0 && train_sz > params.selection_count)
+			train_sz = params.selection_count;
 
 		if (params.kmeans > 0) {
+			uniform_int_distribution<> rnd_num(0, cohort_size - 1);
 #pragma omp parallel for
 			for (int i = 0; i < all_names.size(); ++i)
 			{
@@ -257,11 +275,36 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 			}
 		}
 		else {
-			for (int i = 0; i < all_names.size(); ++i)
+			for (int i = 0; i < learn_features.size(); ++i)
 			{
+				int feat_idx = -1;
+				//find index:
+				for (size_t j = 0; j < all_names.size(); ++j)
+					if (all_names[j] == learn_features[i])
+						feat_idx = (int)j;
+				if (feat_idx < 0)
+					MTHROW_AND_ERR("Error in learn_gibbs can't find %s\n",
+						learn_features[i].c_str());
+				vector<T> full_vals = cohort_data.at(learn_features[i]);
+				vector<int> sel_idx;
+				if (skip_missing) {
+					full_vals.clear();
+					for (size_t j = 0; j < cohort_data.at(learn_features[i]).size(); ++j)
+						if (cohort_data.at(learn_features[i])[j] != MED_MAT_MISSING_VALUE) {
+							full_vals.push_back(cohort_data.at(learn_features[i])[j]);
+							sel_idx.push_back((int)j);
+						}
+				}
+				train_sz = (int)full_vals.size();
+				cohort_size = train_sz;
+				train_sz = int(train_sz * params.selection_ratio);
+				if (params.selection_count > 0 && train_sz > params.selection_count)
+					train_sz = params.selection_count;
+
+				uniform_int_distribution<> rnd_num(0, cohort_size - 1);
 				unordered_set<float> uniq_vals;
-				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
-					uniq_vals.insert(cohort_data.at(all_names[i])[k]);
+				for (size_t k = 0; k < full_vals.size(); ++k)
+					uniq_vals.insert(full_vals[k]);
 				uniqu_value_bins[i].insert(uniqu_value_bins[i].end(), uniq_vals.begin(), uniq_vals.end());
 				sort(uniqu_value_bins[i].begin(), uniqu_value_bins[i].end());
 				vector<int> clusters;
@@ -277,11 +320,13 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 							random_idx = rnd_num(gen);
 						seen[random_idx] = true;
 					}
+					if (!sel_idx.empty())
+						random_idx = sel_idx[random_idx];
 					for (size_t jj = 0; jj < pred_num_feats; ++jj) {
-						int fixed_idx = (int)jj + int(jj >= i); //skip current
+						int fixed_idx = (int)jj + int(jj >= feat_idx); //skip current
 						train_vec[ii* pred_num_feats + jj] = float(cohort_data.at(all_names[fixed_idx])[random_idx]);
 					}
-					label_vec[ii] = float(cohort_data.at(all_names[i])[random_idx]);
+					label_vec[ii] = float(cohort_data.at(learn_features[i])[random_idx]);
 					sel_ls[ii] = random_idx;
 				}
 
@@ -309,7 +354,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 
 				vector<float> sorted_vals(seen_val.begin(), seen_val.end());
 				sort(sorted_vals.begin(), sorted_vals.end());
-				MLOG("Feature %s has %d categories\n", all_names[i].c_str(), class_num);
+				MLOG("Feature %s has %d categories\n", learn_features[i].c_str(), class_num);
 
 				feats_predictors[i].bin_vals.insert(feats_predictors[i].bin_vals.end(), sorted_vals.begin(), sorted_vals.end());
 				//learn predictor
@@ -358,7 +403,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 						pred_calib_mat.samples[j].id = (int)j;
 						pred_calib_mat.samples[j].outcome = 0; //doesn't matter for prediction only
 						for (size_t k = 0; k < pred_num_feats; ++k) {
-							int fixed_idx = (int)k + int(k >= i); //skip current
+							int fixed_idx = (int)k + int(k >= feat_idx); //skip current
 							pred_calib_mat.data[all_names[fixed_idx]].push_back(train_vec[sel_idx * pred_num_feats + k]);
 						}
 					}
@@ -422,9 +467,19 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 			current_sample[i] = mask_values->at(i); //init value - not fixed to be this value
 	}
 	vector<int> idx_iter; idx_iter.reserve(mask->size());
+	vector<int> feat_idx;  feat_idx.reserve(mask->size());
 	for (int i = 0; i < mask->size(); ++i)
-		if (!mask->at(i))
+		if (!mask->at(i)) {
 			idx_iter.push_back(i);
+			//find feature i index:
+			int learn_ind = -1;
+			for (size_t jj = 0; jj < impute_feat_names.size() && learn_ind < 0; ++jj)
+				if (all_feat_names[i] == impute_feat_names[jj])
+					learn_ind = (int)jj;
+			if (learn_ind < 0)
+				MTHROW_AND_ERR("Error GibbsSampler<T>::get_samples - Can't find feature %s in learned features\n", all_feat_names[i].c_str());
+			feat_idx.push_back(learn_ind);
+		}
 	int pred_num_feats = (int)all_feat_names.size() - 1;
 
 	//can parallel for random init of initiale values (just burn in)
@@ -432,6 +487,7 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 	for (size_t i = 0; i < sample_loop; ++i)
 	{
 		//create sample - iterate over all variables not in mask:
+		int curr_feat_i = 0;
 		for (int f_idx : idx_iter)
 		{
 			vector<T> curr_x(pred_num_feats);
@@ -440,9 +496,10 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				int fixxed_idx = (int)k + int(k >= f_idx);
 				curr_x[k] = current_sample[fixxed_idx];
 			}
-			T val = feats_predictors[f_idx].get_sample(curr_x, rnd_gen); //based on dist (or predictor - value bin dist)
+			T val = feats_predictors[feat_idx[curr_feat_i]].get_sample(curr_x, rnd_gen); //based on dist (or predictor - value bin dist)
 
 			current_sample[f_idx] = val; //update current pos variable
+			++curr_feat_i;
 		}
 
 		if (i >= sampling_params.burn_in_count && ((i - sampling_params.burn_in_count) % sampling_params.jump_between_samples) == 0) {
@@ -451,19 +508,26 @@ template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &r
 				T val = current_sample[k];
 				//find best bin if needed:
 				if (sampling_params.find_real_value_bin && !mask->at(k)) {
-					int pos = medial::process::binary_search_position(uniqu_value_bins[k].data(), uniqu_value_bins[k].data() + uniqu_value_bins[k].size() - 1, val);
+					//find index in impute_feat_names
+					int learn_ind = -1;
+					for (size_t jj = 0; jj < impute_feat_names.size() && learn_ind < 0; ++jj)
+						if (all_feat_names[k] == impute_feat_names[jj])
+							learn_ind = (int)jj;
+					if (learn_ind < 0)
+						MTHROW_AND_ERR("Error GibbsSampler<T>::get_samples - Can't find feature %s in learned features\n", all_feat_names[k].c_str());
+					int pos = medial::process::binary_search_position(uniqu_value_bins[learn_ind].data(), uniqu_value_bins[learn_ind].data() + uniqu_value_bins[learn_ind].size() - 1, val);
 					if (pos == 0)
-						val = uniqu_value_bins[k][0];
+						val = uniqu_value_bins[learn_ind][0];
 					else {
-						if (pos >= uniqu_value_bins[k].size())
-							val = uniqu_value_bins[k].back();
+						if (pos >= uniqu_value_bins[learn_ind].size())
+							val = uniqu_value_bins[learn_ind].back();
 						else {
-							T diff_next = abs(val - uniqu_value_bins[k][pos]);
-							T diff_prev = abs(val - uniqu_value_bins[k][pos - 1]);
+							T diff_next = abs(val - uniqu_value_bins[learn_ind][pos]);
+							T diff_prev = abs(val - uniqu_value_bins[learn_ind][pos - 1]);
 							if (diff_prev < diff_next)
-								val = uniqu_value_bins[k][pos - 1];
+								val = uniqu_value_bins[learn_ind][pos - 1];
 							else
-								val = uniqu_value_bins[k][pos];
+								val = uniqu_value_bins[learn_ind][pos];
 						}
 					}
 				}
