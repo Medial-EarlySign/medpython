@@ -685,7 +685,7 @@ int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& s
 // Return -2 upon prediction-length inconsistency
 // Return -3 upon attributes inconsistency
 //.......................................................................................
-int MedSamples::write_to_file(const string &fname, int pred_precision, bool print_attributes)
+int MedSamples::write_to_file(const string &fname, int pred_precision)
 {
 	ofstream of(fname);
 
@@ -712,14 +712,10 @@ int MedSamples::write_to_file(const string &fname, int pred_precision, bool prin
 	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split";
 	for (int i = 0; i < nPreds; i++)
 		of << "\tpred_" << i;
-
-	if (print_attributes)
-	{
-		for (string name : attributes)
-			of << "\tattr_" << name;
-		for (string name : str_attributes)
-			of << "\tstr_attr_" << name;
-	}
+	for (string name : attributes)
+		of << "\tattr_" << name;
+	for (string name : str_attributes)
+		of << "\tstr_attr_" << name;
 	of << "\n";
 
 	//removing this line since it creates something which isn't a csv, and I can't read it with python later...
@@ -730,7 +726,7 @@ int MedSamples::write_to_file(const string &fname, int pred_precision, bool prin
 		for (auto ss : s.samples) {
 			samples++;
 			string sout;
-			ss.write_to_string(sout, time_unit, print_attributes, string("\t") , pred_precision);
+			ss.write_to_string(sout, time_unit, true, string("\t") , pred_precision);
 			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
 			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
 			if (buffer_write > 0 && line >= buffer_write) {

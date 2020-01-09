@@ -2167,7 +2167,7 @@ const TQRF_Node *TQRF_Tree::Get_Node_for_predict(MedMat<float> &x, int i_row, fl
 	int curr_node = 0;
 	const TQRF_Node *cnode;
 
-	float *row = x.data_ptr(i_row, 0);
+	float *row = &x.m[i_row*x.ncols];
 	cnode = &nodes[curr_node];
 	//	while (cnode->is_terminal == 0) {
 	float v;
@@ -2217,7 +2217,7 @@ TQRF_Node *TQRF_Tree::Get_Node(MedMat<float> &x, int i_row, float missing_val)
 	int curr_node = 0;
 	TQRF_Node *cnode;
 
-	float *row = x.data_ptr(i_row, 0);
+	float *row = &x.m[i_row*x.ncols];
 	cnode = &nodes[curr_node];
 	//	while (cnode->is_terminal == 0) {
 	float v;
@@ -2409,8 +2409,8 @@ int TQRF_Forest::solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float
 	}
 
 	Map<MatrixXf> bf(&b[0], n_betas, 1);
-	Map<MatrixXf> Cf(C.data_ptr(), n_betas, n_samples);
-	Map<MatrixXf> Sf(S.data_ptr(), n_betas, n_samples);
+	Map<MatrixXf> Cf(&C.m[0], n_betas, n_samples);
+	Map<MatrixXf> Sf(&S.m[0], n_betas, n_samples);
 	MatrixXf probs(1, n_samples);
 	MatrixXf grad(n_betas, 1);
 	MatrixXf grads(n_betas, params.gd_batch);
@@ -2436,8 +2436,8 @@ int TQRF_Forest::solve_betas_gd(MedMat<float>& C, MedMat<float>& S, vector<float
 			int len = params.gd_batch;		// len is nsamples in batch
 			if (from+len > n_samples) len = n_samples - from;
 
-			Map<MatrixXf> cf(C.data_ptr(from, 0), n_betas, len);
-			Map<MatrixXf> sf(S.data_ptr(from, 0), n_betas, len);
+			Map<MatrixXf> cf(&C.m[from*n_betas], n_betas, len);
+			Map<MatrixXf> sf(&S.m[from*n_betas], n_betas, len);
 			Map<MatrixXf> gradcf(&gradc(0, 0), n_betas, len);
 			Map<MatrixXf> gradsf(&grads(0, 0), n_betas, len);
 			float fact_grad = (float)1/(float)len;

@@ -29,9 +29,8 @@ void flags_to_indexes(vector<int> &flags, vector<int> &inds)
 //...........................................................................................
 int get_rand_medmat(MedMat<float> &A) // fills mat with uniform 0-1 numbers
 {
-	vector<float> &m = A.get_vec();
-	for (size_t i=0; i<A.size(); i++) {
-		m[i] = rand_1();
+	for (int i=0; i<A.m.size(); i++) {
+		A.m[i] = rand_1();
 	}
 	return 0;
 }
@@ -261,8 +260,7 @@ int fast_sum_medmat_rows(MedMat<float> &A, MedMat<float> &Asum, float factor)
 		return -1;
 
 	MedMat<float> Ones(1, A.nrows);
-	vector<float> &m = Ones.get_vec();
-	fill(m.begin(), m.end(), factor);
+	fill(Ones.m.begin(), Ones.m.end(), factor);
 
 	return (fast_multiply_medmat_(Ones, A, Asum));
 }
@@ -275,8 +273,7 @@ int fast_sum_medmat_cols(MedMat<float> &A, MedMat<float> &Asum, float factor)
 		return -1;
 
 	MedMat<float> Ones(A.ncols, 1);
-	vector<float> &m = Ones.get_vec();
-	fill(m.begin(), m.end(), factor);
+	fill(Ones.m.begin(), Ones.m.end(), factor);
 
 	return (fast_multiply_medmat_(A, Ones, Asum));
 }

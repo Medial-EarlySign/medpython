@@ -671,7 +671,7 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 			predictors[i].params.ls_lasso = lambdas[i];
 		}
 
-#pragma omp parallel for if (nthreads>1)
+#pragma omp parallel for 
 		for (int i = 0; i < nthreads; i++) {
 			predictors[i].learn(x, y);
 

@@ -44,7 +44,6 @@ public:
 	//learn args - kmeans or predictor
 	int kmeans; ///< If > 0 will use kmeans to find clusters and look on each cluster y distribution - select 1 randomly and learn that
 	float selection_ratio; ///< selection_ratio for kMeans - down sample
-	int selection_count; ///< selection down sample count
 	bool select_with_repeats; ///< If true will selct with repeats
 	int max_iters; ///< max_iters for kmeans
 
@@ -94,7 +93,6 @@ public:
 	Gibbs_Params params; ///< gibbs params
 	vector<PredictorOrEmpty<T>> feats_predictors; ///< gibbs_feature generators based on predictors
 	vector<string> all_feat_names; ///< all features names (saved in learn)
-	vector<string> impute_feat_names; ///< all features names (saved in learn)
 	vector<vector<T>> uniqu_value_bins; ///< to round samples to those resoultions! - important for no leak!
 
 	GibbsSampler();
@@ -103,11 +101,6 @@ public:
 	/// learn gibbs sample - for each feature creates predictors
 	/// </summary>
 	void learn_gibbs(const map<string, vector<T>> &cohort_data);
-
-	/// <summary>
-	/// learn gibbs sample - for each feature creates predictors
-	/// </summary>
-	void learn_gibbs(const map<string, vector<T>> &cohort_data, const vector<string> &learn_features, bool skip_missing);
 
 	/// <summary>
 	/// Should be called before first get_samples when used in parallel manner
@@ -144,7 +137,7 @@ public:
 	virtual ~GibbsSampler();
 
 	ADD_CLASS_NAME(GibbsSampler<T>)
-		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names, impute_feat_names)
+		ADD_SERIALIZATION_FUNCS(params, feats_predictors, uniqu_value_bins, all_feat_names)
 };
 
 MEDSERIALIZE_SUPPORT(PredictorOrEmpty<float>)

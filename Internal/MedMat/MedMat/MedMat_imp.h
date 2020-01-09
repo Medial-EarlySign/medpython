@@ -15,9 +15,9 @@ template <class T> template <class S> void MedMat<T>::load(S *x, int n_rows, int
 	ncols = n_cols;
 	m.resize(nrows*ncols);
 
-	for (size_t i=0; i<nrows; i++)
-		for (size_t j=0; j<ncols; j++)
-			set(i,j) = (T)x[i*ncols + j];
+	for (int i=0; i<nrows; i++)
+		for (int j=0; j<ncols; j++)
+			set(i,j) = (T)x[(unsigned long long)i*ncols + j];
 	transposed_flag = 0;
 }
 
@@ -28,8 +28,8 @@ template <class T> template <class S> void MedMat<T>::load_transposed(S *x, int 
 	ncols = n_rows;
 	m.resize(nrows*ncols);
 
-	for (size_t i=0; i<n_rows; i++)
-		for (size_t j=0; j<n_cols; j++)
+	for (int i=0; i<n_rows; i++)
+		for (int j=0; j<n_cols; j++)
 			set(j,i) = (T)x[i*n_cols + j];
 	transposed_flag = 1;
 }
@@ -40,11 +40,11 @@ template <class T> template <class S> void MedMat<T>::load(const vector<S> &x, i
 	ncols = n_cols;
 	if (ncols == 0)
 		return;
-	nrows = x.size()/ncols;
+	nrows = (int)(x.size()/ncols);
 	m.resize(nrows*ncols);
 
-	for (size_t i=0; i<nrows; i++)
-		for (size_t j=0; j<ncols; j++)
+	for (int i=0; i<nrows; i++)
+		for (int j=0; j<ncols; j++)
 			set(i,j) = (T)x[i*ncols + j];
 }
 
@@ -56,8 +56,8 @@ template <class T> template <class S> void MedMat<T>::load(MedMat<S> &x)
 	nrows = x.nrows;
 	m.resize(nrows*ncols);
 
-	for (size_t i=0; i<nrows; i++)
-		for (size_t j=0; j<ncols; j++)
+	for (int i=0; i<nrows; i++)
+		for (int j=0; j<ncols; j++)
 			set(i,j) = (T)x(i,j);
 
 	signals.clear();
@@ -71,12 +71,12 @@ template <class T> template <class S> void MedMat<T>::load(MedMat<S> &x)
 template <class T> void MedMat<T>::transpose()
 {
 	vector<T> m_orig = m;
-	size_t ncols_orig = ncols;
+	int ncols_orig = ncols;
 
 	swap(ncols,nrows);
 
-	for (size_t i=0; i<nrows; i++)
-		for (size_t j=0; j<ncols; j++)
+	for (int i=0; i<nrows; i++)
+		for (int j=0; j<ncols; j++)
 			set(i,j) = m_orig[j*ncols_orig+i];
 	transposed_flag = 1 - transposed_flag;
 }
@@ -88,8 +88,8 @@ template <class T> void MedMat<T>::transpose()
 // also sublists metadata
 template <class T> void MedMat<T>::get_sub_mat(vector<int> &rows_to_take, vector<int> &cols_to_take)
 {
-	size_t new_n_rows = (rows_to_take.size() == 0 ? nrows : (int) rows_to_take.size());
-	size_t new_n_cols = (cols_to_take.size() == 0 ? ncols : (int) cols_to_take.size());
+	int new_n_rows = (rows_to_take.size() == 0 ? nrows : (int) rows_to_take.size());
+	int new_n_cols = (cols_to_take.size() == 0 ? ncols : (int) cols_to_take.size());
 
 	vector<T> m_orig = m; // copying 
 	vector<RecordData> r_orig = recordsMetadata;
@@ -98,12 +98,12 @@ template <class T> void MedMat<T>::get_sub_mat(vector<int> &rows_to_take, vector
 
 	m.resize(new_n_rows*new_n_cols);
 
-	for (size_t i=0; i<new_n_rows; i++) {
-		size_t r = (rows_to_take.size() == 0 ? i : rows_to_take[i]);
+	for (int i=0; i<new_n_rows; i++) {
+		int r = (rows_to_take.size() == 0 ? i : rows_to_take[i]);
 		if (r_orig.size() > 0)
 			recordsMetadata.push_back(r_orig[r]);
-		for (size_t j=0; j<new_n_cols; j++) {
-			size_t c = (cols_to_take.size() == 0 ? j : cols_to_take[j]);
+		for (int j=0; j<new_n_cols; j++) {
+			int c = (cols_to_take.size() == 0 ? j : cols_to_take[j]);
 			if ((i == 0) && (c_orig.size() > 0))
 				signals.push_back(c_orig[c]);
 
@@ -144,8 +144,8 @@ template <class T> template <class S> void MedMat<T>::add_rows(S *m_add, int nro
 	if (nrows_to_add <= 0)
 		return;
 	
-	m.resize((nrows+(size_t)nrows_to_add)*ncols);
-	for (size_t j=0; j<nrows_to_add*ncols; j++)
+	m.resize((nrows+nrows_to_add)*ncols);
+	for (int j=0; j<nrows_to_add*ncols; j++)
 		m[ncols*nrows+j] = (T)m_add[j];
 	nrows += nrows_to_add;
 }
@@ -181,14 +181,14 @@ template <class T> template <class S> void MedMat<T>::add_cols(S *m_add, int nco
 
 	vector<T> m_orig = m;
 
-	size_t new_ncols = ncols+ncols_to_add;
+	int new_ncols = ncols+ncols_to_add;
 
 	m.resize(nrows*new_ncols);
-	for (size_t i=0; i<nrows; i++) {
-		for (size_t j=0; j<ncols; j++)
+	for (int i=0; i<nrows; i++) {
+		for (int j=0; j<ncols; j++)
 			m[i*new_ncols+j] = (T)m_orig[i*ncols+j];
-		for (size_t j=0; j<ncols_to_add; j++)
-			m[i*new_ncols+ncols+j] = (T)m_add[i*(size_t)ncols_to_add + j];
+		for (int j=0; j<ncols_to_add; j++)
+			m[i*new_ncols+ncols+j] = (T)m_add[i*ncols_to_add + j];
 	}
 
 	ncols = new_ncols;
@@ -221,7 +221,7 @@ template <class T> void MedMat<T>::get_row(int i_row, vector<T> &rowv) const
 {
 	rowv.resize(ncols);
 	if (ncols > 0 && nrows > 0)
-		memcpy(&(rowv[0]),&(m[(size_t)i_row*ncols]),ncols*sizeof(T));
+		memcpy(&(rowv[0]),&(m[i_row*ncols]),ncols*sizeof(T));
 }
 
 //...........................................................................................
@@ -229,8 +229,8 @@ template <class T> void MedMat<T>::get_col(int i_col, vector<T> &colv) const
 {
 	colv.resize(nrows);
 	if (ncols > 0 && nrows > 0) {
-		for (size_t i=0; i<nrows; i++)
-			colv[i] = m[i*ncols + (size_t)i_col];
+		for (int i=0; i<nrows; i++)
+			colv[i] = m[i*ncols + i_col];
 	}
 
 }
@@ -606,12 +606,12 @@ template <class T> int MedMat<T>::read_from_csv_file(const string &fname, int ti
 	}
 
 	inf.close();
-	fprintf(stderr, "read %lldX%lld data\n", nrows, ncols);
+	fprintf(stderr, "read %dX%d data\n", nrows, ncols);
 	return 0;
 }
 
 template <class T> int MedMat<T>::write_to_csv_file(const string &fname) {
-	fprintf(stderr, "writing %s with %lldX%lld data\n", fname.c_str(), nrows, ncols);
+	fprintf(stderr, "writing %s with %dX%d data\n", fname.c_str(), nrows, ncols);
 	ofstream of;
 	of.open(fname, ios::out);
 	if (!of) {
@@ -794,8 +794,8 @@ template <class T> template <class S> void MedMat<T>::normalize (const vector<S>
 			internal_std[i] = external_std[i];
 	}
 
-	for (size_t i=0; i<nrows; i++) {
-		for (size_t j=0; j<ncols; j++) {
+	for (int i=0; i<nrows; i++) {
+		for (int j=0; j<ncols; j++) {
 			if (normalized_flag == Normalize_Cols) {
 				if (m[i*ncols +j] == missing_value)
 					m[i*ncols +j]  = 0 ;

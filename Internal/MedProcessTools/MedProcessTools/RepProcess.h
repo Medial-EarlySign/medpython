@@ -1052,7 +1052,7 @@ public:
 
 	ADD_CLASS_NAME(SimpleCalculator)
 		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
-
+		
 
 };
 
@@ -1293,7 +1293,7 @@ public:
 		//	vector<pair<string, string>> default_virtual_signals;
 		//	calculator_logic->list_output_signals(signals, default_virtual_signals); //init calculator
 		//}
-
+		
 	}
 
 private:
@@ -1569,10 +1569,8 @@ public:
 	vector<string> names; ///< names of signal created by the processor
 	vector<float> factors; ///< factor for each output signal
 	vector<string> sets; ///< the sets to check if signal value is in set
-	int val_channel; ///< the val channel to look for the sets
-	string output_signal_type; ///< same as input signal - will remove later after change init process of RepProcessor to fetch input signal type
 
-	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; val_channel = 0; output_signal_type = "T(i),T(i),V(f),V(f)"; }
+	RepSplitSignal() { processor_type = REP_PROCESS_SPLIT; input_name = ""; }
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
@@ -1592,8 +1590,7 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional,
-			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
@@ -1647,16 +1644,9 @@ public:
 };
 
 /**
-* A filter on signal events using other range signal with time periods
+* A simple cleaner considering each value of a certain signal separatley
 */
-typedef enum {
-	all = 0,
-	first = 1,
-	last = 2
-} range_op_type;
 class RepBasicRangeCleaner : public RepProcessor {
-private:
-	vector<char> lut;
 public:
 
 	string signal_name; 	///< name of signal to clean
@@ -1668,15 +1658,10 @@ public:
 	int time_channel; ///< time channel to consider in cleaning
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type. Or string for generic type
 	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
-	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
-	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 will not filter
-	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel
-
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
-		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1),
-		output_id(-1), time_channel(0), output_type(3) {
+		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1), output_id(-1), time_channel(0), output_type(3) {
 		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
 	}
 
@@ -1693,9 +1678,7 @@ public:
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
-		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel,
-			req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic,
-			output_type, get_values_in_range, range_operator, range_val_channel, sets)
+		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel, req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic, output_type, get_values_in_range)
 
 		/// <summary> Print processors information </summary>
 		void print();

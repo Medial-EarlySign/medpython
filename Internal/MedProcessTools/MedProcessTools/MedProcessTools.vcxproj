@@ -100,7 +100,6 @@
     <ClCompile Include="MedValueCleaner.cpp" />
     <ClCompile Include="PanelCompleter.cpp" />
     <ClCompile Include="PostProcessor.cpp" />
-    <ClCompile Include="PredictorImputer.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
@@ -129,7 +128,6 @@
     <ClInclude Include="MedSamples.h" />
     <ClInclude Include="MedValueCleaner.h" />
     <ClInclude Include="PostProcessor.h" />
-    <ClInclude Include="PredictorImputer.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />

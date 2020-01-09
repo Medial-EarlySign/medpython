@@ -372,7 +372,7 @@ void MedPredictor::predict_thread(void *p) const
 	pred_thread_info *tp = (pred_thread_info *)p;
 
 	//MLOG("Start thread %d : from: %d to: %d\n",tp->id,tp->from_sample,tp->to_sample);
-	float *x = tp->x->data_ptr(tp->from_sample, 0);  //m[tp->from_sample * tp->nftrs]);
+	float *x = &(tp->x->m[tp->from_sample * tp->nftrs]);
 	float *preds = &(tp->preds[tp->from_sample * n_preds_per_sample()]);
 	int nsamples = tp->to_sample - tp->from_sample + 1;
 	int nftrs = tp->nftrs;

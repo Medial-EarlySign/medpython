@@ -654,7 +654,7 @@ public:
 		MedMat<float> ymat; ymat.load(y, nsamples, 1);
 		MedMat<float> wmat;
 		if (w != NULL) wmat.load(w, nsamples, 1);
-		return learn(xmat, ymat, wmat.get_vec());
+		return learn(xmat, ymat, wmat.m);
 	}
 
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const {

@@ -203,6 +203,21 @@ public:
 			predictor_type, predictor_args, max_weight)
 };
 
+/// @enum
+/// Samples Generator Types options
+enum GeneratorType
+{
+	GIBBS = 0, ///< "GIBBS" - to use GibbsSampler
+	GAN = 1, ///< "GAN" to use GAN generator, accepts GAN path
+	MISSING = 2, ///< "MISSING" to use no generator, just puts missing values where mask[i]==0
+	RANDOM_DIST = 3 ///< "RANDOM_DIST" to use random normal distributaion on missing values
+};
+
+/// convert function for generator type to string
+string GeneratorType_toStr(GeneratorType type);
+/// convert function for generator
+GeneratorType GeneratorType_fromStr(const string &type);
+
 /**
 * shapley explainer with gibbs, GAN or other samples generator
 */

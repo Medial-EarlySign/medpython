@@ -236,9 +236,9 @@ private:
 
 	// THIN_RC report
 	bool add_categorical_chart(string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, 
-		const string &sig_name, string &div_name, bool show_legend, int channel);
+		const string &sig_name, string &div_name, bool show_legend);
 
-	void add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table, int channel);
+	void add_search_box(string &shtml, const string &sig_name, const string &div_chart, const string &div_table);
 
 	// categorical signal , add as table
 	bool add_categorical_table(string sig, string &shtml, PidDataRec &rec, const vector<ChartTimeSign> &times, string &div_name);

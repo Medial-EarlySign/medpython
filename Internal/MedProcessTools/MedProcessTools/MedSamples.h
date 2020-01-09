@@ -174,7 +174,7 @@ public:
 
 	/// <summary>  Write to text file in new format  </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>
-	int write_to_file(const string &fname, int pred_precision=-1, bool print_attributes =true);
+	int write_to_file(const string &fname, int pred_precision=-1);
 
 	/// <summary> Extract a single vector of concatanated predictions </summary>
 	void get_preds(vector<float>& preds) const;
