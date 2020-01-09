@@ -746,10 +746,12 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 	vector<vector<char>> filter_luts(selected.size());
 	for (int i = 0; i < selected.size(); i++) {
 		filterd_codes[i] = top_codes[selected[i]];
-		filter_luts[i] = luts[selected[i]];
+		if (!luts.empty())
+			filter_luts[i] = luts[selected[i]];
 	}
 	top_codes = move(filterd_codes);
-	luts = move(filter_luts);
+	if (!luts.empty())
+		luts = move(filter_luts);
 	set_names();
 
 	return ((int)names.size());
