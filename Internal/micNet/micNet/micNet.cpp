@@ -78,8 +78,7 @@ int micNode::fill_input_node(int *perm, int len, MedMat<float> &x_mat, int last_
 
 	// now going over our 'len' permutated lines and copying each line from x to the batch_out buffer.
 	for (int i = 0; i < len; i++) {
-		int ii = perm[i];
-		memcpy(b_out, &x_mat.m[ii*(x_mat.ncols)], nfeat * sizeof(float));
+		memcpy(b_out, x_mat.data_ptr(perm[i],0), nfeat * sizeof(float));
 		b_out[nfeat] = 1; // bias term
 		b_out += nfeat + 1;
 	}
@@ -205,7 +204,7 @@ void micNode::forward_batch_leaky_relu(const MedMat<float> &in, MedMat<float> &o
 {
 	// sanity checks
 	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || lr_params.nrows != k_out || lr_params.ncols != 2 || lambda.nrows != k_out) {
-		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_leaky_relu : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_leaky_relu : input: %lld x %lld , wgt %lld x %lld , n_in %d , k_out %d , lr_params: %lld x %lld lambda: %lld x %lld\n",
 			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
 	}
 
@@ -241,7 +240,7 @@ void micNode::forward_batch_leaky_relu(const MedMat<float> &in, MedMat<float> &o
 void micNode::forward_batch_normalization(const MedMat<float> &in, MedMat<float> &out) const {
 	// sanity checks
 	if (in.ncols != n_in + 1 || wgt.nrows != n_in + 1 || wgt.ncols != k_out + 1 || n_in != k_out) {
-		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_normalization : input: %d x %d , wgt %d x %d , n_in %d , k_out %d , lr_params: %d x %d lambda: %d x %d\n",
+		MTHROW_AND_ERR("ERROR:: micNode::forward_batch_normalization : input: %lld x %lld , wgt %lld x %lld , n_in %d , k_out %d , lr_params: %lld x %lld lambda: %lld x %lld\n",
 			in.nrows, in.ncols, wgt.nrows, wgt.ncols, n_in, k_out, lr_params.nrows, lr_params.ncols, lambda.nrows, lambda.ncols);
 	}
 
@@ -269,7 +268,7 @@ void micNode::forward_batch_softmax(const MedMat<float> &in, MedMat<float> &out)
 
 	// sanity
 	if (in.ncols != n_in + 1 || k_out != n_categ || n_in != n_categ * n_per_categ) {
-		MTHROW_AND_ERR("ERROR:: forward_batch_softmax() :: non matching sizes :: input %d x %d , n_in %d k_out %d\n", in.nrows, in.ncols, n_in, k_out);
+		MTHROW_AND_ERR("ERROR:: forward_batch_softmax() :: non matching sizes :: input %lld x %lld , n_in %d k_out %d\n", in.nrows, in.ncols, n_in, k_out);
 	}
 
 
@@ -322,7 +321,7 @@ void micNode::forward_batch_softmax(const MedMat<float> &in, MedMat<float> &out)
 void micNode::forward_batch_regression(const MedMat<float> &in, MedMat<float> &out) const {
 	// sanity
 	if (in.ncols != n_in + 1 || n_in != k_out) {
-		MTHROW_AND_ERR("ERROR:: forward_batch_regression() :: non matching sizes :: input %d x %d , n_in %d k_out %d :: wgt size %d x %d\n",
+		MTHROW_AND_ERR("ERROR:: forward_batch_regression() :: non matching sizes :: input %lld x %lld , n_in %d k_out %d :: wgt size %lld x %lld\n",
 			in.nrows, in.ncols, n_in, k_out, wgt.ncols, wgt.nrows);
 	}
 
@@ -637,7 +636,7 @@ int micNode::forward_batch_normalization(int do_grad_flag)
 	if (do_grad_flag) {
 
 		grad_s.clear();
-		if (grad_s.m.size() == 0) {
+		if (grad_s.size() == 0) {
 			//grad_s.resize(n_b, k_out+1);
 			//fill(grad_s.m.begin(), grad_s.m.end(), (float)1);
 		}
@@ -844,9 +843,9 @@ int micNode::back_propagete_from(micNode *next)
 			if (next->loss != "") {
 
 				delta.resize(n_b, k_out + 1);
-				if (grad_s.m.size() > 0) { // this condition saves computation when all grad_s are 1 (as in normalization layers).
+				if (grad_s.size() > 0) { // this condition saves computation when all grad_s are 1 (as in normalization layers).
 
-					fast_element_dot_vector_vector(next->delta.m, grad_s.m, delta.m);
+					fast_element_dot_vector_vector(next->delta.get_vec(), grad_s.get_vec(), delta.get_vec());
 					//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
 //					for (i=0; i<n_b; i++)
 //						for (int j=0; j<k_out; j++)
@@ -864,8 +863,8 @@ int micNode::back_propagete_from(micNode *next)
 				if (fast_multiply_medmat_transpose(next->delta, next->wgt, delta, 0x2) < 0)
 					return -1;
 
-				if (grad_s.m.size() > 0)
-					fast_element_dot_vector_vector(delta.m, grad_s.m);
+				if (grad_s.size() > 0)
+					fast_element_dot_vector_vector(delta.get_vec(), grad_s.get_vec());
 				//#pragma omp parallel for private(i) if (n_b>100 || k_out>100)
 				//					for (i=0; i<n_b; i++)
 				//						for (int j=0; j<k_out; j++)
@@ -882,7 +881,7 @@ int micNode::back_propagete_from(micNode *next)
 					return -1;
 
 				// grad_w = grad_w + lambda * wgt
-				fast_element_affine_scalar(grad_w.m, lambda(0, 0), wgt.m);
+				fast_element_affine_scalar(grad_w.get_vec(), lambda(0, 0), wgt.get_vec());
 				//#pragma omp parallel for private(i) if (n_in>100)
 				//				for (i=0; i<n_in; i++)
 				//					for (int j=0; j<k_out; j++)
@@ -978,12 +977,12 @@ int micNode::weights_gd_step()
 				grad_w(i, j) *= dropout_in[i] * dropout_out[j];
 	}
 
-	if (prev_grad_w.m.size() != grad_w.m.size()) {
+	if (prev_grad_w.size() != grad_w.size()) {
 		prev_grad_w = grad_w;
 	}
 	else {
 		float one_minus_momentum = (float)1 - momentum;
-		fast_element_affine_scalar(momentum, prev_grad_w.m, one_minus_momentum, grad_w.m);
+		fast_element_affine_scalar(momentum, prev_grad_w.get_vec(), one_minus_momentum, grad_w.get_vec());
 		//#pragma omp parallel for private(i) if(n_in>100)
 		//		for (i=0; i<n_in+1; i++) {
 		//			for (int j=0; j<k_out; j++)
@@ -996,7 +995,7 @@ int micNode::weights_gd_step()
 		// now do the gradient descent step
 	//#pragma omp parallel for private(i) if(n_in>100)
 		// wgt = wgt - lr*prev_grad_w
-	fast_element_affine_scalar(wgt.m, -rate_factor * learn_rates(0, 0), prev_grad_w.m);
+	fast_element_affine_scalar(wgt.get_vec(), -rate_factor * learn_rates(0, 0), prev_grad_w.get_vec());
 	//for (i=0; i<n_in+1; i++) {
 	//	for (int j=0; j<k_out; j++)
 	//		wgt(i, j) = wgt(i, j) - rate_factor*learn_rates(j, 0)*prev_grad_w(i, j);
@@ -1129,7 +1128,7 @@ void micNode::print(const string &prefix, int i_state, int i_in)
 		}
 	}
 
-	if (print_y && y.m.size() > 0) {
+	if (print_y && y.size() > 0) {
 		MLOG("%s node %d : y(:) :", prefix.c_str(), id);
 		for (int i = 0; i < y.nrows; i++)
 			MLOG(" (%d) %3.1f", i, y(i, 0));
@@ -1807,7 +1806,7 @@ int micNet::back_prop_batch()
 
 				if (prev->type != "Input") {
 
-					if (prev->wgt.m.size() > 0)
+					if (prev->wgt.size() > 0)
 						prev->weights_gd_step();
 
 					prev->print("debug backward after gd step", 1, 6);
@@ -2099,7 +2098,7 @@ void micNet::predict_single(const vector<float> &x, vector<float> &preds) const
 	}
 
 	// copy results to preds mat
-	preds = move(last_pred.m);
+	preds = move(last_pred.get_vec());
 	if (preds.size() > 1) //has additional channel of 1 for bias - remove it
 		preds.resize(preds.size() - 1);
 	/*for (int j = 0; j < n_categ; j++)
@@ -2409,7 +2408,7 @@ int micNet::predict(MedMat<float> &x, vector<float> &preds)
 	if (predict(x, mpreds) < 0) return -1;
 
 	if (params.n_categ == params.n_preds_per_sample && mpreds.ncols == params.n_categ)
-		preds = move(mpreds.m);
+		preds = move(mpreds.get_vec());
 	else if (params.n_preds_per_sample == 1 && params.pred_class < params.n_categ && mpreds.ncols == params.n_categ)
 		mpreds.get_col(params.pred_class, preds);
 	else {

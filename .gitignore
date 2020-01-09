@@ -95,3 +95,11 @@ Internal/MedPyExport/generate_binding/MedPython/apply_directives.i
 External/LightGBM_2.2.3/LightGBM-2.2.3/include_bkp/
 External/LightGBM_2.2.3/LightGBM-2.2.3/lightgbm
 External/LightGBM_2.2.3/LightGBM-2.2.3/examples/parallel_learning/mlist.txt
+External/xgboost/dmlc-core/windows/dmlc/CMakeLists.txt
+External/xgboost/windows/xgboost/CMakeLists.txt
+Internal/AlgoMarker/*.csv
+Internal/AlgoMarker/t1
+Internal/AlgoMarker/t2
+Internal/MedProcessTools/MedProcessTools/MedProcessWrappers_bkp.h
+External/xgboost/dmlc-core/windows/dmlc/CMakeLists.txt
+External/xgboost/windows/xgboost/CMakeLists.txt

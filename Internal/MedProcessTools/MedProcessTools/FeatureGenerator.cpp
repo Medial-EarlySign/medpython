@@ -354,18 +354,21 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 {
 
 	if (name == "last")				return FTR_LAST_VALUE;
+	if (name == "last_nth")				return FTR_LAST_NTH_VALUE;
 	if (name == "first")			return FTR_FIRST_VALUE;
 	if (name == "last2")			return FTR_LAST2_VALUE;
 	if (name == "avg")				return FTR_AVG_VALUE;
 	if (name == "max")				return FTR_MAX_VALUE;
 	if (name == "min")				return FTR_MIN_VALUE;
 	if (name == "std")				return FTR_STD_VALUE;
+	if (name == "sum")				return FTR_SUM_VALUE;
 	if (name == "last_delta")		return FTR_LAST_DELTA_VALUE;
 	if (name == "last_time")		return FTR_LAST_DAYS;
 	if (name == "last2_time")		return FTR_LAST2_DAYS;
 	if (name == "slope")			return FTR_SLOPE_VALUE;
 	if (name == "win_delta")				return FTR_WIN_DELTA_VALUE;
 	if (name == "category_set")				return FTR_CATEGORY_SET;
+	if (name == "category_set_last_nth")				return FTR_CATEGORY_SET_LAST_NTH;
 	if (name == "category_set_count")		return FTR_CATEGORY_SET_COUNT;
 	if (name == "category_set_sum")			return FTR_CATEGORY_SET_SUM;
 	if (name == "nsamples")			return FTR_NSAMPLES;
@@ -414,18 +417,21 @@ void BasicFeatGenerator::set_names() {
 		set_names = boost::algorithm::join(this->sets, "_");
 	switch (type) {
 	case FTR_LAST_VALUE:	name += "last"; break;
+	case FTR_LAST_NTH_VALUE:	name += "last_"+to_string(N_th); break;
 	case FTR_FIRST_VALUE:	name += "first"; break;
 	case FTR_LAST2_VALUE:	name += "last2"; break;
 	case FTR_AVG_VALUE:		name += "avg"; break;
 	case FTR_MAX_VALUE:		name += "max"; break;
 	case FTR_MIN_VALUE:		name += "min"; break;
 	case FTR_STD_VALUE:		name += "std"; break;
+	case FTR_SUM_VALUE:		name += "sum"; break;
 	case FTR_LAST_DELTA_VALUE:		name += "last_delta"; break;
 	case FTR_LAST_DAYS:				name += "last_time"; break;
 	case FTR_LAST2_DAYS:			name += "last2_time"; break;
 	case FTR_SLOPE_VALUE:			name += "slope"; break;
 	case FTR_WIN_DELTA_VALUE:		name += "win_delta"; break;
 	case FTR_CATEGORY_SET:			name += "category_set_" + set_names; break;
+	case FTR_CATEGORY_SET_LAST_NTH:			name += "category_set_last_nth_" + to_string(N_th) + "_" + set_names; break;
 	case FTR_CATEGORY_SET_COUNT:	name += "category_set_count_" + set_names; break;
 	case FTR_CATEGORY_SET_SUM:		name += "category_set_sum_" + set_names; break;
 	case FTR_CATEGORY_SET_FIRST:	name += "category_set_first_" + set_names; break;
@@ -469,6 +475,7 @@ void BasicFeatGenerator::init_defaults() {
 	bound_outcomeTime = false;
 	timeRangeSignalId = -1;
 	//set(_signalName, FTR_LAST, 0, 360000);
+	N_th = 0;
 };
 
 // Generate
@@ -484,10 +491,11 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
 			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
-
+		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
+	}
 	return 0;
 }
 
@@ -495,7 +503,8 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME) {
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME 
+		|| type == FTR_CATEGORY_SET_LAST_NTH) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
@@ -531,18 +540,21 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 
 	switch (type) {
 	case FTR_LAST_VALUE:	return uget_last(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_LAST_NTH_VALUE:	return uget_last_nth(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_FIRST_VALUE:	return uget_first(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_LAST2_VALUE:	return uget_last2(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_AVG_VALUE:		return uget_avg(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_MAX_VALUE:		return uget_max(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_MIN_VALUE:		return uget_min(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_STD_VALUE:		return uget_std(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_SUM_VALUE:		return uget_sum(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_LAST_DELTA_VALUE:	return uget_last_delta(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_LAST_DAYS:			return uget_last_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_LAST2_DAYS:		return uget_last2_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_SLOPE_VALUE:		return uget_slope(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_WIN_DELTA_VALUE:	return uget_win_delta(rec.usv, time, updated_win_from, updated_win_to, updated_d_win_from, updated_d_win_to, outcomeTime);
 	case FTR_CATEGORY_SET:				return uget_category_set(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
+	case FTR_CATEGORY_SET_LAST_NTH:				return uget_category_set_last_nth(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_COUNT:		return uget_category_set_count(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_SUM:			return uget_category_set_sum(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_NSAMPLES:			return uget_nsamples(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
@@ -585,6 +597,8 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_range_signal_type") timeRangeType = time_range_name_to_type(entry.second);
 		else if (field == "min_value") min_value = stof(entry.second);
 		else if (field == "max_value") max_value = stof(entry.second);
+		else if (field == "nth" || field == "Nth") N_th = stoi(entry.second);
+		else if (field == "zero_missing") zero_missing = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
@@ -886,6 +900,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + ((sets.size() > 0) ? sets[0] : ""); break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
 	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
+	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th); break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -926,6 +941,9 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "recurrence_delta") recurrence_delta = med_stoi(entry.second);
 		else if (field == "min_range_time") min_range_time = med_stoi(entry.second);
 		else if (field == "div_factor") div_factor = med_stof(entry.second);
+		else if (field == "Nth" || field == "nth") N_th = med_stoi(entry.second);
+		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
+		else if (field == "strict_times") strict_times = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -970,6 +988,7 @@ void RangeFeatGenerator::init_defaults() {
 	string _signalName = "";
 	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
 	timeRangeSignalId = -1;
+	N_th = 0;
 };
 
 // Get type from name
@@ -985,6 +1004,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "time_diff")  return FTR_RANGE_TIME_DIFF;
 	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
 	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
+	if (name == "last_nth_time_len")		return FTR_RANGE_LAST_NTH_TIME_LENGTH;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -1000,8 +1020,10 @@ int RangeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	float *p_feat = _p_data[0] + index;
 	MedSample *p_samples = &(features.samples[index]);
 
-	for (int i = 0; i < num; i++)
+	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time));
+		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
+	}
 
 	return 0;
 }
@@ -1029,6 +1051,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_TIME_DIFF: 	return uget_range_time_diff(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_RECURRENCE_COUNT: return uget_range_recurrence_count(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
+	case FTR_RANGE_LAST_NTH_TIME_LENGTH: return uget_range_last_nth_time_len(rec.usv, win_from, win_to, time);
 
 
 	default:	return missing_val;
@@ -1062,6 +1085,32 @@ float BasicFeatGenerator::uget_last(UniversalSigVec &usv, int time, int _win_fro
 
 	return missing_val;
 }
+
+// get the last nth value in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_last_nth(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+
+	//MLOG("min_time %d max_time %d usv.len %d time %d\n", min_time, max_time, usv.len, time);
+	int nth = 0;
+	for (int i = usv.len - 1; i >= 0; i--) {
+		int itime = usv.Time(i, time_channel);
+		//MLOG("%d,%d,%d(%d),%f\n", i, itime, nth, N_th, usv.Val(i, val_channel));
+		if (itime <= max_time) {
+			if (itime >= min_time) {
+				if (nth == N_th)
+					return usv.Val(i, val_channel);
+				nth++;
+			}
+			else
+				return missing_val;
+		}
+	}
+
+	return missing_val;
+}
+
 
 //.......................................................................................
 // get the first value in the window [win_to, win_from] before time
@@ -1180,6 +1229,26 @@ float BasicFeatGenerator::uget_min(UniversalSigVec &usv, int time, int _win_from
 
 	return missing_val;
 }
+
+
+//.......................................................................................
+// get the sum of values in the window [win_to, win_from] before time
+float BasicFeatGenerator::uget_sum(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
+
+	float sum_val = (float)0;
+
+	for (int i = usv.len-1; i >=0; i--) {
+		int itime = usv.Time(i, time_channel);
+		if (itime < min_time) break;
+		if (itime <= max_time) sum_val += usv.Val(i, val_channel);
+	}
+
+	return sum_val;
+}
+
 
 //.......................................................................................
 // get the std in the window [win_to, win_from] before time
@@ -1370,6 +1439,15 @@ float BasicFeatGenerator::uget_category_set(PidDynamicRec &rec, UniversalSigVec 
 	return 0;
 }
 
+//.......................................................................................
+float BasicFeatGenerator::uget_category_set_last_nth(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
+{
+
+	float val = uget_last_nth(usv, time, _win_from, _win_to, outcomeTime);
+	if (val == missing_val) return missing_val;
+	if (lut[(int)val]) return 1;
+	return 0;
+}
 
 float BasicFeatGenerator::uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)
 {
@@ -1730,6 +1808,37 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 	}
 
 	return (float)time_sum / div_factor;
+}
+
+// calculate the length in time (in win_time unit) of the last nth range in the given window
+// major usages: with N_th=0 , get the last range length in days, etc
+//............................................................................................
+float RangeFeatGenerator::uget_range_last_nth_time_len(UniversalSigVec &usv, int win_from, int win_to, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(win_from, win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
+
+	int nth = 0;
+	for (int i = usv.len - 1; i >= 0; i--) {
+		int curr_from = usv.Time(i, 0);
+		int curr_to = usv.Time(i, 1);
+
+		if (curr_from > max_time) continue; // skip cases 
+		if (curr_to > max_time) {
+			if (strict_times) continue;
+			curr_to = max_time;
+		}
+
+		// we are at the right window, find the n-th
+		if (nth == N_th)
+			return (float)med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
+		
+		nth++;
+		if (nth > N_th)
+			return missing_val;
+	}
+
+	return missing_val;
 }
 
 //=======================================================================================

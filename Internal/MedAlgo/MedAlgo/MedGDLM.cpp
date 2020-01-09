@@ -568,17 +568,17 @@ int MedGDLM::Learn_sgd(float *x, float *y, const float *w, int nsamples, int nft
 	while (err > params.stop_at_err && niter < params.max_iter) {
 
 		for (int bn = 0; bn < n_batches; bn++) {
-			int from = bn * params.batch_size;
+			size_t from = (size_t)bn * (size_t)params.batch_size;
 			int len = params.batch_size; // len is nsamples in batch
-			if (from + len > nsamples) len = nsamples - from;
-			Map<MatrixXf> xf(&x[from*nftrs], nftrs, len);
+			if ((int)from + len > nsamples) len = nsamples - (int)from;
+			Map<MatrixXf> xf(&x[from*(size_t)nftrs], nftrs, len);
 			Map<MatrixXf> yf(&y[from], 1, len);
 			Map<MatrixXf> pf(&vpf[0], 1, len);
 			float fact_grad = (float)1 / (float)len;
 
 			pf = bf * xf - yf;
 			pf.array() += b0;
-			if (w != NULL) for (int j = 0; j < len; j++) pf(0, j) = pf(0, j) * norm_wgts[from + j];
+			if (w != NULL) for (size_t j = 0; j < len; j++) pf(0, j) = pf(0, j) * norm_wgts[from + j];
 			grad = pf * xt.block(from, 0, len, nftrs);
 			grad *= fact_grad; // normalizing gradient to be independent of sample size (to "gradient per sample" units)
 			bias_grad = pf.array().sum();
@@ -756,9 +756,9 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 	while (err > params.stop_at_err && niter < params.max_iter) {
 		for (int bn = 0; bn < n_batches; bn++) {
 
-			int from = bn * params.batch_size;
+			size_t from = bn * params.batch_size;
 			int len = params.batch_size; // len is nsamples in batch
-			if (from + len > nsamples) len = nsamples - from;
+			if ((int)from + len > nsamples) len = nsamples - (int)from;
 
 			// next patch is for randomizing the batch each round... currently "code in sleep"
 			//xx.resize(params.batch_size*nftrs);
@@ -772,7 +772,7 @@ int MedGDLM::Learn_logistic_sgd(float *x, float *y, const float *w, int nsamples
 			//			Map<MatrixXf> xf(&xx[0],nftrs,len);
 			//			Map<MatrixXf> yf(&yy[0],1,len);
 
-			Map<MatrixXf> xf(&x[from*nftrs], nftrs, len);
+			Map<MatrixXf> xf(&x[from*(size_t)nftrs], nftrs, len);
 			Map<MatrixXf> yf(&y[from], 1, len);
 			Map<MatrixXf> pf(&vpf[0], 1, len);
 
@@ -998,10 +998,10 @@ int MedGDLM::Learn_logistic_sgd_threaded(float *x, float *y, const float *w, int
 				}
 				grads.row(th) = grad.row(0);
 				for (int j = 0; j < n_batches_per_thread; j++) {
-					int from = i_b[th][j] * batch_size;
-					int to = min(from + batch_size, nsamples);
-					int len = to - from;
-					Map<MatrixXf> xf(&x[from*nftrs], nftrs, len);
+					size_t from = i_b[th][j] * batch_size;
+					int to = min((int)from + batch_size, nsamples);
+					int len = to - (int)from;
+					Map<MatrixXf> xf(&x[from*(size_t)nftrs], nftrs, len);
 					Map<MatrixXf> yf(&y[from], 1, len);
 					Map<MatrixXf> pf(&vpf[th*batch_size], 1, len);
 					float fact_grad = (float)1.0 / (float)len;

@@ -12,6 +12,21 @@
 
 using namespace std;
 
+/// @enum
+/// Samples Generator Types options
+enum GeneratorType
+{
+	GIBBS = 0, ///< "GIBBS" - to use GibbsSampler
+	GAN = 1, ///< "GAN" to use GAN generator, accepts GAN path
+	MISSING = 2, ///< "MISSING" to use no generator, just puts missing values where mask[i]==0
+	RANDOM_DIST = 3 ///< "RANDOM_DIST" to use random normal distributaion on missing values
+};
+
+/// convert function for generator type to string
+string GeneratorType_toStr(GeneratorType type);
+/// convert function for generator
+GeneratorType GeneratorType_fromStr(const string &type);
+
 /**
 * Abstract Random Samples generator
 */
@@ -31,7 +46,12 @@ public:
 	/// <summary>
 	/// learn of sample generator
 	/// </summary>
-	virtual void learn(const map<string, vector<T>> &data) {};
+	void learn(const map<string, vector<T>> &data);
+
+	/// <summary>
+	/// learn of sample generator
+	/// </summary>
+	virtual void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {};
 
 	/// <summary>
 	/// apply of sample generator - deafult arguments with mask, and mask values to generate values in mask, where mask[i]==false. 
@@ -82,7 +102,7 @@ public:
 
 	void prepare(void *params);
 
-	void learn(const map<string, vector<T>> &data);
+	void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
 	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
@@ -161,7 +181,7 @@ public:
 
 	MissingsSamplesGenerator(float miss_valu);
 
-	void learn(const map<string, vector<T>> &data);
+	void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
 	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
@@ -185,7 +205,7 @@ public:
 
 	RandomSamplesGenerator(T mean_val, T std_val);
 
-	void learn(const map<string, vector<T>> &data);
+	void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
 	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);

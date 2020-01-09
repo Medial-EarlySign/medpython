@@ -5,6 +5,7 @@
 
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
+#include "PredictorImputer.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -45,6 +46,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_ONE_HOT;
 	else if (processor_name == "get_prob")
 		return FTR_PROCESS_GET_PROB;
+	else if (processor_name == "predictor_imputer")
+		return FTR_PROCESS_PREDICTOR_IMPUTER;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -82,6 +85,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeFeatureSelector);
 	CONDITIONAL_NEW_CLASS(dname, OneHotFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
+	CONDITIONAL_NEW_CLASS(dname, PredictorImputer);
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -121,9 +125,11 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new OneHotFeatProcessor;
 	else if (processor_type == FTR_PROCESS_GET_PROB)
 		return new GetProbFeatProcessor;
-	else 
+	else if (processor_type == FTR_PROCESS_PREDICTOR_IMPUTER)
+		return new PredictorImputer;
+	else
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
-	
+
 }
 
 //.......................................................................................
@@ -231,32 +237,39 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			if (tag == "" || features.tags[name].find(tag) != features.tags[name].end())
 				features_to_process.push_back(name);
 		}
-		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d\n",
-			features_to_process.size(), members_type);
 		add_processors_set(members_type, features_to_process, init_string);
+		string tp_name = "";
+		if (!processors.empty())
+			tp_name = processors.back()->my_class_name();
+		MLOG("MultiFeautreProcessor - using duplicate to create %zu processors of type %d(%s)\n",
+			features_to_process.size(), members_type, tp_name.c_str());
 	}
 
 	int RC = 0;
 
 	// Allow nested parallelism if one processor
-	if (processors.size() == 1) omp_set_nested(2);
+	if (processors.size() == 1) {
+		use_parallel_learn = false;
+		use_parallel_apply = false;
+	}
 
-#pragma omp parallel for schedule(dynamic)
+	/*if (!use_parallel_learn && !processors.empty())
+		MLOG("no threads for processor %s\n", processors.front()->my_class_name().c_str());*/
+
+#pragma omp parallel for schedule(dynamic) if (use_parallel_learn)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
 #pragma omp critical
 		if (rc < 0) RC = -1;
 	}
 
-	omp_set_nested(0);
 	return RC;
 }
 
 //.......................................................................................
 int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
-
 	int RC = 0;
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_apply(features, ids);
 #pragma omp critical
@@ -270,7 +283,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
 
 	int RC = 0;
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_conditional_apply(features, ids, req_features);
 #pragma omp critical
@@ -392,6 +405,8 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 		string field = entry.first;
 		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		if (field == "use_parallel_learn") use_parallel_learn = med_stoi(entry.second) > 0;
+		if (field == "use_parallel_apply") use_parallel_apply = med_stoi(entry.second) > 0;
 		//! [MultiFeatureProcessor::init]
 	}
 
@@ -568,7 +583,7 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 				data[i] = 0;
 		}
 		if (!isfinite(data[i]))
-			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);	
+			MTHROW_AND_ERR("FeatureNormalizer sd: %f mean: %f", sd, mean);
 	}
 
 	//MLOG("FeatureNormalizer::Apply() done for feature %s , mean %f sd %f size %d flags: normalized %d imputed %d\n", 
@@ -876,7 +891,7 @@ void FeatureImputer::update_req_features_vec(unordered_set<string>& out_req_feat
 
 void FeatureImputer::dprint(const string &pref, int fp_flag) {
 	if (fp_flag > 0) {
-		MLOG("%s :: FP type %d(%s) : feature_name %s :: default_moment %f \n", pref.c_str(), 
+		MLOG("%s :: FP type %d(%s) : feature_name %s :: default_moment %f \n", pref.c_str(),
 			processor_type, my_class_name().c_str(), feature_name.c_str(), default_moment);
 	}
 }
@@ -929,7 +944,7 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 #pragma omp critical
 		// value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
 		value2feature[value] = out_prefix + "_";
-		
+
 		if (features.attributes[resolved_feature_name].value2Name.empty())
 			value2feature[value] += to_string(value);
 		else if (value == features.medf_missing_value)
@@ -998,6 +1013,7 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	}
 
 	// Remove original, if required
+#pragma omp critical
 	if (rem_origin) {
 		features.data.erase(resolved_feature_name);
 		features.attributes.erase(resolved_feature_name);
