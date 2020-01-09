@@ -53,6 +53,15 @@ KeyRule::KeyRule(const string &signal, const string &type_str, const string &val
 	parse_rule();
 }
 
+void KeyRule::init_lut(MedDictionarySections& dict) {
+	if (type == Rule_Type::SET) {
+		int section_id = dict.section_id(rep_signal);
+		vector<string> set_vals(1);
+		set_vals[0] = rule_value;
+		dict.prep_sets_lookup_table(section_id, set_vals, lut);
+	}
+}
+
 void FeatureGenExtractTable::read_rule_table_files() {
 	vector<string> key_rows, val_rows;
 	vector<string> table_headers, table_data_lines;
@@ -180,6 +189,7 @@ void FeatureGenExtractTable::read_rule_table_files() {
 
 	if (reverse_rule_order)
 		reverse(key_rules.begin(), key_rules.end());
+	MLOG("Read %zu rules\n", key_rules.size());
 }
 
 int FeatureGenExtractTable::init(map<string, string>& mapper) {
@@ -237,18 +247,10 @@ void FeatureGenExtractTable::set_signal_ids(MedSignals& sigs) {
 }
 
 void FeatureGenExtractTable::init_tables(MedDictionarySections& dict) {
-	luts.resize(req_signals.size());
-	if (!key_rules.empty()) {
-		const vector<KeyRule> &all_rules = key_rules.front().rules;
-		for (size_t i = 0; i < all_rules.size(); ++i)
-			if (all_rules[i].type == Rule_Type::SET) {
-				vector<char> &lut = luts[i];
-				int section_id = dict.section_id(req_signals[i]);
-				vector<string> set_val(1);
-				set_val[0] = all_rules[i].rule_value;
-				dict.prep_sets_lookup_table(section_id, set_val, lut);
-			}
-	}
+	for (size_t i = 0; i < key_rules.size(); ++i)
+		for (size_t j = 0; j < key_rules[i].rules.size(); ++j)
+			key_rules[i].rules[j].init_lut(dict);
+	missing_values_cnt = 0;
 }
 
 void FeatureGenExtractTable::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
@@ -265,7 +267,7 @@ void FeatureGenExtractTable::set_names() {
 	names = extracted_names;
 }
 
-bool KeyRule::test_rule(float val, const vector<char> &lut) const {
+bool KeyRule::test_rule(float val) const {
 
 	switch (type)
 	{
@@ -279,11 +281,11 @@ bool KeyRule::test_rule(float val, const vector<char> &lut) const {
 	}
 }
 
-bool MapRules::join(const vector<float> &join_vals, const vector<vector<char>> &luts) const {
+bool MapRules::join(const vector<float> &join_vals) const {
 	//check each condition
 	bool can_join = true;
 	for (size_t i = 0; i < join_vals.size() && can_join; ++i)
-		can_join = rules[i].test_rule(join_vals[i], luts[i]);
+		can_join = rules[i].test_rule(join_vals[i]);
 	return can_join;
 }
 
@@ -334,9 +336,12 @@ int FeatureGenExtractTable::_generate(PidDynamicRec& in_rep, MedFeatures& featur
 		//find rule to match with join_vals:
 		int rule_idx = -1;
 		for (int k = 0; k < key_rules.size() && rule_idx < 0; ++k)
-			if (key_rules[k].join(join_vals, luts))
+			if (key_rules[k].join(join_vals))
 				rule_idx = k;
 
+		if (rule_idx < 0)
+#pragma omp atomic
+			++missing_values_cnt;
 		//Fill all feature values:
 		for (size_t k = 0; k < names.size(); ++k)
 		{
@@ -375,4 +380,13 @@ int FeatureGenExtractTable::filter_features(unordered_set<string>& validFeatures
 	}
 
 	return 0;
+}
+
+void FeatureGenExtractTable::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
+	missing_values_cnt = 0;
+}
+
+void FeatureGenExtractTable::make_summary() {
+	if (missing_values_cnt > 0)
+		MLOG("FeatureGenExtractTable :: has %d missing samples to join with table\n", missing_values_cnt);
 }

@@ -15,6 +15,7 @@ class KeyRule : public SerializableObject {
 private:
 	float parsed_min_range;
 	float parsed_max_range;
+	vector<char> lut; //lut for the specific rule
 
 	void parse_rule();
 public:
@@ -28,8 +29,11 @@ public:
 
 	KeyRule(const string &signal, const string &type_str, const string &value);
 
-	/// tests the value condition with the rule (passed lut for set check).
-	bool test_rule(float val, const vector<char> &lut) const;
+	/// function to store lut
+	void init_lut(MedDictionarySections& dict);
+
+	/// tests the value condition with the rule
+	bool test_rule(float val) const;
 
 	ADD_CLASS_NAME(KeyRule)
 		ADD_SERIALIZATION_FUNCS(rep_signal, type, rule_value, parsed_min_range, parsed_max_range)
@@ -46,7 +50,7 @@ public:
 	vector<float> values; ///< the matched values for each "join". the names are in different file
 
 	/// test for full join condition with the rules
-	bool join(const vector<float> &join_vals, const vector<vector<char>> &luts) const;
+	bool join(const vector<float> &join_vals) const;
 
 	ADD_CLASS_NAME(MapRules)
 		ADD_SERIALIZATION_FUNCS(rules, values)
@@ -62,7 +66,6 @@ private:
 	vector<MapRules> key_rules; ///< each row is join combination of rules with and
 	vector<string> extracted_names; ///< the extracted names of the values
 
-	vector<vector<char>> luts; ///< luts vector in the same size of req_signals - has values only when needed
 	/// <summary>
 	/// @param table_files - a path to the external table with the numbers and data
 	/// @param rules_config_file - a path to rules file (TAB delimeted). Each row either starts with "KEY" or "VALUE"
@@ -71,6 +74,7 @@ private:
 	/// @param reverse_table_order - if true will reverse table rules
 	/// </summary>
 	void read_rule_table_files();
+	int missing_values_cnt;
 public:
 	string rules_config_file; ///< path to rules config file
 	string table_file; ///< path to table file with numbers
@@ -80,6 +84,7 @@ public:
 	FeatureGenExtractTable() {
 		generator_type = FTR_GEN_EXTRACT_TBL;
 		missing_val = MED_MAT_MISSING_VALUE;
+		missing_values_cnt = 0;
 	}
 
 	void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<FeatureGenExtractTable *>(generator)); }
@@ -92,11 +97,15 @@ public:
 	void init_tables(MedDictionarySections& dict);
 	void set_names();
 
+	void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
+
 	int _generate(PidDynamicRec& in_rep, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	int filter_features(unordered_set<string>& validFeatures);
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
+	void make_summary();
 
 	ADD_CLASS_NAME(FeatureGenExtractTable)
 		ADD_SERIALIZATION_FUNCS(generator_type, names, missing_val, tags, iGenerateWeights, key_rules, extracted_names)

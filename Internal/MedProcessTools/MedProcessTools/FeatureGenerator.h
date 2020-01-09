@@ -149,6 +149,12 @@ public:
 	// Filter generated features according to a set. return number of valid features
 	virtual int filter_features(unordered_set<string>& validFeatures);
 
+	///<summary>
+	/// prints summary of generator job. optional, called after generate.
+	/// for example - prints how many values were missing value
+	///</summary>
+	virtual void make_summary() {};
+
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, names, learn_nthreads, pred_nthreads, missing_val, tags, iGenerateWeights)
