@@ -210,6 +210,25 @@ int FeatureGenExtractTable::init(map<string, string>& mapper) {
 	}
 	read_rule_table_files();
 
+	req_signals.clear();
+	req_signal_ids.clear();
+	if (!key_rules.empty()) {
+		const vector<KeyRule> &all_rules = key_rules.front().rules;
+		//fetch AND condition signal rules
+		for (const KeyRule &kr : all_rules)
+		{
+			if (kr.type == Rule_Type::SET)
+				req_signals.push_back(kr.rep_signal);
+
+			else if (kr.type == Rule_Type::AGE_RANGE)
+				//requires BYEAR - if more complicated (other feature generator - use this feature generator to retrieve req_features)
+				req_signals.push_back("BYEAR");
+			else
+				MTHROW_AND_ERR("Error FeatureGenExtractTable::set_signal_ids - not impelmented for rule type %d\n",
+					int(kr.type));
+		}
+	}
+
 	return 0;
 }
 
