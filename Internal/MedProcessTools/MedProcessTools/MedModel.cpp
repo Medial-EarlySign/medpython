@@ -520,6 +520,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		}
 	}
 
+	// call summary for generation
+	for (auto& generator : _generators)
+		generator->make_summary();
+
 	if (thrown < 0) throw thrown; // throwing if needed
 	return RC;
 

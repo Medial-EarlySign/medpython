@@ -74,23 +74,7 @@ string expandEnvVars(const string &str) {
 #endif
   return ret;
 }
-/*
-class charpp_adaptor : public vector<string> {
-protected:
-	vector<char*> charpp_arr;
-public:
-	charpp_adaptor() : vector<string>() {};
-	charpp_adaptor(int capacity) : vector<string>(capacity) {};
-	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) {};
-	char** get_charpp() {
-		charpp_arr.clear();
-		for (auto& str : *this) {
-			charpp_arr.push_back(const_cast<char*>(str.data()));
-		}
-		return charpp_arr.data();
-	}
-};
-*/
+
 
 class charpp_adaptor : public vector<string> {
 protected:
@@ -167,6 +151,98 @@ public:
 		if (data_p_size == 0)
 			return nullptr;
 		return data_p;
+	}
+};
+
+class testing_context {
+public:
+	string med_csv_file;
+	string am_csv_file;
+	bool force_add_data;
+	vector<string> ignore_sig;
+	string msgs_file;
+	ofstream msgs_stream;
+	string rep, samples, model, generate_data_outfile, generate_data_cat_prefix;
+	bool generate_data;
+	bool generate_data_force_cat_prefix;
+	bool apply;
+	string apply_outfile, apply_repdata;
+	string apply_amconfig;
+	string scores_file;
+	bool score_to_date_format_is_samples;
+	string apply_dates_to_score;
+	bool test_am = true;
+	bool test_med = true;
+	string amfile;
+	bool egfr_test;
+	bool signalsum_test;
+	string amconfig;
+	bool print_msgs;
+	bool single;
+	string med_res_file;
+	string am_res_file;
+
+
+
+	int read_from_var_map(po::variables_map vm) {
+		med_csv_file = vm["med_csv_file"].as<string>();
+		am_csv_file = vm["am_csv_file"].as<string>();
+		force_add_data = vm.count("force_add_data") != 0;
+		if (vm["ignore_sig"].as<string>() != "")
+			split(ignore_sig, vm["ignore_sig"].as<string>(), boost::is_any_of(","));
+		msgs_file = (vm["msgs_file"].as<string>());
+		if (msgs_file != "") {
+			msgs_stream.open(msgs_file);
+			msgs_stream << "msg_type\tpid\tdate\ti\tj\tk\tcode\tmsg_text" << endl;
+		}
+		rep = vm["rep"].as<string>();
+		samples = vm["samples"].as<string>();
+		model = vm["model"].as<string>();
+		generate_data = (vm.count("generate_data") != 0);
+		if (generate_data) {
+			if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
+			{
+				std::cerr << "Missing argument, Please specify --rep, --samples, --model, --generate_data_outfile.\n";
+				return -1;
+			}
+			generate_data_outfile = vm["generate_data_outfile"].as<string>();
+			generate_data_cat_prefix = vm["generate_data_cat_prefix"].as<string>();
+			generate_data_force_cat_prefix = (vm.count("generate_data_force_cat_prefix") != 0);
+		}
+		apply = (vm.count("apply") != 0);
+		apply_outfile = vm["apply_outfile"].as<string>();
+		apply_repdata = vm["apply_repdata"].as<string>();
+		apply_amconfig = vm["apply_amconfig"].as<string>();
+		apply_dates_to_score = vm["apply_dates_to_score"].as<string>();
+		if (apply || (vm.count("apply_amconfig") && apply_amconfig != "")) {
+			if (rep == "" ||
+				(samples == "" && apply_dates_to_score == "") ||
+				model == "" ||
+				apply_outfile == "" ||
+				apply_repdata == "")
+			{
+				MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
+				return -1;
+			}
+			string scores_file = vm["samples"].as<string>();
+			score_to_date_format_is_samples = true;
+			if (vm["apply_dates_to_score"].as<string>() != "") {
+				scores_file = vm["apply_dates_to_score"].as<string>();
+				score_to_date_format_is_samples = false;
+			}
+		}
+		if (vm.count("only_am")) test_med = false;
+		if (vm.count("only_med")) test_am = false;
+		amfile = vm["amfile"].as<string>();
+		egfr_test = (vm.count("egfr_test") != 0);
+		signalsum_test = vm.count("signalsum_test") != 0;
+		amconfig = vm["amconfig"].as<string>();
+		print_msgs = (vm.count("print_msgs") != 0);
+		single = (vm.count("single") != 0);
+		med_res_file = vm["med_res_file"].as<string>();
+		am_res_file = vm["am_res_file"].as<string>();
+	
+		return 0;
 	}
 };
 
@@ -315,15 +391,6 @@ public:
 					}
 
 					chan_dict.push_back(new_dict);
-					/*
-					auto& dict = new_dict; //rep.dict.dict(section_id)->Id2Name;										   
-					ofstream f;
-					f.open("/nas1/Work/Users/Shlomi/apply-program/generated/dict.orig.tsv");
-					for (const auto& entry : dict) {
-					f << entry.first << '\t' << entry.second << '\n';
-					}
-					f.close();
-					*/
 				}
 				else chan_dict.push_back(map<int, string>());
 			}
@@ -464,15 +531,6 @@ public:
 						}
 						catch(...){
 							MERR("Error converting sig %s, chan %d, '%s' back to code\n",sig.c_str(), vchan, fields[fields_i-1].c_str());
-							/*
-							auto& dict = *(sig_dict.at(sig)[vchan]);
-							ofstream f;
-							f.open("/nas1/Work/Users/Shlomi/apply-program/generated/dict.tsv");
-							for (const auto& entry : dict) {
-								f << entry.first << '\t' << entry.second << '\n';
-							}
-							f.close();
-							*/
 							exit(-1);
 						}
 					}
@@ -581,7 +639,7 @@ public:
 					if ((times.size() > 0) || (vals.size() > 0)) {
 						get_volatile_data_adaptor<long long> p_times(times);
 						get_volatile_data_adaptor<float> p_vals(vals);
-						DynAM::AM_API_AddData(am, pid, sig.c_str(), times.size(), p_times.get_volatile_data(), vals.size(), p_vals.get_volatile_data());
+						DynAM::AM_API_AddData(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), p_vals.get_volatile_data());
 					}
 				}
 				else {
@@ -603,7 +661,7 @@ public:
 
 					if ((times.size() > 0) || (str_vals.size() > 0)) {
 						get_volatile_data_adaptor<long long> p_times(times);
-						DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), times.size(), p_times.get_volatile_data(), str_vals.size(), str_vals.get_charpp());
+						DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)str_vals.size(), str_vals.get_charpp());
 					}
 				}
 		    }
@@ -1255,68 +1313,40 @@ int main(int argc, char *argv[])
 	if (vm.count("help")) {
 	    return 0;
 	}
+	testing_context t_ctx;
+	t_ctx.read_from_var_map(vm);
 
-	string med_csv_file = vm["med_csv_file"].as<string>();
-	string am_csv_file = vm["am_csv_file"].as<string>();
-	bool force_add_data = vm.count("force_add_data") != 0;
-
-	vector<string> ignore_sig;
-	if (vm["ignore_sig"].as<string>() != "")
-		split(ignore_sig, vm["ignore_sig"].as<string>(), boost::is_any_of(","));
-
-	string msgs_file = (vm["msgs_file"].as<string>());
-	ofstream msgs_stream;
-	if (msgs_file != "") {
-		msgs_stream.open(msgs_file);
-		msgs_stream << "msg_type\tpid\tdate\ti\tj\tk\tcode\tmsg_text" << endl;
-	}
-
-
-	if (vm.count("generate_data")) {
-		if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
-		{
-			std::cerr << "Missing argument, Please specify --rep, --samples, --model, --generate_data_outfile.\n";
-			return -1;
-		}
+	if (t_ctx.generate_data) {
 		return generate_data(
-			vm["rep"].as<string>(), 
-			vm["samples"].as<string>(), 
-			vm["model"].as<string>(), 
-			vm["generate_data_outfile"].as<string>(), 
-			vm["generate_data_cat_prefix"].as<string>(), 
-			vm.count("generate_data_force_cat_prefix")!=0);
+			t_ctx.rep,
+			t_ctx.samples,
+			t_ctx.model,
+			t_ctx.generate_data_outfile,
+			t_ctx.generate_data_cat_prefix,
+			t_ctx.generate_data_force_cat_prefix);
 	}
-	if (vm.count("apply") || (vm.count("apply_amconfig") && vm["apply_amconfig"].as<string>() != "")) {
-		if (vm["rep"].as<string>() == "" || 
-			(vm["samples"].as<string>() == "" && vm["apply_dates_to_score"].as<string>() =="" ) ||
-			vm["model"].as<string>() == "" || 
-			vm["apply_outfile"].as<string>() == "" ||
-			vm["apply_repdata"].as<string>() == "" ) 
-		{
-			MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
-			return -1;
-		}
-		string scores_file = vm["samples"].as<string>();
-		bool score_to_date_format_is_samples = true;
-		if (vm["apply_dates_to_score"].as<string>() != "") {
-			scores_file = vm["apply_dates_to_score"].as<string>();
-			score_to_date_format_is_samples = false;
-		}
-		return apply_data(vm["apply_repdata"].as<string>(), vm["rep"].as<string>(), scores_file, score_to_date_format_is_samples, vm["model"].as<string>(), vm["apply_outfile"].as<string>(), vm["apply_amconfig"].as<string>(), med_csv_file, am_csv_file, force_add_data, msgs_stream, ignore_sig);
+	if (t_ctx.apply|| t_ctx.apply_amconfig != "") {
+		return apply_data(t_ctx.apply_repdata, 
+			t_ctx.rep, 
+			t_ctx.scores_file, 
+			t_ctx.score_to_date_format_is_samples, 
+			t_ctx.model, 
+			t_ctx.apply_outfile, 
+			t_ctx.apply_amconfig, 
+			t_ctx.med_csv_file, 
+			t_ctx.am_csv_file, 
+			t_ctx.force_add_data, 
+			t_ctx.msgs_stream, 
+			t_ctx.ignore_sig);
 	}
-
-	bool test_am = true;
-	bool test_med = true;
-	if (vm.count("only_am")) test_med = false;
-	if (vm.count("only_med")) test_am = false;
     
-	if(test_am)
-		load_am(vm["amfile"].as<string>().c_str());
+	if(t_ctx.test_am)
+		load_am(t_ctx.amfile.c_str());
 
-	if (vm.count("egfr_test"))
+	if (t_ctx.egfr_test)
 		return simple_egfr_test();
 
-	if (vm.count("signalsum_test"))
+	if (t_ctx.signalsum_test)
 		return signalsum_test();
 
     DataLoader d;
@@ -1324,13 +1354,13 @@ int main(int argc, char *argv[])
 	MedSamples samples,samples2;
 
     try {
-        d.load(vm["rep"].as<string>(),
-            vm["model"].as<string>(),
-            vm["samples"].as<string>());
+        d.load(t_ctx.rep,
+			t_ctx.model,
+			t_ctx.samples);
 
         samples2 = samples = d.samples;
-		if (test_med) {
-			res1 = apply_med_api(d.rep, d.model, samples, med_csv_file, ignore_sig);
+		if (t_ctx.test_med) {
+			res1 = apply_med_api(d.rep, d.model, samples, t_ctx.med_csv_file, t_ctx.ignore_sig);
 			for (int i = 0; i<min(50, (int)res1.size()); i++) {
 				MLOG("#Res1 :: pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0]);
 			}
@@ -1348,22 +1378,22 @@ int main(int argc, char *argv[])
 	//===============================================================================
     vector<MedSample> res2;
     try{
-		if(test_am)
-			res2 = apply_am_api(vm["amconfig"].as<string>(), d, (vm.count("print_msgs")!=0),(vm.count("single")!=0) , am_csv_file, force_add_data, msgs_stream, ignore_sig);
+		if(t_ctx.test_am)
+			res2 = apply_am_api(t_ctx.amconfig, d, t_ctx.print_msgs, t_ctx.single , t_ctx.am_csv_file, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
     }catch(runtime_error e){
       return -1;
     }
 
-    if(test_med && vm["med_res_file"].as<string>()!="")
-        save_sample_vec(res1, vm["med_res_file"].as<string>());
-    if(test_am && vm["am_res_file"].as<string>()!="")
-        save_sample_vec(res2, vm["am_res_file"].as<string>());
+    if(t_ctx.test_med && t_ctx.med_res_file!="")
+        save_sample_vec(res1, t_ctx.med_res_file);
+    if(t_ctx.test_am && t_ctx.am_res_file!="")
+        save_sample_vec(res2, t_ctx.am_res_file);
 
-	if(test_am && test_med)
+	if(t_ctx.test_am && t_ctx.test_med)
 		compare_results(res1, res2);
 	
-	if (msgs_file != "")
-		msgs_stream.close();
+	if (t_ctx.msgs_file != "")
+		t_ctx.msgs_stream.close();
 
     return 0;
 }

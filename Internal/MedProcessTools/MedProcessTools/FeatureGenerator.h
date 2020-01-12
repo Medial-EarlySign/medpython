@@ -40,7 +40,7 @@ typedef enum {
 	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
 	FTR_GEN_CATEGORY_DEPEND, ///< "category_depend" - creates features from categorical signal that have statistical strength in samples - CategoryDependencyGenerator
 	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix
-	
+	FTR_GEN_EXTRACT_TBL, ///< "extract_tbl" - extract values from table with keys and rules to join with each patient	
 	FTR_GEN_ELIXHAUSER, ///< Calculate Current Elixhauser given latest DRG and Diagnosis information
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
@@ -149,6 +149,12 @@ public:
 
 	// Filter generated features according to a set. return number of valid features
 	virtual int filter_features(unordered_set<string>& validFeatures);
+
+	///<summary>
+	/// prints summary of generator job. optional, called after generate.
+	/// for example - prints how many values were missing value
+	///</summary>
+	virtual void make_summary() {};
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureGenerator)
