@@ -24,7 +24,8 @@ void KeyRule::parse_rule() {
 	parsed_max_range = MED_MAT_MISSING_VALUE;
 	if (type == Rule_Type::AGE_RANGE) {
 		//parse age rule and test it: - supports "+" "-" with partial range, and just number
-		if (rule_value.find('+') != string::npos)
+		if (rule_value == "All") {} //no limits, take all
+		else if (rule_value.find('+') != string::npos)
 			parsed_min_range = med_stof(rule_value.substr(0, rule_value.find('+')));
 		else if (rule_value.find('-') != string::npos) {
 			vector<string> tokens;
@@ -114,14 +115,14 @@ void FeatureGenExtractTable::read_rule_table_files() {
 		vector<string> tokens_rule;
 		boost::split(tokens_rule, rule_line, boost::is_any_of("\t"));
 		if (tokens_rule.size() != 4)
-			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format in line:\n%s\n",
-				rule_line.c_str());
+			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format(%s) in line:\n%s\n",
+				rules_config_file.c_str(), rule_line.c_str());
 		const string &table_col_name = tokens_rule[1];
 		const string &target_sig = tokens_rule[2];
 
 		if (table_header_idx.find(table_col_name) == table_header_idx.end())
-			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - in rules file - no match for table col rule %s\nAvailable columns in table:\n%s\n",
-				table_col_name.c_str(), medial::io::get_list(table_headers).c_str());
+			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - in rules file(%s) - no match for table col rule %s\nAvailable columns in table:\n%s\n",
+				rules_config_file.c_str(), table_col_name.c_str(), medial::io::get_list(table_headers).c_str());
 
 		map_rule_signal_to_tbl_key_ind[target_sig] = table_header_idx.at(table_col_name);
 	}
@@ -132,9 +133,9 @@ void FeatureGenExtractTable::read_rule_table_files() {
 		vector<string> tokens_val;
 		boost::split(tokens_val, val_line, boost::is_any_of("\t"));
 		if (tokens_val.size() != 3)
-			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format in rules line:\n%s\n"
+			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format(%s) in rules line:\n%s\n"
 				"Should have 3 tokens in VALUE row\n",
-				val_line.c_str());
+				rules_config_file.c_str(), val_line.c_str());
 		const string &table_val_col = tokens_val[2];
 		extracted_names.push_back(table_val_col);
 	}
@@ -145,10 +146,13 @@ void FeatureGenExtractTable::read_rule_table_files() {
 	{
 		vector<string> tokens_tbl;
 		boost::split(tokens_tbl, table_line, boost::is_any_of("\t"));
-		if (tokens_tbl.size() != table_headers.size())
-			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format in table line:\n%s\n"
+		if (tokens_tbl.size() > table_headers.size())
+			MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format (%s) in table line:\n%s\n"
 				"Has %zu tokens and in header have %zu tokens\n",
-				table_line.c_str(), tokens_tbl.size(), table_headers.size());
+				table_file.c_str(), table_line.c_str(), tokens_tbl.size(), table_headers.size());
+		//if smaller - the last are empty values:
+		if (tokens_tbl.size() < table_headers.size())
+			tokens_tbl.resize(table_headers.size()); //the lasts are empty values
 
 		MapRules full_join_rule;
 		//parse table line by rules - construct KeyRule for each row:
@@ -157,8 +161,8 @@ void FeatureGenExtractTable::read_rule_table_files() {
 			vector<string> tokens_rule;
 			boost::split(tokens_rule, rule_line, boost::is_any_of("\t"));
 			if (tokens_rule.size() != 4)
-				MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format in line:\n%s\n",
-					rule_line.c_str());
+				MTHROW_AND_ERR("Error FeatureGenExtractTable::read_file - bad file format(%s) in line:\n%s\n",
+					rules_config_file.c_str(), rule_line.c_str());
 			const string &target_sig = tokens_rule[2];
 			const string &rule_type = tokens_rule[3];
 
@@ -179,7 +183,10 @@ void FeatureGenExtractTable::read_rule_table_files() {
 					"Available table headers: [%s]\n",
 					table_val_col.c_str(), medial::io::get_list(table_headers).c_str());
 			int col_idx = table_header_idx.at(table_val_col);
-			float table_val = med_stof(tokens_tbl[col_idx]);
+			const string &token_before_parse = tokens_tbl[col_idx];
+			float table_val = missing_val;
+			if (!token_before_parse.empty())
+				table_val = med_stof(token_before_parse);
 			full_join_rule.values.push_back(table_val);
 		}
 
@@ -189,7 +196,7 @@ void FeatureGenExtractTable::read_rule_table_files() {
 
 	if (reverse_rule_order)
 		reverse(key_rules.begin(), key_rules.end());
-	MLOG("Read %zu rules\n", key_rules.size());
+	MLOG("Read %zu rules from %s\n", key_rules.size(), table_file.c_str());
 }
 
 int FeatureGenExtractTable::init(map<string, string>& mapper) {
@@ -202,6 +209,8 @@ int FeatureGenExtractTable::init(map<string, string>& mapper) {
 			table_file = it.second;
 		else if (it.first == "reverse_rule_order")
 			reverse_rule_order = med_stoi(it.second) > 0;
+		else if (it.first == "missing_val")
+			missing_val = med_stof(it.second);
 		else if (it.first == "fg_type" || it.first == "tags") {}
 		else
 			MTHROW_AND_ERR("Error FeatureGenExtractTable::init - unsupported argument %s\n",
