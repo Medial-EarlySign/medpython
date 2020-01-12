@@ -67,6 +67,10 @@ void FeatureGenExtractTable::read_rule_table_files() {
 	vector<string> key_rows, val_rows;
 	vector<string> table_headers, table_data_lines;
 
+	if (rules_config_file.empty())
+		MTHROW_AND_ERR("Error must provide rules_config_file in FeatureGenExtractTable\n");
+	if (table_file.empty())
+		MTHROW_AND_ERR("Error must provide table_file in FeatureGenExtractTable\n");
 	//read rules file into key_rows, val_rows
 	ifstream rules_fr(rules_config_file);
 	string line;
@@ -207,6 +211,8 @@ int FeatureGenExtractTable::init(map<string, string>& mapper) {
 			rules_config_file = it.second;
 		else if (it.first == "table_file")
 			table_file = it.second;
+		else if (it.first == "table_nice_name")
+			table_nice_name = it.second;
 		else if (it.first == "reverse_rule_order")
 			reverse_rule_order = med_stoi(it.second) > 0;
 		else if (it.first == "missing_val")
@@ -218,6 +224,8 @@ int FeatureGenExtractTable::init(map<string, string>& mapper) {
 		//! [FeatureGenExtractTable::init]
 	}
 	read_rule_table_files();
+	if (table_nice_name.empty())
+		table_nice_name = table_file;
 
 	req_signals.clear();
 	req_signal_ids.clear();
@@ -416,5 +424,6 @@ void FeatureGenExtractTable::prepare(MedFeatures &features, MedPidRepository& re
 
 void FeatureGenExtractTable::make_summary() {
 	if (missing_values_cnt > 0)
-		MLOG("FeatureGenExtractTable :: has %d missing samples to join with table\n", missing_values_cnt);
+		MLOG("FeatureGenExtractTable :: has %d missing samples to join with table %s\n", 
+			missing_values_cnt, table_nice_name.c_str());
 }
