@@ -615,17 +615,17 @@ void BinnedLmEstimates::get_p_data(MedFeatures &features, vector<float *> &_p_da
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
 
-	int idx = 0;
+	vector<int> e_points;
+	vector<string> names_new;
 	for (int i = 0; i < names.size(); i++) {
 		if (validFeatures.find(names[i]) != validFeatures.end()) {
-			params.estimation_points[idx] = params.estimation_points[i];
-			names[idx] = names[i];
-			idx++;
+			e_points.push_back(params.estimation_points[i]);
+			names_new.push_back(names[i]);
 		}
 	}
 
-	names.resize(idx);
-	params.estimation_points.resize(idx);
+	names = move(names_new);
+	params.estimation_points = move(e_points);
 
 	return ((int)names.size());
 }
