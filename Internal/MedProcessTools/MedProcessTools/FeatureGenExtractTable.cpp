@@ -415,10 +415,11 @@ int FeatureGenExtractTable::filter_features(unordered_set<string>& validFeatures
 		key_rules[i].values = move(keep_vals);
 	}
 
-	return 0;
+	return (int)names.size();
 }
 
 void FeatureGenExtractTable::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
+	FeatureGenerator::prepare(features, rep, samples);
 	missing_values_cnt = 0;
 }
 
