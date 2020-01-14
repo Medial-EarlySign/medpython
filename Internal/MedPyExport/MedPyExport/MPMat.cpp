@@ -27,13 +27,13 @@ void MPMat::get_numpy_copy(float** ARGOUTVIEWM_ARRAY2, unsigned long long* DIM1,
 	*ARGOUTVIEWM_ARRAY2 = (float*)malloc(sz*sizeof(float));
 	if (*ARGOUTVIEWM_ARRAY2 == nullptr)
 		throw runtime_error("Out of memory while creating a copy of MedMat");
-	memcpy(*ARGOUTVIEWM_ARRAY2, o->m.data(), sz*sizeof(float));
+	memcpy(*ARGOUTVIEWM_ARRAY2, o->get_vec().data(), sz*sizeof(float));
 	*DIM1 = o->nrows;
 	*DIM2 = o->ncols;
 }
 
 void MPMat::get_numpy_view_unsafe(float** ARGOUTVIEW_ARRAY2, unsigned long long* DIM1, unsigned long long* DIM2) {
-	*ARGOUTVIEW_ARRAY2 = o->m.data();
+	*ARGOUTVIEW_ARRAY2 = o->get_vec().data();
 	*DIM1 = o->nrows;
 	*DIM2 = o->ncols;
 }
