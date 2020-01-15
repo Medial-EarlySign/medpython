@@ -2931,7 +2931,8 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 }
 
 void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
-	dict.SectionName2Id[output_name] = dict.section_id(signals.front());
+	dict.connect_to_section(output_name, dict.section_id(signals.front()));
+
 }
 
 void RepCombineSignals::print() {
@@ -3003,7 +3004,7 @@ void RepSignalRate::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
 }
 
 void RepSignalRate::register_virtual_section_name_id(MedDictionarySections& dict) {
-	dict.SectionName2Id[output_name] = dict.section_id(input_name);
+	dict.connect_to_section(output_name, dict.section_id(input_name));
 }
 
 int RepSignalRate::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -3168,7 +3169,7 @@ void RepSplitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) 
 
 void RepSplitSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
 	for (size_t i = 0; i < names.size(); ++i)
-		dict.SectionName2Id[names[i]] = dict.section_id(input_name);
+		dict.connect_to_section(names[i], dict.section_id(input_name));
 }
 
 int RepSplitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
@@ -3614,7 +3615,7 @@ void RepAggregateSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 }
 
 void RepAggregateSignal::register_virtual_section_name_id(MedDictionarySections& dict) {
-	dict.SectionName2Id[output_name] = dict.section_id(signalName);
+	dict.connect_to_section(output_name, dict.section_id(signalName));
 }
 
 //-------------------------------------------------------------------------------------------------------
