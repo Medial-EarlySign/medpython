@@ -3433,7 +3433,7 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	req_signal_ids.insert(ranges_id);
 	aff_signal_ids.insert(output_id);
 
-	if (range_val_channel > 0 && !sets.empty()) {
+	if (range_val_channel >= 0 && !sets.empty()) {
 		int sec_id = dict.section_id(signal_name);
 		dict.prep_sets_lookup_table(sec_id, sets, lut);
 	}
