@@ -315,13 +315,13 @@ void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds) {
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 int FeatureGenerator::filter_features(unordered_set<string>& validFeatures) {
 
-	int idx = 0;
-	for (int i = 0; i < names.size(); i++) {
+	vector<string> names_new;
+	names_new.reserve(names.size());
+	for (int i = 0; i < names.size(); i++)
 		if (validFeatures.find(names[i]) != validFeatures.end())
-			names[idx++] = names[i];
-	}
+			names_new.push_back(names[i]);
 
-	names.resize(idx);
+	names = move(names_new);
 
 	return ((int)names.size());
 }
@@ -423,7 +423,7 @@ void BasicFeatGenerator::set_names() {
 		set_names = boost::algorithm::join(this->sets, "_");
 	switch (type) {
 	case FTR_LAST_VALUE:	name += "last"; break;
-	case FTR_LAST_NTH_VALUE:	name += "last_"+to_string(N_th); break;
+	case FTR_LAST_NTH_VALUE:	name += "last_" + to_string(N_th); break;
 	case FTR_FIRST_VALUE:	name += "first"; break;
 	case FTR_LAST2_VALUE:	name += "last2"; break;
 	case FTR_AVG_VALUE:		name += "avg"; break;
@@ -509,7 +509,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME 
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME
 		|| type == FTR_CATEGORY_SET_LAST_NTH) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
@@ -1250,7 +1250,7 @@ float BasicFeatGenerator::uget_sum(UniversalSigVec &usv, int time, int _win_from
 
 	float sum_val = (float)0;
 
-	for (int i = usv.len-1; i >=0; i--) {
+	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
 		if (itime < min_time) break;
 		if (itime <= max_time) sum_val += usv.Val(i, val_channel);

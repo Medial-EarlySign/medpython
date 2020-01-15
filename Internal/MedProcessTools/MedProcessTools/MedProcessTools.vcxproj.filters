@@ -117,7 +117,10 @@
     <ClCompile Include="PredictorImputer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FeatureGenExtractTable.cpp">
+    <ClCompile Include="Elixhauser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+   <ClCompile Include="FeatureGenExtractTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -197,9 +200,12 @@
     <ClInclude Include="PredictorImputer.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FeatureGenExtractTable.h">
+    <ClInclude Include="ElixhauserGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="FeatureGenExtractTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>    
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\fragile_config.json">

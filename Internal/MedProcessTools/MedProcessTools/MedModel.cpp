@@ -83,7 +83,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	if (post_processors_learning_sets.size() != post_processors.size())
 		MTHROW_AND_ERR("MedModel::Learn - Not enough samples given for post-processors learning");
 
-	//init to check we have remove all we can (or if need to create virtual signals?):
+	//init to check we have removed all we can (or if need to create virtual signals?):
 	fit_for_repository(rep);
 	// init virtual signals
 	if (collect_and_add_virtual_signals(rep) < 0) {
@@ -501,8 +501,10 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 
 			// Apply rep-processing
-			for (unsigned int i = 0; i < rep_processors.size(); i++)
+			for (unsigned int i = 0; i < rep_processors.size(); i++) {
+				rep_processors[i]->dprint(to_string(i), 0);
 				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
+			}
 
 			// Generate Features
 			for (auto& generator : _generators)
@@ -596,6 +598,20 @@ int MedModel::learn_rep_processors(MedPidRepository& rep, MedSamples& samples) {
 
 	return 0;
 }
+
+// Learn rep-processors iteratively, must be serial...
+//.......................................................................................
+int MedModel::learn_all_rep_processors(MedPidRepository& rep, MedSamples& samples) {
+
+	vector<RepProcessor *> temp_processors;
+	for (unsigned int i = 0; i < rep_processors.size(); i++) {
+		if (rep_processors[i]->learn(rep, samples, temp_processors) < 0) return -1;
+		temp_processors.push_back(rep_processors[i]);
+	}
+
+	return 0;
+}
+
 
 // Filter rep-processors that are not used, iteratively
 //.......................................................................................

@@ -82,6 +82,7 @@
     <ClCompile Include="CrossValidation.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />
+    <ClCompile Include="Elixhauser.cpp" />
     <ClCompile Include="EmbeddingGenerator.cpp" />
     <ClCompile Include="ExplainWrapper.cpp" />
     <ClCompile Include="FeatureEncoder.cpp" />
@@ -116,6 +117,7 @@
     <ClInclude Include="CrossValidator.h" />
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />
+    <ClInclude Include="ElixhauserGenerator.h" />
     <ClInclude Include="EmbeddingGenerator.h" />
     <ClInclude Include="ExplainWrapper.h" />
     <ClInclude Include="FeatureGenerator.h" />

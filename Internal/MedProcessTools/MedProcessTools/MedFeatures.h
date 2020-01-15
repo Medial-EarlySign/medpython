@@ -81,7 +81,7 @@ public:
 
 	// Initialization
 	/// <summary> Clear all vectors </summary>
-	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); weights.clear(); tags.clear(); }
+	void clear() { data.clear(); samples.clear(); pid_pos_len.clear(); attributes.clear(); weights.clear(); tags.clear(); masks.clear(); }
 	/// <summary> set time unit </summary>
 	void set_time_unit(int _time_unit) { time_unit = _time_unit; }
 
@@ -141,6 +141,9 @@ public:
 	void round_data(float r);
 	void noise_data(float r);
 
+	///\brief Sort by id and time
+	void samples_sort();
+
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
 	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags, time_unit)
@@ -195,8 +198,6 @@ namespace medial {
 
 		/// \brief Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
 		int nSplits(vector<MedSample>& samples);
-
-
 	}
 
 }

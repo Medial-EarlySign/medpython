@@ -209,6 +209,7 @@ public:
 
 	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+	int learn_all_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
 	int learn_feature_generators(MedPidRepository &rep, MedSamples *learn_samples);
 	int generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features);

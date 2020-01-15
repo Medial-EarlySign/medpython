@@ -95,7 +95,7 @@ public:
 	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalName </summary>
 	virtual void set_signal(const string& _signalName) { return; };
 
-	/// <summary> set signal-name :  Should be implemented for inheriting classes that have signalId  </summary>
+	/// <summary> set signal-ids :  Should be implemented for inheriting classes that have signalId  </summary>
 	virtual void set_signal_ids(MedSignals& sigs) { return; }
 
 	// Required Signals functions : get all signals that are required by the processor

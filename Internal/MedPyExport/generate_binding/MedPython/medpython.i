@@ -45,6 +45,9 @@ typedef std::vector vector;
   } catch (std::exception e) {
     PyErr_SetString(PyExc_Exception, e.what());
     return NULL;
+  } catch (...) {
+    PyErr_SetString(PyExc_Exception, "Error: An unknown Exception was thrown");
+    return NULL;
   } 
 
 }

@@ -475,14 +475,14 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 						string found_pos = curr_fields_order->at(found_idx); //what found in fields position (to switch with)
 						string curr_pos = curr_fields_order->at(idx); //original expected at idx => will move to found_idx, will look for later
 
-						curr_fields_order->at(found_idx) = curr_pos;
-						curr_pos_fields->at(curr_pos) = found_idx;
+curr_fields_order->at(found_idx) = curr_pos;
+curr_pos_fields->at(curr_pos) = found_idx;
 
-						curr_fields_order->at(idx) = found_pos; //what fields has currently
-						curr_pos_fields->at(found_pos) = idx;
+curr_fields_order->at(idx) = found_pos; //what fields has currently
+curr_pos_fields->at(found_pos) = idx;
 
-						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
-							fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
+MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
+	fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
 					}
 					else {
 						skiped_input_columns.push_back(idx);
@@ -573,9 +573,25 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 		}
 	}
 
+	// Check if attribute 'train_weight' exists
+	string attr_weight_name = "train_weight";
+	if (attributes.find(attr_weight_name) != attributes.end()) {
+		if (!weights.empty()) {
+			for (size_t i = 0; i < weights.size(); i++)
+				if (weights[i] != samples[i].attributes[attr_weight_name])
+					MTHROW_AND_ERR("Both weights and attr_train_weight given and are inconsistent. Cannot choose\n")
+		}
+		else {
+			weights.resize(samples.size());
+			for (size_t i = 0; i < weights.size(); i++)
+				weights[i] = samples[i].attributes[attr_weight_name];
+		}
+	}
+
 	inf.close();
 	return 0;
 }
+
 
 // Filter data (and attributes) to include only selected features
 // Return -1 if any of the selected features is not present. 0 upon success.
@@ -1061,6 +1077,9 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			cost += cost_val;
 		}
 
+		if (print_verbose)
+			MLOG("Sampling ratio = %2.3f - Cost = %2.3f removing [%d,%d]\n", curr_target, cost, tot_0_rem, tot_1_rem);
+
 		if (best_cost == -1 || cost < best_cost) {
 			best_cost = cost;
 			r_target = curr_target;
@@ -1123,10 +1142,6 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 		all_groups.erase(all_groups.begin() + skip_grp_indexs[k]);
 
 	//Commit on all records:
-	MedFeatures filtered;
-	filtered.time_unit = data_records.time_unit;
-	filtered.attributes = data_records.attributes;
-
 	for (size_t k = 0; k < list_label_groups.size(); ++k) //for 0 and 1:
 		for (auto it = list_label_groups[k].begin(); it != list_label_groups[k].end(); ++it) //for each year
 		{
@@ -1479,6 +1494,45 @@ void MedFeatures::noise_data(float r)
 		for (int i = 0; i < len; i++) {
 			float noise = r * (rand_1()*2.0f - 1.0f);
 			p_data[i] = p_data[i] + noise;
+		}
+	}
+
+}
+
+// Sort Features by id + time
+//-------------------------------------------------------------------------------------------------------
+void MedFeatures::samples_sort() {
+
+	int nSamples = (int)samples.size();
+	vector<pair<int, MedSample>> sorted_inds(nSamples);
+	for (int i = 0; i < nSamples; i++) {
+		sorted_inds[i].first = i;
+		sorted_inds[i].second = samples[i];
+	}
+
+	sort(sorted_inds.begin(), sorted_inds.end(),
+		[](const pair<int, MedSample> &c1, const pair<int, MedSample> &c2) {return ((c1.second.id < c2.second.id) || (c1.second.id == c2.second.id && c1.second.time < c2.second.time));});
+
+	vector<MedSample> origSamples =samples;
+	for (int i = 0; i < nSamples; i++)
+		samples[i] = origSamples[sorted_inds[i].first];
+
+	if (weights.size()) {
+		vector<float> origWeights = weights;
+		for (int i = 0; i < nSamples; i++)
+			weights[i] = origWeights[sorted_inds[i].first];
+	}
+
+	for (auto& rec : data) {
+		string name = rec.first;
+		vector<float> origData = data[name];
+		for (int i = 0; i < nSamples; i++)
+			data[name][i] = origData[sorted_inds[i].first];
+
+		if (masks.find(name) != masks.end()) {
+			vector<unsigned char> origMask = masks[name];
+			for (int i = 0; i < nSamples; i++)
+				masks[name][i] = origMask[sorted_inds[i].first];
 		}
 	}
 

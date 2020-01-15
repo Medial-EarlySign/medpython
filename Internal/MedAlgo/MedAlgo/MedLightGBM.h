@@ -178,7 +178,8 @@ public:
 
 	/// please reffer to KeyAliasTransform in LightGBM::ParameterAlias
 	int init(map<string, string>& initialization_map) { return mem_app.init(initialization_map); }
-
+	int set_params(map<string, string>& initialization_map) { return mem_app.set_params(initialization_map); }
+	
 	int init_from_string(string init_str) {
 		params.user_params += init_str;
 		string init = params.defaults + ";" + params.user_params;
@@ -188,7 +189,6 @@ public:
 		mem_app.is_silent = init_str.empty();
 		return MedLightGBM::init(init_map);
 	}
-
 
 	// Function
 	MedLightGBM() {

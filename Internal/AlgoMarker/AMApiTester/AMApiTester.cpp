@@ -24,6 +24,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 #include "internal_am.h"
+#include <json/json.hpp>
 
 
 #ifdef __linux__ 
@@ -136,7 +137,7 @@ public:
 	};
 	
 	T* from_vec(const vector<T>& orig) {
-		n_elem = orig.size();
+		n_elem = (int)orig.size();
 		data_p_size = n_elem * sizeof(T);
 		if (data_p_size == 0)
 			return nullptr;
@@ -181,8 +182,10 @@ public:
 	bool single;
 	string med_res_file;
 	string am_res_file;
-
-
+	string rep_json_reqfile;
+	bool convert_reqfile_to_data;
+	string convert_reqfile_to_data_infile;
+	string convert_reqfile_to_data_outfile;
 
 	int read_from_var_map(po::variables_map vm) {
 		med_csv_file = vm["med_csv_file"].as<string>();
@@ -224,7 +227,7 @@ public:
 				MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
 				return -1;
 			}
-			string scores_file = vm["samples"].as<string>();
+			scores_file = vm["samples"].as<string>();
 			score_to_date_format_is_samples = true;
 			if (vm["apply_dates_to_score"].as<string>() != "") {
 				scores_file = vm["apply_dates_to_score"].as<string>();
@@ -241,6 +244,10 @@ public:
 		single = (vm.count("single") != 0);
 		med_res_file = vm["med_res_file"].as<string>();
 		am_res_file = vm["am_res_file"].as<string>();
+		rep_json_reqfile = vm["rep_json_reqfile"].as<string>();
+		convert_reqfile_to_data = (vm.count("convert_reqfile_to_data") != 0);
+		convert_reqfile_to_data_infile = vm["convert_reqfile_to_data_infile"].as<string>();
+		convert_reqfile_to_data_outfile = vm["convert_reqfile_to_data_outfile"].as<string>();
 	
 		return 0;
 	}
@@ -255,6 +262,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 		desc.add_options()
 			("help", "Produce help message")
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "Repository file name")
+			("rep_json_reqfile", po::value<string>()->default_value(""), "Read Repository data from JSON req file name")
 			("amfile", po::value<string>()->default_value(expandEnvVars(DEFAULT_AM_LOCATION)), "AlgoMarker .so/.dll file")
 			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("med_res_file", po::value<string>()->default_value(""), "File name to save Medial API results to")
@@ -281,6 +289,9 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("apply_dates_to_score", po::value<string>()->default_value(""), "File containing a list of tab seperated pid and date to score to beused instead of scores for performing apply")
 			("apply_amconfig", po::value<string>()->default_value(""), "Same as --apply but will use the AlgoMarker API and given amconfig")
 			("apply_outfile", po::value<string>()->default_value(""), "Output file to save scores from apply")
+			("convert_reqfile_to_data", "convert a json requests file to signal data file")
+			("convert_reqfile_to_data_infile", po::value<string>()->default_value(""), "json file to load")
+			("convert_reqfile_to_data_outfile", po::value<string>()->default_value(""), "data file name to write")
 			;
 
 		po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -441,6 +452,37 @@ public:
 		outfile.close();
 	}
 
+	static void convert_reqfile_to_data(const string& input_json_fname, const string& output_data_fname) {
+		ofstream outfile(output_data_fname, ios::binary | ios::out);
+		ifstream infile(input_json_fname, ios::binary | ios::in);
+
+		MLOG("(II) Exporting required data to %s\n", output_data_fname.c_str());
+
+		json j;
+		infile >> j;
+		for (int pid = 0; pid < j.size(); ++pid) {
+			for (const auto& j_sig : j[pid]["body"]["signals"])
+			{
+				string sig = j_sig["code"];
+				for (const auto& j_data : j_sig["data"]) {
+					outfile << pid+10000000 << '\t';
+					outfile << sig;
+					for (const auto& j_time : j_data["timestamp"]) {
+						outfile << '\t' << j_time;
+					}
+					for (const auto& j_val : j_data["value"]) {
+						outfile << '\t' << j_val.get<string>();
+					}
+
+					outfile << "\n";
+				}
+				
+			}
+		}
+		outfile.close();
+	}
+
+
 	void import_required_data(const string& fname) {
 		ifstream infile(fname, ios::binary | ios::in);
 
@@ -556,7 +598,7 @@ public:
 			MERR("Could not read scores file %s\n", fname.c_str());
 			return -1;
 		}
-		MLOG("Read %d lines from scores file %s\n", raw_scores.size(), fname.c_str());
+		MLOG("(II) Read %d lines from scores file %s\n", raw_scores.size(), fname.c_str());
 
 		// prepare MedSamples
 		for (auto &v : raw_scores)
@@ -1315,6 +1357,11 @@ int main(int argc, char *argv[])
 	}
 	testing_context t_ctx;
 	t_ctx.read_from_var_map(vm);
+	
+	if (t_ctx.convert_reqfile_to_data) {
+		DataLoader::convert_reqfile_to_data(t_ctx.convert_reqfile_to_data_infile, t_ctx.convert_reqfile_to_data_outfile);
+		return 0;
+	}
 
 	if (t_ctx.generate_data) {
 		return generate_data(
