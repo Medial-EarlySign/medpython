@@ -12,7 +12,7 @@ void ElixhauserGenerator::parseSets(string& init_string, vector<vector<string>>&
 
 	// Prepare map  - type -> index
 	map<string, int> type2index;
-	for (size_t i = 0; i < types.size(); i++)
+	for (int i = 0; i < types.size(); i++)
 		type2index[types[i]] = i;
 
 	// Parse

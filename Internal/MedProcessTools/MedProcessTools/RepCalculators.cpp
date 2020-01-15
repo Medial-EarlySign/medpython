@@ -51,7 +51,7 @@ void RatioCalculator::validate_arguments(const vector<string> &input_signals, co
 	MTHROW_AND_ERR("Error RatioCalculator::validate_arguments - Requires 2 input signals and 1 output signal\n");
 }
 
-void RatioCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void RatioCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	string o_name = input_signals.front();
 	if (power_mone != 1)
 		o_name += "^" + medial::print::print_obj(power_mone, "%2.3f");
@@ -60,11 +60,8 @@ void RatioCalculator::list_output_signals(const vector<string> &input_signals, v
 		if (power_base != 1)
 			o_name += "^" + medial::print::print_obj(power_base, "%2.3f");
 	}
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-
-	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	
+	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 }
 
 bool RatioCalculator::do_calc(const vector<float> &vals, float &res) const {
@@ -105,7 +102,8 @@ void eGFRCalculator::validate_arguments(const vector<string> &input_signals, con
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR - got \"%s\"\n", input_signals[2].c_str());
 }
 
-void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	//ignores output_type
 	if (work_channel == 0)
 		_virtual_signals.push_back(pair<string, string>("calc_eGFR", "T(i),V(f)"));
 	else
@@ -149,11 +147,8 @@ void logCalculator::validate_arguments(const vector<string> &input_signals, cons
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error logCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
-void logCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-	_virtual_signals.push_back(pair<string, string>("log_" + input_signals[0], construct_str));
+void logCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	_virtual_signals.push_back(pair<string, string>("log_" + input_signals[0], output_type));
 }
 bool logCalculator::do_calc(const vector<float> &vals, float &res) const {
 	res = missing_value;
@@ -192,7 +187,7 @@ void SumCalculator::validate_arguments(const vector<string> &input_signals, cons
 		MTHROW_AND_ERR("Error SumCalculator::validate_arguments - Reqiures at least 1 input signals and 1 output signal\n");
 }
 
-void SumCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void SumCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	if (factors.size() < input_signals.size())
 		factors.resize(input_signals.size(), 1);
 
@@ -211,10 +206,7 @@ void SumCalculator::list_output_signals(const vector<string> &input_signals, vec
 			snprintf(buff, sizeof(buff), "%s_plus_%s", o_name.c_str(), input_signals[i].c_str());
 		o_name = string(buff);
 	}
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 }
 
 bool SumCalculator::do_calc(const vector<float> &vals, float &res) const {
@@ -252,15 +244,12 @@ void RangeCalculator::validate_arguments(const vector<string> &input_signals, co
 		MTHROW_AND_ERR("Error RangeCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
 
-void RangeCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void RangeCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	char buff[500];
 	snprintf(buff, sizeof(buff), "%s_in_%2.3f_%2.3f", input_signals[0].c_str(), min_range, max_range);
 	string o_name = string(buff);
 
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 }
 
 bool RangeCalculator::do_calc(const vector<float> &vals, float &res) const {
@@ -300,7 +289,7 @@ void MultiplyCalculator::validate_arguments(const vector<string> &input_signals,
 		MTHROW_AND_ERR("Error MultiplyCalculator::validate_arguments - Requires at least 1 input signals and 1 output signal\n");
 }
 
-void MultiplyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void MultiplyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	if (powers.size() < input_signals.size())
 		powers.resize(input_signals.size(), 1);
 
@@ -320,10 +309,7 @@ void MultiplyCalculator::list_output_signals(const vector<string> &input_signals
 		o_name = string(buff);
 	}
 
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 
 }
 
@@ -365,16 +351,13 @@ void SetCalculator::validate_arguments(const vector<string> &input_signals, cons
 		MTHROW_AND_ERR("Error SetCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
 
-void SetCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
+void SetCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	char buff[500];
 
 	snprintf(buff, sizeof(buff), "%s_in_set", input_signals[0].c_str());
 	string o_name = string(buff);
 
-	string construct_str = "T(i)";
-	for (size_t i = 0; i <= work_channel; ++i)
-		construct_str += ",V(f)";
-	_virtual_signals.push_back(pair<string, string>(o_name, construct_str));
+	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 	input_signal = input_signals.front();
 }
 
@@ -420,8 +403,8 @@ void ExistsCalculator::validate_arguments(const vector<string> &input_signals, c
 	if (!(input_signals.size() == 1 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error ExistsCalculator::validate_arguments - Requires 1 input signals and 1 output signal\n");
 }
-void ExistsCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) {
-	_virtual_signals.push_back(pair<string, string>("exists_" + input_signals[0], "T(i),V(f)"));
+void ExistsCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	_virtual_signals.push_back(pair<string, string>("exists_" + input_signals[0], output_type));
 }
 bool ExistsCalculator::do_calc(const vector<float> &vals, float &res) const {
 	res = out_range_val;
