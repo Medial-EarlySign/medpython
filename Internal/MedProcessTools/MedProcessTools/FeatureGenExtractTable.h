@@ -113,7 +113,7 @@ public:
 	void make_summary();
 
 	ADD_CLASS_NAME(FeatureGenExtractTable)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, missing_val, tags, iGenerateWeights, key_rules, extracted_names, table_nice_name)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, names, missing_val, tags, iGenerateWeights, key_rules, extracted_names, table_nice_name)
 };
 
 MEDSERIALIZE_SUPPORT(KeyRule)
