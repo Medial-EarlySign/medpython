@@ -3439,6 +3439,11 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 	}
 }
 
+void RepBasicRangeCleaner::register_virtual_section_name_id(MedDictionarySections& dict) {
+	int sec_id = dict.section_id(signal_name);
+	dict.connect_to_section(output_name, sec_id);
+}
+
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	if (signal_id == -1) {

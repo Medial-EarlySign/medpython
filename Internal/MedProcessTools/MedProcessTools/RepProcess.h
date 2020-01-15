@@ -1696,6 +1696,8 @@ public:
 	/// initialize signal ids
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
 	/// <summary> Fill required- and affected-signals sets </summary>
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepBasicRangeCleaner::init
