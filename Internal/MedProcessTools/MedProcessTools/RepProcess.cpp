@@ -2616,6 +2616,14 @@ void RepCalcSimpleSignals::get_required_signal_categories(unordered_map<string, 
 	}
 	p->get_required_signal_categories(signal_categories_in_use);
 }
+
+void RepCalcSimpleSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
+	if (!signals.empty()) {
+		int section_id = dict.section_id(signals.front());
+		for (size_t i = 0; i < V_names.size(); ++i)
+			dict.connect_to_section(V_names[i], section_id);
+	}
+}
 //.......................................................................................
 
 bool is_in_time_range(vector<UniversalSigVec> &usvs, vector<int> idx, int active_id,

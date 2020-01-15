@@ -1279,6 +1279,8 @@ public:
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
