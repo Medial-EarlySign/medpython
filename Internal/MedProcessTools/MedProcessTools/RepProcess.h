@@ -1037,7 +1037,7 @@ public:
 	/// the calc option
 	virtual bool do_calc(const vector<float> &vals, float &res) const { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// list output signals with default naming
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
@@ -1071,7 +1071,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(RatioCalculator)
@@ -1091,7 +1091,7 @@ public:
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(eGFRCalculator)
@@ -1108,7 +1108,7 @@ public:
 	/// @snippet RepCalculators.cpp logCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1129,7 +1129,7 @@ public:
 	/// @snippet RepCalculators.cpp SumCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(SumCalculator)
@@ -1151,7 +1151,7 @@ public:
 	/// @snippet RepCalculators.cpp RangeCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(RangeCalculator)
@@ -1172,7 +1172,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1195,7 +1195,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
@@ -1223,7 +1223,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1243,6 +1243,7 @@ public:
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
 	int time_channel = 0; ///<the time channel. todo in the future - accept array with same order and size of signals
+	string output_signal_type; ///< a parameter to be pass to list signal to afect output type
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1254,7 +1255,10 @@ public:
 	int max_time_search_range = 0; ///< how much time we are allowed to look backward to calculate. to look forward we need to fix the function
 	string calculator_init_params = ""; ///< string init params for calculator
 
-	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;	}
+	RepCalcSimpleSignals() {
+		processor_type = REP_PROCESS_CALC_SIGNALS;
+		output_signal_type = "T(i),V(f)";
+	}
 	~RepCalcSimpleSignals();
 
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
@@ -1278,7 +1282,7 @@ public:
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic)
+			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic, output_signal_type)
 		void post_deserialization() {
 		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
 		pass_time_last = p->need_time;
@@ -1313,7 +1317,7 @@ private:
 	int apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points);
 
 	SimpleCalculator *calculator_logic = NULL;
-
+	int out_n_val_ch, out_n_time_ch;
 };
 
 /**
@@ -1534,8 +1538,8 @@ public:
 	string signal_type; ///< the signal type definition to create
 
 	RepCombineSignals() {
-		processor_type = REP_PROCESS_COMBINE; 
-		output_name = ""; 
+		processor_type = REP_PROCESS_COMBINE;
+		output_name = "";
 		factor_channel = 1;
 		signal_type = "T(i,i),V(f,f)";
 	}
@@ -1556,7 +1560,7 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors,
-			unconditional, req_signals, aff_signals, virtual_signals, 
+			unconditional, req_signals, aff_signals, virtual_signals,
 			virtual_signals_generic, signal_type, factor_channel)
 private:
 	int v_out_sid = -1;
@@ -1738,8 +1742,8 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSignalRate)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, 
-			work_channel, factor, unconditional, req_signals, aff_signals, 
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name,
+			work_channel, factor, unconditional, req_signals, aff_signals,
 			virtual_signals, virtual_signals_generic, output_signal_type)
 private:
 	int v_out_sid = -1;
