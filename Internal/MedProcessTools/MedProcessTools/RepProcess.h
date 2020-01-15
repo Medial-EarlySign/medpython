@@ -27,12 +27,12 @@ typedef enum {
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
-	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
-	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
+	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to activate RepSignalRate
+	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to activate RepCombineSignals
 	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
 	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
-	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
+	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to activate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits
@@ -1254,7 +1254,7 @@ public:
 	int max_time_search_range = 0; ///< how much time we are allowed to look backward to calculate. to look forward we need to fix the function
 	string calculator_init_params = ""; ///< string init params for calculator
 
-	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS;	}
 	~RepCalcSimpleSignals();
 
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
@@ -1531,10 +1531,13 @@ public:
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
 	int factor_channel; ///< the factor_channel_number
-	int num_val_channels; ///< number of val channels
+	string signal_type; ///< the signal type definition to create
 
 	RepCombineSignals() {
-		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2; factor_channel = 1;
+		processor_type = REP_PROCESS_COMBINE; 
+		output_name = ""; 
+		factor_channel = 1;
+		signal_type = "T(i,i),V(f,f)";
 	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
@@ -1552,10 +1555,13 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, num_val_channels, factor_channel)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors,
+			unconditional, req_signals, aff_signals, virtual_signals, 
+			virtual_signals_generic, signal_type, factor_channel)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 /**
@@ -1593,11 +1599,12 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional,
-			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel)
+			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel, output_signal_type)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
 	vector<char> Flags;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 
@@ -1710,10 +1717,12 @@ public:
 	string input_name; ///< names of input signals used by the completer
 	int work_channel; ///< which channel to change and divide by time
 	float factor; ///< additional constant factor 
+	string output_signal_type; ///< the output signal type
 
 	RepSignalRate() {
 		processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" };
 		work_channel = 0;  factor = 1;
+		output_signal_type = "T(i,i),V(f)";
 	}
 
 	/// @snippet RepProcess.cpp RepSignalRate::init
@@ -1729,10 +1738,13 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSignalRate)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, 
+			work_channel, factor, unconditional, req_signals, aff_signals, 
+			virtual_signals, virtual_signals_generic, output_signal_type)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 /**
@@ -1750,6 +1762,8 @@ public:
 	int time_unit; ///< time unit
 	float drop_missing_rate; ///< If missing time points beyond this threshold will drop measurement
 	bool buffer_first; ///< If true will wait for first buffer to complete
+	string output_signal_type; ///< same as input signal - will remove later after change init process of RepProcessor to fetch input signal type
+
 
 	RepAggregateSignal() {
 		processor_type = REP_PROCESS_AGGREGATE;
@@ -1763,6 +1777,7 @@ public:
 		output_name = "calc_aggregate";
 		time_window = 0;
 		buffer_first = true;
+		output_signal_type = "T(i),V(f)";
 	}
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
@@ -1781,10 +1796,11 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepAggregateSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
-			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, output_signal_type)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 //---------------------------------------------------------------------------------------------------------------
