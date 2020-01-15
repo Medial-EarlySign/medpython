@@ -788,7 +788,7 @@ public:
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<TimeFeatGenerator *>(generator)); }
 
 	// generate a new feature
-	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num);
+	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
 	// Serialization
 	ADD_CLASS_NAME(TimeFeatGenerator)

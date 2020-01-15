@@ -2013,9 +2013,9 @@ void TimeFeatGenerator::set_default_bins() {
 
 // Generate
 //.......................................................................................
-int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 
 	// Special care of year
 	if (time_unit == FTR_TIME_YEAR) {
