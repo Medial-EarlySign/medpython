@@ -425,6 +425,6 @@ int val_or_exception(int val, const string& exception_str , int expected_val) th
 	if (exception_str == "")
 		what_msg = "Operation failed";
 	if (val != expected_val)
-		throw new runtime_error(what_msg + " (return value=" + std::to_string(val) + ")");
+		throw runtime_error(what_msg + " (return value=" + std::to_string(val) + ")");
 	return val;
 }
