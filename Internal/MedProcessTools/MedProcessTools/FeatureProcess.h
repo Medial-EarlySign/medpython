@@ -829,6 +829,7 @@ public:
 	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
 	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
+	string progress_file_path = ""; ///< file path to progress file
 
 	vector<int> rates_vec;
 	vector<string> predictor_params_vec;
