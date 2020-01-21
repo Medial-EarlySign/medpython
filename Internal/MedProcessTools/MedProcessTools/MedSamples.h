@@ -219,6 +219,13 @@ public:
 	/// <summary> gets p_test and splits by id , p_test of the ids into test, and the rest into train
 	void split_train_test(MedSamples &train, MedSamples &test, float p_test);
 
+	/// <summary> gets a split number and splits samples to lists in/off the split
+	void split_by_split(MedSamples &in_split, MedSamples &off_split, int split);
+
+	/// <summary> adding splits to the samples given in an external file
+	void add_splits_from_file(string f_splits);
+
+
 	void flatten(vector<MedSample> &flat) const;
 
 	/// <summary>  API's for online insertions : main use case is a single time point for prediction per pid </summary>
