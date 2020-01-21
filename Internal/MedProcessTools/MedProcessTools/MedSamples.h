@@ -178,6 +178,7 @@ public:
 
 	/// <summary> Extract a single vector of concatanated predictions </summary>
 	void get_preds(vector<float>& preds) const;
+	void get_preds_channel(vector<float>& preds, int channel);
 	/// <summary> Extract a vector of all outcomes  </summary>
 	void get_y(vector<float>& y) const;
 	/// <summary>  Get a list of all categories (different values) appearing in the outcome </summary>

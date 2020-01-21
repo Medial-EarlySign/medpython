@@ -429,6 +429,15 @@ void MedSamples::get_preds(vector<float>& preds) const {
 				preds.push_back(sample.prediction[i]);
 }
 
+// Extract a single vector of predictions in a given channel
+//.......................................................................................
+void MedSamples::get_preds_channel(vector<float>& preds, int channel)
+{
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			preds.push_back(sample.prediction[channel]);
+}
+
 // Extract a vector of values corresponding to attribute [empty if never given]
 //.......................................................................................
 void MedSamples::get_attr_values(const string& attr_name, vector<float>& values) const {
