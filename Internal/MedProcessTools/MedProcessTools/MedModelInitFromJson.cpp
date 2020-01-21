@@ -339,3 +339,45 @@ int MedModel::add_post_processors_json_string_to_model(string in_json, string fn
 
 	return (int)n;
 }
+
+//-----------------------------------------------------------------------------------------------
+// Assumes the model is loaded, and then given a json file to change only predictor.
+// This is very useful in cases when the training of the matrix creation is heavy, and one just wants
+// to change and train a new predictor, and thus save the learning time of the matrix.
+// Currently will only work for version 2 jsons.
+// Currently will not work with alternations
+void MedModel::replace_predictor_with_json_predictor(string f_json)
+{
+	// open the json file, transfer it to string
+	vector<string> alternations;
+	run_current_path = boost::filesystem::path(f_json).parent_path().string();
+	string json_contents = json_file_to_string(0, f_json, alternations, "", true);
+
+	istringstream no_comments_stream(json_contents);
+	MLOG("MedModel:: init model predictor from json file [%s]:\n", f_json.c_str());
+
+	ptree pt;
+	parse_my_json_to_pt(no_comments_stream, pt);
+	this->model_json_version = pt.get<int>("model_json_version", model_json_version);
+	MLOG_D("\nmodel_json_version [%d]\n", model_json_version);
+	if (model_json_version <= 1)
+		MTHROW_AND_ERR("ERROR: Can't use replace_predictor_with_json_predictor() with model version <=1.");
+
+	boost::optional<int> v = pt.get_optional<int>("generate_masks_for_features");
+	if (v)
+		this->generate_masks_for_features = v.get();
+
+	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
+
+	if (pt.count("predictor") > 0) {
+		auto my_pred = pt.get_child("predictor");
+		auto my_pred_params = pt.get_child("predictor_params");
+
+		MLOG("Deleting current predictor in model\n");
+		if (predictor != NULL) { delete predictor; predictor = NULL; }
+		MLOG("Setting a new untrained model: %s with params %s\n", my_pred.data().c_str(), my_pred_params.data().c_str());
+		set_predictor(my_pred.data(), my_pred_params.data());
+	}
+	else MWARN("NOTE: no [predictor] node found in file\n");
+
+}
