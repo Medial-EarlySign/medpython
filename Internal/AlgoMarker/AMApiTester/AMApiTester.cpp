@@ -183,7 +183,10 @@ public:
 	bool single;
 	string med_res_file;
 	string am_res_file;
-	string rep_json_reqfile;
+	ofstream json_reqfile_stream;
+	string json_reqfile;
+	ofstream json_resfile_stream;
+	string json_resfile;
 	bool convert_reqfile_to_data;
 	string convert_reqfile_to_data_infile;
 	string convert_reqfile_to_data_outfile;
@@ -244,7 +247,14 @@ public:
 		single = (vm.count("single") != 0);
 		med_res_file = vm["med_res_file"].as<string>();
 		am_res_file = vm["am_res_file"].as<string>();
-		rep_json_reqfile = vm["rep_json_reqfile"].as<string>();
+		json_reqfile = vm["json_reqfile"].as<string>();
+		json_resfile = vm["json_resfile"].as<string>();
+		if (json_reqfile != "") {
+			json_reqfile_stream.open(json_reqfile);
+		}
+		if (json_resfile != "") {
+			json_resfile_stream.open(json_resfile);
+		}
 		convert_reqfile_to_data = (vm.count("convert_reqfile_to_data") != 0);
 		convert_reqfile_to_data_infile = vm["convert_reqfile_to_data_infile"].as<string>();
 		convert_reqfile_to_data_outfile = vm["convert_reqfile_to_data_outfile"].as<string>();
@@ -262,7 +272,6 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 		desc.add_options()
 			("help", "Produce help message")
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "Repository file name")
-			("rep_json_reqfile", po::value<string>()->default_value(""), "Read Repository data from JSON req file name")
 			("amfile", po::value<string>()->default_value(expandEnvVars(DEFAULT_AM_LOCATION)), "AlgoMarker .so/.dll file")
 			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("med_res_file", po::value<string>()->default_value(""), "File name to save Medial API results to")
@@ -291,6 +300,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("convert_reqfile_to_data", "convert a json requests file to signal data file")
 			("convert_reqfile_to_data_infile", po::value<string>()->default_value(""), "json file to load")
 			("convert_reqfile_to_data_outfile", po::value<string>()->default_value(""), "data file name to write")
+			("json_reqfile", po::value<string>()->default_value(""), "JSON request file name")
+			("json_resfile", po::value<string>()->default_value(""), "JSON result file name")
 			;
 
 		po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -317,31 +328,115 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	return 0;
 }
 
-class DataLoader{
+static const map<string, string> units_tbl = {
+	{ "BMI" , "kg/m^2" },
+{ "Glucose" , "mg/dL" },
+{ "HbA1C" , "%" },
+{ "HDL" , "mg/dL" },
+{ "Triglycerides" , "mg/dL" },
+{ "ALT" , "U/L" },
+{ "RBC" , "10^6/uL" },
+{ "Na" , "mmol/L" },
+{ "Weight" , "Kg" },
+{ "WBC" , "10^3/uL" },
+{ "Basophils#" , "#" },
+{ "Basophils%" , "%" },
+{ "Eosinophils#" , "#" },
+{ "Eosinophils%" , "%" },
+{ "Hematocrit" , "%" },
+{ "Hemoglobin" , "g/dL" },
+{ "Lymphocytes#" , "#" },
+{ "Lymphocytes%" , "%" },
+{ "MCH" , "pg/cell" },
+{ "MCHC-M" , "g/dL" },
+{ "MCV" , "fL" },
+{ "Monocytes#" , "#" },
+{ "Monocytes%" , "%" },
+{ "MPV" , "mic*3" },
+{ "Neutrophils#" , "#" },
+{ "Neutrophils%" , "%" },
+{ "Platelets" , "10^3/uL" },
+{ "RDW" , "%" },
+{ "MSG" , "#" } };
+
+
+json json_AddData(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, int n_time_channels, int n_val_channels) {
+	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
+	if (units_tbl.count(signalName) != 0)
+		json_sig["unit"] = units_tbl.at(signalName);
+	int nelem = 0;
+	if (TimeStamps_len != 0)
+		nelem = TimeStamps_len / n_time_channels;
+	else nelem = Values_len / n_val_channels;
+	for (int i = 0; i < nelem; i++) {
+		json json_sig_data_item = json({ { "timestamp" , json::array() },{ "value" , json::array() } });
+		
+		for (int j = 0; j < n_time_channels; j++) {
+			json_sig_data_item["timestamp"].push_back(*TimeStamps);
+			TimeStamps++;
+		}
+
+		for (int j = 0; j < n_val_channels; j++) {
+			json_sig_data_item["value"].push_back(*Values);
+			Values++;
+		}
+
+		json_sig["data"].push_back(json_sig_data_item);
+	}
+	return json_sig;
+}
+
+json json_AddDataStr(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, int n_time_channels, int n_val_channels) {
+	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
+	if (units_tbl.count(signalName) != 0)
+		json_sig["unit"] = units_tbl.at(signalName);
+	int nelem = 0;
+	if (TimeStamps_len != 0)
+		nelem = TimeStamps_len / n_time_channels;
+	else nelem = Values_len / n_val_channels;
+	for (int i = 0; i < nelem; i++) {
+		json json_sig_data_item = json({ { "timestamp" , json::array() },{ "value" , json::array() } });
+
+		for (int j = 0; j < n_time_channels; j++) {
+			json_sig_data_item["timestamp"].push_back(*TimeStamps);
+			TimeStamps++;
+		}
+
+		for (int j = 0; j < n_val_channels; j++) {
+			json_sig_data_item["value"].push_back(*Values);
+			Values++;
+		}
+
+		json_sig["data"].push_back(json_sig_data_item);
+	}
+	return json_sig;
+}
+
+class DataLoader {
 public:
 	MedModel model;
 	MedSamples samples;
 	MedPidRepository rep;
 	vector<int> pids;
 	vector<string> sigs;
-    map<int, MedIdSamples* > pid2samples;
+	map<int, MedIdSamples* > pid2samples;
 	map<string, vector<map<int, string> > > sig_dict_cached;
 
-    void load(const string& rep_fname, const string& model_fname, const string& samples_fname="",bool read_signals=true) {
+	void load(const string& rep_fname, const string& model_fname, const string& samples_fname = "", bool read_signals = true) {
 		// read model file
-	    if (model.read_from_file(model_fname) < 0) {
-		    MERR("FAILED reading model file %s\n", model_fname.c_str());
-            throw runtime_error(string("FAILED reading model file ")+model_fname);
-	    }
-    
-	    unordered_set<string> sigs_set;
-	    model.get_required_signal_names(sigs_set);
-    
-	    MLOG("Required signals:");
-	    for (auto &sig : sigs_set) {
-		    MLOG(" %s", sig.c_str());
-		    sigs.push_back(sig);
-	    }
+		if (model.read_from_file(model_fname) < 0) {
+			MERR("FAILED reading model file %s\n", model_fname.c_str());
+			throw runtime_error(string("FAILED reading model file ") + model_fname);
+		}
+
+		unordered_set<string> sigs_set;
+		model.get_required_signal_names(sigs_set);
+
+		MLOG("Required signals:");
+		for (auto &sig : sigs_set) {
+			MLOG(" %s", sig.c_str());
+			sigs.push_back(sig);
+		}
 		MLOG("\n");
 		if (samples_fname != "") {
 			if (samples.read_from_file(samples_fname)) {
@@ -360,18 +455,18 @@ public:
 		else {
 			if (rep.MedRepository::init(rep_fname) < 0) {
 				MERR("Could not read repository definitions from %s\n", rep_fname.c_str());
-				throw runtime_error(string("FAILED MedRepository::init(")+rep_fname+"\")");
+				throw runtime_error(string("FAILED MedRepository::init(") + rep_fname + "\")");
 			}
 		}
 		for (auto &id : samples.idSamples)
-			pid2samples[id.id] = &id;		
-    }
+			pid2samples[id.id] = &id;
+	}
 
 	void get_sig_dict_cached(const string& cat_prefix = "", bool force_cat_prefix = false) {
 		sig_dict_cached = get_sig_dict(cat_prefix, force_cat_prefix);
 	}
 
-	map<string, vector<map<int, string> > > get_sig_dict(const string& cat_prefix="", bool force_cat_prefix=false) {
+	map<string, vector<map<int, string> > > get_sig_dict(const string& cat_prefix = "", bool force_cat_prefix = false) {
 		map<string, vector<map<int, string> > > sig_dict;
 		for (auto& sig : sigs) {
 			vector<map<int, string > > chan_dict;
@@ -411,15 +506,15 @@ public:
 
 	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
 		ofstream outfile(fname, ios::binary | ios::out);
-		
+
 		MLOG("(II) Preparing dictinaries to export\n", fname.c_str());
 
 		map<string, vector<map<int, string> > > sig_dict = get_sig_dict(cat_prefix, force_cat_prefix);
-		
+
 		MLOG("(II) Exporting required data to %s\n", fname.c_str());
 
 		UniversalSigVec usv;
-		
+
 		for (int pid : pids) {
 			for (auto &sig : sigs) {
 				rep.uget(pid, sig, usv);
@@ -432,18 +527,18 @@ public:
 					}
 					bool ignore_line = false;
 					for (int vchan = 0, n_vchan = usv.n_val_channels(); vchan < n_vchan; ++vchan) {
-						if(sig_dict.at(sig)[vchan].size() == 0)
+						if (sig_dict.at(sig)[vchan].size() == 0)
 							outss << '\t' << setprecision(10) << usv.Val(i, vchan);
 						else {
 							if (sig_dict.at(sig)[vchan].count((int)(usv.Val(i, vchan))) != 0) {
 								outss << '\t' << sig_dict.at(sig)[vchan].at((int)(usv.Val(i, vchan)));
 							}
-							else{
+							else {
 								ignore_line = true;
 							}
 						}
 					}
-					if(!ignore_line)
+					if (!ignore_line)
 						outfile << outss.str() << '\n';
 				}
 			}
@@ -464,7 +559,7 @@ public:
 			{
 				string sig = j_sig["code"];
 				for (const auto& j_data : j_sig["data"]) {
-					outfile << pid+10000000 << '\t';
+					outfile << pid + 10000000 << '\t';
 					outfile << sig;
 					for (const auto& j_time : j_data["timestamp"]) {
 						outfile << '\t' << j_time;
@@ -475,7 +570,7 @@ public:
 
 					outfile << "\n";
 				}
-				
+
 			}
 		}
 		outfile.close();
@@ -554,7 +649,7 @@ public:
 					}
 
 				}
-				for (int vchan = 0 ; vchan < n_vchan; ++vchan) {
+				for (int vchan = 0; vchan < n_vchan; ++vchan) {
 					if (sig_dict[sig][vchan] == nullptr) {
 						const auto& field_str = fields[fields_i++];
 						try {
@@ -570,8 +665,8 @@ public:
 						try {
 							vchan_vec.push_back((*(sig_dict.at(sig)[vchan])).at(fields[fields_i++]));
 						}
-						catch(...){
-							MERR("Error converting sig %s, chan %d, '%s' back to code\n",sig.c_str(), vchan, fields[fields_i-1].c_str());
+						catch (...) {
+							MERR("Error converting sig %s, chan %d, '%s' back to code\n", sig.c_str(), vchan, fields[fields_i - 1].c_str());
 							exit(-1);
 						}
 					}
@@ -611,7 +706,7 @@ public:
 		return 0;
 	}
 
-    void am_add_data(AlgoMarker *am, int pid, int max_date, bool force_add_data, vector<string> ignore_sig) {
+    void am_add_data(AlgoMarker *am, int pid, int max_date, bool force_add_data, vector<string> ignore_sig, json& json_out) {
 		static bool print_once = false;
 		UniversalSigVec usv;
 	    int reserve_capacity = 100000;
@@ -627,86 +722,109 @@ public:
 			MLOG("(INFO) force_add_data=%d\n", ((int)force_add_data));
 			MLOG("(INFO) Will use %s API to insert data\n", (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) ? "AddData()" : "AddDataStr()");
 		}
+		string reqId = string("req_") + to_string(pid);
+		json_out = json({});
+		json_out["body"] = {
+			{"accountId", "A"},
+			{"requestId", reqId.c_str() },
+			{"customerId", "Earlysign"},
+			{"calculator" , "LC"},
+			{"signals",json::array() } 
+			};
+		json_out["header"] = {
+			{"Accept", "application/json"},
+			{"Content-Type", "application/json"}
+		};
 		
-	    for (auto &sig : sigs) {
+		for (auto &sig : sigs) {
 			if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 				continue;
+			json json_sig;
 			int sid = rep.sigs.Name2Sid[sig];
-//			int section_id = rep.dict.section_id(sig);
+			//			int section_id = rep.dict.section_id(sig);
 			usv.init(rep.sigs.Sid2Info[sid]);
 			rep.uget(pid, sig, usv);
-		    int nelem = usv.len;
-		    if (nelem > 0) {
-				vals.clear();
-				times.clear();
-				take_nelem.resize(nelem);
-				
-				if (usv.n_time_channels() <= 0) {
-					std::fill(take_nelem.begin(), take_nelem.end(), true);
-				} else {
-					std::fill(take_nelem.begin(), take_nelem.end(), false);
-					for (int i = 0; i < nelem; i++) {
-						bool take_elem = true;
+			int nelem = usv.len;
+			if (nelem == 0)
+				continue;
+			vals.clear();
+			times.clear();
+			take_nelem.resize(nelem);
+
+			if (usv.n_time_channels() <= 0) {
+				std::fill(take_nelem.begin(), take_nelem.end(), true);
+			}
+			else {
+				std::fill(take_nelem.begin(), take_nelem.end(), false);
+				for (int i = 0; i < nelem; i++) {
+					bool take_elem = true;
+					for (int j = 0; j < usv.n_time_channels(); j++) {
+						if (usv.Time(i, j) > max_date) {
+							take_elem = false;
+							break;
+						}
+					}
+					if (take_elem) {
 						for (int j = 0; j < usv.n_time_channels(); j++) {
-							if (usv.Time(i, j) > max_date) {
-								take_elem = false;
-								break;
-							}
+							times.push_back((long long)usv.Time(i, j));
 						}
-						if (take_elem) {
-							for (int j = 0; j < usv.n_time_channels(); j++) {
-								times.push_back((long long)usv.Time(i, j));
-							}
-							take_nelem[i] = true;
-						}
-						else {
-							if(usv.n_time_channels()==1)
-								break;
-						}
+						take_nelem[i] = true;
+					}
+					else {
+						if (usv.n_time_channels() == 1)
+							break;
 					}
 				}
-				
-				if (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) {
-					vals.clear();
-					if (usv.n_val_channels() > 0) {
-						for (int i = 0; i < nelem; i++) {
-							if (!take_nelem[i])
-								continue;
-							for (int j = 0; j < usv.n_val_channels(); j++)
-								vals.push_back(usv.Val(i, j));
-						}
-					}
+			}
 
-					if ((times.size() > 0) || (vals.size() > 0)) {
-						get_volatile_data_adaptor<long long> p_times(times);
-						get_volatile_data_adaptor<float> p_vals(vals);
-						DynAM::AM_API_AddData(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), p_vals.get_volatile_data());
+			if (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) {
+				vals.clear();
+				if (usv.n_val_channels() > 0) {
+					for (int i = 0; i < nelem; i++) {
+						if (!take_nelem[i])
+							continue;
+						for (int j = 0; j < usv.n_val_channels(); j++) {
+							vals.push_back(usv.Val(i, j));
+						}
+
 					}
 				}
-				else {
-					str_vals.clear();
-					if (usv.n_val_channels() > 0) {
-						for (int i = 0; i < nelem; i++) {
-							if (!take_nelem[i])
-								continue;
-							for (int j = 0; j < usv.n_val_channels(); j++) {
-								if (rep.sigs.is_categorical_channel(sid, j)) {
-									str_vals.push_back(sig_dict_cached.at(sig)[j].at((int)(usv.Val(i, j))));
-								}
-								else {
-									str_vals.push_back(precision_float_to_string(usv.Val(i, j)));
-								}
+
+				if ((times.size() > 0) || (vals.size() > 0)) {
+					get_volatile_data_adaptor<long long> p_times(times);
+					get_volatile_data_adaptor<float> p_vals(vals);
+					DynAM::AM_API_AddData(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), p_vals.get_volatile_data());
+					json_sig = json_AddData(sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), p_vals.get_volatile_data(), usv.n_time_channels(), usv.n_val_channels());
+				}
+			}
+			else {
+				str_vals.clear();
+				if (usv.n_val_channels() > 0) {
+					for (int i = 0; i < nelem; i++) {
+						if (!take_nelem[i])
+							continue;
+						for (int j = 0; j < usv.n_val_channels(); j++) {
+							string val = "";
+							if (rep.sigs.is_categorical_channel(sid, j)) {
+								val = sig_dict_cached.at(sig)[j].at((int)(usv.Val(i, j)));
 							}
+							else {
+								val = precision_float_to_string(usv.Val(i, j));
+							}
+							str_vals.push_back(val);
 						}
 					}
-
-					if ((times.size() > 0) || (str_vals.size() > 0)) {
-						get_volatile_data_adaptor<long long> p_times(times);
-						DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)str_vals.size(), str_vals.get_charpp());
-					}
 				}
-		    }
-	    }
+
+				if ((times.size() > 0) || (str_vals.size() > 0)) {
+					get_volatile_data_adaptor<long long> p_times(times);
+					DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)str_vals.size(), str_vals.get_charpp());
+					json_sig = json_AddDataStr(sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), str_vals.get_charpp(), usv.n_time_channels(), usv.n_val_channels());
+				}
+			}
+			if(!json_sig.is_null())
+				json_out["body"]["signals"].push_back(json_sig);
+		}
     }
 
 };
@@ -721,7 +839,8 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 	MLOG("Going over %d pids\n", d.pids.size());
 	d.get_sig_dict_cached();
 	for (auto pid : d.pids) {
-        d.am_add_data(am, pid, INT_MAX, force_add_data, ignore_sig);
+		json json_req;
+        d.am_add_data(am, pid, INT_MAX, force_add_data, ignore_sig, json_req);
     }
 
     //ASK_AVI: Is this needed?
@@ -848,7 +967,7 @@ int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig)
+int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig, ofstream& json_reqfile_stream)
 {
 
 	DynAM::AM_API_ClearData(am);
@@ -860,13 +979,23 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 	MedTimer timer;
 	d.get_sig_dict_cached();
 	timer.start();
+
+	bool first_json_req = true;
+
 	for (auto &id : d.samples.idSamples){
 		for (auto &s : id.samples) {
 			// clearing data in algomarker
 			DynAM::AM_API_ClearData(am);
 
 			// adding all data 
-			d.am_add_data(am, s.id, s.time, force_add_data, ignore_sig);
+			json json_req;
+			d.am_add_data(am, s.id, s.time, force_add_data, ignore_sig, json_req);
+			if (json_reqfile_stream.is_open()) {
+				json_reqfile_stream << (first_json_req ? "[\n" : ",\n");
+				json_reqfile_stream << json_req.dump(1) << "\n";
+				first_json_req = false;
+			}
+
 
 			// At this point we can send to the algomarker and ask for a score
 
@@ -998,6 +1127,9 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 			}
 		}
    }
+	if (json_reqfile_stream.is_open()) {
+		json_reqfile_stream  << "]";
+	}
 
 	MLOG("Finished getting preds from algomarker in a single manner\n");
 	return 0;
@@ -1103,14 +1235,15 @@ int simple_egfr_test()
 	return 0;
 }
 
-int generate_data(const string& rep_file, const string& samples_file, const string& model_file, const string& output_file, const string& cat_prefix, bool force_cat_prefix) {
+int generate_data(testing_context& t_ctx) {
 	DataLoader l;
-	l.load(rep_file, model_file, samples_file);
-	l.export_required_data(output_file, cat_prefix, force_cat_prefix);
+	l.load(t_ctx.rep, t_ctx.model, t_ctx.samples);
+	l.export_required_data(t_ctx.generate_data_outfile, t_ctx.generate_data_cat_prefix, t_ctx.generate_data_force_cat_prefix);
 	return 0;
 }
 
-vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
+vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d){
+	//const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
 	vector<MedSample> res2;
 	AlgoMarker *test_am;
 
@@ -1121,20 +1254,20 @@ vector<MedSample> apply_am_api(const string& amconfig, DataLoader& d, bool print
 
 	// put fix here
 
-	if (am_csv_file != "") {
-		set_am_matrix(test_am, am_csv_file);
+	if (t_ctx.am_csv_file != "") {
+		set_am_matrix(test_am, t_ctx.am_csv_file);
 	}
 
     int rc=0;
-	if ((rc = DynAM::AM_API_Load(test_am, amconfig.c_str())) != AM_OK_RC) {
-		MERR("ERROR: Failed loading algomarker with config file %s ERR_CODE: %d\n", amconfig.c_str(), rc);
-		throw runtime_error(string("ERROR: Failed loading algomarker with config file ")+amconfig+" ERR_CODE: "+to_string(rc));
+	if ((rc = DynAM::AM_API_Load(test_am, t_ctx.amconfig.c_str())) != AM_OK_RC) {
+		MERR("ERROR: Failed loading algomarker with config file %s ERR_CODE: %d\n", t_ctx.amconfig.c_str(), rc);
+		throw runtime_error(string("ERROR: Failed loading algomarker with config file ")+ t_ctx.amconfig +" ERR_CODE: "+to_string(rc));
 	}
 
-	if (single)
-		get_preds_from_algomarker_single(test_am, res2, print_msgs, d, force_add_data, msgs_stream, ignore_sig);
+	if (t_ctx.single)
+		get_preds_from_algomarker_single(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig, t_ctx.json_reqfile_stream);
 	else
-		get_preds_from_algomarker(test_am, res2, print_msgs, d, force_add_data, msgs_stream, ignore_sig);
+		get_preds_from_algomarker(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
 
     return res2;
 }
@@ -1203,38 +1336,39 @@ void save_sample_vec(vector<MedSample> sample_vec, const string& fname){
     s.write_to_file(fname, 4);
 }
 
-int apply_data(const string& repdata_file, const string& mock_rep_file, const string& scores_file, bool score_format_is_samples, const string& model_file, const string& scores_output_file, const string& amconfig_file, const string& med_csv_file, const string& am_csv_file, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig) {
+int apply_data(testing_context& t_ctx)
+{
 	
 	DataLoader l;
-	MLOG("(II) Starting apply with:\n(II)   repdata_file='%s'\n(II)   mock_rep_file='%s'\n(II)   scores_file='%s' %s\n(II)   model_file='%s'\n(II)   scores_output_file='%s'\n(II)   amconfig_file='%s'\n"
-		, repdata_file.c_str(), mock_rep_file.c_str(), scores_file.c_str(), score_format_is_samples ? "(samples format)" : "", model_file.c_str(), scores_output_file.c_str(), amconfig_file.c_str());
+	MLOG("(II) Starting apply with:\n(II)   apply_repdata='%s'\n(II)   rep='%s'\n(II)   scores_file='%s' %s\n(II)   model='%s'\n(II)   apply_outfile='%s'\n(II)   apply_amconfig='%s'\n"
+		, t_ctx.apply_repdata.c_str(), t_ctx.rep.c_str(), t_ctx.scores_file.c_str(), t_ctx.score_to_date_format_is_samples ? "(samples format)" : "", t_ctx.model.c_str(), t_ctx.apply_outfile.c_str(), t_ctx.apply_amconfig.c_str());
 	MLOG("(II) Loading mock repo, model and date for scoring\n");
 
-	if (!score_format_is_samples) {
-		l.load_samples_from_dates_to_score(scores_file);
-		l.load(mock_rep_file, model_file,"",false);
-		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", scores_file.c_str());
+	if (!t_ctx.score_to_date_format_is_samples) {
+		l.load_samples_from_dates_to_score(t_ctx.scores_file);
+		l.load(t_ctx.rep, t_ctx.model,"",false);
+		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", t_ctx.scores_file.c_str());
 	}
 	else { 
-		MLOG("\n(II) Loading dates for scoring from samples file %s\n", scores_file.c_str());
-		l.load(mock_rep_file, model_file, scores_file,false); 
+		MLOG("\n(II) Loading dates for scoring from samples file %s\n", t_ctx.scores_file.c_str());
+		l.load(t_ctx.rep, t_ctx.model, t_ctx.scores_file,false);
 	}
 	
 	//l.rep.switch_to_in_mem_mode();
-	MLOG("(II) Importing data from '%s'\n", repdata_file.c_str());
-	l.import_required_data(repdata_file);
+	MLOG("(II) Importing data from '%s'\n", t_ctx.apply_repdata.c_str());
+	l.import_required_data(t_ctx.apply_repdata);
 
-	if (amconfig_file == "") {
+	if (t_ctx.apply_amconfig == "") {
 		MLOG("(II) Starting apply using Medial API\n");
-		auto ret = apply_med_api(l.rep, l.model, l.samples, med_csv_file, ignore_sig);
-		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
-		save_sample_vec(ret, scores_output_file);
+		auto ret = apply_med_api(l.rep, l.model, l.samples, t_ctx.med_csv_file, t_ctx.ignore_sig);
+		MLOG("(II) Saving results to %s\n", t_ctx.apply_outfile.c_str());
+		save_sample_vec(ret, t_ctx.apply_outfile);
 	}
 	else {
 		MLOG("(II) Starting apply using Algomarker API\n");
-		auto ret = apply_am_api(amconfig_file, l, false, false, am_csv_file, force_add_data, msgs_stream, ignore_sig);
-		MLOG("(II) Saving results to %s\n", scores_output_file.c_str());
-		save_sample_vec(ret, scores_output_file);
+		auto ret = apply_am_api(t_ctx, l);
+		MLOG("(II) Saving results to %s\n", t_ctx.apply_outfile.c_str());
+		save_sample_vec(ret, t_ctx.apply_outfile);
 	}
 
 	return 0;
@@ -1266,27 +1400,10 @@ int main(int argc, char *argv[])
 	}
 
 	if (t_ctx.generate_data) {
-		return generate_data(
-			t_ctx.rep,
-			t_ctx.samples,
-			t_ctx.model,
-			t_ctx.generate_data_outfile,
-			t_ctx.generate_data_cat_prefix,
-			t_ctx.generate_data_force_cat_prefix);
+		return generate_data(t_ctx);
 	}
 	if (t_ctx.apply|| t_ctx.apply_amconfig != "") {
-		return apply_data(t_ctx.apply_repdata, 
-			t_ctx.rep, 
-			t_ctx.scores_file, 
-			t_ctx.score_to_date_format_is_samples, 
-			t_ctx.model, 
-			t_ctx.apply_outfile, 
-			t_ctx.apply_amconfig, 
-			t_ctx.med_csv_file, 
-			t_ctx.am_csv_file, 
-			t_ctx.force_add_data, 
-			t_ctx.msgs_stream, 
-			t_ctx.ignore_sig);
+		return apply_data(t_ctx);
 	}
     
 	if(t_ctx.test_am)
@@ -1324,8 +1441,8 @@ int main(int argc, char *argv[])
 	//===============================================================================
     vector<MedSample> res2;
     try{
-		if(t_ctx.test_am)
-			res2 = apply_am_api(t_ctx.amconfig, d, t_ctx.print_msgs, t_ctx.single , t_ctx.am_csv_file, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
+		if (t_ctx.test_am)
+			res2 = apply_am_api(t_ctx, d);
     }catch(runtime_error e){
       return -1;
     }
@@ -1340,6 +1457,13 @@ int main(int argc, char *argv[])
 	
 	if (t_ctx.msgs_file != "")
 		t_ctx.msgs_stream.close();
+
+	if (t_ctx.json_reqfile_stream.is_open()) {
+		t_ctx.json_reqfile_stream.close();
+	}
+	if (t_ctx.json_resfile_stream.is_open()) {
+		t_ctx.json_resfile_stream.close();
+	}
 
     return 0;
 }
