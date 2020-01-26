@@ -1712,7 +1712,7 @@ public:
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel,
 			req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic,
-			output_type, get_values_in_range, range_operator, range_val_channel, sets)
+			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel)
 
 		/// <summary> Print processors information </summary>
 		void print();
