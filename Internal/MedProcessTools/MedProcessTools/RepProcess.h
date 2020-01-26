@@ -1679,6 +1679,7 @@ public:
 	int ranges_id; ///< id of signal the defines ranges
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
+	int range_time_channel; ///< range time channel to consider in cleaning. this time channel will be used to check we're not using the future
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type. Or string for generic type
 	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
@@ -1691,6 +1692,7 @@ public:
 		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1),
 		output_id(-1), time_channel(0), output_type(3) {
 		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
+		range_time_channel = 1;
 	}
 
 	/// initialize signal ids
