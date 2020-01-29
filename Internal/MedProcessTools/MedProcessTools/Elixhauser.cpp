@@ -50,6 +50,12 @@ int ElixhauserGenerator::init(map<string, string>& mapper) {
 			parseSets(entry.second, drgSets);
 		else if (field == "diagnosis_sets")
 			parseSets(entry.second, diagSets);
+		else if (field == "type") {
+			type = entry.second;
+			boost::algorithm::to_lower(type);
+			if (_weights.find(type) == _weights.end())
+				MTHROW_AND_ERR("Unknown Elixhauser type \'%s\'\n", type.c_str());
+		}
 		else if (field == "name" || field == "names")
 			names = { entry.second };
 		else if (field == "tags")
@@ -84,6 +90,8 @@ void ElixhauserGenerator::init_tables(MedDictionarySections& dict) {
 		dict.prep_sets_indexed_lookup_table(drgSection, drgSets[i], drgLuts[i]);
 		dict.prep_sets_indexed_lookup_table(diagSection, diagSets[i], diagLuts[i]);
 	}
+
+	weights = _weights[type];
 }
 
 // Learn a generator - just time units
@@ -145,7 +153,7 @@ int ElixhauserGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, in
 		p_feat[i] = 0;
 		for (size_t itype = 0; itype < types.size(); itype++) {
 			if (!drgIndices[itype] && diagIndices[itype])
-				p_feat[i] ++;
+				p_feat[i] += weights[itype];
 		}
 
 	}
