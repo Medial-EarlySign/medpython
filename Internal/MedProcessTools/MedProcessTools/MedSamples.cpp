@@ -3,6 +3,7 @@
 #include "Logger/Logger/Logger.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <MedSplit/MedSplit/MedSplit.h>
 #include <boost/crc.hpp>
 #include <random>
 #include <algorithm>
@@ -426,6 +427,15 @@ void MedSamples::get_preds(vector<float>& preds) const {
 		for (auto& sample : idSample.samples)
 			for (int i = 0; i < sample.prediction.size(); i++)
 				preds.push_back(sample.prediction[i]);
+}
+
+// Extract a single vector of predictions in a given channel
+//.......................................................................................
+void MedSamples::get_preds_channel(vector<float>& preds, int channel)
+{
+	for (auto& idSample : idSamples)
+		for (auto& sample : idSample.samples)
+			preds.push_back(sample.prediction[channel]);
 }
 
 // Extract a vector of values corresponding to attribute [empty if never given]
@@ -976,6 +986,43 @@ void MedSamples::split_train_test(MedSamples &train, MedSamples &test, float p_t
 			train.idSamples.push_back(id);
 
 }
+
+
+//.......................................................................................
+// gets p_test and splits by id , p_test of the ids into test, and the rest into train
+void MedSamples::split_by_split(MedSamples &in_split, MedSamples &off_split, int split)
+{
+	in_split.clear();
+	off_split.clear();
+
+	for (auto &id : idSamples)
+		if (id.split == split)
+			in_split.idSamples.push_back(id);
+		else
+			off_split.idSamples.push_back(id);
+
+}
+
+
+//.......................................................................................
+// adds splits numbers from a split file (if a pid not found throws an error)
+void MedSamples::add_splits_from_file(string f_split)
+{
+	MedSplit spl;
+
+	if (spl.read_from_file(f_split) < 0)
+		MTHROW_AND_ERR("Failed reading split file %s\n", f_split.c_str());
+
+	for (auto &id : idSamples) {
+		if (spl.pid2split.find(id.id) == spl.pid2split.end())
+			MTHROW_AND_ERR("Pid %d not found in file %s, but present in samples file\n", id.id, f_split.c_str());
+		id.split = spl.pid2split[id.id];
+		for (auto &s : id.samples)
+			s.split = id.split;
+	}
+
+}
+
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
 	ofstream fo;

@@ -83,6 +83,7 @@
   <ItemGroup>
     <ClInclude Include="BART.h" />
     <ClInclude Include="BinSplitOptimizer.h" />
+    <ClInclude Include="ExternalNN.h" />
     <ClInclude Include="MedBART.h" />
     <ClInclude Include="MedLinearModel.h" />
     <ClInclude Include="MedAlgo.h" />

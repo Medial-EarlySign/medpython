@@ -79,12 +79,17 @@ public:
 	string rules_config_file; ///< path to rules config file
 	string table_file; ///< path to table file with numbers
 	bool reverse_rule_order; ///< if true will reverse the rule order for priority
+	string table_nice_name; ///< nice name for printing
 	//object uses also req_signals, req_signals_ids - calculates from key_rules when set_signal_ids is called
 
 	FeatureGenExtractTable() {
 		generator_type = FTR_GEN_EXTRACT_TBL;
 		missing_val = MED_MAT_MISSING_VALUE;
 		missing_values_cnt = 0;
+		table_nice_name = "";
+		table_file = "";
+		rules_config_file = "";
+		reverse_rule_order = false;
 	}
 
 	void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<FeatureGenExtractTable *>(generator)); }
@@ -108,7 +113,7 @@ public:
 	void make_summary();
 
 	ADD_CLASS_NAME(FeatureGenExtractTable)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, missing_val, tags, iGenerateWeights, key_rules, extracted_names)
+		ADD_SERIALIZATION_FUNCS(generator_type, req_signals, names, missing_val, tags, iGenerateWeights, key_rules, extracted_names, table_nice_name)
 };
 
 MEDSERIALIZE_SUPPORT(KeyRule)

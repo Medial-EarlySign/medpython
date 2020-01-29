@@ -155,6 +155,7 @@ public:
 	void set_predictor(string name) { predictor = MedPredictor::make_predictor(name); }
 	void set_predictor(MedPredictorTypes type, string init_string) { predictor = MedPredictor::make_predictor(type, init_string); }
 	void set_predictor(string name, string init_string) { predictor = MedPredictor::make_predictor(name, init_string); }
+	void replace_predictor_with_json_predictor(string f_json); // given a loaded model and a json file, replaces the model predictor definition with the one in the json.
 
 	// signal ids
 	void set_required_signal_ids(MedDictionarySections& dict);
@@ -181,6 +182,7 @@ public:
 	// Learn/Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
+	int learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage);
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 

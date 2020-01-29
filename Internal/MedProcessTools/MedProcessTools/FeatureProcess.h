@@ -829,6 +829,7 @@ public:
 	unordered_set<string> ungroupd_names = { "Drug","RC","ICD9" }; ///< features-names (NAME in FTR_####.NAME) not to be grouped even in work_on_sets mode.
 	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
+	string progress_file_path = ""; ///< file path to progress file
 
 	vector<int> rates_vec;
 	vector<string> predictor_params_vec;
@@ -1021,6 +1022,7 @@ public:
 	map<float, string> feature_names; ///< feature names if multiple target_labels are given
 	bool remove_origin = true; ///< determine whether to remove original if multiple target_labels are given
 	bool all_labels = false; ///< if given - take all labels as target-labels
+	int min_obs = 100; ///< minimal observations to calc prob - otherwise use prior
 
 	vector<map<float, float>> probs; ///< actual probability per class
 	vector<float> overall_prob; ///< default prob for unknown classes
@@ -1045,7 +1047,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(GetProbFeatProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob, target_labels, remove_origin, feature_names);
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs,
+			overall_prob, target_labels, remove_origin, feature_names, min_obs);
 
 };
 

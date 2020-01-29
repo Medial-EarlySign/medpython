@@ -73,6 +73,7 @@ public:
 	unsigned long long ncols = 0;
 	unsigned long long size() const { return (unsigned long long)nrows*ncols; }
 	vector<T> &get_vec() { return m; }
+	void copy_vec(vector<T> &c_vec) { c_vec.clear(); c_vec = m; }
 
 	// metadata holders
 	vector<int> row_ids;

@@ -65,6 +65,23 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 	return learn(rep, *_samples, post_processors_learning_sets, start_stage, end_stage);
 }
 
+
+// special common case of wanting to keep the model matrix training info and retrain predictor
+// note that there will be some mess at the moment regarding post_processors and their exact training list - this is TBD !!!
+int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage) 
+{
+	MLOG("Starting a learn process but skipping the train of the matrix !!!!\n");
+
+
+	// first applying and generating the matrix
+	MLOG("Step 1: Generating matrix with current model without training (using direct apply)\n");
+	apply(rep, (*samples), MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+
+	// second: going for a training session for the predictor and on
+	vector<MedSamples> dummy;
+	return(learn(rep, (*samples), dummy, MED_MDL_LEARN_PREDICTOR, end_stage));
+}
+
 // Learn with multiple MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
@@ -74,7 +91,16 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
 	vector<MedSamples> post_processors_learning_sets;
 	MedSamples model_learning_set;
-	split_learning_set(model_learning_set_orig, post_processors_learning_sets_orig, post_processors_learning_sets, model_learning_set);
+	if (post_processors_learning_sets_orig.size() == 0 && post_processors.size() > 0) {
+		// if no post processors learning sets were given AND there are post processors, we will use the use_p and use_split rules to create 
+		// new sets to train post_processors with and adjust the learning set as well
+		split_learning_set(model_learning_set_orig, post_processors_learning_sets_orig, post_processors_learning_sets, model_learning_set);
+	}
+	else {
+		// in this case, either there are no post processors, OR post_processors learning sets were given by the user
+		model_learning_set = model_learning_set_orig;
+		post_processors_learning_sets = post_processors_learning_sets_orig;
+	}
 
 
 	LearningSet = &model_learning_set;

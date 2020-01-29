@@ -27,12 +27,12 @@ typedef enum {
 	REP_PROCESS_COMPLETE, ///<"complete" to activate RepPanelCompleter
 	REP_PROCESS_CHECK_REQ, ///<"req" or "requirements" check compliance with minimal requirement to activate RepCheckReq
 	REP_PROCESS_SIM_VAL, ///<"sim_val" or "sim_val_handler" handle multiple simultanous values to activate RepSimValHandler
-	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to actiate RepSignalRate
-	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to actiate RepCombineSignals
+	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to activate RepSignalRate
+	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to activate RepCombineSignals
 	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
 	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
-	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to actiate RepAggregateSignal
+	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to activate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits
@@ -1037,7 +1037,7 @@ public:
 	/// the calc option
 	virtual bool do_calc(const vector<float> &vals, float &res) const { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// list output signals with default naming
-	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
+	virtual void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) { HMTHROW_AND_ERR("Error %s::do_calc not implemented\n", my_class_name().c_str()); };
 	/// init operator based on repo if needed
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
@@ -1071,7 +1071,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(RatioCalculator)
@@ -1091,7 +1091,7 @@ public:
 	/// @snippet RepCalculators.cpp eGFRCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(eGFRCalculator)
@@ -1108,7 +1108,7 @@ public:
 	/// @snippet RepCalculators.cpp logCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1129,7 +1129,7 @@ public:
 	/// @snippet RepCalculators.cpp SumCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(SumCalculator)
@@ -1151,7 +1151,7 @@ public:
 	/// @snippet RepCalculators.cpp RangeCalculator::init
 	int init(map<string, string>& mapper);
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(RangeCalculator)
@@ -1172,7 +1172,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1195,7 +1195,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
@@ -1223,7 +1223,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
-	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals);
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1243,6 +1243,7 @@ public:
 	string calculator; ///< calculator asked for by user
 	int work_channel = 0; ///< the channel to work on all singals - and save results to
 	int time_channel = 0; ///<the time channel. todo in the future - accept array with same order and size of signals
+	string output_signal_type; ///< a parameter to be pass to list signal to afect output type
 
 	float missing_value = (float)MED_MAT_MISSING_VALUE;
 
@@ -1254,7 +1255,10 @@ public:
 	int max_time_search_range = 0; ///< how much time we are allowed to look backward to calculate. to look forward we need to fix the function
 	string calculator_init_params = ""; ///< string init params for calculator
 
-	RepCalcSimpleSignals() { processor_type = REP_PROCESS_CALC_SIGNALS; }
+	RepCalcSimpleSignals() {
+		processor_type = REP_PROCESS_CALC_SIGNALS;
+		output_signal_type = "T(i),V(f)";
+	}
 	~RepCalcSimpleSignals();
 
 	/// @snippet RepProcess.cpp RepCalcSimpleSignals::init
@@ -1275,10 +1279,12 @@ public:
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
+	void register_virtual_section_name_id(MedDictionarySections& dict);
+
 	// serialization
 	ADD_CLASS_NAME(RepCalcSimpleSignals)
 		ADD_SERIALIZATION_FUNCS(processor_type, calculator, calculator_init_params, max_time_search_range, signals_time_unit,
-			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic)
+			signals, V_names, req_signals, aff_signals, virtual_signals, virtual_signals_generic, work_channel, time_channel, calculator_logic, output_signal_type)
 		void post_deserialization() {
 		SimpleCalculator *p = SimpleCalculator::make_calculator(calculator);
 		pass_time_last = p->need_time;
@@ -1313,7 +1319,7 @@ private:
 	int apply_calc_in_time(PidDynamicRec& rec, vector<int>& time_points);
 
 	SimpleCalculator *calculator_logic = NULL;
-
+	int out_n_val_ch, out_n_time_ch;
 };
 
 /**
@@ -1531,10 +1537,13 @@ public:
 	vector<string> signals; ///< names of input signals used by the processor
 	vector<float> factors; ///< factor for each signal
 	int factor_channel; ///< the factor_channel_number
-	int num_val_channels; ///< number of val channels
+	string signal_type; ///< the signal type definition to create
 
 	RepCombineSignals() {
-		processor_type = REP_PROCESS_COMBINE; output_name = ""; num_val_channels = 2; factor_channel = 1;
+		processor_type = REP_PROCESS_COMBINE;
+		output_name = "";
+		factor_channel = 1;
+		signal_type = "T(i,i),V(f,f)";
 	}
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
@@ -1552,10 +1561,13 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepCombineSignals)
-		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, num_val_channels, factor_channel)
+		ADD_SERIALIZATION_FUNCS(processor_type, output_name, signals, factors,
+			unconditional, req_signals, aff_signals, virtual_signals,
+			virtual_signals_generic, signal_type, factor_channel)
 private:
 	int v_out_sid = -1;
 	vector<int> sigs_ids;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 /**
@@ -1593,11 +1605,12 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepSplitSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, input_name, names, factors, sets, unconditional,
-			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel)
+			req_signals, aff_signals, virtual_signals, virtual_signals_generic, val_channel, output_signal_type)
 private:
 	int in_sid = -1;
 	vector<int> V_ids;
 	vector<char> Flags;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 
@@ -1666,6 +1679,7 @@ public:
 	int ranges_id; ///< id of signal the defines ranges
 	int output_id; ///< id of output signal
 	int time_channel; ///< time channel to consider in cleaning
+	int range_time_channel; ///< range time channel to consider in cleaning. this time channel will be used to check we're not using the future
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type. Or string for generic type
 	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
@@ -1678,10 +1692,13 @@ public:
 		signal_name(""), ranges_name(""), output_name(""), signal_id(-1), ranges_id(-1),
 		output_id(-1), time_channel(0), output_type(3) {
 		processor_type = REP_PROCESS_BASIC_RANGE_CLEANER;
+		range_time_channel = 1;
 	}
 
 	/// initialize signal ids
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	void register_virtual_section_name_id(MedDictionarySections& dict);
 
 	/// <summary> Fill required- and affected-signals sets </summary>
 	/// The parsed fields from init command.
@@ -1695,7 +1712,7 @@ public:
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel,
 			req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic,
-			output_type, get_values_in_range, range_operator, range_val_channel, sets)
+			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel)
 
 		/// <summary> Print processors information </summary>
 		void print();
@@ -1710,10 +1727,12 @@ public:
 	string input_name; ///< names of input signals used by the completer
 	int work_channel; ///< which channel to change and divide by time
 	float factor; ///< additional constant factor 
+	string output_signal_type; ///< the output signal type
 
 	RepSignalRate() {
 		processor_type = REP_PROCESS_SIGNAL_RATE; output_name = { "calc_drug_rate" };
 		work_channel = 0;  factor = 1;
+		output_signal_type = "T(i,i),V(f)";
 	}
 
 	/// @snippet RepProcess.cpp RepSignalRate::init
@@ -1729,10 +1748,13 @@ public:
 
 	void print();
 	ADD_CLASS_NAME(RepSignalRate)
-		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name, work_channel, factor, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+		ADD_SERIALIZATION_FUNCS(processor_type, input_name, output_name,
+			work_channel, factor, unconditional, req_signals, aff_signals,
+			virtual_signals, virtual_signals_generic, output_signal_type)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 /**
@@ -1750,6 +1772,8 @@ public:
 	int time_unit; ///< time unit
 	float drop_missing_rate; ///< If missing time points beyond this threshold will drop measurement
 	bool buffer_first; ///< If true will wait for first buffer to complete
+	string output_signal_type; ///< same as input signal - will remove later after change init process of RepProcessor to fetch input signal type
+
 
 	RepAggregateSignal() {
 		processor_type = REP_PROCESS_AGGREGATE;
@@ -1763,6 +1787,7 @@ public:
 		output_name = "calc_aggregate";
 		time_window = 0;
 		buffer_first = true;
+		output_signal_type = "T(i),V(f)";
 	}
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
@@ -1781,10 +1806,11 @@ public:
 	void print();
 	ADD_CLASS_NAME(RepAggregateSignal)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, output_name, work_channel, factor, time_window, time_unit,
-			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic)
+			start_time_channel, end_time_channel, drop_missing_rate, buffer_first, unconditional, req_signals, aff_signals, virtual_signals, virtual_signals_generic, output_signal_type)
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
+	int v_out_n_time_ch, v_out_n_val_ch;
 };
 
 //---------------------------------------------------------------------------------------------------------------

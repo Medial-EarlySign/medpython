@@ -94,6 +94,12 @@ public:
 
 	int get_all_embeddings(MedSparseMat &smat, int to_layer, MedMat<float> &emat);
 
+	int get_output_dimension() {
+		if (layers.size() > 0)
+			return layers.back().out_dim;
+		return 0;
+	}
+
 	ADD_CLASS_NAME(ApplyKeras)
 	ADD_SERIALIZATION_FUNCS(layers)
 };

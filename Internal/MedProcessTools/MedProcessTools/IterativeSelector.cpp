@@ -6,9 +6,17 @@
 #include "FeatureProcess.h"
 #include "MedStat/MedStat/MedBootstrap.h"
 #include "MedStat/MedStat/bootstrap.h"
+#include <fstream>
 
 // Selection top to bottom.
 void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper) {
+	ofstream f_progress;
+
+	if (!progress_file_path.empty()) {
+		f_progress.open(progress_file_path);
+		if (!f_progress.good())
+			MTHROW_AND_ERR("Error IterativeFeatureSelector::doTop2BottomSelection - can't open progress file\n");
+	}
 
 	if (verbose)
 		MLOG("Running top - to - bottom feature selection on %d folds out of %d\n", folds.size(), nfolds);
@@ -98,16 +106,18 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 				scores.push_back({ family,(float)-1.0 });
 
 			selectedFamilies.insert(family);
+
+			string report_s = "checked backward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
+			report.push_back(report_s);
 			if (verbose) {
-				MLOG("\tChecked removing family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
-				string report_s = "checked backward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
-				report.push_back(report_s);
+				medial::print::log_with_file(f_progress, "\tChecked removing family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
 
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
 				MLOG("\tCurrent round running for %2.2f min. Estimated time : %2.2f min.\n", diff, diff * ((float)families.size()) / counter);
 			}
-
+			else
+				f_progress << "\tChecked removing family " << scores.back().first << " with " << measurement_name << " = " << scores.back().second << "\n";
 		}
 
 		// Top Performing families
@@ -116,7 +126,9 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 			string report_s = "Removing family " + scores[i].first + " with " + measurement_name + " = " + to_string(scores[i].second);
 			report.push_back(report_s);
 			if (verbose)
-				MLOG("REPORT: %s\n", report_s.c_str());
+				medial::print::log_with_file(f_progress, "REPORT: %s\n", report_s.c_str());
+			else
+				f_progress << report_s << "\n";
 			unSelectedFamilies.insert(scores[i].first);
 			selectedFamilies.erase(scores[i].first);
 		}
@@ -130,9 +142,19 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 		if (selected.size() <= numToSelect)
 			return;
 	}
+
+	if (!progress_file_path.empty())
+		f_progress.close();
 }
 
 void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<string, vector<string>>& featureFamilies, MedBootstrapResult& bootstrapper) {
+	ofstream f_progress;
+
+	if (!progress_file_path.empty()) {
+		f_progress.open(progress_file_path);
+		if (!f_progress.good())
+			MTHROW_AND_ERR("Error IterativeFeatureSelector::doBottom2TopSelection - can't open progress file\n");
+	}
 
 	if (verbose)
 		MLOG("Running bottom - to - top feature selection on %d folds out of %d\n", folds.size(), nfolds);
@@ -216,15 +238,19 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 			scores.push_back({ family,  bootstrapper.bootstrap_results["bs"][measurement_name] });
 
 			selectedFamilies.erase(family);
+			string report_s = "checked forward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
+			report.push_back(report_s);
+
 			if (verbose) {
-				MLOG("\tChecked adding family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
-				string report_s = "checked forward : signal/family " + scores.back().first + " score : " + measurement_name + " = " + to_string(scores.back().second) + "\n";
-				report.push_back(report_s);
+				medial::print::log_with_file(f_progress, "\tChecked adding family %s with %s = %f\n", scores.back().first.c_str(), measurement_name.c_str(), scores.back().second);
 				timer.take_curr_time();
 				double diff = timer.diff_sec() / 60.0;
 				MLOG("\tCurrent round: Adding to %d out of %d. Running for %2.2f min. Estimated time : %2.2f min.\n", selectedFamilies.size(), nFamilies, diff,
 					diff * ((float)unSelectedFamilies.size()) / counter);
 			}
+			else
+				f_progress << "\tChecked adding family " << scores.back().first << " with " << measurement_name << " = "
+				<< scores.back().second << "\n";
 		}
 
 		// Top Performing families
@@ -233,7 +259,9 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 			string report_s = "Adding family " + scores[i].first + " with " + measurement_name + " = " + to_string(scores[i].second);
 			report.push_back(report_s);
 			if (verbose)
-				MLOG("REPORT: %s\n", report_s.c_str());
+				medial::print::log_with_file(f_progress, "REPORT: %s\n", report_s.c_str());
+			else
+				f_progress << report_s << "\n";
 			selectedFamilies.insert(scores[i].first);
 			unSelectedFamilies.erase(scores[i].first);
 			if (unSelectedFamilies.empty())
@@ -249,6 +277,9 @@ void IterativeFeatureSelector::doBottom2TopSelection(MedFeatures& features, map<
 		if (selected.size() <= numToSelect)
 			return;
 	}
+
+	if (!progress_file_path.empty())
+		f_progress.close();
 }
 
 // Selection top to bottom.

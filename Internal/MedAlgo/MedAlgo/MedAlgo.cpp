@@ -9,6 +9,7 @@
 #include "MedLightGBM.h"
 #include "MedLinearModel.h"
 #include "MedBART.h"
+#include "ExternalNN.h"
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <External/Eigen/Core>
 #include <cmath>
@@ -44,7 +45,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_SPECIFIC_GROUPS_MODELS, "multi_models" },
 	{ MODEL_VW, "vw" },
 	{ MODEL_TQRF, "tqrf"},
-	{ MODEL_BART, "bart"}
+	{ MODEL_BART, "bart" },
+	{ MODEL_EXTERNAL_NN, "external_nn"}
 };
 //=======================================================================================
 // MedPredictor
@@ -94,6 +96,7 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedTQRF);
 	CONDITIONAL_NEW_CLASS(dname, MedBART);
 	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
+	CONDITIONAL_NEW_CLASS(dname, MedExternalNN);
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif
@@ -142,6 +145,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedBART;
 	else if (model_type == MODEL_LINEAR_SGD)
 		return new MedLinearModel;
+	else if (model_type == MODEL_EXTERNAL_NN)
+		return new MedExternalNN;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;
@@ -338,6 +343,10 @@ int MedPredictor::predict(MedMat<float> &x, vector<float> &preds) const {
 		return ((MedTQRF *)this)->Predict(x, preds);
 	}
 
+	if (classifier_type == MODEL_EXTERNAL_NN) {
+		return ((MedExternalNN *)this)->Predict(x, preds);
+	}
+
 	if (normalize_for_predict && !x.normalized_flag) {
 		MERR("Predictor Requires normalized matrix. Quitting\n");
 		return -1;
@@ -498,6 +507,9 @@ void MedPredictor::print(FILE *fp, const string& prefix, int level) const {
 
 int MedPredictor::learn(const MedFeatures& ftrs_data) {
 
+	if (classifier_type == MODEL_EXTERNAL_NN) {
+		return ((MedExternalNN *)this)->learn(ftrs_data);
+	}
 	vector<string> dummy_names;
 	return learn(ftrs_data, dummy_names);
 }

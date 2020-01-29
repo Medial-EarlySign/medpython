@@ -315,13 +315,13 @@ void FeatureGenerator::get_required_signal_ids(unordered_set<int>& signalIds) {
 // Filter generated features according to a set. return number of valid features (does not affect single-feature genertors, just returns 1/0 if feature name in set)
 int FeatureGenerator::filter_features(unordered_set<string>& validFeatures) {
 
-	int idx = 0;
-	for (int i = 0; i < names.size(); i++) {
+	vector<string> names_new;
+	names_new.reserve(names.size());
+	for (int i = 0; i < names.size(); i++)
 		if (validFeatures.find(names[i]) != validFeatures.end())
-			names[idx++] = names[i];
-	}
+			names_new.push_back(names[i]);
 
-	names.resize(idx);
+	names = move(names_new);
 
 	return ((int)names.size());
 }
@@ -423,7 +423,7 @@ void BasicFeatGenerator::set_names() {
 		set_names = boost::algorithm::join(this->sets, "_");
 	switch (type) {
 	case FTR_LAST_VALUE:	name += "last"; break;
-	case FTR_LAST_NTH_VALUE:	name += "last_"+to_string(N_th); break;
+	case FTR_LAST_NTH_VALUE:	name += "last_" + to_string(N_th); break;
 	case FTR_FIRST_VALUE:	name += "first"; break;
 	case FTR_LAST2_VALUE:	name += "last2"; break;
 	case FTR_AVG_VALUE:		name += "avg"; break;
@@ -509,7 +509,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME 
+	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME
 		|| type == FTR_CATEGORY_SET_LAST_NTH) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
@@ -906,7 +906,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_TIME_DIFF: name += "time_diff_" + to_string(check_first) + ((sets.size() > 0) ? sets[0] : ""); break;
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
 	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
-	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th); break;
+	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th) + ((sets.size() > 0) ? "_" + sets[0] : "");; break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -950,6 +950,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "Nth" || field == "nth") N_th = med_stoi(entry.second);
 		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
 		else if (field == "strict_times") strict_times = med_stoi(entry.second);
+		else if (field == "conditional_channel") conditional_channel = med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -967,7 +968,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF) {
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || conditional_channel>=0) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			dict.prep_sets_lookup_table(section_id, sets, lut);
@@ -979,7 +980,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 }
 
 void RangeFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF)
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || conditional_channel>=0)
 		signal_categories_in_use[signalName] = sets;
 }
 
@@ -995,6 +996,9 @@ void RangeFeatGenerator::init_defaults() {
 	set(_signalName, FTR_RANGE_CURRENT, 0, 360000);
 	timeRangeSignalId = -1;
 	N_th = 0;
+	zero_missing = 0;
+	strict_times = 0;
+	conditional_channel = -1;
 };
 
 // Get type from name
@@ -1246,7 +1250,7 @@ float BasicFeatGenerator::uget_sum(UniversalSigVec &usv, int time, int _win_from
 
 	float sum_val = (float)0;
 
-	for (int i = usv.len-1; i >=0; i--) {
+	for (int i = usv.len - 1; i >= 0; i--) {
 		int itime = usv.Time(i, time_channel);
 		if (itime < min_time) break;
 		if (itime <= max_time) sum_val += usv.Val(i, val_channel);
@@ -1810,7 +1814,8 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 		if (curr_from < min_time) curr_from = min_time;
 		if (curr_to > max_time) curr_to = max_time;
 
-		time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
+		if  ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)])
+			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
 	}
 
 	return (float)time_sum / div_factor;
@@ -1835,13 +1840,15 @@ float RangeFeatGenerator::uget_range_last_nth_time_len(UniversalSigVec &usv, int
 			curr_to = max_time;
 		}
 
-		// we are at the right window, find the n-th
-		if (nth == N_th)
-			return (float)med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
-		
-		nth++;
-		if (nth > N_th)
-			return missing_val;
+		if ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)]) {
+			// we are at the right window, find the n-th
+			if (nth == N_th)
+				return (float)med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
+
+			nth++;
+			if (nth > N_th)
+				return missing_val;
+		}
 	}
 
 	return missing_val;
@@ -2006,9 +2013,9 @@ void TimeFeatGenerator::set_default_bins() {
 
 // Generate
 //.......................................................................................
-int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num) {
+int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
-	float *p_feat = p_data[0] + index;
+	float *p_feat = _p_data[0] + index;
 
 	// Special care of year
 	if (time_unit == FTR_TIME_YEAR) {
