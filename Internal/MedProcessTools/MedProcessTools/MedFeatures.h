@@ -174,6 +174,9 @@ namespace medial {
 		/// \brief matching by given groups uniq values. returns also the row_ids filtered
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<int> &filtered_row_ids, float price_ratio, bool print_verbose);
+		/// \brief matching by given groups uniq values. returns also the row_ids filtered. max_ratio is maximal allowed ratio, inf if < 0.
+		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
+			vector<int> &filtered_row_ids, float price_ratio, float max_ratio, bool print_verbose);
 		/// \brief split matrix to train test based on iFold value. folds is fold id for each sample
 		void split_matrix(const MedFeatures& matrix, vector<int>& folds, int iFold,
 			MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features = NULL);
