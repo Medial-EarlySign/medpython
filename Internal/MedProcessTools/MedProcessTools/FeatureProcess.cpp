@@ -256,7 +256,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	/*if (!use_parallel_learn && !processors.empty())
 		MLOG("no threads for processor %s\n", processors.front()->my_class_name().c_str());*/
 
-#pragma omp parallel for schedule(dynamic) if (use_parallel_learn)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_learn && processors.size()>1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
 #pragma omp critical
@@ -269,6 +269,10 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 //.......................................................................................
 int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	int RC = 0;
+	if (processors.size() == 1) {
+		use_parallel_learn = false;
+		use_parallel_apply = false;
+	}
 #pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_apply(features, ids);
@@ -1197,6 +1201,7 @@ int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 		}
 
 		// Remove original, if required
+#pragma omp critical
 		if (remove_origin) {
 			features.data.erase(resolved_feature_name);
 			features.attributes.erase(resolved_feature_name);

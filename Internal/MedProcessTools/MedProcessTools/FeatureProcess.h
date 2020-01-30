@@ -400,9 +400,10 @@ class FeatureImputer : public FeatureProcessor {
 public:
 
 	// Missing Value
-	float missing_value;
-	bool verbose; ///< If true will print how many missing value were in each feature
-	bool verbose_learn; ///< If true will call print after learn
+	float missing_value = MED_MAT_MISSING_VALUE;
+	bool verbose = true; ///< If true will print how many missing value were in each feature
+	bool verbose_learn = false; ///< If true will call print after learn
+
 
 	// Strata for setting moment
 	featureSetStrata imputerStrata;
@@ -414,7 +415,7 @@ public:
 	bool leave_missing_for_small_stratas = false;
 
 	// Moment
-	imputeMomentTypes moment_type;
+	imputeMomentTypes moment_type = IMPUTE_MMNT_MEAN;
 	float default_moment;
 	vector<float> moments;
 	// for sampling-imputation
