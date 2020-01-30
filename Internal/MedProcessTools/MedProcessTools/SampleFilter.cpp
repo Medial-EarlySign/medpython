@@ -270,6 +270,7 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 		string field = entry.first;
 
 		if (field == "priceRatio") eventToControlPriceRatio = med_stof(entry.second);
+		else if (field == "maxRatio") maxControlToEventRatio = med_stof(entry.second);
 		else if (field == "verbose") verbose = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
@@ -381,7 +382,7 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, (verbose>0));
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, (verbose>0));
 	outSamples.import_from_sample_vec(features.samples);
 
 	return 0;
@@ -435,7 +436,7 @@ int MatchingSampleFilter::_filter(MedFeatures& features, MedRepository& rep, Med
 
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, (verbose>0));
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio,(verbose>0));
 	outSamples.import_from_sample_vec(features.samples);
 
 

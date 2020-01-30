@@ -190,8 +190,23 @@ namespace LightGBM {
 			is_finished = boosting_->TrainOneIter(nullptr, nullptr);
 			auto end_time = std::chrono::steady_clock::now();
 			// output used time per iteration
-			if ((((iter + 1) % config_.metric_freq) == 0) || (iter == total_iter - 1))
-				Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
+			if ((((iter + 1) % config_.metric_freq) == 0) || (iter == total_iter - 1)) {
+
+				if (!config_.metric.empty()) {
+					vector<double> m_res = boosting_->GetEvalAt(0);
+					stringstream eval_str;
+					
+					eval_str << config_.metric[0] << "=" << m_res[0];
+					for (size_t i = 1; i < config_.metric.size(); ++i)
+						eval_str << ", " << config_.metric[i] << "=" << m_res[i];
+					
+					Log::Info("%f seconds elapsed, finished iteration %d. [%s]", 
+						std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1,
+						eval_str.str().c_str());
+				}
+				else
+					Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
+			}
 		}
 		Log::Info("Finished training");
 	}

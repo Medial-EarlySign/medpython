@@ -3388,6 +3388,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "ranges_sig_name") { ranges_name = entry.second; }
 		else if (field == "output_name") { output_name = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "range_time_channel") range_time_channel = med_stoi(entry.second);
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
 		else if (field == "range_operator") range_operator = get_range_op(entry.second);
 		else if (field == "range_val_channel") range_val_channel = med_stoi(entry.second);
@@ -3469,6 +3470,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 	set_ids.insert(ranges_id);
 	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(2);
+	int tp_idx = 0;
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		// setup
 		rec.uget(signal_id, iver, rec.usvs[0]); // original signal
@@ -3494,6 +3496,8 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				while (j < rec.usvs[1].len && (time > rec.usvs[1].Time(j, 1) || (!lut.empty() &&
 					!lut[(int)rec.usvs[1].Val(j, range_val_channel)])))
 					++j;
+				if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
+					j = -1;//mark as no match, passed prediction time
 				break;
 			case first:
 				if (i == 0) {
@@ -3502,13 +3506,18 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 					if (!lut.empty()) //can do once - only in first time
 						while (j < rec.usvs[1].len && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
 							++j;
+					if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
+						j = -1;//mark as no match
 				}
 				break;
 			case last:
 				if (rec.usvs[1].len > 0 && i == 0) { //can do once - only in first time
 					j = rec.usvs[1].len - 1;
+					//last till time_point:
+					while (j >= 0 && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
+						--j;
 					if (!lut.empty())
-						while (j > 0 && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
+						while (j >= 0 && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
 							--j;
 				}
 				break;
@@ -3535,6 +3544,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		v_vals.resize(nKeep * time_channels);
 		// v_times and v_vals are likely longer than necessary, it's ok because nKeep defines which part of the vector is used.
 		rec.set_version_universal_data(output_id, iver, &v_times[0], &v_vals[0], nKeep);
+		++tp_idx;
 	}
 
 	return 0;

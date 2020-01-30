@@ -1023,6 +1023,7 @@ public:
 	map<float, string> feature_names; ///< feature names if multiple target_labels are given
 	bool remove_origin = true; ///< determine whether to remove original if multiple target_labels are given
 	bool all_labels = false; ///< if given - take all labels as target-labels
+	int min_obs = 100; ///< minimal observations to calc prob - otherwise use prior
 
 	vector<map<float, float>> probs; ///< actual probability per class
 	vector<float> overall_prob; ///< default prob for unknown classes
@@ -1047,7 +1048,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(GetProbFeatProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs, overall_prob, target_labels, remove_origin, feature_names);
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, overall_count, probs,
+			overall_prob, target_labels, remove_origin, feature_names, min_obs);
 
 };
 

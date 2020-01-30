@@ -981,8 +981,11 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		return (double)0;
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,
-	vector<int> &filtered_row_ids, float price_ratio, bool print_verbose) {
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, bool print_verbose) {
+	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, print_verbose);
+}
+
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, bool print_verbose) {
 	if (groups.size() != data_records.samples.size())
 		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
 
@@ -1135,6 +1138,16 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	else
 		MLOG("Best Target is %2.3f so retargeting balance to it. cost=%2.3f remove [%d, %d]\n", r_target, best_cost, best_0_rem
 			, best_1_rem);
+
+	if (max_ratio > 0) {
+		float min_r = 1 / (1.0 + max_ratio);
+		if (r_target < min_r)
+			r_target = min_r;
+		if (!print_verbose)
+			MLOG_D("Correcting target to %2.3f due to max_ratio = %2.3f\n", r_target, max_ratio);
+		else
+			MLOG("Correcting target to %2.3f due to max_ratio = %2.3f\n", r_target, max_ratio);
+	}
 
 	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
 	int min_grp_size = 5;

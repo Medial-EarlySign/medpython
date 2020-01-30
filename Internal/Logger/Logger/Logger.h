@@ -211,6 +211,9 @@ public:
 
 	/// update when completed process 1 item
 	void update();
+
+	/// update action when skiping action - update job counter
+	void skip_update();
 };
 
 #endif

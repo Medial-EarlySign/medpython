@@ -1142,7 +1142,10 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 	for (int i = 0; i < nlabels; i++) {
 		overall_prob[i] = (overall_pos_num[i] + 0.0) / overall_num;
 		for (auto& rec : nums)
-			probs[i][rec.first] = (pos_nums[i][rec.first] + overall_count * overall_prob[i]) / (nums[rec.first] + overall_count);
+			if (rec.second >= min_obs)
+				probs[i][rec.first] = (pos_nums[i][rec.first] + overall_count * overall_prob[i]) / (nums[rec.first] + overall_count);
+			else
+				probs[i][rec.first] = overall_prob[i];
 	}
 
 	return 0;
@@ -1224,6 +1227,7 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 		if (field == "name") feature_name = entry.second;
 		else if (field == "missing_value") missing_value = stof(entry.second);
 		else if (field == "overall_count") overall_count = med_stoi(entry.second);
+		else if (field == "min_obs") min_obs = med_stoi(entry.second);
 		else if (field == "remove_origin") remove_origin = (med_stoi(entry.second) != 0);
 		else if (field == "target_labels") {
 			vector<string> labels;
