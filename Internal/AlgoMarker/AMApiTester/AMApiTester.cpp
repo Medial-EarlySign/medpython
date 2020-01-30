@@ -23,9 +23,10 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
 #include "internal_am.h"
 #include <json/json.hpp>
-
+#include <algorithm>
 
 #ifdef __linux__ 
 #include <wordexp.h>
@@ -43,6 +44,7 @@ using namespace std;
 namespace po = boost::program_options;
 namespace pt = boost::property_tree;
 
+static const int base_pid = 10000000;
 
 string precision_float_to_string(float val) {
 	stringstream ss;
@@ -169,7 +171,7 @@ public:
 	bool generate_data;
 	bool generate_data_force_cat_prefix;
 	bool apply;
-	string apply_outfile, apply_repdata;
+	string apply_outfile, apply_repdata, apply_repdata_jsonreq;
 	string apply_amconfig;
 	string scores_file;
 	bool score_to_date_format_is_samples;
@@ -219,6 +221,7 @@ public:
 		apply = (vm.count("apply") != 0);
 		apply_outfile = vm["apply_outfile"].as<string>();
 		apply_repdata = vm["apply_repdata"].as<string>();
+		apply_repdata_jsonreq = vm["apply_repdata_jsonreq"].as<string>();
 		apply_amconfig = vm["apply_amconfig"].as<string>();
 		apply_dates_to_score = vm["apply_dates_to_score"].as<string>();
 		if (apply || (vm.count("apply_amconfig") && apply_amconfig != "")) {
@@ -226,7 +229,7 @@ public:
 				(samples == "" && apply_dates_to_score == "") ||
 				model == "" ||
 				apply_outfile == "" ||
-				apply_repdata == "")
+				(apply_repdata == "" && apply_repdata_jsonreq == "") )
 			{
 				MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
 				return -1;
@@ -294,6 +297,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("generate_data_force_cat_prefix", "Ignore signals categories which do not conform to generate_data_cat_prefix")
 			("apply", "Apply a model using Medial API, given --model, --rep, --apply_repdata, --samples, --apply_outfile, will write scores to output file")
 			("apply_repdata", po::value<string>()->default_value(""), "Unified signal data to be used by apply action")
+			("apply_repdata_jsonreq", po::value<string>()->default_value(""), "Same as apply_repdat but using JSON requests files")
 			("apply_dates_to_score", po::value<string>()->default_value(""), "File containing a list of tab seperated pid and date to score to beused instead of scores for performing apply")
 			("apply_amconfig", po::value<string>()->default_value(""), "Same as --apply but will use the AlgoMarker API and given amconfig")
 			("apply_outfile", po::value<string>()->default_value(""), "Output file to save scores from apply")
@@ -327,6 +331,18 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 
 	return 0;
 }
+
+static const map<int, int> code_to_status_tbl = {
+	{300, 2},
+	{301, 2},
+	{310, 2},
+	{311, 2},
+	{320, 1},
+	{321, 2},
+	{390, 0},
+	{391, 1},
+	{392, 2}
+};
 
 static const map<string, string> units_tbl = {
 	{ "BMI" , "kg/m^2" },
@@ -476,19 +492,19 @@ public:
 			for (int vchan = 0; vchan < n_vchan; ++vchan) {
 				if (rep.sigs.is_categorical_channel(sig, vchan)) {
 					map<int, string> new_dict;
-					const auto& Id2Name = rep.dict.dict(section_id)->Id2Name;
+					const auto& Id2Names = rep.dict.dict(section_id)->Id2Names;
 					const auto& Member2Sets = rep.dict.dict(section_id)->Member2Sets;
-					for (const auto& entry : Id2Name) {
-						if (boost::starts_with(entry.second, cat_prefix)) {
-							new_dict[entry.first] = entry.second;
+					for (const auto& entry : Id2Names) {
+						if (boost::starts_with(entry.second[0], cat_prefix)) {
+							new_dict[entry.first] = entry.second[0];
 							continue;
 						}
-						string new_ent = entry.second;
+						string new_ent = entry.second[0];
 						if (Member2Sets.count(entry.first) != 0)
 							for (const auto& setid : Member2Sets.at(entry.first)) {
-								if (Id2Name.count(setid) != 0 && boost::starts_with(Id2Name.at(setid), cat_prefix)) {
-									if (!boost::starts_with(new_ent, cat_prefix) || new_ent.length() > Id2Name.at(setid).length())
-										new_ent = Id2Name.at(setid);
+								if (Id2Names.count(setid) != 0 && boost::starts_with(Id2Names.at(setid)[0], cat_prefix)) {
+									if (!boost::starts_with(new_ent, cat_prefix) || new_ent.length() > Id2Names.at(setid)[0].length())
+										new_ent = Id2Names.at(setid)[0];
 								}
 							}
 						if (!force_cat_prefix || boost::starts_with(new_ent, cat_prefix))
@@ -504,12 +520,39 @@ public:
 		return sig_dict;
 	}
 
+	map<string, vector<map<string, int>* > > get_sig_reverse_dict() {
+		map<string, vector<map<string, int >* > > sig_dict;
+		MLOG("(II)   Preparing signal reverse dictionary for signals\n");
+		for (auto& sig : sigs) {
+			//MLOG("(II)   Preparing signal dictionary for signal '%s'\n", sig.c_str());
+			vector<map<string, int >* > chan_dict;
+			if (rep.sigs.Name2Sid.count(sig) == 0) {
+				MERR("no Name2Sid entry for signal '%s'\n", sig.c_str());
+				exit(-1);
+			}
+			int section_id = rep.dict.section_id(sig);
+			int sid = rep.sigs.Name2Sid[sig];
+			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
+			for (int vchan = 0; vchan < n_vchan; ++vchan) {
+				if (rep.sigs.is_categorical_channel(sig, vchan))
+				{
+					chan_dict.push_back(&(rep.dict.dict(section_id)->Name2Id));
+				}
+				else {
+					chan_dict.push_back(nullptr);
+				}
+			}
+			sig_dict[sig] = chan_dict;
+		}
+		return sig_dict;
+	}
+
 	void export_required_data(const string& fname, const string& cat_prefix, bool force_cat_prefix) {
 		ofstream outfile(fname, ios::binary | ios::out);
 
 		MLOG("(II) Preparing dictinaries to export\n", fname.c_str());
 
-		map<string, vector<map<int, string> > > sig_dict = get_sig_dict(cat_prefix, force_cat_prefix);
+		auto sig_dict = get_sig_dict(cat_prefix, force_cat_prefix);
 
 		MLOG("(II) Exporting required data to %s\n", fname.c_str());
 
@@ -546,6 +589,56 @@ public:
 		outfile.close();
 	}
 
+	static json read_json_array_next_chunk(ifstream& infile, bool& in_array) {
+		char prev_c = '\0';
+		char c = '\0';
+		bool in_string = false;
+		string ret_str = "";
+		int block_depth = 0;
+		while (infile.get(c)) {
+			switch (c) {
+			case '"':
+				if (!in_string)
+					in_string = true;
+				else if (prev_c != '\\')
+					in_string = false;
+				break;
+			case '{':
+				if (!in_array)
+					throw runtime_error("File should be a JSON array containing objects");
+				if (!in_string)
+					block_depth++;
+				break;
+			case '}':
+				if (!in_array)
+					throw runtime_error("Did not expect a '}'");
+				if (!in_string)
+					block_depth--;
+				if (block_depth < 0)
+					throw runtime_error("Did not expect a '}'");
+				break;
+			}
+			if (c == '[' && !in_array){
+				in_array = true;
+				continue;
+			}
+			if ((c == ']' || c == ',') && in_array && block_depth == 0)
+				break;
+			ret_str += c;
+			prev_c = c;
+		}
+		json ret;
+		if (std::all_of(ret_str.begin(), ret_str.end(), [](char c) { return c==' ' || c=='\n' || c == '\t' || c == '\r'; }))
+			return ret;
+		try {
+			ret = json::parse(ret_str);
+		}
+		catch (...) {
+			MERR("Error parsing chunk: \n'%s'\n", ret_str.c_str());
+		}
+		return ret;
+	}
+
 	static void convert_reqfile_to_data(const string& input_json_fname, const string& output_data_fname) {
 		ofstream outfile(output_data_fname, ios::binary | ios::out);
 		ifstream infile(input_json_fname, ios::binary | ios::in);
@@ -554,18 +647,31 @@ public:
 
 		json j;
 		infile >> j;
+
+		MLOG("(II) num of requests = %d\n", j.size());
+
 		for (int pid = 0; pid < j.size(); ++pid) {
-			for (const auto& j_sig : j[pid]["body"]["signals"])
+			json j_req_signals;
+			if (j[pid].count("body") != 0)
+				j_req_signals = j[pid]["body"]["signals"];
+			else if (j[pid].count("signals") != 0)
+				j_req_signals = j[pid]["signals"];
+			else throw runtime_error("Unrecognized JSON fromat");
+
+			for (const auto& j_sig : j_req_signals)
 			{
 				string sig = j_sig["code"];
 				for (const auto& j_data : j_sig["data"]) {
-					outfile << pid + 10000000 << '\t';
+					outfile << pid + base_pid << '\t';
 					outfile << sig;
 					for (const auto& j_time : j_data["timestamp"]) {
 						outfile << '\t' << j_time;
 					}
 					for (const auto& j_val : j_data["value"]) {
-						outfile << '\t' << j_val.get<string>();
+						if (boost::to_upper_copy(sig) == "GENDER")
+							outfile << '\t' << (boost::to_upper_copy(j_val.get<string>()) == "MALE" ? "1" : "2");
+						else
+							outfile << '\t' << j_val.get<string>();
 					}
 
 					outfile << "\n";
@@ -577,33 +683,11 @@ public:
 	}
 
 
+
 	void import_required_data(const string& fname) {
 		ifstream infile(fname, ios::binary | ios::in);
 
-		MLOG("(II)   Preparing signal dictionaries\n");
-
-		map<string, vector<map<string, int >* > > sig_dict;
-		for (auto& sig : sigs) {
-			MLOG("(II)   Preparing signal dictionary for signal '%s'\n", sig.c_str());
-			vector<map<string, int >* > chan_dict;
-			if (rep.sigs.Name2Sid.count(sig) == 0) {
-				MERR("no Name2Sid entry for signal '%s'\n", sig.c_str());
-				exit(-1);
-			}
-			int section_id = rep.dict.section_id(sig);
-			int sid = rep.sigs.Name2Sid[sig];
-			int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
-			for (int vchan = 0; vchan < n_vchan; ++vchan) {
-				if (rep.sigs.is_categorical_channel(sig, vchan))
-				{
-					chan_dict.push_back(&(rep.dict.dict(section_id)->Name2Id));
-				}
-				else {
-					chan_dict.push_back(nullptr);
-				}
-			}
-			sig_dict[sig] = chan_dict;
-		}
+		auto sig_dict = get_sig_reverse_dict();
 		MLOG("(II)   Switching repo to in-mem mode\n");
 		string curr_line;
 		rep.switch_to_in_mem_mode();
@@ -684,6 +768,113 @@ public:
 
 	}
 
+	void import_json_request_data(const string& fname) {
+		ifstream infile(fname, ios::binary | ios::in);
+
+		auto sig_dict = get_sig_reverse_dict();
+		MLOG("(II)   Switching repo to in-mem mode\n");
+		rep.switch_to_in_mem_mode();
+
+		vector<int> tchan_vec;
+		vector<float> vchan_vec;
+		vector<string> vchan_vec_actual;
+		tchan_vec.reserve(10);
+		vchan_vec.reserve(10);
+
+		MLOG("(II)   Started reading json data to in-mem repository\n");
+		bool context = false;
+		int cur_rec_no = 0;
+		for(json j=read_json_array_next_chunk(infile, context); j != nullptr ; j= read_json_array_next_chunk(infile, context)){
+			int pid = base_pid + cur_rec_no;
+			if (j.count("body"))
+				j = j["body"];
+			if(j.count("signals")==0 || !j.at("signals").is_array())
+				MTHROW_AND_ERR("In file %s, Failed reading req #%d, no signals. request = \n'%s'\n", fname.c_str(), cur_rec_no, j.dump(1).c_str());
+			for (auto j_sig : j.at("signals")) {
+				string sig = j_sig.at("code");
+				int sid = rep.sigs.Name2Sid[sig];
+				int n_vchan = rep.sigs.Sid2Info[sid].n_val_channels;
+				int n_tchan = rep.sigs.Sid2Info[sid].n_time_channels;
+				tchan_vec.clear();
+				vchan_vec.clear();
+				vchan_vec_actual.clear();
+
+				if(j_sig.count("data") == 0 || !j_sig.at("data").is_array())
+					MTHROW_AND_ERR("In file %s, Failed reading data in req #%d . signal = '%s' json = \n'%s'\n\n", fname.c_str(), cur_rec_no, sig.c_str(), j_sig.dump(1).c_str());
+
+				for (auto d_sig : j_sig.at("data")) {
+
+					if (n_tchan > 0 && (d_sig.count("timestamp") == 0 || (!d_sig.at("timestamp").is_array())))
+						MTHROW_AND_ERR("In file %s, Failed reading timestamp in req #%d . signal = '%s' json = \n'%s'\n\n", fname.c_str(), cur_rec_no, sig.c_str(), d_sig.dump(1).c_str());
+					for (int tchan = 0; tchan < n_tchan; ++tchan) {
+						string field_str = to_string(d_sig.at("timestamp")[tchan].get<int>());
+						try {
+							tchan_vec.push_back(stoi(field_str));
+						}
+						catch (...) {
+							MERR("failed reading time channel #%d, performing stoi(\"%s\") at %s:%d\n", tchan, field_str.c_str(), fname.c_str(), cur_rec_no);
+							exit(-1);
+						}
+
+					}
+					if (n_vchan > 0 && (d_sig.count("value") == 0 || (!d_sig.at("value").is_array())))
+						MTHROW_AND_ERR("In file %s, Failed reading value in req #%d . signal = '%s'\n", fname.c_str(), cur_rec_no, sig.c_str());
+					for (int vchan = 0; vchan < n_vchan; ++vchan) {
+						string field_str = d_sig.at("value")[vchan].get<string>();
+						if (boost::to_upper_copy(sig) == "GENDER") {
+							if (boost::to_upper_copy(field_str) == "MALE") field_str = "1";
+							else if (boost::to_upper_copy(field_str) == "FEMALE") field_str = "2";
+						}
+						if (sig_dict[sig][vchan] == nullptr) {
+							try {
+								vchan_vec.push_back(stof(field_str));
+								vchan_vec_actual.push_back(field_str);
+							}
+							catch (...) {
+								MERR("failed reading value channel #%d, performing stof(\"%s\") at %s:%d\n", vchan, field_str.c_str(), fname.c_str(), cur_rec_no);
+								exit(-1);
+							}
+						}
+						else
+						{
+							try {
+								vchan_vec.push_back((*(sig_dict.at(sig)[vchan])).at(field_str));
+								vchan_vec_actual.push_back(field_str);
+							}
+							catch (...) {
+								MERR("Error converting sig %s, chan %d, '%s' back to code in request #%d\n", sig.c_str(), vchan, field_str.c_str(), cur_rec_no);
+								exit(-1);
+							}
+						}
+					}
+				}
+				/* Write .data repo for testing
+				int nelem = 0;
+				if (tchan_vec.size() != 0)
+					nelem = tchan_vec.size() / n_tchan;
+				else nelem = vchan_vec.size() / n_vchan;
+				int ti = 0;
+				int vi = 0;
+				for(int j = 0; j < nelem; j++) {
+					MLOG("%d\t%s", pid, sig.c_str());
+					for (int i = 0; i < n_tchan; i++)
+						MLOG("\t%d", tchan_vec[ti++]);
+					for (int i = 0; i < n_vchan; i++)
+						MLOG("\t%s", vchan_vec_actual[vi++].c_str());
+					MLOG("\n");
+				}
+				*/
+				rep.in_mem_rep.insertData(pid, sid, tchan_vec.data(), vchan_vec.data(), tchan_vec.size(), vchan_vec.size());
+			}
+			cur_rec_no++;
+		}
+
+		rep.in_mem_rep.sortData();
+
+		infile.close();
+		MLOG("(II)   Finished loading json data to in-mem repository\n");
+	}
+
 	int load_samples_from_dates_to_score(const string& fname)
 	{
 		// read scores file
@@ -722,7 +913,7 @@ public:
 			MLOG("(INFO) force_add_data=%d\n", ((int)force_add_data));
 			MLOG("(INFO) Will use %s API to insert data\n", (DynAM::so->addr_AM_API_AddDataStr == nullptr || force_add_data) ? "AddData()" : "AddDataStr()");
 		}
-		string reqId = string("req_") + to_string(pid);
+		string reqId = string("req_") + to_string(pid)+ "_" + to_string(max_date);
 		json_out = json({});
 		json_out["body"] = {
 			{"accountId", "A"},
@@ -982,6 +1173,8 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 
 	bool first_json_req = true;
 
+	json json_resp_byid;
+
 	for (auto &id : d.samples.idSamples){
 		for (auto &s : id.samples) {
 			// clearing data in algomarker
@@ -1022,6 +1215,9 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 			DynAM::AM_API_Calculate(am, req, resp);
 			//int calc_rc = AM_API_Calculate(am, req, resp);
 			//MLOG("after Calculate: calc_rc %d\n", calc_rc);
+			string reqId = string("req_") + to_string(s.id) + "_" + to_string(s.time);
+			json_resp_byid[reqId]["messages"] = json::array();
+			json_resp_byid[reqId]["result"] = nullptr;
 
 			int n_resp = DynAM::AM_API_GetResponsesNum(resp);
 
@@ -1038,7 +1234,8 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 					long long ts;
 					char *_scr_type = NULL;
 					DynAM::AM_API_GetResponsePoint(response, &pid, &ts);
-
+					json_resp_byid[reqId]["requestId"] = string("req_") + to_string(pid) + to_string((int)ts);
+					json_resp_byid[reqId]["status"] = 0;
 					MedSample rs;
 					rs.id = pid;
 					if (ts > 30000000)
@@ -1050,6 +1247,9 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 						resp_rc = DynAM::AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
 						//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 						rs.prediction.push_back(_scr);
+						json_resp_byid[reqId]["result"] = { { "resultType", "Numeric" } };
+						json_resp_byid[reqId]["result"]["value"] = _scr;
+						json_resp_byid[reqId]["result"]["validTime"] = ts * 1000000;
 					}
 					else {
 						rs.prediction.push_back((float)AM_UNDEFINED_VALUE);
@@ -1093,6 +1293,12 @@ int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, boo
 
 					DynAM::AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
 					for (int k=0; k<n_msgs; k++) {
+						json json_msg;
+						json_msg["code"] = msg_codes[k];
+						json_msg["text"] = msgs_errs[k];
+						json_msg["status"] = code_to_status_tbl.at(msg_codes[k]);
+						json_resp_byid[reqId]["messages"].push_back(json_msg);
+
 						if (msgs_stream.is_open())
 							msgs_stream << "ResponseMessages\t" << s.id << "\t" << s.time << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
 						else
@@ -1340,8 +1546,8 @@ int apply_data(testing_context& t_ctx)
 {
 	
 	DataLoader l;
-	MLOG("(II) Starting apply with:\n(II)   apply_repdata='%s'\n(II)   rep='%s'\n(II)   scores_file='%s' %s\n(II)   model='%s'\n(II)   apply_outfile='%s'\n(II)   apply_amconfig='%s'\n"
-		, t_ctx.apply_repdata.c_str(), t_ctx.rep.c_str(), t_ctx.scores_file.c_str(), t_ctx.score_to_date_format_is_samples ? "(samples format)" : "", t_ctx.model.c_str(), t_ctx.apply_outfile.c_str(), t_ctx.apply_amconfig.c_str());
+	MLOG("(II) Starting apply with:\n(II)   apply_repdata='%s'\n(II)   apply_repdata_jsonreq=%s\n(II)   rep='%s'\n(II)   scores_file='%s' %s\n(II)   model='%s'\n(II)   apply_outfile='%s'\n(II)   apply_amconfig='%s'\n"
+		, t_ctx.apply_repdata.c_str(), t_ctx.apply_repdata_jsonreq.c_str(), t_ctx.rep.c_str(), t_ctx.scores_file.c_str(), t_ctx.score_to_date_format_is_samples ? "(samples format)" : "", t_ctx.model.c_str(), t_ctx.apply_outfile.c_str(), t_ctx.apply_amconfig.c_str());
 	MLOG("(II) Loading mock repo, model and date for scoring\n");
 
 	if (!t_ctx.score_to_date_format_is_samples) {
@@ -1354,9 +1560,14 @@ int apply_data(testing_context& t_ctx)
 		l.load(t_ctx.rep, t_ctx.model, t_ctx.scores_file,false);
 	}
 	
-	//l.rep.switch_to_in_mem_mode();
-	MLOG("(II) Importing data from '%s'\n", t_ctx.apply_repdata.c_str());
-	l.import_required_data(t_ctx.apply_repdata);
+	if (t_ctx.apply_repdata != "") {
+		MLOG("(II) Importing data from '%s'\n", t_ctx.apply_repdata.c_str());
+		l.import_required_data(t_ctx.apply_repdata);
+	}
+	else if (t_ctx.apply_repdata_jsonreq != "") {
+		MLOG("(II) Importing json data from '%s'\n", t_ctx.apply_repdata_jsonreq.c_str());
+		l.import_json_request_data(t_ctx.apply_repdata_jsonreq);
+	}
 
 	if (t_ctx.apply_amconfig == "") {
 		MLOG("(II) Starting apply using Medial API\n");
@@ -1429,6 +1640,7 @@ int main(int argc, char *argv[])
 			}
 		}
     }catch(runtime_error e){
+		cout << "(EE) Error: " << e.what() << "\n";
       return -1;
     }
  
