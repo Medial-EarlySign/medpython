@@ -1098,6 +1098,9 @@ public:
 	T Val(int idx, int chan) const { return Val<T>(idx, chan, data); }
 
 	template<typename T = float>
+	T Val(int idx) const { return Val<T>(idx, 0, data); }
+
+	template<typename T = float>
 	T Val(int idx, int chan, const void* data_) const {
 		auto field_ptr = ((char*)data_) + idx * struct_size + val_channel_offsets[chan];
 		switch (val_channel_types[chan]) {
