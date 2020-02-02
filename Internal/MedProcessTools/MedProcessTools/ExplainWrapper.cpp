@@ -108,7 +108,7 @@ void ExplainProcessings::post_deserialization()
 		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
 		for (int i = 0; i < cov_features.nrows; i++)
 			for (int j = 0; j < cov_features.ncols; j++)
-				abs_cov_features(i,j) = abs(cov_features(i,j));
+				abs_cov_features(i, j) = abs(cov_features(i, j));
 	}
 
 	groupName2Inds.clear();
@@ -175,7 +175,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 
-	if ((cov_features.size()==0) && !group_by_sum && normalize_vals <= 0)
+	if ((cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -194,7 +194,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 
 	//first do covarinace if has:
-	if (cov_features.size()>0) {
+	if (cov_features.size() > 0) {
 		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%lld, "
 				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
@@ -230,7 +230,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			const string &grp_name = groupNames[i];
 			float contrib = 0.0f;
 			for (int ind : group2Inds[i])
-				contrib += orig_explain(ind,0);
+				contrib += orig_explain(ind, 0);
 			group_explain[grp_name] = contrib;
 
 		}
@@ -335,7 +335,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	//process:
 	for (int i = 0; i < (int)explain_reasons.size(); ++i) {
 		if (processing.zero_missing)
-			processing.process(explain_reasons[i], masks_mat.data_ptr(i,0));
+			processing.process(explain_reasons[i], masks_mat.data_ptr(i, 0));
 		else
 			processing.process(explain_reasons[i]);
 	}
@@ -356,14 +356,13 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 }
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
-void read_feature_grouping(const string &file_name, const MedFeatures& data, vector<vector<int>>& group2index,
-	vector<string>& group_names) {
+void ExplainProcessings::read_feature_grouping(const string &file_name, const vector<string>& features,
+	vector<vector<int>>& group2index, vector<string>& group_names) {
 	// Features
-	vector<string> features;
-	data.get_feature_names(features);
 	int nftrs = (int)features.size();
 	map<string, vector<int>> groups;
 	vector<bool> grouped_ftrs(nftrs);
+	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff" };
 
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
@@ -399,6 +398,44 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					word += "." + tokens[idx + 1];
 				}
+			}
+
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
+	}
+	else if (file_name == "BY_SIGNAL_CATEG_TREND") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			int idx = 0;
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_")) {
+				word = tokens[1];
+				idx = 1;
+			}
+			bool categ = false;
+			if (idx + 1 < tokens.size()) {
+				if (boost::starts_with(tokens[idx + 1], "category_")) {
+					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					word += "." + tokens[idx + 1];
+					categ = true;
+				}
+			}
+			//check if TREND: slope, std, last_delta, win_delta, max_diff
+
+			if (!categ) {
+				string tp = "_Values";
+				if (idx + 1 < tokens.size() && trends_set.find(tokens[idx + 1]) != trends_set.end())
+					tp = "_Trends";
+				if (idx > 0)
+					word += tp;
 			}
 
 			groups[word].push_back(i);
@@ -445,8 +482,11 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 void ModelExplainer::Learn(const MedFeatures &train_mat) {
 	if (original_predictor == NULL)
 		MTHROW_AND_ERR("Error ModelExplainer::Learn - please call init_post_processor before learn\n");
-	if (!processing.grouping.empty())
-		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	if (!processing.grouping.empty()) {
+		vector<string> features_nms;
+		train_mat.get_feature_names(features_nms);
+		ExplainProcessings::read_feature_grouping(processing.grouping, features_nms, processing.group2Inds, processing.groupNames);
+	}
 	else {
 		int icol = 0;
 		for (auto& rec : train_mat.data) {
@@ -952,7 +992,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 
 	// Add data with missing values according to sample masks
 	for (int i = 0; i < x_mat.nrows; ++i) {
-		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i,0), nftrs, missing_value);
+		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i, 0), nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
 		if (i >= train_mat.samples.size())
 			++added_missing_hist[miss_cnts[i]];

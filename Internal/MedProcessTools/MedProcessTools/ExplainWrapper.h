@@ -46,7 +46,7 @@ public:
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
-	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows)
+	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
 	map<string, vector<int>> groupName2Inds;
@@ -67,6 +67,9 @@ public:
 	float get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const;
 
 	void post_deserialization();
+
+	static void read_feature_grouping(const string &file_name, const vector<string>& features, vector<vector<int>>& group2index,
+		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
 		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
