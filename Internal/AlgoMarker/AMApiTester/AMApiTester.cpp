@@ -864,7 +864,7 @@ public:
 					MLOG("\n");
 				}
 				*/
-				rep.in_mem_rep.insertData(pid, sid, tchan_vec.data(), vchan_vec.data(), tchan_vec.size(), vchan_vec.size());
+				rep.in_mem_rep.insertData(pid, sid, tchan_vec.data(), vchan_vec.data(), (int)tchan_vec.size(), (int)vchan_vec.size());
 			}
 			cur_rec_no++;
 		}
