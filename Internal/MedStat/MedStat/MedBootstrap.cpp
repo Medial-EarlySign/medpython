@@ -172,8 +172,8 @@ void init_model(MedModel &mdl, MedPidRepository& rep, const string &json_model,
 	sort(sigs.begin(), sigs.end());
 	auto it = unique(sigs.begin(), sigs.end());
 	sigs.resize(std::distance(sigs.begin(), it));
-	
-	
+
+
 	int curr_level = global_logger.levels.front();
 	global_logger.init_all_levels(LOG_DEF_LEVEL);
 	if (rep.read_all(rep_path, pids_to_take, sigs) < 0)
@@ -746,14 +746,30 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 		prepare_bootstrap(features, preds, y, pids, data);
 
 	//check we have all signals ececpt Time,Label (will be completed in prepare):
+	vector<string> all_names_ls;
+	features.get_feature_names(all_names_ls);
+	unordered_set<string> print_mp;
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
-		for (const Filter_Param &fp : it->second)
-			if (fp.param_name != "Time-Window" && fp.param_name != "Label"
-				&& data.find(fp.param_name) == data.end())
-				MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
-					"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
-					"Please provide the feature in the input for filtering or remove cohort filter\n",
-					fp.param_name.c_str(), it->first.c_str());
+		for (Filter_Param &fp : it->second) {
+			if (fp.param_name == "Time-Window" || fp.param_name == "Label")
+				continue;
+			if (data.find(fp.param_name) == data.end()) {
+				//try fix:
+				int fn_pos = find_in_feature_names(all_names_ls, fp.param_name, false);
+				if (fn_pos < 0)
+					MTHROW_AND_ERR("ERROR in MedBootstrap::bootstrap - missing "
+						"filter_cohort parameter \"%s\" in cohort \"%s\" in input features.\n"
+						"Please provide the feature in the input for filtering or remove cohort filter\n",
+						fp.param_name.c_str(), it->first.c_str());
+				//passed:
+				string found_nm = all_names_ls[fn_pos];
+				fp.param_name = found_nm; //change to name
+				if (print_mp.find(fp.param_name) == print_mp.end()) {
+					print_mp.insert(fp.param_name);
+					MLOG("Info::bootstrap Mapped %s => %s\n", fp.param_name.c_str(), found_nm.c_str());
+				}
+			}
+		}
 
 	if (results_per_split != NULL)
 		add_splits_results(preds, y, pids, &features.weights, data, splits_inds, *results_per_split);
