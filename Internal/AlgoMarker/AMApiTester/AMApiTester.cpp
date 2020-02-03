@@ -10,6 +10,7 @@
 
 #include <AlgoMarker/AlgoMarker/AlgoMarker.h>
 #include <AlgoMarker/DynAMWrapper/DynAMWrapper.h>
+#include <AlgoMarker/CommonTestingTools/CommonTestingTools.h>
 
 #include <string>
 #include <iostream>
@@ -25,14 +26,11 @@
 #include <boost/algorithm/string/predicate.hpp>
 #include <boost/algorithm/string.hpp>
 #include "internal_am.h"
-#include <json/json.hpp>
 #include <algorithm>
 
 #ifdef __linux__ 
-#include <wordexp.h>
 #define DEFAULT_AM_LOCATION "${MR_ROOT}/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so"
 #elif _WIN32
-#include "windows.h" 
 #define DEFAULT_AM_LOCATION "%MR_ROOT%\\Libs\\Internal\\AlgoMarker\\x64\\ReleaseDLL\\AlgoMarker.dll"
 #endif
 
@@ -46,117 +44,7 @@ namespace pt = boost::property_tree;
 
 static const int base_pid = 10000000;
 
-string precision_float_to_string(float val) {
-	stringstream ss;
-	ss << std::setprecision(10) << val;
-	return ss.str();
-}
-
-//Expand string with embedded Environment variables in it
-string expandEnvVars(const string &str) {
-  string ret = "";
-#ifdef __linux__ 
-  wordexp_t p;
-  char** w;
-  wordexp(str.c_str(), &p, 0 );
-  w = p.we_wordv;
-  for (size_t i=0; i<p.we_wordc;i++ ) ret+= w[i];
-  wordfree( &p );
-#elif _WIN32
-  DWORD max_str_len = 4 * 1024;
-  auto buf = new char[max_str_len];
-  DWORD req_len = ExpandEnvironmentStrings(str.c_str(), buf, max_str_len);
-  if (req_len > max_str_len) {
-	  delete buf;
-	  buf = new char[req_len];
-	  req_len = ExpandEnvironmentStrings(str.c_str(), buf, req_len);
-  }
-  if (req_len > 0)
-	  ret = buf;
-  delete buf;
-#endif
-  return ret;
-}
-
-// convert a C++ vector of strings to a char**
-class charpp_adaptor : public vector<string> {
-protected:
-	char** charpp_arr;
-	char* charpp_buf;
-public:
-	void init() {
-		charpp_arr = (char**)malloc(1);
-		charpp_buf = (char*)malloc(1);
-	}
-	~charpp_adaptor() {
-		free(charpp_arr);
-		free(charpp_buf);
-	};
-	charpp_adaptor() : vector<string>() { init();  };
-	charpp_adaptor(int capacity) : vector<string>(capacity) { init(); };
-	charpp_adaptor(const charpp_adaptor& other) : vector<string>(other) { init(); };
-
-	char** get_charpp() {
-		if (this->size() == 0)
-			return nullptr;
-		size_t charpp_arr_sz=this->size()*sizeof(char*);
-		size_t charpp_buf_sz=0;
-		for (auto& str : *this) {
-			charpp_buf_sz += str.size() + 1;
-		}
-		charpp_buf_sz *= sizeof(char);
-		
-		charpp_arr = (char**)realloc(charpp_arr, charpp_arr_sz);
-		charpp_buf = (char*)realloc(charpp_buf, charpp_buf_sz);
-
-		char** charpp_arr_i = charpp_arr;
-		char* charpp_buf_i = charpp_buf;
-
-		for (auto& str : *this) 
-		{
-			*charpp_arr_i = charpp_buf_i;
-			charpp_arr_i++;
-			for (int i=0; i < str.size(); ++i) {
-				*charpp_buf_i = str[i];
-				charpp_buf_i++;
-			}
-			*charpp_buf_i = '\0';
-			charpp_buf_i++;
-		}
-		return charpp_arr;
-	}
-};
-
-// get a malloc'ed read-write copy of a vector's .data() pointer
-template<typename T>
-class get_volatile_data_adaptor {
-protected:
-	T* data_p;
-	size_t data_p_size;
-	int n_elem;
-public:
-	~get_volatile_data_adaptor() {
-		free(data_p);
-	};
-	
-	T* from_vec(const vector<T>& orig) {
-		n_elem = (int)orig.size();
-		data_p_size = n_elem * sizeof(T);
-		if (data_p_size == 0)
-			return nullptr;
-		data_p = (T*)realloc(data_p, data_p_size);
-		memcpy(data_p, orig.data(), data_p_size);
-		return data_p;
-	};
-
-	get_volatile_data_adaptor(const vector<T>& orig) : n_elem(0), data_p_size(0) { data_p = (T*)malloc(1); from_vec(orig); }
-
-	T* get_volatile_data() {
-		if (data_p_size == 0)
-			return nullptr;
-		return data_p;
-	}
-};
+using namespace CommonTestingTools;
 
 //all program parameters organized in a class 
 class testing_context {
@@ -332,102 +220,6 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 	return 0;
 }
 
-static const map<int, int> code_to_status_tbl = {
-	{300, 2},
-	{301, 2},
-	{310, 2},
-	{311, 2},
-	{320, 1},
-	{321, 2},
-	{390, 0},
-	{391, 1},
-	{392, 2}
-};
-
-static const map<string, string> units_tbl = {
-	{ "BMI" , "kg/m^2" },
-{ "Glucose" , "mg/dL" },
-{ "HbA1C" , "%" },
-{ "HDL" , "mg/dL" },
-{ "Triglycerides" , "mg/dL" },
-{ "ALT" , "U/L" },
-{ "RBC" , "10^6/uL" },
-{ "Na" , "mmol/L" },
-{ "Weight" , "Kg" },
-{ "WBC" , "10^3/uL" },
-{ "Basophils#" , "#" },
-{ "Basophils%" , "%" },
-{ "Eosinophils#" , "#" },
-{ "Eosinophils%" , "%" },
-{ "Hematocrit" , "%" },
-{ "Hemoglobin" , "g/dL" },
-{ "Lymphocytes#" , "#" },
-{ "Lymphocytes%" , "%" },
-{ "MCH" , "pg/cell" },
-{ "MCHC-M" , "g/dL" },
-{ "MCV" , "fL" },
-{ "Monocytes#" , "#" },
-{ "Monocytes%" , "%" },
-{ "MPV" , "mic*3" },
-{ "Neutrophils#" , "#" },
-{ "Neutrophils%" , "%" },
-{ "Platelets" , "10^3/uL" },
-{ "RDW" , "%" },
-{ "MSG" , "#" } };
-
-
-json json_AddData(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, int n_time_channels, int n_val_channels) {
-	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
-	if (units_tbl.count(signalName) != 0)
-		json_sig["unit"] = units_tbl.at(signalName);
-	int nelem = 0;
-	if (TimeStamps_len != 0)
-		nelem = TimeStamps_len / n_time_channels;
-	else nelem = Values_len / n_val_channels;
-	for (int i = 0; i < nelem; i++) {
-		json json_sig_data_item = json({ { "timestamp" , json::array() },{ "value" , json::array() } });
-		
-		for (int j = 0; j < n_time_channels; j++) {
-			json_sig_data_item["timestamp"].push_back(*TimeStamps);
-			TimeStamps++;
-		}
-
-		for (int j = 0; j < n_val_channels; j++) {
-			json_sig_data_item["value"].push_back(*Values);
-			Values++;
-		}
-
-		json_sig["data"].push_back(json_sig_data_item);
-	}
-	return json_sig;
-}
-
-json json_AddDataStr(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, int n_time_channels, int n_val_channels) {
-	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
-	if (units_tbl.count(signalName) != 0)
-		json_sig["unit"] = units_tbl.at(signalName);
-	int nelem = 0;
-	if (TimeStamps_len != 0)
-		nelem = TimeStamps_len / n_time_channels;
-	else nelem = Values_len / n_val_channels;
-	for (int i = 0; i < nelem; i++) {
-		json json_sig_data_item = json({ { "timestamp" , json::array() },{ "value" , json::array() } });
-
-		for (int j = 0; j < n_time_channels; j++) {
-			json_sig_data_item["timestamp"].push_back(*TimeStamps);
-			TimeStamps++;
-		}
-
-		for (int j = 0; j < n_val_channels; j++) {
-			json_sig_data_item["value"].push_back(*Values);
-			Values++;
-		}
-
-		json_sig["data"].push_back(json_sig_data_item);
-	}
-	return json_sig;
-}
-
 class DataLoader {
 public:
 	MedModel model;
@@ -587,56 +379,6 @@ public:
 			}
 		}
 		outfile.close();
-	}
-
-	static json read_json_array_next_chunk(ifstream& infile, bool& in_array) {
-		char prev_c = '\0';
-		char c = '\0';
-		bool in_string = false;
-		string ret_str = "";
-		int block_depth = 0;
-		while (infile.get(c)) {
-			switch (c) {
-			case '"':
-				if (!in_string)
-					in_string = true;
-				else if (prev_c != '\\')
-					in_string = false;
-				break;
-			case '{':
-				if (!in_array)
-					throw runtime_error("File should be a JSON array containing objects");
-				if (!in_string)
-					block_depth++;
-				break;
-			case '}':
-				if (!in_array)
-					throw runtime_error("Did not expect a '}'");
-				if (!in_string)
-					block_depth--;
-				if (block_depth < 0)
-					throw runtime_error("Did not expect a '}'");
-				break;
-			}
-			if (c == '[' && !in_array){
-				in_array = true;
-				continue;
-			}
-			if ((c == ']' || c == ',') && in_array && block_depth == 0)
-				break;
-			ret_str += c;
-			prev_c = c;
-		}
-		json ret;
-		if (std::all_of(ret_str.begin(), ret_str.end(), [](char c) { return c==' ' || c=='\n' || c == '\t' || c == '\r'; }))
-			return ret;
-		try {
-			ret = json::parse(ret_str);
-		}
-		catch (...) {
-			MERR("Error parsing chunk: \n'%s'\n", ret_str.c_str());
-		}
-		return ret;
 	}
 
 	static void convert_reqfile_to_data(const string& input_json_fname, const string& output_data_fname) {
