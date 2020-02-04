@@ -1155,7 +1155,7 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 //.......................................................................................
 int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
-	cerr << "Apply\n";
+	//cerr << "Apply\n";
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
