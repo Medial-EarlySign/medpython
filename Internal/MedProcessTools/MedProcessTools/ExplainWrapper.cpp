@@ -175,7 +175,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 
-	if ((cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
+	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -195,25 +195,119 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 	//first do covarinace if has:
 	if (cov_features.size() > 0) {
-		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
+		if (abs_cov_features.ncols != explain_list.size() && abs_cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%lld, "
-				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
+				"explain_list.size()=%zu\n", abs_cov_features.ncols, explain_list.size());
 
 
 
-		if (group_by_sum) {
-			map<string, float> group_explain;
+		if (group_by_sum) { //if has groups
+			//first do the cov fix feature -feature, skip feature inside groups:
+			MedMat<float> fixed_cov_abs(groupNames.size(), abs_cov_features.ncols); //cov matrix with groups,features connections
+			//zero inside groups:
 			for (int i = 0; i < group2Inds.size(); i++) {
-				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.get_vec(), normalization_factor);
+				const vector<int> &all_inds = group2Inds[i];
+				vector<bool> mask_grp(explain_list.size());
+				for (int j : all_inds)
+					mask_grp[j] = true;
+
+				for (int j2 = 0; j2 < explain_list.size(); ++j2) {
+					float w = 1;
+					if (!mask_grp[j2]) {
+						//take max for feature in the group
+						float max_alp = 0;
+						for (int k : all_inds)
+							if (abs_cov_features(k, j2) > max_alp)
+								max_alp = abs_cov_features(k, j2);
+						w = max_alp;
+					}
+
+					fixed_cov_abs(i, j2) = w;
+				}
 			}
+			//do greedy - from top to down: 
+			vector<bool> seen_idx(groupNames.size());
+			vector<float> groups_vals(groupNames.size()), group_val_curr(groupNames.size());
+			map<string, float> group_explain;
+			vector<float *> pointer_vals(groupNames.size());
+			for (int i = 0; i < groupNames.size(); ++i) {
+				float group_contrib = 0;
+				for (size_t j = 0; j < fixed_cov_abs.ncols; ++j)
+					group_contrib += fixed_cov_abs(i, j) * orig_explain(j, 0);
+				group_contrib /= (float)1.0 / normalization_factor;
+				group_val_curr[i] = group_contrib;
+				group_explain[groupNames[i]] = group_contrib;
+				pointer_vals[i] = &group_explain.at(groupNames[i]);
+			}
+
+			//iterate groups greedy and substract the most contributing group
+			/*
+			for (int i = 0; i < groupNames.size(); ++i)
+			{
+
+				//find max contrib in new group_val_curr:
+				float max_contrib = -1, max_contrib_abs = -1;
+				int max_contrib_idx = -1;
+				for (int j = 0; j < groupNames.size(); ++j)
+					if (!seen_idx[j] && max_contrib_abs < abs(group_val_curr[j])) {
+						max_contrib = group_val_curr[j];
+						max_contrib_abs = abs(max_contrib);
+						max_contrib_idx = j;
+					}
+				//update top value to fixed contribution with cov in explain_list
+				float contrib_before_fix = group_val_curr[max_contrib_idx];
+				*pointer_vals[max_contrib_idx] = max_contrib;
+
+				//remove contrib from all others using contrib_before_fix (from all other groups):
+				for (int j = 0; j < groupNames.size(); ++j)
+					group_val_curr[j] -= contrib_before_fix * fixed_cov_abs(max_contrib_idx, j);
+
+				//zero and mark feature curr_original to zero - that won't appear again
+				seen_idx[max_contrib_idx] = true;
+				group_val_curr[max_contrib_idx] = 0;
+			}
+			*/
+
 			explain_list = move(group_explain);
 		}
-		else {
-			MedMat<float> fixed_with_cov(cov_features.ncols, 1);
+		else { //no grouping
+			MedMat<float> fixed_with_cov(abs_cov_features.ncols, 1);
+
+			//do greedy - from top to down: 
+			vector<bool> seen_idx(fixed_with_cov.ncols);
+			vector<float *> pointer_vals(explain_list.size());
+			int ind_i = 0;
+			for (auto it = explain_list.begin(); it != explain_list.end(); ++it)
+			{
+				pointer_vals[ind_i] = &it->second;
+				++ind_i;
+			}
 
 			fast_multiply_medmat(abs_cov_features, orig_explain, fixed_with_cov, (float)1.0 / normalization_factor);
-			int k = 0;
-			for (auto &e : explain_list) explain_list[e.first] = fixed_with_cov(k++, 0);
+			for (int i = 0; i < explain_list.size(); ++i)
+			{
+
+				//find max contrib in new fixed_with_cov:
+				float max_contrib = -1, max_contrib_abs = -1;
+				int max_contrib_idx = -1;
+				for (int j = 0; j < fixed_with_cov.ncols; ++j)
+					if (!seen_idx[j] && max_contrib_abs < abs(fixed_with_cov(j, 0))) {
+						max_contrib = fixed_with_cov(j, 0);
+						max_contrib_abs = abs(max_contrib);
+						max_contrib_idx = j;
+					}
+				//update top value to fixed contribution with cov in explain_list
+				float contrib_before_fix = *pointer_vals[max_contrib_idx];
+				*pointer_vals[max_contrib_idx] = max_contrib;
+
+				//remove contrib from all others using contrib_before_fix and abs_cov_features in curr_original:
+				for (int j = 0; j < fixed_with_cov.ncols; ++j)
+					fixed_with_cov(j, 0) -= contrib_before_fix * abs_cov_features(max_contrib_idx, j);
+
+				//zero and mark feature curr_original to zero - that won't appear again
+				seen_idx[max_contrib_idx] = true;
+				fixed_with_cov(max_contrib_idx, 0) = 0;
+			}
 		}
 
 		return; // ! -> since we treat group_by_sum differently in this case
