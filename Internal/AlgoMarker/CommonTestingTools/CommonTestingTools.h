@@ -1,11 +1,23 @@
 #ifndef __COMMONTESTINGTOOLS_H
 #define __COMMONTESTINGTOOLS_H
 
+#include <AlgoMarker/AlgoMarker/AlgoMarker.h>
+#include <AlgoMarker/DynAMWrapper/DynAMWrapper.h>
+#include <AlgoMarker/CommonTestingTools/CommonTestingTools.h>
+#include <Logger/Logger/Logger.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <MedProcessTools/MedProcessTools/MedSamples.h>
+#include <MedIO/MedIO/MedIO.h>
+#include <json/json.hpp>
+
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
+#include <algorithm>
 #include <string>
 #include <vector>
-
-#include <json/json.hpp>
-#include <Logger/Logger/Logger.h>
+#include "DataLoader.h"
 
 
 #ifdef __linux__ 
@@ -15,6 +27,8 @@
 #endif
 
 namespace CommonTestingTools {
+
+	class DataLoader;
 
 	const map<int, int> code_to_status_tbl = {
 		{ 300, 2 },
@@ -124,6 +138,9 @@ namespace CommonTestingTools {
 	json json_AddData(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, int n_time_channels, int n_val_channels);
 	json json_AddDataStr(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, int n_time_channels, int n_val_channels);
 
+	int get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig);
+	int get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig, ofstream& json_reqfile_stream);
+	void save_sample_vec(vector<MedSample> sample_vec, const string& fname);
 }
 
 #endif // __COMMONTESTINGTOOLS_H
