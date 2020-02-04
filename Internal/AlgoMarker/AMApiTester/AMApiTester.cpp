@@ -59,15 +59,9 @@ public:
 	vector<string> ignore_sig;
 	string msgs_file;
 	ofstream msgs_stream;
-	string rep, samples, model, generate_data_outfile, generate_data_cat_prefix;
-	bool generate_data;
-	bool generate_data_force_cat_prefix;
-	bool apply;
-	string apply_outfile, apply_repdata, apply_repdata_jsonreq;
-	string apply_amconfig;
+	string rep, samples, model;
 	string scores_file;
 	bool score_to_date_format_is_samples;
-	string apply_dates_to_score;
 	bool test_am = true;
 	bool test_med = true;
 	string amfile;
@@ -81,9 +75,6 @@ public:
 	string json_reqfile;
 	ofstream json_resfile_stream;
 	string json_resfile;
-	bool convert_reqfile_to_data;
-	string convert_reqfile_to_data_infile;
-	string convert_reqfile_to_data_outfile;
 
 	int read_from_var_map(po::variables_map vm) {
 		med_csv_file = vm["med_csv_file"].as<string>();
@@ -99,40 +90,6 @@ public:
 		rep = vm["rep"].as<string>();
 		samples = vm["samples"].as<string>();
 		model = vm["model"].as<string>();
-		generate_data = (vm.count("generate_data") != 0);
-		if (generate_data) {
-			if (vm["rep"].as<string>() == "" || vm["samples"].as<string>() == "" || vm["model"].as<string>() == "" || vm["generate_data_outfile"].as<string>() == "")
-			{
-				std::cerr << "Missing argument, Please specify --rep, --samples, --model, --generate_data_outfile.\n";
-				return -1;
-			}
-			generate_data_outfile = vm["generate_data_outfile"].as<string>();
-			generate_data_cat_prefix = vm["generate_data_cat_prefix"].as<string>();
-			generate_data_force_cat_prefix = (vm.count("generate_data_force_cat_prefix") != 0);
-		}
-		apply = (vm.count("apply") != 0);
-		apply_outfile = vm["apply_outfile"].as<string>();
-		apply_repdata = vm["apply_repdata"].as<string>();
-		apply_repdata_jsonreq = vm["apply_repdata_jsonreq"].as<string>();
-		apply_amconfig = vm["apply_amconfig"].as<string>();
-		apply_dates_to_score = vm["apply_dates_to_score"].as<string>();
-		if (apply || (vm.count("apply_amconfig") && apply_amconfig != "")) {
-			if (rep == "" ||
-				(samples == "" && apply_dates_to_score == "") ||
-				model == "" ||
-				apply_outfile == "" ||
-				(apply_repdata == "" && apply_repdata_jsonreq == "") )
-			{
-				MERR("Missing arguments, Please specify --rep, --model, --apply_outfile, --apply_repdata, --samples (or --apply_dates_to_score).\n");
-				return -1;
-			}
-			scores_file = vm["samples"].as<string>();
-			score_to_date_format_is_samples = true;
-			if (vm["apply_dates_to_score"].as<string>() != "") {
-				scores_file = vm["apply_dates_to_score"].as<string>();
-				score_to_date_format_is_samples = false;
-			}
-		}
 		if (vm.count("only_am")) test_med = false;
 		if (vm.count("only_med")) test_am = false;
 		amfile = vm["amfile"].as<string>();
@@ -150,10 +107,7 @@ public:
 		if (json_resfile != "") {
 			json_resfile_stream.open(json_resfile);
 		}
-		convert_reqfile_to_data = (vm.count("convert_reqfile_to_data") != 0);
-		convert_reqfile_to_data_infile = vm["convert_reqfile_to_data_infile"].as<string>();
-		convert_reqfile_to_data_outfile = vm["convert_reqfile_to_data_outfile"].as<string>();
-	
+
 		return 0;
 	}
 };
@@ -183,19 +137,6 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("only_med", "Test only the direct Medial API with no compare")
 			("egfr_test", "Test simple egfr algomarker")
 			("force_add_data","Force using the AddData() API call instead of the AddDataStr()")
-			("generate_data", "Generate a unified repository data file for all the signals a model needs (required options: rep,samples,model)")
-			("generate_data_outfile", po::value<string>()->default_value(""), "file to output the Generated unified signal file")
-			("generate_data_cat_prefix", po::value<string>()->default_value(""), "If provided, prefer to convert a catogorial channel to a name/setname with given prefix")
-			("generate_data_force_cat_prefix", "Ignore signals categories which do not conform to generate_data_cat_prefix")
-			("apply", "Apply a model using Medial API, given --model, --rep, --apply_repdata, --samples, --apply_outfile, will write scores to output file")
-			("apply_repdata", po::value<string>()->default_value(""), "Unified signal data to be used by apply action")
-			("apply_repdata_jsonreq", po::value<string>()->default_value(""), "Same as apply_repdat but using JSON requests files")
-			("apply_dates_to_score", po::value<string>()->default_value(""), "File containing a list of tab seperated pid and date to score to beused instead of scores for performing apply")
-			("apply_amconfig", po::value<string>()->default_value(""), "Same as --apply but will use the AlgoMarker API and given amconfig")
-			("apply_outfile", po::value<string>()->default_value(""), "Output file to save scores from apply")
-			("convert_reqfile_to_data", "convert a json requests file to signal data file")
-			("convert_reqfile_to_data_infile", po::value<string>()->default_value(""), "json file to load")
-			("convert_reqfile_to_data_outfile", po::value<string>()->default_value(""), "data file name to write")
 			("json_reqfile", po::value<string>()->default_value(""), "JSON request file name")
 			("json_resfile", po::value<string>()->default_value(""), "JSON result file name")
 			;
@@ -321,13 +262,6 @@ int simple_egfr_test()
 	return 0;
 }
 
-int generate_data(testing_context& t_ctx) {
-	DataLoader l;
-	l.load(t_ctx.rep, t_ctx.model, t_ctx.samples);
-	l.export_required_data(t_ctx.generate_data_outfile, t_ctx.generate_data_cat_prefix, t_ctx.generate_data_force_cat_prefix);
-	return 0;
-}
-
 vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d){
 	//const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
 	vector<MedSample> res2;
@@ -416,49 +350,6 @@ void compare_results(const vector<MedSample>& res1, const vector<MedSample>& res
 
 }
 
-int apply_data(testing_context& t_ctx)
-{
-	
-	DataLoader l;
-	MLOG("(II) Starting apply with:\n(II)   apply_repdata='%s'\n(II)   apply_repdata_jsonreq=%s\n(II)   rep='%s'\n(II)   scores_file='%s' %s\n(II)   model='%s'\n(II)   apply_outfile='%s'\n(II)   apply_amconfig='%s'\n"
-		, t_ctx.apply_repdata.c_str(), t_ctx.apply_repdata_jsonreq.c_str(), t_ctx.rep.c_str(), t_ctx.scores_file.c_str(), t_ctx.score_to_date_format_is_samples ? "(samples format)" : "", t_ctx.model.c_str(), t_ctx.apply_outfile.c_str(), t_ctx.apply_amconfig.c_str());
-	MLOG("(II) Loading mock repo, model and date for scoring\n");
-
-	if (!t_ctx.score_to_date_format_is_samples) {
-		l.load_samples_from_dates_to_score(t_ctx.scores_file);
-		l.load(t_ctx.rep, t_ctx.model,"",false);
-		MLOG("\n(II) Loading tab seperated pid+dates for scoring from %s\n", t_ctx.scores_file.c_str());
-	}
-	else { 
-		MLOG("\n(II) Loading dates for scoring from samples file %s\n", t_ctx.scores_file.c_str());
-		l.load(t_ctx.rep, t_ctx.model, t_ctx.scores_file,false);
-	}
-	
-	if (t_ctx.apply_repdata != "") {
-		MLOG("(II) Importing data from '%s'\n", t_ctx.apply_repdata.c_str());
-		l.import_required_data(t_ctx.apply_repdata);
-	}
-	else if (t_ctx.apply_repdata_jsonreq != "") {
-		MLOG("(II) Importing json data from '%s'\n", t_ctx.apply_repdata_jsonreq.c_str());
-		l.import_json_request_data(t_ctx.apply_repdata_jsonreq);
-	}
-
-	if (t_ctx.apply_amconfig == "") {
-		MLOG("(II) Starting apply using Medial API\n");
-		auto ret = apply_med_api(l.rep, l.model, l.samples, t_ctx.med_csv_file, t_ctx.ignore_sig);
-		MLOG("(II) Saving results to %s\n", t_ctx.apply_outfile.c_str());
-		save_sample_vec(ret, t_ctx.apply_outfile);
-	}
-	else {
-		MLOG("(II) Starting apply using Algomarker API\n");
-		auto ret = apply_am_api(t_ctx, l);
-		MLOG("(II) Saving results to %s\n", t_ctx.apply_outfile.c_str());
-		save_sample_vec(ret, t_ctx.apply_outfile);
-	}
-
-	return 0;
-}
-
 //========================================================================================
 // MAIN
 //========================================================================================
@@ -478,18 +369,6 @@ int main(int argc, char *argv[])
 	}
 	testing_context t_ctx;
 	t_ctx.read_from_var_map(vm);
-	
-	if (t_ctx.convert_reqfile_to_data) {
-		DataLoader::convert_reqfile_to_data(t_ctx.convert_reqfile_to_data_infile, t_ctx.convert_reqfile_to_data_outfile);
-		return 0;
-	}
-
-	if (t_ctx.generate_data) {
-		return generate_data(t_ctx);
-	}
-	if (t_ctx.apply|| t_ctx.apply_amconfig != "") {
-		return apply_data(t_ctx);
-	}
     
 	if(t_ctx.test_am)
 		load_am(t_ctx.amfile.c_str());
