@@ -203,7 +203,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 		if (group_by_sum) { //if has groups
 			//first do the cov fix feature -feature, skip feature inside groups:
-			MedMat<float> fixed_cov_abs(groupNames.size(), abs_cov_features.ncols); //cov matrix with groups,features connections
+			MedMat<float> fixed_cov_abs((int)groupNames.size(), abs_cov_features.ncols); //cov matrix with groups,features connections
 			//zero inside groups:
 			for (int i = 0; i < group2Inds.size(); i++) {
 				const vector<int> &all_inds = group2Inds[i];
@@ -241,7 +241,8 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			}
 
 			//iterate groups greedy and substract the most contributing group
-			/*
+			
+			//comment/erase this code if you want the old behaviour - without the fix
 			for (int i = 0; i < groupNames.size(); ++i)
 			{
 
@@ -255,18 +256,18 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 						max_contrib_idx = j;
 					}
 				//update top value to fixed contribution with cov in explain_list
-				float contrib_before_fix = group_val_curr[max_contrib_idx];
+				//float contrib_before_fix = group_val_curr[max_contrib_idx];
 				*pointer_vals[max_contrib_idx] = max_contrib;
 
 				//remove contrib from all others using contrib_before_fix (from all other groups):
 				for (int j = 0; j < groupNames.size(); ++j)
-					group_val_curr[j] -= contrib_before_fix * fixed_cov_abs(max_contrib_idx, j);
+					for (int ind_grp2 : group2Inds[j])  //all group indexes that needs to be canceled in curretn group 
+						group_val_curr[j] -= fixed_cov_abs(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
 
-				//zero and mark feature curr_original to zero - that won't appear again
+				//zero  mark group that won't appear again
 				seen_idx[max_contrib_idx] = true;
-				group_val_curr[max_contrib_idx] = 0;
 			}
-			*/
+
 
 			explain_list = move(group_explain);
 		}
@@ -302,7 +303,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 				//remove contrib from all others using contrib_before_fix and abs_cov_features in curr_original:
 				for (int j = 0; j < fixed_with_cov.ncols; ++j)
-					fixed_with_cov(j, 0) -= contrib_before_fix * abs_cov_features(max_contrib_idx, j);
+					fixed_with_cov(j, 0) -= contrib_before_fix * abs_cov_features(max_contrib_idx, j) * normalization_factor;
 
 				//zero and mark feature curr_original to zero - that won't appear again
 				seen_idx[max_contrib_idx] = true;
