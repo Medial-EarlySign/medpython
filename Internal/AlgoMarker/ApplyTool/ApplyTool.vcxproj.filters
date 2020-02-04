@@ -15,24 +15,7 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CommonTestingTools.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="DataLoader.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="internal_am.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="CommonTestingTools.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="DataLoader.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="internal_am.cpp">
+    <ClCompile Include="ApplyTool.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

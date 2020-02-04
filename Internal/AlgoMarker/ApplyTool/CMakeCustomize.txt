@@ -1,0 +1,3 @@
+message(STATUS "CMake Customization for ApplyTool: Adding -ldl linker flag")
+#set(LINK_LIB_LIST ${LINK_LIB_LIST} -ldl)
+set (ADDITIONAL_LINK_FLAGS "-ldl" )
