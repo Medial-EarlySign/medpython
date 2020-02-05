@@ -1257,31 +1257,34 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 				global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 			if (verbose_apply) {
-				//debug prints:
-				MLOG("pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
-					matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size(),
-					use_bias);
-				for (int j = 0; j < score_history.size(); ++j)
+#pragma omp critical 
 				{
-					//remove 0 - find from 1 to max_set in abs:
-					int search_term = j + 1;
-					int grp_idx = -1;
-					for (int k = 0; k < features_coeff.size() && grp_idx < 0; ++k)
-						if (int(abs(features_coeff[k])) == search_term)
-							grp_idx = k;
+					//debug prints:
+					MLOG("pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
+						matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size(),
+						use_bias);
+					for (int j = 0; j < score_history.size(); ++j)
+					{
+						//remove 0 - find from 1 to max_set in abs:
+						int search_term = j + 1;
+						int grp_idx = -1;
+						for (int k = 0; k < features_coeff.size() && grp_idx < 0; ++k)
+							if (int(abs(features_coeff[k])) == search_term)
+								grp_idx = k;
 
-					if (grp_idx < 0) {
-						MLOG("Done\n");
-						break;
+						if (grp_idx < 0) {
+							MLOG("Done\n");
+							break;
+						}
+
+						string contrib_str = "POSITIVE";
+						if (features_coeff[grp_idx] < 0)
+							contrib_str = "NEGATIVE";
+						int first_idx_grp = group_inds->at(grp_idx)[0];
+						MLOG("\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
+							search_term, group_names->at(grp_idx).c_str(), feat_names[first_idx_grp].c_str(),
+							data_pointer[first_idx_grp]->at(i), score_history[j], contrib_str.c_str());
 					}
-
-					string contrib_str = "POSITIVE";
-					if (features_coeff[grp_idx] < 0)
-						contrib_str = "NEGATIVE";
-					int first_idx_grp = group_inds->at(grp_idx)[0];
-					MLOG("\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
-						search_term, group_names->at(grp_idx).c_str(), feat_names[first_idx_grp].c_str(),
-						data_pointer[first_idx_grp]->at(i), score_history[j], contrib_str.c_str());
 				}
 			}
 
@@ -1292,6 +1295,10 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 					continue;
 				bool positive_contrib = features_coeff[j] > 0;
 				features_coeff[j] = float((int)features_coeff.size() + 1 - abs(features_coeff[j]));
+				float diff = abs(score_history[j] - (j > 0 ? score_history[j - 1] : use_bias));
+				if (diff > 1)
+					diff = (float)0.99999;
+				features_coeff[j] += diff;
 				if (!positive_contrib)
 					features_coeff[j] = -features_coeff[j];
 			}
