@@ -2496,6 +2496,7 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 				features_coeff[min_idx] = -set_size; //negative contribution
 			scores_history.push_back(best_score);
 			current_mask[min_idx] = true;
+			prev_score = best_score;
 		}
 		else {
 			if (best_score_by_max_prev > prev_score)
@@ -2504,8 +2505,8 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 				features_coeff[max_prev_idx] = -set_size; //negative contribution
 			scores_history.push_back(best_score_by_max_prev);
 			current_mask[max_prev_idx] = true;
+			prev_score = best_score_by_max_prev;
 		}
-		prev_score = best_score;
 
 		if (score_error_th > 0 && min_diff_val < score_error_th)
 			break;
