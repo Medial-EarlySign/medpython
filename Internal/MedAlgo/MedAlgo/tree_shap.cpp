@@ -2359,3 +2359,158 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 	MLOG("LimeExplainer: mean effective sample size for %d and % f = %f\n", n, p, sample_size_sum / nsamples);
 
 }
+
+//return feature/groups order from 1 to size. sign is contribution influelunce
+void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
+	, vector<float> &features_coeff, vector<float> &scores_history, bool find_max_inf, int max_set_size
+	, float baseline_score, bool verbose) {
+
+	int ngrps = (int)group2index.size();
+
+	int tot_feat_cnt = (int)matrix.data.size();
+
+	vector<string> full_feat_ls;
+	matrix.get_feature_names(full_feat_ls);
+	vector<float> fast_access(full_feat_ls.size());
+	for (size_t i = 0; i < full_feat_ls.size(); ++i)
+		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
+
+	features_coeff.resize(ngrps);
+	if (matrix.samples[selected_sample].prediction.empty())
+		MTHROW_AND_ERR("Error please use only after predict\n");
+	float original_pred = matrix.samples[selected_sample].prediction[0];
+	//calc shapley for each variable
+	if (verbose)
+		MLOG("Start explain_shapely minimal set\n");
+	MedTimer tm_taker;
+	tm_taker.start();
+	MedProgress progress_full("shapley_minimal_set", ngrps, 15);
+
+	//additional_params:
+	float score_error_th = -1;
+	float score_error_percentage_th = -1;
+	int actual_size = 0;
+	for (int grp_i = 0; grp_i < ngrps; ++grp_i)
+	{
+		bool has_miss = false;
+		int param_it = 0;
+		while (!has_miss && param_it < group2index[grp_i].size()) {
+			has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+			++param_it;
+		}
+		if (has_miss)
+			continue;
+		++actual_size;
+	}
+	if (max_set_size > actual_size)
+		max_set_size = actual_size;
+
+	//greedy search to minimize till set size, score error, score_percent error
+	int set_size = 0;
+	vector<bool> current_mask(ngrps);
+	float prev_score = baseline_score; // need to init to baseline score
+	scores_history.reserve(max_set_size);
+
+	while (set_size < max_set_size) {
+		//find 
+		double min_diff_val = abs(original_pred) + 1;
+		int min_idx = -1;
+		float best_score = -1;
+
+		double max_diff_prev = -1;
+		int max_prev_idx = -1;
+		float best_score_by_max_prev = -1;
+
+		for (int grp_i = 0; grp_i < ngrps; ++grp_i)
+		{
+			if (current_mask[grp_i])
+				continue;
+			bool has_miss = false;
+			int param_it = 0;
+			while (!has_miss && param_it < group2index[grp_i].size()) {
+				has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+				++param_it;
+			}
+			if (has_miss)
+				continue;
+
+			vector<bool> mask(full_feat_ls.size(), false);
+			for (int i = 0; i < current_mask.size(); ++i)
+				if (i == grp_i || current_mask[i])  //turn on bits:
+					for (int ind : group2index[i]) //set all group indexes as in mask
+						mask[ind] = true;
+
+			//collect score for each several samples - no need for more than 1:
+			vector<float> full_pred_all_masks_with(max_tests* tot_feat_cnt);
+			for (int i = 0; i < max_tests; ++i) {
+				float *mat_with = &full_pred_all_masks_with[i * tot_feat_cnt];
+				for (size_t j = 0; j < tot_feat_cnt; ++j)
+					if (!mask[j])
+						mat_with[j] = missing_value;
+					else
+						mat_with[j] = fast_access[j];
+			}
+
+			vector<float> preds_with;
+			if (max_tests == 1)
+				predictor->predict_single(full_pred_all_masks_with, preds_with); //faster API
+			else
+				predictor->predict(full_pred_all_masks_with, preds_with, max_tests, (int)full_feat_ls.size());
+
+			//calcluate diff from original:
+			double avg_diff = 0, avg_score = 0, diff_prev = 0;
+			for (size_t i = 0; i < preds_with.size(); ++i) {
+				avg_diff += abs(original_pred - preds_with[i]);
+				avg_score += preds_with[i];
+				diff_prev += abs(prev_score - preds_with[i]);
+			}
+			avg_diff /= preds_with.size();
+			avg_score /= preds_with.size();
+			diff_prev /= preds_with.size();
+
+			if (avg_diff < min_diff_val) {
+				min_idx = grp_i;
+				min_diff_val = avg_diff;
+				best_score = avg_score;
+			}
+			if (diff_prev > max_diff_prev) {
+				max_prev_idx = grp_i;
+				max_diff_prev = diff_prev;
+				best_score_by_max_prev = avg_score;
+			}
+
+			if (verbose)
+				progress_full.update();
+		}
+
+		++set_size;
+		if (!find_max_inf) {
+			if (best_score > prev_score)
+				features_coeff[min_idx] = set_size;
+			else
+				features_coeff[min_idx] = -set_size; //negative contribution
+			scores_history.push_back(best_score);
+			current_mask[min_idx] = true;
+		}
+		else {
+			if (best_score_by_max_prev > prev_score)
+				features_coeff[max_prev_idx] = set_size;
+			else
+				features_coeff[max_prev_idx] = -set_size; //negative contribution
+			scores_history.push_back(best_score_by_max_prev);
+			current_mask[max_prev_idx] = true;
+		}
+		prev_score = best_score;
+
+		if (score_error_th > 0 && min_diff_val < score_error_th)
+			break;
+		if (score_error_percentage_th > 0 && original_pred > 0 &&
+			100 * (min_diff_val / original_pred) < score_error_percentage_th)
+			break;
+	}
+
+	tm_taker.take_curr_time();
+	if (verbose)
+		MLOG("Done explain_shapley_minimal_set. took %2.1f seconds\n", tm_taker.diff_sec());
+}

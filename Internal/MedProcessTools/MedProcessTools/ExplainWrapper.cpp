@@ -241,7 +241,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			}
 
 			//iterate groups greedy and substract the most contributing group
-			
+
 			//comment/erase this code if you want the old behaviour - without the fix
 			for (int i = 0; i < groupNames.size(); ++i)
 			{
@@ -262,7 +262,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 				//remove contrib from all others using contrib_before_fix (from all other groups):
 				for (int j = 0; j < groupNames.size(); ++j)
 					for (int ind_grp2 : group2Inds[j])  //all group indexes that needs to be canceled in curretn group 
-						group_val_curr[j] -= fixed_cov_abs(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
+						group_val_curr[j] -= 2 * fixed_cov_abs(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
 
 				//zero  mark group that won't appear again
 				seen_idx[max_contrib_idx] = true;
@@ -303,7 +303,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 				//remove contrib from all others using contrib_before_fix and abs_cov_features in curr_original:
 				for (int j = 0; j < fixed_with_cov.ncols; ++j)
-					fixed_with_cov(j, 0) -= contrib_before_fix * abs_cov_features(max_contrib_idx, j) * normalization_factor;
+					fixed_with_cov(j, 0) -= 2 * contrib_before_fix * abs_cov_features(max_contrib_idx, j) * normalization_factor;
 
 				//zero and mark feature curr_original to zero - that won't appear again
 				seen_idx[max_contrib_idx] = true;
@@ -947,6 +947,10 @@ MissingShapExplainer::MissingShapExplainer() {
 	no_relearn = false;
 	avg_bias_score = 0;
 	max_weight = 0;
+
+	use_minimal_set = false;
+	find_max_inf = false;
+	max_set_size = 10;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -976,6 +980,12 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			verbose_learn = stoi(it->second) > 0;
 		else if (it->first == "max_weight")
 			max_weight = med_stof(it->second);
+		else if (it->first == "use_minimal_set")
+			use_minimal_set = med_stoi(it->second) > 0;
+		else if (it->first == "find_max_inf")
+			find_max_inf = med_stoi(it->second) > 0;
+		else if (it->first == "max_set_size")
+			max_set_size = med_stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -1112,10 +1122,10 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			}
 	}
 	if (verbose_learn) {
-		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
-		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
+		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles (with added samples)", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "hist of missing_values_cnt (only for added)", "%d");
 		if (added_grp_hist.size() < 300)
-			medial::print::print_vec(added_grp_hist, "grp hist", "%d");
+			medial::print::print_vec(added_grp_hist, "grp hist (only for added)", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -1152,6 +1162,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	vector<vector<int>> group_inds_loc;
 	vector<string> group_names_loc;
 	if (processing.group_by_sum) {
+		MWARN("WARN :: MissingShapExplainer called with group_by_sum and it has it's own logic\n");
 		int icol = 0;
 		for (auto& rec : matrix.data) {
 			group_inds_loc.push_back({ icol++ });
@@ -1194,6 +1205,8 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			pred_threads[i] = (MedPredictor *)medial::models::copyInfraModel(predictor, false);
 			pred_threads[i]->deserialize(blob_pred);
 			gen_threads[i] = mt19937(rd());
+			if (use_minimal_set)
+				pred_threads[i]->prepare_predict_single();
 		}
 		delete[]blob_pred;
 	}
@@ -1206,6 +1219,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	{
 		int th_n;
 		vector<float> features_coeff;
+		vector<float> score_history;
 		float pred_shap = 0;
 		MedPredictor *curr_p = predictor;
 		if (outer_parallel) {
@@ -1215,9 +1229,52 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 		else
 			th_n = 0;
 
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
-			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
-			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+		if (!use_minimal_set)
+			medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
+				features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
+				uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+		else {
+			medial::shapley::explain_minimal_set(matrix, (int)i, 1, curr_p, missing_value,
+				*group_inds, features_coeff, score_history, find_max_inf, max_set_size, avg_bias_score,
+				global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+
+			if (verbose_learn) {
+				//debug prints:
+				MLOG("pid %d, time %d, score %2.5f (%zu):\n",
+					matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size());
+				for (int j = 0; j < score_history.size(); ++j)
+				{
+					//remove 0 - find from 1 to max_set in abs:
+					int search_term = j + 1;
+					int grp_idx = -1;
+					for (int k = 0; k < features_coeff.size() && grp_idx < 0; ++k)
+						if (int(abs(features_coeff[k])) == search_term)
+							grp_idx = k;
+
+					if (grp_idx < 0) {
+						MLOG("Done\n");
+						break;
+					}
+
+					string contrib_str = "POSITIVE";
+					if (features_coeff[grp_idx] < 0)
+						contrib_str = "NEGATIVE";
+					MLOG("\t%d. Group %s :: After_Score= %2.5f :: %s\n",
+						search_term, group_names->at(grp_idx).c_str(), score_history[j], contrib_str.c_str());
+				}
+			}
+
+			//reverse order in features_coeff:
+			for (size_t j = 0; j < features_coeff.size(); ++j)
+			{
+				if (features_coeff[j] == 0)
+					continue;
+				bool positive_contrib = features_coeff[j] > 0;
+				features_coeff[j] = float((int)features_coeff.size() + 1 - abs(features_coeff[j]));
+				if (!positive_contrib)
+					features_coeff[j] = -features_coeff[j];
+			}
+		}
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];

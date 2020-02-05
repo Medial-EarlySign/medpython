@@ -195,6 +195,12 @@ namespace medial {
 			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool use_random_sample, bool verbose = false);
 
+		/// \brief calculates minimal set
+		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
+			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
+			, vector<float> &features_coeff, vector<float> &scores_history, bool find_max_inf, int max_set_size, 
+			float baseline_score, bool verbose);
+
 		///< sample weights = lime (distance from orig), uniform (1), shap (shapely weights) or sum (ensuring sum of weights per # of 1's ~ 1/(k*(n-k)) 
 		typedef enum {
 			LimeWeightLime = 0,
