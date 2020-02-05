@@ -1730,6 +1730,10 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 		MedTimer tm;
 		tm.start();
 
+		vector<bool> mask_grp(tot_feat_cnt);
+		for (int ind : group2index[grp_i])
+			mask_grp[ind] = true;
+
 		//collect score for each permutition of missing values:
 		int end_l = grps_opts;
 		vector<float> full_pred_all_masks_without(max_loop * tot_feat_cnt), full_pred_all_masks_with(max_loop* tot_feat_cnt);
@@ -1743,7 +1747,7 @@ void medial::shapley::explain_shapley(const MedFeatures &matrix, int selected_sa
 					mat_without[j] = fast_access[j];
 
 			for (size_t j = 0; j < tot_feat_cnt; ++j)
-				if (!all_opts[i][j] && j != grp_i)
+				if (!all_opts[i][j] && !mask_grp[j])
 					mat_with[j] = missing_value;
 				else
 					mat_with[j] = fast_access[j];
