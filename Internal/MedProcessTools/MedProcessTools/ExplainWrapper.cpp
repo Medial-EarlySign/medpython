@@ -951,6 +951,8 @@ MissingShapExplainer::MissingShapExplainer() {
 	use_minimal_set = false;
 	find_max_inf = false;
 	max_set_size = 10;
+	override_score_bias = MED_MAT_MISSING_VALUE;
+	verbose_apply = false;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -986,6 +988,10 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			find_max_inf = med_stoi(it->second) > 0;
 		else if (it->first == "max_set_size")
 			max_set_size = med_stoi(it->second);
+		else if (it->first == "override_score_bias")
+			override_score_bias = med_stof(it->second);
+		else if (it->first == "verbose_apply")
+			verbose_apply = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -1213,6 +1219,18 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	else
 		gen_threads[0] = mt19937(rd());
 
+	float use_bias = avg_bias_score;
+	if (override_score_bias != MED_MAT_MISSING_VALUE)
+		use_bias = override_score_bias;
+	vector<const vector<float> *> data_pointer(matrix.data.size());
+	vector<string> feat_names;
+	matrix.get_feature_names(feat_names);
+	int ind_i = 0;
+	for (auto it = matrix.data.begin(); it != matrix.data.end(); ++it)
+	{
+		data_pointer[ind_i] = &it->second;
+		++ind_i;
+	}
 
 #pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
@@ -1235,13 +1253,14 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 				uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 		else {
 			medial::shapley::explain_minimal_set(matrix, (int)i, 1, curr_p, missing_value,
-				*group_inds, features_coeff, score_history, find_max_inf, max_set_size, avg_bias_score,
+				*group_inds, features_coeff, score_history, find_max_inf, max_set_size, use_bias,
 				global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
-			if (verbose_learn) {
+			if (verbose_apply) {
 				//debug prints:
-				MLOG("pid %d, time %d, score %2.5f (%zu):\n",
-					matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size());
+				MLOG("pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
+					matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size(),
+					use_bias);
 				for (int j = 0; j < score_history.size(); ++j)
 				{
 					//remove 0 - find from 1 to max_set in abs:
@@ -1259,8 +1278,10 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 					string contrib_str = "POSITIVE";
 					if (features_coeff[grp_idx] < 0)
 						contrib_str = "NEGATIVE";
-					MLOG("\t%d. Group %s :: After_Score= %2.5f :: %s\n",
-						search_term, group_names->at(grp_idx).c_str(), score_history[j], contrib_str.c_str());
+					int first_idx_grp = group_inds->at(grp_idx)[0];
+					MLOG("\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
+						search_term, group_names->at(grp_idx).c_str(), feat_names[first_idx_grp].c_str(),
+						data_pointer[first_idx_grp]->at(i), score_history[j], contrib_str.c_str());
 				}
 			}
 
