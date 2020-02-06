@@ -949,10 +949,11 @@ MissingShapExplainer::MissingShapExplainer() {
 	max_weight = 0;
 
 	use_minimal_set = false;
-	find_max_inf = false;
+	sort_params_a = 1;
+	sort_params_b = 1;
 	max_set_size = 10;
 	override_score_bias = MED_MAT_MISSING_VALUE;
-	verbose_apply = false;
+	verbose_apply = "";
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -984,14 +985,16 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			max_weight = med_stof(it->second);
 		else if (it->first == "use_minimal_set")
 			use_minimal_set = med_stoi(it->second) > 0;
-		else if (it->first == "find_max_inf")
-			find_max_inf = med_stoi(it->second) > 0;
+		else if (it->first == "sort_params_a")
+			sort_params_a = med_stof(it->second);
+		else if (it->first == "sort_params_b")
+			sort_params_b = med_stof(it->second);
 		else if (it->first == "max_set_size")
 			max_set_size = med_stoi(it->second);
 		else if (it->first == "override_score_bias")
 			override_score_bias = med_stof(it->second);
 		else if (it->first == "verbose_apply")
-			verbose_apply = med_stoi(it->second) > 0;
+			verbose_apply = it->second;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -1226,6 +1229,13 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	vector<string> feat_names;
 	matrix.get_feature_names(feat_names);
 	int ind_i = 0;
+	ofstream fw_apply;
+	if (!verbose_apply.empty()) {
+		fw_apply.open(verbose_apply);
+		if (!fw_apply.good())
+			MWARN("WARN : can't open file %s for verbose_apply\n");
+	}
+
 	for (auto it = matrix.data.begin(); it != matrix.data.end(); ++it)
 	{
 		data_pointer[ind_i] = &it->second;
@@ -1253,16 +1263,18 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 				uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 		else {
 			medial::shapley::explain_minimal_set(matrix, (int)i, 1, curr_p, missing_value,
-				*group_inds, features_coeff, score_history, find_max_inf, max_set_size, use_bias,
+				*group_inds, features_coeff, score_history, max_set_size, use_bias, sort_params_a, sort_params_b,
 				global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
-			if (verbose_apply) {
+			if (!verbose_apply.empty()) {
 #pragma omp critical 
 				{
+					char buffer_out[8000];
 					//debug prints:
-					MLOG("pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
+					snprintf(buffer_out, sizeof(buffer_out), "pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
 						matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size(),
 						use_bias);
+					fw_apply << string(buffer_out);
 					for (int j = 0; j < score_history.size(); ++j)
 					{
 						//remove 0 - find from 1 to max_set in abs:
@@ -1273,7 +1285,8 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 								grp_idx = k;
 
 						if (grp_idx < 0) {
-							MLOG("Done\n");
+							//snprintf(buffer_out, sizeof(buffer_out), "Done\n");
+							//fw_apply << string(buffer_out);
 							break;
 						}
 
@@ -1281,26 +1294,29 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 						if (features_coeff[grp_idx] < 0)
 							contrib_str = "NEGATIVE";
 						int first_idx_grp = group_inds->at(grp_idx)[0];
-						MLOG("\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
+						snprintf(buffer_out, sizeof(buffer_out), "\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
 							search_term, group_names->at(grp_idx).c_str(), feat_names[first_idx_grp].c_str(),
 							data_pointer[first_idx_grp]->at(i), score_history[j], contrib_str.c_str());
+						fw_apply << string(buffer_out);
 					}
 				}
 			}
 
 			//reverse order in features_coeff:
+			int ind_score_hist = 0;
 			for (size_t j = 0; j < features_coeff.size(); ++j)
 			{
 				if (features_coeff[j] == 0)
 					continue;
 				bool positive_contrib = features_coeff[j] > 0;
 				features_coeff[j] = float((int)features_coeff.size() + 1 - abs(features_coeff[j]));
-				float diff = abs(score_history[j] - (j > 0 ? score_history[j - 1] : use_bias));
+				double diff = abs(score_history[ind_score_hist] - (ind_score_hist > 0 ? score_history[ind_score_hist - 1] : use_bias));
 				if (diff > 1)
-					diff = (float)0.99999;
+					diff = 0.99999;
 				features_coeff[j] += diff;
 				if (!positive_contrib)
 					features_coeff[j] = -features_coeff[j];
+				++ind_score_hist;
 			}
 		}
 
@@ -1322,6 +1338,9 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	if (outer_parallel)
 		for (size_t i = 0; i < pred_threads.size(); ++i)
 			delete pred_threads[i];
+
+	if (!verbose_apply.empty())
+		fw_apply.close();
 }
 
 void ShapleyExplainer::_init(map<string, string> &mapper) {

@@ -2364,15 +2364,212 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 }
 
+enum SelectionMode
+{
+	BY_SCORE, //selects the one minimize score diff to original
+	BY_MAX_CHANGE, //selects the one maximize score diff from prev
+	BY_ALL //use all 3 metrics to select and calc new measure
+};
+
+void update_best_selection(double avg_diff, double std_in_score, double diff_prev, double avg_score, int grp_i,
+	SelectionMode mode, int &selected_idx, double &selected_value, float &selected_score,
+	double param_all_alpha = 1, double param_all_beta = 1) {
+
+	double calc_score = 0;
+
+	switch (mode)
+	{
+	case BY_SCORE:
+		if (selected_idx < 0 || avg_diff < selected_value) {
+			selected_idx = grp_i;
+			selected_score = avg_score;
+			selected_value = avg_diff;
+		}
+		break;
+	case BY_MAX_CHANGE:
+		if (selected_idx < 0 || diff_prev > selected_value) {
+			selected_idx = grp_i;
+			selected_score = avg_score;
+			selected_value = diff_prev;
+		}
+		break;
+	case BY_ALL:
+		if (avg_diff > 0)
+			calc_score = param_all_alpha * log(avg_diff);
+		if (std_in_score > 0)
+			calc_score += param_all_beta * log(std_in_score);
+		if (diff_prev > 0)
+			calc_score -= log(diff_prev);
+
+		if (selected_idx < 0 || calc_score < selected_value) {
+			selected_idx = grp_i;
+			selected_score = avg_score;
+			selected_value = calc_score;
+		}
+
+		break;
+	default:
+		MTHROW_AND_ERR("Unsupported Mode\n");
+	}
+
+}
+
 //return feature/groups order from 1 to size. sign is contribution influelunce
 void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
 	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
-	, vector<float> &features_coeff, vector<float> &scores_history, bool find_max_inf, int max_set_size
-	, float baseline_score, bool verbose) {
+	, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size
+	, float baseline_score, float param_all_alpha, float param_all_beta, bool verbose) {
 
 	int ngrps = (int)group2index.size();
 
 	int tot_feat_cnt = (int)matrix.data.size();
+
+	SelectionMode mode = SelectionMode::BY_ALL;
+	
+	vector<string> full_feat_ls;
+	matrix.get_feature_names(full_feat_ls);
+	vector<float> fast_access(full_feat_ls.size());
+	for (size_t i = 0; i < full_feat_ls.size(); ++i)
+		fast_access[i] = matrix.data.at(full_feat_ls[i])[selected_sample];
+
+	features_coeff.resize(ngrps);
+	if (matrix.samples[selected_sample].prediction.empty())
+		MTHROW_AND_ERR("Error please use only after predict\n");
+	float original_pred = matrix.samples[selected_sample].prediction[0];
+	//calc shapley for each variable
+	if (verbose)
+		MLOG("Start explain_shapely minimal set\n");
+	MedTimer tm_taker;
+	tm_taker.start();
+	MedProgress progress_full("shapley_minimal_set", ngrps, 15);
+
+	//additional_params:
+	float score_error_th = -1;
+	float score_error_percentage_th = -1;
+	int actual_size = 0;
+	for (int grp_i = 0; grp_i < ngrps; ++grp_i)
+	{
+		bool has_miss = false;
+		int param_it = 0;
+		while (!has_miss && param_it < group2index[grp_i].size()) {
+			has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+			++param_it;
+		}
+		if (has_miss)
+			continue;
+		++actual_size;
+	}
+	if (max_set_size > actual_size)
+		max_set_size = actual_size;
+
+	//greedy search to minimize till set size, score error, score_percent error
+	int set_size = 0;
+	vector<bool> current_mask(ngrps);
+	float prev_score = baseline_score; // need to init to baseline score
+	scores_history.reserve(max_set_size);
+
+	while (set_size < max_set_size) {
+		//find 
+		double selected_value = -1;
+		int selected_index = -1;
+		float selected_score = -1;
+
+		for (int grp_i = 0; grp_i < ngrps; ++grp_i)
+		{
+			if (current_mask[grp_i])
+				continue;
+			bool has_miss = false;
+			int param_it = 0;
+			while (!has_miss && param_it < group2index[grp_i].size()) {
+				has_miss = fast_access[group2index[grp_i][param_it]] == missing_value;
+				++param_it;
+			}
+			if (has_miss)
+				continue;
+
+			vector<bool> mask(full_feat_ls.size(), false);
+			for (int i = 0; i < current_mask.size(); ++i)
+				if (i == grp_i || current_mask[i])  //turn on bits:
+					for (int ind : group2index[i]) //set all group indexes as in mask
+						mask[ind] = true;
+
+			//collect score for each several samples - no need for more than 1:
+			vector<float> full_pred_all_masks_with(max_tests* tot_feat_cnt);
+			for (int i = 0; i < max_tests; ++i) {
+				float *mat_with = &full_pred_all_masks_with[i * tot_feat_cnt];
+				for (size_t j = 0; j < tot_feat_cnt; ++j)
+					if (!mask[j])
+						mat_with[j] = missing_value;
+					else
+						mat_with[j] = fast_access[j];
+			}
+
+			vector<float> preds_with;
+			if (max_tests == 1)
+				predictor->predict_single(full_pred_all_masks_with, preds_with); //faster API
+			else
+				predictor->predict(full_pred_all_masks_with, preds_with, max_tests, (int)full_feat_ls.size());
+
+			//calcluate diff from original:
+			double avg_diff = 0, avg_score = 0, diff_prev = 0, avg_diff_2 = 0;
+			for (size_t i = 0; i < preds_with.size(); ++i) {
+				avg_diff += abs(original_pred - preds_with[i]);
+				avg_score += preds_with[i];
+				diff_prev += abs(prev_score - preds_with[i]);
+				avg_diff_2 += pow(original_pred - preds_with[i], 2); //second moment for variance calc
+			}
+			if (preds_with.empty())
+				MTHROW_AND_ERR("Error medial::shapley::explain_minimal_set - empty samples\n");
+			avg_diff /= preds_with.size(); //diff from original pred
+			avg_score /= preds_with.size();
+			diff_prev /= preds_with.size(); //diff from prev
+			double std_in_score = sqrt(avg_diff_2 - pow(avg_diff, 2)); //variance in score
+			// use all measure avg_diff, std_in_score, diff_prev to choose best next explain parameter
+
+			update_best_selection(avg_diff, std_in_score, diff_prev, avg_score, grp_i, mode,
+				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta);
+
+			if (verbose)
+				progress_full.update();
+		}
+
+		++set_size;
+
+		if (selected_score > prev_score)
+			features_coeff[selected_index] = set_size;
+		else
+			features_coeff[selected_index] = -set_size; //negative contribution
+
+		scores_history.push_back(selected_score);
+		current_mask[selected_index] = true;
+		prev_score = selected_score;
+
+		double diff_val = abs(selected_score - original_pred);
+
+		if (score_error_th > 0 && diff_val < score_error_th)
+			break;
+		if (score_error_percentage_th > 0 && original_pred > 0 &&
+			100 * (diff_val / original_pred) < score_error_percentage_th)
+			break;
+	}
+
+	tm_taker.take_curr_time();
+	if (verbose)
+		MLOG("Done explain_shapley_minimal_set. took %2.1f seconds\n", tm_taker.diff_sec());
+}
+
+//return feature/groups order from 1 to size. sign is contribution influelunce - using SampleGenerator
+void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
+	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
+	const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen, void *sampling_params
+	, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size
+	, float baseline_score, float param_all_alpha, float param_all_beta, bool verbose) {
+
+	int ngrps = (int)group2index.size();
+
+	int tot_feat_cnt = (int)matrix.data.size();
+
+	SelectionMode mode = SelectionMode::BY_ALL;
 
 	vector<string> full_feat_ls;
 	matrix.get_feature_names(full_feat_ls);
@@ -2418,13 +2615,10 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 
 	while (set_size < max_set_size) {
 		//find 
-		double min_diff_val = abs(original_pred) + 1;
-		int min_idx = -1;
-		float best_score = -1;
+		double selected_value = -1;
+		int selected_index = -1;
+		float selected_score = -1;
 
-		double max_diff_prev = -1;
-		int max_prev_idx = -1;
-		float best_score_by_max_prev = -1;
 
 		for (int grp_i = 0; grp_i < ngrps; ++grp_i)
 		{
@@ -2446,72 +2640,70 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 						mask[ind] = true;
 
 			//collect score for each several samples - no need for more than 1:
-			vector<float> full_pred_all_masks_with(max_tests* tot_feat_cnt);
-			for (int i = 0; i < max_tests; ++i) {
+
+			map<string, vector<float>> matrix_with_imputation;
+			collect_mask(fast_access, mask, sampler_gen, rnd_gen, max_tests, sampling_params,
+				full_feat_ls, matrix_with_imputation);
+			int final_size = (int)matrix_with_imputation.begin()->second.size();
+			vector<float> full_pred_all_masks_with(final_size* tot_feat_cnt);
+			vector<const vector<float> *> gen_data_pointers(matrix_with_imputation.size());
+			int ind_ii = 0;
+			for (auto it = matrix_with_imputation.begin(); it != matrix_with_imputation.end(); ++it)
+			{
+				gen_data_pointers[ind_ii] = &it->second;
+				++ind_ii;
+			}
+			for (int i = 0; i < final_size; ++i) {
 				float *mat_with = &full_pred_all_masks_with[i * tot_feat_cnt];
 				for (size_t j = 0; j < tot_feat_cnt; ++j)
-					if (!mask[j])
-						mat_with[j] = missing_value;
-					else
-						mat_with[j] = fast_access[j];
+					mat_with[j] = gen_data_pointers[j]->at(i);
 			}
 
 			vector<float> preds_with;
-			if (max_tests == 1)
+			if (final_size == 1)
 				predictor->predict_single(full_pred_all_masks_with, preds_with); //faster API
 			else
-				predictor->predict(full_pred_all_masks_with, preds_with, max_tests, (int)full_feat_ls.size());
+				predictor->predict(full_pred_all_masks_with, preds_with, final_size, (int)full_feat_ls.size());
 
 			//calcluate diff from original:
-			double avg_diff = 0, avg_score = 0, diff_prev = 0;
+			double avg_diff = 0, avg_score = 0, diff_prev = 0, avg_diff_2 = 0;
 			for (size_t i = 0; i < preds_with.size(); ++i) {
 				avg_diff += abs(original_pred - preds_with[i]);
 				avg_score += preds_with[i];
 				diff_prev += abs(prev_score - preds_with[i]);
+				avg_diff_2 += pow(original_pred - preds_with[i], 2); //second moment for variance calc
 			}
-			avg_diff /= preds_with.size();
+			if (preds_with.empty())
+				MTHROW_AND_ERR("Error medial::shapley::explain_minimal_set - empty samples\n");
+			avg_diff /= preds_with.size(); //diff from original pred
 			avg_score /= preds_with.size();
-			diff_prev /= preds_with.size();
+			diff_prev /= preds_with.size(); //diff from prev
+			double std_in_score = sqrt(avg_diff_2 - pow(avg_diff, 2)); //variance in score
+			// use all measure avg_diff, std_in_score, diff_prev to choose best next explain parameter
 
-			if (avg_diff < min_diff_val) {
-				min_idx = grp_i;
-				min_diff_val = avg_diff;
-				best_score = avg_score;
-			}
-			if (diff_prev > max_diff_prev) {
-				max_prev_idx = grp_i;
-				max_diff_prev = diff_prev;
-				best_score_by_max_prev = avg_score;
-			}
+			update_best_selection(avg_diff, std_in_score, diff_prev, avg_score, grp_i, mode,
+				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta);
 
 			if (verbose)
 				progress_full.update();
 		}
 
 		++set_size;
-		if (!find_max_inf) {
-			if (best_score > prev_score)
-				features_coeff[min_idx] = set_size;
-			else
-				features_coeff[min_idx] = -set_size; //negative contribution
-			scores_history.push_back(best_score);
-			current_mask[min_idx] = true;
-			prev_score = best_score;
-		}
-		else {
-			if (best_score_by_max_prev > prev_score)
-				features_coeff[max_prev_idx] = set_size;
-			else
-				features_coeff[max_prev_idx] = -set_size; //negative contribution
-			scores_history.push_back(best_score_by_max_prev);
-			current_mask[max_prev_idx] = true;
-			prev_score = best_score_by_max_prev;
-		}
+		if (selected_score > prev_score)
+			features_coeff[selected_index] = set_size;
+		else
+			features_coeff[selected_index] = -set_size; //negative contribution
 
-		if (score_error_th > 0 && min_diff_val < score_error_th)
+		scores_history.push_back(selected_score);
+		current_mask[selected_index] = true;
+		prev_score = selected_score;
+
+		double diff_val = abs(selected_score - original_pred);
+
+		if (score_error_th > 0 && diff_val < score_error_th)
 			break;
 		if (score_error_percentage_th > 0 && original_pred > 0 &&
-			100 * (min_diff_val / original_pred) < score_error_percentage_th)
+			100 * (diff_val / original_pred) < score_error_percentage_th)
 			break;
 	}
 
