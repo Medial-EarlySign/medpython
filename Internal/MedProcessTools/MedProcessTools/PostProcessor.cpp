@@ -124,8 +124,8 @@ void MultiPostProcessor::Apply(MedFeatures &matrix) const {
 
 void MultiPostProcessor::dprint(const string &pref) const {
 	MLOG("%s :: %s\n", pref.c_str(), my_class_name().c_str());
-	for (size_t i = 0; i < post_processors.size(); ++i)
-		post_processors[i]->dprint(pref);
+	for (size_t i = 0; i < post_processors.size(); ++i) 
+		post_processors[i]->dprint("\t" + pref + "-in-MULTI[" + to_string(i) + "]");
 }
 
 MultiPostProcessor::~MultiPostProcessor() {

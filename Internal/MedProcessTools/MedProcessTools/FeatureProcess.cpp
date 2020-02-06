@@ -422,8 +422,11 @@ void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 {
 	if (fp_flag > 0) {
 		MLOG("%s :: FP MULTI type %d : name %s \n", pref.c_str(), processor_type, feature_name.c_str());
-		for (auto& proc : processors)
-			proc->dprint(pref + "-in-MULTI", fp_flag);
+		int ind = 0;
+		for (auto& proc : processors) {
+			proc->dprint("\t" + pref + "-in-MULTI[" + to_string(ind) + "]", fp_flag);
+			++ind;
+		}
 	}
 }
 
