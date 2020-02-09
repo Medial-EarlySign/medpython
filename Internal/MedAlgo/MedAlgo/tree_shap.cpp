@@ -2373,7 +2373,8 @@ enum SelectionMode
 
 void update_best_selection(double avg_diff, double std_in_score, double diff_prev, double avg_score, int grp_i,
 	SelectionMode mode, int &selected_idx, double &selected_value, float &selected_score,
-	double param_all_alpha = 1, double param_all_beta = 1) {
+	double param_all_alpha = 1, double param_all_beta = 1,
+	double param_all_k1 = 2, double param_all_k2 = 2) {
 
 	double calc_score = 0;
 
@@ -2394,12 +2395,13 @@ void update_best_selection(double avg_diff, double std_in_score, double diff_pre
 		}
 		break;
 	case BY_ALL:
+		//TODO: fix the weight function shape!! it's wrong!!
 		if (avg_diff > 0)
-			calc_score = param_all_alpha * log(avg_diff);
+			calc_score = param_all_alpha * pow(avg_diff, param_all_k1);
 		if (std_in_score > 0)
-			calc_score += param_all_beta * log(std_in_score);
+			calc_score += param_all_beta * pow(std_in_score, param_all_k1);
 		if (diff_prev > 0)
-			calc_score -= log(diff_prev);
+			calc_score -= pow(diff_prev, 1 / param_all_k2);
 
 		if (selected_idx < 0 || calc_score < selected_value) {
 			selected_idx = grp_i;
@@ -2418,7 +2420,8 @@ void update_best_selection(double avg_diff, double std_in_score, double diff_pre
 void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
 	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
 	, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size
-	, float baseline_score, float param_all_alpha, float param_all_beta, bool verbose) {
+	, float baseline_score, float param_all_alpha, float param_all_beta
+	, float param_all_k1, float param_all_k2, bool verbose) {
 
 	int ngrps = (int)group2index.size();
 
@@ -2527,7 +2530,8 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 			// use all measure avg_diff, std_in_score, diff_prev to choose best next explain parameter
 
 			update_best_selection(avg_diff, std_in_score, diff_prev, avg_score, grp_i, mode,
-				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta);
+				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta,
+				param_all_k1, param_all_k2);
 
 			if (verbose)
 				progress_full.update();
@@ -2563,7 +2567,8 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 	MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
 	const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen, void *sampling_params
 	, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size
-	, float baseline_score, float param_all_alpha, float param_all_beta, bool verbose) {
+	, float baseline_score, float param_all_alpha, float param_all_beta
+	, float param_all_k1, float param_all_k2, bool verbose) {
 
 	int ngrps = (int)group2index.size();
 
@@ -2682,7 +2687,8 @@ void medial::shapley::explain_minimal_set(const MedFeatures &matrix, int selecte
 			// use all measure avg_diff, std_in_score, diff_prev to choose best next explain parameter
 
 			update_best_selection(avg_diff, std_in_score, diff_prev, avg_score, grp_i, mode,
-				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta);
+				selected_index, selected_value, selected_score, param_all_alpha, param_all_beta,
+				param_all_k1, param_all_k2);
 
 			if (verbose)
 				progress_full.update();

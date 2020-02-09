@@ -199,14 +199,16 @@ namespace medial {
 		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
 			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
 			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size, 
-			float baseline_score, float param_all_alpha, float param_all_beta, bool verbose);
+			float baseline_score, float param_all_alpha, float param_all_beta,
+			float param_all_k1, float param_all_k2, bool verbose);
 
 		/// \brief calculates minimal set using sample generator
 		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
 			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
 			const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen, void *sampling_params
 			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size,
-			float baseline_score, float param_all_alpha, float param_all_beta, bool verbose);
+			float baseline_score, float param_all_alpha, float param_all_beta,
+			float param_all_k1, float param_all_k2, bool verbose);
 
 		///< sample weights = lime (distance from orig), uniform (1), shap (shapely weights) or sum (ensuring sum of weights per # of 1's ~ 1/(k*(n-k)) 
 		typedef enum {

@@ -951,6 +951,8 @@ MissingShapExplainer::MissingShapExplainer() {
 	use_minimal_set = false;
 	sort_params_a = 1;
 	sort_params_b = 1;
+	sort_params_k1 = 2;
+	sort_params_k2 = 2;
 	max_set_size = 10;
 	override_score_bias = MED_MAT_MISSING_VALUE;
 	verbose_apply = "";
@@ -989,6 +991,10 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			sort_params_a = med_stof(it->second);
 		else if (it->first == "sort_params_b")
 			sort_params_b = med_stof(it->second);
+		else if (it->first == "sort_params_k1")
+			sort_params_k1 = med_stof(it->second);
+		else if (it->first == "sort_params_k2")
+			sort_params_k2 = med_stof(it->second);
 		else if (it->first == "max_set_size")
 			max_set_size = med_stoi(it->second);
 		else if (it->first == "override_score_bias")
@@ -998,6 +1004,9 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
+
+	if (sort_params_k1 <= 1 || sort_params_k2 <= 1)
+		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be > 1\n");
 }
 
 float get_avg_preds(const MedFeatures &train_mat, MedPredictor *original_predictor) {
@@ -1264,7 +1273,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 		else {
 			medial::shapley::explain_minimal_set(matrix, (int)i, 1, curr_p, missing_value,
 				*group_inds, features_coeff, score_history, max_set_size, use_bias, sort_params_a, sort_params_b,
-				global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+				sort_params_k1, sort_params_k2, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
 
 			if (!verbose_apply.empty()) {
 #pragma omp critical 
@@ -1304,18 +1313,26 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 
 			//reverse order in features_coeff:
 			int ind_score_hist = 0;
-			for (size_t j = 0; j < features_coeff.size(); ++j)
+			vector<pair<int, float>> tp(features_coeff.size());
+			for (int j = 0; j < tp.size(); ++j)
 			{
-				if (features_coeff[j] == 0)
+				tp[j].first = j;
+				tp[j].second = features_coeff[j];
+			}
+			sort(tp.begin(), tp.end(), [](const pair<int, float>&a, const pair<int, float> &b) {
+				return abs(a.second) < abs(b.second); }); //0 are ignored
+			for (size_t j = 0; j < tp.size(); ++j)
+			{
+				if (tp[j].second == 0)
 					continue;
-				bool positive_contrib = features_coeff[j] > 0;
-				features_coeff[j] = float((int)features_coeff.size() + 1 - abs(features_coeff[j]));
+				bool positive_contrib = tp[j].second > 0;
+				features_coeff[tp[j].first] = float((int)features_coeff.size() + 1 - abs(tp[j].second));
 				double diff = abs(score_history[ind_score_hist] - (ind_score_hist > 0 ? score_history[ind_score_hist - 1] : use_bias));
 				if (diff > 1)
 					diff = 0.99999;
-				features_coeff[j] += diff;
+				features_coeff[tp[j].first] += diff;
 				if (!positive_contrib)
-					features_coeff[j] = -features_coeff[j];
+					features_coeff[tp[j].first] = -features_coeff[tp[j].first];
 				++ind_score_hist;
 			}
 		}
