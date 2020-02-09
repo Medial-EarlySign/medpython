@@ -1075,6 +1075,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "predictor_params_file") predictor_params_file = entry.second;
 		else if (field == "nfolds") nfolds = stoi(entry.second);
 		else if (field == "folds") folds_s = entry.second;
+		else if (field == "do_internal_cv") do_internal_cv = med_stoi(entry.second);
 		else if (field == "mode") mode = entry.second;
 		else if (field == "rates") rates = entry.second;
 		else if (field == "cohort_params") cohort_params = entry.second;
@@ -1121,19 +1122,34 @@ void IterativeFeatureSelector::pre_learn(MedFeatures& features, MedBootstrapResu
 
 	int nSamples = (int)features.samples.size();
 
+	// Divide features into families based on signals
+	get_features_families(features, featureFamilies);
+
 	// Resolve required and ignored  feature names
 	for (string req : required) {
-		string resolved = resolve_feature_name(features, req);
-		resolved_required.insert(resolved);
+		// check first if inside a family
+		if (featureFamilies.find(req) != featureFamilies.end())
+			for (string ftr_name : featureFamilies.at(req))
+				resolved_required.insert(ftr_name);
+		else
+		{
+			string resolved = resolve_feature_name(features, req);
+			resolved_required.insert(resolved);
+		}
 	}
 
 	for (string ignrd : ignored) {
-		string resolved = resolve_feature_name(features, ignrd);
-		resolved_ignored.insert(resolved);
+		// check first if inside a family
+		if (featureFamilies.find(ignrd) != featureFamilies.end())
+			for (string ftr_name : featureFamilies.at(ignrd))
+				resolved_required.insert(ftr_name);
+		else
+		{
+			string resolved = resolve_feature_name(features, ignrd);
+			resolved_required.insert(resolved);
+		}
 	}
 
-	// Divide features into families based on signals
-	get_features_families(features, featureFamilies);
 	if (verbose) {
 		//print families:
 		for (const auto &it : featureFamilies)
@@ -1141,17 +1157,20 @@ void IterativeFeatureSelector::pre_learn(MedFeatures& features, MedBootstrapResu
 				medial::io::get_list(it.second).c_str());
 	}
 
-	// Collect original splits
-	for (int i = 0; i < nSamples; i++)
-		orig_folds[i] = features.samples[i].split;
+	if (do_internal_cv)
+	{
+		// Collect original splits
+		for (int i = 0; i < nSamples; i++)
+			orig_folds[i] = features.samples[i].split;
 
-	// Override splits
-	map<int, int> id2fold;
-	for (MedSample& sample : features.samples) {
-		int id = sample.id;
-		if (id2fold.find(id) == id2fold.end())
-			id2fold[id] = globalRNG::rand() % nfolds;
-		sample.split = id2fold[id];
+		// Override splits
+		map<int, int> id2fold;
+		for (MedSample& sample : features.samples) {
+			int id = sample.id;
+			if (id2fold.find(id) == id2fold.end())
+				id2fold[id] = globalRNG::rand() % nfolds;
+			sample.split = id2fold[id];
+		}
 	}
 
 	// Boostrapping
@@ -1199,9 +1218,12 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 	}
 
 	// Reinstall splits
-	for (int i = 0; i < nSamples; i++)
-		features.samples[i].split = orig_folds[i];
-
+	if (do_internal_cv)
+	{
+		for (int i = 0; i < nSamples; i++)
+			features.samples[i].split = orig_folds[i];
+	}
+	
 	return 0;
 }
 
@@ -1217,7 +1239,14 @@ void IterativeFeatureSelector::retrace(MedFeatures& features, unordered_set<int>
 	// Sanity
 	for (string& family : families_order) {
 		if (featureFamilies.find(family) == featureFamilies.end())
+		{
+			MLOG("Cannot find family \'%s\'. Avaliable families: \n", family.c_str());
+			for (auto& fam : featureFamilies)
+			{
+				MLOG("\'%s\' \n", fam.first.c_str());
+			}
 			MTHROW_AND_ERR("Cannot find family \'%s\' inf featureFamilies\n", family.c_str());
+		}
 	}
 
 	// Optimize

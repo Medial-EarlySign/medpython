@@ -950,8 +950,8 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (float value : all_values) {
 #pragma omp critical
 		// value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
-		value2feature[value] = out_prefix + "_";
-
+		value2feature[value] = out_prefix + ".";
+		//MLOG("OneHotFeatProcessor::Temp: Orig:  %s New : %s \n", value.c_str(), value2feature.c_str());
 		if (features.attributes[resolved_feature_name].value2Name.empty())
 			value2feature[value] += to_string(value);
 		else if (value == features.medf_missing_value)
