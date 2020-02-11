@@ -190,8 +190,23 @@ namespace LightGBM {
 			is_finished = boosting_->TrainOneIter(nullptr, nullptr);
 			auto end_time = std::chrono::steady_clock::now();
 			// output used time per iteration
-			if ((((iter + 1) % config_.metric_freq) == 0) || (iter == total_iter - 1))
-				Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
+			if ((((iter + 1) % config_.metric_freq) == 0) || (iter == total_iter - 1)) {
+
+				if (!config_.metric.empty()) {
+					vector<double> m_res = boosting_->GetEvalAt(0);
+					stringstream eval_str;
+
+					eval_str << config_.metric[0] << "=" << m_res[0];
+					for (size_t i = 1; i < config_.metric.size(); ++i)
+						eval_str << ", " << config_.metric[i] << "=" << m_res[i];
+
+					Log::Info("%f seconds elapsed, finished iteration %d. [%s]",
+						std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1,
+						eval_str.str().c_str());
+				}
+				else
+					Log::Info("%f seconds elapsed, finished iteration %d", std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1);
+			}
 		}
 		Log::Info("Finished training");
 	}
@@ -406,7 +421,8 @@ void MedLightGBM::calc_feature_importance(vector<float> &features_importance_sco
 
 	if (legal_types.find(importance_type) == legal_types.end())
 		MTHROW_AND_ERR("Ilegal importance_type value \"%s\" "
-			"- should by one of [weight, gain, cover, gain_total]\n", importance_type.c_str());
+			"- should by one of [%s]\n",
+			importance_type.c_str(), medial::io::get_list(legal_types, ", ").c_str());
 
 	features_importance_scores.resize(model_features.empty() ? features_count : (int)model_features.size());
 

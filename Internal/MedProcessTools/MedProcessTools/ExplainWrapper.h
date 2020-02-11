@@ -46,7 +46,7 @@ public:
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
-	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows)
+	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
 	map<string, vector<int>> groupName2Inds;
@@ -67,6 +67,9 @@ public:
 	float get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const;
 
 	void post_deserialization();
+
+	static void read_feature_grouping(const string &file_name, const vector<string>& features, vector<vector<int>>& group2index,
+		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
 		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
@@ -187,7 +190,20 @@ public:
 	string predictor_args; ///< arguments to change in predictor - for example to change it into regression
 	string predictor_type;
 	bool verbose_learn; ///< If true will print more in learn
+	string verbose_apply; ///< If has value - output file
 	float max_weight; ///< the maximal weight number. if < 0 no limit
+	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
+	int limit_mask_size; ///< if set will limit mask size in the train - usefull for minimal_set
+
+	// parameters for minimal_set usage if use_minimal_set is true will do different thing
+	bool use_minimal_set; ///< If true will use different method to find minimal set
+	float sort_params_a; ///< weight for minimal distance from original score importance
+	float sort_params_b; ///< weight for variance in prediction using imputation. the rest is change from prev
+	float sort_params_k1; ///< weight for minimal distance from original score importance
+	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
+	int max_set_size; ///< the size to look for to explain
+	float override_score_bias; ///< when given will use it as score bias it train is very different from test
+
 
 	MissingShapExplainer();
 
@@ -200,7 +216,8 @@ public:
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
 			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
-			predictor_type, predictor_args, max_weight)
+			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
+			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, limit_mask_size)
 };
 
 /**

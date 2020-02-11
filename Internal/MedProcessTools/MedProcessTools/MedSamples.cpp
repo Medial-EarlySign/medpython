@@ -44,10 +44,10 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 		s_buff << attr.at(keys.front());
 	else {
 		vector<float> vals;
-		for (auto &e : attr) {
+		for (const string attr_k : keys) {
 			float f;
 			try {
-				f = stof(e.second);
+				f = stof(attr.at(attr_k));
 			}
 			catch (...) {
 				f = 0;
@@ -931,6 +931,38 @@ void MedSamples::dilute(float prob)
 		for (auto &s : id.samples)
 			if (rand_1() < prob)
 				mid.samples.push_back(s);
+		if (mid.samples.size() > 0)
+			NewidSamples.push_back(mid);
+	}
+
+	idSamples = NewidSamples;
+}
+
+
+//.......................................................................................
+void MedSamples::binary_dilute(float p0, float p1)
+{
+	if (p0 >= 1) p0 = 1;
+	if (p1 >= 1) p1 = 1;
+
+	if (p0 + p1 >= 2) return;
+
+	vector<MedIdSamples> NewidSamples;
+
+	for (auto &id : idSamples) {
+		MedIdSamples mid;
+		mid.id = id.id;
+		mid.split = id.split;
+		for (auto &s : id.samples)
+			if (s.outcome == 0) {
+				if (rand_1() < p0)
+					mid.samples.push_back(s);
+			}
+			else {
+				if (rand_1() < p1)
+					mid.samples.push_back(s);
+			}
+
 		if (mid.samples.size() > 0)
 			NewidSamples.push_back(mid);
 	}

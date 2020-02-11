@@ -54,6 +54,45 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 	for (string& name : namesToTake)
 		datap.push_back((float *)(&data.at(name)[0]));
 
+
+	MedTimer time_me;
+	time_me.start();
+
+
+	// next algorithm is built to reduce cache misses on transpose
+	// the idea is to split the work into batches of more or less rectangular matrices
+	// instead of doing whole rows each time
+	// we assume at the moment that the number of features is a good number to work with...
+	// we also want each batch to handle ~1MB which is ~250k matrix size
+	vector<int> batches;
+	if (datap.size() > 0) {
+		int nelements_in_batch = 250000;
+		int n_batch = 1 + nelements_in_batch/(int)datap.size();
+		if (n_batch > nrows) n_batch = nrows;
+		int curr = 0;
+		while (curr < nrows) {
+			batches.push_back(curr);
+			curr += n_batch;
+		}
+		if (batches.back() < nrows)
+			batches.push_back(nrows);
+
+#pragma omp parallel for schedule(dynamic)
+		for (int b = 0; b < batches.size() - 1; b++) {
+
+			for (int i = 0; i < (int)datap.size(); i++) {
+				for (int j = batches[b]; j < batches[b + 1]; j++) {
+					if (!isfinite(datap[i][j])) {
+						MTHROW_AND_ERR("nan in col [%s] in record [%d]", namesToTake[i].c_str(), j);
+					}
+					mat(j, i) = datap[i][j];
+				}
+			}
+
+		}
+	}
+
+/*
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < (int)datap.size(); i++) {
 		for (int j = 0; j < nrows; j++) {
@@ -63,7 +102,9 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 			mat(j, i) = datap[i][j];
 		}
 	}
-
+*/
+	time_me.take_curr_time();
+	MLOG_D("Matrix transpose time is %f sec\n", time_me.diff_sec());
 	//Test:
 	for (const string& name : namesToTake)
 		if (attributes.find(name) == attributes.end())

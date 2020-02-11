@@ -400,9 +400,10 @@ class FeatureImputer : public FeatureProcessor {
 public:
 
 	// Missing Value
-	float missing_value;
-	bool verbose; ///< If true will print how many missing value were in each feature
-	bool verbose_learn; ///< If true will call print after learn
+	float missing_value = MED_MAT_MISSING_VALUE;
+	bool verbose = true; ///< If true will print how many missing value were in each feature
+	bool verbose_learn = false; ///< If true will call print after learn
+
 
 	// Strata for setting moment
 	featureSetStrata imputerStrata;
@@ -414,7 +415,7 @@ public:
 	bool leave_missing_for_small_stratas = false;
 
 	// Moment
-	imputeMomentTypes moment_type;
+	imputeMomentTypes moment_type = IMPUTE_MMNT_MEAN;
 	float default_moment;
 	vector<float> moments;
 	// for sampling-imputation
@@ -818,6 +819,7 @@ public:
 	string predictor_params; ///<the predictor parameters
 	string predictor_params_file; ///<File with nFeatures-dependent predictor parameters
 	int nfolds = 5; ///< number of folds for cross-validation
+	bool do_internal_cv = true; ///< use nfolds and create internal splits (if false, uses original samples' splits
 	vector<int> folds; ///< if given, perform only subset of the possible 'nfolds' folds in cross-validation
 	string mode = "top2bottom"; ///< 'top2bottom' or 'bottom2top'
 	string rates = "50:1,100:2,500:5,5000:10"; ///< instruction on rate of selection - comma separated pairs : #-bound:step
@@ -861,7 +863,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
 		ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
-			required, ignored, numToSelect, selected, report)
+			required, ignored, numToSelect, selected, report, do_internal_cv)
 
 private:
 	// Resolved names of required signals

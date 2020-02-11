@@ -214,6 +214,9 @@ public:
 	/// <summary> given a probability dilution prob, dilute current samples </summary>
 	void dilute(float prob);
 
+	/// <summary> will dilute 0 labeled samples (traditionally controls) with p0, and all the rest with p1 </summary>
+	void binary_dilute(float p0, float p1);
+
 	/// <summary> removing all ids that appear in _dont_include from the current samples
 	void subtract(MedSamples &_dont_include);
 

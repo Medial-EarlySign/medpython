@@ -256,7 +256,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	/*if (!use_parallel_learn && !processors.empty())
 		MLOG("no threads for processor %s\n", processors.front()->my_class_name().c_str());*/
 
-#pragma omp parallel for schedule(dynamic) if (use_parallel_learn)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_learn && processors.size()>1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->Learn(features, ids);
 #pragma omp critical
@@ -269,6 +269,10 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 //.......................................................................................
 int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	int RC = 0;
+	if (processors.size() == 1) {
+		use_parallel_learn = false;
+		use_parallel_apply = false;
+	}
 #pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_apply(features, ids);
@@ -418,8 +422,11 @@ void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 {
 	if (fp_flag > 0) {
 		MLOG("%s :: FP MULTI type %d : name %s \n", pref.c_str(), processor_type, feature_name.c_str());
-		for (auto& proc : processors)
-			proc->dprint(pref + "-in-MULTI", fp_flag);
+		int ind = 0;
+		for (auto& proc : processors) {
+			proc->dprint("\t" + pref + "-in-MULTI[" + to_string(ind) + "]", fp_flag);
+			++ind;
+		}
 	}
 }
 
@@ -943,8 +950,8 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (float value : all_values) {
 #pragma omp critical
 		// value2feature[value] = "FTR_" + int_to_string_digits(++MedFeatures::global_serial_id_cnt, 6) + "." + index_feature_prefix + "_";
-		value2feature[value] = out_prefix + "_";
-
+		value2feature[value] = out_prefix + ".";
+		//MLOG("OneHotFeatProcessor::Temp: Orig:  %s New : %s \n", value.c_str(), value2feature.c_str());
 		if (features.attributes[resolved_feature_name].value2Name.empty())
 			value2feature[value] += to_string(value);
 		else if (value == features.medf_missing_value)
@@ -1151,7 +1158,7 @@ int GetProbFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) 
 //.......................................................................................
 int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
-	cerr << "Apply\n";
+	//cerr << "Apply\n";
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
@@ -1200,6 +1207,7 @@ int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 		}
 
 		// Remove original, if required
+#pragma omp critical
 		if (remove_origin) {
 			features.data.erase(resolved_feature_name);
 			features.attributes.erase(resolved_feature_name);

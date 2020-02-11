@@ -183,7 +183,7 @@ namespace medial {
 		/// \brief generate random mask
 		void generate_mask(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true);
 		/// \brief generate random mask using already existed mask
-		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true);
+		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true, int limit_zero_cnt = 0);
 		/// \brief generate all masks for shapley
 		void sample_options_SHAP(int nfeats, vector<vector<bool>> &all_opts, int opt_count, mt19937 &gen, bool with_repeats
 			, bool uniform_rand = false, bool use_shuffle = true);
@@ -199,6 +199,21 @@ namespace medial {
 			MedPredictor *predictor, const vector<vector<int>>& group2index, const vector<string> &groupNames,
 			const SamplesGenerator<T> &sampler_gen, mt19937 &rnd_gen, int sample_per_row, void *sampling_params,
 			vector<float> &features_coeff, bool use_random_sample, bool verbose = false);
+
+		/// \brief calculates minimal set
+		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
+			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
+			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size, 
+			float baseline_score, float param_all_alpha, float param_all_beta,
+			float param_all_k1, float param_all_k2, bool verbose);
+
+		/// \brief calculates minimal set using sample generator
+		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
+			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index,
+			const SamplesGenerator<float> &sampler_gen, mt19937 &rnd_gen, void *sampling_params
+			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size,
+			float baseline_score, float param_all_alpha, float param_all_beta,
+			float param_all_k1, float param_all_k2, bool verbose);
 
 		///< sample weights = lime (distance from orig), uniform (1), shap (shapely weights) or sum (ensuring sum of weights per # of 1's ~ 1/(k*(n-k)) 
 		typedef enum {

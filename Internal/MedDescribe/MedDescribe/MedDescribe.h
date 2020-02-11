@@ -50,6 +50,8 @@ public:
 	string sig2;
 
 	vector<int> pids_to_check;
+	MedMutualDist() {};
+	~MedMutualDist() {};
 
 	// universal sigs
 	int sig1_time_ch = 0;
