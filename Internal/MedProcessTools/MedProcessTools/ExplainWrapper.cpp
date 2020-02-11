@@ -1159,10 +1159,12 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			}
 	}
 	if (verbose_learn) {
-		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles (with added samples)", "%d");
-		medial::print::print_hist_vec(added_missing_hist, "hist of missing_values_cnt (only for added)", "%d");
-		if (added_grp_hist.size() < 300)
-			medial::print::print_vec(added_grp_hist, "grp hist (only for added)", "%d");
+		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles [0 - " + to_string(nftrs) + "] (with added samples - no groups)", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "selected counts in hist of missing_values_cnt (only for added - no groups)", "%d");
+		if (added_grp_hist.size() < 50)
+			medial::print::print_vec(added_grp_hist, "grp hist (only for added - on groups)", "%d");
+		else
+			medial::print::print_hist_vec(added_grp_hist, "hist of added_grp_hist (only for added - on groups)", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -1175,7 +1177,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		//do subsampling:
 		MLOG("INFO:: MissingShapExplainer::_learn - subsampling original train matrix");
 		unordered_set<int> selected_idx;
-		
+
 		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);
 		for (size_t i = 0; i < subsample_train; ++i)
 		{
