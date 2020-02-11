@@ -83,9 +83,12 @@ struct ExplanationDataset {
 	bool *R_missing;
 	unsigned num_X; ///< number of samples
 	unsigned M; ///< Features count
+	unsigned num_Exp; /// number of explanation features (allowing for grouping)
 	unsigned num_R;
 
 	ExplanationDataset();
+	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
+		unsigned M, unsigned num_R, unsigned num_Exp);
 	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
 		unsigned M, unsigned num_R);
 
@@ -129,7 +132,7 @@ void dense_independent(const TreeEnsemble& trees, const ExplanationDataset &data
 * This runs Tree SHAP with a per tree path conditional dependence assumption.
 */
 void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDataset &data,
-	tfloat *out_contribs, tfloat transform(const tfloat, const tfloat));
+	tfloat *out_contribs, unsigned *feature_sets, tfloat transform(const tfloat, const tfloat));
 
 // phi = np.zeros((self._current_X.shape[1] + 1, self._current_X.shape[1] + 1, self.n_outputs))
 //         phi_diag = np.zeros((self._current_X.shape[1] + 1, self.n_outputs))
@@ -167,6 +170,8 @@ void dense_global_path_dependent(const TreeEnsemble& trees, const ExplanationDat
 */
 void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
 	const int feature_dependence, unsigned model_transform, bool interactions);
+void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets);
 
 namespace medial {
 	namespace shapley {

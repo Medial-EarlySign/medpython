@@ -645,7 +645,7 @@ void TreeExplainer::init_post_processor(MedModel& model) {
 }
 
 void TreeExplainer::_learn(const MedFeatures &train_mat) {
-	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
+	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0 && get_mode() != TreeExplainerMode::CONVERTED_TREES_IMPL) {
 		processing.group_by_sum = 1;
 		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
 	}
@@ -666,7 +666,7 @@ void TreeExplainer::_learn(const MedFeatures &train_mat) {
 	if (try_convert_trees())
 		return; //success in convert to trees
 
-				//Train XGboost model on model output.
+	//Train XGboost model on model output.
 	proxy_predictor = MedPredictor::make_predictor(proxy_model_type, proxy_model_init);
 	//learn regression on input - TODO
 
@@ -702,6 +702,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	vector<double> x, y, R;
 	unique_ptr<bool> x_missing, R_missing;
 	int M = x_mat.ncols;
+	int num_Exp = M;
 	int num_outputs = original_predictor->n_preds_per_sample();
 	int sel_output_channel = 0;
 	if (num_outputs > 1)
@@ -732,8 +733,11 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		//R_missing = unique_ptr<bool>(new bool[x_mat.m.size()]);
 		int num_R = 0;
 
-		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R);
-		shap_res.resize(num_X * (M + 1)* num_outputs);
+		if (!processing.group_by_sum)
+			num_Exp = (int)processing.group2Inds.size();
+		
+		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R,num_Exp);
+		shap_res.assign(num_X * (num_Exp + 1)* num_outputs,0);
 	}
 
 	int tree_dep = FEATURE_DEPENDENCE::tree_path_dependent; //global is not supported in python - so not completed yet. indepent is usefull for complex transform, but can't be run with interaction
@@ -750,23 +754,57 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		conv_to_vec(feat_res, sample_explain_reasons);
 		break;
 	case CONVERTED_TREES_IMPL:
-		if (!approximate)
-			dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap);
-		else
-			dense_tree_saabas(shap_res.data(), generic_tree_model, data_set);
-		sample_explain_reasons.resize(matrix.samples.size());
-		for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
-		{
-			map<string, float> &curr_exp = sample_explain_reasons[i];
-			tfloat *curr_res_exp = &shap_res[i * (M + 1) * num_outputs];
-			//do only for sel_output_channel - the rest isn't supported yet
-			for (size_t j = 0; j < M; ++j)
-			{
-				string &feat_name = x_mat.signals[j];
-				curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+		if (!approximate) {
+			// Build sets
+			vector<string> names(num_Exp);
+			vector<unsigned> feature_sets(x_mat.ncols);
+			if (processing.group_by_sum) {
+				for (unsigned i = 0; i < num_Exp; i++) {
+					feature_sets[i] = i;
+					names[i] = x_mat.signals[i];
+				}
 			}
-			curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			else {
+				for (unsigned i = 0; i < num_Exp; i++) {
+					for (unsigned j : processing.group2Inds[i])
+						feature_sets[j] = i;
+					names[i] = processing.groupNames[i];
+				}
+			}
+			dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
+
+			sample_explain_reasons.resize(matrix.samples.size());
+			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+			{
+				map<string, float> &curr_exp = sample_explain_reasons[i];
+				tfloat *curr_res_exp = &shap_res[i * (num_Exp + 1)  * num_outputs];
+				//do only for sel_output_channel - the rest isn't supported yet
+				for (size_t j = 0; j < num_Exp; ++j)
+				{
+					string &feat_name = names[j];
+					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+				}
+				// curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			}
 		}
+		else {
+			dense_tree_saabas(shap_res.data(), generic_tree_model, data_set);
+
+			sample_explain_reasons.resize(matrix.samples.size());
+			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+			{
+				map<string, float> &curr_exp = sample_explain_reasons[i];
+				tfloat *curr_res_exp = &shap_res[i * (M + 1) * num_outputs];
+				//do only for sel_output_channel - the rest isn't supported yet
+				for (size_t j = 0; j < M; ++j)
+				{
+					string &feat_name = x_mat.signals[j];
+					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+				}
+				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			}
+		}
+
 		break;
 	default:
 		MTHROW_AND_ERR("Error TreeExplainer::explain - Unsuppotrted mode %d\n", md);
