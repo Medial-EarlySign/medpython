@@ -1538,8 +1538,14 @@ void medial::shapley::generate_mask(vector<bool> &mask, int nfeat, mt19937 &gen,
 	}
 }
 
-void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand, bool use_shuffle) {
+void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand, bool use_shuffle, int limit_zero_cnt) {
 	//mask is not empty - sample from non-empty
+	if (limit_zero_cnt >= nfeat)
+		limit_zero_cnt = nfeat; //problem with arguments
+
+	if (limit_zero_cnt <= 0) //when not set - or default of no limit
+		limit_zero_cnt = nfeat;
+
 	if (uniform_rand) {
 		uniform_int_distribution<> rnd_coin(0, 1);
 		for (size_t i = 0; i < nfeat; ++i)
@@ -1551,7 +1557,7 @@ void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen
 	for (size_t i = 0; i < mask.size(); ++i)
 		curr_cnt += int(!mask[i]); //how many zeros now
 
-	uniform_int_distribution<> rnd_dist(0, nfeat);
+	uniform_int_distribution<> rnd_dist(0, limit_zero_cnt);
 	int zero_count = rnd_dist(gen);
 	if (zero_count == nfeat) {
 		mask.clear(); //all zeros

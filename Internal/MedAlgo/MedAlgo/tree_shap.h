@@ -178,7 +178,7 @@ namespace medial {
 		/// \brief generate random mask
 		void generate_mask(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true);
 		/// \brief generate random mask using already existed mask
-		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true);
+		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true, int limit_zero_cnt = 0);
 		/// \brief generate all masks for shapley
 		void sample_options_SHAP(int nfeats, vector<vector<bool>> &all_opts, int opt_count, mt19937 &gen, bool with_repeats
 			, bool uniform_rand = false, bool use_shuffle = true);

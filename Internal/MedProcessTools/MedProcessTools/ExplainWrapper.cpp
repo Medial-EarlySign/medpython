@@ -947,6 +947,8 @@ MissingShapExplainer::MissingShapExplainer() {
 	no_relearn = false;
 	avg_bias_score = 0;
 	max_weight = 0;
+	subsample_train = 0;
+	limit_mask_size = 0;
 
 	use_minimal_set = false;
 	sort_params_a = 1;
@@ -999,14 +1001,21 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			max_set_size = med_stoi(it->second);
 		else if (it->first == "override_score_bias")
 			override_score_bias = med_stof(it->second);
+		else if (it->first == "subsample_train")
+			subsample_train = med_stoi(it->second);
+		else if (it->first == "limit_mask_size")
+			limit_mask_size = med_stoi(it->second);
 		else if (it->first == "verbose_apply")
 			verbose_apply = it->second;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
 
-	if (sort_params_k1 <= 1 || sort_params_k2 <= 1)
-		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be > 1\n");
+	if (sort_params_k1 < 1 || sort_params_k2 < 1)
+		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be >= 1\n");
+
+	if (uniform_rand && limit_mask_size > 0)
+		MTHROW_AND_ERR("Error in MissingShapExplainer::_init - can't use uniform_rand and limit_mask_size > 0\n");
 }
 
 float get_avg_preds(const MedFeatures &train_mat, MedPredictor *original_predictor) {
@@ -1037,17 +1046,26 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		retrain_predictor = original_predictor;
 		return;
 	}
+
+	if (limit_mask_size >= processing.group2Inds.size()) {
+		MWARN("WARNING: limit_mask_size=%d which is bigger than number of groups/features(%zu)\n",
+			limit_mask_size, processing.group2Inds.size());
+		limit_mask_size = (int)processing.group2Inds.size(); //problem with arguments
+	}
+
 	if (predictor_type.empty())
 		retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	else
 		retrain_predictor = MedPredictor::make_predictor(predictor_type, predictor_args);
+
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
+	int train_mat_size = (int)train_mat.samples.size();
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
 	int nftrs_grp = (int)processing.group2Inds.size();
-	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
-	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
+	vector<float> labels(train_mat_size), weights(train_mat_size + add_new_data, 1);
+	vector<int> miss_cnts(train_mat_size + add_new_data);
 	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
 
 	if (!train_mat.samples.front().prediction.empty())
@@ -1058,11 +1076,12 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		train_mat.get_as_matrix(tt);
 		original_predictor->predict(tt, labels);
 	}
+
 	if (add_new_data > 0) {
 		//processing.group2Inds.size()
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
-		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
+		uniform_int_distribution<> rnd_row(0, train_mat_size - 1);
 		double log_max_opts = log(add_new_data) / log(2.0);
 		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
@@ -1086,9 +1105,9 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 				curr_mask[j] = !has_missing;
 			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
 
@@ -1117,7 +1136,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	for (int i = 0; i < x_mat.nrows; ++i) {
 		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i, 0), nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
-		if (i >= train_mat.samples.size())
+		if (i >= train_mat_size)
 			++added_missing_hist[miss_cnts[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
@@ -1151,6 +1170,39 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	//reweight train_mat:
 	if (predictor_type.empty() && !predictor_args.empty())
 		retrain_predictor->init_from_string(predictor_args);
+
+	if (subsample_train > 0 && subsample_train < train_mat_size) {
+		//do subsampling:
+		MLOG("INFO:: MissingShapExplainer::_learn - subsampling original train matrix");
+		unordered_set<int> selected_idx;
+		
+		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);
+		for (size_t i = 0; i < subsample_train; ++i)
+		{
+			int sel_idx = rnd_opts(gen);
+			while (selected_idx.find(sel_idx) != selected_idx.end())
+				sel_idx = rnd_opts(gen);
+			selected_idx.insert(sel_idx);
+		}
+		//add all rest:
+		vector<int> empty_is_all;
+		vector<int> selected_idx_vec(selected_idx.begin(), selected_idx.end());
+		for (int i = train_mat_size; i < x_mat.nrows; ++i)
+			selected_idx_vec.push_back(i);
+		sort(selected_idx_vec.begin(), selected_idx_vec.end());
+
+		//commit selection xmat and labels, weights:
+		vector<float> new_weights(selected_idx_vec.size()), new_labels(selected_idx_vec.size());
+		x_mat.get_sub_mat(selected_idx_vec, empty_is_all);
+		for (size_t i = 0; i < selected_idx_vec.size(); ++i)
+		{
+			new_labels[i] = labels[selected_idx_vec[i]];
+			new_weights[i] = weights[selected_idx_vec[i]];
+		}
+		labels = move(new_labels);
+		weights = move(new_weights);
+	}
+
 	retrain_predictor->learn(x_mat, labels, weights);
 	//test pref:
 	if (verbose_learn) {

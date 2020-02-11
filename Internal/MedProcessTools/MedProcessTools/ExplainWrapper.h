@@ -192,6 +192,8 @@ public:
 	bool verbose_learn; ///< If true will print more in learn
 	string verbose_apply; ///< If has value - output file
 	float max_weight; ///< the maximal weight number. if < 0 no limit
+	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
+	int limit_mask_size; ///< if set will limit mask size in the train - usefull for minimal_set
 
 	// parameters for minimal_set usage if use_minimal_set is true will do different thing
 	bool use_minimal_set; ///< If true will use different method to find minimal set
@@ -215,7 +217,7 @@ public:
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
 			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
-			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply)
+			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, limit_mask_size)
 };
 
 /**
