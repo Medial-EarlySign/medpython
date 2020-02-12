@@ -65,6 +65,7 @@ public:
 		size_t get_size();
 	size_t serialize(unsigned char *buffer);
 	size_t deserialize(unsigned char *buffer);
+	string object_json() const;
 };
 
 MEDSERIALIZE_SUPPORT(MedCleaner)

@@ -19,11 +19,10 @@
 #include <boost/algorithm/string.hpp>
 #include <unordered_map>
 #include <MedMat/MedMat/MedMatConstants.h>
+#include "MedRunPath.h"
 #include "MedSamplingHelper.h"
 
 using namespace std;
-
-extern string run_current_path;
 
 enum MedBinningType {
 	BIN_EQUIDIST,
