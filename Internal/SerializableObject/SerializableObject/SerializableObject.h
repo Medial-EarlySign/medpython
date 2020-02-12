@@ -105,7 +105,7 @@ namespace MedSerialize {																							\
 	template<> inline size_t get_size<Type>(Type &elem) { return elem.get_size(); }									\
 	template<> inline size_t serialize<Type>(unsigned char *blob, Type &elem) { return elem.serialize(blob); }		\
 	template<> inline size_t deserialize<Type>(unsigned char *blob, Type &elem) { return elem.deserialize(blob); }	\
-    template<> inline string object_json<Type>(Type &elem) { return elem.object_json(); }	\
+    template<> inline string object_json<const Type>(const Type &elem) { return elem.object_json(); }	\
 }
 
 /*! @def ADD_SERIALIZATION_FUNCS(...)
