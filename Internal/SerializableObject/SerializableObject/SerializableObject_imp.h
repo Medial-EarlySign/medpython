@@ -35,27 +35,39 @@ namespace MedSerialize {
 	template <class T>  size_t get_size(vector<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, vector<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, vector<T> &v);
+	template <class T> string object_json(const vector<const T> &v);
+	template <class T> string object_json(const vector<T> &v);
 	template <class T> string object_json(vector<const T> &v);
 	template <class T, class S> size_t get_size(pair<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, pair<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, pair<T, S> &v);
 	template <class T, class S> string object_json(pair<const T, const S> &v);
+	template <class T, class S> string object_json(const pair<T, S> &v);
+	template <class T, class S> string object_json(const pair<const T, const S> &v);
 	template <class T, class S> size_t get_size(map<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, map<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, map<T, S> &v);
 	template <class T, class S> string object_json(map<const T, const S> &v);
+	template <class T, class S> string object_json(const map<const T, const S> &v);
+	template <class T, class S> string object_json(const map<T, S> &v);
 	template <class T, class S> size_t get_size(unordered_map<T, S> &v);
 	template <class T, class S> size_t serialize(unsigned char *blob, unordered_map<T, S> &v);
 	template <class T, class S> size_t deserialize(unsigned char *blob, unordered_map<T, S> &v);
 	template <class T, class S> string object_json(unordered_map<const T, const S> &v);
+	template <class T, class S> string object_json(const unordered_map<const T, const S> &v);
+	template <class T, class S> string object_json(const unordered_map<T, S> &v);
 	template <class T> size_t get_size(unordered_set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, unordered_set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, unordered_set<T> &v);
 	template <class T> string object_json(unordered_set<const T> &v);
+	template <class T> string object_json(const unordered_set<const T> &v);
+	template <class T> string object_json(const unordered_set<T> &v);
 	template <class T> size_t get_size(set<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, set<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, set<T> &v);
 	template <class T> string object_json(set<const T> &v);
+	template <class T> string object_json(const set<const T> &v);
+	template <class T> string object_json(const set<T> &v);
 	template <class T> size_t get_size(unique_ptr<T> &v);
 	template <class T> size_t serialize(unsigned char *blob, unique_ptr<T> &v);
 	template <class T> size_t deserialize(unsigned char *blob, unique_ptr<T> &v);
@@ -364,6 +376,32 @@ namespace MedSerialize {
 		return pos;
 	}
 
+	template <class T> string object_json(const vector<const T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		for (size_t i = 0; i < v.size(); ++i)
+		{
+			if (i > 0)
+				str << ",";
+			str << MedSerialize::object_json(v[i]);
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T> string object_json(const vector<T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		for (size_t i = 0; i < v.size(); ++i)
+		{
+			if (i > 0)
+				str << ",";
+			str << MedSerialize::object_json(v[i]);
+		}
+		str << "]";
+		return str.str();
+	}
 	template <class T> string object_json(vector<const T> &v) {
 		stringstream str;
 		//it's object:
@@ -377,6 +415,7 @@ namespace MedSerialize {
 		str << "]";
 		return str.str();
 	}
+
 
 	//.........................................................................................
 	// set<T> with a MedSerialize function
@@ -432,12 +471,43 @@ namespace MedSerialize {
 		{
 			if (!start)
 				str << ",";
+			str << MedSerialize::object_json((const T &)(*it));
+			start = false;
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T> string object_json(const set<const T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (typename set<T>::iterator it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
+			str << MedSerialize::object_json((const T &)(*it));
+			start = false;
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T> string object_json(const set<T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (typename set<T>::iterator it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
 			str << MedSerialize::object_json((T &)(*it));
 			start = false;
 		}
 		str << "]";
 		return str.str();
 	}
+
 
 	//.........................................................................................
 	// unordered_set<T> with a MedSerialize function
@@ -486,7 +556,7 @@ namespace MedSerialize {
 		//it's object:
 		str << "[";
 		bool start = true;
-		for (T &e : v)
+		for (const T &e : v)
 		{
 			if (!start)
 				str << ",";
@@ -496,6 +566,38 @@ namespace MedSerialize {
 		str << "]";
 		return str.str();
 	}
+	template <class T> string object_json(const unordered_set<const T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (const T &e : v)
+		{
+			if (!start)
+				str << ",";
+			str << MedSerialize::object_json(e);
+			start = false;
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T> string object_json(const unordered_set<T> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (const T &e : v)
+		{
+			if (!start)
+				str << ",";
+			str << MedSerialize::object_json(e);
+			start = false;
+		}
+		str << "]";
+		return str.str();
+	}
+
+
 
 	//.........................................................................................
 	// pair<T,S> both with a MedSerialize function
@@ -551,7 +653,30 @@ namespace MedSerialize {
 		str << "] }";
 		return str.str();
 	}
+	template <class T, class S> string object_json(pair<const T, const S> &v) {
+		stringstream str;
+		//it's object: - TODO: print type name
+		str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+		str << "[";
 
+		str << MedSerialize::object_json(v.first);
+		str << "," << MedSerialize::object_json(v.second);
+
+		str << "] }";
+		return str.str();
+	}
+	template <class T, class S> string object_json(const pair<T, S> &v) {
+		stringstream str;
+		//it's object: - TODO: print type name
+		str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+		str << "[";
+
+		str << MedSerialize::object_json(v.first);
+		str << "," << MedSerialize::object_json(v.second);
+
+		str << "] }";
+		return str.str();
+	}
 
 	//.........................................................................................
 	// map<T,S> both with a MedSerialize function
@@ -609,7 +734,7 @@ namespace MedSerialize {
 		//it's object:
 		str << "[";
 		bool start = true;
-		for (auto *it = v.begin(); v != v.end(); ++it)
+		for (auto it = v.begin(); it != v.end(); ++it)
 		{
 			if (!start)
 				str << ",";
@@ -618,7 +743,55 @@ namespace MedSerialize {
 			str << "{ \"Object\":\"pair<" << "," << ">\",\n";
 			str << "[";
 
-			str << MedSerialize::object_json((T& )it->first);
+			str << MedSerialize::object_json((const T& )it->first);
+			str << "," << MedSerialize::object_json((const S &)it->second);
+
+			str << "] }";
+			start = false;
+
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T, class S> string object_json(const map<const T, const S> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (auto it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
+			//print pair:
+
+			str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+			str << "[";
+
+			str << MedSerialize::object_json((const T&)it->first);
+			str << "," << MedSerialize::object_json((const S &)it->second);
+
+			str << "] }";
+			start = false;
+
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T, class S> string object_json(const map<T, S> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (auto it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
+			//print pair:
+
+			str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+			str << "[";
+
+			str << MedSerialize::object_json((T&)it->first);
 			str << "," << MedSerialize::object_json((S &)it->second);
 
 			str << "] }";
@@ -628,6 +801,7 @@ namespace MedSerialize {
 		str << "]";
 		return str.str();
 	}
+
 
 	//.........................................................................................
 	// unordered_map<T,S> both with a MedSerialize function
@@ -683,7 +857,55 @@ namespace MedSerialize {
 		//it's object:
 		str << "[";
 		bool start = true;
-		for (auto *it = v.begin(); v != v.end(); ++it)
+		for (auto it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
+			//print pair:
+
+			str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+			str << "[";
+
+			str << MedSerialize::object_json((const T &)it->first);
+			str << "," << MedSerialize::object_json((const S &)it->second);
+
+			str << "] }";
+			start = false;
+
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T, class S> string object_json(const unordered_map<const T, const S> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (auto it = v.begin(); it != v.end(); ++it)
+		{
+			if (!start)
+				str << ",";
+			//print pair:
+
+			str << "{ \"Object\":\"pair<" << "," << ">\",\n";
+			str << "[";
+
+			str << MedSerialize::object_json((const T &)it->first);
+			str << "," << MedSerialize::object_json((const S &)it->second);
+
+			str << "] }";
+			start = false;
+
+		}
+		str << "]";
+		return str.str();
+	}
+	template <class T, class S> string object_json(const unordered_map<T, S> &v) {
+		stringstream str;
+		//it's object:
+		str << "[";
+		bool start = true;
+		for (auto it = v.begin(); it != v.end(); ++it)
 		{
 			if (!start)
 				str << ",";

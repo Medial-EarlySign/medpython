@@ -42,6 +42,7 @@ public:
 	bool learn_cov_matrix = false; ///< If true will learn cov_matrix
 	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
 	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
+	bool keep_b0 = false; ///< if true will keep bo prior
 
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
@@ -72,7 +73,7 @@ public:
 		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
-		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds)
+		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0)
 };
 
 /**

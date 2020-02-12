@@ -93,6 +93,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			zero_missing = stoi(it->second);
 		else if (it->first == "normalize_vals")
 			normalize_vals = stoi(it->second);
+		else if (it->first == "keep_b0")
+			keep_b0 = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -174,12 +176,13 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 }
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
+	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+	if (!keep_b0) 
+		for (auto &s : skip_bias_names) explain_list.erase(s);
 
 	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
-	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	for (auto &s : skip_bias_names) explain_list.erase(s);
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
 	int k = 0;
 	for (auto &e : explain_list) orig_explain(k++, 0) = e.second;
