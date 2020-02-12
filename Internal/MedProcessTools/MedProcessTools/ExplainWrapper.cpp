@@ -7,6 +7,7 @@
 #include <MedAlgo/MedAlgo/MedXGB.h>
 #include <MedStat/MedStat/MedStat.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
+#include <MedAlgo/MedAlgo/MedLightGBM.h>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -93,6 +94,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			zero_missing = stoi(it->second);
 		else if (it->first == "normalize_vals")
 			normalize_vals = stoi(it->second);
+		else if (it->first=="keep_bias")
+			keep_bias = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -178,8 +181,12 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
-	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	for (auto &s : skip_bias_names) explain_list.erase(s);
+	// Keep bias ?
+	if (!keep_bias) {
+		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+		for (auto &s : skip_bias_names) explain_list.erase(s);
+	}
+
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
 	int k = 0;
 	for (auto &e : explain_list) orig_explain(k++, 0) = e.second;
@@ -652,82 +659,294 @@ int get_tree_max_depth(const vector<QRF_ResNode> &nodes) {
 	return max_d;
 }
 
+void get_tree_nnodes(vector<int> left_children, vector<int> right_children, int& nInternal, int& nLeaves) {
+
+	nInternal = nLeaves = 0;
+
+	for (size_t i = 0; i < left_children.size(); i++) {
+		if (right_children[i] > nInternal)
+			nInternal = right_children[i];
+		if ((~(right_children[i])) > nLeaves)
+			nLeaves = ~(right_children[i]);
+		if (left_children[i] > nInternal)
+			nInternal = left_children[i];
+		if ((~(left_children[i])) > nLeaves)
+			nLeaves = ~(left_children[i]);
+	}
+
+	nInternal++; // Add 0
+	return;
+}
+
+int get_max_rec(vector<int> left_children, vector<int> right_children, int idx) {
+	int max_right = (right_children[idx] < 0) ? 1 : get_max_rec(left_children, right_children, right_children[idx]) + 1;
+	int max_left = (left_children[idx] < 0) ? 1 : get_max_rec(left_children, right_children, left_children[idx]) + 1;
+
+	return((max_right > max_left) ? max_right : max_left);
+}
+
+int get_tree_max_depth(vector<int> left_children, vector<int> right_children) {
+
+	if (left_children.empty())
+		return 0;
+	return get_max_rec(left_children, right_children, 0) + 1;
+
+}
+
 //all conversion functions
-bool TreeExplainer::try_convert_trees() {
-	//convert QRF, BART to generic_tree_model structure:
-	if (original_predictor->classifier_type == MODEL_QRF) {
-		MLOG("Converting QRF to generic ensemble trees\n");
-		int num_outputs = original_predictor->n_preds_per_sample();
-		const QRF_Forest &forest = static_cast<MedQRF *>(original_predictor)->qf;
-		if (forest.n_categ == 2)
-			num_outputs = 1;
-		const vector<float> &all_vals = forest.sorted_values;
-		if (all_vals.empty() && forest.n_categ != 2) {
-			MWARN("Can't convert QRF. please retrain with keep_all_values to be able to convert categorical trees with n_categ > 2\n");
-			return false;
-		}
-		int max_nodes = 0, max_depth = 0;
-		for (size_t i = 0; i < forest.qtrees.size(); ++i)
+bool TreeExplainer::convert_qrf_trees() {
+	MLOG("Converting QRF to generic ensemble trees\n");
+	int num_outputs = original_predictor->n_preds_per_sample();
+	const QRF_Forest &forest = static_cast<MedQRF *>(original_predictor)->qf;
+	if (forest.n_categ == 2)
+		num_outputs = 1;
+	const vector<float> &all_vals = forest.sorted_values;
+	if (all_vals.empty() && forest.n_categ != 2) {
+		MWARN("Can't convert QRF. please retrain with keep_all_values to be able to convert categorical trees with n_categ > 2\n");
+		return false;
+	}
+	int max_nodes = 0, max_depth = 0;
+	for (size_t i = 0; i < forest.qtrees.size(); ++i)
+	{
+		if (max_nodes < forest.qtrees[i].qnodes.size())
+			max_nodes = (int)forest.qtrees[i].qnodes.size();
+		int mm = get_tree_max_depth(forest.qtrees[i].qnodes);
+		if (mm > max_depth)
+			max_depth = mm;
+	}
+
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate((int)forest.qtrees.size(), max_nodes, num_outputs);
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = (int)forest.qtrees.size();
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+	for (size_t i = 0; i < forest.qtrees.size(); ++i) {
+		//convert each tree:
+		const vector<QRF_ResNode> &tr = forest.qtrees[i].qnodes;
+		for (size_t j = 0; j < tr.size(); ++j)
 		{
-			if (max_nodes < forest.qtrees[i].qnodes.size())
-				max_nodes = (int)forest.qtrees[i].qnodes.size();
-			int mm = get_tree_max_depth(forest.qtrees[i].qnodes);
-			if (mm > max_depth)
-				max_depth = mm;
+			generic_tree_model.children_left[pos_in_model + j] = tr[j].left;
+			generic_tree_model.children_right[pos_in_model + j] = tr[j].right;
+			generic_tree_model.children_default[pos_in_model + j] = tr[j].left; //smaller than is left
+																				//generic_tree_model.children_default[pos_in_model + j] = -1; //no default - will fail
+
+			generic_tree_model.features[pos_in_model + j] = int(tr[j].ifeat);
+			if (tr[j].is_leaf)
+			{
+				generic_tree_model.children_right[pos_in_model + j] = -1;//mark leaf
+				generic_tree_model.children_left[pos_in_model + j] = -1;//mark leaf
+				generic_tree_model.children_default[pos_in_model + j] = -1;//mark leaf
+			}
+			generic_tree_model.thresholds[pos_in_model + j] = tr[j].split_val;
+			generic_tree_model.node_sample_weights[pos_in_model + j] = float(tr[j].n_size); //no support for trained in weights for now
+																							//if n_categ ==2:
+			if (forest.n_categ == 2) {
+				if (!tr[j].counts.empty()) {
+					if (tr[j].n_size != 0)
+						generic_tree_model.values[pos_in_model + j] = tr[j].counts[1] / float(tr[j].n_size);
+					else
+						MTHROW_AND_ERR("Error node leaf has 0 obs\n");
+				}
+				else
+					generic_tree_model.values[pos_in_model + j] = tr[j].pred;
+			}
+			else {
+				vector<float> scores(num_outputs);
+				tr[j].get_scores(forest.mode, forest.get_counts_flag, forest.n_categ, scores);
+				//convert values for each prediction:
+				for (size_t k = 0; k < scores.size(); ++k)
+					generic_tree_model.values[pos_in_model * num_outputs + j * num_outputs + k] = scores[k];
+			}
 		}
 
-		++max_nodes; //this is tree seperator index for model
-		generic_tree_model.allocate((int)forest.qtrees.size(), max_nodes, num_outputs);
-		int pos_in_model = 0;
-		generic_tree_model.max_depth = max_depth;
-		generic_tree_model.tree_limit = (int)forest.qtrees.size();
-		generic_tree_model.max_nodes = max_nodes;
-		generic_tree_model.num_outputs = num_outputs;
-		generic_tree_model.base_offset = 0; //no bias
-		for (size_t i = 0; i < forest.qtrees.size(); ++i) {
-			//convert each tree:
-			const vector<QRF_ResNode> &tr = forest.qtrees[i].qnodes;
-			for (size_t j = 0; j < tr.size(); ++j)
-			{
-				generic_tree_model.children_left[pos_in_model + j] = tr[j].left;
-				generic_tree_model.children_right[pos_in_model + j] = tr[j].right;
-				generic_tree_model.children_default[pos_in_model + j] = tr[j].left; //smaller than is left
-																					//generic_tree_model.children_default[pos_in_model + j] = -1; //no default - will fail
+		pos_in_model += max_nodes;
+	}
 
-				generic_tree_model.features[pos_in_model + j] = int(tr[j].ifeat);
-				if (tr[j].is_leaf)
-				{
-					generic_tree_model.children_right[pos_in_model + j] = -1;//mark leaf
-					generic_tree_model.children_left[pos_in_model + j] = -1;//mark leaf
-					generic_tree_model.children_default[pos_in_model + j] = -1;//mark leaf
-				}
-				generic_tree_model.thresholds[pos_in_model + j] = tr[j].split_val;
-				generic_tree_model.node_sample_weights[pos_in_model + j] = float(tr[j].n_size); //no support for trained in weights for now
-																								//if n_categ ==2:
-				if (forest.n_categ == 2) {
-					if (!tr[j].counts.empty()) {
-						if (tr[j].n_size != 0)
-							generic_tree_model.values[pos_in_model + j] = tr[j].counts[1] / float(tr[j].n_size);
-						else
-							MTHROW_AND_ERR("Error node leaf has 0 obs\n");
+	return true;
+}
+
+bool TreeExplainer::convert_xgb_trees() {
+	return false;
+}
+
+bool TreeExplainer::convert_lightgbm_trees() {
+	MLOG("Converting LightGBM to generic ensemble trees\n");
+
+	int num_outputs = original_predictor->n_preds_per_sample();
+	if (num_outputs > 1) {
+		MLOG("multiple categries not implemented in converting light-gbm to generic-tree. Will use light-gbm implementation of TreeSHAP");
+		return false;
+	}
+
+	/*
+	// Alternative approach to be explored - not going through the string 
+	LightGBM::MemApp &mem_app = static_cast<MedLightGBM *>(original_predictor)->mem_app;
+	string type = mem_app.get_boosting_type();
+	if (type != "gdbt") {
+		MLOG("boosting type \'%s\' is not handled in converting light-gbm to generic-tree. Will use light-gbm implementation of TreeSHAP");
+		return false;
+	}
+
+	LightGBM::Boosting *_boosting;
+	mem_app.fetch_boosting(_boosting);
+	LightGBM::GBDT* _gbdt = static_cast<LightGBM::GBDT *>(_boosting);
+	*/
+
+	vector<vector<int>> split_features, decision_types, left_children, right_children, leaf_counts, internal_counts;
+	vector<vector<double>> thresholds, leaf_values;
+
+	// Export to string
+	string tree;
+	static_cast<MedLightGBM *>(original_predictor)->mem_app.serialize_to_string(tree);
+
+	// Parse string
+	vector<string> lines, fields, values;
+	boost::split(lines, tree, boost::is_any_of("\n"));
+	int iTree = -1;
+	for (string& line : lines) {
+		if (line != "") {
+			boost::split(fields, line, boost::is_any_of("="));
+			if (fields[0] == "Tree") {
+				int _tree = stoi(fields[1]);
+				if (_tree != iTree + 1)
+					MTHROW_AND_ERR("Missing tree #%d in light-gbm\n", iTree + 1);
+				iTree = _tree;
+			}
+			else if (fields[0] == "split_feature") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				split_features.push_back(_values);
+			}
+			else if (fields[0] == "threshold") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<double> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stof(values[i]);
+				thresholds.push_back(_values);
+			}
+			else if (fields[0] == "decision_type") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				decision_types.push_back(_values);
+
+				for (size_t i = 0; i < values.size(); i++) {
+					if (_values[i] & 1) {
+						MLOG("Categorical Decision not implemented yet in generic-tree. Will use light-gbm implementation of TreeSHAP\n");
+						return false;
 					}
-					else
-						generic_tree_model.values[pos_in_model + j] = tr[j].pred;
-				}
-				else {
-					vector<float> scores(num_outputs);
-					tr[j].get_scores(forest.mode, forest.get_counts_flag, forest.n_categ, scores);
-					//convert values for each prediction:
-					for (size_t k = 0; k < scores.size(); ++k)
-						generic_tree_model.values[pos_in_model * num_outputs + j * num_outputs + k] = scores[k];
 				}
 			}
+			else if (fields[0] == "left_child") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				left_children.push_back(_values);
+			}
+			else if (fields[0] == "right_child") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				right_children.push_back(_values);
+			}
+			else if (fields[0] == "leaf_value") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<double> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stof(values[i]);
+				leaf_values.push_back(_values);
+			}
+			else if (fields[0] == "leaf_count") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				leaf_counts.push_back(_values);
+			}
+			else if (fields[0] == "internal_count") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				internal_counts.push_back(_values);
+			}
+		}
+	}
 
-			pos_in_model += max_nodes;
+	// Build generic tree
+	int nTrees = iTree + 1;
+	int max_nodes = 0, max_depth = 0;
+	vector<int> nLeaves(nTrees), nInternal(nTrees);
+	for (int i = 0; i < nTrees; ++i)
+	{
+		get_tree_nnodes(left_children[i], right_children[i], nInternal[i], nLeaves[i]);
+		int nn = nInternal[i] + nLeaves[i];
+		if (nn > max_nodes)
+			max_nodes = nn;
+		int mm = get_tree_max_depth(left_children[i], right_children[i]);
+		if (mm > max_depth)
+			max_depth = mm;
+	}
+
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate(nTrees, max_nodes, num_outputs);
+
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = nTrees;
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+
+	for (int i = 0; i < nTrees; ++i) {
+		//convert each tree:
+		// Internal nodes
+		for (size_t j = 0; j < split_features[i].size(); ++j)
+		{
+			int left = (left_children[i][j] > 0) ? left_children[i][j] : (nInternal[i] + (~(left_children[i][j])));
+			int right = (right_children[i][j] > 0) ? right_children[i][j] : (nInternal[i] + (~(right_children[i][j])));
+			generic_tree_model.children_left[pos_in_model + j] = left;
+			generic_tree_model.children_right[pos_in_model + j] = right;
+			generic_tree_model.children_default[pos_in_model + j] = (decision_types[i][j] & 2) ? left : right;
+
+			generic_tree_model.features[pos_in_model + j] = split_features[i][j];
+			generic_tree_model.thresholds[pos_in_model + j] = thresholds[i][j];
+			generic_tree_model.node_sample_weights[pos_in_model + j] = internal_counts[i][j];
+
 		}
 
-		return true;
+		// Leaves
+		for (size_t j = 0; j<leaf_values[i].size(); ++j) {
+			generic_tree_model.children_left[pos_in_model + nInternal[i] + j] = -1;
+			generic_tree_model.children_right[pos_in_model + nInternal[i] + j] = -1;
+			generic_tree_model.children_default[pos_in_model + nInternal[i] + j] = -1;
+
+			generic_tree_model.values[pos_in_model * num_outputs + nInternal[i] + j * num_outputs] = leaf_values[i][j];
+			generic_tree_model.node_sample_weights[pos_in_model + nInternal[i] + j] = leaf_counts[i][j];
+		}
+
+		pos_in_model += max_nodes;
 	}
+
+	return true;
+}
+
+bool TreeExplainer::try_convert_trees() {
+	//convert QRF, BART to generic_tree_model structure:
+	if (original_predictor->classifier_type == MODEL_QRF)
+		return convert_qrf_trees();
+	else if (original_predictor->classifier_type == MODEL_LIGHTGBM)
+		return convert_lightgbm_trees();
+	else if (original_predictor->classifier_type == MODEL_XGB)
+		return convert_xgb_trees();
 
 	return false;
 }
@@ -772,6 +991,7 @@ void TreeExplainer::post_deserialization() {
 		}
 		try_convert_trees();
 	}
+
 }
 
 void TreeExplainer::init_post_processor(MedModel& model) {
@@ -780,7 +1000,12 @@ void TreeExplainer::init_post_processor(MedModel& model) {
 }
 
 void TreeExplainer::_learn(const MedFeatures &train_mat) {
-	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0 && get_mode() != TreeExplainerMode::CONVERTED_TREES_IMPL) {
+
+	if (try_convert_trees())
+		return; //success in convert to trees
+
+	// Cannot convert - use internal implementation or proxy
+	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
 		processing.group_by_sum = 1;
 		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
 	}
@@ -794,12 +1019,8 @@ void TreeExplainer::_learn(const MedFeatures &train_mat) {
 
 		return; // no need to learn - will use XGB
 	}
-	//TODO: update LightGBM to support this
 	if (original_predictor->classifier_type == MODEL_LIGHTGBM)
 		return; // no need to learn - will use LigthGBM
-
-	if (try_convert_trees())
-		return; //success in convert to trees
 
 	//Train XGboost model on model output.
 	proxy_predictor = MedPredictor::make_predictor(proxy_model_type, proxy_model_init);

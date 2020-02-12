@@ -42,7 +42,7 @@ public:
 	bool learn_cov_matrix = false; ///< If true will learn cov_matrix
 	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
 	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
-
+	bool keep_bias = false; ///< If true will keep bias contribution
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
 
@@ -136,6 +136,9 @@ private:
 	//Tree structure of generic ensamble trees
 private:
 	bool try_convert_trees();
+	bool convert_qrf_trees();
+	bool convert_lightgbm_trees();
+	bool convert_xgb_trees();
 
 	void _init(map<string, string> &mapper);
 public:
