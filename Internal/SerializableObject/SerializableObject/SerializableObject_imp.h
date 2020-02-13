@@ -529,7 +529,7 @@ namespace MedSerialize {
 		size_t pos = 0, len = v.size();
 		pos += MedSerialize::serialize<size_t>(blob + pos, len);
 		if (len > 0)
-			for (const T &elem : v) {
+			for (T elem : v) {
 				pos += MedSerialize::serialize(blob + pos, elem);
 			}
 		return pos;
