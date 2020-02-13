@@ -70,6 +70,7 @@ public:
 	string apply_dates_to_score;
 	bool test_am = true;
 	bool test_med = true;
+	string amfile;
 	bool egfr_test;
 	bool print_msgs;
 	bool single;
@@ -80,11 +81,10 @@ public:
 	string convert_reqfile_to_data_outfile;
 
 	int read_from_var_map(po::variables_map vm) {
-		cout << "here1\n";
+
 		med_csv_file = vm["med_csv_file"].as<string>();
 		am_csv_file = vm["am_csv_file"].as<string>();
 		force_add_data = vm.count("force_add_data") != 0;
-		cout << "here111222\n";
 		if (vm["ignore_sig"].as<string>() != "")
 			split(ignore_sig, vm["ignore_sig"].as<string>(), boost::is_any_of(","));
 		msgs_file = (vm["msgs_file"].as<string>());
@@ -93,7 +93,6 @@ public:
 			msgs_stream << "msg_type\tpid\tdate\ti\tj\tk\tcode\tmsg_text" << endl;
 		}
 		rep = vm["rep"].as<string>();
-		cout << "here1111\n";
 		samples = vm["samples"].as<string>();
 		model = vm["model"].as<string>();
 		generate_data = (vm.count("generate_data") != 0);
@@ -109,7 +108,6 @@ public:
 		}
 		apply = (vm.count("apply") != 0);
 		apply_outfile = vm["apply_outfile"].as<string>();
-		cout << "here11\n";
 		apply_repdata = vm["apply_repdata"].as<string>();
 		apply_repdata_jsonreq = vm["apply_repdata_jsonreq"].as<string>();
 		apply_amconfig = vm["apply_amconfig"].as<string>();
@@ -133,6 +131,7 @@ public:
 		}
 		if (vm.count("only_am")) test_med = false;
 		if (vm.count("only_med")) test_am = false;
+		amfile = vm["amfile"].as<string>();
 		egfr_test = (vm.count("egfr_test") != 0);
 		print_msgs = (vm.count("print_msgs") != 0);
 		single = (vm.count("single") != 0);
@@ -143,7 +142,11 @@ public:
 		convert_reqfile_to_data = (vm.count("convert_reqfile_to_data") != 0);
 		convert_reqfile_to_data_infile = vm["convert_reqfile_to_data_infile"].as<string>();
 		convert_reqfile_to_data_outfile = vm["convert_reqfile_to_data_outfile"].as<string>();
-		cout << "here2\n";
+
+		if (amfile == "" && apply_amconfig != "") {
+			MTHROW_AND_ERR("To apply an AlgoMarker with apply_amconfig option please use --amfile to specify AlgoMarker .so file");
+		}
+
 		return 0;
 	}
 };
@@ -157,6 +160,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 		desc.add_options()
 			("help", "Produce help message")
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "Repository file name")
+			("amfile", po::value<string>()->default_value(expandEnvVars(DEFAULT_AM_LOCATION)), "AlgoMarker .so/.dll file")
 			("med_csv_file", po::value<string>()->default_value(""), "file to write Med API feature matrix after apply")
 			("am_csv_file", po::value<string>()->default_value(""), "file to write AM API feature matrix after apply")
 			("samples", po::value<string>()->default_value(""), "MedSamples file to use")
@@ -221,11 +225,13 @@ vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d) {
 	//const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
 	vector<MedSample> res2;
 	AlgoMarker *test_am;
-
+	MLOG("(II) apply_am_api()\n");
 	if (DynAM::AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
 		MERR("ERROR: Failed creating test algomarker\n");
 		throw runtime_error("ERROR: Failed creating test algomarker\n");
 	}
+
+	MLOG("(II) AM_API_Create [V]\n");
 
 	// put fix here
 
@@ -239,10 +245,14 @@ vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d) {
 		throw runtime_error(string("ERROR: Failed loading algomarker with config file ") + t_ctx.apply_amconfig + " ERR_CODE: " + to_string(rc));
 	}
 
+	MLOG("(II) AM_API_Load [V]\n");
+
 	if (t_ctx.single)
 		get_preds_from_algomarker_single(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig, t_ctx.json_reqfile_stream);
 	else
 		get_preds_from_algomarker(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
+
+	MLOG("(II) get_preds [V]\n");
 
 	return res2;
 }
@@ -336,6 +346,9 @@ int main(int argc, char *argv[])
 	}
 	testing_context t_ctx;
 	t_ctx.read_from_var_map(vm);
+
+	if (t_ctx.amfile != "")
+		load_am(t_ctx.amfile.c_str());
 
 	if (t_ctx.convert_reqfile_to_data) {
 		DataLoader::convert_reqfile_to_data(t_ctx.convert_reqfile_to_data_infile, t_ctx.convert_reqfile_to_data_outfile);
