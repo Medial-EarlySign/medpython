@@ -819,6 +819,7 @@ public:
 	string predictor_params; ///<the predictor parameters
 	string predictor_params_file; ///<File with nFeatures-dependent predictor parameters
 	int nfolds = 5; ///< number of folds for cross-validation
+	bool do_internal_cv = true; ///< use nfolds and create internal splits (if false, uses original samples' splits
 	vector<int> folds; ///< if given, perform only subset of the possible 'nfolds' folds in cross-validation
 	string mode = "top2bottom"; ///< 'top2bottom' or 'bottom2top'
 	string rates = "50:1,100:2,500:5,5000:10"; ///< instruction on rate of selection - comma separated pairs : #-bound:step
@@ -862,7 +863,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
 		ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
-			required, ignored, numToSelect, selected, report)
+			required, ignored, numToSelect, selected, report, do_internal_cv)
 
 private:
 	// Resolved names of required signals

@@ -660,8 +660,10 @@ void RepMultiProcessor::dprint(const string &pref, int rp_flag)
 {
 	if (rp_flag > 0) {
 		MLOG("%s :: RP MULTI(%d) -->\n", pref.c_str(), processors.size());
+		int ind = 0;
 		for (auto& proc : processors) {
-			proc->dprint(pref + "->Multi", rp_flag);
+			proc->dprint("\t" + pref + "->Multi[" + to_string(ind) + "]", rp_flag);
+			++ind;
 		}
 	}
 }

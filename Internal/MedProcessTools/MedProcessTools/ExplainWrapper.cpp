@@ -93,6 +93,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			zero_missing = stoi(it->second);
 		else if (it->first == "normalize_vals")
 			normalize_vals = stoi(it->second);
+		else if (it->first == "keep_b0")
+			keep_b0 = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -108,7 +110,7 @@ void ExplainProcessings::post_deserialization()
 		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
 		for (int i = 0; i < cov_features.nrows; i++)
 			for (int j = 0; j < cov_features.ncols; j++)
-				abs_cov_features(i,j) = abs(cov_features(i,j));
+				abs_cov_features(i, j) = abs(cov_features(i, j));
 	}
 
 	groupName2Inds.clear();
@@ -174,12 +176,13 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 }
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
+	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+	if (!keep_b0) 
+		for (auto &s : skip_bias_names) explain_list.erase(s);
 
-	if ((cov_features.size()==0) && !group_by_sum && normalize_vals <= 0)
+	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
 
-	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	for (auto &s : skip_bias_names) explain_list.erase(s);
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
 	int k = 0;
 	for (auto &e : explain_list) orig_explain(k++, 0) = e.second;
@@ -194,26 +197,121 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 
 	//first do covarinace if has:
-	if (cov_features.size()>0) {
-		if (cov_features.ncols != explain_list.size() && cov_features.ncols != (int)explain_list.size() - 1)
+	if (cov_features.size() > 0) {
+		if (abs_cov_features.ncols != explain_list.size() && abs_cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%lld, "
-				"explain_list.size()=%zu\n", cov_features.ncols, explain_list.size());
+				"explain_list.size()=%zu\n", abs_cov_features.ncols, explain_list.size());
 
 
 
-		if (group_by_sum) {
-			map<string, float> group_explain;
+		if (group_by_sum) { //if has groups
+			//first do the cov fix feature -feature, skip feature inside groups:
+			MedMat<float> fixed_cov_abs((int)groupNames.size(), abs_cov_features.ncols); //cov matrix with groups,features connections
+			//zero inside groups:
 			for (int i = 0; i < group2Inds.size(); i++) {
-				group_explain[groupNames[i]] = get_group_normalized_contrib(group2Inds[i], orig_explain.get_vec(), normalization_factor);
+				const vector<int> &all_inds = group2Inds[i];
+				vector<bool> mask_grp(explain_list.size());
+				for (int j : all_inds)
+					mask_grp[j] = true;
+
+				for (int j2 = 0; j2 < explain_list.size(); ++j2) {
+					float w = 1;
+					if (!mask_grp[j2]) {
+						//take max for feature in the group
+						float max_alp = 0;
+						for (int k : all_inds)
+							if (abs_cov_features(k, j2) > max_alp)
+								max_alp = abs_cov_features(k, j2);
+						w = max_alp;
+					}
+
+					fixed_cov_abs(i, j2) = w;
+				}
 			}
+			//do greedy - from top to down: 
+			vector<bool> seen_idx(groupNames.size());
+			vector<float> groups_vals(groupNames.size()), group_val_curr(groupNames.size());
+			map<string, float> group_explain;
+			vector<float *> pointer_vals(groupNames.size());
+			for (int i = 0; i < groupNames.size(); ++i) {
+				float group_contrib = 0;
+				for (size_t j = 0; j < fixed_cov_abs.ncols; ++j)
+					group_contrib += fixed_cov_abs(i, j) * orig_explain(j, 0);
+				group_contrib /= (float)1.0 / normalization_factor;
+				group_val_curr[i] = group_contrib;
+				group_explain[groupNames[i]] = group_contrib;
+				pointer_vals[i] = &group_explain.at(groupNames[i]);
+			}
+
+			//iterate groups greedy and substract the most contributing group
+
+			//comment/erase this code if you want the old behaviour - without the fix
+			for (int i = 0; i < groupNames.size(); ++i)
+			{
+
+				//find max contrib in new group_val_curr:
+				float max_contrib = -1, max_contrib_abs = -1;
+				int max_contrib_idx = -1;
+				for (int j = 0; j < groupNames.size(); ++j)
+					if (!seen_idx[j] && max_contrib_abs < abs(group_val_curr[j])) {
+						max_contrib = group_val_curr[j];
+						max_contrib_abs = abs(max_contrib);
+						max_contrib_idx = j;
+					}
+				//update top value to fixed contribution with cov in explain_list
+				//float contrib_before_fix = group_val_curr[max_contrib_idx];
+				*pointer_vals[max_contrib_idx] = max_contrib;
+
+				//remove contrib from all others using contrib_before_fix (from all other groups):
+				for (int j = 0; j < groupNames.size(); ++j)
+					for (int ind_grp2 : group2Inds[j])  //all group indexes that needs to be canceled in curretn group 
+						group_val_curr[j] -= 2 * fixed_cov_abs(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
+
+				//zero  mark group that won't appear again
+				seen_idx[max_contrib_idx] = true;
+			}
+
+
 			explain_list = move(group_explain);
 		}
-		else {
-			MedMat<float> fixed_with_cov(cov_features.ncols, 1);
+		else { //no grouping
+			MedMat<float> fixed_with_cov(abs_cov_features.ncols, 1);
+
+			//do greedy - from top to down: 
+			vector<bool> seen_idx(fixed_with_cov.ncols);
+			vector<float *> pointer_vals(explain_list.size());
+			int ind_i = 0;
+			for (auto it = explain_list.begin(); it != explain_list.end(); ++it)
+			{
+				pointer_vals[ind_i] = &it->second;
+				++ind_i;
+			}
 
 			fast_multiply_medmat(abs_cov_features, orig_explain, fixed_with_cov, (float)1.0 / normalization_factor);
-			int k = 0;
-			for (auto &e : explain_list) explain_list[e.first] = fixed_with_cov(k++, 0);
+			for (int i = 0; i < explain_list.size(); ++i)
+			{
+
+				//find max contrib in new fixed_with_cov:
+				float max_contrib = -1, max_contrib_abs = -1;
+				int max_contrib_idx = -1;
+				for (int j = 0; j < fixed_with_cov.ncols; ++j)
+					if (!seen_idx[j] && max_contrib_abs < abs(fixed_with_cov(j, 0))) {
+						max_contrib = fixed_with_cov(j, 0);
+						max_contrib_abs = abs(max_contrib);
+						max_contrib_idx = j;
+					}
+				//update top value to fixed contribution with cov in explain_list
+				float contrib_before_fix = *pointer_vals[max_contrib_idx];
+				*pointer_vals[max_contrib_idx] = max_contrib;
+
+				//remove contrib from all others using contrib_before_fix and abs_cov_features in curr_original:
+				for (int j = 0; j < fixed_with_cov.ncols; ++j)
+					fixed_with_cov(j, 0) -= 2 * contrib_before_fix * abs_cov_features(max_contrib_idx, j) * normalization_factor;
+
+				//zero and mark feature curr_original to zero - that won't appear again
+				seen_idx[max_contrib_idx] = true;
+				fixed_with_cov(max_contrib_idx, 0) = 0;
+			}
 		}
 
 		return; // ! -> since we treat group_by_sum differently in this case
@@ -230,7 +328,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			const string &grp_name = groupNames[i];
 			float contrib = 0.0f;
 			for (int ind : group2Inds[i])
-				contrib += orig_explain(ind,0);
+				contrib += orig_explain(ind, 0);
 			group_explain[grp_name] = contrib;
 
 		}
@@ -335,7 +433,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	//process:
 	for (int i = 0; i < (int)explain_reasons.size(); ++i) {
 		if (processing.zero_missing)
-			processing.process(explain_reasons[i], masks_mat.data_ptr(i,0));
+			processing.process(explain_reasons[i], masks_mat.data_ptr(i, 0));
 		else
 			processing.process(explain_reasons[i]);
 	}
@@ -356,14 +454,13 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 }
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
-void read_feature_grouping(const string &file_name, const MedFeatures& data, vector<vector<int>>& group2index,
-	vector<string>& group_names) {
+void ExplainProcessings::read_feature_grouping(const string &file_name, const vector<string>& features,
+	vector<vector<int>>& group2index, vector<string>& group_names) {
 	// Features
-	vector<string> features;
-	data.get_feature_names(features);
 	int nftrs = (int)features.size();
 	map<string, vector<int>> groups;
 	vector<bool> grouped_ftrs(nftrs);
+	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff" };
 
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
@@ -399,6 +496,44 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					word += "." + tokens[idx + 1];
 				}
+			}
+
+			groups[word].push_back(i);
+			grouped_ftrs[i] = true;
+		}
+	}
+	else if (file_name == "BY_SIGNAL_CATEG_TREND") {
+		for (int i = 0; i < nftrs; ++i)
+		{
+			vector<string> tokens;
+			boost::split(tokens, features[i], boost::is_any_of("."));
+			string word = tokens[0];
+			int idx = 0;
+			if (tokens.size() > 1 && boost::starts_with(tokens[0], "FTR_")) {
+				word = tokens[1];
+				idx = 1;
+			}
+			bool categ = false;
+			if (idx + 1 < tokens.size()) {
+				if (boost::starts_with(tokens[idx + 1], "category_")) {
+					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					word += "." + tokens[idx + 1];
+					categ = true;
+				}
+			}
+			//check if TREND: slope, std, last_delta, win_delta, max_diff
+
+			if (!categ) {
+				string tp = "_Values";
+				if (idx + 1 < tokens.size() && trends_set.find(tokens[idx + 1]) != trends_set.end())
+					tp = "_Trends";
+				if (idx > 0)
+					word += tp;
 			}
 
 			groups[word].push_back(i);
@@ -445,8 +580,11 @@ void read_feature_grouping(const string &file_name, const MedFeatures& data, vec
 void ModelExplainer::Learn(const MedFeatures &train_mat) {
 	if (original_predictor == NULL)
 		MTHROW_AND_ERR("Error ModelExplainer::Learn - please call init_post_processor before learn\n");
-	if (!processing.grouping.empty())
-		read_feature_grouping(processing.grouping, train_mat, processing.group2Inds, processing.groupNames);
+	if (!processing.grouping.empty()) {
+		vector<string> features_nms;
+		train_mat.get_feature_names(features_nms);
+		ExplainProcessings::read_feature_grouping(processing.grouping, features_nms, processing.group2Inds, processing.groupNames);
+	}
 	else {
 		int icol = 0;
 		for (auto& rec : train_mat.data) {
@@ -812,6 +950,17 @@ MissingShapExplainer::MissingShapExplainer() {
 	no_relearn = false;
 	avg_bias_score = 0;
 	max_weight = 0;
+	subsample_train = 0;
+	limit_mask_size = 0;
+
+	use_minimal_set = false;
+	sort_params_a = 1;
+	sort_params_b = 1;
+	sort_params_k1 = 2;
+	sort_params_k2 = 2;
+	max_set_size = 10;
+	override_score_bias = MED_MAT_MISSING_VALUE;
+	verbose_apply = "";
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -841,9 +990,35 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			verbose_learn = stoi(it->second) > 0;
 		else if (it->first == "max_weight")
 			max_weight = med_stof(it->second);
+		else if (it->first == "use_minimal_set")
+			use_minimal_set = med_stoi(it->second) > 0;
+		else if (it->first == "sort_params_a")
+			sort_params_a = med_stof(it->second);
+		else if (it->first == "sort_params_b")
+			sort_params_b = med_stof(it->second);
+		else if (it->first == "sort_params_k1")
+			sort_params_k1 = med_stof(it->second);
+		else if (it->first == "sort_params_k2")
+			sort_params_k2 = med_stof(it->second);
+		else if (it->first == "max_set_size")
+			max_set_size = med_stoi(it->second);
+		else if (it->first == "override_score_bias")
+			override_score_bias = med_stof(it->second);
+		else if (it->first == "subsample_train")
+			subsample_train = med_stoi(it->second);
+		else if (it->first == "limit_mask_size")
+			limit_mask_size = med_stoi(it->second);
+		else if (it->first == "verbose_apply")
+			verbose_apply = it->second;
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
+
+	if (sort_params_k1 < 1 || sort_params_k2 < 1)
+		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be >= 1\n");
+
+	if (uniform_rand && limit_mask_size > 0)
+		MTHROW_AND_ERR("Error in MissingShapExplainer::_init - can't use uniform_rand and limit_mask_size > 0\n");
 }
 
 float get_avg_preds(const MedFeatures &train_mat, MedPredictor *original_predictor) {
@@ -874,17 +1049,26 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		retrain_predictor = original_predictor;
 		return;
 	}
+
+	if (limit_mask_size >= processing.group2Inds.size()) {
+		MWARN("WARNING: limit_mask_size=%d which is bigger than number of groups/features(%zu)\n",
+			limit_mask_size, processing.group2Inds.size());
+		limit_mask_size = (int)processing.group2Inds.size(); //problem with arguments
+	}
+
 	if (predictor_type.empty())
 		retrain_predictor = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
 	else
 		retrain_predictor = MedPredictor::make_predictor(predictor_type, predictor_args);
+
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
+	int train_mat_size = (int)train_mat.samples.size();
 	train_mat.get_as_matrix(x_mat);
 	int nftrs = x_mat.ncols;
 	int nftrs_grp = (int)processing.group2Inds.size();
-	vector<float> labels(train_mat.samples.size()), weights(train_mat.samples.size() + add_new_data, 1);
-	vector<int> miss_cnts(train_mat.samples.size() + add_new_data);
+	vector<float> labels(train_mat_size), weights(train_mat_size + add_new_data, 1);
+	vector<int> miss_cnts(train_mat_size + add_new_data);
 	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
 
 	if (!train_mat.samples.front().prediction.empty())
@@ -895,11 +1079,26 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		train_mat.get_as_matrix(tt);
 		original_predictor->predict(tt, labels);
 	}
+
+	vector<int> mask_group_sizes(train_mat_size + add_new_data); //stores for each sample - how many missings in groups manner:
+	for (size_t i = 0; i < train_mat_size; ++i)
+	{
+		//check how many groups missings:
+		int grp_misses = 0;
+		for (int j = 0; j < nftrs_grp; ++j) {
+			bool has_missing = false;
+			for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+				has_missing = x_mat(i, processing.group2Inds[j][k]) == missing_value;
+			grp_misses += int(has_missing);
+		}
+		mask_group_sizes[i] = grp_misses;
+	}
+
 	if (add_new_data > 0) {
 		//processing.group2Inds.size()
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
-		uniform_int_distribution<> rnd_row(0, (int)train_mat.samples.size() - 1);
+		uniform_int_distribution<> rnd_row(0, train_mat_size - 1);
 		double log_max_opts = log(add_new_data) / log(2.0);
 		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
@@ -923,9 +1122,9 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 				curr_mask[j] = !has_missing;
 			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
 
@@ -946,19 +1145,23 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			labels.push_back(labels[row_sel]);
 			++added_grp_hist[msn_cnt];
 			add_progress.update();
+			mask_group_sizes[train_mat_size + i] = msn_cnt;
 		}
 		x_mat.add_rows(rows_m);
 	}
 
 	// Add data with missing values according to sample masks
+	vector<int> grp_missing_hist_all(nftrs_grp + 1);
+
 	for (int i = 0; i < x_mat.nrows; ++i) {
-		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i,0), nftrs, missing_value);
+		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i, 0), nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
-		if (i >= train_mat.samples.size())
+		if (i >= train_mat_size)
 			++added_missing_hist[miss_cnts[i]];
+		++grp_missing_hist_all[mask_group_sizes[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
-		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
+		float curr_mask_w = x_mat.nrows / float(grp_missing_hist_all[mask_group_sizes[i]]);
 		weights[i] = curr_mask_w;
 	}
 	if (max_weight > 0) {
@@ -977,10 +1180,13 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			}
 	}
 	if (verbose_learn) {
-		medial::print::print_hist_vec(miss_cnts, "missing_values hist", "%d");
-		medial::print::print_hist_vec(added_missing_hist, "hist of added_missing_hist", "%d");
-		if (added_grp_hist.size() < 300)
-			medial::print::print_vec(added_grp_hist, "grp hist", "%d");
+		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles [0 - " + to_string(nftrs) + "] (with added samples - no groups)", "%d");
+		medial::print::print_hist_vec(mask_group_sizes, "mask_group_sizes percentiles [0 - " + to_string(nftrs_grp) + "] (with added samples - for groups)", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "selected counts in hist of missing_values_cnt (only for added - no groups)", "%d");
+		if (added_grp_hist.size() < 50)
+			medial::print::print_vec(added_grp_hist, "grp hist (only for added - on groups)", "%d");
+		else
+			medial::print::print_hist_vec(added_grp_hist, "hist of added_grp_hist (only for added - on groups)", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -988,6 +1194,39 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 	//reweight train_mat:
 	if (predictor_type.empty() && !predictor_args.empty())
 		retrain_predictor->init_from_string(predictor_args);
+
+	if (subsample_train > 0 && subsample_train < train_mat_size) {
+		//do subsampling:
+		MLOG("INFO:: MissingShapExplainer::_learn - subsampling original train matrix");
+		unordered_set<int> selected_idx;
+
+		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);
+		for (size_t i = 0; i < subsample_train; ++i)
+		{
+			int sel_idx = rnd_opts(gen);
+			while (selected_idx.find(sel_idx) != selected_idx.end())
+				sel_idx = rnd_opts(gen);
+			selected_idx.insert(sel_idx);
+		}
+		//add all rest:
+		vector<int> empty_is_all;
+		vector<int> selected_idx_vec(selected_idx.begin(), selected_idx.end());
+		for (int i = train_mat_size; i < x_mat.nrows; ++i)
+			selected_idx_vec.push_back(i);
+		sort(selected_idx_vec.begin(), selected_idx_vec.end());
+
+		//commit selection xmat and labels, weights:
+		vector<float> new_weights(selected_idx_vec.size()), new_labels(selected_idx_vec.size());
+		x_mat.get_sub_mat(selected_idx_vec, empty_is_all);
+		for (size_t i = 0; i < selected_idx_vec.size(); ++i)
+		{
+			new_labels[i] = labels[selected_idx_vec[i]];
+			new_weights[i] = weights[selected_idx_vec[i]];
+		}
+		labels = move(new_labels);
+		weights = move(new_weights);
+	}
+
 	retrain_predictor->learn(x_mat, labels, weights);
 	//test pref:
 	if (verbose_learn) {
@@ -1017,6 +1256,7 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	vector<vector<int>> group_inds_loc;
 	vector<string> group_names_loc;
 	if (processing.group_by_sum) {
+		MWARN("WARN :: MissingShapExplainer called with group_by_sum and it has it's own logic\n");
 		int icol = 0;
 		for (auto& rec : matrix.data) {
 			group_inds_loc.push_back({ icol++ });
@@ -1059,18 +1299,40 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 			pred_threads[i] = (MedPredictor *)medial::models::copyInfraModel(predictor, false);
 			pred_threads[i]->deserialize(blob_pred);
 			gen_threads[i] = mt19937(rd());
+			if (use_minimal_set)
+				pred_threads[i]->prepare_predict_single();
 		}
 		delete[]blob_pred;
 	}
 	else
 		gen_threads[0] = mt19937(rd());
 
+	float use_bias = avg_bias_score;
+	if (override_score_bias != MED_MAT_MISSING_VALUE)
+		use_bias = override_score_bias;
+	vector<const vector<float> *> data_pointer(matrix.data.size());
+	vector<string> feat_names;
+	matrix.get_feature_names(feat_names);
+	int ind_i = 0;
+	ofstream fw_apply;
+	if (!verbose_apply.empty()) {
+		fw_apply.open(verbose_apply);
+		if (!fw_apply.good())
+			MWARN("WARN : can't open file %s for verbose_apply\n");
+	}
+
+	for (auto it = matrix.data.begin(); it != matrix.data.end(); ++it)
+	{
+		data_pointer[ind_i] = &it->second;
+		++ind_i;
+	}
 
 #pragma omp parallel for if (outer_parallel)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
 		int th_n;
 		vector<float> features_coeff;
+		vector<float> score_history;
 		float pred_shap = 0;
 		MedPredictor *curr_p = predictor;
 		if (outer_parallel) {
@@ -1080,9 +1342,76 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 		else
 			th_n = 0;
 
-		medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
-			features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
-			uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+		if (!use_minimal_set)
+			medial::shapley::explain_shapley(matrix, (int)i, max_test, curr_p, missing_value, *group_inds, *group_names,
+				features_coeff, gen_threads[th_n], sample_masks_with_repeats, select_from_all,
+				uniform_rand, use_shuffle, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+		else {
+			medial::shapley::explain_minimal_set(matrix, (int)i, 1, curr_p, missing_value,
+				*group_inds, features_coeff, score_history, max_set_size, use_bias, sort_params_a, sort_params_b,
+				sort_params_k1, sort_params_k2, global_logger.levels[LOCAL_SECTION] < LOG_DEF_LEVEL && !outer_parallel);
+
+			if (!verbose_apply.empty()) {
+#pragma omp critical 
+				{
+					char buffer_out[8000];
+					//debug prints:
+					snprintf(buffer_out, sizeof(buffer_out), "pid %d, time %d, score %2.5f (%zu) baseline %2.5f:\n",
+						matrix.samples[i].id, matrix.samples[i].time, matrix.samples[i].prediction[0], score_history.size(),
+						use_bias);
+					fw_apply << string(buffer_out);
+					for (int j = 0; j < score_history.size(); ++j)
+					{
+						//remove 0 - find from 1 to max_set in abs:
+						int search_term = j + 1;
+						int grp_idx = -1;
+						for (int k = 0; k < features_coeff.size() && grp_idx < 0; ++k)
+							if (int(abs(features_coeff[k])) == search_term)
+								grp_idx = k;
+
+						if (grp_idx < 0) {
+							//snprintf(buffer_out, sizeof(buffer_out), "Done\n");
+							//fw_apply << string(buffer_out);
+							break;
+						}
+
+						string contrib_str = "POSITIVE";
+						if (features_coeff[grp_idx] < 0)
+							contrib_str = "NEGATIVE";
+						int first_idx_grp = group_inds->at(grp_idx)[0];
+						snprintf(buffer_out, sizeof(buffer_out), "\t%d. Group %s(%s=%f) :: After_Score= %2.5f :: %s\n",
+							search_term, group_names->at(grp_idx).c_str(), feat_names[first_idx_grp].c_str(),
+							data_pointer[first_idx_grp]->at(i), score_history[j], contrib_str.c_str());
+						fw_apply << string(buffer_out);
+					}
+				}
+			}
+
+			//reverse order in features_coeff:
+			int ind_score_hist = 0;
+			vector<pair<int, float>> tp(features_coeff.size());
+			for (int j = 0; j < tp.size(); ++j)
+			{
+				tp[j].first = j;
+				tp[j].second = features_coeff[j];
+			}
+			sort(tp.begin(), tp.end(), [](const pair<int, float>&a, const pair<int, float> &b) {
+				return abs(a.second) < abs(b.second); }); //0 are ignored
+			for (size_t j = 0; j < tp.size(); ++j)
+			{
+				if (tp[j].second == 0)
+					continue;
+				bool positive_contrib = tp[j].second > 0;
+				features_coeff[tp[j].first] = float((int)features_coeff.size() + 1 - abs(tp[j].second));
+				double diff = abs(score_history[ind_score_hist] - (ind_score_hist > 0 ? score_history[ind_score_hist - 1] : use_bias));
+				if (diff > 1)
+					diff = 0.99999;
+				features_coeff[tp[j].first] += diff;
+				if (!positive_contrib)
+					features_coeff[tp[j].first] = -features_coeff[tp[j].first];
+				++ind_score_hist;
+			}
+		}
 
 		for (size_t j = 0; j < features_coeff.size(); ++j)
 			pred_shap += features_coeff[j];
@@ -1102,6 +1431,9 @@ void MissingShapExplainer::explain(const MedFeatures &matrix, vector<map<string,
 	if (outer_parallel)
 		for (size_t i = 0; i < pred_threads.size(); ++i)
 			delete pred_threads[i];
+
+	if (!verbose_apply.empty())
+		fw_apply.close();
 }
 
 void ShapleyExplainer::_init(map<string, string> &mapper) {

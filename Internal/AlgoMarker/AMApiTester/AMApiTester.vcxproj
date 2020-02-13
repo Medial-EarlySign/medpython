@@ -85,6 +85,9 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
+    <Link>
+      <AdditionalDependencies>CommonTestingTools.lib;DynAMWrapper.lib;AlgoMarker.lib;$(MR_LIBS_NAME);%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
@@ -114,16 +117,12 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalLibraryDirectories>$(MR_LIBS)\Internal\AlgoMarker\x64\ReleaseDLL;$(MR_LIBS)\$(Platform)\$(Configuration);$(BOOST_HOME)\stage\lib;$(MR_SHARED_LIBS)\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>DynAMWrapper.lib;AlgoMarker.lib;$(MR_LIBS_NAME);%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>CommonTestingTools.lib;DynAMWrapper.lib;AlgoMarker.lib;$(MR_LIBS_NAME);%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/ignore:4099 %(AdditionalOptions)</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AMApiTester.cpp" />
-    <ClCompile Include="internal_am.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="internal_am.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -44,10 +44,10 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 		s_buff << attr.at(keys.front());
 	else {
 		vector<float> vals;
-		for (auto &e : attr) {
+		for (const string attr_k : keys) {
 			float f;
 			try {
-				f = stof(e.second);
+				f = stof(attr.at(attr_k));
 			}
 			catch (...) {
 				f = 0;

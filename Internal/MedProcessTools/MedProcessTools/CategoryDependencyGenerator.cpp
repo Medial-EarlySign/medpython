@@ -516,6 +516,9 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		int remove_regex_cnt = 0;
 		for (auto it = categoryVal_to_stats.begin(); it != categoryVal_to_stats.end();) {
 			int base_code = it->first;
+			if (categoryId_to_name.find(base_code) == categoryId_to_name.end())
+				MTHROW_AND_ERR("Error CategoryDependencyGenerator::_learn - can't find code %d for signal %s\n",
+					base_code, signalName.c_str());
 			const vector<string> &names_ = categoryId_to_name.at(base_code);
 			bool found_match = regex_filter.empty() ? true : any_regex_match(reg_pat, names_);
 			bool found_remove_match = false;

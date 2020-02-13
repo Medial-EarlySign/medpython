@@ -104,7 +104,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 	}
 */
 	time_me.take_curr_time();
-	MLOG("Matrix transpose time is %f sec\n", time_me.diff_sec());
+	MLOG_D("Matrix transpose time is %f sec\n", time_me.diff_sec());
 	//Test:
 	for (const string& name : namesToTake)
 		if (attributes.find(name) == attributes.end())
