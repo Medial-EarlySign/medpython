@@ -98,8 +98,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			zero_missing = stoi(it->second);
 		else if (it->first == "normalize_vals")
 			normalize_vals = stoi(it->second);
-		else if (it->first=="keep_bias")
-			keep_bias = med_stoi(it->second) > 0;
+		else if (it->first == "keep_b0")
+			keep_b0 = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -181,15 +181,12 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 }
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
+	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
+	if (!keep_b0) 
+		for (auto &s : skip_bias_names) explain_list.erase(s);
 
 	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
 		return;
-
-	// Keep bias ?
-	if (!keep_bias) {
-		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-		for (auto &s : skip_bias_names) explain_list.erase(s);
-	}
 
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
 	int k = 0;
@@ -1421,6 +1418,20 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		original_predictor->predict(tt, labels);
 	}
 
+	vector<int> mask_group_sizes(train_mat_size + add_new_data); //stores for each sample - how many missings in groups manner:
+	for (size_t i = 0; i < train_mat_size; ++i)
+	{
+		//check how many groups missings:
+		int grp_misses = 0;
+		for (int j = 0; j < nftrs_grp; ++j) {
+			bool has_missing = false;
+			for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+				has_missing = x_mat(i, processing.group2Inds[j][k]) == missing_value;
+			grp_misses += int(has_missing);
+		}
+		mask_group_sizes[i] = grp_misses;
+	}
+
 	if (add_new_data > 0) {
 		//processing.group2Inds.size()
 		vector<float> rows_m(add_new_data * nftrs);
@@ -1472,19 +1483,23 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			labels.push_back(labels[row_sel]);
 			++added_grp_hist[msn_cnt];
 			add_progress.update();
+			mask_group_sizes[train_mat_size + i] = msn_cnt;
 		}
 		x_mat.add_rows(rows_m);
 	}
 
 	// Add data with missing values according to sample masks
+	vector<int> grp_missing_hist_all(nftrs_grp + 1);
+
 	for (int i = 0; i < x_mat.nrows; ++i) {
 		miss_cnts[i] = msn_count<float>(x_mat.data_ptr(i, 0), nftrs, missing_value);
 		++missing_hist[miss_cnts[i]];
 		if (i >= train_mat_size)
 			++added_missing_hist[miss_cnts[i]];
+		++grp_missing_hist_all[mask_group_sizes[i]];
 	}
 	for (size_t i = 0; i < x_mat.nrows; ++i) {
-		float curr_mask_w = x_mat.nrows / float(missing_hist[miss_cnts[i]]);
+		float curr_mask_w = x_mat.nrows / float(grp_missing_hist_all[mask_group_sizes[i]]);
 		weights[i] = curr_mask_w;
 	}
 	if (max_weight > 0) {
@@ -1503,10 +1518,13 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 			}
 	}
 	if (verbose_learn) {
-		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles (with added samples)", "%d");
-		medial::print::print_hist_vec(added_missing_hist, "hist of missing_values_cnt (only for added)", "%d");
-		if (added_grp_hist.size() < 300)
-			medial::print::print_vec(added_grp_hist, "grp hist (only for added)", "%d");
+		medial::print::print_hist_vec(miss_cnts, "missing_values_cnt percentiles [0 - " + to_string(nftrs) + "] (with added samples - no groups)", "%d");
+		medial::print::print_hist_vec(mask_group_sizes, "mask_group_sizes percentiles [0 - " + to_string(nftrs_grp) + "] (with added samples - for groups)", "%d");
+		medial::print::print_hist_vec(added_missing_hist, "selected counts in hist of missing_values_cnt (only for added - no groups)", "%d");
+		if (added_grp_hist.size() < 50)
+			medial::print::print_vec(added_grp_hist, "grp hist (only for added - on groups)", "%d");
+		else
+			medial::print::print_hist_vec(added_grp_hist, "hist of added_grp_hist (only for added - on groups)", "%d");
 		medial::print::print_hist_vec(weights, "weights for learn", "%2.4f");
 	}
 	if (original_predictor->transpose_for_learn != (x_mat.transposed_flag > 0))
@@ -1519,7 +1537,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		//do subsampling:
 		MLOG("INFO:: MissingShapExplainer::_learn - subsampling original train matrix");
 		unordered_set<int> selected_idx;
-		
+
 		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);
 		for (size_t i = 0; i < subsample_train; ++i)
 		{

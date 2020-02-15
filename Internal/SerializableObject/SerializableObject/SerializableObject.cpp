@@ -7,8 +7,8 @@
 #include <thread>
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/algorithm/string.hpp>
-#include "MedUtils/MedUtils/MedUtils.h"
 #include "MedIO/MedIO/MedIO.h"
+#include "MedUtils/MedUtils/MedRunPath.h"
 
 
 #ifndef _MSC_VER
@@ -113,7 +113,7 @@ int SerializableObject::write_to_file(const string &fname)
 int SerializableObject::init_from_string(string init_string) {
 
 	map<string, string> map;
-	if (MedSerialize::init_map_from_string(init_string, map) < 0) 
+	if (MedSerialize::init_map_from_string(init_string, map) < 0)
 		MTHROW_AND_ERR("Error Init from String %s\n", init_string.c_str());
 
 	if (map.size() == 1 && map.begin()->first == "pFile") {
@@ -128,13 +128,13 @@ int SerializableObject::init_from_string(string init_string) {
 		if (val.compare(0, 5, "FILE:") == 0 || val.compare(0, 5, "LIST:") == 0 ||
 			val.compare(0, 9, "LIST_REL:") == 0) {
 			string param;
-			if (init_param_from_file(e.second, param) < 0) 
+			if (init_param_from_file(e.second, param) < 0)
 				MTHROW_AND_ERR("Error Init params from file %s\n", e.second.c_str());
 			e.second = param;
 		}
 	}
 
-	if (init(map) < 0) 
+	if (init(map) < 0)
 		MTHROW_AND_ERR("Error Init from string after convertion to map %s\n", init_string.c_str());
 
 	return 0;
@@ -173,3 +173,23 @@ int SerializableObject::init_param_from_file(string file_str, string &param)
 	return 0;
 }
 
+string SerializableObject::object_json() const {
+	stringstream str;
+
+	str << "{\n\t\"Object\":\"" << my_class_name() << "\",\n\t\"Version\":" << version();
+	str << ",\n\t\"data\": ";
+	vector<string> field_names;
+	serialized_fields_name(field_names);
+	//try print field name => to field value recursively:
+	str << "{";
+	for (int i = 0; i < field_names.size(); ++i) {
+		if (i > 0)
+			str << ",";
+		str << "\n\t\"" << field_names[i] << "\":\"NOT_IMPLEMENTED\"";
+	}
+	str << "}";
+	//close json:
+	str << "\n}";
+
+	return str.str();
+}

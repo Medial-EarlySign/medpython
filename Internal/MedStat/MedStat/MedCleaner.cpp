@@ -405,4 +405,8 @@ size_t MedCleaner::deserialize(unsigned char *buffer) {
 	return new_size ;
 }
 
+string MedCleaner::object_json() const {
+	return "MedValueCleaner - not implemented yet";
+}
+
 #endif

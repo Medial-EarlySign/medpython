@@ -105,6 +105,7 @@
     <ClInclude Include="MedPlot.h" />
     <ClInclude Include="MedRegistry.h" />
     <ClInclude Include="MedRegistryRecord.h" />
+    <ClInclude Include="MedRunPath.h" />
     <ClInclude Include="MedSamplingHelper.h" />
     <ClInclude Include="MedSamplingStrategy.h" />
     <ClInclude Include="MedUtils.h" />

@@ -639,7 +639,7 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 	if (usv.len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
 	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	if (signalName == "BYEAR") {
-		int byear = (int)(usv.Val(0));
+		int byear = usv.Val<int>(0);
 		for (int i = 0; i < num; i++)
 			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
 	}

@@ -401,7 +401,7 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, 
 	//From up to down sort:
 	double t_sum = 0;
 	double f_sum = 0;
-	double n_samples = (double)preds.size();
+	//double n_samples = (double)preds.size();
 	true_rate = vector<float>((int)pred_indexes.size());
 	false_rate = vector<float>((int)pred_indexes.size());
 	ppv = vector<float>((int)pred_indexes.size());
@@ -425,7 +425,7 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, 
 		true_rate[i] = float(t_sum / tot_true_labels);
 		false_rate[i] = float(f_sum / tot_false_labels);
 		ppv[i] = float(t_sum / (t_sum + f_sum));
-		pr[i] = float((t_sum + f_sum) / n_samples);
+		pr[i] = float((t_sum + f_sum) / (tot_true_labels + tot_false_labels));
 	}
 }
 void down_sample_graph(map<float, float> &points, int points_count) {
