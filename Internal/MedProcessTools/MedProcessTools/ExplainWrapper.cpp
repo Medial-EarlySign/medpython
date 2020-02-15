@@ -8,6 +8,10 @@
 #include <MedStat/MedStat/MedStat.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
 #include <MedAlgo/MedAlgo/MedLightGBM.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/optional/optional.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -768,8 +772,103 @@ bool TreeExplainer::convert_qrf_trees() {
 	return true;
 }
 
+void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_model) {
+
+	int j = subtree.get<int>("nodeid") ;
+	generic_tree_model.node_sample_weights[pos_in_model + j] = subtree.get<float>("cover");
+	if (subtree.count("children") > 0) {
+		generic_tree_model.children_left[pos_in_model + j] = subtree.get<int>("yes");
+		generic_tree_model.children_right[pos_in_model + j] = subtree.get<int>("no");
+		generic_tree_model.children_default[pos_in_model + j] = subtree.get<int>("missing");
+
+		generic_tree_model.features[pos_in_model + j] = subtree.get<int>("split");
+		generic_tree_model.thresholds[pos_in_model + j] = subtree.get<float>("split_condition");
+
+		for (ptree::value_type &child : subtree.get_child("children"))
+			parse_tree(child.second, generic_tree_model, pos_in_model);
+	}
+	else {
+		generic_tree_model.values[pos_in_model + j] = subtree.get<float>("leaf");
+		generic_tree_model.children_left[pos_in_model + j] = -1;
+		generic_tree_model.children_right[pos_in_model + j] = -1;
+		generic_tree_model.children_default[pos_in_model + j] = -1;
+	}
+}
+
+void analyze_tree(ptree& subtree, int &nnodes, int& depth) {
+
+	int nodeId = subtree.get<int>("nodeid");
+	if (nodeId > nnodes)
+		nnodes = nodeId;
+
+	if (subtree.count("depth") > 0) {
+		int nodeDepth = subtree.get<int>("depth");
+		if (nodeDepth + 2 > depth)
+			depth = nodeDepth + 2;
+
+		if (subtree.count("children") > 0) {
+			for (ptree::value_type &child : subtree.get_child("children"))
+				analyze_tree(child.second, nnodes, depth);
+		}
+	}
+}
+
 bool TreeExplainer::convert_xgb_trees() {
-	return false;
+
+	MLOG("Converting XGB to generic ensemble trees\n");
+
+	int num_outputs = original_predictor->n_preds_per_sample();
+	if (num_outputs > 1) {
+		MLOG("multiple categries not implemented in converting xgboost to generic-tree. Will use xgboost implementation of TreeSHAP");
+		return false;
+	}
+
+	// Export to Json
+	const char **trees;
+	int nTrees;
+	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
+
+	// Analyze treees
+	int max_nodes = 0, max_depth = 0; 
+	for (int iTree = 0; iTree < nTrees; iTree++) {
+
+		std::stringstream ss;
+		ss << trees[iTree];
+		ptree pt;
+		read_json(ss, pt);
+
+		int nnodes = 0, depth = 0;
+		analyze_tree(pt, nnodes, depth);
+		if (nnodes > max_nodes)
+			max_nodes = nnodes;
+		if (depth > max_depth)
+			max_depth = depth;
+
+	}
+
+	// Parse trees
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate(nTrees, max_nodes, num_outputs);
+
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = nTrees;
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+
+	for (int iTree = 0; iTree < nTrees; ++iTree) {
+		//convert each tree:
+		std::stringstream ss;
+		ss << trees[iTree];
+		ptree pt;
+		read_json(ss, pt);
+		parse_tree(pt, generic_tree_model,pos_in_model);
+		
+		pos_in_model += max_nodes;
+	}
+
+	return true;
 }
 
 bool TreeExplainer::convert_lightgbm_trees() {
@@ -781,30 +880,16 @@ bool TreeExplainer::convert_lightgbm_trees() {
 		return false;
 	}
 
-	/*
-	// Alternative approach to be explored - not going through the string 
-	LightGBM::MemApp &mem_app = static_cast<MedLightGBM *>(original_predictor)->mem_app;
-	string type = mem_app.get_boosting_type();
-	if (type != "gdbt") {
-		MLOG("boosting type \'%s\' is not handled in converting light-gbm to generic-tree. Will use light-gbm implementation of TreeSHAP");
-		return false;
-	}
-
-	LightGBM::Boosting *_boosting;
-	mem_app.fetch_boosting(_boosting);
-	LightGBM::GBDT* _gbdt = static_cast<LightGBM::GBDT *>(_boosting);
-	*/
-
 	vector<vector<int>> split_features, decision_types, left_children, right_children, leaf_counts, internal_counts;
 	vector<vector<double>> thresholds, leaf_values;
 
 	// Export to string
-	string tree;
-	static_cast<MedLightGBM *>(original_predictor)->mem_app.serialize_to_string(tree);
+	string trees;
+	static_cast<MedLightGBM *>(original_predictor)->mem_app.serialize_to_string(trees);
 
 	// Parse string
 	vector<string> lines, fields, values;
-	boost::split(lines, tree, boost::is_any_of("\n"));
+	boost::split(lines, trees, boost::is_any_of("\n"));
 	int iTree = -1;
 	for (string& line : lines) {
 		if (line != "") {

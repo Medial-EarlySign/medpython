@@ -73,6 +73,9 @@ struct TreeEnsemble {
 	void allocate(unsigned tree_limit_in, unsigned max_nodes_in, unsigned num_outputs_in);
 
 	void free();
+
+	void fill_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
+	void create_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
 };
 
 struct ExplanationDataset {

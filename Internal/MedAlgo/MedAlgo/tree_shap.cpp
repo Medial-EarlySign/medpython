@@ -75,6 +75,66 @@ void TreeEnsemble::free() {
 	is_allocate = false;
 }
 
+/* Adjust a model, conditioning upon a sample and mask */
+void TreeEnsemble::create_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
+
+	adjusted.allocate(tree_limit, max_nodes, num_outputs);
+	fill_adjusted_tree(0, x, x_missing, mask, feature_sets, adjusted);
+
+}
+
+inline void copy_node(TreeEnsemble * const origTree, int orig_index, TreeEnsemble& newTree, int new_index) {
+
+	newTree.children_left[new_index] = origTree->children_left[orig_index];
+	newTree.children_default[new_index] = origTree->children_default[orig_index];
+	newTree.children_right[new_index] = origTree->children_right[orig_index];
+	newTree.values[new_index] = origTree->values[orig_index];
+	newTree.node_sample_weights[new_index] = origTree->node_sample_weights[orig_index];
+	newTree.features[new_index] = origTree->features[orig_index];
+	newTree.thresholds[new_index] = origTree->thresholds[orig_index];;
+}
+
+void TreeEnsemble::fill_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
+
+	if (children_right[node_index] < 0) {
+		// leaf node
+		copy_node(this, node_index, adjusted, node_index);
+	}
+	else {
+		// internal node
+		const unsigned split_index = features[node_index];
+		const unsigned split_set = feature_sets[split_index];
+
+		fill_adjusted_tree(children_left[node_index], x, x_missing, mask, feature_sets, adjusted);
+		fill_adjusted_tree(children_right[node_index], x, x_missing, mask, feature_sets, adjusted);
+
+
+		if (mask[split_set] == 0) {
+			// Not conditioned upon
+			copy_node(this, node_index, adjusted, node_index);
+			node_sample_weights[node_index] = node_sample_weights[children_left[node_index]] + node_sample_weights[children_right[node_index]];
+		}
+		else {
+			// Conditioned upon
+			// find which branch is "hot" (meaning x would follow it)
+			unsigned hot_index = 0;
+			if (x_missing[split_index]) {
+				hot_index = children_default[node_index];
+			}
+			else if (x[split_index] <= thresholds[node_index]) {
+				hot_index = children_left[node_index];
+			}
+			else {
+				hot_index = children_right[node_index];
+			}
+
+			// Override with hot-index.
+			copy_node(this, node_index, adjusted, hot_index);
+		}
+	}
+}
+
+
 ExplanationDataset::ExplanationDataset() {}
 
 ExplanationDataset::ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
