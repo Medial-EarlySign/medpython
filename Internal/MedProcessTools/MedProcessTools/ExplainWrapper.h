@@ -204,6 +204,7 @@ public:
 	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
 	int max_set_size; ///< the size to look for to explain
 	float override_score_bias; ///< when given will use it as score bias it train is very different from test
+	float split_to_test; ///< to report RMSE on this ratio > 0 and < 1
 
 
 	MissingShapExplainer();
@@ -218,7 +219,8 @@ public:
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
 			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
-			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, limit_mask_size)
+			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, 
+			limit_mask_size, split_to_test)
 };
 
 /**
