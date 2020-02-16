@@ -105,7 +105,7 @@ int SimpleExampleEGFRAlgoMarker::Calculate(AMRequest *request, AMResponses *resp
 	responses->get_score_types(&_n_score_types, &stypes);
 	MLOG("n %d stypes[0] = %s\n", _n_score_types, stypes[0]);
 
-	res->set_score(0, (float)eGFR_CKD_EPI, stypes[0]);
+	res->set_score(0, (float)eGFR_CKD_EPI, stypes[0],"");
 
 	return AM_OK_RC;
 }

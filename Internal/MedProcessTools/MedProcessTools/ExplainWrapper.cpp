@@ -184,7 +184,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	if (!keep_b0) 
+	if (!keep_b0)
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
 	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
@@ -1315,6 +1315,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	max_set_size = 10;
 	override_score_bias = MED_MAT_MISSING_VALUE;
 	verbose_apply = "";
+	split_to_test = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -1364,9 +1365,14 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			limit_mask_size = med_stoi(it->second);
 		else if (it->first == "verbose_apply")
 			verbose_apply = it->second;
+		else if (it->first == "split_to_test")
+			split_to_test = med_stof(it->second);
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
+
+	if (split_to_test >= 1)
+		MTHROW_AND_ERR("Error - MissingShapExplainer::init - split_to_test should be < 1\n");
 
 	if (sort_params_k1 < 1 || sort_params_k2 < 1)
 		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be >= 1\n");
@@ -1417,23 +1423,91 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
-	int train_mat_size = (int)train_mat.samples.size();
-	train_mat.get_as_matrix(x_mat);
-	int nftrs = x_mat.ncols;
 	int nftrs_grp = (int)processing.group2Inds.size();
-	vector<float> labels(train_mat_size), weights(train_mat_size + add_new_data, 1);
-	vector<int> miss_cnts(train_mat_size + add_new_data);
-	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
+	int nftrs = (int)train_mat.data.size();
 
-	if (!train_mat.samples.front().prediction.empty())
-		for (size_t i = 0; i < labels.size(); ++i)
-			labels[i] = train_mat.samples[i].prediction[0];
+	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
+	vector<float> labels;
+	//manipulate train_mat if needed:
+	int train_mat_size = (int)train_mat.samples.size();
+	MedFeatures collected_test;
+	MedMat<float> test_mat;
+	if (verbose_learn && split_to_test > 0) {
+		//split train_mat and populate collected_test:
+		uniform_int_distribution<> rnd_selection(0, train_mat_size - 1);
+		int test_size = int(split_to_test * train_mat_size);
+		if (test_size > train_mat_size)
+			MTHROW_AND_ERR("Error MissingShapExplainer::_learn - test size is biger than train size\n");
+		if (test_size <= 0)
+			MTHROW_AND_ERR("Error MissingShapExplainer::_learn - test size is empty\n");
+		vector<int> sel_idx;
+		vector<bool> seen_row(train_mat_size);
+		for (size_t i = 0; i < test_size; ++i)
+		{
+			int rnd_sel = rnd_selection(gen);
+			while (seen_row[rnd_sel])
+				rnd_sel = rnd_selection(gen);
+			seen_row[rnd_sel] = true;
+			sel_idx.push_back(rnd_sel);
+		}
+		collected_test = train_mat;
+		MedFeatures train_split = train_mat;
+		medial::process::filter_row_indexes(collected_test, sel_idx);
+		medial::process::filter_row_indexes(train_split, sel_idx, true);
+		if (collected_test.samples.front().prediction.empty())
+			original_predictor->predict(collected_test);
+
+		collected_test.get_as_matrix(test_mat);
+		//set masks on collected_test:
+		for (size_t i = 0; i < collected_test.samples.size(); ++i)
+		{
+			vector<bool> curr_mask(nftrs_grp);
+			for (int j = 0; j < nftrs_grp; ++j) {
+				bool has_missing = false;
+				for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+					has_missing = test_mat(i, processing.group2Inds[j][k]) == missing_value;
+				curr_mask[j] = !has_missing;
+			}
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+			//commit mask:
+			for (int j = 0; j < nftrs_grp; ++j)
+				if (!curr_mask[j]) {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						test_mat(i, processing.group2Inds[j][k]) = missing_value;
+				}
+		}
+
+		train_mat_size = (int)train_split.samples.size();
+		train_split.get_as_matrix(x_mat);
+
+		labels.resize(train_mat_size);
+		if (!train_split.samples.front().prediction.empty())
+			for (size_t i = 0; i < labels.size(); ++i)
+				labels[i] = train_split.samples[i].prediction[0];
+		else {
+			MedMat<float> tt;
+			train_split.get_as_matrix(tt);
+			original_predictor->predict(tt, labels);
+		}
+
+	}
 	else {
-		MedMat<float> tt;
-		train_mat.get_as_matrix(tt);
-		original_predictor->predict(tt, labels);
+		train_mat.get_as_matrix(x_mat);
+
+		labels.resize(train_mat_size);
+		if (!train_mat.samples.front().prediction.empty())
+			for (size_t i = 0; i < labels.size(); ++i)
+				labels[i] = train_mat.samples[i].prediction[0];
+		else {
+			MedMat<float> tt;
+			train_mat.get_as_matrix(tt);
+			original_predictor->predict(tt, labels);
+		}
 	}
 
+
+	vector<int> miss_cnts(train_mat_size + add_new_data);
+	vector<float>weights(train_mat_size + add_new_data, 1);
 	vector<int> mask_group_sizes(train_mat_size + add_new_data); //stores for each sample - how many missings in groups manner:
 	for (size_t i = 0; i < train_mat_size; ++i)
 	{
@@ -1598,6 +1672,23 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		}
 		MLOG("RMSE=%2.4f, RMSE(no weights)=%2.4f on train for model, R_Square=%2.3f, R_Square(no weights)=%2.3f\n",
 			rmse, rmse_no_weights, r_square, r_square_no);
+
+		if (split_to_test > 0) {
+			//test also on test (collected_test):
+			vector<float> test_p;
+			retrain_predictor->predict(test_mat, test_p);
+			vector<float> labels_test(collected_test.samples.size()), stable_pred(collected_test.samples.size(), mean_pred);
+			for (size_t i = 0; i < labels_test.size(); ++i)
+				labels_test[i] = collected_test.samples[i].prediction[0];
+
+			float rmse_test = medial::performance::rmse_without_cleaning(test_p, labels_test);
+			float rmse_test_st = medial::performance::rmse_without_cleaning(stable_pred, labels_test);
+			float r_square_2 = -1;
+			if (rmse_test_st > 0)
+				r_square_2 = 1 - (rmse_test / rmse_test_st);
+			MLOG("RMSE=%2.4f on test for model, rmse_for_prior = %2.4f, R_Square=%2.3f\n",
+				rmse_test, rmse_test_st, r_square_2);
+		}
 	}
 }
 

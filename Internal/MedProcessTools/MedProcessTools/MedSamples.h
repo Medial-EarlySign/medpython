@@ -145,11 +145,12 @@ public:
 	int insert_preds(MedFeatures& featuresData);
 
 	/// <summary>
+	/// Copy attributes from MedSample vector. This function is mainly used to <br>
 	/// Extract post processors results from MedFeatures and insert to corresponding samples <br>
 	/// Samples in MedFeatures are assumed to be of the same size and order as in MedSamples
 	/// </summary>
 	/// <returns> -1 if samples and features do not match in length, 0 upon success </returns>
-	int insert_post_process(MedFeatures& features);
+	int copy_attributes(const vector<MedSample>& samples);
 
 	/// <summary> Get all patient ids </summary>
 	void get_ids(vector<int>& ids) const;

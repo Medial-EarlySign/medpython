@@ -392,18 +392,18 @@ int MedSamples::insert_preds(MedFeatures& features) {
 	return 0;
 }
 
-int MedSamples::insert_post_process(MedFeatures& features) {
+int MedSamples::copy_attributes(const vector<MedSample>& samples) {
 	size_t size = (size_t)nSamples();
-	if (features.samples.size() != size) {
-		MERR("Size mismatch between features and samples (%d vs %d)\n", features.samples.size(), size);
+	if (samples.size() != size) {
+		MERR("Size mismatch between imported samples and samples (%d vs %d)\n", samples.size(), size);
 		return -1;
 	}
 
 	int idx = 0;
 	for (MedIdSamples& idSample : idSamples) {
 		for (unsigned int i = 0; i < idSample.samples.size(); i++) {
-			idSample.samples[i].attributes.insert(features.samples[idx].attributes.begin(), features.samples[idx].attributes.end());
-			idSample.samples[i].str_attributes.insert(features.samples[idx].str_attributes.begin(), features.samples[idx].str_attributes.end());
+			idSample.samples[i].attributes.insert(samples[idx].attributes.begin(), samples[idx].attributes.end());
+			idSample.samples[i].str_attributes.insert(samples[idx].str_attributes.begin(), samples[idx].str_attributes.end());
 			++idx;
 		}
 	}

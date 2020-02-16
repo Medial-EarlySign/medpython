@@ -76,6 +76,7 @@ int DynAM::load(const char * am_fname){
   so->addr_AM_API_GetResponseAtIndex = load_sym(lib_handle, "AM_API_GetResponseAtIndex");
   so->addr_AM_API_GetResponseScoresNum = load_sym(lib_handle, "AM_API_GetResponseScoresNum");
   so->addr_AM_API_GetResponseScoreByIndex = load_sym(lib_handle, "AM_API_GetResponseScoreByIndex");
+  so->addr_AM_API_GetResponseExtendedScoreByIndex = load_sym(lib_handle, "AM_API_GetResponseExtendedScoreByIndex");
   so->addr_AM_API_GetResponseMessages = load_sym(lib_handle, "AM_API_GetResponseMessages");
   so->addr_AM_API_GetScoreMessages = load_sym(lib_handle, "AM_API_GetScoreMessages");
   so->addr_AM_API_GetResponsePoint = load_sym(lib_handle, "AM_API_GetResponsePoint");
@@ -129,6 +130,11 @@ int DynAM::AM_API_GetResponseScoreByType(AMResponses *responses,int res_index, c
 int DynAM::AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type){
   return (*((DynAM::t_AM_API_GetResponseScoreByIndex)DynAM::so->addr_AM_API_GetResponseScoreByIndex))
     (response,score_index,score,_score_type);
+}
+
+int DynAM::AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **ext_score, char **_score_type) {
+	return (*((DynAM::t_AM_API_GetResponseExtendedScoreByIndex)DynAM::so->addr_AM_API_GetResponseExtendedScoreByIndex))
+		(response, score_index, ext_score, _score_type);
 }
 
 int DynAM::AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp){

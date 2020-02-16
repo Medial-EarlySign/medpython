@@ -333,6 +333,10 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			return -1;
 		}
 		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (samples.copy_attributes(features.samples) != 0) {
+			MERR("Insertion of Feature Generators attributes to samples failed\n");
+			return -1;
+		}
 	}
 
 	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
@@ -391,7 +395,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 			return -1;
 		}
 
-		if (samples.insert_post_process(features) != 0) {
+		if (samples.copy_attributes(features.samples) != 0) {
 			MERR("Insertion of post_process to samples failed\n");
 			return -1;
 		}

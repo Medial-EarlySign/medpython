@@ -519,6 +519,31 @@ int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float 
 }
 //-----------------------------------------------------------------------------------------------------------
 
+
+//-----------------------------------------------------------------------------------------------------------
+// given a score index , return all we need about it : pid , timestamp, score and score type
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **_score, char **_score_type)
+{
+	try {
+		if (response == NULL)
+			return AM_FAIL_RC;
+
+		if (score_index < 0 || score_index >= response->get_n_scores())
+			return AM_FAIL_RC;
+
+		if (response->get_ext_score(score_index, _score, _score_type) != AM_OK_RC)
+			return AM_FAIL_RC;
+
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+
 //-----------------------------------------------------------------------------------------------------------
 // get all messages for a specific response given its index
 //-----------------------------------------------------------------------------------------------------------

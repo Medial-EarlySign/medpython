@@ -119,7 +119,7 @@ namespace MedSerialize {																							\
 	virtual size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
 	virtual size_t deserialize(unsigned char *blob) { size_t size = MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization(); return size;} \
 	virtual void serialized_fields_name(vector<string> &field_names) const { MedSerialize::get_list_names(#__VA_ARGS__, field_names); } \
-    virtual string object_json() const { return MedSerialize::object_json_start(my_class_name(), #__VA_ARGS__, __VA_ARGS__); }
+    virtual string object_json() const { return MedSerialize::object_json_start(my_class_name(), this->version(), #__VA_ARGS__, __VA_ARGS__); }
 
 // in some cases we must add the serializations in the implementation file due to forward declerations issues
 // the following is the same as the previous but should be placed in the cpp file
@@ -135,7 +135,7 @@ namespace MedSerialize {																							\
 	size_t ClassName::serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize_top(blob,  #__VA_ARGS__, __VA_ARGS__); }		\
 	size_t ClassName::deserialize(unsigned char *blob) { return MedSerialize::deserialize_top(blob, #__VA_ARGS__, __VA_ARGS__); post_deserialization();} \
 	void  ClassName::serialized_fields_name(vector<string> &field_names) const { MedSerialize::get_list_names(#__VA_ARGS__, field_names); } \
-    string ClassName::object_json() const { return MedSerialize::object_json_start(my_class_name(), #__VA_ARGS__, __VA_ARGS__); }
+    string ClassName::object_json() const { return MedSerialize::object_json_start(my_class_name(), this->version(), #__VA_ARGS__, __VA_ARGS__); }
 
 
 #define ADD_CLASS_NAME(Type)	string my_class_name() const {return string(#Type);}

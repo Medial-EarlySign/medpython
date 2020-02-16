@@ -5,6 +5,7 @@
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include "InputTesters.h"
+#include "AlgoMarkerErr.h"
 
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
@@ -25,6 +26,7 @@ private:
 	string model_fname;
 	string rep_fname;
 	vector<int> pids;
+	int model_end_stage = MED_MDL_END;
 
 public:
 
@@ -35,6 +37,7 @@ public:
 
 	// init name
 	void set_name(const char *_name) { name = string(_name); }
+	void set_model_end_stage(int _model_end_stage) { model_end_stage = _model_end_stage; };
 
 	// init repository config
 	int init_rep_config(const char *config_fname) { 
@@ -162,7 +165,7 @@ public:
 
 		try {
 			// run model to calculate predictions
-			if (model.apply(rep, samples) < 0) {
+			if (model.apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
 				fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
 				return -1;
 			}
@@ -173,7 +176,8 @@ public:
 				for (auto& sample : idSample.samples) {
 					_pids[j] = sample.id;
 					times[j] = sample.time;
-					preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
+					preds[j] = sample.prediction.size() >0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
+					j++;
 				}
 
 			return 0;
@@ -192,7 +196,7 @@ public:
 		samples = _samples;
 
 		// run model to calculate predictions
-		if (model.apply(rep, samples) < 0) {
+		if (model.apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
 			fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
 			return -1;
 		}
