@@ -69,7 +69,6 @@ class micNode : public SerializableObject {
 
 public:
 
-	int version = 0;	// for backward support. This micNode is version 0
 	int id;
 	string type;	// "Input","LeakyReLU","SoftMax","Normalization","Regression","MaxOut","Chooser"
 	string subtype; // "encoder","decoder"
@@ -183,7 +182,7 @@ public:
 	// serializations for a single node (partial... only what's needed by predictions, and not initialized by init_params)
 
 	ADD_CLASS_NAME(micNode)
-		ADD_SERIALIZATION_FUNCS(version, id, wgt, alpha, beta)
+		ADD_SERIALIZATION_FUNCS(id, wgt, alpha, beta)
 
 };
 
