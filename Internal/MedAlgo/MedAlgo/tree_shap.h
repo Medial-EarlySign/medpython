@@ -47,6 +47,27 @@ namespace MODEL_TRANSFORM {
 	const unsigned squared_loss = 3;
 }
 
+
+struct ExplanationDataset {
+	tfloat *X; ///< vector of all data. each row is sample of all features for that sample. cols(2nd dim) are features
+	bool *X_missing; ///< bool mask to return true on missing value on matrix - same structure as X
+	tfloat *y; ///< the labels
+	tfloat *R;
+	bool *R_missing;
+	unsigned num_X; ///< number of samples
+	unsigned M; ///< Features count
+	unsigned num_Exp; /// number of explanation features (allowing for grouping)
+	unsigned num_R;
+
+	ExplanationDataset();
+	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
+		unsigned M, unsigned num_R, unsigned num_Exp);
+	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
+		unsigned M, unsigned num_R);
+
+	void get_x_instance(ExplanationDataset &instance, const unsigned i) const;
+};
+
 struct TreeEnsemble {
 	int *children_left;
 	int *children_right;
@@ -74,28 +95,9 @@ struct TreeEnsemble {
 
 	void free();
 
-	void fill_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
-	void create_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
-};
-
-struct ExplanationDataset {
-	tfloat *X; ///< vector of all data. each row is sample of all features for that sample. cols(2nd dim) are features
-	bool *X_missing; ///< bool mask to return true on missing value on matrix - same structure as X
-	tfloat *y; ///< the labels
-	tfloat *R;
-	bool *R_missing;
-	unsigned num_X; ///< number of samples
-	unsigned M; ///< Features count
-	unsigned num_Exp; /// number of explanation features (allowing for grouping)
-	unsigned num_R;
-
-	ExplanationDataset();
-	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
-		unsigned M, unsigned num_R, unsigned num_Exp);
-	ExplanationDataset(tfloat *X, bool *X_missing, tfloat *y, tfloat *R, bool *R_missing, unsigned num_X,
-		unsigned M, unsigned num_R);
-
-	void get_x_instance(ExplanationDataset &instance, const unsigned i) const;
+	void fill_adjusted_tree(int node_index, ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
+	void create_adjusted_tree(ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
+	tfloat predict(ExplanationDataset& instance, int node_index);
 };
 
 
@@ -176,6 +178,12 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
 	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets);
 
+/**
+* Iterative calling to Shapley
+*/
+void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets);
+
 namespace medial {
 	namespace shapley {
 
@@ -229,6 +237,16 @@ namespace medial {
 
 		/// \brief Shapley Lime with generator
 		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+			SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
+			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
+
+		/// \brief Shapley Lime with generator and forced groups
+		void get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+			SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
+			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<int>>& forced, vector<vector<float>>& alphas);
+
+		/// \brief Shapley Lime with generator working iteratively
+		void get_iterative_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 			SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
 			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
 	}

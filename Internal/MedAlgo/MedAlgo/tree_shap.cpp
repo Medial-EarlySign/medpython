@@ -76,10 +76,17 @@ void TreeEnsemble::free() {
 }
 
 /* Adjust a model, conditioning upon a sample and mask */
-void TreeEnsemble::create_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
+void TreeEnsemble::create_adjusted_tree(ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
 
 	adjusted.allocate(tree_limit, max_nodes, num_outputs);
-	fill_adjusted_tree(0, x, x_missing, mask, feature_sets, adjusted);
+	adjusted.base_offset = base_offset;
+	adjusted.max_depth = max_depth;
+	adjusted.max_nodes = max_nodes;
+	adjusted.num_outputs = num_outputs;
+	adjusted.tree_limit = tree_limit;
+	adjusted.is_allocate = true;
+
+	fill_adjusted_tree(0, instance, mask, feature_sets, adjusted);
 
 }
 
@@ -94,7 +101,7 @@ inline void copy_node(TreeEnsemble * const origTree, int orig_index, TreeEnsembl
 	newTree.thresholds[new_index] = origTree->thresholds[orig_index];;
 }
 
-void TreeEnsemble::fill_adjusted_tree(int node_index, const tfloat *x, const bool *x_missing, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
+void TreeEnsemble::fill_adjusted_tree(int node_index, ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted) {
 
 	if (children_right[node_index] < 0) {
 		// leaf node
@@ -105,23 +112,25 @@ void TreeEnsemble::fill_adjusted_tree(int node_index, const tfloat *x, const boo
 		const unsigned split_index = features[node_index];
 		const unsigned split_set = feature_sets[split_index];
 
-		fill_adjusted_tree(children_left[node_index], x, x_missing, mask, feature_sets, adjusted);
-		fill_adjusted_tree(children_right[node_index], x, x_missing, mask, feature_sets, adjusted);
+		fill_adjusted_tree(children_left[node_index], instance, mask, feature_sets, adjusted);
+		fill_adjusted_tree(children_right[node_index], instance, mask, feature_sets, adjusted);
 
 
 		if (mask[split_set] == 0) {
 			// Not conditioned upon
 			copy_node(this, node_index, adjusted, node_index);
-			node_sample_weights[node_index] = node_sample_weights[children_left[node_index]] + node_sample_weights[children_right[node_index]];
+			adjusted.node_sample_weights[node_index] = adjusted.node_sample_weights[children_left[node_index]] + adjusted.node_sample_weights[children_right[node_index]];
+			adjusted.values[node_index] = (adjusted.values[children_left[node_index]] * adjusted.node_sample_weights[children_left[node_index]] +
+				adjusted.values[children_right[node_index]] * adjusted.node_sample_weights[children_right[node_index]]) / adjusted.node_sample_weights[node_index];
 		}
 		else {
 			// Conditioned upon
 			// find which branch is "hot" (meaning x would follow it)
 			unsigned hot_index = 0;
-			if (x_missing[split_index]) {
+			if (instance.X_missing[split_index]) {
 				hot_index = children_default[node_index];
 			}
-			else if (x[split_index] <= thresholds[node_index]) {
+			else if (instance.X[split_index] <= thresholds[node_index]) {
 				hot_index = children_left[node_index];
 			}
 			else {
@@ -129,11 +138,30 @@ void TreeEnsemble::fill_adjusted_tree(int node_index, const tfloat *x, const boo
 			}
 
 			// Override with hot-index.
-			copy_node(this, node_index, adjusted, hot_index);
+			copy_node(&adjusted, hot_index, adjusted, node_index);
 		}
 	}
 }
 
+tfloat TreeEnsemble::predict(ExplanationDataset& instance, int node_index) {
+
+	if (children_right[node_index] < 0)
+		return values[node_index];
+	else {
+		const unsigned split_index = features[node_index];
+		unsigned hot_index = 0;
+		if (instance.X_missing[split_index]) {
+			hot_index = children_default[node_index];
+		}
+		else if (instance.X[split_index] <= thresholds[node_index]) {
+			hot_index = children_left[node_index];
+		}
+		else {
+			hot_index = children_right[node_index];
+		}
+		return this->predict(instance, hot_index);
+	}
+}
 
 ExplanationDataset::ExplanationDataset() {}
 
@@ -1519,7 +1547,7 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 	case FEATURE_DEPENDENCE::tree_path_dependent:
 		if (interactions) {
 			if (using_sets)
-				MTHROW_AND_ERR("Currently sets not implemented for FEATURE_DEPENDENCE::independent\n")
+				MTHROW_AND_ERR("Currently sets not implemented for FEATURE_DEPENDENCE::tree_path_dependent with interactions\n")
 			else
 				dense_tree_interactions_path_dependent(trees, data, out_contribs, transform);
 		}
@@ -1538,6 +1566,82 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 		return;
 	}
 }
+
+void get_weights(const TreeEnsemble& tree, int node_index, unsigned *sets) {
+	
+	if (tree.children_right[node_index] >= 0) {
+		cerr << node_index << "/" << tree.node_sample_weights[node_index] << "/" << sets[tree.features[node_index]] << "/" << tree.children_left[node_index] << "/" << tree.children_right[node_index] << " ";
+		get_weights(tree, tree.children_left[node_index],sets);
+		get_weights(tree, tree.children_right[node_index],sets);
+	}
+	else
+		cerr << node_index << "/" << tree.node_sample_weights[node_index] << "/" << tree.values[node_index] << " ";
+}
+
+void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets) {
+
+	// Currently - limited applicabilty to main use-case
+	if (feature_dependence != FEATURE_DEPENDENCE::tree_path_dependent || interactions) {
+		MTHROW_AND_ERR("Currently iterations implemented only for FEATURE_DEPENDENCE::tree_path_dependent without interatctions \n");
+	}
+
+
+	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
+	// build explanation for each sample
+#pragma omp parallel for
+	for (int i = 0; i < data.num_X; ++i) {
+		tfloat *instance_out_contribs = out_contribs + i * (data.num_Exp + 1) * trees.num_outputs;
+		ExplanationDataset instance;
+		TreeEnsemble tree;
+		
+		data.get_x_instance(instance, i);
+		vector<int> mask(data.num_Exp, 0);
+
+		// Do iterations
+		tfloat factor = 1.0;
+		for (unsigned k = 0; k < data.num_Exp; k++) {
+			// aggregate the effect of explaining each tree
+			// (this works because of the linearity property of Shapley values)
+			vector<tfloat> instance_temp_contrib(data.num_Exp+1);
+			for (unsigned j = 0; j < trees.tree_limit; ++j) {
+				trees.get_tree(tree, j);
+
+				// Generate adjusted tree
+				TreeEnsemble adjusted_tree;
+				tree.create_adjusted_tree(instance, mask.data(), feature_sets, adjusted_tree);
+
+				// Get conditioned SHAP values
+				tree_shap(adjusted_tree, instance, instance_temp_contrib.data(), 0, 0, feature_sets);
+			}
+
+			// Find main contributer
+			int max_idx = 0;
+			tfloat max_cont = fabs(instance_temp_contrib[0]);
+			tfloat sum = instance_temp_contrib[data.num_Exp];
+			for (int j = 1; j < data.num_Exp; j++) {
+				if ((!mask[j]) && fabs(instance_temp_contrib[j]) > max_cont) {
+					max_cont = fabs(instance_temp_contrib[j]);
+					max_idx = j;
+				}
+				sum += instance_temp_contrib[j];
+			}
+
+			instance_out_contribs[max_idx] = factor*instance_temp_contrib[max_idx];
+			factor = (sum - instance_temp_contrib[max_idx]) / sum;
+			mask[max_idx] = 1;
+		}
+
+		// apply the base offset to the bias term
+		for (unsigned j = 0; j < trees.num_outputs; ++j) {
+			instance_out_contribs[data.num_Exp * trees.num_outputs + j] += trees.base_offset;
+		}
+
+		progress.update();
+	}
+
+}
+
 
 long int_calc_nchoose_k(long n, long k) {
 	long num = 1;
@@ -2261,10 +2365,19 @@ void get_shapley_weights(int n, int ngrps, vector<int>&ks, vector<float>& wgts) 
 
 }
 
-// Main function
+// Main functions for Shapley_lime with forced groups
 void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
 	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
+
+	// forced = groups that are forced to be 'ON'
+	vector<vector<int>> forced(data.samples.size(),vector<int>(group2index.size(), 0));
+	get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, alphas);
+}
+
+void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<int>>& forced, vector<vector<float>>& alphas) {
 
 	int N_TH = omp_get_max_threads();
 	vector<mt19937> gen(N_TH);
@@ -2292,10 +2405,22 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 	MedProgress tm("Lime", nsamples, 30, 1);
 	double sample_size_sum = 0.0;
 	for (int isample = 0; isample < nsamples; isample++) {
-		//MLOG("Working on sample %d\n", isample);
+		// Forced groups
+		int nForced = 0;
+		for (int _forced : forced[isample])
+			nForced += _forced;
+		vector<int> grp2trainIdx(ngrps, -1), trainIdx2grp(ngrps - nForced);
+		int trainIdx = 0;
+		for (int i = 0; i < ngrps; i++) {
+			if (!forced[isample][i]) {
+				grp2trainIdx[i] = trainIdx;
+				trainIdx2grp[trainIdx] = i;
+				trainIdx++;
+			}
+		}
 
 		// Generate random masks
-		MedMat<float> train(ngrps, n);
+		MedMat<float> train(trainIdx2grp.size(), n);
 		vector<float> wgts(n);
 		vector<vector<bool>> masks(n, vector<bool>(nftrs));
 
@@ -2316,6 +2441,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		if (nMissing == nftrs)
 			MTHROW_AND_ERR("All values are missing for entry %d , Cannot explain\n", isample);
 
+		// Generate maks and train-data
 		vector<int> ks(n);
 		vector<int> sample_size(n);
 #pragma omp parallel for
@@ -2325,13 +2451,15 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 			// Mask
 			int S = 0;
 			if (p == 0) {
-				// number of grps that are not all missing
+				// Gropus that are not all missing nor forced
 				vector<int> valid_grps;
 				for (int igrp = 0; igrp < ngrps; igrp++) {
-					for (int iftr : group2index[igrp]) {
-						if (!missing_v[iftr]) {
-							valid_grps.push_back(igrp);
-							break;
+					if (!forced[isample][igrp]) {
+						for (int iftr : group2index[igrp]) {
+							if (!missing_v[iftr]) {
+								valid_grps.push_back(igrp);
+								break;
+							}
 						}
 					}
 				}
@@ -2347,38 +2475,59 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 						else
 							masks[irow][iftr] = true;
 					}
-					train(igrp, irow) = 1.0;
+					train(grp2trainIdx[igrp], irow) = 1.0;
 					valid_grps[grp_idx] = valid_grps.back();
 					valid_grps.pop_back();
+				}
+				// Add masks for forced groups
+				for (size_t igrp=0; igrp<forced.size(); igrp++) {
+					if (forced[isample][igrp]) {
+						for (int iftr : group2index[igrp]) {
+							if (missing_v[iftr])
+								masks[irow][iftr] = false;
+							else
+								masks[irow][iftr] = true;
+						}
+					}
 				}
 			}
 			else {
 				while (S == 0 || S == ngrps) {
 					S = 0;
 					for (int igrp = 0; igrp < ngrps; igrp++) {
-						bool grp_mask = coin_dist(gen[n_th]) < p;
-						if (grp_mask) { // Keep, unless all are missing
-							size_t nMissing = 0;
-							for (int iftr : group2index[igrp]) {
-								if (missing_v[iftr]) {
-									nMissing++;
-									masks[irow][iftr] = false;
+						if (!forced[isample][igrp]) {
+							bool grp_mask = forced[isample][igrp] || (coin_dist(gen[n_th]) < p);
+							if (grp_mask) { // Keep, unless all are missing
+								size_t nMissing = 0;
+								for (int iftr : group2index[igrp]) {
+									if (missing_v[iftr]) {
+										nMissing++;
+										masks[irow][iftr] = false;
+									}
+									else
+										masks[irow][iftr] = true;
 								}
+
+								if (nMissing == group2index[igrp].size()) // All are missing ...
+									train(grp2trainIdx[igrp], irow) = 0.0;
+								else {
+									train(grp2trainIdx[igrp], irow) = 1.0;
+									S++;
+								}
+							}
+							else { // Mask
+								for (int iftr : group2index[igrp])
+									masks[irow][iftr] = false;
+								train(grp2trainIdx[igrp], irow) = 0.0;
+							}
+						}
+						else { // Forced group
+							for (int iftr : group2index[igrp]) {
+								if (missing_v[iftr])
+									masks[irow][iftr] = false;
 								else
 									masks[irow][iftr] = true;
 							}
-
-							if (nMissing == group2index[igrp].size()) // All are missing ...
-								train(igrp, irow) = 0.0;
-							else {
-								train(igrp, irow) = 1.0;
-								S++;
-							}
-						}
-						else { // Mask
-							for (int iftr : group2index[igrp])
-								masks[irow][iftr] = false;
-							train(igrp, irow) = 0.0;
 						}
 					}
 				}
@@ -2399,7 +2548,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		// effective ngrps
 		int eff_ngrps = 0;
 		for (int igrp = 0; igrp < ngrps; igrp++) {
-			if (!missing_g[igrp])
+			if ((!forced[isample][igrp]) && (!missing_g[igrp]))
 				eff_ngrps++;
 		}
 
@@ -2431,7 +2580,8 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		lm.params.rfactor = (float)0.98;
 		float mean, std;
 
-		if (eff_ngrps == ngrps) {
+		// No all-zero columns
+		if (eff_ngrps == ngrps - nForced) {
 			train.transposed_flag = 1;
 
 			train.normalize(train.Normalize_Rows);
@@ -2442,14 +2592,15 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 
 			lm.learn(train, preds, wgts);
 		}
+		// With all-zero columns - need to remove
 		else {
 			MedMat<float> eff_train(eff_ngrps, n);
 
 			int eff_igrp = 0;
 			for (int igrp = 0; igrp < ngrps; igrp++) {
-				if (!missing_g[igrp]) {
+				if ((!forced[isample][igrp]) & (!missing_g[igrp])) {
 					for (int irow = 0; irow < n; irow++)
-						eff_train(eff_igrp, irow) = train(igrp, irow);
+						eff_train(eff_igrp, irow) = train(grp2trainIdx[igrp], irow);
 					eff_igrp++;
 				}
 			}
@@ -2469,21 +2620,49 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		alphas[isample].resize(ngrps);
 		int eff_igrp = 0;
 		for (int igrp = 0; igrp < ngrps; igrp++) {
-			if (!missing_g[igrp]) {
-				alphas[isample][igrp] = lm.b[eff_igrp];
-				eff_igrp++;
+			if (!forced[isample][igrp]) {
+				if (!missing_g[igrp]) {
+					alphas[isample][igrp] = lm.b[eff_igrp];
+					eff_igrp++;
+				}
+				else
+					alphas[isample][igrp] = 0;
 			}
-			else
-				alphas[isample][igrp] = 0;
 		}
 
 		tm.update();
 	}
 
 	MLOG("LimeExplainer: mean effective sample size for %d and % f = %f\n", n, p, sample_size_sum / nsamples);
-
 }
 
+// Iterative Shapley_lime
+void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
+	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas) {
+
+	// forced = groups that are forced to be 'ON'
+	vector<vector<int>> forced(data.samples.size(), vector<int>(group2index.size(), 0));
+
+	// Add iteratively
+	for (size_t i = 0; i < group2index.size()-1; i++) {
+		MLOG("Working with %d forced\n", i);
+		// Get Shapley Values
+		get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, alphas);
+		// Find optimal NEW alpha per sample
+		for (size_t isample = 0; isample < alphas.size(); isample++) {
+			int opt_grp = -1;
+			float max_abs_alpha = 0.0;
+			for (size_t igrp = 0; igrp < alphas[isample].size(); igrp++) {
+				if (!forced[isample][igrp] && fabs(alphas[isample][igrp]) >= max_abs_alpha) {
+					max_abs_alpha = fabs(alphas[isample][igrp]);
+					opt_grp = igrp;
+				}
+			}
+			forced[isample][opt_grp] = 1;
+		}
+	}
+}
 enum SelectionMode
 {
 	BY_SCORE, //selects the one minimize score diff to original

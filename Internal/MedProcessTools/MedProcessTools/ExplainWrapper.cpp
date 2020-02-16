@@ -100,6 +100,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			normalize_vals = stoi(it->second);
 		else if (it->first == "keep_b0")
 			keep_b0 = med_stoi(it->second) > 0;
+		else if (it->first == "iterative")
+			iterative = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -774,8 +776,8 @@ void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_mod
 	int j = subtree.get<int>("nodeid") ;
 	generic_tree_model.node_sample_weights[pos_in_model + j] = subtree.get<float>("cover");
 	if (subtree.count("children") > 0) {
-		generic_tree_model.children_left[pos_in_model + j] = subtree.get<int>("yes");
-		generic_tree_model.children_right[pos_in_model + j] = subtree.get<int>("no");
+		int lc = generic_tree_model.children_left[pos_in_model + j] = subtree.get<int>("yes");
+		int rc = generic_tree_model.children_right[pos_in_model + j] = subtree.get<int>("no");
 		generic_tree_model.children_default[pos_in_model + j] = subtree.get<int>("missing");
 
 		generic_tree_model.features[pos_in_model + j] = subtree.get<int>("split");
@@ -783,6 +785,9 @@ void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_mod
 
 		for (ptree::value_type &child : subtree.get_child("children"))
 			parse_tree(child.second, generic_tree_model, pos_in_model);
+
+		generic_tree_model.values[pos_in_model + j] = (generic_tree_model.values[pos_in_model + lc] * generic_tree_model.node_sample_weights[pos_in_model + lc] +
+			generic_tree_model.values[pos_in_model + rc] * generic_tree_model.node_sample_weights[pos_in_model + rc]) / generic_tree_model.node_sample_weights[pos_in_model + j];
 	}
 	else {
 		generic_tree_model.values[pos_in_model + j] = subtree.get<float>("leaf");
@@ -991,6 +996,7 @@ bool TreeExplainer::convert_lightgbm_trees() {
 	for (int i = 0; i < nTrees; ++i) {
 		//convert each tree:
 		// Internal nodes
+		tfloat tot_weights = 0, tot_values = 0;
 		for (size_t j = 0; j < split_features[i].size(); ++j)
 		{
 			int left = (left_children[i][j] > 0) ? left_children[i][j] : (nInternal[i] + (~(left_children[i][j])));
@@ -1002,7 +1008,6 @@ bool TreeExplainer::convert_lightgbm_trees() {
 			generic_tree_model.features[pos_in_model + j] = split_features[i][j];
 			generic_tree_model.thresholds[pos_in_model + j] = thresholds[i][j];
 			generic_tree_model.node_sample_weights[pos_in_model + j] = internal_counts[i][j];
-
 		}
 
 		// Leaves
@@ -1013,9 +1018,13 @@ bool TreeExplainer::convert_lightgbm_trees() {
 
 			generic_tree_model.values[pos_in_model * num_outputs + nInternal[i] + j * num_outputs] = leaf_values[i][j];
 			generic_tree_model.node_sample_weights[pos_in_model + nInternal[i] + j] = leaf_counts[i][j];
+
+			tot_weights += leaf_counts[i][j];
+			tot_values += leaf_values[i][j];
 		}
 
 		pos_in_model += max_nodes;
+		generic_tree_model.values[pos_in_model] = tot_values / tot_weights;
 	}
 
 	return true;
@@ -1085,6 +1094,10 @@ void TreeExplainer::_learn(const MedFeatures &train_mat) {
 
 	if (try_convert_trees())
 		return; //success in convert to trees
+
+	// Iterative mode only when working with coverted trees
+	if (processing.iterative || approximate)
+		MTHROW_AND_ERR("Cannot work in iterative mode when convertions failed. Please remove\n");
 
 	// Cannot convert - use internal implementation or proxy
 	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
@@ -1209,7 +1222,10 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 					names[i] = processing.groupNames[i];
 				}
 			}
-			dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
+			if (processing.iterative)
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
+			else
+				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
 			sample_explain_reasons.resize(matrix.samples.size());
 			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
@@ -1222,7 +1238,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 					string &feat_name = names[j];
 					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
 				}
-				// curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
 			}
 		}
 		else {
@@ -2082,9 +2098,13 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		group_inds = &group_inds_loc;
 		group_names = &group_names_loc;
 	}
-
-	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-		sampler_sampling_args, *group_inds, *group_names, alphas);
+	
+	if (processing.iterative) 
+		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
+			sampler_sampling_args, *group_inds, *group_names, alphas);
+	else
+		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
+			sampler_sampling_args, *group_inds, *group_names, alphas);
 
 	sample_explain_reasons.resize(matrix.samples.size());
 
