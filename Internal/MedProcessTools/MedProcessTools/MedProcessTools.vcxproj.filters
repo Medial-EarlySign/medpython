@@ -120,7 +120,10 @@
     <ClCompile Include="Elixhauser.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-   <ClCompile Include="FeatureGenExtractTable.cpp">
+    <ClCompile Include="FeatureGenExtractTable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DiabetesFinderGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -205,7 +208,10 @@
     </ClInclude>
     <ClInclude Include="FeatureGenExtractTable.h">
       <Filter>Header Files</Filter>
-    </ClInclude>    
+    </ClInclude>
+    <ClInclude Include="DiabetesFinderGenerator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\fragile_config.json">

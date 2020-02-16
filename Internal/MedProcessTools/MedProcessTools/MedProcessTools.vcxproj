@@ -80,6 +80,7 @@
     <ClCompile Include="Calibration.cpp" />
     <ClCompile Include="CategoryDependencyGenerator.cpp" />
     <ClCompile Include="CrossValidation.cpp" />
+    <ClCompile Include="DiabetesFinderGenerator.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />
     <ClCompile Include="Elixhauser.cpp" />
@@ -115,6 +116,7 @@
     <ClInclude Include="AlcoholGenerator.h" />
     <ClInclude Include="Calibration.h" />
     <ClInclude Include="CrossValidator.h" />
+    <ClInclude Include="DiabetesFinderGenerator.h" />
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />
     <ClInclude Include="ElixhauserGenerator.h" />

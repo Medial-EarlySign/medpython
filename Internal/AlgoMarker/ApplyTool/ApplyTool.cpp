@@ -79,6 +79,7 @@ public:
 	bool convert_reqfile_to_data;
 	string convert_reqfile_to_data_infile;
 	string convert_reqfile_to_data_outfile;
+	bool extended_score;
 
 	int read_from_var_map(po::variables_map vm) {
 
@@ -143,6 +144,8 @@ public:
 		convert_reqfile_to_data_infile = vm["convert_reqfile_to_data_infile"].as<string>();
 		convert_reqfile_to_data_outfile = vm["convert_reqfile_to_data_outfile"].as<string>();
 
+		extended_score = (vm.count("extended_score") == 1);
+
 		if (amfile == "" && apply_amconfig != "") {
 			MTHROW_AND_ERR("To apply an AlgoMarker with apply_amconfig option please use --amfile to specify AlgoMarker .so file");
 		}
@@ -184,6 +187,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("convert_reqfile_to_data_infile", po::value<string>()->default_value(""), "json file to load")
 			("convert_reqfile_to_data_outfile", po::value<string>()->default_value(""), "data file name to write")
 			("json_reqfile", po::value<string>()->default_value(""), "JSON request file name to generate from data being sent to AM")
+			("extended_score", "use extended score api")
 			;
 
 		po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -248,9 +252,9 @@ vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d) {
 	MLOG("(II) AM_API_Load [V]\n");
 
 	if (t_ctx.single)
-		get_preds_from_algomarker_single(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig, t_ctx.json_reqfile_stream);
+		get_preds_from_algomarker_single(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig, t_ctx.json_reqfile_stream, t_ctx.extended_score);
 	else
-		get_preds_from_algomarker(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
+		get_preds_from_algomarker(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig, t_ctx.extended_score);
 
 	MLOG("(II) get_preds [V]\n");
 

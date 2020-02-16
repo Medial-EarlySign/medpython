@@ -44,8 +44,6 @@
 #include "AlgoMarkerErr.h"
 
 
-#define AM_UNDEFINED_VALUE -9999.99
-
 typedef enum {
 	AM_TYPE_UNDEFINED = 0,
 	AM_TYPE_MEDIAL_INFRA = 1,
@@ -102,15 +100,17 @@ private:
 	char *p_score_type = NULL;
 	float score = (float)AM_UNDEFINED_VALUE;
 	AMMessages msgs;
-
+	string extended_score;
 public:
 	// get things
 	void get_score(float *_score, char **_score_type) { *_score = score; *_score_type = p_score_type; }
+	void get_extended_score(char** _ext_score, char **_score_type) { *_ext_score = &extended_score[0]; *_score_type = p_score_type; }
 	AMMessages *get_msgs() { return &msgs; }
 
 	// set things
 	void set_score_type(char *_score_type) { p_score_type = _score_type; }
 	void set_score(float _score) { score = _score; }
+	void set_ext_score(const string& _ext__score) { extended_score = _ext__score; }
 
 	// clear
 	void clear() { msgs.clear(); p_score_type = NULL; score = (float)AM_UNDEFINED_VALUE; }
@@ -140,13 +140,22 @@ public:
 		scores[idx].get_score(_score, _score_type);
 		return AM_OK_RC;
 	}
+	int get_ext_score(int idx, char **_ext_score, char **_score_type) {
+		if (idx < 0 || idx >= scores.size()) return AM_FAIL_RC;
+		scores[idx].get_extended_score(_ext_score, _score_type);
+		return AM_OK_RC;
+	}
 	AMMessages *get_score_msgs(int idx) { if (idx < 0 || idx >= scores.size()) return NULL; return scores[idx].get_msgs(); }
 	AMMessages *get_msgs() { return &msgs; }
 
 	// set things
 	void set_patient_id(int _patient_id) { point.pid = _patient_id; }
 	void set_timestamp(long long _timestamp) { point.timestamp = _timestamp; }
-	void set_score(int idx, float _score, char *_score_type) { if (idx >= 0 && idx < scores.size()) scores[idx].set_score(_score); scores[idx].set_score_type(_score_type); }
+	void set_score(int idx, float _score, char *_score_type, const string& _ext_score) {
+		if (idx >= 0 && idx < scores.size()) scores[idx].set_score(_score);
+		scores[idx].set_score_type(_score_type); 
+		scores[idx].set_ext_score(_ext_score);
+	}
 	void init_scores(int size) { scores.clear(); scores.resize(size); }
 
 	// clear
@@ -309,6 +318,8 @@ private:
 
 	int sort_needed = 1; // in some debug cases we ommit the sort od data at the end of loading to do that this needs to be 0
 	string am_matrix = ""; // for debugging : if not empty will write matrix to given file name
+	int model_end_stage = MED_MDL_END;
+	vector<string> extended_result_fields;
 
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
@@ -406,6 +417,9 @@ extern "C" DLL_WORK_MODE int AM_API_GetResponseScoresNum(AMResponse *response, i
 
 // get response score at a given score_index, returns pid, ts, score, and score_type
 extern "C" DLL_WORK_MODE int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type);
+
+// get response score at a given score_index, returns pid, ts, score, and score_type
+extern "C" DLL_WORK_MODE int AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **ext_score, char **_score_type);
 
 // get messages for a response : messages that are score independent (such as raw eligibility tests)
 extern "C" DLL_WORK_MODE int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
