@@ -109,7 +109,6 @@ int ExplainProcessings::init(map<string, string> &map) {
 	return 0;
 }
 
-
 void ExplainProcessings::post_deserialization()
 {
 	abs_cov_features.clear();
@@ -773,7 +772,7 @@ bool TreeExplainer::convert_qrf_trees() {
 
 void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_model) {
 
-	int j = subtree.get<int>("nodeid") ;
+	int j = subtree.get<int>("nodeid");
 	generic_tree_model.node_sample_weights[pos_in_model + j] = subtree.get<float>("cover");
 	if (subtree.count("children") > 0) {
 		int lc = generic_tree_model.children_left[pos_in_model + j] = subtree.get<int>("yes");
@@ -831,7 +830,7 @@ bool TreeExplainer::convert_xgb_trees() {
 	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
 
 	// Analyze treees
-	int max_nodes = 0, max_depth = 0; 
+	int max_nodes = 0, max_depth = 0;
 	for (int iTree = 0; iTree < nTrees; iTree++) {
 
 		std::stringstream ss;
@@ -865,8 +864,8 @@ bool TreeExplainer::convert_xgb_trees() {
 		ss << trees[iTree];
 		ptree pt;
 		read_json(ss, pt);
-		parse_tree(pt, generic_tree_model,pos_in_model);
-		
+		parse_tree(pt, generic_tree_model, pos_in_model);
+
 		pos_in_model += max_nodes;
 	}
 
@@ -1011,7 +1010,7 @@ bool TreeExplainer::convert_lightgbm_trees() {
 		}
 
 		// Leaves
-		for (size_t j = 0; j<leaf_values[i].size(); ++j) {
+		for (size_t j = 0; j < leaf_values[i].size(); ++j) {
 			generic_tree_model.children_left[pos_in_model + nInternal[i] + j] = -1;
 			generic_tree_model.children_right[pos_in_model + nInternal[i] + j] = -1;
 			generic_tree_model.children_default[pos_in_model + nInternal[i] + j] = -1;
@@ -1186,9 +1185,9 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 		if (!processing.group_by_sum)
 			num_Exp = (int)processing.group2Inds.size();
-		
-		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R,num_Exp);
-		shap_res.assign(num_X * (num_Exp + 1)* num_outputs,0);
+
+		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R, num_Exp);
+		shap_res.assign(num_X * (num_Exp + 1)* num_outputs, 0);
 	}
 
 	int tree_dep = FEATURE_DEPENDENCE::tree_path_dependent; //global is not supported in python - so not completed yet. indepent is usefull for complex transform, but can't be run with interaction
@@ -2189,8 +2188,8 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		group_inds = &group_inds_loc;
 		group_names = &group_names_loc;
 	}
-	
-	if (processing.iterative) 
+
+	if (processing.iterative)
 		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 			sampler_sampling_args, *group_inds, *group_names, alphas);
 	else
@@ -2512,4 +2511,233 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 
 
 
+}
+
+//########################Iterative##################################
+void IterativeSetExplainer::_init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "gen_type")
+			gen_type = GeneratorType_fromStr(it->second);
+		else if (it->first == "generator_args")
+			generator_args = it->second;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
+		else if (it->first == "sampling_args")
+			sampling_args = it->second;
+		else if (it->first == "use_random_sampling")
+			use_random_sampling = med_stoi(it->second) > 0;
+		else if (it->first == "sort_params_a")
+			sort_params_a = med_stof(it->second);
+		else if (it->first == "sort_params_b")
+			sort_params_b = med_stof(it->second);
+		else if (it->first == "sort_params_k1")
+			sort_params_k1 = med_stof(it->second);
+		else if (it->first == "sort_params_k2")
+			sort_params_k2 = med_stof(it->second);
+		else if (it->first == "max_set_size")
+			max_set_size = med_stoi(it->second);
+		else
+			MTHROW_AND_ERR("Error in IterativeSetExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+	init_sampler(); //from args
+}
+
+void IterativeSetExplainer::init_sampler(bool with_sampler) {
+	switch (gen_type)
+	{
+	case GIBBS:
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
+		_gibbs_sample_params.init_from_string(sampling_args);
+		sampler_sampling_args = &_gibbs_sample_params;
+		break;
+	case GAN:
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
+		}
+		break;
+	case MISSING:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		break;
+	case RANDOM_DIST:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new RandomSamplesGenerator<float>(0, 5));
+		sampler_sampling_args = &n_masks;
+		break;
+	default:
+		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
+	}
+}
+
+void IterativeSetExplainer::_learn(const MedFeatures &train_mat) {
+	_sampler->learn(train_mat.data);
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
+}
+
+void IterativeSetExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	sample_explain_reasons.resize(matrix.samples.size());
+	string bias_name = "Prior_Score";
+	vector<float> preds_orig(matrix.samples.size());
+	if (matrix.samples.front().prediction.empty()) {
+		MedMat<float> mat_x;
+		matrix.get_as_matrix(mat_x);
+		if (original_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+			mat_x.transpose();
+		original_predictor->predict(mat_x, preds_orig);
+	}
+	else {
+		for (size_t i = 0; i < preds_orig.size(); ++i)
+			preds_orig[i] = matrix.samples[i].prediction[0];
+	}
+
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
+
+	int MAX_Threads = omp_get_max_threads();
+	//copy sample for each thread:
+	random_device rd;
+	vector<mt19937> gen_thread(MAX_Threads);
+	vector<MedPredictor *> predictor_cp(MAX_Threads);
+	for (size_t i = 0; i < gen_thread.size(); ++i)
+		gen_thread[i] = mt19937(globalRNG::rand());
+	_sampler->prepare(sampler_sampling_args);
+	size_t sz_pred = original_predictor->get_size();
+	unsigned char *blob_pred = new unsigned char[sz_pred];
+	original_predictor->serialize(blob_pred);
+	for (size_t i = 0; i < predictor_cp.size(); ++i) {
+		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+		predictor_cp[i]->deserialize(blob_pred);
+	}
+	delete[]blob_pred;
+
+	MedProgress progress("IterativeSetExplainer", (int)matrix.samples.size(), 15, 1);
+#pragma omp parallel for if (matrix.samples.size() >= 2)
+	for (int i = 0; i < matrix.samples.size(); ++i)
+	{
+		int n_th = omp_get_thread_num();
+		vector<float> features_coeff, score_history;
+		float pred_shap = 0;
+		float use_bias = avg_bias_score;
+		medial::shapley::explain_minimal_set(matrix, (int)i, n_masks, predictor_cp[n_th], missing_value,
+			*group_inds, *_sampler, gen_thread[n_th], sampler_sampling_args, features_coeff, score_history, max_set_size,
+			use_bias, sort_params_a, sort_params_b, sort_params_k1, sort_params_k2
+			, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
+
+		//reverse order in features_coeff:
+		int ind_score_hist = 0;
+		vector<pair<int, float>> tp(features_coeff.size());
+		for (int j = 0; j < tp.size(); ++j)
+		{
+			tp[j].first = j;
+			tp[j].second = features_coeff[j];
+		}
+		sort(tp.begin(), tp.end(), [](const pair<int, float>&a, const pair<int, float> &b) {
+			return abs(a.second) < abs(b.second); }); //0 are ignored
+		for (size_t j = 0; j < tp.size(); ++j)
+		{
+			if (tp[j].second == 0)
+				continue;
+			bool positive_contrib = tp[j].second > 0;
+			features_coeff[tp[j].first] = float((int)features_coeff.size() + 1 - abs(tp[j].second));
+			double diff = abs(score_history[ind_score_hist] - (ind_score_hist > 0 ? score_history[ind_score_hist - 1] : use_bias));
+			if (diff > 1)
+				diff = 0.99999;
+			features_coeff[tp[j].first] += diff;
+			if (!positive_contrib)
+				features_coeff[tp[j].first] = -features_coeff[tp[j].first];
+			++ind_score_hist;
+		}
+
+		for (size_t j = 0; j < features_coeff.size(); ++j)
+			pred_shap += features_coeff[j];
+
+#pragma omp critical 
+		{
+			map<string, float> &curr_res = sample_explain_reasons[i];
+			for (size_t j = 0; j < group_names->size(); ++j)
+				curr_res[group_names->at(j)] = features_coeff[j];
+			//Add prior to score:
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score;
+		}
+
+		progress.update();
+	}
+	for (size_t i = 0; i < predictor_cp.size(); ++i)
+		delete predictor_cp[i];
+}
+
+void IterativeSetExplainer::post_deserialization() {
+	init_sampler(false);
+}
+
+void IterativeSetExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	this->original_predictor = original_pred;
+	_gibbs = gibbs;
+	_gibbs_sample_params = sampling_args;
+
+	sampler_sampling_args = &_gibbs_sample_params;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+
+	gen_type = GeneratorType::GIBBS;
+}
+
+void IterativeSetExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
+
+	gen_type = GeneratorType::GAN;
+}
+
+void IterativeSetExplainer::load_MISSING(MedPredictor *original_pred) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+	gen_type = GeneratorType::MISSING;
+}
+
+void IterativeSetExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
+}
+
+void IterativeSetExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	string filters_str = "", processing_str = "";
+	char buffer[5000];
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
+		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
+		, processing.zero_missing, processing.grouping.c_str());
+	processing_str = string(buffer);
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
+		filters.sort_mode, filters.max_count, filters.sum_ratio);
+	filters_str = string(buffer);
+
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		processing_str.c_str(), filters_str.c_str());
 }
