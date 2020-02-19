@@ -182,7 +182,7 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 * Iterative calling to Shapley
 */
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
-	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets);
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose, vector<string>& names);
 
 namespace medial {
 	namespace shapley {

@@ -1066,6 +1066,8 @@ void TreeExplainer::_init(map<string, string> &mapper) {
 			approximate = stoi(it->second) > 0;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
+		else if (it->first == "verbose")
+			verbose = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
@@ -1223,7 +1225,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				}
 			}
 			if (processing.iterative)
-				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(),verbose, names);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 

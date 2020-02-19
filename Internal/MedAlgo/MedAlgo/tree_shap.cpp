@@ -1579,7 +1579,7 @@ void get_weights(const TreeEnsemble& tree, int node_index, unsigned *sets) {
 }
 
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
-	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets) {
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose, vector<string>& names) {
 
 	// Currently - limited applicabilty to main use-case
 	if (feature_dependence != FEATURE_DEPENDENCE::tree_path_dependent || interactions) {
@@ -1599,7 +1599,6 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		vector<int> mask(data.num_Exp, 0);
 
 		// Do iterations
-		tfloat factor = 1.0;
 		for (unsigned k = 0; k < data.num_Exp; k++) {
 			// aggregate the effect of explaining each tree
 			// (this works because of the linearity property of Shapley values)
@@ -1615,20 +1614,34 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				tree_shap(adjusted_tree, instance, instance_temp_contrib.data(), 0, 0, feature_sets);
 			}
 
+			// Bias
+			if (k == 0)
+				instance_out_contribs[data.num_Exp] = instance_temp_contrib[data.num_Exp];
+
 			// Find main contributer
 			int max_idx = 0;
 			tfloat max_cont = fabs(instance_temp_contrib[0]);
-			tfloat sum = instance_temp_contrib[data.num_Exp];
 			for (int j = 1; j < data.num_Exp; j++) {
 				if ((!mask[j]) && fabs(instance_temp_contrib[j]) > max_cont) {
 					max_cont = fabs(instance_temp_contrib[j]);
 					max_idx = j;
 				}
-				sum += instance_temp_contrib[j];
 			}
 
-			instance_out_contribs[max_idx] = factor*instance_temp_contrib[max_idx];
-			factor = (sum - instance_temp_contrib[max_idx]) / sum;
+			if (verbose) {
+				MLOG("\tIteration %d\n", k);
+				MLOG("\tConditioned on");
+				for (size_t ii = 0; ii < mask.size(); ii++) {
+					if (mask[ii]==1)
+						MLOG(" %s", names[ii].c_str());
+				}
+				for (size_t ii = 0; ii < mask.size(); ii++) {
+					if (mask[ii] == 0)
+						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), instance_temp_contrib[ii]);
+				}
+			}
+
+			instance_out_contribs[max_idx] = instance_temp_contrib[max_idx];
 			mask[max_idx] = 1;
 		}
 
@@ -2649,6 +2662,7 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 		MLOG("Working with %d forced\n", i);
 		// Get Shapley Values
 		get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, alphas);
+
 		// Find optimal NEW alpha per sample
 		for (size_t isample = 0; isample < alphas.size(); isample++) {
 			int opt_grp = -1;

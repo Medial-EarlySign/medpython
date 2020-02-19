@@ -127,8 +127,8 @@ enum TreeExplainerMode {
 
 /**
 * A generic tree explainer:
-* 1. Uses xgboost/lightGBM feature contirbution
-* 2. Reads tree model into structure to calc SHAP values - QRF, BART..?
+* 1. Reads tree model into structure to calc SHAP values - QRF, XGB, lightGBM (future - BART ?)
+* 2. for xgboost/lightGBM where conversion fails, use internal implementation of TreeShap
 * 3. train LightGBM/Xgboost proxy to explain non-tree Predictor
 */
 class TreeExplainer : public ModelExplainer {
@@ -149,6 +149,7 @@ public:
 	bool interaction_shap = false; ///< If true will calc interaction_shap values (slower)
 	int approximate = false; ///< if true will run SAABAS alg - which is faster
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	bool verbose = false;
 
 	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
@@ -165,7 +166,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, verbose)
 };
 
 /**
