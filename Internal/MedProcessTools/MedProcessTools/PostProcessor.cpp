@@ -24,6 +24,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_LINEAR;
 	else if (lower_p == "knn")
 		return FTR_POSTPROCESS_KNN_EXPLAIN;
+	else if (lower_p == "iterative_set")
+		return FTR_POSTPROCESS_ITERATIVE_SET;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -54,6 +56,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new LinearExplainer;
 	else if (type == FTR_POSTPROCESS_KNN_EXPLAIN)
 		prc = new KNN_Explainer;
+	else if (type == FTR_POSTPROCESS_ITERATIVE_SET)
+		prc = new IterativeSetExplainer;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -89,6 +93,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, LimeExplainer);
 	CONDITIONAL_NEW_CLASS(dname, LinearExplainer);
 	CONDITIONAL_NEW_CLASS(dname, KNN_Explainer);
+	CONDITIONAL_NEW_CLASS(dname, IterativeSetExplainer);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }

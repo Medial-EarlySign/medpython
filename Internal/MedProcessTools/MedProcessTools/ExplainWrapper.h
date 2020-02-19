@@ -364,6 +364,58 @@ public:
 		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name)
 };
 
+/**
+* iterative set explainer with (gibbs, GAN or other samples generator) or proxy predictor algorithm 
+* to get as close as we can to final prediction score with lowest variance with the smallest set as possible of varaibles
+*/
+class IterativeSetExplainer : public ModelExplainer {
+private:
+	unique_ptr<SamplesGenerator<float>> _sampler = NULL;
+	void *sampler_sampling_args = NULL;
+
+	GibbsSampler<float> _gibbs;
+	GibbsSamplingParams _gibbs_sample_params;
+
+	float avg_bias_score;
+
+	void init_sampler(bool with_sampler = true);
+
+	void _init(map<string, string> &mapper);
+public:
+	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
+	string generator_args = ""; ///< for learn
+	string sampling_args = ""; ///< args for sampling
+	int n_masks = 100; ///< how many test to conduct from shapley
+	bool use_random_sampling = true; ///< If True will use random sampling - otherwise will sample mask size and than create it
+	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+
+	float sort_params_a; ///< weight for minimal distance from original score importance
+	float sort_params_b; ///< weight for variance in prediction using imputation. the rest is change from prev
+	float sort_params_k1; ///< weight for minimal distance from original score importance
+	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
+	int max_set_size; ///< the size to look for to explain
+	
+	IterativeSetExplainer() { processor_type = FTR_POSTPROCESS_ITERATIVE_SET; avg_bias_score = 0; }
+
+	void _learn(const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	void post_deserialization();
+
+	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(MedPredictor *original_pred, const string &gan_path);
+	void load_MISSING(MedPredictor *original_pred);
+	void load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator);
+
+	void dprint(const string &pref) const;
+
+	ADD_CLASS_NAME(IterativeSetExplainer)
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
+			use_random_sampling, avg_bias_score, filters, processing, attr_name, max_set_size, 
+			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2)
+};
+
 MEDSERIALIZE_SUPPORT(ExplainFilters)
 MEDSERIALIZE_SUPPORT(ExplainProcessings)
 MEDSERIALIZE_SUPPORT(TreeExplainer)
@@ -372,6 +424,8 @@ MEDSERIALIZE_SUPPORT(ShapleyExplainer)
 MEDSERIALIZE_SUPPORT(LimeExplainer)
 MEDSERIALIZE_SUPPORT(LinearExplainer)
 MEDSERIALIZE_SUPPORT(KNN_Explainer)
+MEDSERIALIZE_SUPPORT(IterativeSetExplainer)
+
 
 
 #endif
