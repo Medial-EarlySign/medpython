@@ -561,9 +561,9 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 			++cnt_cases_no_w[bin];
 		}
 		else {
-			cnt_controls[bin] += weights[i];
-			bin_controls_per_time_slot[bin][time_slot] += weights[i];
-			++cnt_ctrl_no_w[bin];
+			cnt_controls[bin] += weights[i] * controls_factor;
+			bin_controls_per_time_slot[bin][time_slot] += weights[i] * controls_factor;
+			cnt_ctrl_no_w[bin] += controls_factor;
 		}
 
 		bin_max_preds[bin] = o.prediction[0];
@@ -590,19 +590,19 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
 		ce.cnt_controls_no_w = cnt_ctrl_no_w[i]; ce.cnt_cases_no_w = cnt_cases_no_w[i];
-		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
-		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] * controls_factor + cnt_cases[i]) / 2)) / (float)tot_weight;
+		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i]  + cnt_cases[i]);
+		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i]  + cnt_cases[i]) / 2)) / (float)tot_weight;
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
-			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i], controls_factor);
-			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
+			ce.kaplan_meier = (float)calc_kaplan_meier(bin_controls_per_time_slot[i], bin_cases_per_time_slot[i], 1.0);
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
 		}
 		else {
 			ce.kaplan_meier = 0.0;
-			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] * controls_factor + cnt_cases[i]);
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i]  + cnt_cases[i]);
 		}
-		cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
+		cumul_cnt += (ce.cnt_controls) + ce.cnt_cases;
 		cals.push_back(ce);
 	}
 
@@ -658,17 +658,17 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				++cnt;
 			}
 			ce.mean_pred = ce.mean_pred / (float)cnt;
-			ce.cumul_pct = 1.0f * (cumul_cnt + (((ce.cnt_controls*controls_factor) + ce.cnt_cases) / 2)) / (float)tot_weight;
+			ce.cumul_pct = 1.0f * (cumul_cnt + (((ce.cnt_controls) + ce.cnt_cases) / 2)) / (float)tot_weight;
 
 			if (do_km) {
 				ce.kaplan_meier = map_r[i];
-				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls * controls_factor + ce.cnt_cases);
+				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls  + ce.cnt_cases);
 			}
 			else {
 				ce.kaplan_meier = 0.0;
 				ce.mean_outcome = map_r[i];
 			}
-			cumul_cnt += (ce.cnt_controls*controls_factor) + ce.cnt_cases;
+			cumul_cnt += (ce.cnt_controls) + ce.cnt_cases;
 			new_cals[i] = ce;
 		}
 		reverse(new_cals.begin(), new_cals.end());
@@ -680,7 +680,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 	//smooth calc
 	if (do_calibration_smoothing) {
 		vector<calibration_entry> smooth_cals;
-		smooth_calibration_entries(cals, smooth_cals, controls_factor);
+		smooth_calibration_entries(cals, smooth_cals, 1.0);
 		cals = smooth_cals;
 	}
 	if (verbose)
@@ -894,7 +894,8 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, verbose);
 		//If has weights: apply them:
 		has_w = get_weights(orig_samples, weights_attr_name, weights);
-		if (has_w) {
+		if (has_w || control_weight_down_sample != 1) {
+
 			//recalc probs for each bin, based on created bins:
 			map_prob.clear();
 			map_prob.resize(min_range.size(), 0);
@@ -908,8 +909,15 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 					(preds[i] <= max_range[bin_idx] || bin_idx == 0)))
 					++bin_idx;
 				//count in bin and outcome
-				cnts[bin_idx] += weights[i];
-				map_prob[bin_idx] += (labels[i] > 0) * weights[i];
+				if (labels[i] > 0) {
+					cnts[bin_idx] += weights[i];
+					map_prob[bin_idx] += weights[i];
+				}
+				else {
+					cnts[bin_idx] += weights[i] * control_weight_down_sample;
+				}
+				//cnts[bin_idx] += weights[i];
+				//map_prob[bin_idx] += (labels[i] > 0) * weights[i];
 			}
 			//calc average prob:
 			for (size_t i = 0; i < map_prob.size(); ++i)
