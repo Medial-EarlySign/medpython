@@ -42,6 +42,7 @@ typedef enum {
 	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix
 	FTR_GEN_EXTRACT_TBL, ///< "extract_tbl" - extract values from table with keys and rules to join with each patient	
 	FTR_GEN_ELIXHAUSER, ///< Calculate Current Elixhauser given latest DRG and Diagnosis information
+	FTR_GEN_DIABETES_FINDER, // "diabetes_finder" - Diabetes Finder feature
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 

@@ -2,6 +2,9 @@
 
 #include <Logger/Logger/Logger.h>
 #include <MedTime/MedTime/MedTime.h>
+#include <json/json.hpp>
+#include "AlgoMarkerErr.h"
+
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -46,6 +49,7 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 
 	// prepare internal ma for work: set name, rep and model
 	ma.set_name(get_name());
+	ma.set_model_end_stage(model_end_stage);
 
 	try {
 		if (ma.init_rep_config(rep_fname.c_str()) < 0)
@@ -291,7 +295,16 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			// basic info for current sample
 			int c_pid = s.id;
 			int c_ts = s.time;
-			float c_scr = s.prediction[0];
+			float c_scr = s.prediction.size() >0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
+			string c_ext_scr=""; 
+			if (s.str_attributes.size() > 0) {
+				json c_ext_scr_json({});
+				for (auto &ex_res_field_name : extended_result_fields) {
+					if(s.str_attributes.count(ex_res_field_name))
+						c_ext_scr_json[ex_res_field_name] = s.str_attributes[ex_res_field_name];
+				}
+				c_ext_scr = c_ext_scr_json.dump();
+			}
 
 			unsigned long long p = ((unsigned long long)c_pid << 32) | (c_ts);
 
@@ -327,10 +340,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						for (int j=0; j<_n_score_types; j++) {
 
 							if (strcmp(_score_types[j], "Raw") == 0) {
-								res->set_score(j, c_scr, _score_types[j]);
+								res->set_score(j, c_scr, _score_types[j], c_ext_scr);
 							}
 							else {
-								res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j]);
+								res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j],"");
 								AMScore *am_scr = res->get_am_score(j);
 								AMMessages *msgs = am_scr->get_msgs();
 								string msg = msg_prefix + "Undefined Score Type: " + string(_score_types[j]);
@@ -387,6 +400,8 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				if (fields[0] == "TYPE") type_in_config_file = fields[1];
 				else if (fields[0] == "REPOSITORY") rep_fname = fields[1];
 				else if (fields[0] == "MODEL") model_fname = fields[1];
+				else if (fields[0] == "MODEL_END_STAGE") try { model_end_stage = stoi(fields[1]); } catch (...) { MTHROW_AND_ERR("Could not parse given value MODEL_END_STAGE='%s'\n", fields[1].c_str()); }
+				else if (fields[0] == "EXTENDED_RESULT_FIELDS") split(extended_result_fields, fields[1], boost::is_any_of(";"));
 				else if (fields[0] == "INPUT_TESTER_CONFIG") input_tester_config_file = fields[1];
 				else if (fields[0] == "NAME")  set_name(fields[1].c_str());
 				else if (fields[0] == "TIME_UNIT") {

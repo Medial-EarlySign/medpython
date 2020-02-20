@@ -173,7 +173,7 @@ json CommonTestingTools::json_AddDataStr(const char *signalName, int TimeStamps_
 	return json_sig;
 }
 
-int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig)
+int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig, bool extended_score)
 {
 	DynAM::AM_API_ClearData(am);
 
@@ -244,8 +244,14 @@ int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSamp
 		else
 			s.time = ts;
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
-			float _scr;
-			resp_rc = DynAM::AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+			float _scr=(float)AM_UNDEFINED_VALUE;
+			char *_ext_scr = nullptr;
+			if(!extended_score)
+				resp_rc = DynAM::AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+			else {
+				resp_rc = DynAM::AM_API_GetResponseExtendedScoreByIndex(response, 0, &_ext_scr, &_scr_type);
+				s.str_attributes["extended_score"] = string(_ext_scr);
+			}
 			//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 			s.prediction.push_back(_scr);
 		}
@@ -309,7 +315,7 @@ int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSamp
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int CommonTestingTools::get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig, ofstream& json_reqfile_stream)
+int CommonTestingTools::get_preds_from_algomarker_single(AlgoMarker *am, vector<MedSample> &res, bool print_msgs, DataLoader& d, bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig, ofstream& json_reqfile_stream, bool extended_score)
 {
 
 	DynAM::AM_API_ClearData(am);

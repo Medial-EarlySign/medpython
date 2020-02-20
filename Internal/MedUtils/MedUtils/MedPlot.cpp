@@ -401,7 +401,7 @@ void get_ROC_working_points(const vector<float> &preds, const vector<float> &y, 
 	//From up to down sort:
 	double t_sum = 0;
 	double f_sum = 0;
-	double n_samples = (double)preds.size();
+	//double n_samples = (double)preds.size();
 	true_rate = vector<float>((int)pred_indexes.size());
 	false_rate = vector<float>((int)pred_indexes.size());
 	ppv = vector<float>((int)pred_indexes.size());

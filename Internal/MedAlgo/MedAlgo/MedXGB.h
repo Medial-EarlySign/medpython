@@ -159,6 +159,17 @@ public:
 	void prepare_predict_single();
 	void predict_single(const vector<float> &x, vector<float> &preds) const;
 
+	void get_json(const char ***json, int& len, string type) {
+		if (my_learner != NULL) {
+			string no_fmap = "";
+			xgboost::bst_ulong _len;
+			XGBoosterDumpModelEx(my_learner, no_fmap.c_str(), 1, type.c_str(), &_len, json);
+			len = (int)_len;
+		}
+		else
+			len = 0;
+	}
+
 	ADD_CLASS_NAME(MedXGB)
 		ADD_SERIALIZATION_FUNCS(classifier_type, serial_xgb, params, model_features, features_count, _mark_learn_done)
 

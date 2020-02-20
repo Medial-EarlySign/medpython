@@ -635,8 +635,6 @@ int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& sam
 	vector<float> ageAtEx(samples.idSamples.size());
 	vector<float> deltaTime(samples.idSamples.size());
 	vector<float> pids(samples.idSamples.size());
-	ofstream f;
-	f.open("/server/Work/Users/Ron/tmp/quittime2.txt", ofstream::app);
 #pragma omp parallel for schedule(dynamic)
 	for (int j = 0; j < samples.idSamples.size(); j++) {
 
@@ -652,10 +650,6 @@ int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& sam
 		getQuitAge(idRec[n_th], lastDate, ageAtEx[j], deltaTime[j]);
 		pids[j] = idRec[n_th].pid;
 	}
-	for (int j = 0; j < samples.idSamples.size(); j++)
-	{
-		f << pids[j] << "\t" << ageAtEx[j] << "\t" << deltaTime[j] << endl;
-	}
 	// clean missing values:
 	vector<float> ageAtExCleaned, deltaTimeCleaned = {};
 
@@ -668,11 +662,14 @@ int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& sam
 
 	MedLM lm;
 	lm.init_from_string("rfactor=1;niter=10000;eiter=1e-4");
-	lm.Learn(&ageAtExCleaned[0], &deltaTimeCleaned[0], (int)ageAtExCleaned.size(), 1);
-	timeSinceQuittingModelSlope = lm.b[0];
-	timeSinceQuittingModelConst = lm.b0;
-	f << lm.b[0] << "\t" << lm.b0 << "\t" << 666 << endl;
-	f.close();
+	if (!ageAtExCleaned.empty()) {
+		lm.Learn(&ageAtExCleaned[0], &deltaTimeCleaned[0], (int)ageAtExCleaned.size(), 1);
+		timeSinceQuittingModelSlope = lm.b[0];
+		timeSinceQuittingModelConst = lm.b0;
+	}
+	else {
+
+	}
 	return 0;
 }
 

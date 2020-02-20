@@ -71,6 +71,7 @@ namespace LightGBM {
 			return 0;
 		}
 
+		std::string get_boosting_type() { return config_.boosting; };
 		void fetch_boosting(LightGBM::Boosting *&res);
 		void fetch_early_stop(LightGBM::PredictionEarlyStopInstance &early_stop_);
 

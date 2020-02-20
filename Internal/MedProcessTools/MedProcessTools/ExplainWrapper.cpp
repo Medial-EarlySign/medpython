@@ -7,6 +7,11 @@
 #include <MedAlgo/MedAlgo/MedXGB.h>
 #include <MedStat/MedStat/MedStat.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
+#include <MedAlgo/MedAlgo/MedLightGBM.h>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
+#include <boost/optional/optional.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -95,13 +100,14 @@ int ExplainProcessings::init(map<string, string> &map) {
 			normalize_vals = stoi(it->second);
 		else if (it->first == "keep_b0")
 			keep_b0 = med_stoi(it->second) > 0;
+		else if (it->first == "iterative")
+			iterative = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
 
 	return 0;
 }
-
 
 void ExplainProcessings::post_deserialization()
 {
@@ -177,7 +183,7 @@ float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_
 
 void ExplainProcessings::process(map<string, float> &explain_list) const {
 	unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
-	if (!keep_b0) 
+	if (!keep_b0)
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
 	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
@@ -655,82 +661,382 @@ int get_tree_max_depth(const vector<QRF_ResNode> &nodes) {
 	return max_d;
 }
 
+void get_tree_nnodes(vector<int> left_children, vector<int> right_children, int& nInternal, int& nLeaves) {
+
+	nInternal = nLeaves = 0;
+
+	for (size_t i = 0; i < left_children.size(); i++) {
+		if (right_children[i] > nInternal)
+			nInternal = right_children[i];
+		if ((~(right_children[i])) > nLeaves)
+			nLeaves = ~(right_children[i]);
+		if (left_children[i] > nInternal)
+			nInternal = left_children[i];
+		if ((~(left_children[i])) > nLeaves)
+			nLeaves = ~(left_children[i]);
+	}
+
+	nInternal++; // Add 0
+	return;
+}
+
+int get_max_rec(vector<int> left_children, vector<int> right_children, int idx) {
+	int max_right = (right_children[idx] < 0) ? 1 : get_max_rec(left_children, right_children, right_children[idx]) + 1;
+	int max_left = (left_children[idx] < 0) ? 1 : get_max_rec(left_children, right_children, left_children[idx]) + 1;
+
+	return((max_right > max_left) ? max_right : max_left);
+}
+
+int get_tree_max_depth(vector<int> left_children, vector<int> right_children) {
+
+	if (left_children.empty())
+		return 0;
+	return get_max_rec(left_children, right_children, 0) + 1;
+
+}
+
 //all conversion functions
-bool TreeExplainer::try_convert_trees() {
-	//convert QRF, BART to generic_tree_model structure:
-	if (original_predictor->classifier_type == MODEL_QRF) {
-		MLOG("Converting QRF to generic ensemble trees\n");
-		int num_outputs = original_predictor->n_preds_per_sample();
-		const QRF_Forest &forest = static_cast<MedQRF *>(original_predictor)->qf;
-		if (forest.n_categ == 2)
-			num_outputs = 1;
-		const vector<float> &all_vals = forest.sorted_values;
-		if (all_vals.empty() && forest.n_categ != 2) {
-			MWARN("Can't convert QRF. please retrain with keep_all_values to be able to convert categorical trees with n_categ > 2\n");
-			return false;
-		}
-		int max_nodes = 0, max_depth = 0;
-		for (size_t i = 0; i < forest.qtrees.size(); ++i)
+bool TreeExplainer::convert_qrf_trees() {
+	MLOG("Converting QRF to generic ensemble trees\n");
+	int num_outputs = original_predictor->n_preds_per_sample();
+	const QRF_Forest &forest = static_cast<MedQRF *>(original_predictor)->qf;
+	if (forest.n_categ == 2)
+		num_outputs = 1;
+	const vector<float> &all_vals = forest.sorted_values;
+	if (all_vals.empty() && forest.n_categ != 2) {
+		MWARN("Can't convert QRF. please retrain with keep_all_values to be able to convert categorical trees with n_categ > 2\n");
+		return false;
+	}
+	int max_nodes = 0, max_depth = 0;
+	for (size_t i = 0; i < forest.qtrees.size(); ++i)
+	{
+		if (max_nodes < forest.qtrees[i].qnodes.size())
+			max_nodes = (int)forest.qtrees[i].qnodes.size();
+		int mm = get_tree_max_depth(forest.qtrees[i].qnodes);
+		if (mm > max_depth)
+			max_depth = mm;
+	}
+
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate((int)forest.qtrees.size(), max_nodes, num_outputs);
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = (int)forest.qtrees.size();
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+	for (size_t i = 0; i < forest.qtrees.size(); ++i) {
+		//convert each tree:
+		const vector<QRF_ResNode> &tr = forest.qtrees[i].qnodes;
+		for (size_t j = 0; j < tr.size(); ++j)
 		{
-			if (max_nodes < forest.qtrees[i].qnodes.size())
-				max_nodes = (int)forest.qtrees[i].qnodes.size();
-			int mm = get_tree_max_depth(forest.qtrees[i].qnodes);
-			if (mm > max_depth)
-				max_depth = mm;
+			generic_tree_model.children_left[pos_in_model + j] = tr[j].left;
+			generic_tree_model.children_right[pos_in_model + j] = tr[j].right;
+			generic_tree_model.children_default[pos_in_model + j] = tr[j].left; //smaller than is left
+																				//generic_tree_model.children_default[pos_in_model + j] = -1; //no default - will fail
+
+			generic_tree_model.features[pos_in_model + j] = int(tr[j].ifeat);
+			if (tr[j].is_leaf)
+			{
+				generic_tree_model.children_right[pos_in_model + j] = -1;//mark leaf
+				generic_tree_model.children_left[pos_in_model + j] = -1;//mark leaf
+				generic_tree_model.children_default[pos_in_model + j] = -1;//mark leaf
+			}
+			generic_tree_model.thresholds[pos_in_model + j] = tr[j].split_val;
+			generic_tree_model.node_sample_weights[pos_in_model + j] = float(tr[j].n_size); //no support for trained in weights for now
+																							//if n_categ ==2:
+			if (forest.n_categ == 2) {
+				if (!tr[j].counts.empty()) {
+					if (tr[j].n_size != 0)
+						generic_tree_model.values[pos_in_model + j] = tr[j].counts[1] / float(tr[j].n_size);
+					else
+						MTHROW_AND_ERR("Error node leaf has 0 obs\n");
+				}
+				else
+					generic_tree_model.values[pos_in_model + j] = tr[j].pred;
+			}
+			else {
+				vector<float> scores(num_outputs);
+				tr[j].get_scores(forest.mode, forest.get_counts_flag, forest.n_categ, scores);
+				//convert values for each prediction:
+				for (size_t k = 0; k < scores.size(); ++k)
+					generic_tree_model.values[pos_in_model * num_outputs + j * num_outputs + k] = scores[k];
+			}
 		}
 
-		++max_nodes; //this is tree seperator index for model
-		generic_tree_model.allocate((int)forest.qtrees.size(), max_nodes, num_outputs);
-		int pos_in_model = 0;
-		generic_tree_model.max_depth = max_depth;
-		generic_tree_model.tree_limit = (int)forest.qtrees.size();
-		generic_tree_model.max_nodes = max_nodes;
-		generic_tree_model.num_outputs = num_outputs;
-		generic_tree_model.base_offset = 0; //no bias
-		for (size_t i = 0; i < forest.qtrees.size(); ++i) {
-			//convert each tree:
-			const vector<QRF_ResNode> &tr = forest.qtrees[i].qnodes;
-			for (size_t j = 0; j < tr.size(); ++j)
-			{
-				generic_tree_model.children_left[pos_in_model + j] = tr[j].left;
-				generic_tree_model.children_right[pos_in_model + j] = tr[j].right;
-				generic_tree_model.children_default[pos_in_model + j] = tr[j].left; //smaller than is left
-																					//generic_tree_model.children_default[pos_in_model + j] = -1; //no default - will fail
+		pos_in_model += max_nodes;
+	}
 
-				generic_tree_model.features[pos_in_model + j] = int(tr[j].ifeat);
-				if (tr[j].is_leaf)
-				{
-					generic_tree_model.children_right[pos_in_model + j] = -1;//mark leaf
-					generic_tree_model.children_left[pos_in_model + j] = -1;//mark leaf
-					generic_tree_model.children_default[pos_in_model + j] = -1;//mark leaf
-				}
-				generic_tree_model.thresholds[pos_in_model + j] = tr[j].split_val;
-				generic_tree_model.node_sample_weights[pos_in_model + j] = float(tr[j].n_size); //no support for trained in weights for now
-																								//if n_categ ==2:
-				if (forest.n_categ == 2) {
-					if (!tr[j].counts.empty()) {
-						if (tr[j].n_size != 0)
-							generic_tree_model.values[pos_in_model + j] = tr[j].counts[1] / float(tr[j].n_size);
-						else
-							MTHROW_AND_ERR("Error node leaf has 0 obs\n");
+	return true;
+}
+
+void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_model) {
+
+	int j = subtree.get<int>("nodeid");
+	generic_tree_model.node_sample_weights[pos_in_model + j] = subtree.get<float>("cover");
+	if (subtree.count("children") > 0) {
+		int lc = generic_tree_model.children_left[pos_in_model + j] = subtree.get<int>("yes");
+		int rc = generic_tree_model.children_right[pos_in_model + j] = subtree.get<int>("no");
+		generic_tree_model.children_default[pos_in_model + j] = subtree.get<int>("missing");
+
+		generic_tree_model.features[pos_in_model + j] = subtree.get<int>("split");
+		generic_tree_model.thresholds[pos_in_model + j] = subtree.get<float>("split_condition");
+
+		for (ptree::value_type &child : subtree.get_child("children"))
+			parse_tree(child.second, generic_tree_model, pos_in_model);
+
+		generic_tree_model.values[pos_in_model + j] = (generic_tree_model.values[pos_in_model + lc] * generic_tree_model.node_sample_weights[pos_in_model + lc] +
+			generic_tree_model.values[pos_in_model + rc] * generic_tree_model.node_sample_weights[pos_in_model + rc]) / generic_tree_model.node_sample_weights[pos_in_model + j];
+	}
+	else {
+		generic_tree_model.values[pos_in_model + j] = subtree.get<float>("leaf");
+		generic_tree_model.children_left[pos_in_model + j] = -1;
+		generic_tree_model.children_right[pos_in_model + j] = -1;
+		generic_tree_model.children_default[pos_in_model + j] = -1;
+	}
+}
+
+void analyze_tree(ptree& subtree, int &nnodes, int& depth) {
+
+	int nodeId = subtree.get<int>("nodeid");
+	if (nodeId > nnodes)
+		nnodes = nodeId;
+
+	if (subtree.count("depth") > 0) {
+		int nodeDepth = subtree.get<int>("depth");
+		if (nodeDepth + 2 > depth)
+			depth = nodeDepth + 2;
+
+		if (subtree.count("children") > 0) {
+			for (ptree::value_type &child : subtree.get_child("children"))
+				analyze_tree(child.second, nnodes, depth);
+		}
+	}
+}
+
+bool TreeExplainer::convert_xgb_trees() {
+
+	MLOG("Converting XGB to generic ensemble trees\n");
+
+	int num_outputs = original_predictor->n_preds_per_sample();
+	if (num_outputs > 1) {
+		MLOG("multiple categries not implemented in converting xgboost to generic-tree. Will use xgboost implementation of TreeSHAP");
+		return false;
+	}
+
+	// Export to Json
+	const char **trees;
+	int nTrees;
+	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
+
+	// Analyze treees
+	int max_nodes = 0, max_depth = 0;
+	for (int iTree = 0; iTree < nTrees; iTree++) {
+
+		std::stringstream ss;
+		ss << trees[iTree];
+		ptree pt;
+		read_json(ss, pt);
+
+		int nnodes = 0, depth = 0;
+		analyze_tree(pt, nnodes, depth);
+		if (nnodes > max_nodes)
+			max_nodes = nnodes;
+		if (depth > max_depth)
+			max_depth = depth;
+
+	}
+
+	// Parse trees
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate(nTrees, max_nodes, num_outputs);
+
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = nTrees;
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+
+	for (int iTree = 0; iTree < nTrees; ++iTree) {
+		//convert each tree:
+		std::stringstream ss;
+		ss << trees[iTree];
+		ptree pt;
+		read_json(ss, pt);
+		parse_tree(pt, generic_tree_model, pos_in_model);
+
+		pos_in_model += max_nodes;
+	}
+
+	return true;
+}
+
+bool TreeExplainer::convert_lightgbm_trees() {
+	MLOG("Converting LightGBM to generic ensemble trees\n");
+
+	int num_outputs = original_predictor->n_preds_per_sample();
+	if (num_outputs > 1) {
+		MLOG("multiple categries not implemented in converting light-gbm to generic-tree. Will use light-gbm implementation of TreeSHAP");
+		return false;
+	}
+
+	vector<vector<int>> split_features, decision_types, left_children, right_children, leaf_counts, internal_counts;
+	vector<vector<double>> thresholds, leaf_values;
+
+	// Export to string
+	string trees;
+	static_cast<MedLightGBM *>(original_predictor)->mem_app.serialize_to_string(trees);
+
+	// Parse string
+	vector<string> lines, fields, values;
+	boost::split(lines, trees, boost::is_any_of("\n"));
+	int iTree = -1;
+	for (string& line : lines) {
+		if (line != "") {
+			boost::split(fields, line, boost::is_any_of("="));
+			if (fields[0] == "Tree") {
+				int _tree = stoi(fields[1]);
+				if (_tree != iTree + 1)
+					MTHROW_AND_ERR("Missing tree #%d in light-gbm\n", iTree + 1);
+				iTree = _tree;
+			}
+			else if (fields[0] == "split_feature") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				split_features.push_back(_values);
+			}
+			else if (fields[0] == "threshold") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<double> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stof(values[i]);
+				thresholds.push_back(_values);
+			}
+			else if (fields[0] == "decision_type") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				decision_types.push_back(_values);
+
+				for (size_t i = 0; i < values.size(); i++) {
+					if (_values[i] & 1) {
+						MLOG("Categorical Decision not implemented yet in generic-tree. Will use light-gbm implementation of TreeSHAP\n");
+						return false;
 					}
-					else
-						generic_tree_model.values[pos_in_model + j] = tr[j].pred;
-				}
-				else {
-					vector<float> scores(num_outputs);
-					tr[j].get_scores(forest.mode, forest.get_counts_flag, forest.n_categ, scores);
-					//convert values for each prediction:
-					for (size_t k = 0; k < scores.size(); ++k)
-						generic_tree_model.values[pos_in_model * num_outputs + j * num_outputs + k] = scores[k];
 				}
 			}
+			else if (fields[0] == "left_child") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				left_children.push_back(_values);
+			}
+			else if (fields[0] == "right_child") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				right_children.push_back(_values);
+			}
+			else if (fields[0] == "leaf_value") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<double> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stof(values[i]);
+				leaf_values.push_back(_values);
+			}
+			else if (fields[0] == "leaf_count") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				leaf_counts.push_back(_values);
+			}
+			else if (fields[0] == "internal_count") {
+				boost::split(values, fields[1], boost::is_any_of(" "));
+				vector<int> _values(values.size());
+				for (size_t i = 0; i < values.size(); i++)
+					_values[i] = stoi(values[i]);
+				internal_counts.push_back(_values);
+			}
+		}
+	}
 
-			pos_in_model += max_nodes;
+	// Build generic tree
+	int nTrees = iTree + 1;
+	int max_nodes = 0, max_depth = 0;
+	vector<int> nLeaves(nTrees), nInternal(nTrees);
+	for (int i = 0; i < nTrees; ++i)
+	{
+		get_tree_nnodes(left_children[i], right_children[i], nInternal[i], nLeaves[i]);
+		int nn = nInternal[i] + nLeaves[i];
+		if (nn > max_nodes)
+			max_nodes = nn;
+		int mm = get_tree_max_depth(left_children[i], right_children[i]);
+		if (mm > max_depth)
+			max_depth = mm;
+	}
+
+	++max_nodes; //this is tree seperator index for model
+	generic_tree_model.allocate(nTrees, max_nodes, num_outputs);
+
+	int pos_in_model = 0;
+	generic_tree_model.max_depth = max_depth;
+	generic_tree_model.tree_limit = nTrees;
+	generic_tree_model.max_nodes = max_nodes;
+	generic_tree_model.num_outputs = num_outputs;
+	generic_tree_model.base_offset = 0; //no bias
+
+	for (int i = 0; i < nTrees; ++i) {
+		//convert each tree:
+		// Internal nodes
+		tfloat tot_weights = 0, tot_values = 0;
+		for (size_t j = 0; j < split_features[i].size(); ++j)
+		{
+			int left = (left_children[i][j] > 0) ? left_children[i][j] : (nInternal[i] + (~(left_children[i][j])));
+			int right = (right_children[i][j] > 0) ? right_children[i][j] : (nInternal[i] + (~(right_children[i][j])));
+			generic_tree_model.children_left[pos_in_model + j] = left;
+			generic_tree_model.children_right[pos_in_model + j] = right;
+			generic_tree_model.children_default[pos_in_model + j] = (decision_types[i][j] & 2) ? left : right;
+
+			generic_tree_model.features[pos_in_model + j] = split_features[i][j];
+			generic_tree_model.thresholds[pos_in_model + j] = thresholds[i][j];
+			generic_tree_model.node_sample_weights[pos_in_model + j] = internal_counts[i][j];
 		}
 
-		return true;
+		// Leaves
+		for (size_t j = 0; j < leaf_values[i].size(); ++j) {
+			generic_tree_model.children_left[pos_in_model + nInternal[i] + j] = -1;
+			generic_tree_model.children_right[pos_in_model + nInternal[i] + j] = -1;
+			generic_tree_model.children_default[pos_in_model + nInternal[i] + j] = -1;
+
+			generic_tree_model.values[pos_in_model * num_outputs + nInternal[i] + j * num_outputs] = leaf_values[i][j];
+			generic_tree_model.node_sample_weights[pos_in_model + nInternal[i] + j] = leaf_counts[i][j];
+
+			tot_weights += leaf_counts[i][j];
+			tot_values += leaf_values[i][j];
+		}
+
+		pos_in_model += max_nodes;
+		generic_tree_model.values[pos_in_model] = tot_values / tot_weights;
 	}
+
+	return true;
+}
+
+bool TreeExplainer::try_convert_trees() {
+	//convert QRF, BART to generic_tree_model structure:
+	if (original_predictor->classifier_type == MODEL_QRF)
+		return convert_qrf_trees();
+	else if (original_predictor->classifier_type == MODEL_LIGHTGBM)
+		return convert_lightgbm_trees();
+	else if (original_predictor->classifier_type == MODEL_XGB)
+		return convert_xgb_trees();
 
 	return false;
 }
@@ -759,6 +1065,8 @@ void TreeExplainer::_init(map<string, string> &mapper) {
 			approximate = stoi(it->second) > 0;
 		else if (it->first == "missing_value")
 			missing_value = med_stof(it->second);
+		else if (it->first == "verbose")
+			verbose = stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in TreeExplainer::init - Unsupported parameter \"%s\"\n", it->first.c_str());
 	}
@@ -775,6 +1083,7 @@ void TreeExplainer::post_deserialization() {
 		}
 		try_convert_trees();
 	}
+
 }
 
 void TreeExplainer::init_post_processor(MedModel& model) {
@@ -783,6 +1092,15 @@ void TreeExplainer::init_post_processor(MedModel& model) {
 }
 
 void TreeExplainer::_learn(const MedFeatures &train_mat) {
+
+	if (try_convert_trees())
+		return; //success in convert to trees
+
+	// Iterative mode only when working with coverted trees
+	if (processing.iterative || approximate)
+		MTHROW_AND_ERR("Cannot work in iterative mode when convertions failed. Please remove\n");
+
+	// Cannot convert - use internal implementation or proxy
 	if (processing.group2Inds.size() != train_mat.data.size() && processing.group_by_sum == 0) {
 		processing.group_by_sum = 1;
 		MWARN("Warning in TreeExplainer::Learn - no support for grouping in tree_shap not by sum. setting {group_by_sum:=1}\n");
@@ -797,14 +1115,10 @@ void TreeExplainer::_learn(const MedFeatures &train_mat) {
 
 		return; // no need to learn - will use XGB
 	}
-	//TODO: update LightGBM to support this
 	if (original_predictor->classifier_type == MODEL_LIGHTGBM)
 		return; // no need to learn - will use LigthGBM
 
-	if (try_convert_trees())
-		return; //success in convert to trees
-
-				//Train XGboost model on model output.
+	//Train XGboost model on model output.
 	proxy_predictor = MedPredictor::make_predictor(proxy_model_type, proxy_model_init);
 	//learn regression on input - TODO
 
@@ -840,6 +1154,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	vector<double> x, y, R;
 	unique_ptr<bool> x_missing, R_missing;
 	int M = x_mat.ncols;
+	int num_Exp = M;
 	int num_outputs = original_predictor->n_preds_per_sample();
 	int sel_output_channel = 0;
 	if (num_outputs > 1)
@@ -870,8 +1185,11 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		//R_missing = unique_ptr<bool>(new bool[x_mat.m.size()]);
 		int num_R = 0;
 
-		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R);
-		shap_res.resize(num_X * (M + 1)* num_outputs);
+		if (!processing.group_by_sum)
+			num_Exp = (int)processing.group2Inds.size();
+
+		data_set = ExplanationDataset(x.data(), x_missing.get(), y.data(), R_p, R_missing.get(), num_X, M, num_R, num_Exp);
+		shap_res.assign(num_X * (num_Exp + 1)* num_outputs, 0);
 	}
 
 	int tree_dep = FEATURE_DEPENDENCE::tree_path_dependent; //global is not supported in python - so not completed yet. indepent is usefull for complex transform, but can't be run with interaction
@@ -888,23 +1206,60 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		conv_to_vec(feat_res, sample_explain_reasons);
 		break;
 	case CONVERTED_TREES_IMPL:
-		if (!approximate)
-			dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap);
-		else
-			dense_tree_saabas(shap_res.data(), generic_tree_model, data_set);
-		sample_explain_reasons.resize(matrix.samples.size());
-		for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
-		{
-			map<string, float> &curr_exp = sample_explain_reasons[i];
-			tfloat *curr_res_exp = &shap_res[i * (M + 1) * num_outputs];
-			//do only for sel_output_channel - the rest isn't supported yet
-			for (size_t j = 0; j < M; ++j)
-			{
-				string &feat_name = x_mat.signals[j];
-				curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+		if (!approximate) {
+			// Build sets
+			vector<string> names(num_Exp);
+			vector<unsigned> feature_sets(x_mat.ncols);
+			if (processing.group_by_sum) {
+				for (unsigned i = 0; i < num_Exp; i++) {
+					feature_sets[i] = i;
+					names[i] = x_mat.signals[i];
+				}
 			}
-			curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			else {
+				for (unsigned i = 0; i < num_Exp; i++) {
+					for (unsigned j : processing.group2Inds[i])
+						feature_sets[j] = i;
+					names[i] = processing.groupNames[i];
+				}
+			}
+			if (processing.iterative)
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(),verbose, names);
+			else
+				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
+
+			sample_explain_reasons.resize(matrix.samples.size());
+			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+			{
+				map<string, float> &curr_exp = sample_explain_reasons[i];
+				tfloat *curr_res_exp = &shap_res[i * (num_Exp + 1)  * num_outputs];
+				//do only for sel_output_channel - the rest isn't supported yet
+				for (size_t j = 0; j < num_Exp; ++j)
+				{
+					string &feat_name = names[j];
+					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+				}
+				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			}
 		}
+		else {
+			dense_tree_saabas(shap_res.data(), generic_tree_model, data_set);
+
+			sample_explain_reasons.resize(matrix.samples.size());
+			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+			{
+				map<string, float> &curr_exp = sample_explain_reasons[i];
+				tfloat *curr_res_exp = &shap_res[i * (M + 1) * num_outputs];
+				//do only for sel_output_channel - the rest isn't supported yet
+				for (size_t j = 0; j < M; ++j)
+				{
+					string &feat_name = x_mat.signals[j];
+					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
+				}
+				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+			}
+		}
+
 		break;
 	default:
 		MTHROW_AND_ERR("Error TreeExplainer::explain - Unsuppotrted mode %d\n", md);
@@ -961,6 +1316,7 @@ MissingShapExplainer::MissingShapExplainer() {
 	max_set_size = 10;
 	override_score_bias = MED_MAT_MISSING_VALUE;
 	verbose_apply = "";
+	split_to_test = 0;
 }
 
 void MissingShapExplainer::_init(map<string, string> &mapper) {
@@ -1010,9 +1366,14 @@ void MissingShapExplainer::_init(map<string, string> &mapper) {
 			limit_mask_size = med_stoi(it->second);
 		else if (it->first == "verbose_apply")
 			verbose_apply = it->second;
+		else if (it->first == "split_to_test")
+			split_to_test = med_stof(it->second);
 		else
 			MTHROW_AND_ERR("Error SHAPExplainer::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
+
+	if (split_to_test >= 1)
+		MTHROW_AND_ERR("Error - MissingShapExplainer::init - split_to_test should be < 1\n");
 
 	if (sort_params_k1 < 1 || sort_params_k2 < 1)
 		MTHROW_AND_ERR("Error - MissingShapExplainer::init - sort_params_k1,sort_params_k2 should be >= 1\n");
@@ -1063,23 +1424,91 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 
 	mt19937 gen(globalRNG::rand());
 	MedMat<float> x_mat;
-	int train_mat_size = (int)train_mat.samples.size();
-	train_mat.get_as_matrix(x_mat);
-	int nftrs = x_mat.ncols;
 	int nftrs_grp = (int)processing.group2Inds.size();
-	vector<float> labels(train_mat_size), weights(train_mat_size + add_new_data, 1);
-	vector<int> miss_cnts(train_mat_size + add_new_data);
-	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
+	int nftrs = (int)train_mat.data.size();
 
-	if (!train_mat.samples.front().prediction.empty())
-		for (size_t i = 0; i < labels.size(); ++i)
-			labels[i] = train_mat.samples[i].prediction[0];
+	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
+	vector<float> labels;
+	//manipulate train_mat if needed:
+	int train_mat_size = (int)train_mat.samples.size();
+	MedFeatures collected_test;
+	MedMat<float> test_mat;
+	if (verbose_learn && split_to_test > 0) {
+		//split train_mat and populate collected_test:
+		uniform_int_distribution<> rnd_selection(0, train_mat_size - 1);
+		int test_size = int(split_to_test * train_mat_size);
+		if (test_size > train_mat_size)
+			MTHROW_AND_ERR("Error MissingShapExplainer::_learn - test size is biger than train size\n");
+		if (test_size <= 0)
+			MTHROW_AND_ERR("Error MissingShapExplainer::_learn - test size is empty\n");
+		vector<int> sel_idx;
+		vector<bool> seen_row(train_mat_size);
+		for (size_t i = 0; i < test_size; ++i)
+		{
+			int rnd_sel = rnd_selection(gen);
+			while (seen_row[rnd_sel])
+				rnd_sel = rnd_selection(gen);
+			seen_row[rnd_sel] = true;
+			sel_idx.push_back(rnd_sel);
+		}
+		collected_test = train_mat;
+		MedFeatures train_split = train_mat;
+		medial::process::filter_row_indexes(collected_test, sel_idx);
+		medial::process::filter_row_indexes(train_split, sel_idx, true);
+		if (collected_test.samples.front().prediction.empty())
+			original_predictor->predict(collected_test);
+
+		collected_test.get_as_matrix(test_mat);
+		//set masks on collected_test:
+		for (size_t i = 0; i < collected_test.samples.size(); ++i)
+		{
+			vector<bool> curr_mask(nftrs_grp);
+			for (int j = 0; j < nftrs_grp; ++j) {
+				bool has_missing = false;
+				for (size_t k = 0; k < processing.group2Inds[j].size() && !has_missing; ++k)
+					has_missing = test_mat(i, processing.group2Inds[j][k]) == missing_value;
+				curr_mask[j] = !has_missing;
+			}
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+			//commit mask:
+			for (int j = 0; j < nftrs_grp; ++j)
+				if (!curr_mask[j]) {
+					for (size_t k = 0; k < processing.group2Inds[j].size(); ++k)
+						test_mat(i, processing.group2Inds[j][k]) = missing_value;
+				}
+		}
+
+		train_mat_size = (int)train_split.samples.size();
+		train_split.get_as_matrix(x_mat);
+
+		labels.resize(train_mat_size);
+		if (!train_split.samples.front().prediction.empty())
+			for (size_t i = 0; i < labels.size(); ++i)
+				labels[i] = train_split.samples[i].prediction[0];
+		else {
+			MedMat<float> tt;
+			train_split.get_as_matrix(tt);
+			original_predictor->predict(tt, labels);
+		}
+
+	}
 	else {
-		MedMat<float> tt;
-		train_mat.get_as_matrix(tt);
-		original_predictor->predict(tt, labels);
+		train_mat.get_as_matrix(x_mat);
+
+		labels.resize(train_mat_size);
+		if (!train_mat.samples.front().prediction.empty())
+			for (size_t i = 0; i < labels.size(); ++i)
+				labels[i] = train_mat.samples[i].prediction[0];
+		else {
+			MedMat<float> tt;
+			train_mat.get_as_matrix(tt);
+			original_predictor->predict(tt, labels);
+		}
 	}
 
+
+	vector<int> miss_cnts(train_mat_size + add_new_data);
+	vector<float>weights(train_mat_size + add_new_data, 1);
 	vector<int> mask_group_sizes(train_mat_size + add_new_data); //stores for each sample - how many missings in groups manner:
 	for (size_t i = 0; i < train_mat_size; ++i)
 	{
@@ -1244,6 +1673,23 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 		}
 		MLOG("RMSE=%2.4f, RMSE(no weights)=%2.4f on train for model, R_Square=%2.3f, R_Square(no weights)=%2.3f\n",
 			rmse, rmse_no_weights, r_square, r_square_no);
+
+		if (split_to_test > 0) {
+			//test also on test (collected_test):
+			vector<float> test_p;
+			retrain_predictor->predict(test_mat, test_p);
+			vector<float> labels_test(collected_test.samples.size()), stable_pred(collected_test.samples.size(), mean_pred);
+			for (size_t i = 0; i < labels_test.size(); ++i)
+				labels_test[i] = collected_test.samples[i].prediction[0];
+
+			float rmse_test = medial::performance::rmse_without_cleaning(test_p, labels_test);
+			float rmse_test_st = medial::performance::rmse_without_cleaning(stable_pred, labels_test);
+			float r_square_2 = -1;
+			if (rmse_test_st > 0)
+				r_square_2 = 1 - (rmse_test / rmse_test_st);
+			MLOG("RMSE=%2.4f on test for model, rmse_for_prior = %2.4f, R_Square=%2.3f\n",
+				rmse_test, rmse_test_st, r_square_2);
+		}
 	}
 }
 
@@ -1745,8 +2191,12 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		group_names = &group_names_loc;
 	}
 
-	medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-		sampler_sampling_args, *group_inds, *group_names, alphas);
+	if (processing.iterative)
+		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
+			sampler_sampling_args, *group_inds, *group_names, alphas);
+	else
+		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
+			sampler_sampling_args, *group_inds, *group_names, alphas);
 
 	sample_explain_reasons.resize(matrix.samples.size());
 
@@ -2063,4 +2513,233 @@ void KNN_Explainer::computeExplanation(vector<float> thisRow, map<string, float>
 
 
 
+}
+
+//########################Iterative##################################
+void IterativeSetExplainer::_init(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "gen_type")
+			gen_type = GeneratorType_fromStr(it->second);
+		else if (it->first == "generator_args")
+			generator_args = it->second;
+		else if (it->first == "missing_value")
+			missing_value = med_stof(it->second);
+		else if (it->first == "n_masks")
+			n_masks = med_stoi(it->second);
+		else if (it->first == "sampling_args")
+			sampling_args = it->second;
+		else if (it->first == "use_random_sampling")
+			use_random_sampling = med_stoi(it->second) > 0;
+		else if (it->first == "sort_params_a")
+			sort_params_a = med_stof(it->second);
+		else if (it->first == "sort_params_b")
+			sort_params_b = med_stof(it->second);
+		else if (it->first == "sort_params_k1")
+			sort_params_k1 = med_stof(it->second);
+		else if (it->first == "sort_params_k2")
+			sort_params_k2 = med_stof(it->second);
+		else if (it->first == "max_set_size")
+			max_set_size = med_stoi(it->second);
+		else
+			MTHROW_AND_ERR("Error in IterativeSetExplainer::init - Unsupported param \"%s\"\n", it->first.c_str());
+	}
+	init_sampler(); //from args
+}
+
+void IterativeSetExplainer::init_sampler(bool with_sampler) {
+	switch (gen_type)
+	{
+	case GIBBS:
+		if (with_sampler) {
+			_gibbs.init_from_string(generator_args);
+			_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+		}
+		_gibbs_sample_params.init_from_string(sampling_args);
+		sampler_sampling_args = &_gibbs_sample_params;
+		break;
+	case GAN:
+		if (with_sampler) {
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(generator_args);
+			static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
+		}
+		break;
+	case MISSING:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+		break;
+	case RANDOM_DIST:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new RandomSamplesGenerator<float>(0, 5));
+		sampler_sampling_args = &n_masks;
+		break;
+	default:
+		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
+	}
+}
+
+void IterativeSetExplainer::_learn(const MedFeatures &train_mat) {
+	_sampler->learn(train_mat.data);
+	avg_bias_score = get_avg_preds(train_mat, original_predictor);
+}
+
+void IterativeSetExplainer::explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const {
+	sample_explain_reasons.resize(matrix.samples.size());
+	string bias_name = "Prior_Score";
+	vector<float> preds_orig(matrix.samples.size());
+	if (matrix.samples.front().prediction.empty()) {
+		MedMat<float> mat_x;
+		matrix.get_as_matrix(mat_x);
+		if (original_predictor->transpose_for_predict != (mat_x.transposed_flag > 0))
+			mat_x.transpose();
+		original_predictor->predict(mat_x, preds_orig);
+	}
+	else {
+		for (size_t i = 0; i < preds_orig.size(); ++i)
+			preds_orig[i] = matrix.samples[i].prediction[0];
+	}
+
+	const vector<vector<int>> *group_inds = &processing.group2Inds;
+	const vector<string> *group_names = &processing.groupNames;
+	vector<vector<int>> group_inds_loc;
+	vector<string> group_names_loc;
+	if (processing.group_by_sum) {
+		int icol = 0;
+		for (auto& rec : matrix.data) {
+			group_inds_loc.push_back({ icol++ });
+			group_names_loc.push_back(rec.first);
+		}
+		group_inds = &group_inds_loc;
+		group_names = &group_names_loc;
+	}
+
+	int MAX_Threads = omp_get_max_threads();
+	//copy sample for each thread:
+	random_device rd;
+	vector<mt19937> gen_thread(MAX_Threads);
+	vector<MedPredictor *> predictor_cp(MAX_Threads);
+	for (size_t i = 0; i < gen_thread.size(); ++i)
+		gen_thread[i] = mt19937(globalRNG::rand());
+	_sampler->prepare(sampler_sampling_args);
+	size_t sz_pred = original_predictor->get_size();
+	unsigned char *blob_pred = new unsigned char[sz_pred];
+	original_predictor->serialize(blob_pred);
+	for (size_t i = 0; i < predictor_cp.size(); ++i) {
+		predictor_cp[i] = (MedPredictor *)medial::models::copyInfraModel(original_predictor, false);
+		predictor_cp[i]->deserialize(blob_pred);
+	}
+	delete[]blob_pred;
+
+	MedProgress progress("IterativeSetExplainer", (int)matrix.samples.size(), 15, 1);
+#pragma omp parallel for if (matrix.samples.size() >= 2)
+	for (int i = 0; i < matrix.samples.size(); ++i)
+	{
+		int n_th = omp_get_thread_num();
+		vector<float> features_coeff, score_history;
+		float pred_shap = 0;
+		float use_bias = avg_bias_score;
+		medial::shapley::explain_minimal_set(matrix, (int)i, n_masks, predictor_cp[n_th], missing_value,
+			*group_inds, *_sampler, gen_thread[n_th], sampler_sampling_args, features_coeff, score_history, max_set_size,
+			use_bias, sort_params_a, sort_params_b, sort_params_k1, sort_params_k2
+			, global_logger.levels[LOCAL_SECTION] < LOCAL_LEVEL &&
+			(!(matrix.samples.size() >= 2) || omp_get_thread_num() == 1));
+
+		//reverse order in features_coeff:
+		int ind_score_hist = 0;
+		vector<pair<int, float>> tp(features_coeff.size());
+		for (int j = 0; j < tp.size(); ++j)
+		{
+			tp[j].first = j;
+			tp[j].second = features_coeff[j];
+		}
+		sort(tp.begin(), tp.end(), [](const pair<int, float>&a, const pair<int, float> &b) {
+			return abs(a.second) < abs(b.second); }); //0 are ignored
+		for (size_t j = 0; j < tp.size(); ++j)
+		{
+			if (tp[j].second == 0)
+				continue;
+			bool positive_contrib = tp[j].second > 0;
+			features_coeff[tp[j].first] = float((int)features_coeff.size() + 1 - abs(tp[j].second));
+			double diff = abs(score_history[ind_score_hist] - (ind_score_hist > 0 ? score_history[ind_score_hist - 1] : use_bias));
+			if (diff > 1)
+				diff = 0.99999;
+			features_coeff[tp[j].first] += diff;
+			if (!positive_contrib)
+				features_coeff[tp[j].first] = -features_coeff[tp[j].first];
+			++ind_score_hist;
+		}
+
+		for (size_t j = 0; j < features_coeff.size(); ++j)
+			pred_shap += features_coeff[j];
+
+#pragma omp critical 
+		{
+			map<string, float> &curr_res = sample_explain_reasons[i];
+			for (size_t j = 0; j < group_names->size(); ++j)
+				curr_res[group_names->at(j)] = features_coeff[j];
+			//Add prior to score:
+			//curr_res[bias_name] = preds_orig[i] - pred_shap; //that will sum to current score
+			curr_res[bias_name] = avg_bias_score;
+		}
+
+		progress.update();
+	}
+	for (size_t i = 0; i < predictor_cp.size(); ++i)
+		delete predictor_cp[i];
+}
+
+void IterativeSetExplainer::post_deserialization() {
+	init_sampler(false);
+}
+
+void IterativeSetExplainer::load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args) {
+	this->original_predictor = original_pred;
+	_gibbs = gibbs;
+	_gibbs_sample_params = sampling_args;
+
+	sampler_sampling_args = &_gibbs_sample_params;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new GibbsSamplesGenerator<float>(_gibbs, true));
+
+	gen_type = GeneratorType::GIBBS;
+}
+
+void IterativeSetExplainer::load_GAN(MedPredictor *original_pred, const string &gan_path) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MaskedGAN<float>);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->read_from_text_file(gan_path);
+	static_cast<MaskedGAN<float> *>(_sampler.get())->mg_params.init_from_string(sampling_args);
+
+	gen_type = GeneratorType::GAN;
+}
+
+void IterativeSetExplainer::load_MISSING(MedPredictor *original_pred) {
+	this->original_predictor = original_pred;
+	_sampler = unique_ptr<SamplesGenerator<float>>(new MissingsSamplesGenerator<float>(missing_value));
+	gen_type = GeneratorType::MISSING;
+}
+
+void IterativeSetExplainer::load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator) {
+	this->original_predictor = original_pred;
+	_sampler = move(generator);
+}
+
+void IterativeSetExplainer::dprint(const string &pref) const {
+	string predictor_nm = "";
+	if (original_predictor != NULL)
+		predictor_nm = original_predictor->my_class_name();
+	string filters_str = "", processing_str = "";
+	char buffer[5000];
+	snprintf(buffer, sizeof(buffer), "group_by_sum=%d, learn_cov_matrix=%d, normalize_vals=%d, zero_missing=%d, grouping=%s",
+		int(processing.group_by_sum), int(processing.learn_cov_matrix), processing.normalize_vals
+		, processing.zero_missing, processing.grouping.c_str());
+	processing_str = string(buffer);
+	snprintf(buffer, sizeof(buffer), "sort_mode=%d, max_count=%d, sum_ratio=%2.3f",
+		filters.sort_mode, filters.max_count, filters.sum_ratio);
+	filters_str = string(buffer);
+
+	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		processing_str.c_str(), filters_str.c_str());
 }

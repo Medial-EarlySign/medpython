@@ -73,6 +73,9 @@ public:
 	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
 	bool verbose = true; ///< If true will print verbose information for calibration
 
+	int n_top_controls = 0; ///< number of controls to add with maximal-score for regularization of isotonic regression
+	int n_bottom_cases = 0; ///< number of cases to add with minimal-score for regularization of isotonic regression
+
 	vector<calibration_entry> cals; ///< for "time_window"
 	vector<float> min_range, max_range, map_prob; ///< for "binning/isotonic-regression"
 	vector<double> platt_params; ///< for "platt_scale"
@@ -101,7 +104,7 @@ public:
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,
 		km_time_resolution, min_cases_for_calibration_smoothing_pct, do_calibration_smoothing, censor_controls,
 		min_preds_in_bin, min_score_res, min_prob_res, fix_pred_order, poly_rank, control_weight_down_sample,
-		cals, min_range, max_range, map_prob, platt_params, use_isotonic)
+		cals, min_range, max_range, map_prob, platt_params, use_isotonic, n_top_controls, n_bottom_cases)
 
 protected:
 	double calc_kaplan_meier(vector<double> controls_per_time_slot, vector<double> cases_per_time_slot, double controls_factor);

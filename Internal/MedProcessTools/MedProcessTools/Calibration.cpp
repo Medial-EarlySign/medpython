@@ -55,6 +55,8 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "poly_rank") poly_rank = stoi(entry.second);
 		else if (field == "control_weight_down_sample") control_weight_down_sample = stof(entry.second);
 		else if (field == "censor_controls") censor_controls = stoi(entry.second);
+		else if (field == "n_top_controls") n_top_controls = stoi(entry.second);
+		else if (field == "n_bottom_cases") n_bottom_cases = stoi(entry.second);
 		else if (field == "verbose") verbose = stoi(entry.second) > 0;
 		else if (field == "use_split") use_split = stoi(entry.second);
 		else if (field == "use_p") use_p = stof(entry.second);
@@ -68,7 +70,8 @@ int Calibrator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, bool verbose) {
+void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int n_top_controls, int n_bottom_cases,
+	bool verbose) {
 
 	int n = (int)x.size();
 
@@ -76,6 +79,21 @@ void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, v
 	for (int i = 0; i < n; i++)
 		x2y[i] = { x[i],y[i] };
 	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
+
+	// Add regularizers
+	float min_score = x2y[0].first;
+	float max_score = x2y.back().first;
+	float min_val = x2y[0].second, max_val = x2y[0].second;
+	for (size_t i = 1; i < x2y.size(); i++) {
+		if (x2y[i].second > max_val)
+			max_val = x2y[i].second;
+		if (x2y[i].second < min_val)
+			min_val = x2y[i].second;
+	}
+	x2y.insert(x2y.begin(), n_bottom_cases, { min_score,max_val });
+	x2y.insert(x2y.end(), n_top_controls, { max_score,min_val });
+
+	n += n_bottom_cases + n_top_controls;
 
 	// PAV
 	vector<int> nag(n);
@@ -617,7 +635,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				collected_probs[i] = cals[i].mean_outcome;
 		}
 		vector<float> min_r, max_r, map_r;
-		learn_isotonic_regression(collected_bin_idx, collected_probs, min_r, max_r, map_r, verbose);
+		learn_isotonic_regression(collected_bin_idx, collected_probs, min_r, max_r, map_r, n_top_controls, n_bottom_cases, verbose);
 		//use new bins:
 		vector<calibration_entry> new_cals(map_r.size());
 		cumul_cnt = 0;
@@ -891,7 +909,7 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		break;
 	case CalibrationTypes::probability_isotonic:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, verbose);
+		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, n_top_controls, n_bottom_cases, verbose);
 		//If has weights: apply them:
 		has_w = get_weights(orig_samples, weights_attr_name, weights);
 		if (has_w || control_weight_down_sample != 1) {

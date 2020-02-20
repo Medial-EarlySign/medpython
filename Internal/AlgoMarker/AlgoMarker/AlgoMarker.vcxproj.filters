@@ -21,9 +21,6 @@
     <ClInclude Include="AlgoMarkerInternal.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AMAPISuggestion.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="AlgoMarkerErr.h">
       <Filter>Header Files</Filter>
     </ClInclude>

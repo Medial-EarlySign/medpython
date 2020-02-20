@@ -27,6 +27,7 @@ public:
 	typedef int(*t_AM_API_GetResponseAtIndex)(AMResponses *responses, int index, AMResponse **response);
 	typedef int(*t_AM_API_GetResponseScoresNum)(AMResponse *response, int *n_scores);
 	typedef int(*t_AM_API_GetResponseScoreByIndex)(AMResponse *response, int score_index, float *score, char **_score_type);
+	typedef int(*t_AM_API_GetResponseExtendedScoreByIndex)(AMResponse *response, int score_index, char **ext_score, char **_score_type);
 	typedef int(*t_AM_API_GetResponseMessages)(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
 	typedef int(*t_AM_API_GetScoreMessages)(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
 	typedef int(*t_AM_API_GetResponsePoint)(AMResponse *response, int *pid, long long *timestamp);
@@ -50,6 +51,7 @@ public:
 	void *addr_AM_API_GetResponseAtIndex = nullptr;
 	void *addr_AM_API_GetResponseScoresNum = nullptr;
 	void *addr_AM_API_GetResponseScoreByIndex = nullptr;
+	void *addr_AM_API_GetResponseExtendedScoreByIndex = nullptr;
 	void *addr_AM_API_GetResponseMessages = nullptr;
 	void *addr_AM_API_GetScoreMessages = nullptr;
 	void *addr_AM_API_GetResponsePoint = nullptr;
@@ -73,6 +75,7 @@ public:
 	static int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
 	static int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
 	static int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type);
+	static int AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **ext_score, char **_score_type);
 	static int AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp);
 	static int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 	static int AM_API_GetResponsesNum(AMResponses *responses);

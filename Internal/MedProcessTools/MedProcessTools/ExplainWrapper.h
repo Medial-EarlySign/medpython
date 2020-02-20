@@ -43,6 +43,7 @@ public:
 	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
 	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
 	bool keep_b0 = false; ///< if true will keep bo prior
+	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 
 	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
 	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
@@ -73,7 +74,7 @@ public:
 		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
-		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0)
+		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0, iterative)
 };
 
 /**
@@ -126,8 +127,8 @@ enum TreeExplainerMode {
 
 /**
 * A generic tree explainer:
-* 1. Uses xgboost/lightGBM feature contirbution
-* 2. Reads tree model into structure to calc SHAP values - QRF, BART..?
+* 1. Reads tree model into structure to calc SHAP values - QRF, XGB, lightGBM (future - BART ?)
+* 2. for xgboost/lightGBM where conversion fails, use internal implementation of TreeShap
 * 3. train LightGBM/Xgboost proxy to explain non-tree Predictor
 */
 class TreeExplainer : public ModelExplainer {
@@ -137,6 +138,9 @@ private:
 	//Tree structure of generic ensamble trees
 private:
 	bool try_convert_trees();
+	bool convert_qrf_trees();
+	bool convert_lightgbm_trees();
+	bool convert_xgb_trees();
 
 	void _init(map<string, string> &mapper);
 public:
@@ -145,6 +149,7 @@ public:
 	bool interaction_shap = false; ///< If true will calc interaction_shap values (slower)
 	int approximate = false; ///< if true will run SAABAS alg - which is faster
 	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+	bool verbose = false;
 
 	TreeExplainer() { processor_type = FTR_POSTPROCESS_TREE_SHAP; }
 
@@ -161,7 +166,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, verbose)
 };
 
 /**
@@ -204,6 +209,7 @@ public:
 	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
 	int max_set_size; ///< the size to look for to explain
 	float override_score_bias; ///< when given will use it as score bias it train is very different from test
+	float split_to_test; ///< to report RMSE on this ratio > 0 and < 1
 
 
 	MissingShapExplainer();
@@ -218,7 +224,8 @@ public:
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
 			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
-			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, limit_mask_size)
+			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, 
+			limit_mask_size, split_to_test)
 };
 
 /**
@@ -357,6 +364,58 @@ public:
 		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name)
 };
 
+/**
+* iterative set explainer with (gibbs, GAN or other samples generator) or proxy predictor algorithm 
+* to get as close as we can to final prediction score with lowest variance with the smallest set as possible of varaibles
+*/
+class IterativeSetExplainer : public ModelExplainer {
+private:
+	unique_ptr<SamplesGenerator<float>> _sampler = NULL;
+	void *sampler_sampling_args = NULL;
+
+	GibbsSampler<float> _gibbs;
+	GibbsSamplingParams _gibbs_sample_params;
+
+	float avg_bias_score;
+
+	void init_sampler(bool with_sampler = true);
+
+	void _init(map<string, string> &mapper);
+public:
+	GeneratorType gen_type = GeneratorType::GIBBS; ///< generator type
+	string generator_args = ""; ///< for learn
+	string sampling_args = ""; ///< args for sampling
+	int n_masks = 100; ///< how many test to conduct from shapley
+	bool use_random_sampling = true; ///< If True will use random sampling - otherwise will sample mask size and than create it
+	float missing_value = MED_MAT_MISSING_VALUE; ///< missing value
+
+	float sort_params_a; ///< weight for minimal distance from original score importance
+	float sort_params_b; ///< weight for variance in prediction using imputation. the rest is change from prev
+	float sort_params_k1; ///< weight for minimal distance from original score importance
+	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
+	int max_set_size; ///< the size to look for to explain
+	
+	IterativeSetExplainer() { processor_type = FTR_POSTPROCESS_ITERATIVE_SET; avg_bias_score = 0; }
+
+	void _learn(const MedFeatures &train_mat);
+
+	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
+
+	void post_deserialization();
+
+	void load_GIBBS(MedPredictor *original_pred, const GibbsSampler<float> &gibbs, const GibbsSamplingParams &sampling_args);
+	void load_GAN(MedPredictor *original_pred, const string &gan_path);
+	void load_MISSING(MedPredictor *original_pred);
+	void load_sampler(MedPredictor *original_pred, unique_ptr<SamplesGenerator<float>> &&generator);
+
+	void dprint(const string &pref) const;
+
+	ADD_CLASS_NAME(IterativeSetExplainer)
+		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
+			use_random_sampling, avg_bias_score, filters, processing, attr_name, max_set_size, 
+			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2)
+};
+
 MEDSERIALIZE_SUPPORT(ExplainFilters)
 MEDSERIALIZE_SUPPORT(ExplainProcessings)
 MEDSERIALIZE_SUPPORT(TreeExplainer)
@@ -365,6 +424,8 @@ MEDSERIALIZE_SUPPORT(ShapleyExplainer)
 MEDSERIALIZE_SUPPORT(LimeExplainer)
 MEDSERIALIZE_SUPPORT(LinearExplainer)
 MEDSERIALIZE_SUPPORT(KNN_Explainer)
+MEDSERIALIZE_SUPPORT(IterativeSetExplainer)
+
 
 
 #endif
