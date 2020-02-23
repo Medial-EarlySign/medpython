@@ -102,6 +102,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			keep_b0 = med_stoi(it->second) > 0;
 		else if (it->first == "iterative")
 			iterative = med_stoi(it->second) > 0;
+		else if (it->first == "iteration_cnt")
+			iteration_cnt = med_stoi(it->second);
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -1224,7 +1226,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				}
 			}
 			if (processing.iterative)
-				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(),verbose, names);
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(), verbose, names, processing.iteration_cnt);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
@@ -2193,7 +2195,7 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	if (processing.iterative)
 		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-			sampler_sampling_args, *group_inds, *group_names, alphas);
+			sampler_sampling_args, *group_inds, *group_names, processing.iteration_cnt, alphas);
 	else
 		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 			sampler_sampling_args, *group_inds, *group_names, alphas);
