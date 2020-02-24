@@ -1618,7 +1618,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				// Get conditioned SHAP values
 				tree_shap(adjusted_tree, instance, instance_temp_contrib.data(), 0, 0, feature_sets);
 
-				//tree.free();
+				adjusted_tree.free();
 			}
 
 			// Bias
