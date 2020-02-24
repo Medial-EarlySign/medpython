@@ -1604,6 +1604,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		if (iteration_cnt > 0 && iteration_cnt < max_iters)
 			max_iters = (unsigned int)iteration_cnt;
 		vector<tfloat> last_instance_contribs;
+		tfloat last_bias = 0;
 		for (unsigned k = 0; k < max_iters; k++) {
 			// aggregate the effect of explaining each tree
 			// (this works because of the linearity property of Shapley values)
@@ -1651,8 +1652,12 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 			instance_out_contribs[max_idx] = instance_temp_contrib[max_idx];
 			mask[max_idx] = 1;
 
-			if (iteration_cnt > 0 && k == max_iters - 1) //if last iteration
-				last_instance_contribs = move(instance_temp_contrib);
+			if (k == max_iters - 1) { //if last iteration 
+				if (iteration_cnt > 0)
+					last_instance_contribs = move(instance_temp_contrib);
+				else
+					last_bias = instance_temp_contrib.back();
+			}
 		}
 		//copy tail contributions of not masked:
 		if (iteration_cnt > 0) {
@@ -1660,6 +1665,8 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				if (k >= mask.size() || !mask[k]) //last is bias
 					instance_out_contribs[k] = last_instance_contribs[k];
 		}
+		else //copy only bias
+			instance_out_contribs[data.num_Exp * trees.num_outputs] = last_bias;
 
 		// apply the base offset to the bias term
 		for (unsigned j = 0; j < trees.num_outputs; ++j) {
