@@ -1656,8 +1656,8 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		}
 		//copy tail contributions of not masked:
 		if (iteration_cnt > 0) {
-			for (size_t k = 0; k < mask.size(); ++k)
-				if (!mask[k])
+			for (size_t k = 0; k < last_instance_contribs.size(); ++k)
+				if (k >= mask.size() || !mask[k]) //last is bias
 					instance_out_contribs[k] = last_instance_contribs[k];
 		}
 

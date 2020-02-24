@@ -1154,7 +1154,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	vector<tfloat> shap_res; ///of size: Sample_Count, Features_count + 1(for bias/prior score), outputs_count
 	ExplanationDataset data_set;
 	vector<double> x, y, R;
-	unique_ptr<bool> x_missing, R_missing;
+	unique_ptr<bool[]> x_missing, R_missing;
 	int M = x_mat.ncols;
 	int num_Exp = M;
 	int num_outputs = original_predictor->n_preds_per_sample();
@@ -1168,7 +1168,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 		x.resize(x_mat.size());
 		y.resize(matrix.samples.size());
 
-		x_missing = unique_ptr<bool>(new bool[x_mat.size()]);
+		x_missing = unique_ptr<bool[]>(new bool[x_mat.size()]);
 		for (size_t i = 0; i < x_mat.size(); ++i)
 		{
 			x[i] = (double)x_mat.get_vec()[i];
@@ -1274,7 +1274,7 @@ TreeExplainer::~TreeExplainer() {
 		delete proxy_predictor;
 		proxy_predictor = NULL;
 	}
-	//generic_tree_model.free(); //points to existing memory in QRF, tree. not need to handle
+	generic_tree_model.free();
 }
 
 MissingShapExplainer::~MissingShapExplainer() {
