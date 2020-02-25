@@ -510,3 +510,16 @@ void MedLightGBM::export_predictor(const string &output_fname)
 	ofs << predictor_str;
 	ofs.close();
 }
+
+
+void MedLightGBM::print(FILE *fp, const string& prefix, int level) const {
+
+	if (level == 0)
+		fprintf(fp, "%s: MedLightGBM ()\n", prefix.c_str());
+	else {
+		string predictor_str;
+		mem_app.serialize_to_string(predictor_str);
+		fprintf(fp, "%s: MedLightGBM ()\n%s\n", prefix.c_str(), predictor_str.c_str());
+	}
+	
+}
