@@ -439,6 +439,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (processing.zero_missing)
 		matrix.get_masks_as_mat(masks_mat);
 	//process:
+#pragma omp parallel for
 	for (int i = 0; i < (int)explain_reasons.size(); ++i) {
 		if (processing.zero_missing)
 			processing.process(explain_reasons[i], masks_mat.data_ptr(i, 0));
@@ -446,18 +447,20 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 			processing.process(explain_reasons[i]);
 	}
 	//filter:
-	for (size_t i = 0; i < explain_reasons.size(); ++i)
+#pragma omp parallel for
+	for (int i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
 
 	string group_name = attr_name;
 	if (attr_name.empty()) //default name
 		group_name = my_class_name();
-#pragma omp critical
-	{
-		for (size_t i = 0; i < explain_reasons.size(); ++i)
-			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-				matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+
+#pragma omp parallel for
+	for (int i = 0; i < explain_reasons.size(); ++i) {
+		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
+			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
 	}
+
 
 }
 
@@ -1231,7 +1234,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
 			sample_explain_reasons.resize(matrix.samples.size());
-			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+#pragma omp parallel for
+			for (int i = 0; i < sample_explain_reasons.size(); ++i)
 			{
 				map<string, float> &curr_exp = sample_explain_reasons[i];
 				tfloat *curr_res_exp = &shap_res[i * (num_Exp + 1)  * num_outputs];
@@ -1248,7 +1252,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 			dense_tree_saabas(shap_res.data(), generic_tree_model, data_set);
 
 			sample_explain_reasons.resize(matrix.samples.size());
-			for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+#pragma omp parallel for
+			for (int i = 0; i < sample_explain_reasons.size(); ++i)
 			{
 				map<string, float> &curr_exp = sample_explain_reasons[i];
 				tfloat *curr_res_exp = &shap_res[i * (M + 1) * num_outputs];
@@ -2202,7 +2207,8 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	sample_explain_reasons.resize(matrix.samples.size());
 
-	for (size_t i = 0; i < sample_explain_reasons.size(); ++i)
+#pragma omp parallel for
+	for (int i = 0; i < sample_explain_reasons.size(); ++i)
 	{
 		map<string, float> &curr = sample_explain_reasons[i];
 		const vector<float> &curr_res = alphas[i];
@@ -2309,6 +2315,7 @@ void LinearExplainer::explain(const MedFeatures &matrix, vector<map<string, floa
 	}
 
 	//commit to memory:
+#pragma omp parallel for
 	for (int i = 0; i < sample_explain_reasons.size(); ++i)
 	{
 		map<string, float> &curr_res = sample_explain_reasons[i];
