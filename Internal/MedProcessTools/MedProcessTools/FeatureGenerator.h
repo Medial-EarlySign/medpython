@@ -609,6 +609,7 @@ typedef enum {
 	FTR_RANGE_TIME_COVERED = 7,
 	/// "last_nth_time_len"  : gives the length (in win_time_unit) of the last_n range in the window. If in middle of range, cuts to current time
 	FTR_RANGE_LAST_NTH_TIME_LENGTH = 8,
+	FTR_RANGE_TIME_DIFF_START = 9,
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -627,6 +628,7 @@ private:
 	float uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_last_nth_time_len(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_diff_start(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 

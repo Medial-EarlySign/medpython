@@ -50,6 +50,8 @@ public:
 	void fragile(vector<float*> p_sources, float *p_out, int n_samples);
 	void framingham_chd(vector<float*> p_sources, float *p_out, int n_samples);
 	void do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples);
+	void do_boolean_condition_ignore_missing(vector<float*> p_sources, float *p_out, int n_samples);
+	void do_not(vector<float*> p_sources, float *p_out, int n_samples);
 
 	// Single Input Functions
 	void _log(vector<float*> p_sources, float *p_out, int n_samples);
