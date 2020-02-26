@@ -115,6 +115,8 @@ namespace medial {
 		template <typename T> void get_quantized_breakdown(vector<T> &preds, vector<T> &y, vector<T> &bounds, MedMat<int> &counts);
 		/// <summary>print the 'confusion' matrix counts </summary>
 		template <typename T> void print_quantized_breakdown(MedMat<int> &cnt, vector<T> &bounds);
+		/// <summary>calculate ICI - calibration index </summary>
+		template <typename T> double integrated_calibration_index(const vector<T> &predicted_prob, const vector<float> &y_label);
 	}
 
 	namespace stats {
