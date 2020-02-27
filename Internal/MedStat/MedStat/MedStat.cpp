@@ -1171,34 +1171,62 @@ template <typename T> void medial::performance::print_quantized_breakdown(MedMat
 template void medial::performance::print_quantized_breakdown<float>(MedMat<int> &cnt, vector<float> &bounds);
 template void medial::performance::print_quantized_breakdown<double>(MedMat<int> &cnt, vector <double> &bounds);
 
-template <typename T> double medial::performance::integrated_calibration_index(const vector<T> &predicted_prob, const vector<float> &y_label) {
+template <typename T> double medial::performance::integrated_calibration_index(const vector<T> &predicted_prob, const vector<float> &y_label, const vector<float>* weights) {
 	double res = 0;
 	if (predicted_prob.size() != y_label.size())
 		MTHROW_AND_ERR("Error medial::performance::integrated_calibration_index - predicted_prob(%zu),y_label(%zu) should have same size\n",
 			predicted_prob.size(), y_label.size());
-	//seperate into bins of predicted values prob into observed prob:
-	unordered_map<float, int> bin_size;
-	unordered_map<float, double> bin_observed_prob;
-	for (size_t i = 0; i < predicted_prob.size(); ++i)
-	{
-		++bin_size[predicted_prob[i]];
-		bin_observed_prob[predicted_prob[i]] += int(y_label[i] > 0);
-	}
-	for (auto &it : bin_observed_prob)
-		it.second /= bin_size.at(it.first);
+	if (weights == NULL || weights->empty()) {
+		//seperate into bins of predicted values prob into observed prob:
+		unordered_map<float, int> bin_size;
+		unordered_map<float, double> bin_observed_prob;
+		for (size_t i = 0; i < predicted_prob.size(); ++i)
+		{
+			++bin_size[predicted_prob[i]];
+			bin_observed_prob[predicted_prob[i]] += int(y_label[i] > 0);
+		}
+		for (auto &it : bin_observed_prob)
+			it.second /= bin_size.at(it.first);
 
-	double total_cnt = (double)predicted_prob.size();
-	//calulate ICI based on bin_observed_prob, bin_size:
-	for (const auto &it : bin_size)
-	{
-		double prb_bin = it.second / total_cnt;
-		res += prb_bin * abs(bin_observed_prob.at(it.first) - it.first);
-	}
+		double total_cnt = (double)predicted_prob.size();
+		//calulate ICI based on bin_observed_prob, bin_size:
+		for (const auto &it : bin_size)
+		{
+			double prb_bin = it.second / total_cnt;
+			res += prb_bin * abs(bin_observed_prob.at(it.first) - it.first);
+		}
 
-	return res;
+		return res;
+	}
+	else {
+		if (predicted_prob.size() != weights->size())
+			MTHROW_AND_ERR("Error medial::performance::integrated_calibration_index - predicted_prob(%zu), weights(%zu) should have same size when weights are given\n",
+				predicted_prob.size(), weights->size());
+
+		unordered_map<float, double> bin_size;
+		unordered_map<float, double> bin_observed_prob;
+		double total_cnt = 0;
+		for (size_t i = 0; i < predicted_prob.size(); ++i)
+		{
+			bin_size[predicted_prob[i]] += weights->at(i);
+			bin_observed_prob[predicted_prob[i]] += int(y_label[i] > 0) * weights->at(i);
+			total_cnt += weights->at(i);
+		}
+		for (auto &it : bin_observed_prob)
+			it.second /= bin_size.at(it.first);
+
+		//calulate ICI based on bin_observed_prob, bin_size:
+		for (const auto &it : bin_size)
+		{
+			double prb_bin = it.second / total_cnt;
+			res += prb_bin * abs(bin_observed_prob.at(it.first) - it.first);
+		}
+
+		return res;
+	}
 }
-template double medial::performance::integrated_calibration_index<float>(const vector<float> &predicted_prob, const vector<float> &y_label);
-template double medial::performance::integrated_calibration_index<double>(const vector<double> &predicted_prob, const vector<float> &y_label);
+template double medial::performance::integrated_calibration_index<float>(const vector<float> &predicted_prob, const vector<float> &y_label, const vector<float>* weights);
+template double medial::performance::integrated_calibration_index<double>(const vector<double> &predicted_prob, const vector<float> &y_label, const vector<float>* weights);
 
 // Stats functions: various statistical utilities
 //...............................................................................................................................
