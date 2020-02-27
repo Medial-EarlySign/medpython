@@ -2516,7 +2516,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 					valid_grps.pop_back();
 				}
 				// Add masks for forced groups
-				for (size_t igrp = 0; igrp < forced.size(); igrp++) {
+				for (size_t igrp = 0; igrp < forced[isample].size(); igrp++) {
 					if (forced[isample][igrp]) {
 						for (int iftr : group2index[igrp]) {
 							if (missing_v[iftr])
