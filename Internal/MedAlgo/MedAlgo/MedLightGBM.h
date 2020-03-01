@@ -58,7 +58,7 @@ namespace LightGBM {
 		int InitTrainData(float *xdata, float *ydata, const float *weight, int nrows, int ncols);
 
 		// string serializations
-		int serialize_to_string(string &str) { str = boosting_->SaveModelToString(-1);	return 0; }
+		int serialize_to_string(string &str) const { str = boosting_->SaveModelToString(-1);	return 0; }
 		int deserialize_from_string(string &str) {
 			std::unique_ptr<Boosting> ret;
 			string type = config_.boosting; // use boosting_type for older lightgbm version
@@ -252,6 +252,8 @@ public:
 			model_as_string = "";
 		}
 	}
+
+	void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	ADD_CLASS_NAME(MedLightGBM)
 		ADD_SERIALIZATION_FUNCS(classifier_type, params, model_as_string, model_features, features_count, _mark_learn_done)
