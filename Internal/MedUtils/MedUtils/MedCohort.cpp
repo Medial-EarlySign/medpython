@@ -695,6 +695,8 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 	int to0_days = (int)(s_params.min_control_years * 365.0f);
 	int from1_days = (int)(s_params.max_case_years * 365.0f);
 	int to1_days = (int)(s_params.min_case_years * 365.0f);
+	int min_date = s_params.min_year * 10000 + 0101;
+	int max_date = s_params.max_year * 10000 + 1230;
 
 	int nsamp = 0;
 
@@ -718,6 +720,8 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 			// split dates_with_sigs into buckets
 			map<int, vector<int>> buckets;
 			for (auto date : dates_with_sigs) {
+				if (date < min_date || date > max_date)
+					continue;
 				int days = med_time_converter.convert_date(MedTime::Days, date);
 				int relative_days = outcome_days - days;
 				int age = date / 10000 - byear;

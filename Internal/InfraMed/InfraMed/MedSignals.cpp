@@ -468,7 +468,7 @@ int MedSignals::_allocate_new_signal(const string &sig_name)
 	}
 
 	// get_max_sid used currently, we will enter our sig_name as this + 1
-	int max_sid = Sid2Name.rbegin()->first;
+	int max_sid = Sid2Name.empty() ? 0 : Sid2Name.rbegin()->first;
 	new_sid = max_sid + 1;
 
 	// take care of all basic tables: Name2Sid , Sid2Name, signal_names, signal_ids, Sid2Info
@@ -525,6 +525,7 @@ int MedSignals::insert_virtual_signal(const string &sig_name, int type)
 //-----------------------------------------------------------------------------------------------
 int MedSignals::insert_virtual_signal(const string &sig_name, const string& signalSpec)
 {
+
 	// lock to allow concurrency
 	lock_guard<mutex> guard(insert_signal_mutex);
 
