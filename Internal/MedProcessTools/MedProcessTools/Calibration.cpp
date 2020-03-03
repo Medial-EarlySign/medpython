@@ -912,7 +912,7 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, n_top_controls, n_bottom_cases, verbose);
 		//If has weights: apply them:
 		has_w = get_weights(orig_samples, weights_attr_name, weights);
-		if (has_w || control_weight_down_sample != 1) {
+		if (has_w || (control_weight_down_sample != 1 && control_weight_down_sample > 0)) {
 
 			//recalc probs for each bin, based on created bins:
 			map_prob.clear();
