@@ -795,7 +795,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TimeFeatGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, time_unit, time_bins, time_bin_names, tags)
 };
 
 /**
@@ -920,7 +920,7 @@ public:
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix, generate_with_counts)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix, generate_with_counts, tags)
 };
 
 //=======================================
