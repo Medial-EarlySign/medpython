@@ -1934,6 +1934,7 @@ int TimeFeatGenerator::init(map<string, string>& mapper) {
 				return -1;
 			}
 		}
+		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_bins") time_bins_string = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for TimeFeatGenerator\n", field.c_str());
@@ -2163,6 +2164,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "times") {
