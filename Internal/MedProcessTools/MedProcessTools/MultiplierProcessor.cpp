@@ -25,7 +25,7 @@ int MultiplierProcessor::init(map<string, string>& mapper) {
 void MultiplierProcessor::dprint(const string &pref, int fp_flag) {
 	if (fp_flag > 0) {
 		string tags_str = medial::io::get_list(selected_tags);
-		MLOG("%s :: TagFeatureSelector :: selected_tags(%zu)=[%s], feature_multipler=%s, divide=%d\n",
+		MLOG("%s :: MultiplierProcessor :: selected_tags(%zu)=[%s], feature_multipler=%s, divide=%d\n",
 			pref.c_str(), selected_tags.size(), tags_str.c_str(), multiplier_name.c_str(), int(divide));
 	}
 }
@@ -75,7 +75,8 @@ int MultiplierProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	}
 
 	if (verbose && !touch_cnt.empty()) {
-		MLOG("INFO: multiplier touched %zu features: [%s]\n", touch_cnt.size(), medial::io::get_list(touch_cnt).c_str());
+		MLOG("INFO: multiplier using %s touched %zu features: [%s]\n", resolved_multi.c_str(),
+			touch_cnt.size(), medial::io::get_list(touch_cnt).c_str());
 	}
 	return 0;
 }
