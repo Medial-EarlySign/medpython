@@ -1328,7 +1328,7 @@ void RepRuleBasedOutlierCleaner::init_lists() {
 
 		// Required Signals
 		for (string signal : rules2Signals[rule])
-			req_signals.insert(signal);
+			req_signals.insert(signal);			
 	}
 
 }
@@ -3845,7 +3845,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 		// now packing these into states
 		// first step : get a single chain of events
-		// we encode the events with a +1 on the index, positive for start, and negative for end
+		// we encode the events with a +1 on the index, 1 for start, and 0 for end
 		vector<category_event_state> ev;
 		for (int j = 0; j < N; j++)
 			for (auto &e : time_intervals[j])
@@ -3893,6 +3893,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			states.push_back(pair<int, int>(first_date, 0));
 
 			for (auto &e : ev) {
+				if (e.time > time_points[iver])
+					break;
 
 				if (states.back().first < e.time)
 					states.push_back(pair<int, int>(e.time, states.back().second));
@@ -3912,6 +3914,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
+					if (i_time > time_points[iver])
+						break;
 					int i_val = (int)usv.Val(i, c_chan);
 					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
 					{
@@ -3938,8 +3942,6 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-
-
 	}
 
 
