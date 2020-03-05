@@ -69,6 +69,45 @@
     <ClInclude Include="ExternalNN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="SimpleEnsemble.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedLM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedGDLM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedQRF.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedMicNet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedSpecificGroupModels.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedTQRF.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedSVM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedBP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedMars.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedKNN.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedGBM.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MedMultiClass.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedAlgo.cpp">

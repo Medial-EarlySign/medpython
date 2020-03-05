@@ -1,6 +1,7 @@
 #include "tree_shap.h"
 #include <omp.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
+#include <MedAlgo/MedAlgo/MedLM.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -2433,7 +2434,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		}
 
 		// Generate random masks
-		MedMat<float> train(trainIdx2grp.size(), n);
+		MedMat<float> train((int)trainIdx2grp.size(), n);
 		vector<float> wgts(n);
 		vector<vector<bool>> masks(n, vector<bool>(nftrs));
 
@@ -2670,7 +2671,7 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 			for (size_t igrp = 0; igrp < alphas[isample].size(); igrp++) {
 				if (!forced[isample][igrp] && fabs(alphas[isample][igrp]) >= max_abs_alpha) {
 					max_abs_alpha = fabs(alphas[isample][igrp]);
-					opt_grp = igrp;
+					opt_grp = (int)igrp;
 				}
 			}
 			forced[isample][opt_grp] = 1;

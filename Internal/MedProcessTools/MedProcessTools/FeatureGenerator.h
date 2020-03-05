@@ -9,6 +9,7 @@
 #include <MedProcessTools/MedProcessTools/MedModelExceptions.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedLM.h>
 #include <cfloat>
 #include <boost/regex.hpp>
 

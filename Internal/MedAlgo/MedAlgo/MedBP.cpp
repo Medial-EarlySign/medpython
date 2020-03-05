@@ -1,6 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include "MedUtils/MedUtils/MedGlobalRNG.h"
-#include "MedAlgo.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedBP.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
