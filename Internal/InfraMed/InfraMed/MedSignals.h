@@ -704,10 +704,10 @@ public:
 	int n_time_channels;
 	int n_val_channels;
 	int virtual_sig = 0; // flag to tell if the signal was defined in the signals files OR if it was defined as a virtual signal
-	int is_categorical_per_val_channel[5] = { 0, 0, 0, 0, 0 }; // when 1, channel doens't hold numerical values but rather pointers to a dict
-	string unit_of_measurement_per_val_channel[5] = { "", "", "", "", "" };
+	std::array<int, GENERIC_SIG_VEC_MAX_CHANNELS> is_categorical_per_val_channel ; // when 1, channel doens't hold numerical values but rather pointers to a dict
+	std::array<string, GENERIC_SIG_VEC_MAX_CHANNELS> unit_of_measurement_per_val_channel;
 
-	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0); val_channel_offsets.fill(0); };
+	SignalInfo() { fno = -1; time_channel_types.fill(0); val_channel_types.fill(0); time_channel_offsets.fill(0); val_channel_offsets.fill(0); is_categorical_per_val_channel.fill(0); unit_of_measurement_per_val_channel.fill(""); };
 
 	void set_gsv_spec(const string &gsv_spec_str);
 
