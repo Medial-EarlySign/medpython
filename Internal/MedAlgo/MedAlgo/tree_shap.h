@@ -182,7 +182,8 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 * Iterative calling to Shapley
 */
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
-	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose, vector<string>& names);
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose, 
+	vector<string>& names, int iteration_cnt);
 
 namespace medial {
 	namespace shapley {
@@ -248,7 +249,7 @@ namespace medial {
 		/// \brief Shapley Lime with generator working iteratively
 		void get_iterative_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 			SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
-			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, vector<vector<float>>& alphas);
+			void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, int iteration_cnt, vector<vector<float>>& alphas);
 	}
 }
 

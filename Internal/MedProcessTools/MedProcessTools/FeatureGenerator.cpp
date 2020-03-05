@@ -912,6 +912,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
 	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th) + ((sets.size() > 0) ? "_" + sets[0] : "");; break;
+	case FTR_RANGE_TIME_DIFF_START: name += "time_diff_start" + ((sets.size() > 0) ? sets[0] : ""); break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -973,7 +974,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || conditional_channel>=0) {
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel>=0) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			dict.prep_sets_lookup_table(section_id, sets, lut);
@@ -985,7 +986,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 }
 
 void RangeFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || conditional_channel>=0)
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel>=0)
 		signal_categories_in_use[signalName] = sets;
 }
 
@@ -1020,6 +1021,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "recurrence_count")		return FTR_RANGE_RECURRENCE_COUNT;
 	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
 	if (name == "last_nth_time_len")		return FTR_RANGE_LAST_NTH_TIME_LENGTH;
+	if (name == "time_diff_start")  return FTR_RANGE_TIME_DIFF_START;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -1067,6 +1069,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_RECURRENCE_COUNT: return uget_range_recurrence_count(rec.usv, updated_win_from, updated_win_to, time);
 	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: return uget_range_last_nth_time_len(rec.usv, win_from, win_to, time);
+	case FTR_RANGE_TIME_DIFF_START: 	return uget_range_time_diff_start(rec.usv, updated_win_from, updated_win_to, time);
 
 
 	default:	return missing_val;
@@ -1475,7 +1478,7 @@ float BasicFeatGenerator::uget_category_set_first_time(PidDynamicRec &rec, Unive
 		if (itime > max_time) return missing_val; // passed window
 		if (lut[(int)usv.Val(i, val_channel)]) {// what we look for
 			if (itime >= min_time) {
-				diff = (float)med_time_converter.convert_times(MedTime::Date, MedTime::Days, max_time) - med_time_converter.convert_times(MedTime::Date, MedTime::Days, itime);
+				diff = (float)time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, itime);
 				return diff; // inside window
 			}
 		}
@@ -1552,11 +1555,17 @@ float BasicFeatGenerator::uget_nsamples(UniversalSigVec &usv, int time, int _win
 		return 0;
 	int min_time, max_time;
 	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time, min_time, max_time, bound_outcomeTime, outcomeTime);
-	int i, j;
-	for (i = usv.len - 1; i >= 0 && usv.Time(i, time_channel) > max_time; i--);
-	for (j = 0; j < usv.len && usv.Time(j, time_channel) < min_time; j++);
-	if (i >= 0 && j < usv.len && usv.Time(i, time_channel) <= max_time && usv.Time(j, time_channel) >= min_time) return (float)i - j + 1;
-	return 0;
+	float jVal;
+	int jTime;
+	int count_samples = 0;
+	for (int j = 0; j < usv.len; ++j) {
+		jTime = usv.Time(j, time_channel);
+		if (jTime < min_time) { continue; }
+		if (jTime > max_time) { break; }
+		jVal = usv.Val(j, val_channel);
+		if (jVal >= min_value && jVal <= max_value) { count_samples++; }
+	}
+	return (float)count_samples;
 }
 
 //.......................................................................................
@@ -1775,6 +1784,27 @@ float RangeFeatGenerator::uget_range_time_diff(UniversalSigVec &usv, int updated
 }
 
 //.......................................................................................
+
+float RangeFeatGenerator::uget_range_time_diff_start(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(updated_win_from, updated_win_to, time_unit_win, time_unit_sig, time, min_time, max_time, false);
+
+	float time_diff = missing_val;
+	for (int i = 0; i < usv.len; i++) {
+		int fromTime = usv.Time(i, 0);
+		if (fromTime > max_time)
+			break;
+		if (fromTime < min_time)
+			continue;
+		else if (lut[(int)usv.Val(i, val_channel)]) {
+			time_diff = (float)time - med_time_converter.convert_times(MedTime::Date, MedTime::Days, fromTime);
+		}
+	}
+	return time_diff;
+}
+
+//.......................................................................................
 // get the number of samples in [win_to, win_from] before time that occur within recurrence_delta of the last sample
 float RangeFeatGenerator::uget_range_recurrence_count(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
 {
@@ -1904,6 +1934,7 @@ int TimeFeatGenerator::init(map<string, string>& mapper) {
 				return -1;
 			}
 		}
+		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_bins") time_bins_string = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for TimeFeatGenerator\n", field.c_str());
@@ -2133,6 +2164,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "times") {

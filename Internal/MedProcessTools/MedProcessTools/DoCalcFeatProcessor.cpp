@@ -149,6 +149,12 @@ int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 		do_boolean_condition(p_sources, p_out, samples_size);
 	else if (calc_type == "or")
 		do_boolean_condition(p_sources, p_out, samples_size);
+	else if (calc_type == "and_ignore_missing")
+		do_boolean_condition_ignore_missing(p_sources, p_out, samples_size);
+	else if (calc_type == "or_ignore_missing")
+		do_boolean_condition_ignore_missing(p_sources, p_out, samples_size);
+	else if (calc_type == "not")
+		do_not(p_sources, p_out, samples_size);
 	else
 		MTHROW_AND_ERR("CalcFeatGenerator got an unknown calc_type: [%s]", calc_type.c_str());
 
@@ -297,6 +303,54 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 		}
 	}
 	else MTHROW_AND_ERR("do_boolean_condition expects the first parameter to be one of [and,or], got [%s]\n", calc_type.c_str());
+	return;
+}
+
+void DoCalcFeatProcessor::do_boolean_condition_ignore_missing(vector<float*> p_sources, float *p_out, int n_samples) {
+	MLOG("DoCalcFeatProcessor::do_boolean_condition_ignore_missing start\n");
+	if (p_sources.size() < 1)
+		MTHROW_AND_ERR("[%s] expects at least 1 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
+
+	if (calc_type == "and_ignore_missing") {
+		for (int i = 0; i < n_samples; i++) {
+			int res = 1;
+			for (int j = 0; j < p_sources.size(); j++) {
+				if (p_sources[j][i] != missing_value) {
+					res &= (p_sources[j][i] != 0.0);
+				}
+			}
+
+			p_out[i] = (float)res;
+		}
+	}
+	else if (calc_type == "or_ignore_missing") {
+		for (int i = 0; i < n_samples; i++) {
+			int res = 0;
+			for (int j = 0; j < p_sources.size(); j++) {
+				if (p_sources[j][i] != missing_value) {
+					res |= (p_sources[j][i] != 0.0);
+				}
+			}
+			p_out[i] = (float)res;
+		}
+	}
+	else MTHROW_AND_ERR("do_boolean_condition_ignore_missing expects the first parameter to be one of [and_ignore_missing,or_ignore_missing], got [%s]\n", calc_type.c_str());
+	return;
+}
+
+void DoCalcFeatProcessor::do_not(vector<float*> p_sources, float *p_out, int n_samples) {
+	MLOG("DoCalcFeatProcessor::do_not start\n");
+	if (p_sources.size() != 1)
+		MTHROW_AND_ERR("do_not expects 1 source_feature_names, got [%d]\n", (int)p_sources.size());
+	float *p = p_sources[0];
+
+	for (int i = 0; i < n_samples; i++) {
+		if (p[i] == missing_value)
+			p_out[i] = missing_value;
+		else
+			p_out[i] = (p[i] == 0.0);
+	}
+	MLOG("DoCalcFeatProcessor::do_not end\n");
 	return;
 }
 

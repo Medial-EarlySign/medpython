@@ -101,6 +101,7 @@
     <ClCompile Include="MedProcessWrappers.cpp" />
     <ClCompile Include="MedSamples.cpp" />
     <ClCompile Include="MedValueCleaner.cpp" />
+    <ClCompile Include="MultiplierProcessor.cpp" />
     <ClCompile Include="PanelCompleter.cpp" />
     <ClCompile Include="PostProcessor.cpp" />
     <ClCompile Include="PredictorImputer.cpp" />
