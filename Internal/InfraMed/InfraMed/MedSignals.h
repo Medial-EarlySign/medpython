@@ -18,7 +18,7 @@
 using namespace std;
 
 #define N_SignalTypes
-#define GENERIC_SIG_VEC_MAX_CHANNELS 10
+#define GENERIC_SIG_VEC_MAX_CHANNELS 30
 
 
 #ifndef USE_LEGACY_USV
