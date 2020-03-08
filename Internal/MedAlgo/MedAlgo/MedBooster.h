@@ -7,7 +7,7 @@
 #ifndef __MEDBOOSTER__H__
 #define __MEDBOOSTER__H__
 
-//#include "MedAlgo.h"
+#include "MedAlgo.h"
 
 //============================================================================================================
 // currently parameters should be initialized from a string

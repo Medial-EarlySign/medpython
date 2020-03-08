@@ -9,6 +9,7 @@
 #include <omp.h>
 #include <boost/regex.hpp>
 #include "MedStat/MedStat/MedBootstrap.h"
+#include <MedAlgo/MedAlgo/MedGDLM.h>
 
 //=======================================================================================
 // FeatureSelector

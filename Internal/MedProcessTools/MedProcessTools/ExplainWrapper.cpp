@@ -8,6 +8,7 @@
 #include <MedStat/MedStat/MedStat.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
 #include <MedAlgo/MedAlgo/MedLightGBM.h>
+#include <MedAlgo/MedAlgo/MedQRF.h>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>

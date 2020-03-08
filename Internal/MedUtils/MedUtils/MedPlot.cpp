@@ -477,7 +477,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	vector<map<float, float>> allData;
 	vector<map<float, float>> allPPV;
 	vector<map<float, float>> allSensPPV;
-	vector<map<float, float>> allSensPR, allPRPPV, allPRSens;
+	vector<map<float, float>> allSensPR, allPRPPV, allPRSens , allLiftScr;
 	vector<double> auc((int)all_preds.size());
 	vector<float> empty_vec;
 	map<float, float> ref_graph;
@@ -494,6 +494,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		map<float, float> xy;
 		map<float, float> sens_ppv, sens_pr;
 		map<float, float> pr_ppv, pr_sens;
+		map<float, float> lift_by_score;
+		float epsilon = (float)1e-8;
 		for (size_t k = 0; k < true_rate.size(); ++k)
 		{
 			false_true[100 * false_rate[k]] = 100 * true_rate[k];
@@ -507,6 +509,22 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 			float rounded_pr = (float)((int)(1000 * pr[k])) / 10;
 			pr_ppv[rounded_pr] = 100 * ppv[k];
 			pr_sens[rounded_pr] = 100 * true_rate[k];
+
+			float rounded_score = (float)((int)(10000.0f*pred_threshold[k])) / 10000.0f;
+			lift_by_score[rounded_score] = ppv[k] / (ppv[0] + epsilon);
+
+/*
+			if (ppv[k] < (1.0f-epsilon) && (pr[k] < (1.0f-epsilon)) && (true_rate[k] > epsilon)) {
+				float ppos = (ppv[k]*pr[k]*(1.0f/true_rate[k] - 1.0f))/(1.0 - pr[k]);
+				if (ppos > epsilon && ppos < (1.0f - epsilon)) {
+					float ods_nom = ppv[k] / (1.0f - ppv[k]);
+					float ods_denom = ppos / (1.0f - ppos);
+					float rounded_score = (float)((int)(10000.0f*pred_threshold[k])) / 10000.0f;
+
+					ods_r_score[rounded_score] = ppos; // ppv[k]; // ods_nom / ods_denom;
+				}
+			}
+*/
 		}
 		auc[i] = false_rate.back() * true_rate.back() / 2; //"auc" - saved in reversed order from smallest score to highest score)
 		for (int k = (int)true_rate.size() - 1; k > 0; --k)
@@ -526,6 +544,8 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 		allSensPR.push_back(sens_pr);
 		allPRPPV.push_back(pr_ppv);
 		allPRSens.push_back(pr_sens);
+		//allORScr.push_back(ods_r_score);
+		allLiftScr.push_back(lift_by_score);
 		vector<map<float, float>> model_false_scores;
 		down_sample_graph(th_false);
 		model_false_scores.push_back(th_false);
@@ -551,6 +571,7 @@ void plotAUC(const vector<vector<float>> &all_preds, const vector<vector<float>>
 	createHtmlGraph(baseOut + path_sep() + "SensPR.html", allSensPR, "PR by Sensitivity", "Sensitivity", "Positivity Rate", data_titles);
 	createHtmlGraph(baseOut + path_sep() + "PRPPV.html", allPRPPV, "PPV by PR", "PR", "Positive Predictive Value", data_titles);
 	createHtmlGraph(baseOut + path_sep() + "PRSens.html", allPRSens, "Sensitivity by PR", "PR", "Sensitivity", data_titles);
+	createHtmlGraph(baseOut + path_sep() + "ORScr.html", allLiftScr, "OR by score", "Score", "Lift", data_titles);
 
 
 	if (print_y)
