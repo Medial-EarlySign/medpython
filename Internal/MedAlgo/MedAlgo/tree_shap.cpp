@@ -1580,13 +1580,12 @@ void get_weights(const TreeEnsemble& tree, int node_index, unsigned *sets) {
 
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
 	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose,
-	vector<string>& names, int iteration_cnt) {
+	vector<string>& names, const MedMat<float>& abs_cov_mat, int iteration_cnt) {
 
 	// Currently - limited applicabilty to main use-case
 	if (feature_dependence != FEATURE_DEPENDENCE::tree_path_dependent || interactions) {
 		MTHROW_AND_ERR("Currently iterations implemented only for FEATURE_DEPENDENCE::tree_path_dependent without interatctions \n");
 	}
-
 
 	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
 	// build explanation for each sample
@@ -1603,12 +1602,12 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		unsigned int max_iters = data.num_Exp;
 		if (iteration_cnt > 0 && iteration_cnt < max_iters)
 			max_iters = (unsigned int)iteration_cnt;
-		vector<tfloat> last_instance_contribs;
+		MedMat<tfloat> last_instance_contribs(data.num_Exp,1);
 		tfloat last_bias = 0;
 		for (unsigned k = 0; k < max_iters; k++) {
 			// aggregate the effect of explaining each tree
 			// (this works because of the linearity property of Shapley values)
-			vector<tfloat> instance_temp_contrib(data.num_Exp + 1);
+			MedMat<tfloat> instance_temp_contrib(data.num_Exp+1,1);
 			for (unsigned j = 0; j < trees.tree_limit; ++j) {
 				trees.get_tree(tree, j);
 
@@ -1617,21 +1616,31 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				tree.create_adjusted_tree(instance, mask.data(), feature_sets, adjusted_tree);
 
 				// Get conditioned SHAP values
-				tree_shap(adjusted_tree, instance, instance_temp_contrib.data(), 0, 0, feature_sets);
+				tree_shap(adjusted_tree, instance, instance_temp_contrib.data_ptr(), 0, 0, feature_sets);
 
 				adjusted_tree.free();
 			}
 
 			// Bias
+			float bias = instance_temp_contrib(data.num_Exp,0);
+			instance_temp_contrib.resize(data.num_Exp, 1);
+
 			if (k == 0)
-				instance_out_contribs[data.num_Exp] = instance_temp_contrib[data.num_Exp];
+				instance_out_contribs[data.num_Exp] = bias;
+			
+			// Add covariance correction
+			MedMat<float> fixed_contrib(data.num_Exp,1);
+			if (abs_cov_mat.nrows)
+				fast_multiply_medmat(abs_cov_mat, instance_temp_contrib, fixed_contrib, (float)1.0);
+			else
+				fixed_contrib = instance_temp_contrib;
 
 			// Find main contributer
 			int max_idx = 0;
-			tfloat max_cont = fabs(instance_temp_contrib[0]);
+			tfloat max_cont = fabs(fixed_contrib(0,0));
 			for (int j = 1; j < data.num_Exp; j++) {
-				if ((!mask[j]) && fabs(instance_temp_contrib[j]) > max_cont) {
-					max_cont = fabs(instance_temp_contrib[j]);
+				if ((!mask[j]) && fabs(fixed_contrib(j,0)) > max_cont) {
+					max_cont = fabs(fixed_contrib(j,0));
 					max_idx = j;
 				}
 			}
@@ -1645,25 +1654,26 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				}
 				for (size_t ii = 0; ii < mask.size(); ii++) {
 					if (mask[ii] == 0)
-						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), instance_temp_contrib[ii]);
+						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), fixed_contrib(0,ii));
 				}
 			}
 
-			instance_out_contribs[max_idx] = instance_temp_contrib[max_idx];
+			instance_out_contribs[max_idx] = fixed_contrib(max_idx,0);
 			mask[max_idx] = 1;
 
 			if (k == max_iters - 1) { //if last iteration 
 				if (iteration_cnt > 0)
-					last_instance_contribs = move(instance_temp_contrib);
+					last_instance_contribs = fixed_contrib;
 				else
-					last_bias = instance_temp_contrib.back();
+					last_bias = bias;
 			}
 		}
+
 		//copy tail contributions of not masked:
 		if (iteration_cnt > 0) {
 			for (size_t k = 0; k < last_instance_contribs.size(); ++k)
 				if (k >= mask.size() || !mask[k]) //last is bias
-					instance_out_contribs[k] = last_instance_contribs[k];
+					instance_out_contribs[k] = last_instance_contribs(k,0);
 		}
 		else //copy only bias
 			instance_out_contribs[data.num_Exp * trees.num_outputs] = last_bias;
@@ -2675,7 +2685,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 // Iterative Shapley_lime
 void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
-	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, int iteration_cnt, vector<vector<float>>& alphas) {
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, const MedMat<float>& abs_cov_mat, int iteration_cnt, vector<vector<float>>& alphas) {
 
 	// forced = groups that are forced to be 'ON'
 	vector<vector<int>> forced(data.samples.size(), vector<int>(group2index.size(), 0));
@@ -2684,21 +2694,43 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 	int stop_iter = (int)group2index.size() - 1;
 	if (iteration_cnt > 0 && iteration_cnt < stop_iter)
 		stop_iter = iteration_cnt;
+
+	alphas.resize(data.samples.size());
+	for (size_t i=0; i<alphas.size(); i++)
+		alphas[i].resize(group2index.size());
+
 	for (size_t i = 0; i < stop_iter; i++) {
-		MLOG("Working with %d forced\n", i);
+		MLOG("Working with %d/%d forced\n", i+1, stop_iter);
+		
 		// Get Shapley Values
-		get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, alphas);
+		vector<vector<float>> temp_alphas;
+		get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, temp_alphas);
 
 		// Find optimal NEW alpha per sample
-		for (size_t isample = 0; isample < alphas.size(); isample++) {
+		for (size_t isample = 0; isample < temp_alphas.size(); isample++) {
 			int opt_grp = -1;
-			float max_abs_alpha = 0.0;
-			for (size_t igrp = 0; igrp < alphas[isample].size(); igrp++) {
-				if (!forced[isample][igrp] && fabs(alphas[isample][igrp]) >= max_abs_alpha) {
-					max_abs_alpha = fabs(alphas[isample][igrp]);
-					opt_grp = (int)igrp;
+			float max_contrib = 0.0;
+			for (size_t igrp = 0; igrp < temp_alphas[isample].size(); igrp++) {
+				if (!forced[isample][igrp]) {
+					// Correct for covariance
+					float contrib = 0;
+					if (abs_cov_mat.nrows) {
+						for (size_t jgrp = 0; jgrp < temp_alphas[isample].size(); jgrp++) {
+							if (!forced[isample][jgrp])
+								contrib += temp_alphas[isample][jgrp] * abs_cov_mat(igrp, jgrp);
+						}
+					}
+					else
+						contrib = temp_alphas[isample][igrp];
+
+					if (fabs(contrib) >= fabs(max_contrib)) {
+						max_contrib = contrib;
+						opt_grp = (int)igrp;
+					}
 				}
 			}
+			
+			alphas[isample][opt_grp] = max_contrib;
 			forced[isample][opt_grp] = 1;
 		}
 	}

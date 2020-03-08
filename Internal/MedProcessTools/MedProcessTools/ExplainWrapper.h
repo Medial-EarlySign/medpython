@@ -46,8 +46,8 @@ public:
 	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 	int iteration_cnt = 0; ///< if >0 the maximal number of iterations
 
-	MedMat<float> cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on
-	MedMat<float> abs_cov_features; ///< covariance features for matrix. file path to cov matrix, or learned if learn_cov_matrix is on , absolute values
+	bool postprocessing_cov = false; ///< should covariance correction be done in the postprocessing stage (this is not the case when working iteratively)
+	MedMat<float> abs_cov_features; /// <absolute values of covariance features for matrix.either read from file (and then apply absolute value), or learn if learn_cov_matrix is on , 
 
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
 	vector<vector<int>> group2Inds;
@@ -75,8 +75,8 @@ public:
 		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
-		ADD_SERIALIZATION_FUNCS(group_by_sum, cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0, 
-			iterative, iteration_cnt)
+		ADD_SERIALIZATION_FUNCS(group_by_sum, abs_cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0,
+			iterative, iteration_cnt, postprocessing_cov)
 };
 
 /**
