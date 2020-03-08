@@ -1,7 +1,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "MedAlgo.h"
-#include "QRF/QRF/QRF.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedQRF.h>
+#include <QRF/QRF/QRF.h>
 
 
 #define LOCAL_SECTION LOG_MEDALGO

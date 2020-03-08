@@ -2,14 +2,27 @@
 // MedAlgo - unified wrappers for prediction algorithms
 //
 
-#include "MedAlgo.h"
-#include "MedXGB.h"
-#include "MedDeepBit.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedLM.h>
+#include <MedAlgo/MedAlgo/MedGDLM.h>
+#include <MedAlgo/MedAlgo/MedQRF.h>
+#include <MedAlgo/MedAlgo/MedXGB.h>
+#include <MedAlgo/MedAlgo/MedDeepBit.h>
 #include "MedProcessTools/MedProcessTools/MedFeatures.h"
-#include "MedLightGBM.h"
-#include "MedLinearModel.h"
-#include "MedBART.h"
-#include "ExternalNN.h"
+#include <MedAlgo/MedAlgo/MedLightGBM.h>
+#include <MedAlgo/MedAlgo/MedLinearModel.h>
+#include <MedAlgo/MedAlgo/MedBART.h>
+#include <MedAlgo/MedAlgo/ExternalNN.h>
+#include <MedAlgo/MedAlgo/MedMicNet.h>
+#include <MedAlgo/MedAlgo/MedBooster.h>
+#include <MedAlgo/MedAlgo/MedSpecificGroupModels.h>
+#include <MedAlgo/MedAlgo/MedTQRF.h>
+#include <MedAlgo/MedAlgo/MedSVM.h>
+#include <MedAlgo/MedAlgo/MedBP.h>
+#include <MedAlgo/MedAlgo/MedMars.h>
+#include <MedAlgo/MedAlgo/MedKNN.h>
+#include <MedAlgo/MedAlgo/MedGBM.h>
+#include <MedAlgo/MedAlgo/MedMultiClass.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <External/Eigen/Core>
 #include <cmath>

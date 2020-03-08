@@ -35,6 +35,7 @@ typedef enum {
 	FTR_PROCESS_ONE_HOT, ///< make one-hot features from a given feature
 	FTR_PROCESS_GET_PROB, ///< replace categorical feature with probability of outcome in training set
 	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
+	FTR_PROCESS_MULTIPLIER, ///<"multiplier" to create MultiplierProcessor - to multiply feature by other feature
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -1054,7 +1055,33 @@ public:
 
 };
 
+class MultiplierProcessor : public FeatureProcessor {
+public: 
+	vector<string> selected_tags; ///< the selected tags to activeate on
+	string multiplier_name; ///< the name of the feature to multiply by
+	bool divide; ///< if true will divide instead of multiply
+	bool verbose;
 
+	MultiplierProcessor() : FeatureProcessor() { init_defaults(); }
+
+	/// The parsed fields from init command.
+	/// @snippet MultiplierProcessor.cpp MultiplierProcessor::init
+	int init(map<string, string>& mapper);
+	void init_defaults() { multiplier_name = ""; divide = false; verbose = true; processor_type = FTR_PROCESS_MULTIPLIER; };
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<MultiplierProcessor *>(processor)); }
+
+	//print function
+	void dprint(const string &pref, int fp_flag);
+
+	// Serialization
+	ADD_CLASS_NAME(MultiplierProcessor)
+		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, multiplier_name, divide, verbose)
+private:
+	// Apply multiplier
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+};
 
 
 //=======================================
@@ -1080,4 +1107,5 @@ MEDSERIALIZE_SUPPORT(ImportanceFeatureSelector)
 MEDSERIALIZE_SUPPORT(IterativeFeatureSelector)
 MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
 MEDSERIALIZE_SUPPORT(univariateSelectionParams)
+MEDSERIALIZE_SUPPORT(MultiplierProcessor)
 #endif

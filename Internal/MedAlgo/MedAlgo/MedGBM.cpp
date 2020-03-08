@@ -4,8 +4,9 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "MedAlgo.h"
-#include "gbm/gbm/gbm_utils.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <gbm/gbm/gbm_utils.h>
+#include <MedAlgo/MedAlgo/MedGBM.h>
 
 
 #define LOCAL_SECTION LOG_MEDALGO

@@ -3,7 +3,8 @@
 #include <algorithm>
 #include "MedUtils/MedUtils/MedUtils.h"
 #include "MedStat/MedStat/bootstrap.h"
-#include "MedAlgo.h"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedQRF.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL	LOG_DEF_LEVEL

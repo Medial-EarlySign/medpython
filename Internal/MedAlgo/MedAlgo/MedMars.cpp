@@ -4,8 +4,9 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-#include "MedAlgo.h"
-#include "Mars/Mars/earth.hpp"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedMars.h>
+#include <Mars/Mars/earth.hpp>
 #include <MedUtils/MedUtils/MedGenUtils.h>
 
 #define LOCAL_SECTION LOG_MEDALGO

@@ -4,7 +4,7 @@
 // A general wrapper allowing several boosting strategies for predictors.
 //
 
-#include "MedAlgo.h"
+#include "MedBooster.h"
 
 #include "Logger/Logger/Logger.h"
 #define LOCAL_SECTION LOG_MEDALGO

@@ -126,6 +126,7 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 		else if (it->first == "generate_with_counts")
 			generate_with_counts = med_stoi(it->second) > 0;
 		else if (it->first == "fg_type") {}
+		else if (it->first == "tags") { boost::split(tags, it->second, boost::is_any_of(",")); }
 		else
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for CategoryDependencyGenerator\n", it->first.c_str())
 			//! [CategoryDependencyGenerator::init]

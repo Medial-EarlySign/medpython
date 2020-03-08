@@ -1,9 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include <thread>
-#include "MedAlgo.h"
-#include "External/Eigen/Core"
-#include "External/Eigen/Dense"
+#include <MedAlgo/MedAlgo/MedAlgo.h>
+#include <MedAlgo/MedAlgo/MedGDLM.h>
+#include <External/Eigen/Core>
+#include <External/Eigen/Dense>
 #include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 #define LOCAL_SECTION LOG_MEDALGO

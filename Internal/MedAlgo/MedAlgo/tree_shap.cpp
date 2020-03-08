@@ -1,6 +1,7 @@
 #include "tree_shap.h"
 #include <omp.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
+#include <MedAlgo/MedAlgo/MedLM.h>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
