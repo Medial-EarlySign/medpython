@@ -2306,8 +2306,9 @@ void preprocess_bin_scores(vector<float> &preds, Measurement_Params *function_pa
 			sizes.insert((int)thresholds_indexes[*it].size());
 		}
 
-		while ((params.score_bins > 0 && bin_size_last > params.score_bins)
-			|| (params.score_min_samples > 0 && *sizes.begin() < params.score_min_samples)) {
+		while (((params.score_bins > 0 && bin_size_last > params.score_bins)
+			|| (params.score_min_samples > 0 && *sizes.begin() < params.score_min_samples)) &&
+			bin_size_last > 1) {
 			min_size = *sizes.begin();
 			if (size_to_ind[min_size].empty())
 				MTHROW_AND_ERR("Bug couldn't found min_size=%d\n", min_size);
