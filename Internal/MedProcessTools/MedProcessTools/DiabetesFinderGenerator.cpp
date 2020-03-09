@@ -108,25 +108,19 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& dm_events, int calc
 // Generate
 //.......................................................................................
 int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
-	MLOG("DF: _generate\n");
-
 
 	vector<DiabetesEvent> dm_events;
 	UniversalSigVec usv;
-	MLOG("DF: _generate : uget glucose\n");
+
 	rec.uget(dm_glucose_sig, 0, usv);
 	for (int i = 0; i < usv.len; ++i) {
 		dm_events.push_back(DiabetesEvent(DFG_DIABETES_EVENT_GLUCOSE, usv.Time(i), usv.Val(i)));
 	}
 
-	MLOG("DF: _generate : uget hba1c\n");
-
 	rec.uget(dm_hba1c_sig, 0, usv);
 	for (int i = 0; i < usv.len; ++i) {
 		dm_events.push_back(DiabetesEvent(DFG_DIABETES_EVENT_HBA1C, usv.Time(i), usv.Val(i)));
 	}
-
-	MLOG("DF: _generate : uget drug\n");
 
 	rec.uget(dm_drug_sig, 0, usv);
 	for (int i = 0; i < usv.len; ++i) {
@@ -139,8 +133,6 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		}
 	}
 	
-	MLOG("DF: _generate : uget diagnosis\n");
-
 	rec.uget(dm_diagnosis_sig, 0, usv);
 	for (int i = 0; i < usv.len; ++i) {
 		int i_val = usv.Val<int>(i);
@@ -151,8 +143,6 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		}
 	}
 
-	MLOG("DF: _generate : sort\n");
-
 	// sorting events
 	sort(dm_events.begin(), dm_events.end(), [](const DiabetesEvent &v1, const DiabetesEvent &v2) { return v1.time < v2.time; });
 
@@ -161,13 +151,11 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 	for (int i = 0; i < num; i++)
 		p_feat[i] = 0;
 
-	MLOG("DF: _generate : set preds and reasons\n");
-
 	for (int i = 0; i < num; i++) {
 		int s_time = features.samples[index + i].time;
 		json json_out;
 		features.samples[index + i].prediction.push_back(_resolve(dm_events, s_time, json_out));
-		features.samples[index + i].str_attributes["Reasons"] = json_out.dump();
+		features.samples[index + i].str_attributes["Explanations"] = json_out.dump();
 	}
 
 /*
@@ -463,7 +451,6 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 // Init
 //.......................................................................................
 int DiabetesFinderGenerator::init(map<string, string>& mapper) {
-	MLOG("DF: init\n");
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
@@ -499,7 +486,6 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 }
 
 void DiabetesFinderGenerator::init_tables(MedDictionarySections& dict) {
-	MLOG("DF: init_tables\n");
 	if (dm_drug_lut.size() == 0) {
 		dict.prep_sets_indexed_lookup_table(dict.section_id(dm_drug_sig), dm_drug_sets, dm_drug_lut);
 	}
@@ -511,6 +497,6 @@ void DiabetesFinderGenerator::init_tables(MedDictionarySections& dict) {
 }
 
 void DiabetesFinderGenerator::init_defaults() {
-	MLOG("DF: init_defaults\n");
+
 }
 
