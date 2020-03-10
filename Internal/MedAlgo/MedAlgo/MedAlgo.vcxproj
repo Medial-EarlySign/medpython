@@ -137,6 +137,7 @@
     <ClCompile Include="PredictiveModel.cpp" />
     <ClCompile Include="SamplesGenerator.cpp" />
     <ClCompile Include="SGD.cpp" />
+    <ClCompile Include="SimpleEnsemble.cpp" />
     <ClCompile Include="svm.cpp" />
     <ClCompile Include="tree_shap.cpp" />
   </ItemGroup>

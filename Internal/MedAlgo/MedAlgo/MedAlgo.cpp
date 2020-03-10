@@ -13,6 +13,7 @@
 #include <MedAlgo/MedAlgo/MedLinearModel.h>
 #include <MedAlgo/MedAlgo/MedBART.h>
 #include <MedAlgo/MedAlgo/ExternalNN.h>
+#include <MedAlgo/MedAlgo/SimpleEnsemble.h>
 #include <MedAlgo/MedAlgo/MedMicNet.h>
 #include <MedAlgo/MedAlgo/MedBooster.h>
 #include <MedAlgo/MedAlgo/MedSpecificGroupModels.h>
@@ -59,7 +60,8 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_VW, "vw" },
 	{ MODEL_TQRF, "tqrf"},
 	{ MODEL_BART, "bart" },
-	{ MODEL_EXTERNAL_NN, "external_nn"}
+	{ MODEL_EXTERNAL_NN, "external_nn" },
+	{ MODEL_SIMPLE_ENSEMBLE, "simple_ensemble" },
 };
 //=======================================================================================
 // MedPredictor
@@ -110,6 +112,7 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedBART);
 	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
 	CONDITIONAL_NEW_CLASS(dname, MedExternalNN);
+	CONDITIONAL_NEW_CLASS(dname, MedSimpleEnsemble);
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif
@@ -160,6 +163,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedLinearModel;
 	else if (model_type == MODEL_EXTERNAL_NN)
 		return new MedExternalNN;
+	else if (model_type == MODEL_SIMPLE_ENSEMBLE)
+		return new MedSimpleEnsemble;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;
@@ -171,6 +176,7 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type, string init_string) {
 
 	MedPredictor *newPred = make_predictor(model_type);
+	MLOG("MedPredictor: making predictor %d with params %s\n", model_type, init_string.c_str());
 	newPred->init_from_string(init_string);
 
 	return newPred;
@@ -227,6 +233,7 @@ int MedPredictor::init_from_string(string text) {
 
 int MedPredictor::init(map<string, string>& mapper) {
 	init_defaults();
+
 	return set_params(mapper);
 }
 

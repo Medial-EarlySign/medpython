@@ -64,6 +64,7 @@ typedef enum {
 	MODEL_TQRF = 18, ///< to_use:"tqrf" TQRF model
 	MODEL_BART = 19, ///< to_use:"bart" MedBART model using BART
 	MODEL_EXTERNAL_NN = 20, ///< to_use: "external_nn" , initialize a neural net using a layers file
+	MODEL_SIMPLE_ENSEMBLE = 21, ///< to_use: "simple_ensemble" , give 1 or more models to train, and ensemble them with given weights from the user.
 	MODEL_LAST
 } MedPredictorTypes;
 
@@ -101,7 +102,7 @@ public:
 	virtual int init(void *classifier_params) { return 0; };
 	int init_from_string(string initialization_text);
 	virtual int init(map<string, string>& mapper);
-	virtual int set_params(map<string, string>& mapper) { return 0; };
+	virtual int set_params(map<string, string>& mapper) { fprintf(stderr, "????? Using the base class set_params() ?????\n"); fflush(stderr); return 0; };
 	virtual void init_defaults() {};
 
 
@@ -133,7 +134,7 @@ public:
 
 	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
 	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
-	int learn(MedMat<float> &x, MedMat<float> &y, const vector<float> &wgts);
+	virtual int learn(MedMat<float> &x, MedMat<float> &y, const vector<float> &wgts);
 	/// MedMat x,y : will transpose/normalize x,y if needed by algorithm
 	/// The convention is that untransposed mats are always samples x features, and transposed are features x samples
 	int learn(MedMat<float> &x, MedMat<float> &y) { vector<float> w; return(learn(x, y, w)); }
@@ -149,13 +150,13 @@ public:
 	int learn(vector<float> &x, vector<float> &y, int n_samples, int n_ftrs) { vector<float> w; return learn(x, y, w, n_samples, n_ftrs); }
 
 	// simple c++ style predict
-	int predict(MedMat<float> &x, vector<float> &preds) const;
+	virtual int predict(MedMat<float> &x, vector<float> &preds) const;
 	int predict(vector<float> &x, vector<float> &preds, int n_samples, int n_ftrs) const;
 	int threaded_predict(MedMat<float> &x, vector<float> &preds, int nthreads) const;
 
 	int learn(const MedFeatures& features);
 	int learn(const MedFeatures& features, vector<string>& names);
-	int predict(MedFeatures& features) const;
+	virtual int predict(MedFeatures& features) const;
 
 	///Feature Importance - assume called after learn
 	virtual void calc_feature_importance(vector<float> &features_importance_scores,
