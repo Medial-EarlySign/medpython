@@ -815,6 +815,7 @@ template <class T> template <class S> void MedMat<T>::normalize (const vector<S>
 	}
 }
 
+//..............................................................................................................................
 template <class T> void MedMat<T>::print_row(FILE *fout, const string &prefix, const string &format, int i_row)
 {
 	fprintf(fout, "%s :: [%d,:] :", prefix.c_str(),i_row);
@@ -824,6 +825,7 @@ template <class T> void MedMat<T>::print_row(FILE *fout, const string &prefix, c
 }
 
 
+//..............................................................................................................................
 template <class T> void MedMat<T>::set_signals(vector<string> & sigs)
 {
 	signals.clear();
@@ -831,4 +833,68 @@ template <class T> void MedMat<T>::set_signals(vector<string> & sigs)
 	{
 		signals.push_back(sig);
 	}
+}
+
+//..............................................................................................................................
+template <class T> void MedMat<T>::random_split_mat_by_ids(MedMat<T> &mat_0, MedMat<T> &mat_1, float p0, vector<int> &inds0, vector<int> &inds1)
+{
+	if (recordsMetadata.size() != nrows)
+		HMTHROW_AND_ERR("ERROR: MedMat : Can't split a matrix by id with a non matching recordsMetadata (%d records != %d rows)\n", (int)recordsMetadata.size(), (int)nrows);
+
+	// collect ids and randomize the 0 group
+	unordered_set<int> all_ids, ids_0;
+	for (int i = 0; i < nrows; i++)
+		all_ids.insert(recordsMetadata[i].id);
+	for (auto id : all_ids)
+		if (rand_1() < p0)
+			ids_0.insert(id);
+
+	// calculate sizes for matrices
+	mat_0.clear();
+	mat_0.copy_header(*this);
+	mat_1.copy_header(*this);
+	int nrows0 = 0, nrows1 = 0;
+	inds0.clear();
+	inds1.clear();
+	vector<int> assignment(nrows, 0);
+	for (int i = 0; i < nrows; i++) {
+		if (ids_0.find(recordsMetadata[i].id) != ids_0.end()) {
+			nrows0++;
+			inds0.push_back(i);
+		}
+		else {
+			nrows1++;
+			assignment[i] = 1;
+			inds1.push_back(i);
+		}
+	}
+
+	mat_0.nrows = nrows0;
+	mat_0.m.resize(mat_0.nrows*mat_0.ncols);
+	mat_0.recordsMetadata.resize(mat_0.nrows);
+	mat_0.row_ids.resize(mat_0.nrows);
+
+	mat_1.nrows = nrows1;
+	mat_1.m.resize(mat_1.nrows*mat_1.ncols);
+	mat_1.recordsMetadata.resize(mat_1.nrows);
+	mat_1.row_ids.resize(mat_1.nrows);
+
+	int i0 = 0, i1 = 0;
+	for (int i = 0; i < nrows; i++) {
+		if (assignment[i]) {
+			for (int j = 0; j < ncols; j++)
+				mat_1(i1, j) = m[i*ncols + j];
+			mat_1.recordsMetadata[i1] = recordsMetadata[i];
+			mat_1.row_ids[i1] = recordsMetadata[i].id;
+			i1++;
+		}
+		else {
+			for (int j = 0; j < ncols; j++)
+				mat_0(i0, j) = m[i*ncols + j];
+			mat_1.recordsMetadata[i0] = recordsMetadata[i];
+			mat_1.row_ids[i0] = recordsMetadata[i].id;
+			i0++;
+		}
+	}
+
 }

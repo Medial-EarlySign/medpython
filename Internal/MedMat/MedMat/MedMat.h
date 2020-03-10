@@ -22,6 +22,7 @@
 #include <MedIO/MedIO/MedIO.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <MedMat/MedMat/MedMatConstants.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 using namespace std;
 
@@ -98,6 +99,19 @@ public:
 	inline T get(size_t i, size_t j) const { return m[i*ncols + j]; }
 
 	inline T& set(size_t i, size_t j) { return m[i*ncols + j]; }  // use var.set(i,j) = .... 
+
+	inline void copy_header(MedMat<T> &other) {
+		if (this != &other) {
+			nrows = other.nrows;
+			ncols = other.ncols;
+			signals = other.signals;
+			avg = other.avg;
+			std = other.std;
+			normalized_flag = other.normalized_flag;
+			transposed_flag = other.transposed_flag;
+			missing_value = other.missing_value;
+		}
+	}
 
 	inline MedMat<T>& operator=(MedMat<T> &&other) noexcept {
 		if (this != &other) {
@@ -188,6 +202,8 @@ public:
 	void get_sub_mat_by_flags(vector<int> &rows_to_take_flag, vector<int> &cols_to_take_flag);
 	void reorder_by_row(vector<int> &row_order);
 	void reorder_by_col(vector<int> &col_order);
+
+	void random_split_mat_by_ids(MedMat<T> &mat_0, MedMat<T> &mat_1, float p0, vector<int> &inds0, vector<int> &inds1);
 
 	template <class S> void add_rows(MedMat<S> &m_add);
 	template <class S> void add_rows(S *m_add, int nrows_to_add);
