@@ -8,10 +8,10 @@
 */
 class DiabetesFinderGenerator : public FeatureGenerator {
 	// dm related privates
-	int dm_drug_idx = -1; // idx for drug signal in usvs, sig_ids, etc...
-	int dm_diagnoses_idx = -1;
-	int dm_glucose_idx = -1;
-	int dm_hba1c_idx = -1;
+	int df_drug_idx = -1; // idx for drug signal in usvs, sig_ids, etc...
+	int df_diagnoses_idx = -1;
+	int df_glucose_idx = -1;
+	int df_hba1c_idx = -1;
 
 	enum {
 		REASON_RECENT_LABS = 1,
@@ -40,44 +40,47 @@ class DiabetesFinderGenerator : public FeatureGenerator {
 		DiabetesEvent() {};
 		DiabetesEvent(int _type, int _time,  float _val) { time = _time; de_type = _type; val = _val; }
 	};
-	vector<unsigned char> dm_drug_lut;
-	vector<unsigned char> dm_diagnosis_lut;
-	vector<unsigned char> dm_coded_lut;
+	vector<unsigned char> df_drug_lut;
+	vector<unsigned char> df_diagnosis_lut;
+	vector<unsigned char> df_coded_lut;
 
-	int _resolve(vector<DiabetesEvent>& dm_events, int calc_time, json& json_out);
+	int _resolve(vector<DiabetesEvent>& df_events, int calc_time, json& json_out);
 public:
 
-	// dm registry related parameters
-	vector<string> dm_drug_sets = { "ATC_A10_____" };
-	//TODO - Diabetes diagnosis sets?
-	vector<string> dm_coded_sets;
+	bool df_score_is_flag = true;
+	bool df_score_is_bitmask = false;
 
-	vector<string> dm_diagnosis_sets;
-	string dm_diagnosis_sig = "RC";
-	string dm_coded_sig = "RC";
-	string dm_glucose_sig = "Glucose";
-	string dm_hba1c_sig = "HbA1C";
-	string dm_drug_sig = "Drug";
-	int dm_diagnoses_severity = 4; // 3: need supporting evidence as well, 4: single code is enough
-	int dm_bio_mode = 0; // bio mode - takes the FIRST suggestive test for a condition 
+	// dm registry related parameters
+	vector<string> df_drug_sets = { "ATC_A10_____" };
+	//TODO - Diabetes diagnosis sets?
+	vector<string> df_coded_sets;
+
+	vector<string> df_diagnosis_sets;
+	string df_diagnosis_sig = "RC";
+	string df_coded_sig = "RC";
+	string df_glucose_sig = "Glucose";
+	string df_hba1c_sig = "HbA1C";
+	string df_drug_sig = "Drug";
+	int df_diagnoses_severity = 4; // 3: need supporting evidence as well, 4: single code is enough
+	int df_bio_mode = 0; // bio mode - takes the FIRST suggestive test for a condition 
 	
-	int dm_past_event_days = (365)*3;
-	float dm_by_single_glucose = 200.0f;
-	float dm_by_second_glucose = 126.0f;
-	float dm_by_second_hba1c = 6.5f;
-	float dm_by_second_time_delta_days = (365) * 2;
-	float dm_by_second_time_delta = -1;
+	int df_past_event_days = (365)*3;
+	float df_by_single_glucose = 200.0f;
+	float df_by_second_glucose = 126.0f;
+	float df_by_second_hba1c = 6.5f;
+	float df_by_second_time_delta_days = (365) * 2;
+	float df_by_second_time_delta = -1;
 
 	// Constructor/Destructor
 	DiabetesFinderGenerator() : FeatureGenerator() { 
 		generator_type = FTR_GEN_DIABETES_FINDER; 
 		//names.push_back("df"); 
-		req_signals.push_back(dm_glucose_sig);
-		req_signals.push_back(dm_hba1c_sig);
-		req_signals.push_back(dm_drug_sig);
-		req_signals.push_back(dm_diagnosis_sig);
-		if(dm_coded_sig != dm_diagnosis_sig)
-			req_signals.push_back(dm_coded_sig);
+		req_signals.push_back(df_glucose_sig);
+		req_signals.push_back(df_hba1c_sig);
+		req_signals.push_back(df_drug_sig);
+		req_signals.push_back(df_diagnosis_sig);
+		if(df_coded_sig != df_diagnosis_sig)
+			req_signals.push_back(df_coded_sig);
 		init_defaults();
 	};
 	~DiabetesFinderGenerator() {};
@@ -101,8 +104,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(DiabetesFinderGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, req_signals, dm_drug_sets, dm_coded_sets, dm_diagnosis_sets, dm_diagnosis_sig, dm_coded_sig, dm_glucose_sig, 
-			dm_hba1c_sig, dm_drug_sig, dm_past_event_days, dm_by_single_glucose, dm_by_second_glucose, dm_by_second_hba1c, dm_by_second_time_delta_days, dm_by_second_time_delta)
+		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, req_signals, df_drug_sets, df_coded_sets, df_diagnosis_sets, df_diagnosis_sig, df_coded_sig, df_glucose_sig, 
+			df_hba1c_sig, df_drug_sig, df_past_event_days, df_by_single_glucose, df_by_second_glucose, df_by_second_hba1c, df_by_second_time_delta_days, df_by_second_time_delta)
 };
 
 MEDSERIALIZE_SUPPORT(DiabetesFinderGenerator);

@@ -213,7 +213,7 @@ int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSamp
 	AMResponses *resp;
 
 	// calculate scores
-	MLOG("Before Calculate\n");
+	//MLOG("Before Calculate\n");
 	DynAM::AM_API_CreateResponses(&resp);
 	int calc_rc = DynAM::AM_API_Calculate(am, req, resp);
 	MLOG("After Calculate: rc = %d\n", calc_rc);
@@ -246,9 +246,8 @@ int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSamp
 		if (resp_rc == AM_OK_RC && n_scores > 0) {
 			float _scr=(float)AM_UNDEFINED_VALUE;
 			char *_ext_scr = nullptr;
-			if(!extended_score)
-				resp_rc = DynAM::AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
-			else {
+			resp_rc = DynAM::AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+			if (extended_score) {
 				resp_rc = DynAM::AM_API_GetResponseExtendedScoreByIndex(response, 0, &_ext_scr, &_scr_type);
 				s.str_attributes["extended_score"] = string(_ext_scr);
 			}

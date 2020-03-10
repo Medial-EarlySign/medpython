@@ -91,8 +91,12 @@ int ExplainProcessings::init(map<string, string> &map) {
 			group_by_sum = med_stoi(it->second) > 0;
 		else if (it->first == "learn_cov_matrix")
 			learn_cov_matrix = med_stoi(it->second) > 0;
-		else if (it->first == "cov_features")
-			cov_features.read_from_csv_file(it->second, 1);
+		else if (it->first == "cov_features") {
+			abs_cov_features.read_from_csv_file(it->second, 1);
+			for (int i = 0; i < abs_cov_features.nrows; i++)
+				for (int j = 0; j < abs_cov_features.ncols; j++)
+					abs_cov_features(i, j) = abs(abs_cov_features(i, j));
+		}
 		else if (it->first == "grouping")
 			grouping = it->second;
 		else if (it->first == "zero_missing")
@@ -114,14 +118,6 @@ int ExplainProcessings::init(map<string, string> &map) {
 
 void ExplainProcessings::post_deserialization()
 {
-	abs_cov_features.clear();
-	if (cov_features.size() > 0) {
-		abs_cov_features.resize(cov_features.nrows, cov_features.ncols);
-		for (int i = 0; i < cov_features.nrows; i++)
-			for (int j = 0; j < cov_features.ncols; j++)
-				abs_cov_features(i, j) = abs(cov_features(i, j));
-	}
-
 	groupName2Inds.clear();
 	for (int i = 0; i < groupNames.size(); i++)
 		groupName2Inds[groupNames[i]] = group2Inds[i];
@@ -136,11 +132,10 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		train_mat.get_as_matrix(x_mat);
 		x_mat.normalize();
 		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
-		fast_multiply_medmat_transpose(x_mat, x_mat, cov_features, 1, 1.0 / x_mat.nrows);
+		fast_multiply_medmat_transpose(x_mat, x_mat, abs_cov_features, 1, 1.0 / x_mat.nrows);
 
-		abs_cov_features = cov_features;
-		for (int i = 0; i < cov_features.nrows; i++)
-			for (int j = 0; j < cov_features.ncols; j++)
+		for (int i = 0; i < abs_cov_features.nrows; i++)
+			for (int j = 0; j < abs_cov_features.ncols; j++)
 				abs_cov_features(i, j) = abs(abs_cov_features(i, j));
 
 		//// debug
@@ -149,6 +144,60 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		//for (int i = 0; i < cov_features.nrows; i++)
 		//	for (int j = 0; j < cov_features.ncols; j++)
 		//		MLOG("COV_DEBUG: (%d) %s (%d) %s :: %f\n", i, f_names[i].c_str(), j, f_names[j].c_str(), cov_features(i, j));
+
+	}
+
+	// Should we do post-porcessing covariance fix ?
+	if (abs_cov_features.nrows && (!iterative))
+		postprocessing_cov = true;
+
+	// Fix covariance matrix for working with groups
+	// The ad-hoc approach is to take the maximal inter-groups covariance coefficient
+	if (abs_cov_features.nrows && group2Inds.size()) {
+		if (group_by_sum) {
+			int nGroups = (int)groupNames.size();
+			int nFeatures = abs_cov_features.nrows;
+			MedMat<float> fixed_cov_abs(nGroups,nFeatures); //cov matrix with groups X features connections, zero inside groups:
+			for (int i = 0; i < group2Inds.size(); i++) {
+				const vector<int> &all_inds = group2Inds[i];
+				vector<bool> mask_grp(nFeatures);
+				for (int j : all_inds)
+					mask_grp[j] = true;
+
+				for (int j2 = 0; j2 < nFeatures; ++j2) {
+					float w = 1;
+					if (!mask_grp[j2]) {
+						//take max for feature in the group
+						float max_alp = 0;
+						for (int k : all_inds)
+							if (abs_cov_features(k, j2) > max_alp)
+								max_alp = abs_cov_features(k, j2);
+						w = max_alp;
+					}
+
+					fixed_cov_abs(i, j2) = w;
+				}
+			}
+			abs_cov_features = fixed_cov_abs;
+		}
+		else {
+			int nGroups = (int)groupNames.size();
+			MedMat<float> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
+			for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
+				fixed_cov_abs(iGrp1, iGrp1) = 1.0;
+				for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+					float max_coeff = 0;
+					for (int idx1 : group2Inds[iGrp1]) {
+						for (int idx2 : group2Inds[iGrp2]) {
+							if (abs_cov_features(idx1, idx2) > max_coeff)
+								max_coeff = abs_cov_features(idx1, idx2);
+						}
+					}
+					fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
+				}
+			}
+			abs_cov_features = fixed_cov_abs;
+		}
 	}
 }
 
@@ -189,7 +238,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	if (!keep_b0)
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
-	if ((abs_cov_features.size() == 0) && !group_by_sum && normalize_vals <= 0)
+	if ((! postprocessing_cov) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
@@ -206,7 +255,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 
 	//first do covarinace if has:
-	if (cov_features.size() > 0) {
+	if (postprocessing_cov) {
 		if (abs_cov_features.ncols != explain_list.size() && abs_cov_features.ncols != (int)explain_list.size() - 1)
 			MTHROW_AND_ERR("Error in ExplainProcessings::process - processing covarince agg. wrong sizes. cov_features.ncols=%lld, "
 				"explain_list.size()=%zu\n", abs_cov_features.ncols, explain_list.size());
@@ -214,29 +263,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 
 
 		if (group_by_sum) { //if has groups
-			//first do the cov fix feature -feature, skip feature inside groups:
-			MedMat<float> fixed_cov_abs((int)groupNames.size(), abs_cov_features.ncols); //cov matrix with groups,features connections
-			//zero inside groups:
-			for (int i = 0; i < group2Inds.size(); i++) {
-				const vector<int> &all_inds = group2Inds[i];
-				vector<bool> mask_grp(explain_list.size());
-				for (int j : all_inds)
-					mask_grp[j] = true;
 
-				for (int j2 = 0; j2 < explain_list.size(); ++j2) {
-					float w = 1;
-					if (!mask_grp[j2]) {
-						//take max for feature in the group
-						float max_alp = 0;
-						for (int k : all_inds)
-							if (abs_cov_features(k, j2) > max_alp)
-								max_alp = abs_cov_features(k, j2);
-						w = max_alp;
-					}
-
-					fixed_cov_abs(i, j2) = w;
-				}
-			}
 			//do greedy - from top to down: 
 			vector<bool> seen_idx(groupNames.size());
 			vector<float> groups_vals(groupNames.size()), group_val_curr(groupNames.size());
@@ -244,8 +271,8 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 			vector<float *> pointer_vals(groupNames.size());
 			for (int i = 0; i < groupNames.size(); ++i) {
 				float group_contrib = 0;
-				for (size_t j = 0; j < fixed_cov_abs.ncols; ++j)
-					group_contrib += fixed_cov_abs(i, j) * orig_explain(j, 0);
+				for (size_t j = 0; j < abs_cov_features.ncols; ++j)
+					group_contrib += abs_cov_features(i, j) * orig_explain(j, 0);
 				group_contrib /= (float)1.0 / normalization_factor;
 				group_val_curr[i] = group_contrib;
 				group_explain[groupNames[i]] = group_contrib;
@@ -274,7 +301,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 				//remove contrib from all others using contrib_before_fix (from all other groups):
 				for (int j = 0; j < groupNames.size(); ++j)
 					for (int ind_grp2 : group2Inds[j])  //all group indexes that needs to be canceled in curretn group 
-						group_val_curr[j] -= 2 * fixed_cov_abs(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
+						group_val_curr[j] -= 2 * abs_cov_features(max_contrib_idx, ind_grp2) * orig_explain(ind_grp2, 0) * normalization_factor;
 
 				//zero  mark group that won't appear again
 				seen_idx[max_contrib_idx] = true;
@@ -363,7 +390,6 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	}
 }
 
-
 void ExplainProcessings::process(map<string, float> &explain_list, unsigned char *missing_value_mask) const
 {
 	process(explain_list);
@@ -399,8 +425,6 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 		}
 
 	}
-
-
 
 }
 
@@ -505,6 +529,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					word += "." + tokens[idx + 1];
 				}
@@ -533,6 +558,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					word += "." + tokens[idx + 1];
 					categ = true;
@@ -1230,7 +1256,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				}
 			}
 			if (processing.iterative)
-				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(), verbose, names, processing.iteration_cnt);
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
@@ -2201,7 +2227,7 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	if (processing.iterative)
 		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-			sampler_sampling_args, *group_inds, *group_names, processing.iteration_cnt, alphas);
+			sampler_sampling_args, *group_inds, *group_names, processing.abs_cov_features, processing.iteration_cnt, alphas);
 	else
 		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 			sampler_sampling_args, *group_inds, *group_names, alphas);
