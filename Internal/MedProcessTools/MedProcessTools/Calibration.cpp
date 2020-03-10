@@ -227,23 +227,6 @@ void Calibrator::smooth_calibration_entries(const vector<calibration_entry>& cal
 	}
 }
 
-void collect_preds_labels(const MedSamples &samples,
-	vector<float> &preds, vector<float> &labels) {
-
-	int nSamples = samples.nSamples();
-	preds.resize(nSamples);
-	labels.resize(nSamples);
-	for (size_t i = 0; i < samples.idSamples.size(); ++i)
-	{
-		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
-			if (samples.idSamples[i].samples[j].prediction.empty())
-				MTHROW_AND_ERR("no prediction for samples %d, %d\n", (int)i, (int)j);
-			preds[i] = samples.idSamples[i].samples[j].prediction[0];
-			labels[i] = samples.idSamples[i].samples[j].outcome;
-		}
-	}
-}
-
 void collect_preds_labels(const vector<MedSample>& orig_samples,
 	vector<float> &preds, vector<float> &labels) {
 	preds.resize(orig_samples.size());
@@ -288,30 +271,6 @@ template void apply_platt_scale<double, float>(const vector<double> &preds, cons
 template void apply_platt_scale<float, double>(const vector<float> &preds, const vector<double> &params, vector<double> &converted);
 template void apply_platt_scale<float, float>(const vector<float> &preds, const vector<double> &params, vector<float> &converted);
 
-int Calibrator::apply_time_window(MedSamples& samples) const {
-
-	int type;
-	if (estimator_type == "kaplan_meier") {
-		type = 1;
-		MLOG("calibrating [%d] samples using kaplan_meier estimator\n", samples.nSamples());
-	}
-	else if (estimator_type == "mean_cases") {
-		type = 0;
-		MLOG("calibrating [%d] samples using mean_cases estimator\n", samples.nSamples());
-	}
-	else if (estimator_type == "bin") {
-		type = 2;
-		MLOG("calibrating [%d] samples using bin estimator\n", samples.nSamples());
-	}
-	else MTHROW_AND_ERR("unknown estimator type [%s]", estimator_type.c_str());
-
-	for (auto &pat : samples.idSamples) {
-		for (auto& s : pat.samples)
-			s.prediction[0] = calibrate_pred(s.prediction[0], type);
-	}
-	return 0;
-}
-
 int Calibrator::apply_time_window(vector<MedSample>& samples) const {
 
 	int type;
@@ -337,17 +296,6 @@ int Calibrator::apply_time_window(vector<MedSample>& samples) const {
 }
 
 
-void write_to_predicition(MedSamples& samples, vector<float> &probs) {
-	int idx = 0;
-	for (auto &pat : samples.idSamples) {
-		for (auto& s : pat.samples) {
-			s.prediction.resize(1);
-			s.prediction[0] = probs[idx];
-			++idx;
-		}
-	}
-}
-
 void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 	int idx = 0;
 	for (auto& s : samples) {
@@ -359,29 +307,11 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 
 
 int Calibrator::Apply(MedSamples& samples) const {
-
-	vector<float> preds, labels, probs;
-	switch (calibration_type)
-	{
-	case CalibrationTypes::probability_time_window:
-		return apply_time_window(samples);
-		break;
-	case CalibrationTypes::probability_binning:
-	case CalibrationTypes::probability_isotonic:
-		collect_preds_labels(samples, preds, labels);
-		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
-		write_to_predicition(samples, probs);
-		break;
-	case CalibrationTypes::probability_platt_scale:
-		collect_preds_labels(samples, preds, labels);
-		apply_platt_scale(preds, platt_params, probs);
-		write_to_predicition(samples, probs);
-		break;
-	default:
-		MTHROW_AND_ERR("Unsupported implementation for applying calibration method %s\n",
-			calibration_method_to_name[calibration_type].c_str());
-	}
-	return 0;
+	vector<MedSample> samples_vec;
+	samples.export_to_sample_vec(samples_vec);
+	int return_val = Apply(samples_vec);
+	samples.import_from_sample_vec(samples_vec);
+	return return_val;
 }
 
 int Calibrator::Apply(vector <MedSample>& samples) const {
