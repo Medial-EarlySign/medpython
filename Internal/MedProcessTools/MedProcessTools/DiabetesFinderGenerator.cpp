@@ -94,8 +94,13 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& df_events, int calc
 	//string json_str = json_out.dump();
 	//MLOG("json_out = %s\nret = %d\n", json_str.c_str(), ret);
 
-	if (df_score_is_flag) 
-		return (ret != 0);
+	if (df_score_is_flag) {
+		if (ret_recent != 0)
+			return 1;
+		if (ret_past != 0)
+			return 2;
+		return 0;
+	}
 
 	return ret;
 }
