@@ -218,8 +218,8 @@ public:
 	int generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features, unordered_set<string>& req_feature_generators);
 	int learn_and_apply_feature_processors(MedFeatures &features);
 	int learn_feature_processors(MedFeatures &features);
-	int apply_feature_processors(MedFeatures &features);
-	int apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec);
+	int apply_feature_processors(MedFeatures &features, bool learning);
+	int apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec, bool learning);
 	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
 	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
 

@@ -84,8 +84,13 @@ public:
 	int learn(MedFeatures& features, unordered_set<int>& ids) { return Learn(features, ids); }
 
 	// Apply feature processing
-	virtual int _apply(MedFeatures& features, unordered_set<int>& ids) { return 0; }
-	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
+	virtual int _apply(MedFeatures& features, unordered_set<int>& ids, bool learning) {
+		// For most processors - application is the same for model - learning/applying
+		return _apply(features, ids);
+	}
+
+	virtual int _apply(MedFeatures& features, unordered_set<int>& ids);
+	virtual int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning);
 
 	/// <summary>
 	/// PostProcess of MedFeatures - on all or a subset of the ids
@@ -95,10 +100,15 @@ public:
 	/// <returns>
 	/// 0 if succesfull, otherwise errorcode -1
 	/// </returns>
-	int apply(MedFeatures& features);
-	int apply(MedFeatures& features, unordered_set<string>& req_features);
-	int apply(MedFeatures& features, unordered_set<int>& ids);
-	int apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
+	int apply(MedFeatures& features, bool learning);
+	int apply(MedFeatures& features, unordered_set<string>& req_features, bool learning);
+	int apply(MedFeatures& features, unordered_set<int>& ids, bool learning);
+	int apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning);
+
+	int apply(MedFeatures& features) { return apply(features, true); };
+	int apply(MedFeatures& features, unordered_set<string>& req_features) { return apply(features, req_features, true); };
+	int apply(MedFeatures& features, unordered_set<int>& ids) { return apply(features, ids, true); };
+	int apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) { return apply(features, ids, req_features, true); };
 
 	// Init
 	static FeatureProcessor *make_processor(string processor_name);
@@ -180,8 +190,8 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int _apply(MedFeatures& features, unordered_set<int>& ids);
-	int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features);
+	int _apply(MedFeatures& features, unordered_set<int>& ids, bool learning);
+	int _conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning);
 
 	virtual void get_feature_names(vector<string>& feature_names);
 
@@ -405,7 +415,6 @@ public:
 	bool verbose = true; ///< If true will print how many missing value were in each feature
 	bool verbose_learn = false; ///< If true will call print after learn
 
-
 	// Strata for setting moment
 	featureSetStrata imputerStrata;
 
@@ -415,10 +424,16 @@ public:
 	// if true, doesn't impute missing values that are left due to small stratas
 	bool leave_missing_for_small_stratas = false;
 
-	// Moment
+	// Moment (learning/applying)
+	vector<imputeMomentTypes> moment_type_vec;
+	vector<float> default_moment_vec;
+	vector<vector<float>> moments_vec ;
+
+	// For backword compatability ...
 	imputeMomentTypes moment_type = IMPUTE_MMNT_MEAN;
 	float default_moment;
 	vector<float> moments;
+	
 	// for sampling-imputation
 	vector < pair<float, float> > default_histogram;
 	vector < vector<pair<float, float> > > histograms;
@@ -454,14 +469,15 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Apply cleaning model
-	int _apply(MedFeatures& features, unordered_set<int>& ids);
+	int _apply(MedFeatures& features, unordered_set<int>& ids, bool learning);
 
 	// check startas name
 	void check_stratas_name(MedFeatures& features, map <string, string> &strata_name_conversion);
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram,
+			moment_type_vec, moments_vec, default_moment_vec)
 
 		void dprint(const string &pref, int fp_flag);
 	/// debug and print
