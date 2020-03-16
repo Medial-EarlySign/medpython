@@ -301,7 +301,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 				json c_ext_scr_json({});
 				for (auto &ex_res_field_name : extended_result_fields) {
 					if(s.str_attributes.count(ex_res_field_name))
-						c_ext_scr_json[ex_res_field_name] = s.str_attributes[ex_res_field_name];
+						c_ext_scr_json[ex_res_field_name] = json::parse(s.str_attributes[ex_res_field_name]);
 				}
 				c_ext_scr = c_ext_scr_json.dump();
 			}

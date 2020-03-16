@@ -97,8 +97,8 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& df_events, int calc
 			json_evidence.push_back(v);
 	}
 	
-	json_out = json::object();
-	json_out["Evidence"] = json_evidence;
+	//json_out = json::object();
+	json_out = json_evidence;
 
 	//string json_str = json_out.dump();
 	//MLOG("json_out = %s\nret = %d\n", json_str.c_str(), ret);
