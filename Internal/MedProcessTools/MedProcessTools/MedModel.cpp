@@ -339,8 +339,13 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 	}
 
-	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS)
+	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
 		return 0;
+	}
 
 	// Process Features
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {

@@ -1326,7 +1326,7 @@ void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDatas
 
 	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
 	// build explanation for each sample
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < data.num_X; ++i) {
 		tfloat *instance_out_contribs = out_contribs + i * (data.num_Exp + 1) * trees.num_outputs;
 		ExplanationDataset instance;

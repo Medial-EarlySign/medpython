@@ -74,7 +74,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 			batches.push_back(curr);
 			curr += n_batch;
 		}
-		if (batches.back() < nrows)
+		if ((batches.size() == 0) || (batches.back() < nrows))
 			batches.push_back(nrows);
 
 #pragma omp parallel for schedule(dynamic)
