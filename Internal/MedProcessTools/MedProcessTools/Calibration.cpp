@@ -61,6 +61,7 @@ int Calibrator::init(map<string, string>& mapper) {
 		else if (field == "use_split") use_split = stoi(entry.second);
 		else if (field == "use_p") use_p = stof(entry.second);
 		else if (field == "weights_attr_name") weights_attr_name = entry.second;
+		else if (field == "min_control_bins") min_control_bins = stoi(entry.second);
 		else if (field == "use_isotonic") use_isotonic = stoi(entry.second) > 0;
 		else if (field == "pp_type") {} //ignore
 		else MTHROW_AND_ERR("unknown init option [%s] for Calibrator\n", field.c_str());
@@ -70,85 +71,109 @@ int Calibrator::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int n_top_controls, int n_bottom_cases,
+void Calibrator::learn_isotonic_regression(const vector<float> &x, const vector<float> &y, const vector<float> &weights, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int n_top_controls, int n_bottom_cases,
 	bool verbose) {
 
 	int n = (int)x.size();
+	vector<vector<float>> x2y(n);
 
-	vector<pair<float, float>> x2y(n);
 	for (int i = 0; i < n; i++)
-		x2y[i] = { x[i],y[i] };
-	sort(x2y.begin(), x2y.end(), [](const pair<float, float> &v1, const pair<float, float> &v2) {return (v1.first < v2.first); });
-
-	// Add regularizers
-	float min_score = x2y[0].first;
-	float max_score = x2y.back().first;
-	float min_val = x2y[0].second, max_val = x2y[0].second;
-	for (size_t i = 1; i < x2y.size(); i++) {
-		if (x2y[i].second > max_val)
-			max_val = x2y[i].second;
-		if (x2y[i].second < min_val)
-			min_val = x2y[i].second;
+	{
+		float curr_w = (y[i] > 0) ? weights[i] : weights[i] * control_weight_down_sample;
+		x2y[i] = { x[i],y[i], curr_w };
 	}
-	x2y.insert(x2y.begin(), n_bottom_cases, { min_score,max_val });
-	x2y.insert(x2y.end(), n_top_controls, { max_score,min_val });
+		
+
+	sort(x2y.begin(), x2y.end(), [](const vector<float> &v1, const vector<float> &v2) {return (v1[0] < v2[0]); });
+	
+	// Add regularizers
+	float min_score = x2y[0][0];
+	float max_score = x2y.back()[0];
+	float min_val = x2y[0][1], max_val = x2y[0][1];
+	for (size_t i = 1; i < x2y.size(); i++) {
+		if (x2y[i][1] > max_val)
+			max_val = x2y[i][1];
+		if (x2y[i][1] < min_val)
+			min_val = x2y[i][1];
+	}
+	x2y.insert(x2y.begin(), n_bottom_cases, { min_score,max_val,1 });
+	x2y.insert(x2y.end(), n_top_controls, { max_score,min_val,1 });
 
 	n += n_bottom_cases + n_top_controls;
 
 	// PAV
-	vector<int> nag(n);
+	vector<double> nag(n);
 	vector<float> val(n);
 
 	unsigned int i, j;
-	nag[0] = 1;
-	val[0] = x2y[0].second;
+	nag[0] = x2y[0][2];
+	val[0] = x2y[0][1];
 
 	j = 0;
+	vector<float> min_preds(n);
+	vector<float> max_preds(n);
+
+	vector<int> num_control_bins(n);
+	num_control_bins[0] = 1 - x2y[0][1];
 	for (i = 1; i < n; i++) {
+
 		j += 1;
-		val[j] = x2y[i].second;
-		nag[j] = 1;
-		while ((j > 0) && (val[j] < val[j - 1])) {//change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+		val[j] = x2y[i][1];
+		nag[j] = x2y[i][2];
+		max_preds[j] = x2y[i][0];
+		num_control_bins[j] = 1 - x2y[i][1];
+		while ((j > 0) && ((val[j] <= val[j - 1]) || (num_control_bins[j - 1] < min_control_bins))) //change into val[j]>val[j-1] to have a non-increasing monotonic regression.
+		{
 			val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
 			nag[j - 1] += nag[j];
+			max_preds[j - 1] = max_preds[j];
+			num_control_bins[j - 1] += num_control_bins[j];
 			j--;
 		}
 	}
 
-	// Further unite ...
-	int nbins = 1;
-	for (i = 1; i < j + 1; i++) {
-		if (val[i] == val[nbins - 1])
-			nag[nbins - 1] += nag[i];
-		else {
-			val[nbins] = val[i];
-			nag[nbins] = nag[i];
-			nbins++;
-		}
+	// if needed, combine 2 last bins
+	if (num_control_bins[j] < min_control_bins)
+	{
+		val[j - 1] = (nag[j] * val[j] + nag[j - 1] * val[j - 1]) / (nag[j] + nag[j - 1]);
+		nag[j - 1] += nag[j];
+		max_preds[j - 1] = max_preds[j];
+		num_control_bins[j - 1] += num_control_bins[j];
+		j--;
 	}
 
-	// Fill table
-	min_range.resize(nbins);
-	max_range.resize(nbins);
-	map_prob.resize(nbins);
 
-	int idx = 0;
-	min_range[nbins - 1] = (float)INT32_MIN;
-	for (i = 0; i < nbins; i++) {
-		max_range[nbins - 1 - i] = x2y[idx + nag[i] - 1].first;
-		if (i < nbins - 1)
-			min_range[nbins - 2 - i] = max_range[nbins - 1 - i];
-		idx += nag[i];
-		map_prob[nbins - 1 - i] = val[i];
-	}
-	max_range[0] = (float)INT32_MAX;
+
+	min_preds[0] = (float)INT32_MIN;
+	max_preds[j] = (float)INT32_MAX;
+	for (int i = 1; i <= j; i++)
+		min_preds[i] = max_preds[i - 1];
+	
+	min_preds.resize(j + 1);
+	max_preds.resize(j + 1);
+	val.resize(j + 1);
+
+	reverse(min_preds.begin(), min_preds.end());
+	reverse(max_preds.begin(), max_preds.end());
+	reverse(val.begin(), val.end());
+
+	min_range = min_preds;
+	max_range = max_preds;
+	map_prob = val;
 
 	if (verbose)
+	{
+		float sum_weights = 0;
+		for (auto &xy : x2y)
+			sum_weights += xy[2];
+
 		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
-	for (size_t i = 0; i < map_prob.size(); ++i)
-		MLOG_D("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%d / %d)\n",
-			min_range[i], max_range[i], map_prob[i],
-			100 * double(nag[i]) / y.size(), nag[i], (int)y.size());
+		for (size_t i = 0; i < map_prob.size(); ++i)
+			MLOG("Range: [%2.4f, %2.4f] => %2.4f | %1.2f%%(%f / %f)\n",
+				min_range[i], max_range[i], map_prob[i],
+				100 * double(nag[i]) / sum_weights, nag[i], sum_weights);
+	}
+		
 }
 
 
@@ -565,7 +590,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				collected_probs[i] = cals[i].mean_outcome;
 		}
 		vector<float> min_r, max_r, map_r;
-		learn_isotonic_regression(collected_bin_idx, collected_probs, min_r, max_r, map_r, n_top_controls, n_bottom_cases, verbose);
+		learn_isotonic_regression(collected_bin_idx, collected_probs, weights,  min_r, max_r, map_r, n_top_controls, n_bottom_cases, verbose);
 		//use new bins:
 		vector<calibration_entry> new_cals(map_r.size());
 		cumul_cnt = 0;
@@ -819,7 +844,6 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 	MLOG_D("Learning calibration on %d ids\n", (int)orig_samples.size());
 
 	vector<float> preds, labels, weights;
-	bool has_w;
 	switch (calibration_type)
 	{
 	case CalibrationTypes::probability_time_window:
@@ -839,39 +863,9 @@ int Calibrator::Learn(const vector<MedSample>& orig_samples, int sample_time_uni
 		break;
 	case CalibrationTypes::probability_isotonic:
 		collect_preds_labels(orig_samples, preds, labels);
-		learn_isotonic_regression(preds, labels, min_range, max_range, map_prob, n_top_controls, n_bottom_cases, verbose);
-		//If has weights: apply them:
-		has_w = get_weights(orig_samples, weights_attr_name, weights);
-		if (has_w || (control_weight_down_sample != 1 && control_weight_down_sample > 0)) {
+		get_weights(orig_samples, weights_attr_name, weights);
+		learn_isotonic_regression(preds, labels, weights, min_range, max_range, map_prob, n_top_controls, n_bottom_cases, verbose);
 
-			//recalc probs for each bin, based on created bins:
-			map_prob.clear();
-			map_prob.resize(min_range.size(), 0);
-			vector<double> cnts(min_range.size());
-			for (size_t i = 0; i < preds.size(); ++i)
-			{
-				//find bin idx
-				int bin_idx = 0;
-				while (bin_idx < map_prob.size() &&
-					!((preds[i] > min_range[bin_idx] || bin_idx == map_prob.size() - 1) &&
-					(preds[i] <= max_range[bin_idx] || bin_idx == 0)))
-					++bin_idx;
-				//count in bin and outcome
-				if (labels[i] > 0) {
-					cnts[bin_idx] += weights[i];
-					map_prob[bin_idx] += weights[i];
-				}
-				else {
-					cnts[bin_idx] += weights[i] * control_weight_down_sample;
-				}
-				//cnts[bin_idx] += weights[i];
-				//map_prob[bin_idx] += (labels[i] > 0) * weights[i];
-			}
-			//calc average prob:
-			for (size_t i = 0; i < map_prob.size(); ++i)
-				if (cnts[i] > 0)
-					map_prob[i] /= cnts[i];
-		}
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported implementation for learning calibration method %s\n",
