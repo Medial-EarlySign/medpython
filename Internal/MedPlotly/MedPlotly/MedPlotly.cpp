@@ -7,9 +7,66 @@
 #include <MedUtils/MedUtils/MedGlobalRNG.h>
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
+#include <boost/regex.hpp>
 #ifdef __unix__
 #include <unistd.h>
 #endif
+
+bool any_regex_matcher(const boost::regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = boost::regex_match(nms[i], reg_pat);
+	return res;
+}
+
+void get_parents(int codeGroup, vector<int> &parents, int max_depth, const boost::regex &reg_pat,
+	const boost::regex &remove_pat, bool has_regex, bool has_remove,
+	const map<int, vector<int>> &member2Sets, const map<int, vector<string>> &id_to_names) {
+	vector<int> last_parents = { codeGroup };
+	if (last_parents.front() < 0)
+		return; //no parents
+	parents = {};
+	int max_parents = 5000;
+
+	for (size_t k = 0; k < max_depth; ++k) {
+		vector<int> new_layer;
+		for (int par : last_parents)
+			if (member2Sets.find(par) != member2Sets.end()) {
+				new_layer.insert(new_layer.end(), member2Sets.at(par).begin(), member2Sets.at(par).end());
+				parents.insert(parents.end(), member2Sets.at(par).begin(), member2Sets.at(par).end()); //aggregate all parents
+			}
+		if (parents.size() >= max_parents)
+			break;
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+	}
+
+	if (has_regex || has_remove) {
+		vector<int> filtered_p;
+		filtered_p.reserve(parents.size());
+		for (int code : parents)
+		{
+			if (id_to_names.find(code) == id_to_names.end())
+				MTHROW_AND_ERR("CategoryDependencyGenerator::post_learn_from_samples - code %d wasn't found in dict\n", code);
+			const vector<string> &names_ = id_to_names.at(code);
+			bool pass_regex_filter = has_regex ? true : any_regex_matcher(reg_pat, names_);
+			bool pass_remove_regex_filter = false;
+			if (pass_regex_filter) //calc only if needed, has chance to be selected
+				pass_remove_regex_filter = !has_remove ? false : any_regex_matcher(remove_pat, names_);
+
+			if (pass_regex_filter && !pass_remove_regex_filter)
+				filtered_p.push_back(code);
+		}
+		parents.swap(filtered_p);
+	}
+
+	//uniq:
+	unordered_set<int> uniq(parents.begin(), parents.end());
+	vector<int> fnal(uniq.begin(), uniq.end());
+	parents.swap(fnal);
+}
+
 
 //------------------------------------------------------------------------------------------------
 int SignalParams::init(map<string, string>& _map)
@@ -20,6 +77,11 @@ int SignalParams::init(map<string, string>& _map)
 		else if (field == "log_scale") { log_scale = stoi(entry.second); }
 		else if (field == "time_chan") { time_chan = stoi(entry.second); }
 		else if (field == "val_chan") { val_chan = stoi(entry.second); }
+		else if (field == "get_ascenders_codes") { get_ascenders_codes = stoi(entry.second) > 0; }
+		else if (field == "filter_regex_codes") { filter_regex_codes = entry.second; }
+		else if (field == "remove_regex_codes") { remove_regex_codes = entry.second; }
+		else if (field == "ascender_limit") { ascender_limit = stoi(entry.second); }
+		else MTHROW_AND_ERR("Error SignalParams::init - unknown arg %s\n", field.c_str());
 
 	}
 
@@ -738,6 +800,24 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 	int section_id = rec.my_base_rep()->dict.section_id(sig_name);
 	bool has_range_time = usv.n_time_channels() > 1;
 
+	int bypass = 0;
+	const map<int, vector<string>> &id_to_names = rec.my_base_rep()->dict.dict(section_id)->Id2Names;
+	const map<int, vector<int>> &member_to_sets = rec.my_base_rep()->dict.dict(section_id)->Member2Sets;
+	if (sig_name == "Drug") bypass = 1;
+	boost::regex regf_1("^dc:\\d{8}");
+	bool get_ascenders_codes = false;
+	string filter_regex = "";
+	string remove_reg = "";
+	int max_depth = 0;
+	if (params.sig_params.find(sig_name) != params.sig_params.end()) {
+		get_ascenders_codes = params.sig_params.at(sig_name).get_ascenders_codes;
+		filter_regex = params.sig_params.at(sig_name).filter_regex_codes;
+		remove_reg = params.sig_params.at(sig_name).remove_regex_codes;
+		max_depth = params.sig_params.at(sig_name).ascender_limit;
+	}
+	boost::regex reg_f(filter_regex);
+	boost::regex reg_rem(remove_reg);
+
 	for (int i = 0; i < usv.len; i++) {
 		int i_date = usv.Time(i, 0);
 		int i_date2 = -1;
@@ -750,14 +830,36 @@ bool MedPatientPlotlyDate::add_categorical_chart(string &shtml, PidDataRec &rec,
 
 		// recover curr text
 		string curr_text = "";
-		if (rec.my_base_rep()->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep()->dict.dict(section_id)->Id2Names.end())
-			for (int j = 0; j < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); j++) {
-				string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][j];
-				string scode = sname.substr(0, 1);
-				if (!curr_text.empty())
-					curr_text += "|";
-				curr_text += sname;
+		if (id_to_names.find(i_val) != id_to_names.end()) {
+			vector<int> codes;
+			if (get_ascenders_codes) {
+				get_parents(i_val, codes, max_depth, reg_f, reg_rem, !filter_regex.empty(),
+					!remove_reg.empty(), member_to_sets, id_to_names);
 			}
+			else
+				codes = { i_val };
+
+			//official name:
+			string official_nm = id_to_names.at(i_val).front();
+			if (!curr_text.empty())
+				curr_text += "|";
+			curr_text += official_nm;
+			for (int code : codes)
+			{
+
+				const vector<string> &aliasing_names = id_to_names.at(code);
+				for (int n = 0; n < aliasing_names.size(); n++) {
+					if (code == i_val && n == 0) continue;
+					string sname = aliasing_names[n];
+					if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
+					if (!remove_reg.empty() && (boost::regex_match(sname, reg_rem))) continue;
+					if (!filter_regex.empty() && (!boost::regex_match(sname, reg_f))) continue;
+					if (!curr_text.empty())
+						curr_text += "|";
+					curr_text += sname;
+				}
+			}
+		}
 		replace(curr_text.begin(), curr_text.end(), '\"', '@');
 		replace(curr_text.begin(), curr_text.end(), '\'', '@');
 		ylabels_flat.push_back(curr_text);
@@ -923,11 +1025,26 @@ bool MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 	int section_id = rec.my_base_rep()->dict.section_id(sig);
 
 	int bypass = 0;
+	const map<int, vector<string>> &id_to_names = rec.my_base_rep()->dict.dict(section_id)->Id2Names;
+	const map<int, vector<int>> &member_to_sets = rec.my_base_rep()->dict.dict(section_id)->Member2Sets;
 	if (sig == "Drug") bypass = 1;
 	boost::regex regf_1("^dc:\\d{8}");
 	vector<vector<string>> string_channels;
 	vector<string> channels_names;
 	vector<int> lengths;
+
+	bool get_ascenders_codes = false;
+	string filter_regex = "";
+	string remove_reg = "";
+	int max_depth = 0;
+	if (params.sig_params.find(sig) != params.sig_params.end()) {
+		get_ascenders_codes = params.sig_params.at(sig).get_ascenders_codes;
+		filter_regex = params.sig_params.at(sig).filter_regex_codes;
+		remove_reg = params.sig_params.at(sig).remove_regex_codes;
+		max_depth = params.sig_params.at(sig).ascender_limit;
+	}
+	boost::regex reg_f(filter_regex);
+	boost::regex reg_rem(remove_reg);
 
 	for (int i = 0; i < usv.n_time_channels(); i++) {
 		channels_names.push_back("(Time," + to_string(i) + ")");
@@ -964,14 +1081,35 @@ bool MedPatientPlotlyDate::add_categorical_table(string sig, string &shtml, PidD
 				// categorial
 				int i_val = (int)usv.Val(i, j);
 				string curr_text = "";
-				if (rec.my_base_rep()->dict.dict(section_id)->Id2Names.find(i_val) != rec.my_base_rep()->dict.dict(section_id)->Id2Names.end())
-					for (int n = 0; n < rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val].size(); n++) {
-						string sname = rec.my_base_rep()->dict.dict(section_id)->Id2Names[i_val][n];
-						if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
-						if (!curr_text.empty())
-							curr_text += "|";
-						curr_text += sname;
+				if (id_to_names.find(i_val) != id_to_names.end()) {
+					vector<int> codes;
+					if (get_ascenders_codes) {
+						get_parents(i_val, codes, max_depth, reg_f, reg_rem, !filter_regex.empty(),
+							!remove_reg.empty(), member_to_sets, id_to_names);
 					}
+					else
+						codes = { i_val };
+
+					//official name:
+					string official_nm = id_to_names.at(i_val).front();
+					if (!curr_text.empty())
+						curr_text += "|";
+					curr_text += official_nm;
+					for (int code : codes)
+					{
+						const vector<string> &aliasing_names = id_to_names.at(code);
+						for (int n = 0; n < aliasing_names.size(); n++) {
+							if (code == i_val && n == 0) continue;
+							string sname = aliasing_names[n];
+							if (bypass == 1 && (boost::regex_match(sname, regf_1))) continue;
+							if (!remove_reg.empty() && (boost::regex_match(sname, reg_rem))) continue;
+							if (!filter_regex.empty() && (!boost::regex_match(sname, reg_f))) continue;
+							if (!curr_text.empty())
+								curr_text += "|";
+							curr_text += sname;
+						}
+					}
+				}
 				replace(curr_text.begin(), curr_text.end(), '\"', '@');
 				replace(curr_text.begin(), curr_text.end(), '\'', '@');
 				curr_text = "'" + curr_text + "'";

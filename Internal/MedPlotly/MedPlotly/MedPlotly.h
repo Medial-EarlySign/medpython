@@ -51,6 +51,10 @@ public:
 	int log_scale = 1;
 	int time_chan = 0;
 	int val_chan = 0;
+	bool get_ascenders_codes = false;
+	int ascender_limit = 1;
+	string filter_regex_codes = "";
+	string remove_regex_codes = "";
 
 	int init(map<string, string>& _map);
 };
