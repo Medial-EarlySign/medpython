@@ -84,7 +84,7 @@ int MPModel::generate_all_features(MPPidRepository &rep, MPSamples *samples, MPF
 };
 int MPModel::learn_and_apply_feature_processors(MPFeatures &features) { return o->learn_and_apply_feature_processors(*(features.o)); };
 int MPModel::learn_feature_processors(MPFeatures &features) { return o->learn_feature_processors(*(features.o)); };
-int MPModel::apply_feature_processors(MPFeatures &features) { return o->apply_feature_processors(*(features.o)); };
+int MPModel::apply_feature_processors(MPFeatures &features, bool learning) { return o->apply_feature_processors(*(features.o), learning); };
 
 void MPModel::dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type) { return o->dprint_process(pref, rp_flag, fg_flag, fp_flag, pp_flag, predictor_type); };
 int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feature_matrix(mat_fname); };
