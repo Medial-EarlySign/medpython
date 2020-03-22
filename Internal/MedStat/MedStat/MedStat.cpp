@@ -733,21 +733,21 @@ template double medial::performance::kendall_tau_q<double, double>(const vector<
 
 // Mutual information of binned-vectors
 //.........................................................................................................................................
-float medial::performance::mutual_information(vector<float>& x, vector<float>& y, int &n) {
+float medial::performance::mutual_information(const vector<float>& x, const vector<float>& y, int &n) {
 
 	// Sanity
 	if (y.size() != x.size())
 		MTHROW_AND_ERR("Size mismatch in calculating mutual information\n");
 	//transofrm into bin idx:
 	unordered_map<float, int> val_to_ind_x, val_to_ind_y;
-	for (int v: x)
+	for (float v: x)
 	{
 		if (val_to_ind_x.find(v) == val_to_ind_x.end()) {
 			int curr_sz = (int)val_to_ind_x.size();
 			val_to_ind_x[v] = curr_sz;
 		}
 	}
-	for (int v : y)
+	for (float v : y)
 	{
 		if (val_to_ind_y.find(v) == val_to_ind_y.end()) {
 			int curr_sz = (int)val_to_ind_y.size();

@@ -82,6 +82,11 @@ void ExplainFilters::filter(map<string, float> &explain_list) const {
 ExplainProcessings::ExplainProcessings() {
 	group_by_sum = false;
 	learn_cov_matrix = false;
+	use_mutual_information = false;
+	//default bin for mutual information
+	mutual_inf_bin_setting.binCnt = 50;
+	mutual_inf_bin_setting.min_bin_count = 100;
+	mutual_inf_bin_setting.split_method = BinSplitMethod::IterativeMerge;
 }
 
 int ExplainProcessings::init(map<string, string> &map) {
@@ -109,6 +114,10 @@ int ExplainProcessings::init(map<string, string> &map) {
 			iterative = med_stoi(it->second) > 0;
 		else if (it->first == "iteration_cnt")
 			iteration_cnt = med_stoi(it->second);
+		else if (it->first == "use_mutual_information")
+			use_mutual_information = med_stoi(it->second) > 0;
+		else if (it->first == "mutual_inf_bin_setting")
+			mutual_inf_bin_setting.init_from_string(it->second);
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -127,17 +136,63 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 	if (learn_cov_matrix) {
 		//int feat_cnt = (int)train_mat.data.size();
 		//cov_features.resize(feat_cnt, feat_cnt);
-		MLOG("Calc Covariance mat\n");
-		MedMat<float> x_mat;
-		train_mat.get_as_matrix(x_mat);
-		x_mat.normalize();
-		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
-		fast_multiply_medmat_transpose(x_mat, x_mat, abs_cov_features, 1, 1.0 / x_mat.nrows);
+		if (use_mutual_information) {
+			MLOG("Calc Mutual Information mat\n"); //ranges from 0 to inf. should transform into [0,1] := 1/(1+e-x) - 0.5
+			abs_cov_features.resize((int)train_mat.data.size(), (int)train_mat.data.size());
+			auto it_f1 = train_mat.data.begin();
+			//vector<vector<float>> binned(train_mat.data.size());
+			vector<vector<float>> binned(train_mat.data.size());
+			vector<const vector<float> *> original(train_mat.data.size());
+			for (int i = 0; i < train_mat.data.size(); ++i) {
+				original[i] = &it_f1->second;
+				++it_f1;
+			}
 
-		for (int i = 0; i < abs_cov_features.nrows; i++)
-			for (int j = 0; j < abs_cov_features.ncols; j++)
-				abs_cov_features(i, j) = abs(abs_cov_features(i, j));
+			vector<int> empt;
+			MedProgress prog_bin("binning_features", (int)original.size(), 30, 1);
+#pragma omp paralle for schedule(dynamic) 
+			for (int i = 0; i < original.size(); ++i) {
+				vector<float> f = *original[i];
+				medial::process::split_feature_to_bins(mutual_inf_bin_setting, f, empt, f);
+#pragma omp critical 
+				binned[i] = move(f);
+				prog_bin.update();
+			}
 
+			for (size_t i = 0; i < train_mat.data.size(); ++i)
+				abs_cov_features(i, i) = 1; //should be infinity - full
+
+			MedProgress prog_mi("mutual_informaion_calc", (int)original.size(), 30, 1);
+#pragma omp parallel for schedule(dynamic) 
+			for (int i = 0; i < (int)train_mat.data.size(); ++i)
+			{
+				for (size_t j = i + 1; j < train_mat.data.size(); ++j)
+				{
+					int n;
+					float mi = medial::performance::mutual_information(binned[i], binned[j], n);
+					//TODO: use also n to normalize
+					mi = 1 / (1 + exp(-mi)) - 0.5; //transform 
+#pragma omp critical 
+					{
+						abs_cov_features(i, j) = mi;
+						abs_cov_features(j, i) = abs_cov_features(i, j); //summetric
+					}
+				}
+				prog_mi.update();
+			}
+		}
+		else {
+			MLOG("Calc Covariance mat\n");
+			MedMat<float> x_mat;
+			train_mat.get_as_matrix(x_mat);
+			x_mat.normalize();
+			//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
+			fast_multiply_medmat_transpose(x_mat, x_mat, abs_cov_features, 1, 1.0 / x_mat.nrows);
+
+			for (int i = 0; i < abs_cov_features.nrows; i++)
+				for (int j = 0; j < abs_cov_features.ncols; j++)
+					abs_cov_features(i, j) = abs(abs_cov_features(i, j));
+		}
 		//// debug
 		//vector<string> f_names;
 		//train_mat.get_feature_names(f_names);
@@ -157,7 +212,7 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		if (group_by_sum) {
 			int nGroups = (int)groupNames.size();
 			int nFeatures = abs_cov_features.nrows;
-			MedMat<float> fixed_cov_abs(nGroups,nFeatures); //cov matrix with groups X features connections, zero inside groups:
+			MedMat<float> fixed_cov_abs(nGroups, nFeatures); //cov matrix with groups X features connections, zero inside groups:
 			for (int i = 0; i < group2Inds.size(); i++) {
 				const vector<int> &all_inds = group2Inds[i];
 				vector<bool> mask_grp(nFeatures);
@@ -238,7 +293,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	if (!keep_b0)
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
-	if ((! postprocessing_cov) && !group_by_sum && normalize_vals <= 0)
+	if ((!postprocessing_cov) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	MedMat<float> orig_explain((int)explain_list.size(), 1);

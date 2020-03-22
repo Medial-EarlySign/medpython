@@ -37,16 +37,20 @@ public:
 * Processings of explanations - grouping, Using covariance matrix for taking feature correlations into account.
 */
 class ExplainProcessings : public SerializableObject {
+private:
+	bool postprocessing_cov = false; ///< should covariance correction be done in the postprocessing stage (this is not the case when working iteratively)
 public:
 	bool group_by_sum = false; ///< If true will do grouping by sum of each feature, otherwise will use internal special implementation
 	bool learn_cov_matrix = false; ///< If true will learn cov_matrix
 	int normalize_vals = 0; ///< If != 0 will normalize contributions. 1: normalize by sum of (non b0) abs of all contributions 2: same, but also corrects for groups
 	int zero_missing = 0; ///<  if != 0 will throw bias terms and zero all contributions of missing values and groups of missing values
-	bool keep_b0 = false; ///< if true will keep bo prior
+	bool keep_b0 = false; ///< if true will keep b0 prior
 	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 	int iteration_cnt = 0; ///< if >0 the maximal number of iterations
 
-	bool postprocessing_cov = false; ///< should covariance correction be done in the postprocessing stage (this is not the case when working iteratively)
+	bool use_mutual_information; ///< if true will use mutual information instead of covariance
+	BinSettings mutual_inf_bin_setting; ///< the bin setting for mutual information
+
 	MedMat<float> abs_cov_features; /// <absolute values of covariance features for matrix.either read from file (and then apply absolute value), or learn if learn_cov_matrix is on , 
 
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
@@ -71,12 +75,13 @@ public:
 
 	void post_deserialization();
 
+	///Creates the feature groups from the argument file_name and by existing features
 	static void read_feature_grouping(const string &file_name, const vector<string>& features, vector<vector<int>>& group2index,
 		vector<string>& group_names);
 
 	ADD_CLASS_NAME(ExplainProcessings)
 		ADD_SERIALIZATION_FUNCS(group_by_sum, abs_cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0,
-			iterative, iteration_cnt, postprocessing_cov)
+			iterative, iteration_cnt, postprocessing_cov, use_mutual_information, mutual_inf_bin_setting)
 };
 
 /**

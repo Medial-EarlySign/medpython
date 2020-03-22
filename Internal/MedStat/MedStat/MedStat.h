@@ -70,7 +70,7 @@ namespace medial {
 
 		/// <summary> calculate mutual information between quantized vectors. n = number of non-empty bins. x,y are binnned features </summary>
 		/// <returns> mutual information, n= of non-empty bins </returns>
-		float mutual_information(vector<float>& x, vector<float>& y, int &n);
+		float mutual_information(const vector<float>& x, const vector<float>& y, int &n);
 		/// <summary> calculate mutual information given vectors of counts and co-counts. n = number of non-empty bins </summary>
 		/// <returns> mutual information, -1.0 if cannot calculate </returns>
 		float mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n);
