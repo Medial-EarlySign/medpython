@@ -132,6 +132,46 @@ void ExplainProcessings::post_deserialization()
 		groupName2Inds[groupNames[i]] = group2Inds[i];
 }
 
+double joint_dist_entropy(const vector<float> &v1, const vector<float> &v2) {
+	//assume they are binned already:
+	unordered_map<float, int> val_to_ind_x, val_to_ind_y;
+	for (float v : v1)
+	{
+		if (val_to_ind_x.find(v) == val_to_ind_x.end()) {
+			int curr_sz = (int)val_to_ind_x.size();
+			val_to_ind_x[v] = curr_sz;
+		}
+	}
+	for (float v : v2)
+	{
+		if (val_to_ind_y.find(v) == val_to_ind_y.end()) {
+			int curr_sz = (int)val_to_ind_y.size();
+			val_to_ind_y[v] = curr_sz;
+		}
+	}
+
+	vector<int> bins_x(v1.size()), bins_y(v2.size());
+	for (size_t i = 0; i < bins_x.size(); ++i)
+	{
+		bins_x[i] = val_to_ind_x.at(v1[i]);
+		bins_y[i] = val_to_ind_y.at(v2[i]);
+	}
+	unordered_map<int, int> joint_bins; //from bin to count
+	int v2_bins = (int)val_to_ind_y.size();
+	for (size_t i = 0; i < bins_x.size(); ++i)
+		++joint_bins[bins_x[i] * v2_bins + bins_y[i]];
+
+	double res = 0;
+	int total = (int)v1.size();
+	for (auto &it : joint_bins)
+	{
+		double prob = double(it.second) / total;
+		res += - prob * log(prob) / log(2.0);
+	}
+
+	return res;
+}
+
 void ExplainProcessings::learn(const MedFeatures &train_mat) {
 	if (learn_cov_matrix) {
 		//int feat_cnt = (int)train_mat.data.size();
@@ -150,7 +190,7 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 
 			vector<int> empt;
 			MedProgress prog_bin("binning_features", (int)original.size(), 30, 1);
-#pragma omp paralle for schedule(dynamic) 
+#pragma omp parallel for schedule(dynamic) 
 			for (int i = 0; i < original.size(); ++i) {
 				vector<float> f = *original[i];
 				medial::process::split_feature_to_bins(mutual_inf_bin_setting, f, empt, f);
@@ -170,12 +210,16 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 				{
 					int n;
 					float mi = medial::performance::mutual_information(binned[i], binned[j], n);
-					//TODO: use also n to normalize
-					mi = 1 / (1 + exp(-mi)) - 0.5; //transform 
+					//calcualte the joint dist entropy - this is the divider - when 2 features are excatly determnien from one another it will result in 1 after division.
+					double den = joint_dist_entropy(binned[i], binned[j]);
+
+					//mi = 1 / (1 + exp(-mi)) - 0.5; //transform 
+					if (den > 0)
+						mi = mi / den;
 #pragma omp critical 
 					{
 						abs_cov_features(i, j) = mi;
-						abs_cov_features(j, i) = abs_cov_features(i, j); //summetric
+						abs_cov_features(j, i) = mi; //symmetric
 					}
 				}
 				prog_mi.update();
@@ -231,24 +275,6 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 					}
 
 					fixed_cov_abs(i, j2) = w;
-				}
-			}
-			abs_cov_features = fixed_cov_abs;
-		}
-		else {
-			int nGroups = (int)groupNames.size();
-			MedMat<float> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
-			for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
-				fixed_cov_abs(iGrp1, iGrp1) = 1.0;
-				for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
-					float max_coeff = 0;
-					for (int idx1 : group2Inds[iGrp1]) {
-						for (int idx2 : group2Inds[iGrp2]) {
-							if (abs_cov_features(idx1, idx2) > max_coeff)
-								max_coeff = abs_cov_features(idx1, idx2);
-						}
-					}
-					fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
 				}
 			}
 			abs_cov_features = fixed_cov_abs;
@@ -1311,7 +1337,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				}
 			}
 			if (processing.iterative)
-				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt);
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform,
+					interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 

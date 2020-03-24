@@ -2,6 +2,7 @@
 #include <omp.h>
 #include "medial_utilities/medial_utilities/globalRNG.h"
 #include <MedAlgo/MedAlgo/MedLM.h>
+#include <External/Eigen/Core>
 
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -1324,7 +1325,7 @@ void dense_independent(const TreeEnsemble& trees, const ExplanationDataset &data
 void dense_tree_path_dependent(const TreeEnsemble& trees, const ExplanationDataset &data,
 	tfloat *out_contribs, unsigned *feature_sets, tfloat transform(const tfloat, const tfloat)) {
 
-	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
+	MedProgress progress("TREE_SHAPLEY", data.num_X, 15, 50);
 	// build explanation for each sample
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < data.num_X; ++i) {
@@ -1579,6 +1580,79 @@ void get_weights(const TreeEnsemble& tree, int node_index, unsigned *sets) {
 		cerr << node_index << "/" << tree.node_sample_weights[node_index] << "/" << tree.values[node_index] << " ";
 }
 
+/// <summary>
+/// fixes the group contrib using covarinace or mutual information
+/// </summary>
+/// @param abs_cov_feats - covariance or mi matrix for all features (i,j) symmetric
+/// @param feats_instance_contribs - feature contribution
+/// @param grp_contribs - the group contrib - to manipulate
+/// @param feature_sets - in size of all features - group id for each feature
+/// @param mask - vector with groups seleceted already idx
+void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const MedMat<tfloat> &feats_instance_contribs,
+	MedMat<tfloat> &grp_contribs, const unsigned *feature_sets, const vector<int> &mask) {
+
+	unordered_map<unsigned, vector<int>> group2Inds;
+	for (int i = 0; i < abs_cov_feats.nrows; ++i)
+		group2Inds[feature_sets[i]].push_back(i);
+	MedMat<tfloat> fixed_contrib(grp_contribs.nrows, 1);
+	int nGroups = (int)group2Inds.size();
+	//mask of selected groups
+
+	MedMat<tfloat> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
+	//fix for each group:
+	for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
+		if (mask[iGrp1])
+			continue;
+		for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+			if (mask[iGrp2])
+				continue;
+			//not within group
+			double w = 0;
+			double max_w = 0;
+			for (int i = 0; i < group2Inds[iGrp1].size(); ++i)
+				for (int j = 0; j < group2Inds[iGrp2].size(); ++j)
+				{
+					int ind_feat_1 = group2Inds[iGrp1][i];
+					int ind_feat_2 = group2Inds[iGrp2][j];
+					w += abs_cov_feats(ind_feat_1, ind_feat_2) * feats_instance_contribs(ind_feat_1, 0) * feats_instance_contribs(ind_feat_2, 0);
+					max_w += feats_instance_contribs(ind_feat_1, 0) * feats_instance_contribs(ind_feat_2, 0); //as if all cov are 1
+				}
+			if (max_w > 0)
+				w /= max_w;
+
+			//use w to add contribution for group:
+			fixed_cov_abs(iGrp1, iGrp2) += w;
+			fixed_cov_abs(iGrp2, iGrp1) += w;
+		}
+	}
+
+	//for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
+	//	fixed_cov_abs(iGrp1, iGrp1) = 1.0;
+	//	for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+	//		float max_coeff = 0;
+	//		for (int idx1 : group2Inds[iGrp1]) {
+	//			for (int idx2 : group2Inds[iGrp2]) {
+	//				if (abs_cov_feats(idx1, idx2) > max_coeff)
+	//					max_coeff = abs_cov_feats(idx1, idx2);
+	//			}
+	//		}
+	//		fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
+	//	}
+	//}
+	//fix using max:
+	//fast_multiply_medmat(fixed_cov_abs, grp_contribs, fixed_contrib, (float)1.0);
+	fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
+
+	Eigen::Map<const Eigen::MatrixXd> x(fixed_cov_abs.data_ptr(), fixed_cov_abs.ncols, fixed_cov_abs.nrows);
+	Eigen::Map<const Eigen::MatrixXd> y(grp_contribs.data_ptr(), grp_contribs.ncols, grp_contribs.nrows);
+	Eigen::Map<Eigen::MatrixXd> z(fixed_contrib.data_ptr(), fixed_contrib.ncols, fixed_contrib.nrows);
+
+	z = y * x;
+
+	//store output:
+	grp_contribs = move(fixed_contrib);
+}
+
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
 	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose,
 	vector<string>& names, const MedMat<float>& abs_cov_mat, int iteration_cnt) {
@@ -1588,7 +1662,20 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		MTHROW_AND_ERR("Currently iterations implemented only for FEATURE_DEPENDENCE::tree_path_dependent without interatctions \n");
 	}
 
-	MedProgress progress("SHAPLEY", data.num_X, 15, 50);
+	unsigned int max_iters = data.num_Exp;
+	if (iteration_cnt > 0 && iteration_cnt < max_iters)
+		max_iters = (unsigned int)iteration_cnt;
+
+	//calc for each feature if needed:
+	vector<tfloat> feats_contrib;
+	if (abs_cov_mat.nrows && names.size() != data.M) {
+		feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 0);
+		dense_tree_shap(trees, data, feats_contrib.data(), feature_dependence, model_transform, interactions);
+		//BUG in dense_tree_shap:
+		//feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 1);
+	}
+
+	MedProgress progress("TREE_SHAPLEY_ITERATIVE", data.num_X, 15, 10);
 	// build explanation for each sample
 #pragma omp parallel for
 	for (int i = 0; i < data.num_X; ++i) {
@@ -1600,15 +1687,20 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		vector<int> mask(data.num_Exp, 0);
 
 		// Do iterations
-		unsigned int max_iters = data.num_Exp;
-		if (iteration_cnt > 0 && iteration_cnt < max_iters)
-			max_iters = (unsigned int)iteration_cnt;
-		MedMat<tfloat> last_instance_contribs(data.num_Exp,1);
+		MedMat<tfloat> last_instance_contribs(data.num_Exp, 1);
+		MedMat<tfloat> first_instance_contribs(data.num_X, 1); // for cov/mi fix if used when no groups:
+		if (abs_cov_mat.nrows && names.size() != data.M) { //need grouping
+			tfloat *instance_feats_contrib = &feats_contrib[i * (data.num_X + 1)  * trees.num_outputs];
+			//calculate when no groups:
+			//dense_tree_shap(trees, instance, instance_feats_contrib.data(), feature_dependence, model_transform, interactions); //not thread safe
+			for (int j = 0; j < data.num_X; ++j) //skip bias last
+				first_instance_contribs(j, 0) = instance_feats_contrib[j];
+		}
 		tfloat last_bias = 0;
 		for (unsigned k = 0; k < max_iters; k++) {
 			// aggregate the effect of explaining each tree
 			// (this works because of the linearity property of Shapley values)
-			MedMat<tfloat> instance_temp_contrib(data.num_Exp+1,1);
+			MedMat<tfloat> instance_temp_contrib(data.num_Exp + 1, 1);
 			for (unsigned j = 0; j < trees.tree_limit; ++j) {
 				trees.get_tree(tree, j);
 
@@ -1622,26 +1714,32 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				adjusted_tree.free();
 			}
 
-			// Bias
-			float bias = instance_temp_contrib(data.num_Exp,0);
-			instance_temp_contrib.resize(data.num_Exp, 1);
+			// Bias - last component
+			float bias = instance_temp_contrib(data.num_Exp, 0);
+			instance_temp_contrib.resize(data.num_Exp, 1); //remove bias
+
+			if (k == 0 && abs_cov_mat.nrows && names.size() == data.M) //has no grouping use this:
+				first_instance_contribs = instance_temp_contrib;
 
 			if (k == 0)
 				instance_out_contribs[data.num_Exp] = bias;
-			
+
 			// Add covariance correction
-			MedMat<float> fixed_contrib(data.num_Exp,1);
-			if (abs_cov_mat.nrows)
-				fast_multiply_medmat(abs_cov_mat, instance_temp_contrib, fixed_contrib, (float)1.0);
-			else
+			MedMat<float> fixed_contrib(data.num_Exp, 1);
+			if (abs_cov_mat.nrows) {
+				//instance_temp_contrib is for groups. abs_cov_mat is for features. first_instance_contribs is for features. fixed_contrib - should be output for groups
+				fix_feature_dependency_in_groups(abs_cov_mat, first_instance_contribs, instance_temp_contrib, feature_sets, mask);
+				fixed_contrib = instance_temp_contrib;
+			}
+			else //no cov/mi fix:
 				fixed_contrib = instance_temp_contrib;
 
 			// Find main contributer
 			int max_idx = 0;
-			tfloat max_cont = fabs(fixed_contrib(0,0));
+			tfloat max_cont = fabs(fixed_contrib(0, 0));
 			for (int j = 1; j < data.num_Exp; j++) {
-				if ((!mask[j]) && fabs(fixed_contrib(j,0)) > max_cont) {
-					max_cont = fabs(fixed_contrib(j,0));
+				if ((!mask[j]) && fabs(fixed_contrib(j, 0)) > max_cont) {
+					max_cont = fabs(fixed_contrib(j, 0));
 					max_idx = j;
 				}
 			}
@@ -1655,11 +1753,11 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				}
 				for (size_t ii = 0; ii < mask.size(); ii++) {
 					if (mask[ii] == 0)
-						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), fixed_contrib(0,ii));
+						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), fixed_contrib(0, ii));
 				}
 			}
 
-			instance_out_contribs[max_idx] = fixed_contrib(max_idx,0);
+			instance_out_contribs[max_idx] = fixed_contrib(max_idx, 0);
 			mask[max_idx] = 1;
 
 			if (k == max_iters - 1) { //if last iteration 
@@ -1674,7 +1772,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		if (iteration_cnt > 0) {
 			for (size_t k = 0; k < last_instance_contribs.size(); ++k)
 				if (k >= mask.size() || !mask[k]) //last is bias
-					instance_out_contribs[k] = last_instance_contribs(k,0);
+					instance_out_contribs[k] = last_instance_contribs(k, 0);
 		}
 		else //copy only bias
 			instance_out_contribs[data.num_Exp * trees.num_outputs] = last_bias;
@@ -2690,6 +2788,11 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 
 	// forced = groups that are forced to be 'ON'
 	vector<vector<int>> forced(data.samples.size(), vector<int>(group2index.size(), 0));
+	vector<unsigned> feature_set(data.data.size());
+	for (unsigned i = 0; i < group2index.size(); ++i)
+		for (int ii : group2index[i])
+			feature_set[ii] = i;
+
 
 	// Add iteratively
 	int stop_iter = (int)group2index.size() - 1;
@@ -2697,12 +2800,12 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 		stop_iter = iteration_cnt;
 
 	alphas.resize(data.samples.size());
-	for (size_t i=0; i<alphas.size(); i++)
+	for (size_t i = 0; i < alphas.size(); i++)
 		alphas[i].resize(group2index.size());
 
 	for (size_t i = 0; i < stop_iter; i++) {
-		MLOG("Working with %d/%d forced\n", i+1, stop_iter);
-		
+		MLOG("Working with %d/%d forced\n", i + 1, stop_iter);
+
 		// Get Shapley Values
 		vector<vector<float>> temp_alphas;
 		get_shapley_lime_params(data, model, generator, p, n, weighting, missing, params, group2index, group_names, forced, temp_alphas);
@@ -2715,11 +2818,18 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 				if (!forced[isample][igrp]) {
 					// Correct for covariance
 					float contrib = 0;
-					if (abs_cov_mat.nrows) {
-						for (size_t jgrp = 0; jgrp < temp_alphas[isample].size(); jgrp++) {
+					if (abs_cov_mat.nrows) { //do fix:
+						MedMat<double> feat_single((int)data.data.size(), 1);
+						MedMat<double> tmp_sing((int)group_names.size(), 1);
+						feat_single.set_val(1); //TODO: use real feature contribution on single features
+						for (size_t kk = 0; kk < group_names.size(); ++kk)
+							tmp_sing(kk, 0) = (double)temp_alphas[isample][kk];
+
+						fix_feature_dependency_in_groups(abs_cov_mat, feat_single, tmp_sing, feature_set.data(), forced[isample]);
+						/*for (size_t jgrp = 0; jgrp < temp_alphas[isample].size(); jgrp++) {
 							if (!forced[isample][jgrp])
 								contrib += temp_alphas[isample][jgrp] * abs_cov_mat(igrp, jgrp);
-						}
+						}*/
 					}
 					else
 						contrib = temp_alphas[isample][igrp];
@@ -2730,7 +2840,7 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 					}
 				}
 			}
-			
+
 			alphas[isample][opt_grp] = max_contrib;
 			forced[isample][opt_grp] = 1;
 		}
