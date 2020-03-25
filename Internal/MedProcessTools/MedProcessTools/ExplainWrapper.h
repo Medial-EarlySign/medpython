@@ -47,6 +47,7 @@ public:
 	bool keep_b0 = false; ///< if true will keep b0 prior
 	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 	int iteration_cnt = 0; ///< if >0 the maximal number of iterations
+	bool use_max_cov = false; ///< If true will use max cov logic
 
 	bool use_mutual_information; ///< if true will use mutual information instead of covariance
 	BinSettings mutual_inf_bin_setting; ///< the bin setting for mutual information
@@ -81,7 +82,7 @@ public:
 
 	ADD_CLASS_NAME(ExplainProcessings)
 		ADD_SERIALIZATION_FUNCS(group_by_sum, abs_cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0,
-			iterative, iteration_cnt, postprocessing_cov, use_mutual_information, mutual_inf_bin_setting)
+			iterative, iteration_cnt, postprocessing_cov, use_mutual_information, mutual_inf_bin_setting, use_max_cov)
 };
 
 /**

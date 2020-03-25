@@ -118,6 +118,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			use_mutual_information = med_stoi(it->second) > 0;
 		else if (it->first == "mutual_inf_bin_setting")
 			mutual_inf_bin_setting.init_from_string(it->second);
+		else if (it->first == "use_max_cov")
+			use_max_cov = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -1338,7 +1340,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 			}
 			if (processing.iterative)
 				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform,
-					interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt);
+					interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt, processing.use_max_cov);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
@@ -1354,7 +1356,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 					string &feat_name = names[j];
 					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
 				}
-				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+				curr_exp[bias_name] = (float)curr_res_exp[num_Exp * num_outputs + sel_output_channel];
 			}
 		}
 		else {
@@ -2309,7 +2311,7 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	if (processing.iterative)
 		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-			sampler_sampling_args, *group_inds, *group_names, processing.abs_cov_features, processing.iteration_cnt, alphas);
+			sampler_sampling_args, *group_inds, *group_names, processing.abs_cov_features, processing.iteration_cnt, alphas, processing.use_max_cov);
 	else
 		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 			sampler_sampling_args, *group_inds, *group_names, alphas);

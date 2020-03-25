@@ -1589,7 +1589,7 @@ void get_weights(const TreeEnsemble& tree, int node_index, unsigned *sets) {
 /// @param feature_sets - in size of all features - group id for each feature
 /// @param mask - vector with groups seleceted already idx
 void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const MedMat<tfloat> &feats_instance_contribs,
-	MedMat<tfloat> &grp_contribs, const unsigned *feature_sets, const vector<int> &mask) {
+	MedMat<tfloat> &grp_contribs, const unsigned *feature_sets, const vector<int> &mask, bool take_max = false) {
 
 	unordered_map<unsigned, vector<int>> group2Inds;
 	for (int i = 0; i < abs_cov_feats.nrows; ++i)
@@ -1600,6 +1600,31 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 
 	MedMat<tfloat> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
 	//fix for each group:
+	if (take_max) {
+		for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
+			fixed_cov_abs(iGrp1, iGrp1) = 1.0;
+			for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+				float max_coeff = 0;
+				for (int idx1 : group2Inds[iGrp1]) {
+					for (int idx2 : group2Inds[iGrp2]) {
+						if (abs_cov_feats(idx1, idx2) > max_coeff)
+							max_coeff = abs_cov_feats(idx1, idx2);
+					}
+				}
+				fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
+			}
+		}
+		//fix using max: grp_contribs - size(nGroups,1) fixed_cov_abs - size(nGroups,nGroups)
+		//fast_multiply_medmat(fixed_cov_abs, grp_contribs, fixed_contrib, (float)1.0);
+		fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
+		Eigen::Map<const Eigen::MatrixXd> x(fixed_cov_abs.data_ptr(), fixed_cov_abs.ncols, fixed_cov_abs.nrows);
+		Eigen::Map<const Eigen::MatrixXd> y(grp_contribs.data_ptr(), grp_contribs.ncols, grp_contribs.nrows);
+		Eigen::Map<Eigen::MatrixXd> z(fixed_contrib.data_ptr(), fixed_contrib.ncols, fixed_contrib.nrows);
+		z = y * x;
+		//end moultiply
+		grp_contribs = move(fixed_contrib);
+		return;
+	}
 	for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
 		if (mask[iGrp1])
 			continue;
@@ -1626,27 +1651,12 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 		}
 	}
 
-	//for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
-	//	fixed_cov_abs(iGrp1, iGrp1) = 1.0;
-	//	for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
-	//		float max_coeff = 0;
-	//		for (int idx1 : group2Inds[iGrp1]) {
-	//			for (int idx2 : group2Inds[iGrp2]) {
-	//				if (abs_cov_feats(idx1, idx2) > max_coeff)
-	//					max_coeff = abs_cov_feats(idx1, idx2);
-	//			}
-	//		}
-	//		fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
-	//	}
-	//}
-	//fix using max:
-	//fast_multiply_medmat(fixed_cov_abs, grp_contribs, fixed_contrib, (float)1.0);
-	fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
+	
 
+	fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
 	Eigen::Map<const Eigen::MatrixXd> x(fixed_cov_abs.data_ptr(), fixed_cov_abs.ncols, fixed_cov_abs.nrows);
 	Eigen::Map<const Eigen::MatrixXd> y(grp_contribs.data_ptr(), grp_contribs.ncols, grp_contribs.nrows);
 	Eigen::Map<Eigen::MatrixXd> z(fixed_contrib.data_ptr(), fixed_contrib.ncols, fixed_contrib.nrows);
-
 	z = y * x;
 
 	//store output:
@@ -1655,7 +1665,7 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
 	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose,
-	vector<string>& names, const MedMat<float>& abs_cov_mat, int iteration_cnt) {
+	vector<string>& names, const MedMat<float>& abs_cov_mat, int iteration_cnt, bool max_in_groups) {
 
 	// Currently - limited applicabilty to main use-case
 	if (feature_dependence != FEATURE_DEPENDENCE::tree_path_dependent || interactions) {
@@ -1669,7 +1679,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 	//calc for each feature if needed:
 	vector<tfloat> feats_contrib;
 	if (abs_cov_mat.nrows && names.size() != data.M) {
-		feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 0);
+		feats_contrib.resize(data.num_X * (data.M + 1) * trees.num_outputs, 0);
 		dense_tree_shap(trees, data, feats_contrib.data(), feature_dependence, model_transform, interactions);
 		//BUG in dense_tree_shap:
 		//feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 1);
@@ -1688,12 +1698,12 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 
 		// Do iterations
 		MedMat<tfloat> last_instance_contribs(data.num_Exp, 1);
-		MedMat<tfloat> first_instance_contribs(data.num_X, 1); // for cov/mi fix if used when no groups:
+		MedMat<tfloat> first_instance_contribs(data.M, 1); // for cov/mi fix if used when no groups:
 		if (abs_cov_mat.nrows && names.size() != data.M) { //need grouping
-			tfloat *instance_feats_contrib = &feats_contrib[i * (data.num_X + 1)  * trees.num_outputs];
+			tfloat *instance_feats_contrib = &feats_contrib[i * (data.M + 1)  * trees.num_outputs];
 			//calculate when no groups:
 			//dense_tree_shap(trees, instance, instance_feats_contrib.data(), feature_dependence, model_transform, interactions); //not thread safe
-			for (int j = 0; j < data.num_X; ++j) //skip bias last
+			for (int j = 0; j < data.M; ++j) //skip bias last
 				first_instance_contribs(j, 0) = instance_feats_contrib[j];
 		}
 		tfloat last_bias = 0;
@@ -1728,7 +1738,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 			MedMat<float> fixed_contrib(data.num_Exp, 1);
 			if (abs_cov_mat.nrows) {
 				//instance_temp_contrib is for groups. abs_cov_mat is for features. first_instance_contribs is for features. fixed_contrib - should be output for groups
-				fix_feature_dependency_in_groups(abs_cov_mat, first_instance_contribs, instance_temp_contrib, feature_sets, mask);
+				fix_feature_dependency_in_groups(abs_cov_mat, first_instance_contribs, instance_temp_contrib, feature_sets, mask, max_in_groups);
 				fixed_contrib = instance_temp_contrib;
 			}
 			else //no cov/mi fix:
@@ -2784,7 +2794,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 // Iterative Shapley_lime
 void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data, const MedPredictor *model,
 	SamplesGenerator<float> *generator, float p, int n, LimeWeightMethod weighting, float missing,
-	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, const MedMat<float>& abs_cov_mat, int iteration_cnt, vector<vector<float>>& alphas) {
+	void *params, const vector<vector<int>>& group2index, const vector<string>& group_names, const MedMat<float>& abs_cov_mat, int iteration_cnt, vector<vector<float>>& alphas, bool max_in_groups) {
 
 	// forced = groups that are forced to be 'ON'
 	vector<vector<int>> forced(data.samples.size(), vector<int>(group2index.size(), 0));
@@ -2825,7 +2835,7 @@ void medial::shapley::get_iterative_shapley_lime_params(const MedFeatures& data,
 						for (size_t kk = 0; kk < group_names.size(); ++kk)
 							tmp_sing(kk, 0) = (double)temp_alphas[isample][kk];
 
-						fix_feature_dependency_in_groups(abs_cov_mat, feat_single, tmp_sing, feature_set.data(), forced[isample]);
+						fix_feature_dependency_in_groups(abs_cov_mat, feat_single, tmp_sing, feature_set.data(), forced[isample], max_in_groups);
 						/*for (size_t jgrp = 0; jgrp < temp_alphas[isample].size(); jgrp++) {
 							if (!forced[isample][jgrp])
 								contrib += temp_alphas[isample][jgrp] * abs_cov_mat(igrp, jgrp);
