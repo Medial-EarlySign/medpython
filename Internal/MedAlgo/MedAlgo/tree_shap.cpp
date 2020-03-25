@@ -1599,6 +1599,7 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 	//mask of selected groups
 
 	MedMat<tfloat> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
+	fixed_cov_abs.set_val(1);
 	//fix for each group:
 	if (take_max) {
 		for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
@@ -1626,11 +1627,12 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 		return;
 	}
 	for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
-		if (mask[iGrp1])
-			continue;
 		for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
-			if (mask[iGrp2])
+			if (mask[iGrp1] || mask[iGrp2]) {
+				fixed_cov_abs(iGrp1, iGrp2) = 0;
+				fixed_cov_abs(iGrp2, iGrp1) = 0;
 				continue;
+			}
 			//not within group
 			double w = 0;
 			double max_w = 0;
@@ -1639,15 +1641,15 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 				{
 					int ind_feat_1 = group2Inds[iGrp1][i];
 					int ind_feat_2 = group2Inds[iGrp2][j];
-					w += abs_cov_feats(ind_feat_1, ind_feat_2) * feats_instance_contribs(ind_feat_1, 0) * feats_instance_contribs(ind_feat_2, 0);
-					max_w += feats_instance_contribs(ind_feat_1, 0) * feats_instance_contribs(ind_feat_2, 0); //as if all cov are 1
+					w += abs_cov_feats(ind_feat_1, ind_feat_2) * abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0));
+					max_w += abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0)); //as if all cov are 1
 				}
 			if (max_w > 0)
 				w /= max_w;
 
 			//use w to add contribution for group:
-			fixed_cov_abs(iGrp1, iGrp2) += w;
-			fixed_cov_abs(iGrp2, iGrp1) += w;
+			fixed_cov_abs(iGrp1, iGrp2) = w;
+			fixed_cov_abs(iGrp2, iGrp1) = w;
 		}
 	}
 
@@ -1683,8 +1685,9 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 		ExplanationDataset data_for_features = data;
 		data_for_features.num_Exp = data.M;
 		dense_tree_shap(trees, data_for_features, feats_contrib.data(), feature_dependence, model_transform, interactions);
+
 		//DEBUG:
-		//feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 1);
+		//feats_contrib.resize(data.num_X * (data.M + 1) * trees.num_outputs, 1);
 	}
 
 	MedProgress progress("TREE_SHAPLEY_ITERATIVE", data.num_X, 15, 10);
