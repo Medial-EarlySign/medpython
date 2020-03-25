@@ -1680,8 +1680,10 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 	vector<tfloat> feats_contrib;
 	if (abs_cov_mat.nrows && names.size() != data.M) {
 		feats_contrib.resize(data.num_X * (data.M + 1) * trees.num_outputs, 0);
-		dense_tree_shap(trees, data, feats_contrib.data(), feature_dependence, model_transform, interactions);
-		//BUG in dense_tree_shap:
+		ExplanationDataset data_for_features = data;
+		data_for_features.num_Exp = data.M;
+		dense_tree_shap(trees, data_for_features, feats_contrib.data(), feature_dependence, model_transform, interactions);
+		//DEBUG:
 		//feats_contrib.resize(data.num_X * (data.num_X + 1) * trees.num_outputs, 1);
 	}
 
