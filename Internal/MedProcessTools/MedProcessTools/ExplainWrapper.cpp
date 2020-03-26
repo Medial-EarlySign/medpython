@@ -940,9 +940,11 @@ bool TreeExplainer::convert_xgb_trees() {
 	}
 
 	// Export to Json
-	const char **trees;
+	const char **trees = NULL;
 	int nTrees;
 	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
+	if (trees == NULL)
+		MTHROW_AND_ERR("Error TreeExplainer::convert_xgb_trees - can't retriev xgboost model\n");
 
 	// Analyze treees
 	int max_nodes = 0, max_depth = 0;

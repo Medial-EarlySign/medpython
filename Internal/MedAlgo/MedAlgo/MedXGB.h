@@ -163,7 +163,9 @@ public:
 		if (my_learner != NULL) {
 			string no_fmap = "";
 			xgboost::bst_ulong _len;
-			XGBoosterDumpModelEx(my_learner, no_fmap.c_str(), 1, type.c_str(), &_len, json);
+			int succ = XGBoosterDumpModelEx(my_learner, no_fmap.c_str(), 1, type.c_str(), &_len, json);
+			if (succ < 0)
+				HMTHROW_AND_ERR("Error MedXGB::get_json - can't get model\n");
 			len = (int)_len;
 		}
 		else
