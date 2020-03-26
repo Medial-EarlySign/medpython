@@ -1602,9 +1602,15 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 	fixed_cov_abs.set_val(1);
 	//fix for each group:
 	if (take_max) {
+		//fix using max
 		for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
 			fixed_cov_abs(iGrp1, iGrp1) = 1.0;
 			for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+				if (mask[iGrp1] || mask[iGrp2]) {
+					fixed_cov_abs(iGrp1, iGrp2) = 0;
+					fixed_cov_abs(iGrp2, iGrp1) = 0;
+					continue;
+				}
 				float max_coeff = 0;
 				for (int idx1 : group2Inds[iGrp1]) {
 					for (int idx2 : group2Inds[iGrp2]) {
@@ -1615,46 +1621,38 @@ void fix_feature_dependency_in_groups(const MedMat<float>& abs_cov_feats, const 
 				fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
 			}
 		}
-		//fix using max: grp_contribs - size(nGroups,1) fixed_cov_abs - size(nGroups,nGroups)
-		//fast_multiply_medmat(fixed_cov_abs, grp_contribs, fixed_contrib, (float)1.0);
-		fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
-		Eigen::Map<const Eigen::MatrixXd> x(fixed_cov_abs.data_ptr(), fixed_cov_abs.ncols, fixed_cov_abs.nrows);
-		Eigen::Map<const Eigen::MatrixXd> y(grp_contribs.data_ptr(), grp_contribs.ncols, grp_contribs.nrows);
-		Eigen::Map<Eigen::MatrixXd> z(fixed_contrib.data_ptr(), fixed_contrib.ncols, fixed_contrib.nrows);
-		z = y * x;
-		//end moultiply
-		grp_contribs = move(fixed_contrib);
-		return;
 	}
-	for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
-		for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
-			if (mask[iGrp1] || mask[iGrp2]) {
-				fixed_cov_abs(iGrp1, iGrp2) = 0;
-				fixed_cov_abs(iGrp2, iGrp1) = 0;
-				continue;
-			}
-			//not within group
-			double w = 0;
-			double max_w = 0;
-			for (int i = 0; i < group2Inds[iGrp1].size(); ++i)
-				for (int j = 0; j < group2Inds[iGrp2].size(); ++j)
-				{
-					int ind_feat_1 = group2Inds[iGrp1][i];
-					int ind_feat_2 = group2Inds[iGrp2][j];
-					w += abs_cov_feats(ind_feat_1, ind_feat_2) * abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0));
-					max_w += abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0)); //as if all cov are 1
+	else {
+		for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
+			fixed_cov_abs(iGrp1, iGrp1) = 1;
+			for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
+				if (mask[iGrp1] || mask[iGrp2]) {
+					fixed_cov_abs(iGrp1, iGrp2) = 0;
+					fixed_cov_abs(iGrp2, iGrp1) = 0;
+					continue;
 				}
-			if (max_w > 0)
-				w /= max_w;
+				//not within group
+				double w = 0;
+				double max_w = 0;
+				for (int i = 0; i < group2Inds[iGrp1].size(); ++i)
+					for (int j = 0; j < group2Inds[iGrp2].size(); ++j)
+					{
+						int ind_feat_1 = group2Inds[iGrp1][i];
+						int ind_feat_2 = group2Inds[iGrp2][j];
+						w += abs_cov_feats(ind_feat_1, ind_feat_2) * abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0));
+						max_w += abs(feats_instance_contribs(ind_feat_1, 0)) * abs(feats_instance_contribs(ind_feat_2, 0)); //as if all cov are 1
+					}
+				if (max_w > 0)
+					w /= max_w;
 
-			//use w to add contribution for group:
-			fixed_cov_abs(iGrp1, iGrp2) = w;
-			fixed_cov_abs(iGrp2, iGrp1) = w;
+				//use w to add contribution for group:
+				fixed_cov_abs(iGrp1, iGrp2) = w;
+				fixed_cov_abs(iGrp2, iGrp1) = w;
+			}
 		}
 	}
-
-	
-
+	//fast_multiply_medmat(fixed_cov_abs, grp_contribs, fixed_contrib, (float)1.0);
+	//grp_contribs - size(nGroups,1) fixed_cov_abs - size(nGroups,nGroups)
 	fixed_contrib.resize(fixed_cov_abs.nrows, grp_contribs.ncols);
 	Eigen::Map<const Eigen::MatrixXd> x(fixed_cov_abs.data_ptr(), fixed_cov_abs.ncols, fixed_cov_abs.nrows);
 	Eigen::Map<const Eigen::MatrixXd> y(grp_contribs.data_ptr(), grp_contribs.ncols, grp_contribs.nrows);
