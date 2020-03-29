@@ -19,7 +19,8 @@ enum GeneratorType
 	GIBBS = 0, ///< "GIBBS" - to use GibbsSampler
 	GAN = 1, ///< "GAN" to use GAN generator, accepts GAN path
 	MISSING = 2, ///< "MISSING" to use no generator, just puts missing values where mask[i]==0
-	RANDOM_DIST = 3 ///< "RANDOM_DIST" to use random normal distributaion on missing values
+	RANDOM_DIST = 3, ///< "RANDOM_DIST" to use random normal distributaion on missing values
+	UNIVARIATE_DIST = 4 ///< "UNIVARIATE_DIST" to use sampling from each feature independently
 };
 
 /// convert function for generator type to string
@@ -195,6 +196,9 @@ public:
 		ADD_SERIALIZATION_FUNCS(missing_value, names)
 };
 
+/**
+* puts random values from normal distribution in missing values
+*/
 template<typename T> class RandomSamplesGenerator : public SamplesGenerator<T> {
 public:
 	T mean_value;
@@ -219,6 +223,28 @@ public:
 		ADD_SERIALIZATION_FUNCS(mean_value, std_value, names)
 };
 
+/**
+* puts values in each feature selected randomly from it's distribution
+*/
+template<typename T> class UnivariateSamplesGenerator : public SamplesGenerator<T> {
+public:
+	T missing_value = MED_MAT_MISSING_VALUE;
+	vector<string> names;
+	unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob.
+
+	void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing);
+
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values);
+	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const;
+	void get_samples(MedMat<T> &data, int sample_per_row, void *params, const vector<vector<bool>> &mask, const MedMat<T> &mask_values, mt19937 &rnd_gen) const;
+
+	void pre_serialization();
+	void post_deserialization();
+
+	ADD_CLASS_NAME(UnivariateSamplesGenerator<T>)
+		ADD_SERIALIZATION_FUNCS(feature_val_agg, names, missing_value)
+};
 
 MEDSERIALIZE_SUPPORT(MaskedGANParams)
 MEDSERIALIZE_SUPPORT(SamplesGenerator<float>)
@@ -228,5 +254,6 @@ MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(GibbsSamplesGenerator<double>)
 MEDSERIALIZE_SUPPORT(MissingsSamplesGenerator<float>)
 MEDSERIALIZE_SUPPORT(RandomSamplesGenerator<float>)
+MEDSERIALIZE_SUPPORT(UnivariateSamplesGenerator<float>)
 
 #endif

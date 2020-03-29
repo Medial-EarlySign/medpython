@@ -18,6 +18,8 @@ string GeneratorType_toStr(GeneratorType type) {
 		return "MISSING";
 	case RANDOM_DIST:
 		return "RANDOM_DIST";
+	case UNIVARIATE_DIST:
+		return "UNIVARIATE_DIST";
 	default:
 		MTHROW_AND_ERR("Unknown type %d\n", type);
 	}
@@ -32,6 +34,8 @@ GeneratorType GeneratorType_fromStr(const string &type) {
 		return GeneratorType::MISSING;
 	else if (tp == "RANDOM_DIST")
 		return GeneratorType::RANDOM_DIST;
+	else if (tp == "UNIVARIATE_DIST")
+		return GeneratorType::UNIVARIATE_DIST;
 	else
 		MTHROW_AND_ERR("Unknown type %s\n", type.c_str());
 }
@@ -73,6 +77,8 @@ template<typename T> void MissingsSamplesGenerator<T>::pre_serialization() {}
 template<typename T> void MissingsSamplesGenerator<T>::post_deserialization() {}
 template<typename T> void RandomSamplesGenerator<T>::pre_serialization() {}
 template<typename T> void RandomSamplesGenerator<T>::post_deserialization() {}
+template<typename T> void UnivariateSamplesGenerator<T>::pre_serialization() {}
+template<typename T> void UnivariateSamplesGenerator<T>::post_deserialization() {}
 
 template<typename T> GibbsSamplesGenerator<T>::GibbsSamplesGenerator() : SamplesGenerator<T>(false) {
 	_gibbs = NULL;
@@ -509,3 +515,107 @@ template<typename T> void RandomSamplesGenerator<T>::get_samples(MedMat<T> &data
 template class RandomSamplesGenerator<float>;
 
 template class MissingsSamplesGenerator<float>;
+
+template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
+	for (const auto &it : data)
+		names.push_back(it.first);
+	//already sorted because map
+	for (const string &feat : learn_features)
+	{
+		if (data.find(feat) == data.end())
+			MTHROW_AND_ERR("Error can't find feature %s\n", feat.c_str());
+		const vector<T> &v = data.at(feat);
+		map<float, double> &val_to_prob = feature_val_agg[feat];
+		double tot_cnt = 0; //count non missings or all
+		for (float val : v)
+		{
+			if (skip_missing && val == missing_value)
+				continue;
+			++val_to_prob[val];
+			++tot_cnt;
+		}
+		//process v into val_to_prob:
+		if (tot_cnt > 0)
+			for (auto &it : val_to_prob)
+				val_to_prob[it.first] /= tot_cnt;
+
+	}
+}
+
+template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
+	const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
+	int smp_count = *(int *)params;
+	uniform_real_distribution<> rnd_prob(0, 1);
+	for (size_t s = 0; s < smp_count; ++s)
+	{
+		//generate sample with all features:
+		for (size_t i = 0; i < names.size(); ++i)
+		{
+			if (mask[i])
+				data[names[i]].push_back(mask_values[i]);
+			else {
+				const map<T, double> &feat_prob = feature_val_agg.at(names[i]);
+				float p = rnd_prob(rnd_gen);
+				double agg = 0;
+				T val = missing_value;
+				for (const auto &it : feat_prob)
+				{
+					agg += it.second;
+					if (agg >= p) {
+						val = it.first;
+						break;
+					}
+				}
+
+				data[names[i]].push_back(val);
+			}
+		}
+	}
+}
+template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
+	const vector<bool> &mask, const vector<T> &mask_values) {
+	random_device rd;
+	mt19937 rnd_gen(rd());
+	get_samples(data, params, mask, mask_values, rnd_gen);
+}
+
+template<typename T> void UnivariateSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row,
+	void *params, const vector<vector<bool>> &masks, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
+	if (!masks.empty()) {
+		data.resize((int)masks.size(), (int)masks[0].size());
+		uniform_real_distribution<> rnd_prob(0, 1);
+		for (int i = 0; i < masks.size(); ++i)
+		{
+			for (int j = 0; j < names.size(); ++j)
+			{
+				if (masks[i][j])
+					data(i, j) = mask_values(i, j);
+				else {
+					const map<T, double> &feat_prob = feature_val_agg.at(names[j]);
+					float p = rnd_prob(rnd_gen);
+					double agg = 0;
+					T val = missing_value;
+					for (const auto &it : feat_prob)
+					{
+						agg += it.second;
+						if (agg >= p) {
+							val = it.first;
+							break;
+						}
+					}
+					data(i, j) = val;
+				}
+			}
+		}
+	}
+	else
+		data.clear();
+}
+template<typename T> void UnivariateSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row, void *params,
+	const vector<vector<bool>> &mask, const MedMat<T> &mask_values) {
+	random_device rd;
+	mt19937 rnd_gen(rd());
+	get_samples(data, sample_per_row, params, mask, mask_values, rnd_gen);
+}
+
+template class UnivariateSamplesGenerator<float>;
