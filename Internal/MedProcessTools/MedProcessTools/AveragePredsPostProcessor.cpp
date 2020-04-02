@@ -59,7 +59,7 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		vector<FeatureProcessor *> fps_flat;
 		for (size_t i = 0; i < model.feature_processors.size(); ++i)
 		{
-			if (feature_processor->processor_type == FTR_PROCESS_MULTI) {
+			if (model.feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
 				vector<FeatureProcessor *> &to_add = static_cast<MultiFeatureProcessor *>(model.feature_processors[i])->processors;
 				fps_flat.insert(fps_flat.end(), to_add.begin(), to_add.end());
 			}
@@ -101,7 +101,7 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		vector<FeatureProcessor *> fps_flat;
 		for (size_t i = 0; i < model.feature_processors.size(); ++i)
 		{
-			if (feature_processor->processor_type == FTR_PROCESS_MULTI) {
+			if (model.feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
 				vector<FeatureProcessor *> &to_add = static_cast<MultiFeatureProcessor *>(model.feature_processors[i])->processors;
 				fps_flat.insert(fps_flat.end(), to_add.begin(), to_add.end());
 			}
@@ -113,8 +113,10 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		int has_before = 0;
 		for (FeatureProcessor *f : fps_flat)
 		{
-			if (found)
-				after_processors.push_back(f);
+			if (found) {
+				if (!processors_tp[f->processor_type])
+					after_processors.push_back(f);
+			}
 			else {
 				if (processors_tp[f->processor_type])
 					found = true;
