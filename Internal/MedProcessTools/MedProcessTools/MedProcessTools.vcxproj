@@ -76,6 +76,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AlcoholGenerator.cpp" />
+    <ClCompile Include="AveragePredsPostProcessor.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
     <ClCompile Include="Calibration.cpp" />
     <ClCompile Include="CategoryDependencyGenerator.cpp" />
@@ -115,6 +116,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlcoholGenerator.h" />
+    <ClInclude Include="AveragePredsPostProcessor.h" />
     <ClInclude Include="Calibration.h" />
     <ClInclude Include="CrossValidator.h" />
     <ClInclude Include="DiabetesFinderGenerator.h" />

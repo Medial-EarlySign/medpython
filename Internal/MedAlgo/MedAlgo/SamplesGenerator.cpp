@@ -118,6 +118,7 @@ template<typename T> void *SamplesGenerator<T>::new_polymorphic(string derived_n
 	if (boost::starts_with(derived_name, "MaskedGAN")) return new MaskedGAN<float>;
 	if (boost::starts_with(derived_name, "MissingsSamplesGenerator")) return new MissingsSamplesGenerator<float>;
 	if (boost::starts_with(derived_name, "RandomSamplesGenerator")) return new RandomSamplesGenerator<float>;
+	if (boost::starts_with(derived_name, "UnivariateSamplesGenerator")) return new UnivariateSamplesGenerator<float>;
 	MTHROW_AND_ERR("SamplesGenerator<T>::new_polymorphic:: Unsupported object %s\n", derived_name.c_str());
 	return NULL;
 }
@@ -519,8 +520,12 @@ template class MissingsSamplesGenerator<float>;
 template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
 	for (const auto &it : data)
 		names.push_back(it.first);
+	vector<string> final_feats = learn_features;
+	if (learn_features.empty())
+		final_feats = names;
+	MLOG("INFO :: UnivariateSamplesGenerator Learn started (%zu)\n", final_feats.size());
 	//already sorted because map
-	for (const string &feat : learn_features)
+	for (const string &feat : final_feats)
 	{
 		if (data.find(feat) == data.end())
 			MTHROW_AND_ERR("Error can't find feature %s\n", feat.c_str());
