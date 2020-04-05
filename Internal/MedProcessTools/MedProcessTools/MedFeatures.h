@@ -144,6 +144,9 @@ public:
 	///\brief Sort by id and time
 	void samples_sort();
 
+	///\brief Get feature name that matches a substring
+	string resolve_name(string& substr);
+
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)
 	ADD_SERIALIZATION_FUNCS(data, weights, samples, attributes, tags, time_unit)

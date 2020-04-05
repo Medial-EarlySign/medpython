@@ -197,15 +197,8 @@ int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 //.......................................................................................
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
 
-	// Exact name ?
-	if (features.data.find(substr) != features.data.end())
-		return substr;
-	else {
-		vector<string> names;
-		for (auto& me : features.data)
-			names.push_back(me.first);
-		return names[find_in_feature_names(names, substr)];
-	}
+	return features.resolve_name(substr);
+
 }
 
 // (De)Serialize
