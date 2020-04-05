@@ -234,6 +234,7 @@ public:
 	void load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment = false);
 	void fit_for_repository(MedPidRepository& rep);
 
+	MedPidRepository *p_rep = NULL; ///< not serialized. stores pointer to rep used in Learn or Apply after call.
 private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
 	string parse_key_val(string key, string val);

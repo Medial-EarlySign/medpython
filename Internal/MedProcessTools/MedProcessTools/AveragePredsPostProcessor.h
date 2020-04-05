@@ -14,7 +14,12 @@ class AveragePredsPostProcessor : public PostProcessor {
 private: 
 	MedPredictor *model_predictor = NULL; ///< predictor we're trying to explain
 	FeatureProcessor *feature_processor = NULL; ///< feature processor that manipulate the features - for example imputations for missing values. can be new one without learn
+	vector<FeatureProcessor *> before_processors; ///< stores all processors need to be applied after ours
 	vector<FeatureProcessor *> after_processors; ///< stores all processors need to be applied after ours
+
+	MedModel *p_model; ///< stores on init_post_processor to learn and apply
+
+	void generate_matrix_till_feature_process(const MedFeatures &input_mat, MedFeatures &res) const;
 public:
 	string feature_processor_type; ///< the feature processor type. if used from model, reffer with prefix MODEL::%s where %s is feature processpr type - currently support single type if exists
 	string feature_processor_args; ///< the feature processor type
@@ -42,7 +47,7 @@ public:
 
 	ADD_CLASS_NAME(AveragePredsPostProcessor)
 		ADD_SERIALIZATION_FUNCS(model_predictor, feature_processor, feature_processor_type, 
-			feature_processor_args, use_median, resample_cnt, batch_size, force_cancel_imputations, after_processors)
+			feature_processor_args, use_median, resample_cnt, batch_size, force_cancel_imputations, before_processors, after_processors)
 };
 
 MEDSERIALIZE_SUPPORT(AveragePredsPostProcessor)

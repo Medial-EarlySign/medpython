@@ -232,6 +232,8 @@ public:
 	vector<string> names;
 	unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob.
 
+	UnivariateSamplesGenerator();
+
 	void learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing);
 
 	void get_samples(map<string, vector<T>> &data, void *params, const vector<bool> &mask, const vector<T> &mask_values);

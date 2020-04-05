@@ -517,6 +517,10 @@ template class RandomSamplesGenerator<float>;
 
 template class MissingsSamplesGenerator<float>;
 
+template<typename T> UnivariateSamplesGenerator<T>::UnivariateSamplesGenerator() : SamplesGenerator<T>(false) {
+
+}
+
 template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
 	for (const auto &it : data)
 		names.push_back(it.first);
@@ -549,7 +553,9 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 
 template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
 	const vector<bool> &mask, const vector<T> &mask_values, mt19937 &rnd_gen) const {
-	int smp_count = *(int *)params;
+	int smp_count = 1;
+	if (params != NULL)
+		smp_count = *(int *)params;
 	uniform_real_distribution<> rnd_prob(0, 1);
 	for (size_t s = 0; s < smp_count; ++s)
 	{

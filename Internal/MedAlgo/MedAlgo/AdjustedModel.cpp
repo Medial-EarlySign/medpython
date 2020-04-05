@@ -63,7 +63,7 @@ void MedAdjustedModel::readPriors() {
 				MTHROW_AND_ERR("Expecting last column of header to be prob");
 			for (size_t i = 0; i < fields.size() - 1; i++)
 				priors.names.push_back(fields[i]);
-			nValues = priors.names.size();
+			nValues = (int)priors.names.size();
 		}
 		else {
 			if (fields.size() != priors.names.size() + 1)
@@ -121,7 +121,7 @@ void MedAdjustedModel::getPosteriors(vector<float>& preds, MedMat<float>& priors
 {
 
 #pragma omp parallel for
-	for (size_t i = 0; i < preds.size(); i+=n_preds) {
+	for (int i = 0; i < preds.size(); i+=n_preds) {
 		// Prior
 		int index = 0;
 		for (size_t j = 0; j < priors.names.size(); j++) {
@@ -164,13 +164,14 @@ void MedAdjustedModel::getSubMatrices(MedMat<float> &x, MedMat<float> &priorsX, 
 	for (int id : priors.colIds)
 		priorColiIds.insert(id);
 
-	int nPriorCols = priorColiIds.size();
+	int nPriorCols = (int)priorColiIds.size();
 	int nPredictorCols = x.ncols - nPriorCols;
 	priorsX.resize(x.nrows, nPriorCols);
 	predictorX.resize(x.nrows, nPredictorCols);
 
-#pragma parallel for
+
 	int priorsCol = 0, predictorCol = 0;
+#pragma omp parallel for
 	for (int icol = 0; icol < x.ncols; icol++) {
 		if (priorColiIds.find(icol) != priorColiIds.end()) {
 			for (int irow = 0; irow < x.nrows; irow++)
