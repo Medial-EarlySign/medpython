@@ -857,7 +857,7 @@ bool TreeExplainer::convert_xgb_trees() {
 	}
 
 	// Export to Json
-	const char **trees;
+	const char **trees = NULL;
 	int nTrees;
 	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
 
