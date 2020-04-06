@@ -3649,6 +3649,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "t_chan") t_chan = med_stoi(entry.second);
 		else if (field == "c_chan") c_chan = med_stoi(entry.second);
 		else if (field == "duration_chan") duration_chan = med_stoi(entry.second);
+		else if (field == "min_jitter") min_jitter = med_stoi(entry.second);
 		else if (field == "min_duration") min_duration = med_stoi(entry.second);
 		else if (field == "max_duration") max_duration = med_stoi(entry.second);
 		else if (field == "dont_look_back") dont_look_back = med_stoi(entry.second);
@@ -3932,11 +3933,40 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 		}
 
+		// fixing jitters : remove all jitters that are too short and add to 
+		vector<pair<int, int>> unjittered_states;
+		for (int j = 0; j < states.size(); j++) {
+			//MLOG("##1## j %d state %d %d\n", j, states[j].first, states[j].second);
+			if (j > 0 && j < states.size() - 1) {
+				int v1 = states[j - 1].second;
+				int v2 = states[j].second;
+				int v3 = states[j + 1].second;
+				int len = med_time_converter.diff_times(states[j + 1].first, states[j].first, time_unit_sig, time_unit_duration);
+				//MLOG("##1.1## j %d state %d %d : v1 %x v2 %x v3 %x len %d min_jitter %d\n", j, states[j].first, states[j].second, v1,v2,v3,len,min_jitter);
+				if (len < min_jitter && (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1))) {
+					//MLOG("##1.2## j %d state %d %d\n", j, states[j].first, states[j].second);
+					continue;
+				}
+			} 
+
+			//MLOG("##2## j %d state %d %d\n", j, states[j].first, states[j].second);
+			if (unjittered_states.size() == 0) {
+				//MLOG("##3## j %d state %d %d\n", j, states[j].first, states[j].second);
+				unjittered_states.push_back(states[j]);
+			} 
+			else {
+				//MLOG("##4## j %d state %d %d\n", j, states[j].first, states[j].second);
+				if (unjittered_states.back().second != states[j].second)
+					unjittered_states.push_back(states[j]);
+			}
+		}
+
+
 		// packing and pushing new virtual signal
 		vector<int> v_times;
 		vector<float> v_vals;
 		if (states.size() > 0) {
-			for (auto &e : states) {
+			for (auto &e : unjittered_states) {
 				v_times.push_back(e.first);
 				v_vals.push_back((float)e.second);
 			}
