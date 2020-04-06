@@ -55,6 +55,10 @@ void PredictorImputer::init_sampler(bool with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new RandomSamplesGenerator<float>(0, 5));
 		sampler_sampling_args = &n_masks;
 		break;
+	case UNIVARIATE_DIST:
+		if (with_sampler)
+			_sampler = unique_ptr<SamplesGenerator<float>>(new UnivariateSamplesGenerator<float>);
+		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);
 	}
@@ -97,7 +101,7 @@ int PredictorImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	for (const auto &it : features.data)
 	{
 		const unordered_set<string> &f_tags = features.tags.at(it.first);
-		if (it.first == tag_search || f_tags.find(tag_search) != f_tags.end())
+		if (it.first == tag_search || f_tags.find(tag_search) != f_tags.end() || tag_search.empty())
 			impute_features.push_back(it.first);
 	}
 	//add option to learn only on impute_features:
@@ -157,9 +161,9 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		for (size_t i = 0; i < nsamples; ++i)
 		{
 			vector<bool> &b_vec = masks[i]; //imput falses
+			b_vec.resize(features.data.size());
 			for (size_t k = 0; k < features.data.size(); ++k)
-				b_vec[k] = mat_inp(i, k) != missing_value ||
-				imput_set.find(all_names[k]) == imput_set.end();
+				b_vec[k] = imput_set.find(all_names[k]) == imput_set.end() || mat_inp(i, k) != missing_value;
 		}
 
 		_sampler->get_samples(res, 1, sampler_sampling_args, masks, mat_inp, gen);
@@ -178,7 +182,7 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		for (size_t i = 0; i < N_TH; ++i)
 			gens[i] = mt19937(rd());
 		MedProgress progress("PredictorImputer::apply", nsamples, 30, 10);
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < nsamples; ++i)
 		{
 			int th_n = omp_get_thread_num();

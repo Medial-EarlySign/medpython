@@ -68,10 +68,13 @@ namespace medial {
 		template <typename T, typename S> double kendall_tau_q(const vector<T> &v1, const vector<S> &v2, T missing_val1, S missing_val2, int& n,
 			const vector<float> *weights = NULL);
 
+		/// <summary> calculate mutual information between quantized vectors. n = number of non-empty bins. x,y are binnned features </summary>
+		/// <returns> mutual information, n= of non-empty bins </returns>
+		float mutual_information(const vector<float>& x, const vector<float>& y, int &n);
 		/// <summary> calculate mutual information given vectors of counts and co-counts. n = number of non-empty bins </summary>
 		/// <returns> mutual information, -1.0 if cannot calculate </returns>
 		float mutual_information(vector<int>& xCounts, vector<int>& yCounts, vector<int> coCounts, int n);
-		/// <summary> calculate mutual information between quantized vectors. n = number of non-empty bins </summary>
+		/// <summary> calculate mutual information between quantized vectors. n = number of non-empty bins. x,y are feature bin indexes </summary>
 		/// <returns> mutual information, n= of non-empty bins </returns>
 		float mutual_information(vector<int>& x, vector<int>& y, int &n);
 

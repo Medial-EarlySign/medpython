@@ -321,11 +321,11 @@ int IterativeImputer::learn_first_round(MedFeatures &mfd)
 }
 
 //----------------------------------------------------------------------------------------------------------------------
-int IterativeImputer::apply_first_round(MedFeatures &mfd)
+int IterativeImputer::apply_first_round(MedFeatures &mfd, bool learning)
 {
 	for (auto &basic_imputer : first_round_imputers) {
 		if (params.verbose) MLOG("IterativeImputer apply_first_round : feature %s\n", basic_imputer.feature_name.c_str());
-		if (basic_imputer.apply(mfd) < 0) {
+		if (basic_imputer.apply(mfd,learning) < 0) {
 			MERR("IterativeImputer : Failed 1st round basic imputer Apply on feature %s.... \n", basic_imputer.feature_name.c_str());
 			return -1;
 		}
@@ -352,7 +352,7 @@ int IterativeImputer::Learn(MedFeatures &mfd)
 	if (init_internals(*my_mfd) < 0) return -1;
 	if (params.verbose) MLOG("IterativeImputer Learn() learn_first_round (do %d)\n", params.do_round1);
 	if (params.do_round1 && learn_first_round(*my_mfd) < 0) return -1;
-	if (params.do_round1 && apply_first_round(*my_mfd) < 0) return -1;
+	if (params.do_round1 && apply_first_round(*my_mfd,true) < 0) return -1;
 
 	for (int iter = 0; iter<params.max_iterations; iter++) {
 		learn_iteration(*my_mfd, iter);
@@ -385,14 +385,14 @@ int IterativeImputer::Learn(MedFeatures &mfd)
 
 
 //----------------------------------------------------------------------------------------------------------------------
-int IterativeImputer::Apply(MedFeatures &mfd)
+int IterativeImputer::Apply(MedFeatures &mfd, bool learning)
 {
 	if (params.verbose) MLOG("IterativeImputer Apply() apply_first_round()\n");
 
 	for (auto &fi : feats)
 		init_feature_info_update(mfd, fi);
 
-	if (params.do_round1 && apply_first_round(mfd) < 0) return -1;
+	if (params.do_round1 && apply_first_round(mfd,learning) < 0) return -1;
 
 	if (params.verbose) MLOG("IterativeImputer Apply() round_to_resolution()\n");
 	for (int iter=0; iter<params.max_iterations; iter++) {
@@ -595,10 +595,9 @@ void FeatureIterativeImputer::update_req_features_vec(unordered_set<string>& out
 
 /// Apply imputing model on subset of ids (TBI)
 //.......................................................................................
-int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
-	return _apply(features);
-	MERR("iterativeImputer on subset of ids is not implemented yet\n"); 
-	return -1;
+int FeatureIterativeImputer::_apply(MedFeatures& features, unordered_set<int>& ids, bool learning) {
+	
+	return _apply(features,learning);
 }
 
 /// Learn imputing model on subset of ids (TBI)

@@ -76,6 +76,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AlcoholGenerator.cpp" />
+    <ClCompile Include="AveragePredsPostProcessor.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
     <ClCompile Include="Calibration.cpp" />
     <ClCompile Include="CategoryDependencyGenerator.cpp" />
@@ -105,6 +106,7 @@
     <ClCompile Include="PanelCompleter.cpp" />
     <ClCompile Include="PostProcessor.cpp" />
     <ClCompile Include="PredictorImputer.cpp" />
+    <ClCompile Include="ProbAdjustPostProcessor.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
@@ -115,6 +117,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlcoholGenerator.h" />
+    <ClInclude Include="AveragePredsPostProcessor.h" />
     <ClInclude Include="Calibration.h" />
     <ClInclude Include="CrossValidator.h" />
     <ClInclude Include="DiabetesFinderGenerator.h" />
@@ -137,6 +140,7 @@
     <ClInclude Include="MedValueCleaner.h" />
     <ClInclude Include="PostProcessor.h" />
     <ClInclude Include="PredictorImputer.h" />
+    <ClInclude Include="ProbAdjustPostProcessor.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />

@@ -36,13 +36,13 @@ public:
 	// predict - we only have the medmat option
 	int predict_pre_combine(MedMat<float> &x, MedMat<float> &preds) const;
 	int predict(MedMat<float> &x, vector<float> &preds) const;	
-	int Predict(float *x, float *&preds, int nsamples, int nftrs) { HMTHROW_AND_ERR("ExternalNN: Predict(float *,...) not implemented, used the MedMat API instead\n"); };
-	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) { HMTHROW_AND_ERR("ExternalNN: Predict(float *,...) not implemented, used the MedMat API instead\n"); };
+	int Predict(float *x, float *&preds, int nsamples, int nftrs) { HMTHROW_AND_ERR("SimpleEnsemble: Predict(float *,...) not implemented, used the MedMat API instead\n"); };
+	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) { HMTHROW_AND_ERR("SimpleEnsemble: Predict(float *,...) not implemented, used the MedMat API instead\n"); };
 
 	int n_preds_per_sample() { return n_preds; }
 
 	ADD_CLASS_NAME(MedSimpleEnsemble)
-	ADD_SERIALIZATION_FUNCS(classifier_type, predictors, weights, predictor_names, predictor_params, combiner, combiner_name, combiner_params, p_combine)
+	ADD_SERIALIZATION_FUNCS(classifier_type, predictors, weights, predictor_names, predictor_params, combiner, combiner_name, combiner_params, p_combine, n_preds)
 };
 
 MEDSERIALIZE_SUPPORT(MedSimpleEnsemble)

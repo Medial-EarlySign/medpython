@@ -49,7 +49,7 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 // Learn with a single MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	MLOG("MedModel() : starting learn process on %d samples, stages %d - %d \n", _samples->nSamples(), start_stage, end_stage);
 	// Stage Sanity
 	if (start_stage > end_stage) {
@@ -70,6 +70,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 // note that there will be some mess at the moment regarding post_processors and their exact training list - this is TBD !!!
 int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage) 
 {
+	p_rep = &rep;
 	MLOG("Starting a learn process but skipping the train of the matrix !!!!\n");
 
 
@@ -85,7 +86,7 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 // Learn with multiple MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	MedTimer timer;
 
 	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
@@ -221,7 +222,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 		// Just apply feature processors
 		timer.start();
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features) < 0) {
+		if (apply_feature_processors(features,true) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_processors()\n");
 			return -1;
 		}
@@ -265,6 +266,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 			else {
 				MedFeatures origFeatures = move(features);
 				apply(rep, post_processors_learning_sets[i], MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_PREDICTOR);
+				cerr << "#####################################HERE###############################################\n";
 				post_processors[i]->Learn(features);
 				features = move(origFeatures);
 			}
@@ -277,7 +279,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 //.......................................................................................
 // Apply
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	// Stage Sanity
 	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
@@ -351,7 +353,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features, req_features_vec) < 0) {
+		if (apply_feature_processors(features, req_features_vec,false) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
 		}
@@ -569,7 +571,7 @@ int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 {
 	for (auto& processor : feature_processors) {
 		if (processor->learn(features) < 0) return -1;
-		if (processor->apply(features) < 0) return -1;
+		if (processor->apply(features,true) < 0) return -1;
 	}
 	return 0;
 }
@@ -584,22 +586,22 @@ int MedModel::learn_feature_processors(MedFeatures &features)
 }
 
 //.......................................................................................
-int MedModel::apply_feature_processors(MedFeatures &features)
+int MedModel::apply_feature_processors(MedFeatures &features, bool learning)
 {
 
 	vector<unordered_set<string> > req_features_vec(feature_processors.size());
 	for (auto& _set : req_features_vec)
 		_set.clear();
-	return apply_feature_processors(features, req_features_vec);
+	return apply_feature_processors(features, req_features_vec, learning);
 
 
 }
 //.......................................................................................
-int MedModel::apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec)
+int MedModel::apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec, bool learning)
 {
 	int n = (int)feature_processors.size();
 	for (int i = 0; i < n; i++) {
-		if (feature_processors[i]->apply(features, req_features_vec[n - i - 1]) < 0)
+		if (feature_processors[i]->apply(features, req_features_vec[n - i - 1], learning) < 0)
 			return -1;
 	}
 
@@ -1785,7 +1787,7 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 
 	// Process Features
 	for (auto& processor : feature_processors) {
-		if (processor->apply(_feat) < 0)
+		if (processor->apply(_feat,false) < 0)
 			return -1;
 	}
 

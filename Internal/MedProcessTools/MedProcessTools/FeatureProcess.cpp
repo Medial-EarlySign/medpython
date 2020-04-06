@@ -156,51 +156,49 @@ int FeatureProcessor::learn(MedFeatures& features) {
 }
 
 //.......................................................................................
-int FeatureProcessor::apply(MedFeatures& features) {
+int FeatureProcessor::apply(MedFeatures& features, bool learning) {
 
 	// All Ids - mark as an empty set
 	unordered_set<int> temp;
-	return _apply(features, temp);
+	return _apply(features, temp, learning);
 }
 
 //.......................................................................................
-int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids) {
-	return _apply(features, ids);
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids, bool learning) {
+	return _apply(features, ids, learning);
 }
 
 //.......................................................................................
-int FeatureProcessor::apply(MedFeatures& features, unordered_set<string>& req_features) {
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<string>& req_features, bool learning) {
 
 	// All Ids - mark as an empty set
 	unordered_set<int> temp;
-	return _conditional_apply(features, temp, req_features);
+	return _conditional_apply(features, temp, req_features, learning);
 }
 
 //.......................................................................................
-int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
-	return _conditional_apply(features, ids, req_features);
+int FeatureProcessor::apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning) {
+	return _conditional_apply(features, ids, req_features, learning);
 }
 
 //.......................................................................................
-int FeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
+int FeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning) {
 
 	if (are_features_affected(req_features))
-		return _apply(features, ids);
+		return _apply(features, ids, learning);
 	return 0;
+}
+
+//.......................................................................................
+int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
+	MTHROW_AND_ERR("FeatureProcessor Apply must be implemented");
 }
 
 //.......................................................................................
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
 
-	// Exact name ?
-	if (features.data.find(substr) != features.data.end())
-		return substr;
-	else {
-		vector<string> names;
-		for (auto& me : features.data)
-			names.push_back(me.first);
-		return names[find_in_feature_names(names, substr)];
-	}
+	return features.resolve_name(substr);
+
 }
 
 // (De)Serialize
@@ -272,7 +270,7 @@ int MultiFeatureProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 }
 
 //.......................................................................................
-int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
+int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids, bool learning) {
 	int RC = 0;
 	if (processors.size() == 1) {
 		use_parallel_learn = false;
@@ -280,7 +278,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 	}
 #pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
-		int rc = processors[j]->_apply(features, ids);
+		int rc = processors[j]->_apply(features, ids, learning);
 #pragma omp critical
 		if (rc < 0) RC = -1;
 	}
@@ -289,12 +287,12 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 }
 
 //.......................................................................................
-int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features) {
+int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning) {
 
 	int RC = 0;
 #pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
 	for (int j = 0; j < processors.size(); j++) {
-		int rc = processors[j]->_conditional_apply(features, ids, req_features);
+		int rc = processors[j]->_conditional_apply(features, ids, req_features, learning);
 #pragma omp critical
 		if (rc < 0) RC = -1;
 	}
@@ -632,7 +630,18 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 //=======================================================================================
 void FeatureImputer::print()
 {
-	if (moment_type == IMPUTE_MMNT_SAMPLE) {
+
+	// Backword-compatability ..
+	if (moment_type_vec.empty()) {
+		moment_type_vec = { moment_type,moment_type };
+		default_moment_vec = { default_moment ,default_moment };
+		moments_vec = { moments, moments };
+	}
+
+	if (moment_type_vec[0] != moment_type_vec[1])
+		MLOG("Imputer at learning stage:\n");
+
+	if (moment_type_vec[0] == IMPUTE_MMNT_SAMPLE) {
 		MLOG("Imputer: Feat: %s nHistograms: %d :: ", feature_name.c_str(), histograms.size());
 		for (unsigned int i = 0; i < histograms.size(); i++) {
 			for (auto& pair : histograms[i])
@@ -641,10 +650,29 @@ void FeatureImputer::print()
 		MLOG("\n");
 	}
 	else {
-		MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments.size());
-		for (auto moment : moments)
+		MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments_vec[0].size());
+		for (auto moment : moments_vec[0])
 			MLOG("%f ", moment);
 		MLOG("\n");
+	}
+
+	if (moment_type_vec[0] != moment_type_vec[1]) {
+		MLOG("Imputer at learning stage:\n");
+
+		if (moment_type_vec[1] == IMPUTE_MMNT_SAMPLE) {
+			MLOG("Imputer: Feat: %s nHistograms: %d :: ", feature_name.c_str(), histograms.size());
+			for (unsigned int i = 0; i < histograms.size(); i++) {
+				for (auto& pair : histograms[i])
+					MLOG("%d %f L %f", i, pair.first, pair.second);
+			}
+			MLOG("\n");
+		}
+		else {
+			MLOG("Imputer: Feat: %s nMoments: %d :: ", feature_name.c_str(), moments_vec[1].size());
+			for (auto moment : moments_vec[1])
+				MLOG("%f ", moment);
+			MLOG("\n");
+		}
 	}
 }
 
@@ -663,9 +691,10 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
+	
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-	default_moment = missing_value; //initialize
+	default_moment_vec = { missing_value, missing_value }; //initialize
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
 
@@ -697,74 +726,93 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		//MLOG("collected %d %d\n", j, stratifiedValues[j].size());
 
 	// Get moments
-	if (moment_type == IMPUTE_MMNT_SAMPLE)
-		histograms.resize(stratifiedValues.size());
-	else
-		moments.resize(stratifiedValues.size());
+	moments_vec.resize(2);
+	default_moment_vec.resize(2);
 
-	strata_sizes.resize(stratifiedValues.size());
-	int too_small_stratas = 0;
-	for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
-
-		strata_sizes[i] = (int)stratifiedValues[i].size();
-		if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
-			too_small_stratas++;
-			if (moment_type == IMPUTE_MMNT_SAMPLE)
-				histograms[i].push_back({ missing_value,(float)1.0 });
-			else
-				moments[i] = missing_value;
-		}
-		else if (moment_type == IMPUTE_MMNT_MEAN)
-			moments[i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
-		else if (moment_type == IMPUTE_MMNT_MEDIAN) {
-			if (stratifiedValues[i].size() > 0)
-				moments[i] = medial::stats::median_without_cleaning(stratifiedValues[i]);
-			else
-				moments[i] = missing_value;
-		}
-		else if (moment_type == IMPUTE_MMNT_COMMON)
-			moments[i] = medial::stats::most_common_without_cleaning(stratifiedValues[i]);
-		else if (moment_type == IMPUTE_MMNT_SAMPLE) {
-			medial::stats::get_histogram_without_cleaning(stratifiedValues[i], histograms[i]);
-		}
-		else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type, feature_name.c_str());
-	}
-	if (all_existing_values.size() < min_samples) {
-		MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
-			all_existing_values.size(), min_samples, feature_name.c_str());
-		if (moment_type == IMPUTE_MMNT_SAMPLE)
-			default_histogram.push_back({ missing_value,(float)1.0 });
-		else
-			default_moment = missing_value;
-	}
-	else {
-		if (too_small_stratas > 0) {
-			if (!leave_missing_for_small_stratas)
-			{
-				MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
-					min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-				if (moment_type == IMPUTE_MMNT_MEAN)
-					default_moment = medial::stats::mean_without_cleaning(all_existing_values);
-				else if (moment_type == IMPUTE_MMNT_MEDIAN)
-					default_moment = medial::stats::median_without_cleaning(all_existing_values);
-				else if (moment_type == IMPUTE_MMNT_COMMON)
-					default_moment = medial::stats::most_common_without_cleaning(all_existing_values);
-				else if (moment_type == IMPUTE_MMNT_SAMPLE)
-					medial::stats::get_histogram_without_cleaning(all_existing_values, default_histogram);
+	for (int stage = 0; stage < 2; stage++) {
+		// Is application stage same as learning stage ?
+		if (stage == 1 && moment_type_vec[1] == moment_type_vec[0]) {
+			if (moment_type_vec[0] != IMPUTE_MMNT_SAMPLE) {
+				moments_vec[1] = moments_vec[0];
+				default_moment_vec[1] = default_moment_vec[0];
 			}
-			else {
-				// leave_missing_for_small_stratas = true
-				MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
-					min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-				if (moment_type == IMPUTE_MMNT_SAMPLE)
+		}
+		else {
+
+			if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
+				histograms.resize(stratifiedValues.size());
+			else
+				moments_vec[stage].resize(stratifiedValues.size());
+
+			strata_sizes.resize(stratifiedValues.size());
+			int too_small_stratas = 0;
+			for (unsigned int i = 0; i < stratifiedValues.size(); i++) {
+
+				strata_sizes[i] = (int)stratifiedValues[i].size();
+				if (strata_sizes[i] < min_samples) { // Not enough values to make valid imputation
+					too_small_stratas++;
+					if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
+						histograms[i].push_back({ missing_value,(float)1.0 });
+					else
+						moments_vec[stage][i] = missing_value;
+				}
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+					moments_vec[stage][i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN) {
+					if (stratifiedValues[i].size() > 0)
+						moments_vec[stage][i] = medial::stats::median_without_cleaning(stratifiedValues[i]);
+					else
+						moments_vec[stage][i] = missing_value;
+				}
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_COMMON) {
+					if (stratifiedValues[i].size() > 0)
+						moments_vec[stage][i] = medial::stats::most_common_without_cleaning(stratifiedValues[i]);
+					else
+						moments_vec[stage][i] = missing_value;
+				}
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE) {
+					medial::stats::get_histogram_without_cleaning(stratifiedValues[i], histograms[i]);
+				}
+				else MTHROW_AND_ERR("Unknown moment type %d for imputing %s\n", moment_type_vec[stage], feature_name.c_str());
+			}
+
+			// Small stratas ...
+			if (all_existing_values.size() < min_samples) {
+				MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
+					all_existing_values.size(), min_samples, feature_name.c_str());
+				if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
 					default_histogram.push_back({ missing_value,(float)1.0 });
 				else
-					default_moment = missing_value;
+					default_moment_vec[stage] = missing_value;
+			}
+			else {
+				if (too_small_stratas > 0) {
+					if (!leave_missing_for_small_stratas)
+					{
+						MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
+							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+							default_moment_vec[stage] = medial::stats::mean_without_cleaning(all_existing_values);
+						else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN)
+							default_moment_vec[stage] = medial::stats::median_without_cleaning(all_existing_values);
+						else if (moment_type_vec[stage] == IMPUTE_MMNT_COMMON)
+							default_moment_vec[stage] = medial::stats::most_common_without_cleaning(all_existing_values);
+						else if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
+							medial::stats::get_histogram_without_cleaning(all_existing_values, default_histogram);
+					}
+					else {
+						// leave_missing_for_small_stratas = true
+						MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
+							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+						if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
+							default_histogram.push_back({ missing_value,(float)1.0 });
+						else
+							default_moment_vec[stage] = missing_value;
+					}
+				}
 			}
 		}
 	}
-	//for (int j = 0; j < moments.size(); j++)
-		//MLOG("moment %d = [%f]\n", j, moments[j]);
 
 //#pragma omp critical
 //	print();
@@ -775,7 +823,16 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 // Apply
 //.......................................................................................
-int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
+int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids, bool learning) {
+
+	int stage = learning ? 0 : 1;
+
+	// Backword-compatability ..
+	if (moment_type_vec.empty()) {
+		moment_type_vec = { moment_type,moment_type };
+		default_moment_vec = { default_moment ,default_moment };
+		moments_vec = { moments, moments };
+	}
 
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
@@ -801,7 +858,7 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 			int index = 0;
 			for (int j = 0; j < imputerStrata.nStratas(); j++)
 				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex((*strataData[j])[i], missing_value);
-			if (moment_type == IMPUTE_MMNT_SAMPLE) {
+			if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE) {
 				if (strata_sizes[index] < min_samples)
 					data[i] = medial::stats::sample_from_histogram(default_histogram);
 				else
@@ -809,13 +866,13 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 			}
 			else {
 				if (strata_sizes[index] < min_samples)
-					data[i] = default_moment;
+					data[i] = default_moment_vec[stage];
 				else
-					data[i] = moments[index];
+					data[i] = moments_vec[stage][index];
 			}
 			if (!isfinite(data[i]))
 				MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n",
-					resolved_feature_name.c_str(), i, moment_type, index, strata_sizes[index], default_moment);
+					resolved_feature_name.c_str(), i, moment_type_vec[stage], index, strata_sizes[index], default_moment_vec[stage]);
 			++missing_cnt;
 		}
 	}
@@ -840,7 +897,19 @@ int FeatureImputer::init(map<string, string>& mapper) {
 		//! [FeatureImputer::init]
 		if (field == "name") feature_name = entry.second;
 		else if (field == "min_samples") min_samples = med_stoi(entry.second);
-		else if (field == "moment_type") moment_type = getMomentType(entry.second);
+		else if (field == "moment_type") {
+			moment_type_vec.resize(2);
+			moment_type_vec[0] = getMomentType(entry.second);
+			moment_type_vec[1] = moment_type_vec[0];
+		}
+		else if (field == "learn_moment_type") {
+			moment_type_vec.resize(2, IMPUTE_MMNT_MEAN);
+			moment_type_vec[0] = getMomentType(entry.second);
+		}
+		else if (field == "apply_moment_type") {
+			moment_type_vec.resize(2, IMPUTE_MMNT_MEAN);
+			moment_type_vec[1] = getMomentType(entry.second);
+		}
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));

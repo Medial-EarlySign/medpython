@@ -63,6 +63,7 @@ public:
 	int do_calibration_smoothing = 1;
 	int censor_controls = 0; ///< censor controls without long-enough followup even in mean-outcome mode
 	string weights_attr_name = "weight"; //weight attr to look for in samples attributes
+	int min_control_bins = -1;
 	bool use_isotonic = false; ///< If true will use isotonic on time_window
 
 	int min_preds_in_bin = 100; ///< minimal number of obseravtion to create bin
@@ -70,7 +71,7 @@ public:
 	float min_prob_res = 0; ///< final probality resulotion value to round to and merge similar
 	bool fix_pred_order = false; ///< If true will not allow higher scores to have lower probabilites
 	int poly_rank = 1; ///< Only in platt_scale - the polynon rank for optimizing sigmoid of prob
-	double control_weight_down_sample = 0; ///< factor weight for controls when downsampling controls by this factor
+	double control_weight_down_sample = 1; ///< factor weight for controls when downsampling controls by this factor
 	bool verbose = true; ///< If true will print verbose information for calibration
 
 	int n_top_controls = 0; ///< number of controls to add with maximal-score for regularization of isotonic regression
@@ -99,6 +100,8 @@ public:
 	void read_calibration_table(const string& fname);
 
 	void dprint(const string &pref) const;
+	void learn_isotonic_regression(const vector<float> &x, const vector<float> &y, const vector<float> &weights, vector<float> &min_range, vector<float> &max_range, vector<float> &map_prob, int n_top_controls, int n_bottom_cases,
+		bool verbose);
 
 	ADD_CLASS_NAME(Calibrator)
 	ADD_SERIALIZATION_FUNCS(calibration_type, estimator_type, binning_method, bins_num, time_unit, pos_sample_min_time_before_case, pos_sample_max_time_before_case,

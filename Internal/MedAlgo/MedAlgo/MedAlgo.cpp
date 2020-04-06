@@ -113,6 +113,7 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
 	CONDITIONAL_NEW_CLASS(dname, MedExternalNN);
 	CONDITIONAL_NEW_CLASS(dname, MedSimpleEnsemble);
+
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
 #endif

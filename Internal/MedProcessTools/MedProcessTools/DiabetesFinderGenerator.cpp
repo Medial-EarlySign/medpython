@@ -17,9 +17,12 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& df_events, int calc
 			continue;
 		if ((de.de_type == DFG_DIABETES_EVENT_GLUCOSE && de.val >= df_by_second_glucose)
 			|| (de.de_type == DFG_DIABETES_EVENT_HBA1C && de.val >= df_by_second_hba1c)) {
-			if (_latest_noteable_event_time != -1 && de.time - _latest_noteable_event_time < df_by_second_time_delta) {
+			if (_latest_noteable_event_time != -1 && 
+				med_time_converter.add_subtruct_days(de.time, -1*df_by_second_time_delta_days) < _latest_noteable_event_time)
+			{
 				de.is_second = true;
 			}
+			//MLOG("type: %d, time: %d, val: %f , is_second: %d\n  _latest_noteable_event_time=%d\n  de.time - _latest_noteable_event_time = %d\n",de.de_type, de.time, de.val, (int)de.is_second, _latest_noteable_event_time, de.time - _latest_noteable_event_time);
 			_latest_noteable_event_time = de.time;
 		}
 	}
@@ -41,12 +44,18 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& df_events, int calc
 				ret_recent |= REASON_RECENT_LABS;
 			else ret_past |= REASON_PAST_LABS;
 		}
+		if (de.de_type == DFG_DIABETES_EVENT_HBA1C && de.val >= df_by_single_hba1c) {
+			reason_str = string("Single measurement of HbA1C >=") + to_string((int)df_by_single_hba1c) + " mg/dL";
+			if (is_recent)
+				ret_recent |= REASON_RECENT_LABS;
+			else ret_past |= REASON_PAST_LABS;
+		}
 		if (de.is_second) {
 			reason_str = string("Second measurement of glucose >= ")
 				+ to_string((int)df_by_second_glucose)
 				+ " mg/dL or HbA1C >= "
 				+ to_string(df_by_second_hba1c)
-				+ "% whithin "
+				+ "% within "
 				+ to_string(df_by_second_time_delta_days)
 				+ " days";
 			if (is_recent)
@@ -88,8 +97,8 @@ int DiabetesFinderGenerator::_resolve(vector<DiabetesEvent>& df_events, int calc
 			json_evidence.push_back(v);
 	}
 	
-	json_out = json::object();
-	json_out["Evidence"] = json_evidence;
+	//json_out = json::object();
+	json_out = json_evidence;
 
 	//string json_str = json_out.dump();
 	//MLOG("json_out = %s\nret = %d\n", json_str.c_str(), ret);
@@ -190,7 +199,6 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 		else if (field == "df_by_second_glucose") df_by_second_glucose = med_stof(entry.second); //126.0f;
 		else if (field == "df_by_second_hba1c") df_by_second_hba1c = med_stof(entry.second); //6.5f;
 		else if (field == "df_by_second_time_delta_days") df_by_second_time_delta_days = med_stoi(entry.second); //(365) * 2;
-		else if (field == "df_by_second_time_delta") df_by_second_time_delta = med_stoi(entry.second); //-1;
 		
 		else if (field != "fg_type")
 			MTHROW_AND_ERR("Unknown parameter [%s] for DiabetesFinderGenerator\n", field.c_str());

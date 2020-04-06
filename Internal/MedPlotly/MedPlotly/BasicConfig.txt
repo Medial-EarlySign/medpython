@@ -28,6 +28,7 @@ BLOCK_MODE	1
 # format: SIG	<sig list>	<params: null_zeros=<val>;log_scale=<val>>
 SIG	BP	log_scale=0
 SIG	CKD_State,DM_Registry	null_zeros=0;log_scale=0
+SIG	Drug	get_ascenders_codes=1;ascender_limit=1;filter_regex_codes=ATC.*:.*
 
 #
 # drug groups definitions

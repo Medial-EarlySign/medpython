@@ -82,6 +82,11 @@ void ExplainFilters::filter(map<string, float> &explain_list) const {
 ExplainProcessings::ExplainProcessings() {
 	group_by_sum = false;
 	learn_cov_matrix = false;
+	use_mutual_information = false;
+	//default bin for mutual information
+	mutual_inf_bin_setting.binCnt = 50;
+	mutual_inf_bin_setting.min_bin_count = 100;
+	mutual_inf_bin_setting.split_method = BinSplitMethod::IterativeMerge;
 }
 
 int ExplainProcessings::init(map<string, string> &map) {
@@ -109,6 +114,12 @@ int ExplainProcessings::init(map<string, string> &map) {
 			iterative = med_stoi(it->second) > 0;
 		else if (it->first == "iteration_cnt")
 			iteration_cnt = med_stoi(it->second);
+		else if (it->first == "use_mutual_information")
+			use_mutual_information = med_stoi(it->second) > 0;
+		else if (it->first == "mutual_inf_bin_setting")
+			mutual_inf_bin_setting.init_from_string(it->second);
+		else if (it->first == "use_max_cov")
+			use_max_cov = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -123,21 +134,111 @@ void ExplainProcessings::post_deserialization()
 		groupName2Inds[groupNames[i]] = group2Inds[i];
 }
 
+double joint_dist_entropy(const vector<float> &v1, const vector<float> &v2) {
+	//assume they are binned already:
+	unordered_map<float, int> val_to_ind_x, val_to_ind_y;
+	for (float v : v1)
+	{
+		if (val_to_ind_x.find(v) == val_to_ind_x.end()) {
+			int curr_sz = (int)val_to_ind_x.size();
+			val_to_ind_x[v] = curr_sz;
+		}
+	}
+	for (float v : v2)
+	{
+		if (val_to_ind_y.find(v) == val_to_ind_y.end()) {
+			int curr_sz = (int)val_to_ind_y.size();
+			val_to_ind_y[v] = curr_sz;
+		}
+	}
+
+	vector<int> bins_x(v1.size()), bins_y(v2.size());
+	for (size_t i = 0; i < bins_x.size(); ++i)
+	{
+		bins_x[i] = val_to_ind_x.at(v1[i]);
+		bins_y[i] = val_to_ind_y.at(v2[i]);
+	}
+	unordered_map<int, int> joint_bins; //from bin to count
+	int v2_bins = (int)val_to_ind_y.size();
+	for (size_t i = 0; i < bins_x.size(); ++i)
+		++joint_bins[bins_x[i] * v2_bins + bins_y[i]];
+
+	double res = 0;
+	int total = (int)v1.size();
+	for (auto &it : joint_bins)
+	{
+		double prob = double(it.second) / total;
+		res += - prob * log(prob) / log(2.0);
+	}
+
+	return res;
+}
+
 void ExplainProcessings::learn(const MedFeatures &train_mat) {
 	if (learn_cov_matrix) {
 		//int feat_cnt = (int)train_mat.data.size();
 		//cov_features.resize(feat_cnt, feat_cnt);
-		MLOG("Calc Covariance mat\n");
-		MedMat<float> x_mat;
-		train_mat.get_as_matrix(x_mat);
-		x_mat.normalize();
-		//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
-		fast_multiply_medmat_transpose(x_mat, x_mat, abs_cov_features, 1, 1.0 / x_mat.nrows);
+		if (use_mutual_information) {
+			MLOG("Calc Mutual Information mat\n"); //ranges from 0 to inf. should transform into [0,1] := 1/(1+e-x) - 0.5
+			abs_cov_features.resize((int)train_mat.data.size(), (int)train_mat.data.size());
+			auto it_f1 = train_mat.data.begin();
+			//vector<vector<float>> binned(train_mat.data.size());
+			vector<vector<float>> binned(train_mat.data.size());
+			vector<const vector<float> *> original(train_mat.data.size());
+			for (int i = 0; i < train_mat.data.size(); ++i) {
+				original[i] = &it_f1->second;
+				++it_f1;
+			}
 
-		for (int i = 0; i < abs_cov_features.nrows; i++)
-			for (int j = 0; j < abs_cov_features.ncols; j++)
-				abs_cov_features(i, j) = abs(abs_cov_features(i, j));
+			vector<int> empt;
+			MedProgress prog_bin("binning_features", (int)original.size(), 30, 1);
+#pragma omp parallel for schedule(dynamic) 
+			for (int i = 0; i < original.size(); ++i) {
+				vector<float> f = *original[i];
+				medial::process::split_feature_to_bins(mutual_inf_bin_setting, f, empt, f);
+#pragma omp critical 
+				binned[i] = move(f);
+				prog_bin.update();
+			}
 
+			for (size_t i = 0; i < train_mat.data.size(); ++i)
+				abs_cov_features(i, i) = 1; //should be infinity - full
+
+			MedProgress prog_mi("mutual_informaion_calc", (int)original.size(), 30, 1);
+#pragma omp parallel for schedule(dynamic) 
+			for (int i = 0; i < (int)train_mat.data.size(); ++i)
+			{
+				for (size_t j = i + 1; j < train_mat.data.size(); ++j)
+				{
+					int n;
+					float mi = medial::performance::mutual_information(binned[i], binned[j], n);
+					//calcualte the joint dist entropy - this is the divider - when 2 features are excatly determnien from one another it will result in 1 after division.
+					double den = joint_dist_entropy(binned[i], binned[j]);
+
+					//mi = 1 / (1 + exp(-mi)) - 0.5; //transform 
+					if (den > 0)
+						mi = mi / den;
+#pragma omp critical 
+					{
+						abs_cov_features(i, j) = mi;
+						abs_cov_features(j, i) = mi; //symmetric
+					}
+				}
+				prog_mi.update();
+			}
+		}
+		else {
+			MLOG("Calc Covariance mat\n");
+			MedMat<float> x_mat;
+			train_mat.get_as_matrix(x_mat);
+			x_mat.normalize();
+			//0 - no transpose, 1 - A_Transpose * B, 2 - A * B_Transpose, 3 - both transpose
+			fast_multiply_medmat_transpose(x_mat, x_mat, abs_cov_features, 1, 1.0 / x_mat.nrows);
+
+			for (int i = 0; i < abs_cov_features.nrows; i++)
+				for (int j = 0; j < abs_cov_features.ncols; j++)
+					abs_cov_features(i, j) = abs(abs_cov_features(i, j));
+		}
 		//// debug
 		//vector<string> f_names;
 		//train_mat.get_feature_names(f_names);
@@ -157,7 +258,7 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 		if (group_by_sum) {
 			int nGroups = (int)groupNames.size();
 			int nFeatures = abs_cov_features.nrows;
-			MedMat<float> fixed_cov_abs(nGroups,nFeatures); //cov matrix with groups X features connections, zero inside groups:
+			MedMat<float> fixed_cov_abs(nGroups, nFeatures); //cov matrix with groups X features connections, zero inside groups:
 			for (int i = 0; i < group2Inds.size(); i++) {
 				const vector<int> &all_inds = group2Inds[i];
 				vector<bool> mask_grp(nFeatures);
@@ -176,24 +277,6 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 					}
 
 					fixed_cov_abs(i, j2) = w;
-				}
-			}
-			abs_cov_features = fixed_cov_abs;
-		}
-		else {
-			int nGroups = (int)groupNames.size();
-			MedMat<float> fixed_cov_abs(nGroups, nGroups); //cov matrix with groups X groups connections, zero inside groups:
-			for (int iGrp1 = 0; iGrp1 < nGroups; iGrp1++) {
-				fixed_cov_abs(iGrp1, iGrp1) = 1.0;
-				for (int iGrp2 = iGrp1 + 1; iGrp2 < nGroups; iGrp2++) {
-					float max_coeff = 0;
-					for (int idx1 : group2Inds[iGrp1]) {
-						for (int idx2 : group2Inds[iGrp2]) {
-							if (abs_cov_features(idx1, idx2) > max_coeff)
-								max_coeff = abs_cov_features(idx1, idx2);
-						}
-					}
-					fixed_cov_abs(iGrp1, iGrp2) = fixed_cov_abs(iGrp2, iGrp1) = max_coeff;
 				}
 			}
 			abs_cov_features = fixed_cov_abs;
@@ -238,7 +321,7 @@ void ExplainProcessings::process(map<string, float> &explain_list) const {
 	if (!keep_b0)
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
-	if ((! postprocessing_cov) && !group_by_sum && normalize_vals <= 0)
+	if ((!postprocessing_cov) && !group_by_sum && normalize_vals <= 0)
 		return;
 
 	MedMat<float> orig_explain((int)explain_list.size(), 1);
@@ -860,6 +943,8 @@ bool TreeExplainer::convert_xgb_trees() {
 	const char **trees = NULL;
 	int nTrees;
 	static_cast<MedXGB *>(original_predictor)->get_json(&trees, nTrees, "json");
+	if (trees == NULL)
+		MTHROW_AND_ERR("Error TreeExplainer::convert_xgb_trees - can't retriev xgboost model\n");
 
 	// Analyze treees
 	int max_nodes = 0, max_depth = 0;
@@ -1256,7 +1341,8 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 				}
 			}
 			if (processing.iterative)
-				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt);
+				iterative_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform,
+					interaction_shap, feature_sets.data(), verbose, names, processing.abs_cov_features, processing.iteration_cnt, processing.use_max_cov);
 			else
 				dense_tree_shap(generic_tree_model, data_set, shap_res.data(), tree_dep, tranform, interaction_shap, feature_sets.data());
 
@@ -1272,7 +1358,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 					string &feat_name = names[j];
 					curr_exp[feat_name] = (float)curr_res_exp[j * num_outputs + sel_output_channel];
 				}
-				curr_exp[bias_name] = (float)curr_res_exp[M * num_outputs + sel_output_channel];
+				curr_exp[bias_name] = (float)curr_res_exp[num_Exp * num_outputs + sel_output_channel];
 			}
 		}
 		else {
@@ -2227,7 +2313,7 @@ void LimeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 
 	if (processing.iterative)
 		medial::shapley::get_iterative_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
-			sampler_sampling_args, *group_inds, *group_names, processing.abs_cov_features, processing.iteration_cnt, alphas);
+			sampler_sampling_args, *group_inds, *group_names, processing.abs_cov_features, processing.iteration_cnt, alphas, processing.use_max_cov);
 	else
 		medial::shapley::get_shapley_lime_params(matrix, original_predictor, _sampler.get(), p_mask, n_masks, weighting, missing_value,
 			sampler_sampling_args, *group_inds, *group_names, alphas);

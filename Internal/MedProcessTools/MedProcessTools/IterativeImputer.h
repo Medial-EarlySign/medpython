@@ -125,7 +125,7 @@ public:
 	int round_arr(float *arr, int len, float resolution, float _min, float _max);
 	int learn_first_round(MedFeatures &mfd);
 	int learn_iteration(MedFeatures &mfd, int iter);
-	int apply_first_round(MedFeatures &mfd);
+	int apply_first_round(MedFeatures &mfd, bool learning);
 	int apply_iteration(MedFeatures &mfd, int iter);
 
 	int find_feats_to_learn_from(int f_idx);
@@ -135,7 +135,7 @@ public:
 	//int Learn(MedFeatures &mfd) { init_internals(mfd); }
 	//int Apply(MedFeatures &mfd) { fprintf(stderr, "IterativeImputer::Apply() NOT IMPLEMENTED YET\n"); }
 	int Learn(MedFeatures &mfd);
-	int Apply(MedFeatures &mfd);
+	int Apply(MedFeatures &mfd, bool learning);
 
 	// Serialization
 	ADD_CLASS_NAME(IterativeImputer)
@@ -165,8 +165,8 @@ public:
 	int Learn(MedFeatures& features) { return imputer.Learn(features); }
 
 	// Apply cleaning model
-	int _apply(MedFeatures& features, unordered_set<int>& ids);
-	int _apply(MedFeatures& features) { return imputer.Apply(features); }
+	int _apply(MedFeatures& features, unordered_set<int>& ids, bool learning);
+	int _apply(MedFeatures& features, bool learning) { return imputer.Apply(features, learning); }
 
 	/// check if a set of features is affected by the current processor
 	bool are_features_affected(unordered_set<string>& out_req_features);

@@ -1591,3 +1591,16 @@ void MedFeatures::samples_sort() {
 	}
 
 }
+
+// Get feature name that matches a substring
+//-------------------------------------------------------------------------------------------------------
+string MedFeatures::resolve_name(string& substr) const {
+	// Exact name ?
+	if (data.find(substr) != data.end())
+		return substr;
+	else {
+		vector<string> names;
+		get_feature_names(names);
+		return names[find_in_feature_names(names, substr)];
+	}
+}

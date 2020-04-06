@@ -83,7 +83,7 @@ public:
 	int generate_all_features(MPPidRepository &rep, MPSamples *samples, MPFeatures &features, std::vector<std::string> req_feature_generators);
 	int learn_and_apply_feature_processors(MPFeatures &features);
 	int learn_feature_processors(MPFeatures &features);
-	int apply_feature_processors(MPFeatures &features);
+	int apply_feature_processors(MPFeatures &features, bool learning);
 	void fit_for_repository(MPPidRepository &rep);
 	void calc_contribs(MPMat &mat, MPMat &mat_out);
 
