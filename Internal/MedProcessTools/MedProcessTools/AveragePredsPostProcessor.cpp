@@ -53,6 +53,8 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 {
 	p_model = &model;
 	model_predictor = model.predictor;
+	before_processors.clear();
+	after_processors.clear();
 	if (boost::starts_with(feature_processor_type, "MODEL::")) {
 		feature_processor = NULL;
 		//store feature processor if has or need from model.
@@ -144,15 +146,19 @@ void AveragePredsPostProcessor::generate_matrix_till_feature_process(const MedFe
 	//apply p_model with p_rep till feature processors:
 	//effect on features - disable it.
 	MLOG("Generating matrix again, without feature processors (improve the process later)\n");
-	MedFeatures copy_mat = input_mat;
-	p_model->apply(*p_model->p_rep, input_smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS,
+	MedModel copy_mdl;
+	unsigned char *blob = new unsigned char[p_model->get_size()];
+	p_model->serialize(blob);
+	copy_mdl.deserialize(blob);
+	delete[] blob;
+	//MedFeatures copy_mat = input_mat;
+	copy_mdl.apply(*p_model->p_rep, input_smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS,
 		MedModelStage::MED_MDL_APPLY_FTR_GENERATORS);
-	res = move(p_model->features);
+	res = move(copy_mdl.features);
 	//apply before 
 	for (FeatureProcessor *fp : before_processors)
-		fp->apply(res);
+		fp->apply(res, false);
 
-	p_model->features = copy_mat; //restore previous
 }
 
 void AveragePredsPostProcessor::Learn(const MedFeatures &train_mat) {
@@ -195,8 +201,10 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 	batch.time_unit = p_matrix->time_unit;
 	batch.medf_missing_value = p_matrix->medf_missing_value;
 	batch.samples.resize(batch_size * resample_cnt);
-	for (int i = 0; i < batch.samples.size(); ++i)
-		batch.samples[i].id = i;
+	for (int i = 0; i < batch.samples.size(); ++i) {
+		batch.samples[i].id = int(i / resample_cnt);
+		batch.samples[i].time = i % resample_cnt;
+	}
 	batch.init_pid_pos_len();
 	//data, samples
 	int i = 0;
@@ -229,7 +237,7 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 		feature_processor->apply(apply_batch);
 		//Apply after batch
 		for (FeatureProcessor *fp : after_processors)
-			fp->apply(apply_batch);
+			fp->apply(apply_batch, false);
 		//apply batch with MedPredictor:
 		model_predictor->predict(apply_batch);
 		//collect preds from samples: each row was duplicated resample_cnt times

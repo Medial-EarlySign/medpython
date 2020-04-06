@@ -182,7 +182,7 @@ int PredictorImputer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 		for (size_t i = 0; i < N_TH; ++i)
 			gens[i] = mt19937(rd());
 		MedProgress progress("PredictorImputer::apply", nsamples, 30, 10);
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 		for (int i = 0; i < nsamples; ++i)
 		{
 			int th_n = omp_get_thread_num();

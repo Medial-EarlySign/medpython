@@ -1690,7 +1690,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 
 	MedProgress progress("TREE_SHAPLEY_ITERATIVE", data.num_X, 15, 10);
 	// build explanation for each sample
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < data.num_X; ++i) {
 		tfloat *instance_out_contribs = out_contribs + i * (data.num_Exp + 1) * trees.num_outputs;
 		ExplanationDataset instance;
@@ -2602,7 +2602,7 @@ void medial::shapley::get_shapley_lime_params(const MedFeatures& data, const Med
 		// Generate maks and train-data
 		vector<int> ks(n);
 		vector<int> sample_size(n);
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic)
 		for (int irow = 0; irow < n; irow++) {
 
 			int n_th = omp_get_thread_num();
