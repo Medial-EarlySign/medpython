@@ -49,7 +49,7 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 // Learn with a single MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	MLOG("MedModel() : starting learn process on %d samples, stages %d - %d \n", _samples->nSamples(), start_stage, end_stage);
 	// Stage Sanity
 	if (start_stage > end_stage) {
@@ -70,6 +70,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 // note that there will be some mess at the moment regarding post_processors and their exact training list - this is TBD !!!
 int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage) 
 {
+	p_rep = &rep;
 	MLOG("Starting a learn process but skipping the train of the matrix !!!!\n");
 
 
@@ -85,7 +86,7 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 // Learn with multiple MedSamples
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	MedTimer timer;
 
 	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
@@ -278,7 +279,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 //.......................................................................................
 // Apply
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
-
+	p_rep = &rep;
 	// Stage Sanity
 	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
 		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);

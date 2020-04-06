@@ -51,7 +51,10 @@ int AveragePredsPostProcessor::init(map<string, string> &mapper) {
 
 void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 {
+	p_model = &model;
 	model_predictor = model.predictor;
+	before_processors.clear();
+	after_processors.clear();
 	if (boost::starts_with(feature_processor_type, "MODEL::")) {
 		feature_processor = NULL;
 		//store feature processor if has or need from model.
@@ -67,7 +70,6 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 				fps_flat.push_back(model.feature_processors[i]);
 		}
 
-		int has_before = 0;
 		for (FeatureProcessor *f : fps_flat)
 		{
 			if (f->my_class_name() == feature_type) {
@@ -80,14 +82,14 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 				if (feature_processor != NULL)
 					after_processors.push_back(f);
 				else
-					++has_before;
+					before_processors.push_back(f);
 			}
 		}
 		if (feature_processor == NULL)
 			MTHROW_AND_ERR("Error AveragePredsPostProcessor::init_post_processor - can't find feature processors of type %s\n",
 				feature_type.c_str());
-		if (has_before > 0)
-			MWARN("WARN:: AveragePredsPostProcessor :: found %d processors before\n", has_before);
+		if (!before_processors.empty())
+			MWARN("WARN:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
 		if (!after_processors.empty())
 			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors after\n", after_processors.size());
 	}
@@ -110,7 +112,6 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		}
 
 		bool found = false;
-		int has_before = 0;
 		for (FeatureProcessor *f : fps_flat)
 		{
 			if (found) {
@@ -121,22 +122,57 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 				if (processors_tp[f->processor_type])
 					found = true;
 				else
-					++has_before;
+					before_processors.push_back(f);
 			}
 		}
 
-		if (has_before > 0)
-			MWARN("WARN:: AveragePredsPostProcessor :: found %d processors before\n", has_before);
+		if (!before_processors.empty())
+			MWARN("WARN:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
 		if (!after_processors.empty())
 			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors after\n", after_processors.size());
 	}
 }
 
+void AveragePredsPostProcessor::generate_matrix_till_feature_process(const MedFeatures &input_mat, MedFeatures &res) const {
+	//get samples:
+	MedSamples input_smps;
+	input_smps.import_from_sample_vec(input_mat.samples);
+	//erase attriubtes:
+	for (size_t i = 0; i < input_smps.idSamples.size(); ++i)
+		for (size_t j = 0; j < input_smps.idSamples[i].samples.size(); ++j) {
+			input_smps.idSamples[i].samples[j].attributes.clear();
+			input_smps.idSamples[i].samples[j].str_attributes.clear();
+		}
+	//apply p_model with p_rep till feature processors:
+	//effect on features - disable it.
+	MLOG("Generating matrix again, without feature processors (improve the process later)\n");
+	MedModel copy_mdl;
+	unsigned char *blob = new unsigned char[p_model->get_size()];
+	p_model->serialize(blob);
+	copy_mdl.deserialize(blob);
+	delete[] blob;
+	//MedFeatures copy_mat = input_mat;
+	copy_mdl.apply(*p_model->p_rep, input_smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS,
+		MedModelStage::MED_MDL_APPLY_FTR_GENERATORS);
+	res = move(copy_mdl.features);
+	//apply before 
+	for (FeatureProcessor *fp : before_processors)
+		fp->apply(res, false);
+
+}
+
 void AveragePredsPostProcessor::Learn(const MedFeatures &train_mat) {
 	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
 		unordered_set<int> empt;
-		MedFeatures mat = train_mat;
-		feature_processor->Learn(mat, empt);
+		if (!after_processors.empty()) { //need to cancel imputations
+			MedFeatures train_mat_for_processor;
+			generate_matrix_till_feature_process(train_mat, train_mat_for_processor);
+			feature_processor->Learn(train_mat_for_processor, empt);
+		}
+		else { //feature processors happens in the end - no need to do something
+			MedFeatures mat = train_mat;
+			feature_processor->Learn(mat, empt);
+		}
 	}
 }
 
@@ -147,63 +183,43 @@ void clear_map(map<string, vector<float>> &data) {
 
 void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 	//Apply plan, do in batches:
-	//1. resample input - apply feature_processor multiple times for each sample (if imputer and using existing in model. need to know where are the missing values/get matrix without this processor in more general)
-	// Currently will use imputation mask. TODO: later implement in a cleaner way
+	//1. resample input - apply feature_processor multiple times for each sample (if imputer and using existing in model. will get matrix without feature processors/ rerun model again)
 	//2. predict with model_predictor
 	//3. aggregate predictions - fetch mean,median,std,ci - the rest in attributes
 	vector<float> prctile_list = { (float)0.05, (float)0.5, (float)0.95 };
-
-	if (boost::starts_with(feature_processor_type, "MODEL::") || force_cancel_imputations) {
-		//matrix.masks validate generate_masks_for_features is on
-		vector<bool> processors_tp(FTR_PROCESS_LAST);
-		processors_tp[FTR_PROCESS_IMPUTER] = true;
-		processors_tp[FTR_PROCESS_ITERATIVE_IMPUTER] = true;
-		processors_tp[FTR_PROCESS_PREDICTOR_IMPUTER] = true;
-		if (processors_tp[feature_processor->processor_type] || force_cancel_imputations) {
-			//need to use masks
-			if (matrix.masks.empty())
-				MTHROW_AND_ERR("Error AveragePredsPostProcessor::Apply - model should run with generate_masks_for_features ON. no masks for imputations\n");
-			//Erase imputed values - prepare for imputataions:
-			vector<string> names;
-			matrix.get_feature_names(names);
-			for (size_t i = 0; i < names.size(); ++i)
-			{
-				const vector<unsigned char> &m = matrix.masks.at(names[i]);
-				vector<float> &to_change = matrix.data.at(names[i]);
-				if (m.empty())
-					MTHROW_AND_ERR("Error AveragePredsPostProcessor::Apply - model should run with generate_masks_for_features ON. no masks for imputations\n");
-				for (size_t j = 0; j < m.size(); ++j)
-				{
-					if (m[j] & matrix.imputed_mask)
-						to_change[j] = matrix.medf_missing_value;
-				}
-			}
-		}
+	MedFeatures fixed_mat;
+	MedFeatures *p_matrix = &matrix;
+	if (!after_processors.empty()) { //applied till current processor
+		generate_matrix_till_feature_process(matrix, fixed_mat);
+		p_matrix = &fixed_mat;
 	}
 
 	//1. resample input - apply feature_processor multiple times for each sample	
 	MedFeatures batch;
-	batch.attributes = matrix.attributes;
-	batch.tags = matrix.tags;
-	batch.time_unit = matrix.time_unit;
-	batch.medf_missing_value = matrix.medf_missing_value;
+	batch.attributes = p_matrix->attributes;
+	batch.tags = p_matrix->tags;
+	batch.time_unit = p_matrix->time_unit;
+	batch.medf_missing_value = p_matrix->medf_missing_value;
 	batch.samples.resize(batch_size * resample_cnt);
-	for (int i = 0; i < batch.samples.size(); ++i)
-		batch.samples[i].id = i;
+	for (int i = 0; i < batch.samples.size(); ++i) {
+		batch.samples[i].id = int(i / resample_cnt);
+		batch.samples[i].time = i % resample_cnt;
+	}
 	batch.init_pid_pos_len();
 	//data, samples
 	int i = 0;
-	vector<unordered_map<string, float>> samples_res(matrix.samples.size());
-	while (i < matrix.samples.size())
+	vector<unordered_map<string, float>> samples_res(p_matrix->samples.size());
+	MedProgress progrees("", int(p_matrix->samples.size() / batch_size) + 1, 30, 10);
+	while (i < p_matrix->samples.size())
 	{
 		//prepate batch
 		int curr_sz = 0;
 		MedFeatures apply_batch = batch;
-		for (auto &it : matrix.data)
+		for (auto &it : p_matrix->data)
 			apply_batch.data[it.first].resize(resample_cnt * batch_size);
-		while (curr_sz < batch_size && i < matrix.samples.size()) {
+		while (curr_sz < batch_size && i < p_matrix->samples.size()) {
 			//add data from matrix
-			for (auto &it : matrix.data) {
+			for (auto &it : p_matrix->data) {
 				for (size_t j = 0; j < resample_cnt; ++j)
 					apply_batch.data[it.first][curr_sz*resample_cnt + j] = it.second[i];
 			}
@@ -214,14 +230,14 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 		if (curr_sz < batch_size) {//last batch - remove last samples
 			apply_batch.samples.resize(curr_sz*resample_cnt);
 			apply_batch.init_pid_pos_len();
-			for (auto &it : matrix.data)
+			for (auto &it : p_matrix->data)
 				apply_batch.data[it.first].resize(resample_cnt*curr_sz);
 		}
 		//apply feature processor on all duplicated batch:
 		feature_processor->apply(apply_batch);
 		//Apply after batch
 		for (FeatureProcessor *fp : after_processors)
-			fp->apply(apply_batch);
+			fp->apply(apply_batch, false);
 		//apply batch with MedPredictor:
 		model_predictor->predict(apply_batch);
 		//collect preds from samples: each row was duplicated resample_cnt times
@@ -249,6 +265,8 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 			dict["Median"] = res[1];
 			dict["CI_Upper"] = res[2];
 		}
+
+		progrees.update();
 	}
 
 	//store in final matrix:
@@ -257,12 +275,12 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const {
 		const unordered_map<string, float> &dict = samples_res[j];
 		MedSample &s = matrix.samples[j];
 
-		if (use_median)
+		/*if (use_median)
 			s.prediction[0] = dict.at("Median");
 		else
-			s.prediction[0] = dict.at("Mean");
+			s.prediction[0] = dict.at("Mean");*/
 
-		//store in attributes the rest:
+			//store in attributes the rest:
 		s.attributes["pred.std"] = dict.at("Std");
 		s.attributes["pred.ci_lower"] = dict.at("CI_Lower");
 		s.attributes["pred.ci_upper"] = dict.at("CI_Upper");
