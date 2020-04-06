@@ -145,7 +145,7 @@ public:
 	void samples_sort();
 
 	///\brief Get feature name that matches a substring
-	string resolve_name(string& substr);
+	string resolve_name(string& substr) const;
 
 	// Serialization
 	ADD_CLASS_NAME(MedFeatures)

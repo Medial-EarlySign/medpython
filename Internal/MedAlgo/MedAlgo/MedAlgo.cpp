@@ -14,7 +14,6 @@
 #include <MedAlgo/MedAlgo/MedBART.h>
 #include <MedAlgo/MedAlgo/ExternalNN.h>
 #include <MedAlgo/MedAlgo/SimpleEnsemble.h>
-#include <MedAlgo/MedAlgo/AdjustedModel.h>
 #include <MedAlgo/MedAlgo/MedMicNet.h>
 #include <MedAlgo/MedAlgo/MedBooster.h>
 #include <MedAlgo/MedAlgo/MedSpecificGroupModels.h>
@@ -63,7 +62,6 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_BART, "bart" },
 	{ MODEL_EXTERNAL_NN, "external_nn" },
 	{ MODEL_SIMPLE_ENSEMBLE, "simple_ensemble" },
-	{ MODEL_ADJUSTED, "adjusted"},
 };
 //=======================================================================================
 // MedPredictor
@@ -115,7 +113,6 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
 	CONDITIONAL_NEW_CLASS(dname, MedExternalNN);
 	CONDITIONAL_NEW_CLASS(dname, MedSimpleEnsemble);
-	CONDITIONAL_NEW_CLASS(dname, MedAdjustedModel);
 
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
@@ -169,8 +166,6 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedExternalNN;
 	else if (model_type == MODEL_SIMPLE_ENSEMBLE)
 		return new MedSimpleEnsemble;
-	else if (model_type == MODEL_ADJUSTED)
-		return new MedAdjustedModel;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;

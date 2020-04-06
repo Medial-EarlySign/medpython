@@ -20,7 +20,8 @@ typedef enum {
 	FTR_POSTPROCESS_KNN_EXPLAIN,///< "knn" Explainer built on knn principles KNN_Explainer
 	FTR_POSTPROCESS_LINEAR, ///< "linear" to create LinearExplainer to explain linear model - importance is score change when putting zero in the feature/group of features
 	FTR_POSTPROCESS_ITERATIVE_SET, ///< "iterative_set" to create IterativeSetExplainer - model agnostic iterative explainer for model. sample masks using gibbs or GAN
-	FTR_POSTPROCESS_AVERAGE_PREDS, ///< "average_preds" to create AveragePredsPostProcessor - averaging model predictions after resampling 
+	FTR_POSTPROCESS_AVERAGE_PREDS, ///< "average_preds" to create AveragePredsPostProcessor - averaging model predictions after resampling
+	FTR_POSTPROCESS_ADJUST, ///< "adjust_probs" to adjust model calibrated predictions according to priors
 	FTR_POSTPROCESS_LAST
 } PostProcessorTypes;
 

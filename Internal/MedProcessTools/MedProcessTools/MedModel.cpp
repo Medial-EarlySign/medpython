@@ -265,6 +265,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 			else {
 				MedFeatures origFeatures = move(features);
 				apply(rep, post_processors_learning_sets[i], MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_PREDICTOR);
+				cerr << "#####################################HERE###############################################\n";
 				post_processors[i]->Learn(features);
 				features = move(origFeatures);
 			}

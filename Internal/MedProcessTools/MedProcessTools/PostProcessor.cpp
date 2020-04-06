@@ -3,6 +3,7 @@
 #include <boost/algorithm/string.hpp>
 #include "ExplainWrapper.h"
 #include "AveragePredsPostProcessor.h"
+#include "ProbAdjustPostProcessor.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -29,6 +30,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_ITERATIVE_SET;
 	else if (lower_p == "average_preds")
 		return FTR_POSTPROCESS_AVERAGE_PREDS;
+	else if (lower_p == "adjust_probs")
+		return FTR_POSTPROCESS_ADJUST;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -63,6 +66,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new IterativeSetExplainer;
 	else if (type == FTR_POSTPROCESS_AVERAGE_PREDS)
 		prc = new AveragePredsPostProcessor;
+	else if (type == FTR_POSTPROCESS_ADJUST)
+		prc = new ProbAdjustPostProcessor;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -100,6 +105,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, KNN_Explainer);
 	CONDITIONAL_NEW_CLASS(dname, IterativeSetExplainer);
 	CONDITIONAL_NEW_CLASS(dname, AveragePredsPostProcessor);
+	CONDITIONAL_NEW_CLASS(dname, ProbAdjustPostProcessor);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }

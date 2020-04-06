@@ -65,7 +65,6 @@ typedef enum {
 	MODEL_BART = 19, ///< to_use:"bart" MedBART model using BART
 	MODEL_EXTERNAL_NN = 20, ///< to_use: "external_nn" , initialize a neural net using a layers file
 	MODEL_SIMPLE_ENSEMBLE = 21, ///< to_use: "simple_ensemble" , give 1 or more models to train, and ensemble them with given weights from the user.
-	MODEL_ADJUSTED = 22, ///< to_use:"adjusted", learn a model on (preferably) matched set, and the adjust according to given priors
 	MODEL_LAST
 } MedPredictorTypes;
 

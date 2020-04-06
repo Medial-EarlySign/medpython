@@ -108,9 +108,6 @@
     <ClInclude Include="MedMultiClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AdjustedModel.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedAlgo.cpp">
@@ -195,9 +192,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SimpleEnsemble.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AdjustedModel.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

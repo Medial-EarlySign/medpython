@@ -81,7 +81,6 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="AdjustedModel.h" />
     <ClInclude Include="BART.h" />
     <ClInclude Include="BinSplitOptimizer.h" />
     <ClInclude Include="ExternalNN.h" />
@@ -113,7 +112,6 @@
     <ClInclude Include="tree_shap.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AdjustedModel.cpp" />
     <ClCompile Include="BART.cpp" />
     <ClCompile Include="BinSplitOptimizer.cpp" />
     <ClCompile Include="MedBART.cpp" />
