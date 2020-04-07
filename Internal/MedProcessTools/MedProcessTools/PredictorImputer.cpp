@@ -56,8 +56,11 @@ void PredictorImputer::init_sampler(bool with_sampler) {
 		sampler_sampling_args = &n_masks;
 		break;
 	case UNIVARIATE_DIST:
-		if (with_sampler)
+		if (with_sampler) {
 			_sampler = unique_ptr<SamplesGenerator<float>>(new UnivariateSamplesGenerator<float>);
+			if (!generator_args.empty())
+				_sampler->init_from_string(generator_args);
+		}
 		break;
 	default:
 		MTHROW_AND_ERR("Error in ShapleyExplainer::init_sampler() - Unsupported Type %d\n", gen_type);

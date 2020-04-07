@@ -518,16 +518,28 @@ template class RandomSamplesGenerator<float>;
 template class MissingsSamplesGenerator<float>;
 
 template<typename T> UnivariateSamplesGenerator<T>::UnivariateSamplesGenerator() : SamplesGenerator<T>(false) {
-
+	min_samples = 50;
 }
 
 template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string, vector<T>> &data, const vector<string> &learn_features, bool skip_missing) {
+	if (data.empty())
+		return;
 	for (const auto &it : data)
 		names.push_back(it.first);
 	vector<string> final_feats = learn_features;
 	if (learn_features.empty())
 		final_feats = names;
 	MLOG("INFO :: UnivariateSamplesGenerator Learn started (%zu)\n", final_feats.size());
+
+	strata_settings.getFactors();
+	vector<const vector<float> *> strataData(strata_settings.nStratas());
+	for (int j = 0; j < strata_settings.nStratas(); j++) {
+		string resolved_strata_name = names[find_in_feature_names(names, strata_settings.stratas[j].name)];
+		strataData[j] = &data.at(resolved_strata_name);
+	}
+	if (strata_settings.nStratas() > 0)
+	MLOG("INFO:: UnivariateSamplesGenerator::learn - has %zu stratas with %d bins\n", 
+		strata_settings.nStratas(), strata_settings.nValues());
 	//already sorted because map
 	for (const string &feat : final_feats)
 	{
@@ -549,6 +561,54 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 				val_to_prob[it.first] /= tot_cnt;
 
 	}
+
+	//calc for stratas: strata_sizes, strata_feature_val_agg:
+	int num_of_rows = (int)data.begin()->second.size();
+	vector<int> strata_ind(num_of_rows);
+	strata_sizes.resize(strata_settings.nValues());
+	strata_feature_val_agg.resize(strata_sizes.size());
+	vector<vector<int>> strata_to_indexes(strata_sizes.size());
+	for (int i = 0; i < num_of_rows; ++i)
+	{
+		strata_ind[i] = strata_settings.getIndex(missing_value, strataData, i);
+		++strata_sizes[strata_ind[i]];
+		strata_to_indexes[strata_ind[i]].push_back(i);
+	}
+	//update strata_feature_val_agg:
+	int skip_cnt = 0;
+	for (int i = 0; i < strata_feature_val_agg.size(); ++i)
+	{
+		if (strata_sizes[i] >= min_samples) {
+
+			for (const string &feat : final_feats)
+			{
+				if (data.find(feat) == data.end())
+					MTHROW_AND_ERR("Error can't find feature %s\n", feat.c_str());
+				const vector<T> &v = data.at(feat);
+				map<float, double> &val_to_prob = strata_feature_val_agg[i][feat];
+				double tot_cnt = 0; //count non missings or all
+				const vector<int> &relevant_idx = strata_to_indexes[i];
+				for (int idx : relevant_idx) //go over relevant indexes only
+				{
+					float val = v[idx];
+					if (skip_missing && val == missing_value)
+						continue;
+					++val_to_prob[val];
+					++tot_cnt;
+				}
+				//process v into val_to_prob:
+				if (tot_cnt > 0)
+					for (auto &it : val_to_prob)
+						val_to_prob[it.first] /= tot_cnt;
+
+			}
+
+		}
+		else
+			++skip_cnt;
+	}
+	if (skip_cnt > 0)
+		MWARN("Has %d skipped strats with few samples\n", skip_cnt);
 }
 
 template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
@@ -556,6 +616,15 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string,
 	int smp_count = 1;
 	if (params != NULL)
 		smp_count = *(int *)params;
+	//strata_settings.getFactors();
+	vector<const vector<float> *> strataData(strata_settings.nStratas());
+	vector<vector<float>> data_s(strataData.size());
+	for (int j = 0; j < strata_settings.nStratas(); j++) {
+		int starta_feat_idx = find_in_feature_names(names, strata_settings.stratas[j].name);
+		data_s[j].push_back(mask_values[starta_feat_idx]);
+		strataData[j] = &data_s[j];
+	}
+
 	uniform_real_distribution<> rnd_prob(0, 1);
 	for (size_t s = 0; s < smp_count; ++s)
 	{
@@ -565,11 +634,17 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string,
 			if (mask[i])
 				data[names[i]].push_back(mask_values[i]);
 			else {
-				const map<T, double> &feat_prob = feature_val_agg.at(names[i]);
+				//get strata index for this one sample:
+				int strata_index = strata_settings.getIndex(missing_value, strataData, 0);
+
+				const map<T, double> *feat_prob = &feature_val_agg.at(names[i]);
+				if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg[strata_index].empty())
+					feat_prob = &strata_feature_val_agg[strata_index].at(names[i]);
+
 				float p = rnd_prob(rnd_gen);
 				double agg = 0;
 				T val = missing_value;
-				for (const auto &it : feat_prob)
+				for (const auto &it : *feat_prob)
 				{
 					agg += it.second;
 					if (agg >= p) {
@@ -593,20 +668,38 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string,
 template<typename T> void UnivariateSamplesGenerator<T>::get_samples(MedMat<T> &data, int sample_per_row,
 	void *params, const vector<vector<bool>> &masks, const MedMat<T> &mask_values, mt19937 &rnd_gen) const {
 	if (!masks.empty()) {
+		//strata_settings.getFactors();
+		vector<const vector<float> *> strataData(strata_settings.nStratas());
+		vector<vector<float>> data_s(strataData.size());
+		for (int j = 0; j < strata_settings.nStratas(); j++) {
+			int starta_feat_idx = find_in_feature_names(names, strata_settings.stratas[j].name);
+			data_s[j].resize(mask_values.nrows);
+			for (int i = 0; i < mask_values.nrows; ++i)
+				data_s[j][i] = mask_values(i, starta_feat_idx);
+			strataData[j] = &data_s[j];
+		}
+
 		data.resize((int)masks.size(), (int)masks[0].size());
 		uniform_real_distribution<> rnd_prob(0, 1);
 		for (int i = 0; i < masks.size(); ++i)
 		{
+			int strata_index = strata_settings.getIndex(missing_value, strataData, i);
+
 			for (int j = 0; j < names.size(); ++j)
 			{
 				if (masks[i][j])
 					data(i, j) = mask_values(i, j);
 				else {
-					const map<T, double> &feat_prob = feature_val_agg.at(names[j]);
+					
+
+					const map<T, double> *feat_prob = &feature_val_agg.at(names[j]);
+					if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg[strata_index].empty())
+						feat_prob = &strata_feature_val_agg[strata_index].at(names[j]);
+
 					float p = rnd_prob(rnd_gen);
 					double agg = 0;
 					T val = missing_value;
-					for (const auto &it : feat_prob)
+					for (const auto &it : *feat_prob)
 					{
 						agg += it.second;
 						if (agg >= p) {
@@ -627,6 +720,36 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(MedMat<T> &
 	random_device rd;
 	mt19937 rnd_gen(rd());
 	get_samples(data, sample_per_row, params, mask, mask_values, rnd_gen);
+}
+
+void addStrata(string& init_string, featureSetStrata &imputerStrata) {
+
+	vector<string> fields;
+	boost::split(fields, init_string, boost::is_any_of(","));
+
+	if (fields.size() != 4)
+		MLOG("Cannot initialize strata from \'%s\'. Ignoring\n", init_string.c_str());
+	else
+		imputerStrata.stratas.push_back(featureStrata(fields[0], stof(fields[3]), stof(fields[1]), stof(fields[2])));
+}
+
+template<typename T> int UnivariateSamplesGenerator<T>::init(map<string, string>& mapper) {
+	vector<string> strata;
+	for (auto &it : mapper)
+	{
+		if (it.first == "strata" || it.first == "strata_settings") {
+			boost::split(strata, it.second, boost::is_any_of(":"));
+			for (string& stratum : strata) addStrata(stratum, strata_settings);
+		}
+		else if (it.first == "min_samples")
+			min_samples = med_stoi(it.second);
+		else if (it.first == "missing_value")
+			missing_value = med_stof(it.second);
+		else
+			MTHROW_AND_ERR("Error UnivariateSamplesGenerator::init - not found arg %s\n",
+				it.first.c_str());
+	}
+	return 0;
 }
 
 template class UnivariateSamplesGenerator<float>;

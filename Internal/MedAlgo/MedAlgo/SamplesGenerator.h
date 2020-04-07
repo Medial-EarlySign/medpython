@@ -229,8 +229,11 @@ public:
 template<typename T> class UnivariateSamplesGenerator : public SamplesGenerator<T> {
 public:
 	T missing_value = MED_MAT_MISSING_VALUE;
-	vector<string> names;
-	unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob.
+
+	int min_samples; ///< minimal count of samples in strata size to use strata
+	featureSetStrata strata_settings; ///< strata settings
+
+	int init(map<string, string>& mapper);
 
 	UnivariateSamplesGenerator();
 
@@ -245,7 +248,13 @@ public:
 	void post_deserialization();
 
 	ADD_CLASS_NAME(UnivariateSamplesGenerator<T>)
-		ADD_SERIALIZATION_FUNCS(feature_val_agg, names, missing_value)
+		ADD_SERIALIZATION_FUNCS(feature_val_agg, names, missing_value, strata_settings, 
+			strata_feature_val_agg, strata_sizes, min_samples)
+private:
+	unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob
+	vector<unordered_map<string, map<T, double>>> strata_feature_val_agg; ///<indexed by strata
+	vector<int> strata_sizes; ///<the strata size
+	vector<string> names;
 };
 
 MEDSERIALIZE_SUPPORT(MaskedGANParams)
