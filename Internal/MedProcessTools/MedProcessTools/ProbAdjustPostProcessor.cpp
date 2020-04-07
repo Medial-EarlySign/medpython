@@ -166,7 +166,7 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
 		data_p[j] = priorsModel->features.data.at(resolvedNames[j]).data();
 
 #pragma omp parallel for
-	for (size_t i = 0; i < priorsModel->features.samples.size(); i++) {
+	for (int i = 0; i < priorsModel->features.samples.size(); i++) {
 		// Prior
 		int index = 0;
 		for (size_t j = 0; j < resolvedNames.size(); j++) {
