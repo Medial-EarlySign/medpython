@@ -347,7 +347,7 @@ public:
 	void SetNValues() { nValues = ((int)(max / resolution) - (int)(min / resolution) + 1); }
 	// returns the correct strata for a value. 
 	// E.g. if "strata": "Age,40,80,5" 42 will return 0, the first bin
-	int getIndex(float value, float missing_val) {
+	int getIndex(float value, float missing_val) const {
 		if (value == missing_val)
 			return nValues / 2;
 		else {
@@ -373,7 +373,7 @@ public:
 	vector<featureStrata> stratas;
 	vector<int> factors;
 
-	size_t nStratas() { return stratas.size(); }
+	size_t nStratas() const { return stratas.size(); }
 
 	void getFactors() {
 
@@ -390,11 +390,19 @@ public:
 			factors[i] = factors[i - 1] * stratas[i - 1].nValues;
 	}
 
-	int nValues() {
+	int nValues() const {
 		if (stratas.size() == 0)
 			return 1;
 		else
 			return factors.back() * stratas.back().nValues;
+	}
+
+	int getIndex(float missing_val,
+		const vector<const vector<float> *> &strataValues, int row) const{
+		int index = 0;
+		for (int i = 0; i < nStratas(); i++)
+			index += factors[i] * stratas[i].getIndex(strataValues[i]->at(row), missing_val);
+		return index;
 	}
 
 	// Serialization

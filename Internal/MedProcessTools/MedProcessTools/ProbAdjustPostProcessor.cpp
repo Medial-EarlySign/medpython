@@ -50,7 +50,7 @@ void ProbAdjustPostProcessor::readPriors() {
 				MTHROW_AND_ERR("Expecting last column of header to be prob");
 			for (size_t i = 0; i < fields.size() - 1; i++)
 				names.push_back(fields[i]);
-			nValues = names.size();
+			nValues = (int)names.size();
 		}
 		else {
 			if (fields.size() != names.size() + 1)

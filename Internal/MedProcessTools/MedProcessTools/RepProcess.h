@@ -1872,6 +1872,7 @@ public:
 	int max_duration = 180; ///< maximal duration of a category
 	int dont_look_back = 7; ///< how many days back to not look at in in_sig. This is usefull in many cases
 	int min_clip_time = 7; ///< minimal number of days to consider clipping after due to change to other drugs.
+	int min_jitter = 0;	///< minimal length for allowed A-AB-B or A-AB-B Jitter 
 	vector<string> categories_names; ///< the names of the categories to create, categories_names[j] will sit at bit j (1 << j)
 	vector<vector<string>> categories_sets; ///< the sets defining each category.
 	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
