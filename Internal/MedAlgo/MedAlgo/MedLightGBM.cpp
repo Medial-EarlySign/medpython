@@ -196,9 +196,15 @@ namespace LightGBM {
 					vector<double> m_res = boosting_->GetEvalAt(0);
 					stringstream eval_str;
 
-					eval_str << config_.metric[0] << "=" << m_res[0];
-					for (size_t i = 1; i < config_.metric.size(); ++i)
-						eval_str << ", " << config_.metric[i] << "=" << m_res[i];
+
+					eval_str << config_.metric[0] << "=";
+					if (!m_res.empty())
+						eval_str << m_res[0];
+					for (size_t i = 1; i < config_.metric.size(); ++i) {
+						eval_str << ", " << config_.metric[i] << "=";
+						if (i < m_res.size())
+							eval_str << m_res[i];
+					}
 
 					Log::Info("%f seconds elapsed, finished iteration %d. [%s]",
 						std::chrono::duration<double, std::milli>(end_time - start_time) * 1e-3, iter + 1,
@@ -521,5 +527,5 @@ void MedLightGBM::print(FILE *fp, const string& prefix, int level) const {
 		mem_app.serialize_to_string(predictor_str);
 		fprintf(fp, "%s: MedLightGBM ()\n%s\n", prefix.c_str(), predictor_str.c_str());
 	}
-	
+
 }
