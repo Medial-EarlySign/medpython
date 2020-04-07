@@ -13,6 +13,8 @@ int ProbAdjustPostProcessor::init(map<string, string>& mapper)
 
 		if (field == "priors")
 			priorsFile = entry.second;
+		else if (field == "json")
+			priorsJson = entry.second;
 		else if (field == "use_p")
 			use_p = stof(entry.second);
 		else if (field == "odds") {
@@ -131,29 +133,44 @@ void ProbAdjustPostProcessor::getOdds(const MedFeatures &matrix) {
 void ProbAdjustPostProcessor::Learn(const MedFeatures &matrix)
 {
 
+	// Create model for generating features
+	priorsModel = new MedModel;
+	priorsModel->init_from_json_file(priorsJson);
+	MedSamples _samples;
+	_samples.import_from_sample_vec(matrix.samples);
+	priorsModel->learn(*p_rep, _samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
+
 	// Read Priors from file
 	readPriors();
 
 	// Resolve feature names
 	resolvedNames.resize(names.size());
 	for (size_t i = 0; i < names.size(); i++)
-		resolvedNames[i] = matrix.resolve_name(names[i]);
+		resolvedNames[i] = priorsModel->features.resolve_name(names[i]);
 
 	// Learn odds
 	if (odds.empty())
-		getOdds(matrix);
+		getOdds(priorsModel->features);
 
 }
 
 //====================================================================================================
 void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
 
+	MedSamples _samples;
+	_samples.import_from_sample_vec(matrix.samples);
+	priorsModel->apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+
+	vector<const float *> data_p(resolvedNames.size());
+	for (size_t j = 0; j < data_p.size(); j++)
+		data_p[j] = priorsModel->features.data.at(resolvedNames[j]).data();
+
 #pragma omp parallel for
-	for (size_t i = 0; i < matrix.samples.size(); i++) {
+	for (size_t i = 0; i < priorsModel->features.samples.size(); i++) {
 		// Prior
 		int index = 0;
 		for (size_t j = 0; j < resolvedNames.size(); j++) {
-			int value = (int)matrix.data[resolvedNames[j]][i];
+			int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
 			if (value < min[j] || value > max[j])
 				MTHROW_AND_ERR("Value %d of %s is outside priors range [%d,%d]\n", value, resolvedNames[j].c_str(), min[j], max[j]);
 			index += (value - min[j])*factors[j];

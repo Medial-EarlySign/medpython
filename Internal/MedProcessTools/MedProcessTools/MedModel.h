@@ -183,8 +183,8 @@ public:
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
 	int learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage);
-	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
-	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
+	int apply(MedPidRepository& rep, MedSamples& samples)  { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
+	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) ;
 
 	// Learn with a vector of samples - one for the actual learning, and additional one for each post-processor.
 	// PostProcessors that do not require samples, can be assigned empty samples.
