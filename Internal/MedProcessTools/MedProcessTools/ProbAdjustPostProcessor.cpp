@@ -48,7 +48,7 @@ void ProbAdjustPostProcessor::readPriors() {
 				MTHROW_AND_ERR("Expecting last column of header to be prob");
 			for (size_t i = 0; i < fields.size() - 1; i++)
 				names.push_back(fields[i]);
-			nValues = names.size();
+			nValues = (int)names.size();
 		}
 		else {
 			if (fields.size() != names.size() + 1)
@@ -149,7 +149,7 @@ void ProbAdjustPostProcessor::Learn(const MedFeatures &matrix)
 void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
 
 #pragma omp parallel for
-	for (size_t i = 0; i < matrix.samples.size(); i++) {
+	for (int i = 0; i < matrix.samples.size(); i++) {
 		// Prior
 		int index = 0;
 		for (size_t j = 0; j < resolvedNames.size(); j++) {
