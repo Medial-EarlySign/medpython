@@ -53,7 +53,7 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	float *vdata = val_data;
 
 	if (n_time_ch == 0) tdata = NULL;
-	if (n_val_ch == 0) tdata = NULL;
+	if (n_val_ch == 0) vdata = NULL;
 
 	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
 	if (type == T_Generic) {
