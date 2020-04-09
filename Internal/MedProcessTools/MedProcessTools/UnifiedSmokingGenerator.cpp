@@ -612,7 +612,7 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 
 				else
 					// check next status:
-					if (i + 2 <  smokingStatusVec.size())
+					if (i + 2 < smokingStatusVec.size())
 						if (smokingStatusVec[i + 2].first == EX_SMOKER)
 						{
 							deltaTime = (float)med_time_converter.diff_times(smokingStatusVec[i + 2].second, smokingStatusVec[i].second, MedTime::Date, MedTime::Days);
@@ -622,6 +622,12 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 			}
 		}
 	}
+}
+
+void UnifiedSmokingGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	vector<string> &in_use = signal_categories_in_use["Smoking_Status"];
+	vector<string> status = { "Never", "Passive", "Former", "Current", "Never_or_Former" };
+	in_use.insert(in_use.end(), status.begin(), status.end());
 }
 
 int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {

@@ -121,7 +121,7 @@ public:
 
 	void getQuitAge(PidDynamicRec& rec, int lastDate, float &ageAtEx, float &deltaTime);
 		
-
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 	// Serialization
 	ADD_CLASS_NAME(UnifiedSmokingGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, req_signals, timeSinceQuittingModelSlope, timeSinceQuittingModelConst)
