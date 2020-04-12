@@ -62,13 +62,15 @@ int MultiplierProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 			vector<float> &vec = features.data.at(it->first);
 			for (size_t i = 0; i < vec.size(); ++i)
 			{
-				if (!divide)
-					vec[i] *= multiplier_vec[i];
-				else {
-					if (multiplier_vec[i] != 0)
-						vec[i] /= multiplier_vec[i];
-					else
-						vec[i] = MED_MAT_MISSING_VALUE;
+				if (vec[i] != MED_MAT_MISSING_VALUE) {
+					if (!divide)
+						vec[i] *= multiplier_vec[i];
+					else {
+						if (multiplier_vec[i] != 0)
+							vec[i] /= multiplier_vec[i];
+						else
+							vec[i] = MED_MAT_MISSING_VALUE;
+					}
 				}
 			}
 		}
