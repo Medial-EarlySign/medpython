@@ -112,7 +112,7 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 		times_int.resize(TimeStamps_len);
 
 		// currently assuming we only work with dates ... will have to change this when we'll move to other units
-		for (int i=0; i<TimeStamps_len; i++) {
+		for (int i = 0; i < TimeStamps_len; i++) {
 			times_int[i] = AMPoint::auto_time_convert(TimeStamps[i], tu);
 		}
 		i_times = &times_int[0];
@@ -129,30 +129,33 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
 {
-    vector<float> converted_Values;
+	vector<float> converted_Values;
 	MedRepository &rep = ma.get_rep();
 
-	try{
-        string sig = signalName;
+	try {
+		string sig = signalName;
 		int section_id = rep.dict.section_id(sig);
 		int sid = rep.sigs.Name2Sid[sig];
-		int Values_i = 0;
-		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
-		int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
-		for (int i=0; i<n_elem; i++) {
-			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
-				float val = -1;
-				if (!rep.sigs.is_categorical_channel(sid, j)) {
-					val = stof(Values[Values_i++]);
-				}
-				else {
-					val = category_map.at(Values[Values_i++]);
-				}
+		if (rep.sigs.Sid2Info[sid].n_val_channels > 0) {
+			int Values_i = 0;
+			const auto& category_map = rep.dict.dict(section_id)->Name2Id;
+			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+			for (int i = 0; i < n_elem; i++) {
+				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+					float val = -1;
+					if (!rep.sigs.is_categorical_channel(sid, j)) {
+						val = stof(Values[Values_i++]);
+					}
+					else {
+						val = category_map.at(Values[Values_i++]);
+					}
 
-				converted_Values.push_back(val);
+					converted_Values.push_back(val);
+				}
 			}
 		}
-	} catch(...){
+	}
+	catch (...) {
 		return AM_FAIL_RC;
 	}
 
@@ -167,7 +170,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
-		return AM_FAIL_RC;
+			return AM_FAIL_RC;
 	}
 
 	if (responses == NULL)
@@ -185,7 +188,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	string msg_prefix = ""; // asked not to put reqId in messages.... (not sure it's a good idea, prev code above in comment)
 	responses->set_request_id(request->get_request_id());
 
-	for (int i=0; i<request->get_n_score_types(); i++) {
+	for (int i = 0; i < request->get_n_score_types(); i++) {
 		char *stype = request->get_score_type(i);
 		responses->insert_score_types(&stype, 1);
 	}
@@ -198,7 +201,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	int tu = get_time_unit();
 	vector<int> conv_times;
 
-	for (int i=0; i<n_points; i++) {
+	for (int i = 0; i < n_points; i++) {
 		conv_times.push_back(AMPoint::auto_time_convert(request->get_timestamp(i), tu));
 		if ((ma.insert_sample(request->get_pid(i), conv_times.back()) < 0) || (conv_times.back() <= 0)) {
 			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_PREDICTION_POINT) + ") Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
@@ -211,7 +214,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	// Checking score types and verify they are supported
 	int n_score_types = request->get_n_score_types();
-	for (int i=0; i<n_score_types; i++) {
+	for (int i = 0; i < n_score_types; i++) {
 		if (!IsScoreTypeSupported(request->get_score_type(i))) {
 			//string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_SCORE_TYPE) + ") AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
 			string msg = msg_prefix + "AlgoMarker of type " + string(get_name()) + " does not support score type " + string(request->get_score_type(i));
@@ -229,7 +232,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	unordered_map<unsigned long long, vector<long long>> sample2ts; // conversion of each sample to all the ts that were mapped to it.
 
 	int n_bad_scores = 0;
-	for (int i=0; i<n_points; i++) {
+	for (int i = 0; i < n_points; i++) {
 		int _pid = request->get_pid(i);
 		long long _ts = request->get_timestamp(i);
 
@@ -295,12 +298,12 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			// basic info for current sample
 			int c_pid = s.id;
 			int c_ts = s.time;
-			float c_scr = s.prediction.size() >0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
-			string c_ext_scr=""; 
+			float c_scr = s.prediction.size() > 0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
+			string c_ext_scr = "";
 			if (s.str_attributes.size() > 0) {
 				json c_ext_scr_json({});
 				for (auto &ex_res_field_name : extended_result_fields) {
-					if(s.str_attributes.count(ex_res_field_name))
+					if (s.str_attributes.count(ex_res_field_name))
 						c_ext_scr_json[ex_res_field_name] = json::parse(s.str_attributes[ex_res_field_name]);
 				}
 				c_ext_scr = c_ext_scr_json.dump();
@@ -337,13 +340,13 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						// all is fine, we insert the score into its place
 						res->init_scores(_n_score_types);
 
-						for (int j=0; j<_n_score_types; j++) {
+						for (int j = 0; j < _n_score_types; j++) {
 
 							if (strcmp(_score_types[j], "Raw") == 0) {
 								res->set_score(j, c_scr, _score_types[j], c_ext_scr);
 							}
 							else {
-								res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j],"");
+								res->set_score(j, (float)AM_UNDEFINED_VALUE, _score_types[j], "");
 								AMScore *am_scr = res->get_am_score(j);
 								AMMessages *msgs = am_scr->get_msgs();
 								string msg = msg_prefix + "Undefined Score Type: " + string(_score_types[j]);
@@ -390,8 +393,8 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 
-			if (curr_line[curr_line.size()-1] == '\r')
-				curr_line.erase(curr_line.size()-1);
+			if (curr_line[curr_line.size() - 1] == '\r')
+				curr_line.erase(curr_line.size() - 1);
 
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("\t"));
@@ -400,7 +403,8 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				if (fields[0] == "TYPE") type_in_config_file = fields[1];
 				else if (fields[0] == "REPOSITORY") rep_fname = fields[1];
 				else if (fields[0] == "MODEL") model_fname = fields[1];
-				else if (fields[0] == "MODEL_END_STAGE") try { model_end_stage = stoi(fields[1]); } catch (...) { MTHROW_AND_ERR("Could not parse given value MODEL_END_STAGE='%s'\n", fields[1].c_str()); }
+				else if (fields[0] == "MODEL_END_STAGE") try { model_end_stage = stoi(fields[1]); }
+				catch (...) { MTHROW_AND_ERR("Could not parse given value MODEL_END_STAGE='%s'\n", fields[1].c_str()); }
 				else if (fields[0] == "EXTENDED_RESULT_FIELDS") split(extended_result_fields, fields[1], boost::is_any_of(";"));
 				else if (fields[0] == "INPUT_TESTER_CONFIG") input_tester_config_file = fields[1];
 				else if (fields[0] == "NAME")  set_name(fields[1].c_str());

@@ -320,7 +320,7 @@ int CommonTestingTools::get_preds_from_algomarker_single(AlgoMarker *am, vector<
 	DynAM::AM_API_ClearData(am);
 
 	MLOG("=====> now running get_preds_from_algomarker_single()\n");
-	MLOG("Going over %d samples\n", d.samples.nSamples());
+	MLOG("Going over %d samples (CommonTestingTools)\n", d.samples.nSamples());
 	int n_tested = 0;
 
 	MedTimer timer;

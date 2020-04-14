@@ -138,12 +138,14 @@ void CommonTestingTools::DataLoader::am_add_data(AlgoMarker *am, int pid, int ma
 			std::fill(take_nelem.begin(), take_nelem.end(), false);
 			for (int i = 0; i < nelem; i++) {
 				bool take_elem = true;
-				for (int j = 0; j < usv.n_time_channels(); j++) {
+				int test_ch = 0;
+				take_elem = usv.Time(i, test_ch) <= max_date;
+				/*for (int j = 0; j < usv.n_time_channels(); j++) {
 					if (usv.Time(i, j) > max_date) {
 						take_elem = false;
 						break;
 					}
-				}
+				}*/
 				if (take_elem) {
 					for (int j = 0; j < usv.n_time_channels(); j++) {
 						times.push_back((long long)usv.Time(i, j));
