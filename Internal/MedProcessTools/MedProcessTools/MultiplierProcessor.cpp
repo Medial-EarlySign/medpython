@@ -77,8 +77,8 @@ int MultiplierProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	}
 
 	if (verbose && !touch_cnt.empty()) {
-		MLOG("INFO: multiplier using %s touched %zu features: [%s]\n", resolved_multi.c_str(),
-			touch_cnt.size(), medial::io::get_list(touch_cnt).c_str());
+		//MLOG("INFO: multiplier using %s touched %zu features: [%s]\n", resolved_multi.c_str(),
+		//	touch_cnt.size(), medial::io::get_list(touch_cnt).c_str());
 	}
 	return 0;
 }
