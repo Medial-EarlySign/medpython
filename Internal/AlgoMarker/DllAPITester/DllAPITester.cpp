@@ -106,7 +106,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	MLOG("=====> now running get_preds_from_algomarker()\n");
 	MLOG("Going over %d pids\n", pids.size());
-	for (auto pid : pids)
+	int pid_cnt = 0;
+	for (auto pid : pids) {
 		for (auto &sig : sigs) {
 			if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 				continue;
@@ -138,7 +139,10 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 				AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
 			}
 		}
-
+		pid_cnt++;
+		if (pid_cnt % 1000 == 0)
+			MLOG("Loaded %d pids already\n", pid_cnt);
+	}
 	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
 
 	MLOG("After AddData for all batch\n");
