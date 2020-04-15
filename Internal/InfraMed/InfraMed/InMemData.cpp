@@ -62,20 +62,21 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 		gsv.set_data(&elem[0], n_elem);
 		for (int i = 0; i < n_elem; i++) {
 			gsv.Set(i, tdata, vdata);
+			if (tdata) tdata += n_time_ch;
+			if (vdata) vdata += n_val_ch;
 		}
-		if (tdata) tdata += n_time_ch;
-		if (vdata) vdata += n_val_ch;
-	}else
-	for (int i=0; i<n_elem; i++) {
-		if (MedSignalsSingleElemFill(type, &elem[len_bytes*i], tdata, vdata) < 0) {
-			MERR("ERROR: InMemRepData::insertData failed fill element %d/%d.", i, n_elem);
-			return -1;
-		}
-
-		if (tdata) tdata += n_time_ch;
-		if (vdata) vdata += n_val_ch;
 	}
+	else {
+		for (int i = 0; i < n_elem; i++) {
+			if (MedSignalsSingleElemFill(type, &elem[len_bytes*i], tdata, vdata) < 0) {
+				MERR("ERROR: InMemRepData::insertData failed fill element %d/%d.", i, n_elem);
+				return -1;
+			}
 
+			if (tdata) tdata += n_time_ch;
+			if (vdata) vdata += n_val_ch;
+		}
+	}
 	// all is ready -> we push it to the map
 	pair<int, int> pid_sid(pid, sid);
 	pair<int, vector<char>> n_data;
