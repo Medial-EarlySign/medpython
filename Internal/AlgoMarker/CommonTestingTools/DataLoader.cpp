@@ -148,7 +148,7 @@ void CommonTestingTools::DataLoader::am_add_data(AlgoMarker *am, int pid, int ma
 				}*/
 				if (take_elem) {
 					for (int j = 0; j < usv.n_time_channels(); j++) {
-						times.push_back((long long)usv.Time(i, j));
+						times.push_back(min((long long)usv.Time(i, j), (long long)max_date));
 					}
 					take_nelem[i] = true;
 				}

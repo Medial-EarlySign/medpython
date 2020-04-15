@@ -305,7 +305,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am, string rep_conf, MedPidRepo
 						for (int i = 0; i < stop_at; i++) {
 							for (int j = 0; j < usv.n_time_channels(); j++) {
 								//MLOG("%s i=%d,j=%d,i_time=%d,stop_at=%d\n", sig.c_str(), i, j, i_time, stop_at);
-								p_times[i_time] = (long long)usv.Time(i, j);
+								p_times[i_time] = min((long long)usv.Time(i, j), (long long)s.time);
 								++i_time;
 							}
 						}
