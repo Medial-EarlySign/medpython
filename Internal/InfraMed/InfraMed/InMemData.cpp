@@ -104,6 +104,7 @@ int InMemRepData::sort_pid_sid(int pid, int sid)
 	if (data[pid_sid].first <= 1) return 0; // no need to sort a single variable
 
 	int (*compare_func)(const void *, const void *);
+	GenericSigVec gsv;
 	switch (my_rep->sigs.Sid2Info[sid].type) {
 	case T_Value:				compare_func = &MedSignalsCompareSig<SVal>;				break;
 	case T_DateVal:				compare_func = &MedSignalsCompareSig<SDateVal>;			break;
@@ -119,6 +120,10 @@ int InMemRepData::sort_pid_sid(int pid, int sid)
 	case T_DateRangeVal2:		compare_func = &MedSignalsCompareSig<SDateRangeVal2>;	break;
 	case T_DateFloat2:			compare_func = &MedSignalsCompareSig<SDateFloat2>;		break;
 	case T_TimeShort4:			compare_func = &MedSignalsCompareSig<STimeShort4>;		break;
+	case T_Generic:
+		gsv.init(my_rep->sigs.Sid2Info[sid]);
+		gsv.inplace_sort_data(&data[pid_sid].second[0], data[pid_sid].first);
+		return 0;
 	//case T_CompactDateVal:		break; // not fully supported yet
 	default: MERR("ERROR:sort_pid_sid Unknown sig_type %d\n", my_rep->sigs.Sid2Info[sid].type);
 		return -1;

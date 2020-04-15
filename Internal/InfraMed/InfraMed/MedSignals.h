@@ -51,7 +51,7 @@ enum SigType {
 	T_DateFloat2,	// 13 :: date + 2 float values
 	T_TimeRange,	// 14 :: time-time
 	T_TimeShort4,   // 15 :: time + 4 shorts
-	T_Generic,
+	T_Generic,	// 16 :: generic signal
 	T_Last
 };		//    :: next free slot for type id
 
@@ -875,6 +875,13 @@ public:
 	}
 };
 
+
+// small helper class to help in the sorting
+struct GSVElement {
+	vector<unsigned char> data;
+};
+
+
 //=============================================================================================
 // Inline/templated functions
 //=============================================================================================
@@ -1186,6 +1193,39 @@ public:
 				return true;
 		}
 		return false;
+	}
+
+	int compare_elements(const void* elem1, const void* elem2) {
+		if (compareTimeLt(elem1, 0, elem2, 0)) return - 1;
+		return 0;
+	}
+
+
+	bool compare_gsv_elements(const GSVElement &e1, const GSVElement &e2) {
+		return compareTimeLt(&e1.data[0], 0, &e2.data[0], 0);
+	}
+
+	int inplace_sort_data(const void *data, int nelem) {
+		vector<GSVElement> dc(nelem);
+		unsigned char* p_data = (unsigned char *)data;
+		int k = 0;
+		for (int i = 0; i < nelem; i++) {
+			dc[i].data.resize(this->struct_size);
+			for (int j = 0; j < this->struct_size; j++)
+				dc[i].data[j] = p_data[k++];
+		}
+		
+		std::sort(dc.begin(), dc.end(), [this](GSVElement l, GSVElement r) {return compare_gsv_elements(l, r); });
+
+		k = 0;
+		for (int i = 0; i < nelem; i++) {
+			dc[i].data.resize(this->struct_size);
+			for (int j = 0; j < this->struct_size; j++)
+				p_data[k++] = dc[i].data[j];
+		}
+
+		return 0;
+		//qsort(data, nelem, this->struct_size, &this->compare_elements);
 	}
 
 	bool compareData(int idx, const GenericSigVec& other_gsv, int other_idx) const {
