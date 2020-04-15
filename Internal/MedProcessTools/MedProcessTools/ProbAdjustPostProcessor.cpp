@@ -172,7 +172,9 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
 		for (size_t j = 0; j < resolvedNames.size(); j++) {
 			int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
 			if (value < min[j] || value > max[j])
-				MTHROW_AND_ERR("Value %d of %s is outside priors range [%d,%d]\n", value, resolvedNames[j].c_str(), min[j], max[j]);
+				MTHROW_AND_ERR("Value %d of %s is outside priors range [%d,%d] sample: %d %d\n", 
+					value, resolvedNames[j].c_str(), min[j], max[j],
+					priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
 			index += (value - min[j])*factors[j];
 		}
 		float prior = probs[index];
