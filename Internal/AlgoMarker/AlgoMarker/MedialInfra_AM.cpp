@@ -66,7 +66,9 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 			return AM_ERROR_LOAD_READ_MODEL_ERR;
 		if (ma.model_check_required_signals() < 0)
 			return AM_ERROR_LOAD_MISSING_REQ_SIGS;
-
+		if (ma.init_model_for_apply() < 0)
+			return AM_ERROR_LOAD_READ_MODEL_ERR;
+		
 	}
 	catch (...) {
 		return AM_ERROR_LOAD_READ_MODEL_ERR;

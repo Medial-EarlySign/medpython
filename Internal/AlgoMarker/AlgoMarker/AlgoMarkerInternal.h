@@ -78,6 +78,10 @@ public:
 		return ret;
 	}
 
+	// init model for apply
+	int init_model_for_apply() {
+		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
+	}
 
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
@@ -164,8 +168,9 @@ public:
 	int get_raw_preds(int *_pids, int *times, float *preds) {
 
 		try {
+
 			// run model to calculate predictions
-			if (model.apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
+			if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
 				fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
 				return -1;
 			}
@@ -196,7 +201,7 @@ public:
 		samples = _samples;
 
 		// run model to calculate predictions
-		if (model.apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
+		if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
 			fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
 			return -1;
 		}
