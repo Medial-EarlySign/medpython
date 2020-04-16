@@ -64,6 +64,8 @@ public:
 	/// All required signal names + ids
 	unordered_set<string> required_signal_names;
 	unordered_set<int> required_signal_ids;
+	vector<unordered_set<string> > required_features_vec;
+	unordered_set<string> required_feature_generators;
 
 	/// all collected virtual signals (name to type)
 	map<string, int> virtual_signals;
@@ -185,6 +187,10 @@ public:
 	int learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage);
 	int apply(MedPidRepository& rep, MedSamples& samples)  { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) ;
+
+	// follows are apply methods separating the initialization of the model from the actual apply
+	int init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage);
+	int no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
 	// Learn with a vector of samples - one for the actual learning, and additional one for each post-processor.
 	// PostProcessors that do not require samples, can be assigned empty samples.

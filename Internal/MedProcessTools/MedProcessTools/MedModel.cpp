@@ -279,6 +279,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 //.......................................................................................
 // Apply
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
+
 	p_rep = &rep;
 	// Stage Sanity
 	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
@@ -389,6 +390,162 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		if (verbosity > 0) MLOG("Initializing %d postprocessors\n", (int)post_processors.size());
 		for (size_t i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->init_post_processor(*this);
+
+		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+		MedTimer pp_timer("post_processors"); pp_timer.start();
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->Apply(features);
+		pp_timer.take_curr_time();
+		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
+
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+
+		if (samples.copy_attributes(features.samples) != 0) {
+			MERR("Insertion of post_process to samples failed\n");
+			return -1;
+		}
+	}
+
+	return 0;
+}
+
+
+//-------------------------------------------------------------------------------------------------------------------------------
+int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage)
+{
+	p_rep = &rep;
+	// Stage Sanity
+	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
+		return -1;
+	}
+
+	//only perform when needed
+	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
+		//init to check we have remove all we can (or if need to create virtual signals?):
+		fit_for_repository(rep);
+		// init virtual signals
+		if (collect_and_add_virtual_signals(rep) < 0) {
+			MERR("FAILED collect_and_add_virtual_signals\n");
+			return -1;
+		}
+
+	}
+	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
+
+	// Build sets of required features at each stage of processing
+	// The last entry tells us which features to generate
+	required_features_vec.clear();
+	build_req_features_vec(required_features_vec);
+	required_feature_generators = required_features_vec[feature_processors.size()];
+
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+
+		// Initialize
+		init_all(rep.dict, rep.sigs);
+
+		// Required signals
+		required_signal_names.clear();
+		required_signal_ids.clear();
+
+		get_required_signal_names(required_signal_names);
+		for (string signal : required_signal_names)
+			required_signal_ids.insert(rep.dict.id(signal));
+
+		for (int signalId : required_signal_ids) {
+			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
+				MLOG("MedModel::apply WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
+					signalId, rep.dict.name(signalId).c_str());;
+		}
+
+		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
+	}
+
+	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
+
+		if (verbosity > 0) MLOG("Initializing %d postprocessors\n", (int)post_processors.size());
+		for (size_t i = 0; i < post_processors.size(); ++i)
+			post_processors[i]->init_post_processor(*this);
+
+	}
+
+	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------------------
+int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage)
+{
+	p_rep = &rep;
+	// Stage Sanity
+	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
+		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
+		return -1;
+	}
+
+	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+
+		// Generate features
+		features.clear();
+		features.set_time_unit(samples.time_unit);
+		if (verbosity > 0) MLOG("MedModel no_init_apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (generate_all_features(rep, &samples, features, required_feature_generators) < 0) {
+			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
+			return -1;
+		}
+		if (verbosity > 0) MLOG("MedModel no_init_apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (samples.copy_attributes(features.samples) != 0) {
+			MERR("Insertion of Feature Generators attributes to samples failed\n");
+			return -1;
+		}
+	}
+
+	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+		return 0;
+	}
+
+	// Process Features
+	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
+		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
+		if (generate_masks_for_features) features.mark_imputed_in_masks();
+		if (apply_feature_processors(features, required_features_vec, false) < 0) {
+			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
+			return -1;
+		}
+		if (verbosity > 0) MLOG("MedModel apply() : after applying feature processors\n", samples.idSamples.size());
+	}
+
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
+		return 0;
+
+	// Apply predictor
+	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
+		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+		if (predictor->predict(features) < 0) {
+			MERR("Predictor failed\n");
+			return -1;
+		}
+	}
+
+	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
+		return 0;
+
+	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
+		if (verbosity > 0) MLOG("Inserting predictions\n");
+		if (samples.insert_preds(features) != 0) {
+			MERR("Insertion of predictions to samples failed\n");
+			return -1;
+		}
+		return 0;
+	}
+
+	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
 
 		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
 		MedTimer pp_timer("post_processors"); pp_timer.start();
