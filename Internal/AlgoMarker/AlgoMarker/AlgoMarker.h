@@ -16,7 +16,12 @@
 // AM_DLL_EXPORT is defined only in the matching .cpp file to handle the dll building
 // apps just include this h file and hence will work in import mode.
 
-
+// set next to:
+// 1 : and then use Release mode - this is to compile without DLLs (needed for direct tests of performance , etc)
+// 0 : and then use ReleaseDLL mode - this is to compile with DLLs
+#if 0
+#define DLL_WORK_MODE
+#else
 #ifdef _WIN32
 #if defined AM_DLL_IMPORT
 #define DLL_WORK_MODE __declspec(dllimport)
@@ -30,6 +35,7 @@
 #define DLL_WORK_MODE __attribute__ ((visibility ("default")))
 #endif   //AM_DLL_IMPORT
 #endif   // _WIN32
+#endif // 0/1
 
 #ifdef _WIN32
 #pragma warning(disable: 4251)
