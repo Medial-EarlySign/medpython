@@ -762,7 +762,7 @@ int MedSamples::write_to_file(const string &fname, int pred_precision, bool prin
 // Sort by id and then date
 //.......................................................................................
 void MedSamples::sort_by_id_date() {
-	MLOG("sorting samples by id, date\n");
+	//MLOG("sorting samples by id, date\n");
 	sort(idSamples.begin(), idSamples.end(), comp_patient_id_time);
 	for (auto& pat : idSamples)
 		sort(pat.samples.begin(), pat.samples.end(), comp_sample_id_time);
