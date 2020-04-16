@@ -23,10 +23,11 @@ public:
 	string priorsFile;
 	string priorsJson;
 
+	int inherited_verbosity = 0; // for priorsModel
 	// Functions
 	ProbAdjustPostProcessor() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_ADJUST; };
 	~ProbAdjustPostProcessor() { delete priorsModel; };
-	void init_post_processor(MedModel& mdl) { p_rep = mdl.p_rep; }
+	void init_post_processor(MedModel& mdl) { p_rep = mdl.p_rep; inherited_verbosity = mdl.verbosity; }
 
 	/// Global init for general args in all explainers
 	int init(map<string, string> &mapper);

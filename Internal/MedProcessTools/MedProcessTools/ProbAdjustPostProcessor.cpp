@@ -159,6 +159,7 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
 
 	MedSamples _samples;
 	_samples.import_from_sample_vec(matrix.samples);
+	priorsModel->verbosity = inherited_verbosity;
 	priorsModel->apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
 
 	vector<const float *> data_p(resolvedNames.size());
