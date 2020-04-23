@@ -2592,7 +2592,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		if (si.n_time_channels < time_channel)
 			MTHROW_AND_ERR("Error RepCalcSimpleSignals::init_tables - input signal %s should contain %d time channels\n",
 				signals[i].c_str(), time_channel);
-		if (si.n_time_channels < out_n_time_ch)
+		if (si.n_time_channels < out_n_time_ch && !static_input_signals[i])
 			MWARN("WARN RepCalcSimpleSignals::init_tables - input signal %s should contain %d time channels\n",
 				signals[i].c_str(), out_n_time_ch);
 		if (si.n_val_channels < out_n_val_ch)

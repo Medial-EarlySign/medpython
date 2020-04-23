@@ -617,6 +617,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "resolution") resolution = med_stoi(entry.second);
+		else if (field == "signal") set_feature_name(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
