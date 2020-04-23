@@ -233,5 +233,18 @@ public:
 	
 	void write_features_mat(const string feat_mat) { model.write_feature_matrix(feat_mat); }
 
+	void get_signal_structure(string &sig, int &n_time_channels, int &n_val_channels)
+	{
+		int sid = this->rep.sigs.sid(sig);
+		if (sid <= 0) {
+			n_time_channels = 0;
+			n_val_channels = 0;
+		}
+		else {
+			n_time_channels = this->rep.sigs.Sid2Info[sid].n_time_channels;
+			n_val_channels = this->rep.sigs.Sid2Info[sid].n_val_channels;
+		}
+	}
+
 };
 
