@@ -1328,7 +1328,7 @@ void RepRuleBasedOutlierCleaner::init_lists() {
 
 		// Required Signals
 		for (string signal : rules2Signals[rule])
-			req_signals.insert(signal);			
+			req_signals.insert(signal);
 	}
 
 }
@@ -2562,8 +2562,10 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	all_sigs_static[T_Value] = true;
 	all_sigs_static[T_ValShort2] = true;
 	all_sigs_static[T_ValShort4] = true;
+	unordered_set<string> static_names;
+	static_names.insert("BDATE"); static_names.insert("DEATH");
 	for (size_t i = 0; i < signals.size(); ++i)
-		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type] || sigs.Sid2Info[sigs_ids[i]].n_time_channels == 0;
+		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type] || sigs.Sid2Info[sigs_ids[i]].n_time_channels == 0 || static_names.find(signals[i]) != static_names.end();
 	if (calculator_logic == NULL) { //recover from serialization
 		calculator_logic = SimpleCalculator::make_calculator(calculator);
 
@@ -2595,7 +2597,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 		if (si.n_time_channels < out_n_time_ch && !static_input_signals[i])
 			MWARN("WARN RepCalcSimpleSignals::init_tables - input signal %s should contain %d time channels\n",
 				signals[i].c_str(), out_n_time_ch);
-		if (si.n_val_channels < out_n_val_ch)
+		if (si.n_val_channels < out_n_val_ch && !static_input_signals[i])
 			MWARN("WARN RepCalcSimpleSignals::init_tables - input signal %s should contain %d val channels\n",
 				signals[i].c_str(), out_n_val_ch);
 	}
@@ -3947,13 +3949,13 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					//MLOG("##1.2## j %d state %d %d\n", j, states[j].first, states[j].second);
 					continue;
 				}
-			} 
+			}
 
 			//MLOG("##2## j %d state %d %d\n", j, states[j].first, states[j].second);
 			if (unjittered_states.size() == 0) {
 				//MLOG("##3## j %d state %d %d\n", j, states[j].first, states[j].second);
 				unjittered_states.push_back(states[j]);
-			} 
+			}
 			else {
 				//MLOG("##4## j %d state %d %d\n", j, states[j].first, states[j].second);
 				if (unjittered_states.back().second != states[j].second)
