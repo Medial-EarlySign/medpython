@@ -108,7 +108,7 @@ void CommonTestingTools::DataLoader::am_add_data(AlgoMarker *am, int pid, int ma
 		{ "accountId", "A" },
 	{ "requestId", reqId.c_str() },
 	{ "customerId", "Earlysign" },
-	{ "calculator" , "LC" },
+	{ "calculator" , "COVID19" },
 	{ "signals",json::array() }
 	};
 	json_out["header"] = {
@@ -201,7 +201,7 @@ void CommonTestingTools::DataLoader::am_add_data(AlgoMarker *am, int pid, int ma
 			if ((times.size() > 0) || (str_vals.size() > 0)) {
 				get_volatile_data_adaptor<long long> p_times(times);
 				DynAM::AM_API_AddDataStr(am, pid, sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)str_vals.size(), str_vals.get_charpp());
-				json_sig = json_AddDataStr(sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)vals.size(), str_vals.get_charpp(), usv.n_time_channels(), usv.n_val_channels());
+				json_sig = json_AddDataStr(sig.c_str(), (int)times.size(), p_times.get_volatile_data(), (int)str_vals.size(), str_vals.get_charpp(), usv.n_time_channels(), usv.n_val_channels());
 			}
 		}
 		if (!json_sig.is_null())

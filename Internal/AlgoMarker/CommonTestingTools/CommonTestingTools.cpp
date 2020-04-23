@@ -122,6 +122,7 @@ json CommonTestingTools::read_json_array_next_chunk(ifstream& infile, bool& in_a
 }
 
 json CommonTestingTools::json_AddData(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, int n_time_channels, int n_val_channels) {
+	//MLOG("json_AddData sig %s nT(%d) %d nV(%d) %d\n", signalName, n_time_channels, TimeStamps_len, n_val_channels, Values_len);
 	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
 	if (units_tbl.count(signalName) != 0)
 		json_sig["unit"] = units_tbl.at(signalName);
@@ -148,6 +149,7 @@ json CommonTestingTools::json_AddData(const char *signalName, int TimeStamps_len
 }
 
 json CommonTestingTools::json_AddDataStr(const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, int n_time_channels, int n_val_channels) {
+	//MLOG("json_AddData sig %s nT(%d) %d nV(%d) %d\n", signalName, n_time_channels, TimeStamps_len, n_val_channels, Values_len);
 	json json_sig = json({ { "code", signalName },{ "data", json::array() } });
 	if (units_tbl.count(signalName) != 0)
 		json_sig["unit"] = units_tbl.at(signalName);
@@ -181,9 +183,13 @@ int CommonTestingTools::get_preds_from_algomarker(AlgoMarker *am, vector<MedSamp
 
 	MLOG("Going over %d pids\n", d.pids.size());
 	d.get_sig_dict_cached();
+	int pid_cnt = 0;
 	for (auto pid : d.pids) {
 		json json_req;
 		d.am_add_data(am, pid, INT_MAX, force_add_data, ignore_sig, json_req);
+		pid_cnt++;
+		if (pid_cnt % 1000 == 0)
+			MLOG("Loaded %d pids...\n", pid_cnt);
 	}
 
 	//ASK_AVI: Is this needed?
@@ -331,8 +337,10 @@ int CommonTestingTools::get_preds_from_algomarker_single(AlgoMarker *am, vector<
 
 	json json_resp_byid;
 
+	int counter = 0;
 	for (auto &id : d.samples.idSamples) {
 		for (auto &s : id.samples) {
+			MLOG("===> running sample %d : pid %d time %d\n", counter++, s.id, s.time);
 			// clearing data in algomarker
 			DynAM::AM_API_ClearData(am);
 
@@ -483,9 +491,9 @@ int CommonTestingTools::get_preds_from_algomarker_single(AlgoMarker *am, vector<
 			if ((n_tested % 100) == 0) {
 				timer.take_curr_time();
 				double dt = timer.diff_sec();
-				MLOG("Tested %d samples : time %f sec\n", n_tested, dt);
+				MLOG("==== TIME MEASURE ====> Tested %d samples : time %f sec\n", n_tested, dt);
 				dt = (double)n_tested / dt;
-				MLOG("%f samples/sec\n", dt);
+				MLOG("==== TIME MEASURE ====> %f samples/sec\n", dt);
 			}
 		}
 	}
