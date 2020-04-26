@@ -2563,7 +2563,7 @@ void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& 
 	all_sigs_static[T_ValShort2] = true;
 	all_sigs_static[T_ValShort4] = true;
 	unordered_set<string> static_names;
-	static_names.insert("BDATE"); static_names.insert("DEATH");
+	static_names.insert("BDATE");
 	for (size_t i = 0; i < signals.size(); ++i)
 		static_input_signals[i] = all_sigs_static[sigs.Sid2Info[sigs_ids[i]].type] || sigs.Sid2Info[sigs_ids[i]].n_time_channels == 0 || static_names.find(signals[i]) != static_names.end();
 	if (calculator_logic == NULL) { //recover from serialization
@@ -2721,7 +2721,10 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 								int sel_chanl = work_channel;
 								if (sel_chanl >= rec.usvs[time_idx].n_val_channels())
 									sel_chanl = rec.usvs[time_idx].n_val_channels() - 1;
-								collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, sel_chanl);
+								if (sel_chanl < 0)
+									collected_vals[i] = rec.usvs[time_idx].Time(idx[time_idx] - 1, 0);
+								else
+									collected_vals[i] = rec.usvs[time_idx].Val(idx[time_idx] - 1, sel_chanl);
 							}
 							++time_idx;
 						}

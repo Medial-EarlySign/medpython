@@ -2057,7 +2057,7 @@ template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile,
 		UniversalSigVec &data = patientFile[i];
 		if (signalPointers[i] >= data.len)
 			continue; //already reached the end for this signal
-		if (data.get_type() == T_Value) {
+		if (data.get_type() == T_Value || data.n_time_channels() == 0) {
 			if (minDate_index == -1 || data.Val(signalPointers[i]) < minDate) {
 				minDate = (int)data.Val(signalPointers[i]);
 				minDate_index = (int)i;
