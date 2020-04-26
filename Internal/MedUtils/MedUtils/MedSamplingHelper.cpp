@@ -196,6 +196,18 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 					final_selected = curr_index;
 				}
 			}
+			else if (conflict_mode == ConflictMode::Bitwise_Max) {
+				reg_val = int(reg_val) | int(pid_records[curr_index]->registry_value);
+				reg_time = pid_records[curr_index]->end_date; // time isn't correct
+				final_selected = curr_index;
+				
+			}
+
+			else if (conflict_mode == ConflictMode::Last) {
+					reg_val = pid_records[curr_index]->registry_value;
+					reg_time = pid_records[curr_index]->end_date;
+					final_selected = curr_index;
+				}
 			else if (conflict_mode == ConflictMode::All) {
 				//insert current and update next:
 				smp.outcomeTime = reg_val > 0 ? pid_records[curr_index]->start_date : reg_time;
@@ -207,6 +219,8 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 				reg_time = pid_records[curr_index]->end_date;
 				final_selected = curr_index;
 			}
+
+
 			else
 				MTHROW_AND_ERR("Error in medial::sampling::get_label_for_sample - Unsupported conflict method %d\n", (int)conflict_mode);
 #pragma omp atomic

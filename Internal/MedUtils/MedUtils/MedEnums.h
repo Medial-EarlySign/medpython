@@ -12,7 +12,9 @@ using namespace std;
 enum class ConflictMode {
 	All = 0,///< "all" - take all
 	Drop = 1, ///< "drop" - drop when conflcit
-	Max = 2 ///< "max" - take max on conflict 
+	Max = 2, ///< "max" - take max on conflict 
+	Last = 3, ///< "last" - take last value
+	Bitwise_Max = 4 ///< "bitwise_max" - max on each multilabel entry
 };
 
 extern vector<string> ConflictMode_to_name;
