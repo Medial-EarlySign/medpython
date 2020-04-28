@@ -239,7 +239,7 @@ public:
 	static MedPredictor *make_predictor(MedPredictorTypes model_type, string params);
 
 	/// Prepartion function for fast prediction on single item each time
-	virtual void prepare_predict_single() {};
+	virtual void prepare_predict_single();
 	virtual void predict_single(const vector<float> &x, vector<float> &preds) const;
 	virtual void predict_single(const vector<double> &x, vector<double> &preds) const;
 	virtual void calc_feature_importance_shap(vector<float> &features_importance_scores, string &importance_type, const MedFeatures *features);
