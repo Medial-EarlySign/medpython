@@ -5,7 +5,7 @@
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-vector<string> ConflictMode_to_name = { "all", "drop", "max" };
+vector<string> ConflictMode_to_name = { "all", "drop", "max", "last", "bitwise_max" };
 vector<string> TimeWindow_to_name = { "before_end", "before_start" ,"after_start", "within", "all" };
 
 ConflictMode ConflictMode_name_to_type(const string& ConflictMode_name) {
