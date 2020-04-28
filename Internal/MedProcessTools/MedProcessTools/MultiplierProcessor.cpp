@@ -39,7 +39,7 @@ int MultiplierProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 
 	vector<string> touch_cnt;
 	for (auto it = features.tags.begin(); it != features.tags.end(); ++it) {
-		if (it->first == "resolved_multi")
+		if (it->first == resolved_multi)
 			continue;
 		const unordered_set<string> &feature_tags = it->second;
 		bool found_match = s.empty(); //if empty - select all
