@@ -974,7 +974,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 
 void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel>=0) {
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel >= 0) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
 			dict.prep_sets_lookup_table(section_id, sets, lut);
@@ -986,7 +986,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 }
 
 void RangeFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
-	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel>=0)
+	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel >= 0)
 		signal_categories_in_use[signalName] = sets;
 }
 
@@ -1849,7 +1849,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 		if (curr_from < min_time) curr_from = min_time;
 		if (curr_to > max_time) curr_to = max_time;
 
-		if  ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)])
+		if ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)])
 			time_sum += med_time_converter.diff_times(curr_to, curr_from, time_unit_sig, time_unit_win);
 	}
 

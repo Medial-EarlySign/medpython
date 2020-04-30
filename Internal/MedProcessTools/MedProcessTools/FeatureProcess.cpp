@@ -195,10 +195,13 @@ int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 //.......................................................................................
+mutex FeatureProcess_Resolve;
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
+	lock_guard<mutex> guard(FeatureProcess_Resolve);
+	//resolve_feature_name - access features.data names in not thread safe manner
+	string res = features.resolve_name(substr);
 
-	return features.resolve_name(substr);
-
+	return res;
 }
 
 // (De)Serialize
@@ -692,7 +695,7 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
-	
+
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	default_moment_vec = { missing_value, missing_value }; //initialize
@@ -815,8 +818,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 	}
 
-//#pragma omp critical
-//	print();
+	//#pragma omp critical
+	//	print();
 	if (verbose_learn)
 		print();
 	return 0;
