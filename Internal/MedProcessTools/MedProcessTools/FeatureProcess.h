@@ -32,10 +32,11 @@ typedef enum {
 	FTR_PROCESS_REMOVE_DGNRT_FTRS, ///<"remove_deg" to create DgnrtFeatureRemvoer
 	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
-	FTR_PROCESS_ONE_HOT, ///< make one-hot features from a given feature
-	FTR_PROCESS_GET_PROB, ///< replace categorical feature with probability of outcome in training set
+	FTR_PROCESS_ONE_HOT, ///< "one_hot" to create OneHotFeatProcessor - make one-hot features from a given feature
+	FTR_PROCESS_GET_PROB, ///< "get_prob" to create GetProbFeatProcessor - replace categorical feature with probability of outcome in training set
 	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
 	FTR_PROCESS_MULTIPLIER, ///<"multiplier" to create MultiplierProcessor - to multiply feature by other feature
+	FTR_PROCESS_ADD_MISSING_TO_LEARN, ///<"add_missing_to_learn" to create TrainMissingProcessor - adds missing values to learn matrix
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -1079,6 +1080,12 @@ public:
 
 };
 
+/**
+* MultiplierProcessor:
+*
+* Multiply or divide features with some other values in the matrix.
+* usefull for example to dividide counting features by membership time cover.
+*/
 class MultiplierProcessor : public FeatureProcessor {
 public: 
 	vector<string> selected_tags; ///< the selected tags to activeate on
