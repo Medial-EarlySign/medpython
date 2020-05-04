@@ -30,12 +30,12 @@ typedef enum {
 	REP_PROCESS_SIGNAL_RATE, ///<"signal_rate" combine complition for Drug rate based on Drug amount to activate RepSignalRate
 	REP_PROCESS_COMBINE, ///<"combine" flatten signals to 1 signal by dates. if conflict chooses based on order given. to activate RepCombineSignals
 	REP_PROCESS_SPLIT, ///<"split" split signal to two signals based on set of values - usefull for example to give diffrent rule\factor to diffrent drug units.  to actiate RepSplitSignal
-	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period"
+	REP_PROCESS_AGGREGATION_PERIOD, ///<"aggregation_period" - creates RepAggregationPeriod
 	REP_PROCESS_BASIC_RANGE_CLEANER,///<"basic_range_cleaner" or "range_cln" to activate RepBasicRangeCleaner
-	REP_PROCESS_AGGREGATE, ///<"aggregate" aggregate signal in sliding time window to calc some aggregation function. to activate RepAggregateSignal
+	REP_PROCESS_AGGREGATE, ///<"aggregate" - aggregate signal in sliding time window to calc some aggregation function. to activate RepAggregateSignal
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
-	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits
+	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates creates RepCreateBitSignal
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 

@@ -61,10 +61,10 @@ typedef enum {
 	MODEL_SVM = 15, ///< to_use:"svm" Svm model - creates MedSvm 
 	MODEL_LINEAR_SGD = 16, ///< to_use:"linear_sgd" linear model using our customized SGD - creates MedLinearModel
 	MODEL_VW = 17, ///< to_use:"vw" %VowpalWabbit yahoo reasearch library - creates MedVW
-	MODEL_TQRF = 18, ///< to_use:"tqrf" TQRF model
+	MODEL_TQRF = 18, ///< to_use:"tqrf" TQRF model - creates MedTQRF
 	MODEL_BART = 19, ///< to_use:"bart" MedBART model using BART
-	MODEL_EXTERNAL_NN = 20, ///< to_use: "external_nn" , initialize a neural net using a layers file
-	MODEL_SIMPLE_ENSEMBLE = 21, ///< to_use: "simple_ensemble" , give 1 or more models to train, and ensemble them with given weights from the user.
+	MODEL_EXTERNAL_NN = 20, ///< to_use: "external_nn" , initialize a neural net using a layers file. creates MedExternalNN
+	MODEL_SIMPLE_ENSEMBLE = 21, ///< to_use: "simple_ensemble" , give 1 or more models to train, and ensemble them with given weights from the user. creates MedSimpleEnsemble
 	MODEL_LAST
 } MedPredictorTypes;
 

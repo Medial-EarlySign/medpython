@@ -30,7 +30,7 @@ public:
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<TrainMissingProcessor *>(processor)); }
 
 	/// The parsed fields from init command.
-	/// @snippet MultiplierProcessor.cpp MultiplierProcessor::init
+	/// @snippet TrainWithMissingProcessor.cpp TrainMissingProcessor::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 

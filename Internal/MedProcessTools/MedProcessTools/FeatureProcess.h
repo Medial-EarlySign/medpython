@@ -28,7 +28,7 @@ typedef enum {
 	FTR_PROCESSOR_LASSO_SELECTOR, ///<"lasso" to create LassoSelector
 	FTR_PROCESSOR_TAGS_SELECTOR, ///<"tags_selector" to create TagFeatureSelector
 	FTR_PROCESSOR_IMPORTANCE_SELECTOR, ///<"importance_selector" to create ImportanceFeatureSelector
-	FTR_PROCESSOR_ITERATIVE_SELECTOR, ///<"iterative_selector" applies bottom-up or top-down iteration for feature selection
+	FTR_PROCESSOR_ITERATIVE_SELECTOR, ///<"iterative_selector" applies bottom-up or top-down iteration for feature selection. Creates IterativeFeatureSelector
 	FTR_PROCESS_REMOVE_DGNRT_FTRS, ///<"remove_deg" to create DgnrtFeatureRemvoer
 	FTR_PROCESS_ITERATIVE_IMPUTER, ///<"iterative_imputer" to create IterativeImputer
 	FTR_PROCESS_ENCODER_PCA, ///<"pca" to create FeaturePCA
