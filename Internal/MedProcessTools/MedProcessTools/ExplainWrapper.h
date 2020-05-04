@@ -142,16 +142,15 @@ enum TreeExplainerMode {
 class TreeExplainer : public ModelExplainer {
 private:
 	MedPredictor * proxy_predictor = NULL; //uses this if model has no tree implementation
-	TreeEnsemble generic_tree_model;
 	//Tree structure of generic ensamble trees
-private:
-	bool try_convert_trees();
+private:	
 	bool convert_qrf_trees();
 	bool convert_lightgbm_trees();
 	bool convert_xgb_trees();
-
 	void _init(map<string, string> &mapper);
 public:
+	bool try_convert_trees();
+	TreeEnsemble generic_tree_model;
 	string proxy_model_type = ""; ///< proxy predictor type to relearn original predictor output with tree models
 	string proxy_model_init = ""; ///< proxy predictor arguments
 	bool interaction_shap = false; ///< If true will calc interaction_shap values (slower)

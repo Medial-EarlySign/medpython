@@ -1321,7 +1321,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	case PROXY_IMPL:
 		proxy_predictor->calc_feature_contribs(x_mat, feat_res);
 		conv_to_vec(feat_res, sample_explain_reasons);
-		break;
+		break; 
 	case CONVERTED_TREES_IMPL:
 		if (!approximate) {
 			// Build sets

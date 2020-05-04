@@ -47,7 +47,6 @@ namespace MODEL_TRANSFORM {
 	const unsigned squared_loss = 3;
 }
 
-
 struct ExplanationDataset {
 	tfloat *X; ///< vector of all data. each row is sample of all features for that sample. cols(2nd dim) are features
 	bool *X_missing; ///< bool mask to return true on missing value on matrix - same structure as X
@@ -97,9 +96,11 @@ struct TreeEnsemble {
 
 	void fill_adjusted_tree(int node_index, ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
 	void create_adjusted_tree(ExplanationDataset& instance, const int *mask, unsigned *feature_sets, TreeEnsemble& adjusted);
+	void calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs);
 	tfloat predict(ExplanationDataset& instance, int node_index);
 };
 
+inline void tree_shap(const TreeEnsemble& tree, const ExplanationDataset &data, tfloat *out_contribs, int condition, unsigned condition_feature, unsigned *feature_sets);
 
 // data we keep about our decision path
 // note that pweight is included for convenience and is not tied with the other attributes

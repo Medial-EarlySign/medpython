@@ -86,8 +86,7 @@ public:
 	int apply_feature_processors(MPFeatures &features, bool learning);
 	void fit_for_repository(MPPidRepository &rep);
 	void calc_contribs(MPMat &mat, MPMat &mat_out);
-
-
+	void calc_feature_contribs_conditional(MPMat &mat_x_in, const string& features_cond_string, float features_cond_float, MPMat &mat_x_out, MPMat &mat_contribs);
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, bool pp_flag, bool predictor_type);
 
