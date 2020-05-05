@@ -417,14 +417,19 @@ void MultiFeatureProcessor::update_req_features_vec(unordered_set<string>& out_r
 //.......................................................................................
 int MultiFeatureProcessor::init(map<string, string>& mapper) {
 
+	bool has_init_str = false, has_type = false;
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		if (field == "init_string") { init_string = entry.second;  has_init_str = true; }
+		if (field == "members_type") { members_type = (FeatureProcessorTypes)med_stoi(entry.second); has_type = true; }
 		if (field == "use_parallel_learn") use_parallel_learn = med_stoi(entry.second) > 0;
 		if (field == "use_parallel_apply") use_parallel_apply = med_stoi(entry.second) > 0;
 		//! [MultiFeatureProcessor::init]
 	}
+	if (has_init_str && has_type)
+		duplicate = true;
 
 	return 0;
 }
