@@ -238,6 +238,10 @@ int MedPredictor::init(map<string, string>& mapper) {
 	return set_params(mapper);
 }
 
+void MedPredictor::prepare_predict_single() {
+	MWARN("WARN: Not impelemnted in %s\n", my_class_name().c_str()); 
+}
+
 //.......................................................................................
 void MedPredictor::prepare_x_mat(MedMat<float> &x, const vector<float> &wgts, int &nsamples, int &nftrs, bool transpose_needed) const
 {

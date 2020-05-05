@@ -6,6 +6,7 @@
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
 #include "PredictorImputer.h"
+#include "TrainWithMissingProcessor.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -50,6 +51,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_PREDICTOR_IMPUTER;
 	else if (processor_name == "multiplier")
 		return FTR_PROCESS_MULTIPLIER;
+	else if (processor_name == "add_missing_to_learn")
+		return FTR_PROCESS_ADD_MISSING_TO_LEARN;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -89,6 +92,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, PredictorImputer);
 	CONDITIONAL_NEW_CLASS(dname, MultiplierProcessor);
+	CONDITIONAL_NEW_CLASS(dname, TrainMissingProcessor);
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -132,6 +136,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new PredictorImputer;
 	else if (processor_type == FTR_PROCESS_MULTIPLIER)
 		return new MultiplierProcessor;
+	else if (processor_type == FTR_PROCESS_ADD_MISSING_TO_LEARN)
+		return new TrainMissingProcessor;
 	else
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
 
@@ -195,10 +201,13 @@ int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 //.......................................................................................
+mutex FeatureProcess_Resolve;
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
+	lock_guard<mutex> guard(FeatureProcess_Resolve);
+	//resolve_feature_name - access features.data names in not thread safe manner
+	string res = features.resolve_name(substr);
 
-	return features.resolve_name(substr);
-
+	return res;
 }
 
 // (De)Serialize
@@ -408,14 +417,19 @@ void MultiFeatureProcessor::update_req_features_vec(unordered_set<string>& out_r
 //.......................................................................................
 int MultiFeatureProcessor::init(map<string, string>& mapper) {
 
+	bool has_init_str = false, has_type = false;
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MultiFeatureProcessor::init]
 		if (field == "tag") tag = entry.second;
+		if (field == "init_string") { init_string = entry.second;  has_init_str = true; }
+		if (field == "members_type") { members_type = (FeatureProcessorTypes)med_stoi(entry.second); has_type = true; }
 		if (field == "use_parallel_learn") use_parallel_learn = med_stoi(entry.second) > 0;
 		if (field == "use_parallel_apply") use_parallel_apply = med_stoi(entry.second) > 0;
 		//! [MultiFeatureProcessor::init]
 	}
+	if (has_init_str && has_type)
+		duplicate = true;
 
 	return 0;
 }
@@ -692,7 +706,7 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
-	
+
 	// Resolve
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 	default_moment_vec = { missing_value, missing_value }; //initialize
@@ -815,8 +829,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		}
 	}
 
-//#pragma omp critical
-//	print();
+	//#pragma omp critical
+	//	print();
 	if (verbose_learn)
 		print();
 	return 0;

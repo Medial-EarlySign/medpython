@@ -109,16 +109,33 @@ namespace MedSerialize {
 		return sizeof(T);
 	}
 
-	template <class T> string object_json(T &v) {
+	template<class T>
+	string object_json_spec(T& v, std::true_type /* is_enum */, std::false_type) {
+		stringstream str;
+		//it's object:
+		string enum_nm = typeid(v).name();
+		//remove number prefix:
+		enum_nm = boost::regex_replace(enum_nm, boost::regex("^([0-9]*|enum )"), "");
+		str << enum_nm << "::" << (int)v;
+		return str.str();
+	}
+	template<class T>
+	string object_json_spec(T& v, std::false_type, std::true_type /* SerializableObject */) {
+		stringstream str;
+		str << v.object_json();
+		return str.str();
+	}
+	template<class T>
+	string object_json_spec(T& v, std::false_type, std::false_type) {
+		// neither
 		stringstream str;
 		str << "UNSUPPORTED::" << typeid(v).name();
 		return str.str();
 	}
 
-	template<> inline string object_json<const SerializableObject>(const SerializableObject &v) {
-		stringstream str;
-		str << v.object_json();
-		return str.str();
+	template<class T>
+	string object_json(T& v) {
+		return object_json_spec(v, std::is_enum<T>{}, std::is_base_of<SerializableObject, T>{});
 	}
 
 	//.........................................................................................

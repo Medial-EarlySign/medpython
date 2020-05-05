@@ -37,13 +37,13 @@ typedef enum {
 	FTR_GEN_DRG_INTAKE, ///< "drugIntake" - creating drugs feature coverage of prescription time - DrugIntakeGenerator
 	FTR_GEN_ALCOHOL, ///< "alcohol" - creating alcohol feature - AlcoholGenerator
 	FTR_GEN_MODEL, ///< "model" - creating ModelFeatGenerator
-	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.)
-	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes
+	FTR_GEN_TIME, ///< "time" - creating sample-time features (e.g. differentiate between times of day, season of year, days of the week, etc.). Creates TimeFeatGenerator
+	FTR_GEN_ATTR, ///< "attr" - creating features from samples attributes. Creates AttrFeatGenerator
 	FTR_GEN_CATEGORY_DEPEND, ///< "category_depend" - creates features from categorical signal that have statistical strength in samples - CategoryDependencyGenerator
-	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix
-	FTR_GEN_EXTRACT_TBL, ///< "extract_tbl" - extract values from table with keys and rules to join with each patient	
-	FTR_GEN_ELIXHAUSER, ///< Calculate Current Elixhauser given latest DRG and Diagnosis information
-	FTR_GEN_DIABETES_FINDER, // "diabetes_finder" - Diabetes Finder feature
+	FTR_GEN_EMBEDDING, ///< "embedding" - allows applying a pre trained embedding model to incorporate features into matrix. Creates EmbeddingGenerator
+	FTR_GEN_EXTRACT_TBL, ///< "extract_tbl" - extract values from table with keys and rules to join with each patient. Creates FeatureGenExtractTable
+	FTR_GEN_ELIXHAUSER, ///< Calculate Current Elixhauser given latest DRG and Diagnosis information. Creates ElixhauserGenerator
+	FTR_GEN_DIABETES_FINDER, ///< "diabetes_finder" - Diabetes Finder feature. Creates DiabetesFinderGenerator
 	FTR_GEN_LAST
 } FeatureGeneratorTypes;
 

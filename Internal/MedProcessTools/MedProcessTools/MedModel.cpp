@@ -464,6 +464,10 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
 	}
 
+	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
+		predictor->prepare_predict_single();
+	}
+
 	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
 
 		if (verbosity > 0) MLOG("Initializing %d postprocessors\n", (int)post_processors.size());
@@ -527,9 +531,22 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (predictor->predict(features) < 0) {
-			MERR("Predictor failed\n");
-			return -1;
+		if (features.samples.size() == 1) {
+			vector<float> pred_res, features_vec(features.data.size());
+			int i_feat = 0;
+			for (const auto &it : features.data)
+			{
+				features_vec[i_feat] = it.second[0];
+				++i_feat;
+			}
+			predictor->predict_single(features_vec,pred_res);
+			features.samples[0].prediction = move(pred_res);
+		}
+		else {
+			if (predictor->predict(features) < 0) {
+				MERR("Predictor failed\n");
+				return -1;
+			}
 		}
 	}
 
