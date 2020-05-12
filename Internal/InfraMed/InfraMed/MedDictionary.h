@@ -167,7 +167,8 @@ public:
 	// push new defs/sets from a json object:
 	// new elements get an automatic new id.
 	// sets: elements must already be defined.
-	int add_json(json &js);
+	int add_json(json &js); // auto detects the format
+	int add_json_simple_format(json &js);
 
 };
 

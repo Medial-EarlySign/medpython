@@ -735,10 +735,55 @@ void MedDictionarySections::connect_to_section(string new_section_name, int sect
 }
 
 //------------------------------------------------------------------------------------------------------
+int MedDictionarySections::add_json_simple_format(json &js)
+{
+	for (auto &jsig : js.items()) {
+
+		string sig = jsig.key();
+
+		int section = section_id(sig);
+		MedDictionary &sdict = dicts[section];
+
+		// first pass : add all defs
+		int max_id = sdict.Id2Name.rbegin()->first;
+		for (auto &jdef : jsig.value().items()) {
+
+			// if not defined, will add it
+			string def = jdef.key(); 
+
+			if (sdict.Name2Id.find(def) == sdict.Name2Id.end()) {
+				// new def addition
+				max_id++;
+				sdict.push_new_def(def, max_id);
+			}
+		}
+
+		// second pass : add all sets
+		for (auto &jdef : jsig.value().items()) {
+			string def = jdef.key();
+			int member_id = sdict.Name2Id[def];
+
+			for (auto &s : jdef.value()) {
+				string dset = s.get<string>();
+				if (sdict.Name2Id.find(dset) != sdict.Name2Id.end()) {
+					sdict.push_new_set(sdict.Name2Id[dset], member_id);
+				}
+				else
+					MTHROW_AND_ERR("MedDictionary: json dict : %s is used but not defined previously\n", dset.c_str());
+			}
+		}
+	}
+	return 0;
+}
+
+//------------------------------------------------------------------------------------------------------
 int MedDictionarySections::add_json(json &js)
 {
 //	if (js.find("dictionary") == js.end())
 //		MTHROW_AND_ERR("MedDictionary: got json with no dictionary tag\n");
+
+	if (js.find("dictionary") == js.end())
+		return add_json_simple_format(js);
 
 	for (auto &jsig : js["dictionary"]) {
 
