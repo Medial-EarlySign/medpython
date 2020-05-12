@@ -68,6 +68,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("dicts_config", po::value<string>()->default_value(""), "configuration file for json dictionary creation")
 			("out_json_dict", po::value<string>()->default_value(""), "output json dict to test with AA as an additional load")
 			("json_dict", po::value<string>()->default_value(""), "input json dict to test with AA as an additional load")
+			("simple_dict", "use to generate simpler dictionaries")
 
 			;
 
@@ -116,7 +117,7 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 	rep.uget(pid, sig, usv);
 	int nelem = usv.len;
 	string sv;
-	double t_add;
+	double t_add = 0;
 	if (nelem > 0) {
 		long long *p_times = &times[0];
 		float *p_vals = &vals[0];
@@ -780,7 +781,7 @@ void prep_dicts(po::variables_map &vm)
 
 	json dj = json({});
 
-	dj += { "dictionary" , json::array() };
+	if (vm.count("simple_dict") == 0) dj += { "dictionary" , json::array() };
 
 	for (auto &sig : in_vals) {
 		MLOG("Working on sig %s\n", sig.first.c_str());
@@ -797,25 +798,43 @@ void prep_dicts(po::variables_map &vm)
 			}
 		}
 
-		json js = json({});
-		js += { "signal", sig.first };
-		js += { "signal_map", json::array() };
+		if (vm.count("simple_dict") == 0) {
+			json js = json({});
+			js += { "signal", sig.first };
+			js += { "signal_map", json::array() };
 
-		for (auto &v : sig.second) {
-			if (rep.dict.dicts[section_id].Name2Id.find(v) == rep.dict.dicts[section_id].Name2Id.end())
-				MTHROW_AND_ERR("ERROR: Can't find value %s in dictionary for signal %s\n", v.c_str(), sig.first.c_str());
-			json jdef = json({});
-			jdef += { "def", v };
-			jdef += { "sets", json::array() };
-			int v_id = rep.dict.dicts[section_id].Name2Id[v];
-			if (rep.dict.dicts[section_id].Member2Sets[v_id].size() > 0) {
-				for (auto s : rep.dict.dicts[section_id].Member2Sets[v_id])
-					if (id2out.find(s) != id2out.end())
-						jdef["sets"].push_back(id2out[s]);
+			for (auto &v : sig.second) {
+				if (rep.dict.dicts[section_id].Name2Id.find(v) == rep.dict.dicts[section_id].Name2Id.end())
+					MTHROW_AND_ERR("ERROR: Can't find value %s in dictionary for signal %s\n", v.c_str(), sig.first.c_str());
+				json jdef = json({});
+				jdef += { "def", v };
+				jdef += { "sets", json::array() };
+				int v_id = rep.dict.dicts[section_id].Name2Id[v];
+				if (rep.dict.dicts[section_id].Member2Sets[v_id].size() > 0) {
+					for (auto s : rep.dict.dicts[section_id].Member2Sets[v_id])
+						if (id2out.find(s) != id2out.end())
+							jdef["sets"].push_back(id2out[s]);
+				}
+				js["signal_map"].push_back(jdef);
 			}
-			js["signal_map"].push_back(jdef);
+			dj["dictionary"].push_back(js);
 		}
-		dj["dictionary"].push_back(js);
+		else {
+			//dj += {sig, {}};
+			json jdefs = json({});
+			for (auto &v : sig.second) {
+				if (rep.dict.dicts[section_id].Name2Id.find(v) == rep.dict.dicts[section_id].Name2Id.end())
+					MTHROW_AND_ERR("ERROR: Can't find value %s in dictionary for signal %s\n", v.c_str(), sig.first.c_str());
+				jdefs += { v, json::array() };
+				int v_id = rep.dict.dicts[section_id].Name2Id[v];
+				if (rep.dict.dicts[section_id].Member2Sets[v_id].size() > 0) {
+					for (auto s : rep.dict.dicts[section_id].Member2Sets[v_id])
+						if (id2out.find(s) != id2out.end())
+							jdefs[v].push_back(id2out[s]);
+				}
+			}
+			dj += {sig.first, jdefs};
+		}
 	}
 
 	out_json_f << dj.dump(1) << endl;
