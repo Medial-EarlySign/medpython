@@ -5,8 +5,7 @@
 #include "MedAlgo.h"
 #include "MedXGB.h"
 #include <boost/lexical_cast.hpp>
-
-
+#include <MedProcessTools/MedProcessTools/ExplainWrapper.h>
 #include <dmlc/timer.h>
 
 #include <omp.h>
@@ -72,7 +71,6 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 	return 0;
 }
 
-
 void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_contribs) {
 	int nsamples, nftrs;
 	vector<float> w;
@@ -108,6 +106,16 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 		mat_contribs.set(i, nftrs) = out_preds[i*(nftrs + 1) + nftrs];
 	}
 	XGDMatrixFree(h_test);
+}
+
+void MedXGB::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> &contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs)
+{
+	MLOG("Start Convert tree \n");
+	TreeExplainer converted_model;
+	converted_model.original_predictor = this;
+	converted_model.try_convert_trees();
+	MLOG("Convert tree Done\n");
+	converted_model.generic_tree_model.calc_feature_contribs_conditional(mat_x_in, contiditional_variables, mat_x_out, mat_contribs);
 }
 
 void MedXGB::export_predictor(const string &output_fname)

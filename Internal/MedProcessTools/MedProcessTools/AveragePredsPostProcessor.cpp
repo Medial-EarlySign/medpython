@@ -12,6 +12,7 @@ AveragePredsPostProcessor::AveragePredsPostProcessor() {
 	resample_cnt = 50;
 	batch_size = 10000;
 	force_cancel_imputations = false;
+	print_missing_cnt = false;
 }
 
 int AveragePredsPostProcessor::init(map<string, string> &mapper) {
@@ -29,6 +30,8 @@ int AveragePredsPostProcessor::init(map<string, string> &mapper) {
 			batch_size = med_stoi(it.second);
 		else if (it.first == "force_cancel_imputations")
 			force_cancel_imputations = med_stoi(it.second) > 0;
+		else if (it.first == "print_missing_cnt")
+			print_missing_cnt = med_stoi(it.second) > 0;
 		else if (it.first == "pp_type") {} //ignore
 		else
 			MTHROW_AND_ERR("Error AveragePredsPostProcessor::init - unknown argument %s\n",
@@ -127,9 +130,16 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		}
 
 		if (!before_processors.empty())
-			MWARN("WARN:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
+			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
 		if (!after_processors.empty())
 			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors after\n", after_processors.size());
+	}
+	else
+	{
+		before_processors.insert(before_processors.end(),
+			model.feature_processors.begin(), model.feature_processors.end());
+		if (!before_processors.empty())
+			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors before (fp added to end)\n", before_processors.size());
 	}
 }
 
@@ -161,12 +171,40 @@ void AveragePredsPostProcessor::generate_matrix_till_feature_process(const MedFe
 
 }
 
+void print_msn(const MedFeatures &f, float missing_value, const string &prefix) {
+	if (f.data.empty())
+		return;
+	vector<string> names(f.data.size());
+	vector<int> counts(f.data.size());
+	int tot_count = (int)f.data.begin()->second.size();
+	int feat_idx = 0;
+	for (const auto &it : f.data)
+	{
+		const string &nm = it.first;
+		names[feat_idx] = nm;
+		for (float val : it.second)
+			counts[feat_idx] += int(val == missing_value);
+		++feat_idx;
+	}
+
+	//print names,counts,tot_count
+	MLOG("%s :: Prints missing values count for %zu features (non missing are skipped):\n",
+		prefix.c_str(), names.size());
+	for (size_t i = 0; i < names.size(); ++i)
+		if (counts[i] > 0)
+			MLOG("%s :: %s :: %d / %d :: %2.2f%%\n", prefix.c_str(), names[i].c_str(), counts[i], tot_count,
+				100 * double(counts[i]) / tot_count);
+
+}
+
 void AveragePredsPostProcessor::Learn(const MedFeatures &train_mat) {
 	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
 		unordered_set<int> empt;
 		if (!after_processors.empty()) { //need to cancel imputations
 			MedFeatures train_mat_for_processor;
 			generate_matrix_till_feature_process(train_mat, train_mat_for_processor);
+			if (print_missing_cnt)
+				print_msn(train_mat, MED_MAT_MISSING_VALUE, "Learn");
 			feature_processor->Learn(train_mat_for_processor, empt);
 		}
 		else { //feature processors happens in the end - no need to do something
@@ -189,10 +227,12 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	vector<float> prctile_list = { (float)0.05, (float)0.5, (float)0.95 };
 	MedFeatures fixed_mat;
 	MedFeatures *p_matrix = &matrix;
-	if (!after_processors.empty()) { //applied till current processor
+	if (!p_model->feature_processors.empty() && force_cancel_imputations) { //applied till current processor
 		generate_matrix_till_feature_process(matrix, fixed_mat);
 		p_matrix = &fixed_mat;
 	}
+	if (print_missing_cnt)
+		print_msn(*p_matrix, MED_MAT_MISSING_VALUE, "Apply");
 
 	//1. resample input - apply feature_processor multiple times for each sample	
 	MedFeatures batch;

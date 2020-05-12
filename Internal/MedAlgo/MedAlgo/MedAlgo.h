@@ -184,6 +184,15 @@ public:
 			"isn't supported for " + model_name + " yet.");
 	};
 
+	virtual void calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> &contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs)
+	{
+		string model_name = "model_id=" + to_string(classifier_type);
+		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())
+			model_name = predictor_type_to_name[classifier_type];
+		throw logic_error("ERROR:: operation calc_feature_contribs_conditional "
+			"isn't supported for " + model_name + " yet.");
+	}
+
 	virtual void export_predictor(const string &output_fname) {
 		string model_name = "model_id=" + to_string(classifier_type);
 		if (predictor_type_to_name.find(classifier_type) != predictor_type_to_name.end())

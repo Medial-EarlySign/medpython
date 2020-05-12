@@ -132,6 +132,9 @@ public:
 	
 	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
+	void calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> &contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs);
+
+
 	void export_predictor(const string &output_fname);
 
 	int n_preds_per_sample() const;

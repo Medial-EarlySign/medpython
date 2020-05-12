@@ -28,6 +28,7 @@ public:
 	bool use_median; ///< if true will fetch median instead of mean
 	int resample_cnt; ///< how much to resample
 	int batch_size; ///< how many predictions to process together
+	bool print_missing_cnt;
 	//Add: batch_size, resample_cnt, store_mean (or median)
 
 	AveragePredsPostProcessor();
@@ -47,7 +48,8 @@ public:
 
 	ADD_CLASS_NAME(AveragePredsPostProcessor)
 		ADD_SERIALIZATION_FUNCS(model_predictor, feature_processor, feature_processor_type, 
-			feature_processor_args, use_median, resample_cnt, batch_size, force_cancel_imputations, before_processors, after_processors)
+			feature_processor_args, use_median, resample_cnt, batch_size, force_cancel_imputations, 
+			before_processors, after_processors, print_missing_cnt)
 };
 
 MEDSERIALIZE_SUPPORT(AveragePredsPostProcessor)

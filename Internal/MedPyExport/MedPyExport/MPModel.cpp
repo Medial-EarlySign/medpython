@@ -91,3 +91,15 @@ int MPModel::write_feature_matrix(const string mat_fname) { return o->write_feat
 MPSerializableObject MPModel::asSerializable() { return MPSerializableObject(o); }
 void MPModel::fit_for_repository(MPPidRepository &rep) { o->fit_for_repository(*rep.o); }
 void MPModel::calc_contribs(MPMat &mat, MPMat &mat_out) { o->predictor->calc_feature_contribs(*mat.o, *mat_out.o); }
+//void MPModel::calc_feature_contribs_conditional(MPMat &mat_x_in, const std::vector<std::string> &features_cond_string, const vector<float> &features_cond_float, MPMat &mat_x_out, MPMat &mat_contribs) {
+void MPModel::calc_feature_contribs_conditional(MPMat &mat_x_in, const string& features_cond_string, float features_cond_float, MPMat &mat_x_out, MPMat &mat_contribs) {
+	unordered_map<string, float> tmp_map;
+	tmp_map[features_cond_string] = features_cond_float;
+	/*for (int i = 0; i < features_cond_string.size(); i++)
+	{
+		tmp_map[features_cond_string[i]] = features_cond_float[i];
+	}*/
+	
+	o->predictor->calc_feature_contribs_conditional(*mat_x_in.o, tmp_map, *mat_x_out.o, *mat_contribs.o);
+}
+

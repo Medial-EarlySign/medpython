@@ -92,6 +92,96 @@ void TreeEnsemble::create_adjusted_tree(ExplanationDataset& instance, const int 
 
 }
 
+void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs)
+{
+	//create adjusted tree by setting a row according to the mask
+	vector<tfloat> features_vec(mat_x_in.get_ncols(), 0);
+	vector<pair<int,float>> ind_to_val_vec;
+	vector<int> mask(mat_x_in.get_ncols(),0);
+
+	for (auto & contiditional_variable : contiditional_variables)
+	{
+		int i = find_in_feature_names(mat_x_in.signals, contiditional_variable.first);
+		features_vec[i] = contiditional_variable.second;
+		ind_to_val_vec.push_back({ i,contiditional_variable.second });
+		mask[i] = 1;
+	}
+	// prepare features_sets (used for grouping)
+	vector<unsigned> feature_sets(mat_x_in.ncols); 
+	for (size_t i = 0; i < feature_sets.size(); i++)
+		feature_sets[i] = i;
+
+	unique_ptr<bool[]> x_missing = unique_ptr<bool[]>(new bool[mat_x_in.ncols]);
+	for (size_t i = 0; i < mat_x_in.ncols; ++i)
+	{
+		x_missing.get()[i] = false; 
+	}
+
+	tfloat *R_p = NULL; // R.data()
+	unique_ptr<bool[]> R_missing = NULL;
+	//R_missing = unique_ptr<bool>(new bool[x_mat.m.size()]);
+	int num_R = 0;
+	double y = 0;
+	int num_X = 1; // (int)y.size();
+	int M = mat_x_in.ncols;
+
+	// adjust model according to features_vec
+	TreeEnsemble tree;
+	vector<TreeEnsemble> adjusted_trees;
+	ExplanationDataset instance(features_vec.data(), x_missing.get(), &y, R_p, R_missing.get(), num_X, M, num_R, mat_x_in.ncols);
+	adjusted_trees.resize(this->tree_limit);
+
+	for (unsigned j = 0; j < this->tree_limit; ++j) {	
+		this->get_tree(tree, j);
+		tree.create_adjusted_tree(instance, mask.data(), feature_sets.data(), adjusted_trees[j]);
+	}
+
+	// run over rows, 
+	mat_x_out.ncols = mat_x_in.ncols;
+	mat_contribs.ncols = mat_x_in.ncols + 1; // +1 for bias 
+	for (int i = 0; i < mat_x_in.get_nrows(); i++)
+	{
+		vector<float> row;
+		mat_x_in.get_row(i, row);
+		vector<double> row_tmp(row.begin(), row.end());
+
+		// skip those who do not meet condtions
+		bool skip_row = false;
+		for (auto & ind_to_val : ind_to_val_vec)
+		{
+			if (row[ind_to_val.first] != ind_to_val.second)
+			{
+				skip_row = true;
+				break;
+			}
+		}
+		if (skip_row)
+		{
+			continue;
+		}
+		//get condtional shap values
+		// Get conditioned SHAP values
+		vector<tfloat> instance_contrib(mat_x_in.ncols + 1, 0);
+		for (auto &adjusted_tree : adjusted_trees)
+		{
+			// vector<tfloat> instance_temp_contrib(mat_x_in.ncols);
+			ExplanationDataset instance_eval(row_tmp.data(), x_missing.get(), &y, R_p, R_missing.get(), num_X, M, num_R, mat_x_in.ncols);
+			tree_shap(adjusted_tree, instance_eval, instance_contrib.data(), 0, 0, feature_sets.data());
+		}
+		mat_x_out.add_rows(row);
+//		mat_x_out.recordsMetadata.push_back(mat_x_in.recordsMetadata[i]);
+		mat_contribs.add_rows(instance_contrib);
+		//mat_contribs.recordsMetadata.push_back(mat_x_in.recordsMetadata[i]);
+	}
+	
+	// free trees
+	for (auto &adjusted_tree : adjusted_trees)
+	{
+		adjusted_tree.free();
+	}
+}
+
+
 inline void copy_node(TreeEnsemble * const origTree, int orig_index, TreeEnsemble& newTree, int new_index) {
 
 	newTree.children_left[new_index] = origTree->children_left[orig_index];
@@ -577,8 +667,7 @@ inline void tree_shap_recursive(const unsigned num_outputs, const int *children_
 	}
 }
 
-inline void tree_shap(const TreeEnsemble& tree, const ExplanationDataset &data,
-	tfloat *out_contribs, int condition, unsigned condition_feature, unsigned *feature_sets) {
+inline void tree_shap(const TreeEnsemble& tree, const ExplanationDataset &data, tfloat *out_contribs, int condition, unsigned condition_feature, unsigned *feature_sets) {
 
 	// update the reference value with the expected value of the tree's predictions
 	if (condition == 0) {
@@ -1698,7 +1787,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 
 		data.get_x_instance(instance, i);
 		vector<int> mask(data.num_Exp, 0);
-
+		
 		// Do iterations
 		MedMat<tfloat> last_instance_contribs(data.num_Exp, 1);
 		MedMat<tfloat> first_instance_contribs(data.M, 1); // for cov/mi fix if used when no groups:
