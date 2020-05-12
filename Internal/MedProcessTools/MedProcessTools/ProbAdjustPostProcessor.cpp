@@ -1,8 +1,11 @@
 #include "ProbAdjustPostProcessor.h"
 #include <boost/algorithm/string.hpp>
 
+
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
+
+mutex model_init_for_apply;
 
 //==================================================================
 int ProbAdjustPostProcessor::init(map<string, string>& mapper)
@@ -152,26 +155,43 @@ void ProbAdjustPostProcessor::Learn(const MedFeatures &matrix)
 	if (odds.empty())
 		getOdds(priorsModel->features);
 
+	{
+		lock_guard<mutex> guard(model_init_for_apply);
+		model_initiated = false;
+	}
+
 }
 
 //====================================================================================================
-void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) const {
+void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
 
 	MedSamples _samples;
 	_samples.import_from_sample_vec(matrix.samples);
 	priorsModel->verbosity = inherited_verbosity;
-	priorsModel->apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+		
+	if (!model_initiated)
+	{
+		lock_guard<mutex> guard(model_init_for_apply);
+		if (!model_initiated) {
+			priorsModel->init_model_for_apply(*p_rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+			model_initiated = true;
+		}
+	}
+	priorsModel->no_init_apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+	
+	//priorsModel->apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
 
 	vector<const float *> data_p(resolvedNames.size());
 	for (size_t j = 0; j < data_p.size(); j++)
 		data_p[j] = priorsModel->features.data.at(resolvedNames[j]).data();
 
-#pragma omp parallel for
+#pragma omp parallel for if (priorsModel->features.samples.size() > 10)
 	for (int i = 0; i < priorsModel->features.samples.size(); i++) {
 		// Prior
 		int index = 0;
 		for (size_t j = 0; j < resolvedNames.size(); j++) {
-			int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
+			//int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
+			int value = (int)data_p[j][i];
 			if (value < min[j] || value > max[j])
 				MTHROW_AND_ERR("Value %d of %s is outside priors range [%d,%d] sample: %d %d\n", 
 					value, resolvedNames[j].c_str(), min[j], max[j],

@@ -181,7 +181,7 @@ void clear_map(map<string, vector<float>> &data) {
 		data[it.first].clear();
 }
 
-void AveragePredsPostProcessor::Apply(MedFeatures &matrix) const  {
+void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	//Apply plan, do in batches:
 	//1. resample input - apply feature_processor multiple times for each sample (if imputer and using existing in model. will get matrix without feature processors/ rerun model again)
 	//2. predict with model_predictor

@@ -30,7 +30,7 @@ public:
 	~PredictorOrEmpty();
 
 	/// retrieves random sample for feature based on all other features
-	T get_sample(vector<T> &x, mt19937 &gen) const;
+	T get_sample(vector<T> &x, mt19937 &gen);
 
 	ADD_CLASS_NAME(PredictorOrEmpty)
 		ADD_SERIALIZATION_FUNCS(input_size, sample_cohort, cluster_centers, clusters_y, predictor, calibrators, bin_vals)
@@ -124,7 +124,7 @@ public:
 	/// generates samples based on gibbs sampling process. const and can be called parallel
 	/// </summary>
 	void get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params, mt19937 &rnd_gen,
-		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false) const;
+		const vector<bool> *mask = NULL, const vector<T> *mask_values = NULL, bool print_progress = false);
 
 	/// <summary>
 	/// generates samples based on gibbs sampling process - uses only burn rate and creates one sample and exits

@@ -106,7 +106,7 @@ public:
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	virtual void Learn(const MedFeatures &train_mat);
-	void Apply(MedFeatures &matrix) const { explain(matrix); } ///< alias for explain
+	void Apply(MedFeatures &matrix)  { explain(matrix); } ///< alias for explain
 
 
 	void init_post_processor(MedModel& model) { original_predictor = model.predictor; };

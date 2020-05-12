@@ -89,7 +89,7 @@ PostProcessor *PostProcessor::create_processor(string &params)
 void PostProcessor::Learn(const MedFeatures &matrix) {
 	MTHROW_AND_ERR("Learn Not implemented in class %s\n", my_class_name().c_str());
 }
-void PostProcessor::Apply(MedFeatures &matrix) const {
+void PostProcessor::Apply(MedFeatures &matrix) {
 	MTHROW_AND_ERR("Apply Not implemented in class %s\n", my_class_name().c_str());
 }
 
@@ -111,7 +111,7 @@ void *PostProcessor::new_polymorphic(string dname)
 }
 
 void MultiPostProcessor::init_post_processor(MedModel& model) {
-#pragma omp parallel for if (call_parallel_learn)
+#pragma omp parallel for if (call_parallel_learn && post_processors.size()>1)
 	for (int i = 0; i < post_processors.size(); ++i)
 		post_processors[i]->init_post_processor(model);
 
@@ -128,9 +128,9 @@ void MultiPostProcessor::Learn(const MedFeatures &matrix) {
 			post_processors[i]->Learn(matrix);
 }
 
-void MultiPostProcessor::Apply(MedFeatures &matrix) const {
+void MultiPostProcessor::Apply(MedFeatures &matrix) {
 	if (call_parallel_apply) {
-#pragma omp parallel for
+#pragma omp parallel for if (post_processors.size() > 1)
 		for (int i = 0; i < post_processors.size(); ++i)
 			post_processors[i]->Apply(matrix);
 	}

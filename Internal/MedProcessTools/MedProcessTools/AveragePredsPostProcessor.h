@@ -37,7 +37,7 @@ public:
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	void Learn(const MedFeatures &train_mat);
-	void Apply(MedFeatures &matrix) const ; 
+	void Apply(MedFeatures &matrix); 
 
 	void init_post_processor(MedModel& model);
 

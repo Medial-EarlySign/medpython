@@ -18,6 +18,7 @@ public:
 	vector<float> odds ; ///< over all odds. learn if not given
 	MedModel *priorsModel; ///< model for generating features for priors
 	MedPidRepository *p_rep; ///< required for building priors matrix
+	bool model_initiated = false;
 
 	/// Parameters
 	string priorsFile;
@@ -34,11 +35,13 @@ public:
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	void Learn(const MedFeatures &matrix);
-	void Apply(MedFeatures &matrix) const;
+	void Apply(MedFeatures &matrix);
 
 	// Helper functions
 	void readPriors();
 	void getOdds(const MedFeatures &matrix);
+
+	void set_model_initiated(bool val) { model_initiated = val; }
 
 	ADD_CLASS_NAME(ProbAdjustPostProcessor)
 	ADD_SERIALIZATION_FUNCS(processor_type, names,resolvedNames,min,max,factors,probs, priorsFile, odds, priorsModel, priorsJson)

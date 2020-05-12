@@ -86,12 +86,12 @@ public:
 	virtual int Learn(const MedSamples& samples);
 	virtual int Learn(const vector<MedSample>& samples) { return Learn(samples, global_default_time_unit); }
 	virtual int Learn(const vector <MedSample>& samples, const int samples_time_unit);
-	virtual int Apply(MedSamples& samples) const;
-	virtual int Apply(vector <MedSample>& samples) const;
+	virtual int Apply(MedSamples& samples);
+	virtual int Apply(vector <MedSample>& samples);
 
 	//PostProcessor functions:
 	void Learn(const MedFeatures &matrix) {Learn(matrix.samples); }
-	void Apply(MedFeatures &matrix) const;
+	void Apply(MedFeatures &matrix);
 
 	calibration_entry calibrate_pred(float pred);
 	float calibrate_pred(float pred, int type) const;

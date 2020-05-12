@@ -44,7 +44,7 @@ public:
 
 	virtual void init_post_processor(MedModel& mdl) {};
 	virtual void Learn(const MedFeatures &matrix);
-	virtual void Apply(MedFeatures &matrix) const ;
+	virtual void Apply(MedFeatures &matrix);
 
 	void *new_polymorphic(string dname);
 
@@ -77,7 +77,7 @@ public:
 	MultiPostProcessor() { processor_type = PostProcessorTypes::FTR_POSTPROCESS_MULTI; }
 
 	void Learn(const MedFeatures &matrix);
-	void Apply(MedFeatures &matrix) const ;
+	void Apply(MedFeatures &matrix);
 
 	void init_post_processor(MedModel& mdl);
 

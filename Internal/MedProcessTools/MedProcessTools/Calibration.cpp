@@ -331,7 +331,7 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 }
 
 
-int Calibrator::Apply(MedSamples& samples) const {
+int Calibrator::Apply(MedSamples& samples)  {
 	vector<MedSample> samples_vec;
 	samples.export_to_sample_vec(samples_vec);
 	int return_val = Apply(samples_vec);
@@ -339,7 +339,7 @@ int Calibrator::Apply(MedSamples& samples) const {
 	return return_val;
 }
 
-int Calibrator::Apply(vector <MedSample>& samples) const {
+int Calibrator::Apply(vector <MedSample>& samples)  {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
@@ -372,7 +372,7 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 }
 
 
-void Calibrator::Apply(MedFeatures &matrix) const {
+void Calibrator::Apply(MedFeatures &matrix)  {
 	Apply(matrix.samples);
 }
 

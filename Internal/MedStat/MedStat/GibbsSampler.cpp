@@ -99,7 +99,7 @@ template<typename T> int GibbsSampler<T>::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) const {
+template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen)  {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -443,7 +443,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 }
 
 template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params, mt19937 &rnd_gen
-	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) const {
+	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress)  {
 
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());
