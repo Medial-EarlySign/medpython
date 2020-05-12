@@ -1,8 +1,14 @@
 // MedSparseVec
 // ------------
 //
-// A useful data structure to hold a vector of elements of type T when the vector is sparse.
-// If the vector V is in the range [a,b] (b-a+1 length) we would like to be able to insert, and query 
+// Dealing with the problem of efficiently holding, inserting and retrieving an element of type T given some unsigned int unique
+// key attached to it.
+//
+// Hence the problem is : given pairs (key_i, elem_i) , create a memory efficient and fast data structure V (mimicing a vector)
+// with the main API : V.get(key) -> returns the matching element
+// The problem is how to do this efficiently when key is very sparse.
+//
+// If the vector V is in the range [a,b] (b-a+1 length) we would like to be able to insert : v[key]=elem, and retrieve out_elem = V[given key]
 //
 // We would like our memory to be as low as possible. 
 // This implementation will add 1.5bits for each possible range.
@@ -35,7 +41,7 @@
 // Another drawback on this data structure: 
 // - in order to get a fast insert time, it is best to:
 //   (1) set the range [a,b] in advance.
-//   (2) insert the elements with the keys SORTED, such that if we enter V[i] after V[j] then j > i (or appeared before).
+//   (2) insert the elements with the keys SORTED, such that if we enter V[i] after V[j] then i > j (or appeared before).
 //       failing to do so will return an error (or a terrible insertion time).
 // 
 // so the actual situation to start with when using this package is :
