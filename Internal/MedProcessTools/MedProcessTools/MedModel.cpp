@@ -464,6 +464,9 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
 	}
 
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
+		return 0;
+
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		predictor->prepare_predict_single();
 	}
@@ -701,7 +704,7 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	int RC = 0;
 	int thrown = 0;
 
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (samples->idSamples.size() > 1)
 	for (int j = 0; j < samples->idSamples.size(); j++) {
 		try {
 			MedIdSamples& pid_samples = samples->idSamples[j];
@@ -767,7 +770,6 @@ int MedModel::apply_feature_processors(MedFeatures &features, bool learning)
 	for (auto& _set : req_features_vec)
 		_set.clear();
 	return apply_feature_processors(features, req_features_vec, learning);
-
 
 }
 //.......................................................................................

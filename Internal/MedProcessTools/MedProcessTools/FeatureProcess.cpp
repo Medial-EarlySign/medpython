@@ -285,7 +285,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 		use_parallel_learn = false;
 		use_parallel_apply = false;
 	}
-#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1 && features.samples.size()>1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_apply(features, ids, learning);
 #pragma omp critical
@@ -299,7 +299,7 @@ int MultiFeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids
 int MultiFeatureProcessor::_conditional_apply(MedFeatures& features, unordered_set<int>& ids, unordered_set<string>& req_features, bool learning) {
 
 	int RC = 0;
-#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1)
+#pragma omp parallel for schedule(dynamic) if (use_parallel_apply && processors.size() > 1 && features.samples.size()>1)
 	for (int j = 0; j < processors.size(); j++) {
 		int rc = processors[j]->_conditional_apply(features, ids, req_features, learning);
 #pragma omp critical
