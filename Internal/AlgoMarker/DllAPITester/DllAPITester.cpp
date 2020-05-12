@@ -22,6 +22,7 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <json/json.hpp>
+#include <AlgoMarker/DynAMWrapper/DynAMWrapper.h>
 
 
 #define LOCAL_SECTION LOG_APP
@@ -29,6 +30,8 @@
 using namespace std;
 namespace po = boost::program_options;
 namespace pt = boost::property_tree;
+
+#define DYN(s) ((DynAM::initialized()) ? DynAM::s : s)
 
 //=========================================================================================================
 int read_run_params(int argc, char *argv[], po::variables_map& vm) {
@@ -42,12 +45,14 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig", po::value<string>()->default_value(""), "algo marker configuration file")
+			("amlib", po::value<string>()->default_value(""), "algo marker .so library")
 			("in_jsons", po::value<string>()->default_value(""), "input jsons to read")
 			("out_jsons", po::value<string>()->default_value(""), "output jsons file : only for --single mode")
 			("accountId", po::value<string>()->default_value("A"), "accountId for output json")
 			("calculator", po::value<string>()->default_value("COVID19"), "calculator name for output json")
-			("ScoreOnDate", "use to have that field in output jsons")
-			("vlas_json", "use to get jsons that write values for categorial signals")
+			("units", po::value<string>()->default_value("BMI,kg/m^2,Weight,kg,Height,cm,Pack_Years,pack*years,Smoking_Intensity,cigs/day,Smoking_Quit_Date,date,Smoking_Duration,years"), "accountId for output json")
+			("scoreOnDate", "use to have that field in output jsons")
+			("vals_json", "use to get jsons that write values for categorial signals")
 			("preds_jsons", po::value<string>()->default_value(""), "output jsons preds")
 			("direct_test", "split to a dedicated debug routine")
 			("single", "run test in single mode, instead of the default batch")
@@ -56,21 +61,13 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("ignore_sig", po::value<string>()->default_value(""), "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
-			("date", po::value<long long>()->default_value(20180101), "test date")
-			("egfr_test", "split to a debug routine for the simple egfr algomarker")
-			("data_api_test", "split to a test of data api")
-			("pid", po::value<int>()->default_value(5000100), "test data_api for this pid, use --data_api_test option")
-			("sig", po::value<string>()->default_value("Creatinine"), "test data_api for this signal, use --data_api_test option")
+
 			("direct_csv", po::value<string>()->default_value(""), "output matrix of the direct run (not via AM)")
 			("am_csv", po::value<string>()->default_value(""), "output matrix of the run via AM")
-			("drop_channels", "if on, allows a different structure of a signal on AM compared to Rep , does that by chopping extra Rep channels")
 
-			("kp_test", "split to a dedicated test for kp data")
-			("kp_demographic", po::value<string>()->default_value(""), "demographic for --kp_test option: each line: <pid> <byear> <F/M>")
-			("kp_data", po::value<string>()->default_value(""), "lab tests for --kp_test option: each line: <pid> <code> <date> <value>")
-			("kp_scores", po::value<string>()->default_value(""), "which scores to generate for  --kp_test option: each line start: <pid> <date> ...")
-			("kp_codes", po::value<string>()->default_value(""), "lab tests codes for --kp_test option: each line: <code> <name>")
-			("kp_fout", po::value<string>()->default_value(""), "output file  for --kp_test option")
+			("dicts_config", po::value<string>()->default_value(""), "configuration file for json dictionary creation")
+			("out_json_dict", po::value<string>()->default_value(""), "output json dict to test with AA as an additional load")
+			("json_dict", po::value<string>()->default_value(""), "input json dict to test with AA as an additional load")
 
 			;
 
@@ -103,21 +100,23 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 
 
 //=================================================================================================================
-void add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, vector<long long>& times, vector<float> &vals, int drop_channels_flag)
+double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, vector<long long>& times, vector<float> &vals, char **str_values)
 {
 	// a small technicality
 	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
 
 	if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
-		return;
+		return 0;
 
 	UniversalSigVec usv;
 
-	int n_time_channels, n_val_channels;
-	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels);
+	int n_time_channels, n_val_channels, *is_categ;
+	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 
 	rep.uget(pid, sig, usv);
 	int nelem = usv.len;
+	string sv;
+	double t_add;
 	if (nelem > 0) {
 		long long *p_times = &times[0];
 		float *p_vals = &vals[0];
@@ -149,6 +148,15 @@ void add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore
 			for (int i = 0; i < nelem; i++)
 //				for (int j = 0; j < usv.n_val_channels(); j++) {
 				for (int j = 0; j < n_val_channels; j++) {
+					if (str_values != NULL) {
+						if (is_categ[j])
+							sv = rep.dict.dicts[rep.dict.section_id(sig)].Id2Names[usv.Val(i, j)][0];
+						else
+							sv = to_string(usv.Val(i, j));
+
+						sv.copy(str_values[i_val], sv.length());
+						str_values[i_val][sv.length()] = 0;
+					} else
 						p_vals[i_val] = usv.Val(i, j);
 					++i_val;
 				}
@@ -157,9 +165,17 @@ void add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore
 			p_vals = NULL;
 
 		//MLOG("Adding data: pid %d time %d sig %s n_times %d n_vals %d\n", pid, time, sig.c_str(), i_time, i_val);
-		if ((i_val > 0) || (i_time > 0))
-			AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals);
+		MedTimer t; t.start();
+		if ((i_val > 0) || (i_time > 0)) {
+			if (str_values != NULL)
+				DYN(AM_API_AddDataStr(am, pid, sig.c_str(), i_time, p_times, i_val, str_values));
+			else
+				DYN(AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals));
+		}
+		t.take_curr_time();  t_add += t.diff_microsec();
 	}
+
+	return t_add;
 }
 
 //=================================================================================================================
@@ -169,7 +185,7 @@ void print_response_msgs(AMResponses *resp, int pid, int time, ofstream &msgs_st
 	// AM level
 	int n_msgs, *msg_codes;
 	char **msgs_errs;
-	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
+	DYN(AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs));
 	for (int i = 0; i < n_msgs; i++) {
 		if (msgs_stream.is_open())
 			msgs_stream << "SharedMessages\t" << pid << "\t" << time << "\t" << 0 << "\t" << 0 << "\t" << 0 << "\t" << msg_codes[i] << "\t\"" << msgs_errs[i] << "\"" << endl;
@@ -177,14 +193,14 @@ void print_response_msgs(AMResponses *resp, int pid, int time, ofstream &msgs_st
 			MLOG("pid %d time %d Shared Message %d : code %d : err: %s\n", pid, time, n_msgs, msg_codes[i], msgs_errs[i]);
 	}
 
-	int n_resp = AM_API_GetResponsesNum(resp);
+	int n_resp = DYN(AM_API_GetResponsesNum(resp));
 	for (int i = 0; i < n_resp; i++) {
 		AMResponse *r;
-		AM_API_GetResponseAtIndex(resp, i, &r);
+		DYN(AM_API_GetResponseAtIndex(resp, i, &r));
 		int n_scores;
-		AM_API_GetResponseScoresNum(r, &n_scores);
+		DYN(AM_API_GetResponseScoresNum(r, &n_scores));
 
-		AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs);
+		DYN(AM_API_GetResponseMessages(r, &n_msgs, &msg_codes, &msgs_errs));
 		for (int k = 0; k < n_msgs; k++) {
 			if (msgs_stream.is_open())
 				msgs_stream << "ResponseMessages\t" << pid << "\t" << time << "\t" << i << "\t0\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
@@ -193,7 +209,7 @@ void print_response_msgs(AMResponses *resp, int pid, int time, ofstream &msgs_st
 		}
 
 		for (int j = 0; j < n_scores; j++) {
-			AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs);
+			DYN(AM_API_GetScoreMessages(r, j, &n_msgs, &msg_codes, &msgs_errs));
 			for (int k = 0; k < n_msgs; k++) {
 				if (msgs_stream.is_open())
 					msgs_stream << "ScoreMessages\t" << pid << "\t" << time << "\t" << i << "\t" << j << "\t" << k << "\t" << msg_codes[k] << "\t\"" << msgs_errs[k] << "\"" << endl;
@@ -212,12 +228,12 @@ int get_response_score_into_sample(AMResponse *response, int resp_rc, MedSample 
 	long long ts;
 	char *_scr_type = NULL;
 
-	AM_API_GetResponseScoresNum(response, &n_scores);
+	DYN(AM_API_GetResponseScoresNum(response, &n_scores));
 	//int resp_rc = AM_API_GetResponse(resp, i, &pid, &ts, &n_scr, &_scr, &_scr_type);
 	//MLOG("resp_rc = %d\n", resp_rc);
 	//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 
-	AM_API_GetResponsePoint(response, &pid, &ts);
+	DYN(AM_API_GetResponsePoint(response, &pid, &ts));
 	s.id = pid;
 	if (ts > 30000000)
 		s.time = (int)(ts / 10000);
@@ -225,7 +241,7 @@ int get_response_score_into_sample(AMResponse *response, int resp_rc, MedSample 
 		s.time = ts;
 	if (resp_rc == AM_OK_RC && n_scores > 0) {
 		float _scr;
-		resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
+		resp_rc = DYN(AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type));
 		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
 		s.prediction.push_back(_scr);
 	}
@@ -244,13 +260,19 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	vector<long long> times(max_vals);
 	vector<float> vals(max_vals);
 
-	AM_API_ClearData(am);
+	int MAX_VALS = 100000, MAX_VAL_LEN = 200;
+	vector<char *>str_vals(MAX_VALS);
+	vector<char> buf(MAX_VALS*MAX_VAL_LEN);
+	for (int i = 0; i < MAX_VALS; i++) { str_vals[i] = &buf[i*MAX_VAL_LEN]; }
+
+
+	DYN(AM_API_ClearData(am));
 
 	MLOG("=====> now running get_preds_from_algomarker()\n");
 	MLOG("Going over %d pids\n", pids.size());
 	int pid_cnt = 0;
 	for (auto pid : pids) {
-		for (auto &sig : sigs)	add_pid_to_am(am, rep, ignore_sig, pid, 20300101, sig, times, vals, 1);
+		for (auto &sig : sigs)	add_pid_to_am(am, rep, ignore_sig, pid, 20300101, sig, times, vals, &str_vals[0]);
 
 		pid_cnt++;
 		if (pid_cnt % 1000 == 0)
@@ -271,26 +293,27 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	// prep request
 	AMRequest *req;
-	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
+	int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req));
 	if (req == NULL)
 		MLOG("ERROR: Got a NULL request rc = %d!!\n", req_create_rc);
 	AMResponses *resp;
 
 	// calculate scores
 	MLOG("Before Calculate\n");
-	AM_API_CreateResponses(&resp);
-	int calc_rc = AM_API_Calculate(am, req, resp);
+	
+	DYN(AM_API_CreateResponses(&resp));
+	int calc_rc = DYN(AM_API_Calculate(am, req, resp));
 	MLOG("After Calculate: rc = %d\n", calc_rc);
 
 
 	// go over reponses and pack them to a MesSample vector
-	int n_resp = AM_API_GetResponsesNum(resp);
+	int n_resp = DYN(AM_API_GetResponsesNum(resp));
 	MLOG("Got %d responses\n", n_resp);
 	res.clear();
 	AMResponse *response;
 	for (int i = 0; i < n_resp; i++) {
 		//MLOG("Getting response no. %d\n", i);
-		int resp_rc = AM_API_GetResponseAtIndex(resp, i, &response);
+		int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, i, &response));
 		MedSample s;
 		get_response_score_into_sample(response, resp_rc, s);
 		res.push_back(s);
@@ -299,8 +322,8 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	if (print_msgs)	print_response_msgs(resp, 0, 0, msgs_stream);
 
-	AM_API_DisposeRequest(req);
-	AM_API_DisposeResponses(resp);
+	DYN(AM_API_DisposeRequest(req));
+	DYN(AM_API_DisposeResponses(resp));
 
 	MLOG("Finished getting preds from algomarker\n");
 	return 0;
@@ -315,15 +338,15 @@ string float_to_string(float val) {
 }
 
 //=================================================================================================================
-void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, json &json_out, int values_flag = 0)
+void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, unordered_map<string, string> &units, json &json_out, int values_flag = 0)
 {
 	if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 		return;
 
 	UniversalSigVec usv;
 
-	int n_time_channels, n_val_channels;
-	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels);
+	int n_time_channels, n_val_channels, *is_categ;
+	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 
 	rep.uget(pid, sig, usv);
 
@@ -340,8 +363,15 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 
 	if (nelem > 0) {
 
+		// maybe we need to add unit
+		string sunit = "";
+		if (units.find(sig) != units.end())
+			sunit = units[sig];
+
 		// add code to json
 		json json_sig = json({ { "code", sig },{ "data", json::array() } });
+		if (sunit != "")
+			json_sig["unit"] = sunit;
 
 		// push elements and channels
 		for (int i = 0; i < nelem; i++) {
@@ -388,7 +418,7 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 	{ "Content-Type", "application/json" }
 	};
 
-	if (vm.count("ScoreOnDate")) json_out["body"] += {"ScoreOnDate", time};
+	if (vm.count("scoreOnDate")) json_out["body"] += {"scoreOnDate", time};
 }
 
 #if 1
@@ -402,10 +432,22 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	int max_vals = 100000;
 	vector<long long> times(max_vals);
 	vector<float> vals(max_vals);
-	int print_msgs = vm.count("print_msgs");
+	int print_msgs = (int)vm.count("print_msgs");
 	int write_jsons = (vm["out_jsons"].as<string>() != "");
+	unordered_map<string, string> units;
+	int MAX_VALS = 100000, MAX_VAL_LEN = 200;
+	vector<char *>str_vals(MAX_VALS);
+	vector<char> buf(MAX_VALS*MAX_VAL_LEN);
+	for (int i = 0; i < MAX_VALS; i++) { str_vals[i] = &buf[i*MAX_VAL_LEN]; }
 
-	AM_API_ClearData(am);
+
+	double t_all = 0;
+	double t_add_data = 0;
+	double t_add_data_api = 0;
+	double t_calculate = 0;
+
+
+	DYN(AM_API_ClearData(am));
 
 	MLOG("=====> now running get_preds_from_algomarker_single()\n");
 	MLOG("Going over %d samples (DllAPITester)\n", samples.nSamples());
@@ -417,28 +459,36 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 		if (!out_json_f.is_open())
 			MTHROW_AND_ERR("Can't open output jsons file %s for writing\n", vm["out_jsons"].as<string>().c_str());
 		out_json_f << "[" << endl;
+
+		vector<string> f;
+		boost::split(f, vm["units"].as<string>(), boost::is_any_of(",;"));
+		for (int j = 0; j < f.size(); j += 2)
+			units[f[j]] = f[j + 1];
 	}
 	bool first = true;
 
-	MedTimer timer;
-	timer.start();
+	MedTimer timer;	timer.start();
+	MedTimer _t_all; _t_all.start();
+
 	for (auto &id : samples.idSamples)
 		for (auto &s : id.samples) {
 
 			json js;
 			if (write_jsons) init_output_json(vm, js, s.id, s.time);
 			// adding all data for this sample
+			MedTimer _t_add_data; _t_add_data.start();
 			for (auto &sig : sigs) {
-				add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, 1);
-				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, js, vm.count("vals_json"));
+				t_add_data_api += add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, &str_vals[0]);
+				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, (int)vm.count("vals_json"));
 			}
+			_t_add_data.take_curr_time(); t_add_data += _t_add_data.diff_sec();
 
 			// preparing a request
 			char *stypes[] = { "Raw" };
 			long long _timestamp = (long long)s.time;
 
 			AMRequest *req;
-			int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &s.id, &_timestamp, 1, &req);
+			int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &s.id, &_timestamp, 1, &req));
 			if (req == NULL) {
 				MLOG("ERROR: Got a NULL request for pid %d time %d rc %d!!\n", s.id, s.time, req_create_rc);
 				return -1;
@@ -446,18 +496,20 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 
 			// create a response
 			AMResponses *resp;
-			AM_API_CreateResponses(&resp);
+			DYN(AM_API_CreateResponses(&resp));
 
-			// Calculate
-			AM_API_Calculate(am, req, resp);
+			MedTimer _t_calculate; _t_calculate.start();
+			DYN(AM_API_Calculate(am, req, resp)); // calculate
+			_t_calculate.take_curr_time(); t_calculate += _t_calculate.diff_sec();
 
-			int n_resp = AM_API_GetResponsesNum(resp);
+			int n_resp = DYN(AM_API_GetResponsesNum(resp));
+			
 			//MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
 
 			// get scores
 			if (n_resp == 1) {
 				AMResponse *response;
-				int resp_rc = AM_API_GetResponseAtIndex(resp, 0, &response);
+				int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, 0, &response));
 				MedSample rs;
 				get_response_score_into_sample(response, resp_rc, rs);
 				res.push_back(rs);
@@ -472,11 +524,10 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			if (print_msgs) print_response_msgs(resp, s.id, s.time, msgs_stream);
 
 			// and now need to dispose responses and request
-			AM_API_DisposeRequest(req);
-			AM_API_DisposeResponses(resp);
+			DYN(AM_API_DisposeRequest(req));
+			DYN(AM_API_DisposeResponses(resp));
+			DYN(AM_API_ClearData(am)); // clearing data in algomarker
 
-			// clearing data in algomarker
-			AM_API_ClearData(am);
 
 			float pred = res.back().prediction[0];
 			float compare_pred = compare_res[n_tested].prediction[0];
@@ -501,6 +552,10 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			}
 		}
 
+	_t_all.take_curr_time(); t_all += _t_all.diff_sec();
+	MLOG("Time report: t_all %f sec , t_add_data %f sec , t_add_data_api %f micro-sec , t_calculate %f sec\n", t_all, t_add_data, t_add_data_api, t_calculate);
+
+
 	if (write_jsons) {
 		out_json_f << "]" << endl;
 		out_json_f.close();
@@ -510,542 +565,14 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	MLOG("\nFinished getting preds from algomarker in a single manner\n");
 	return 0;
 }
-
-
 #endif
 
-//=============================================================================================================================
-void save_sample_vec(vector<MedSample> sample_vec, const string& fname) {
+//========================================================================================
+void save_sample_vec(vector<MedSample> sample_vec, const string& fname) 
+{
 	MedSamples s;
 	s.import_from_sample_vec(sample_vec);
 	s.write_to_file(fname);
-}
-
-int load_algomarker_from_string(AlgoMarker *am, int pid, const string &sdata)
-{
-
-	// example format:
-	// Glucose:80.5,123:20100103,20120809;BYEAR:1985;GENDER:1
-
-	vector<string> sigs;
-	boost::split(sigs, sdata, boost::is_any_of(";"));
-
-	for (auto &s : sigs) {
-		if (s == "") continue;
-
-		vector<string> f;
-		boost::split(f, s, boost::is_any_of(":"));
-		string sig = f[0];
-		// values
-		vector<float> vals;
-		if (f.size() >= 2) {
-			vector<string> svals;
-			boost::split(svals, f[1], boost::is_any_of(","));
-			for (auto v : svals) vals.push_back(stof(v));
-		}
-
-		vector<long long> times;
-		if (f.size() >= 3) {
-			vector<string> tvals;
-			boost::split(tvals, f[2], boost::is_any_of(","));
-			for (auto v : tvals) times.push_back(stoll(v));
-		}
-
-		MLOG("Adding Data: sig %s :: vals: ", sig.c_str());
-		for (auto v : vals) MLOG("%f, ", v);
-		MLOG(" times: ");
-		for (auto v : times) MLOG("%lld, ", v);
-		MLOG("\n");
-
-		long long *pt = NULL;
-		float *pv = NULL;
-		if (times.size() > 0) pt = &times[0];
-		if (vals.size() > 0) pv = &vals[0];
-		AM_API_AddData(am, pid, sig.c_str(), (int)times.size(), pt, (int)vals.size(), pv);
-
-	}
-
-	return 0;
-}
-
-//=============================================================================================================================
-int input_json_to_string(string json_fname, string &sdata)
-{
-	sdata = "";
-	string jdata;
-	if (read_file_into_string(json_fname, jdata) < 0) return -1;
-	istringstream s(jdata);
-
-	MLOG("jdata is %s\n", jdata.c_str());
-
-	pt::ptree ptree;
-	pt::read_json(s, ptree);
-
-	for (auto &p : ptree.get_child("signals")) {
-		auto& sig = p.second;
-		string sig_name = sig.get<string>("code");
-
-		vector<long long> ts;
-		vector<float> vals;
-		for (auto &data : sig.get_child("data")) {
-			for (auto &t : data.second.get_child("timestamp"))
-				ts.push_back(t.second.get_value<long long>());
-			for (auto &v : data.second.get_child("value"))
-				vals.push_back(v.second.get_value<float>());
-		}
-		sdata += sig_name;
-		if (vals.size() > 0) {
-			sdata += ":";
-			for (auto &v : vals) {
-				sdata += to_string(v);
-				if (&v != &vals.back()) sdata += ",";
-			}
-		}
-		if (ts.size() > 0) {
-			sdata += ":";
-			for (auto &t : ts) {
-				sdata += to_string(t);
-				if (&t != &ts.back()) sdata += ",";
-			}
-		}
-		sdata += ";";
-	}
-
-	MLOG("Converted to string: %s\n", sdata.c_str());
-	return 0;
-}
-
-//=============================================================================================================================
-int debug_me(po::variables_map &vm)
-{
-
-	// init AM
-	AlgoMarker *test_am;
-
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
-		MERR("ERROR: Failed creating test algomarker\n");
-		return -1;
-	}
-
-	MLOG("Name is %s\n", test_am->get_name());
-
-	int load_rc;
-	if ((load_rc = AM_API_Load(test_am, vm["amconfig"].as<string>().c_str())) != AM_OK_RC) {
-		MERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), load_rc);
-		return -1;
-	}
-	MLOG("Algomarker %s was loaded with config file %s\n", test_am->get_name(), test_am->get_config());
-
-
-	// Load Data
-	string sdata = vm["test_data"].as<string>();
-	if (vm["json_data"].as<string>() != "") input_json_to_string(vm["json_data"].as<string>(), sdata);
-	load_algomarker_from_string(test_am, 1, sdata);
-
-	// Calculate
-	char *stypes[] = { "Raw" };
-	vector<int> _pids = { 1 };
-	vector<long long> _timestamps = { (long long)vm["date"].as<long long>() };
-	AMRequest *req;
-	MLOG("Creating Request\n");
-	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
-	if (req == NULL)
-		MLOG("ERROR: Got a NULL request rc %d!!\n", req_create_rc);
-	AMResponses *resp;
-
-	// calculate scores
-	MLOG("Before Calculate\n");
-	AM_API_CreateResponses(&resp);
-	AM_API_Calculate(test_am, req, resp);
-
-
-	// Shared messages
-	int n_shared_msgs;
-	int *shared_codes;
-	char **shared_args;
-	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
-	MLOG("Shared Messages: %d\n", n_shared_msgs);
-	for (int i = 0; i < n_shared_msgs; i++) {
-		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
-	}
-
-
-	//AM_API_DisposeResponses(resp); resp=NULL;
-	//AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
-	//AM_API_Calculate(test_am, req, &resp);
-
-	// print result
-	int n_resp = AM_API_GetResponsesNum(resp);
-	MLOG("Got %d responses\n", n_resp);
-	float _scr;
-	int pid;
-	long long ts;
-	char *_scr_type;
-	AMResponse *response;
-	for (int i = 0; i < n_resp; i++) {
-		MLOG("Getting response no. %d\n", i);
-		AM_API_GetResponseAtIndex(resp, i, &response);
-
-		n_shared_msgs = 0;
-		AM_API_GetResponseMessages(response, &n_shared_msgs, &shared_codes, &shared_args);
-		MLOG("Response Messages: %d\n", n_shared_msgs);
-		for (int i = 0; i < n_shared_msgs; i++) {
-			MLOG("Response message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
-		}
-
-		n_shared_msgs = 0;
-		AM_API_GetScoreMessages(response, 0, &n_shared_msgs, &shared_codes, &shared_args);
-		MLOG("Score 0 Messages: %d\n", n_shared_msgs);
-		for (int i = 0; i < n_shared_msgs; i++) {
-			MLOG("Score 0 message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
-		}
-
-		AM_API_GetResponsePoint(response, &pid, &ts);
-		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
-		MLOG("resp_rc = %d\n", resp_rc);
-		MLOG("i %d , pid %d ts %lld scr %f\n", i, pid, ts, _scr);
-		MLOG("ptr for _scr_type %x\n", _scr_type);
-		if (_scr_type != NULL) MLOG("_scr_type %s\n", _scr_type);
-		//MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, n_scr, _scr, _scr_type);
-	}
-
-
-	// print error messages
-
-	// AM level
-	int n_msgs, *msg_codes;
-	char **msgs_errs;
-	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
-	for (int i = 0; i < n_msgs; i++) {
-		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
-	}
-
-
-	// Dispose
-	AM_API_DisposeRequest(req);
-	AM_API_DisposeResponses(resp);
-	AM_API_DisposeAlgoMarker(test_am);
-
-	MLOG("Finished debug_me() test\n");
-
-	return 0;
-}
-
-//--------------------------------------------------------------------------------------------------------------------------------
-int simple_egfr_test()
-{
-	// init AM
-	AlgoMarker *test_am;
-
-	if (AM_API_Create((int)AM_TYPE_SIMPLE_EXAMPLE_EGFR, &test_am) != AM_OK_RC) {
-		MERR("ERROR: Failed creating test algomarker\n");
-		return -1;
-	}
-
-	MLOG("Name is %s\n", test_am->get_name());
-
-	int load_rc;
-	if ((load_rc = AM_API_Load(test_am, "AUTO") != AM_OK_RC)) {
-		MERR("ERROR: Failed loading algomarker %s  , rc: %d\n", test_am->get_name(), load_rc);
-		return -1;
-	}
-	MLOG("Algomarker %s was loaded\n", test_am->get_name());
-
-
-	// Load Data
-	vector<long long> times = { 20160101 };
-	vector<float> vals = { 2.0 };
-	AM_API_AddData(test_am, 1, "Creatinine", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals = { 55 };
-	AM_API_AddData(test_am, 1, "Age", 0, NULL, (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals = { 1 };
-	AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
-
-	// Calculate
-	char *stypes[] = { "Raw" };
-	vector<int> _pids = { 1 };
-	vector<long long> _timestamps = { 20160101 };
-	AMRequest *req;
-	MLOG("Creating Request\n");
-	int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
-	if (req == NULL)
-		MLOG("ERROR: Got a NULL request rc %d!!\n", req_create_rc);
-	AMResponses *resp;
-
-	// calculate scores
-	MLOG("Before Calculate\n");
-	AM_API_CreateResponses(&resp);
-	AM_API_Calculate(test_am, req, resp);
-
-
-	// Shared messages
-	int n_shared_msgs;
-	int *shared_codes;
-	char **shared_args;
-	AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
-	MLOG("Shared Messages: %d\n", n_shared_msgs);
-	for (int i = 0; i < n_shared_msgs; i++) {
-		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
-	}
-
-	// print result
-	int n_resp = AM_API_GetResponsesNum(resp);
-	MLOG("Got %d responses\n", n_resp);
-	float _scr;
-	int pid;
-	long long ts;
-	char *_scr_type;
-	AMResponse *response;
-	for (int i = 0; i < n_resp; i++) {
-		MLOG("Getting response no. %d\n", i);
-
-		AM_API_GetResponseAtIndex(resp, i, &response);
-		AM_API_GetResponsePoint(response, &pid, &ts);
-		int resp_rc = AM_API_GetResponseScoreByIndex(response, 0, &_scr, &_scr_type);
-		MLOG("_scr %f _scr_type %s\n", _scr, _scr_type);
-		MLOG("resp_rc = %d\n", resp_rc);
-		MLOG("i %d , pid %d ts %d scr %f %s\n", i, pid, ts, _scr, _scr_type);
-	}
-
-
-	// print error messages
-
-	// AM level
-	int n_msgs, *msg_codes;
-	char **msgs_errs;
-	AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
-	for (int i = 0; i < n_msgs; i++) {
-		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
-	}
-
-
-	// Dispose
-	AM_API_DisposeRequest(req);
-	AM_API_DisposeResponses(resp);
-	AM_API_DisposeAlgoMarker(test_am);
-
-	MLOG("Finished egfr_test()\n");
-
-	return 0;
-}
-
-
-//----------------------------------------------------------------------------------------
-int test_data_api(po::variables_map &vm) {
-
-	MedRepository rep;
-	RepositoryHandle *rep_h;
-	SignalDataHandle *sdh;
-
-	string fname = vm["rep"].as<string>();
-	int pid = vm["pid"].as<int>();
-	string sig = vm["sig"].as<string>();
-
-	if (rep.read_all(fname, { pid }, { sig }) < 0) return -1;
-
-	char *sigs = (char *)sig.c_str();
-	if (DATA_API_RepositoryHandle_Create(&rep_h, (char *)fname.c_str(), &pid, 1, &sigs, 1) < 0) return -1;
-	if (DATA_API_SignalDataHandle_Create(&sdh) < 0) return -1;
-
-	int len;
-	DATA_API_ReadData(rep_h, pid, (char *)sig.c_str(), sdh, &len);
-
-	UniversalSigVec usv;
-	rep.uget(pid, sig, usv);
-
-	MLOG("len %d ulen %d\n", len, usv.len);
-
-	if (len != usv.len) { MERR("ERROR: different lengths\n"); }
-
-	for (int i = 0; i < len; i++) {
-
-		for (int t = 0; t < usv.n_time_channels(); t++) {
-			int time;
-			DATA_API_GetTime(sdh, i, t, &time);
-			MLOG("Time %d,%d : %d , %d\n", i, t, usv.Time(i, t), time);
-			if (time != usv.Time(i, t)) MERR("ERROR different times\n");
-		}
-
-		for (int v = 0; v < usv.n_val_channels(); v++) {
-			float val;
-			DATA_API_GetVal(sdh, i, v, &val);
-			MLOG("Time %d,%d : %f , %f\n", i, v, usv.Val(i, v), val);
-			if (val != usv.Val(i, v)) MERR("ERROR different vals\n");
-		}
-
-	}
-
-	return 0;
-}
-
-
-//----------------------------------------------------------------------------------------
-int test_kp_format(po::variables_map &vm) {
-
-	MLOG("Testing model %s in kp format\n", vm["model"].as<string>().c_str());
-
-	// read model file
-	MedModel model;
-	if (model.read_from_file(vm["model"].as<string>()) < 0) {
-		MERR("Could not read model file %s\n", vm["model"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read model file %s\n", vm["model"].as<string>().c_str());
-
-
-	// read demographic file
-	vector<vector<string>> raw_demographics;
-	if (read_text_file_cols(vm["kp_demographic"].as<string>(), " \t", raw_demographics) < 0) {
-		MERR("Could not read demographics file %s\n", vm["kp_demographic"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read %d lines from demographics file %s\n", raw_demographics.size(), vm["kp_demographic"].as<string>().c_str());
-	unordered_map<string, int> name_to_pid;
-	unordered_map<int, string> pid_to_name;
-
-	int curr_id = 1000000;
-	for (auto &v : raw_demographics)
-		if (v.size() >= 2) {
-			if (name_to_pid.find(v[0]) != name_to_pid.end()) {
-				MERR("ERROR: Got the same pid %s twice in demographics file.\n", v[0].c_str());
-				return -1;
-			}
-			name_to_pid[v[0]] = curr_id;
-			pid_to_name[curr_id] = v[0];
-			curr_id++;
-		}
-
-
-	// read data file 
-	vector<vector<string>> raw_data;
-	if (read_text_file_cols(vm["kp_data"].as<string>(), " \t", raw_data) < 0) {
-		MERR("Could not read lab tests data file %s\n", vm["kp_data"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read %d lines from data file %s\n", raw_data.size(), vm["kp_data"].as<string>().c_str());
-
-	// read scores file
-	vector<vector<string>> raw_scores;
-	if (read_text_file_cols(vm["kp_scores"].as<string>(), " \t", raw_scores) < 0) {
-		MERR("Could not read scores file %s\n", vm["kp_scores"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read %d lines from scores file %s\n", raw_scores.size(), vm["kp_scores"].as<string>().c_str());
-
-
-	// read code file
-	vector<vector<string>> raw_codes;
-	if (read_text_file_cols(vm["kp_codes"].as<string>(), " \t", raw_codes) < 0) {
-		MERR("Could not read lab codes file %s\n", vm["kp_codes"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read %d lines from codes file %s\n", raw_codes.size(), vm["kp_codes"].as<string>().c_str());
-
-	// prepare codes map
-	unordered_map<string, string> codes;
-	for (auto &v : raw_codes) {
-		if (v.size() > 1)
-			codes[v[0]] = v[1];
-	}
-
-	// prepare MedSamples
-	MedSamples samples;
-	for (auto &v : raw_scores)
-		if (v.size() >= 2) {
-			if (name_to_pid.find(v[0]) == name_to_pid.end()) {
-				MERR("ERROR: pid %s appears in scores file but not in demographics file\n", v[0].c_str());
-				return -1;
-			}
-			samples.insertRec(name_to_pid[v[0]], stoi(v[1]));
-		}
-	samples.normalize();
-	MLOG("Prepared MedSamples\n");
-
-	// Read (empty) repository 
-	MedPidRepository rep;
-	if (rep.MedRepository::init(vm["rep"].as<string>()) < 0) {
-		MERR("Could not read repository definitions from %s\n", vm["rep"].as<string>().c_str());
-		return -1;
-	}
-	MLOG("Read repository definitions from %s\n", vm["rep"].as<string>().c_str());
-
-	// move to in_mem mode and push all data into it
-	rep.switch_to_in_mem_mode();
-
-	// load BYEAR and GENDER
-	for (auto &v : raw_demographics) {
-		if (v.size() >= 3) {
-			int pid = name_to_pid[v[0]];
-			float byear = stof(v[1]);
-			float gender = (float)1.0;
-			if (v[2] == "F") gender = (float)2.0;
-			rep.in_mem_rep.insertData(pid, "BYEAR", NULL, &byear, 0, 1);
-			rep.in_mem_rep.insertData(pid, "GENDER", NULL, &gender, 0, 1);
-		}
-	}
-	MLOG("Loaded demographics into repository\n");
-
-	// load lab tests
-	int n = 0;
-	for (auto &v : raw_data) {
-		if (v.size() >= 4) {
-			if (name_to_pid.find(v[0]) == name_to_pid.end()) {
-				MERR("ERROR: pid %s appears in data file but not in demographics file ... ignoring it\n", v[0].c_str());
-				continue;
-			}
-			if (codes.find(v[1]) == codes.end()) {
-				MERR("ERROR: code %s in data file is undefined... ignoring it\n", v[1].c_str());
-				continue;
-			}
-
-			int pid = name_to_pid[v[0]];
-			int date = stoi(v[2]);
-			float val = stof(v[3]);
-			rep.in_mem_rep.insertData(pid, codes[v[1]].c_str(), &date, &val, 1, 1);
-			n++;
-			if (n % 500000 == 0)
-				MLOG("Loaded %d lab tests into in_mem_rep\n", n);
-		}
-	}
-	MLOG("Loaded %d data lines into repository\n", n);
-
-
-	// sort in_mem , before using it
-	rep.in_mem_rep.sortData();
-	MLOG("Repository ready\n");
-
-	// apply model
-	model.apply(rep, samples);
-	MLOG("Model applied\n");
-
-	// write results to output file
-	string sout;
-	int no = 0;
-	int ni = 0;
-	for (auto &ids : samples.idSamples) {
-		ni++;
-		for (auto &s : ids.samples) {
-			sout += pid_to_name[s.id] + " " + to_string(s.time) + " " + to_string(s.prediction[0]) + "\n";
-			no++;
-		}
-	}
-
-
-	if (write_string(vm["kp_fout"].as<string>(), sout) < 0) {
-		MERR("Could not write results to output file %s\n", vm["kp_fout"].as<string>().c_str());
-		return -1;
-	}
-
-	MLOG("Wrote %d predictions (for %d different ids) to file %s\n", no, ni, vm["kp_fout"].as<string>().c_str());
-
-	return 0;
-}
-
-
-//========================================================================================
-void generate_json_examples(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples)
-{
-	
 }
 
 //========================================================================================
@@ -1079,28 +606,37 @@ int split_file_to_jsons(string fin_name, vector<string> &jsons)
 	return 0;
 }
 
-
-
 //========================================================================================
-void add_data_to_am_from_json(AlgoMarker *am, json &js, char **str_values, long long *p_times, int &pid, long long &score_time)
+void add_data_to_am_from_json(AlgoMarker *am, json &js_in, char **str_values, long long *p_times, int &pid, long long &score_time)
 {
 	// a small technicality
 	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
 
+	json &js = js_in;
+	if (js_in.find("body") != js_in.end())
+		js = js_in["body"];
 
 	//MLOG("%s\n", js["body"]["requestId"].dump().c_str());
-	string reqId = js["body"]["requestId"].get<string>();
+	string reqId = js["requestId"].get<string>();
 	vector<string> fields;
 	boost::split(fields, reqId, boost::is_any_of("_"));
-	if (fields.size() != 3) MTHROW_AND_ERR("Can't parse pid and time from reqId %s\n", reqId.c_str());
-	pid = stoi(fields[1]);
-	score_time = (long long)stoi(fields[2]);
+	pid = 0;
+	score_time = 0;
+	if (fields.size() < 3) MERR("Can't parse pid and time from reqId %s\n", reqId.c_str());
+	if (fields.size() >= 3) {
+		pid = stoi(fields[1]);
+		score_time = (long long)stol(fields[2]);
+	}
+
+	if (js.find("scoreOnDate") != js.end())
+		score_time = js["scoreOnDate"].get<long long>();
+
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
-	for (auto &s : js["body"]["signals"]) {
+	for (auto &s : js["signals"]) {
 		string sig = s["code"].get<string>();
-		int n_time_channels, n_val_channels;
-		((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels);
+		int n_time_channels, n_val_channels, *is_categ;
+		((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 		//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
 		int n_times = 0;
 		int n_vals = 0;
@@ -1108,8 +644,7 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js, char **str_values, long 
 			//MLOG("time ");
 			int nt = 0;
 			for (auto &t : d["timestamp"]) {
-				int itime = t.get<int>();
-				if (nt < n_time_channels) p_times[n_times++] = (long long)itime;
+				if (nt < n_time_channels) p_times[n_times++] = t.get<long long>();
 				nt++;
 				//MLOG("%d ", itime);
 			}
@@ -1127,7 +662,7 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js, char **str_values, long 
 			}
 			//MLOG("\n");
 		}
-		AM_API_AddDataStr(am, pid, sig.c_str(), n_times, p_times, n_vals, str_values);
+		DYN(AM_API_AddDataStr(am, pid, sig.c_str(), n_times, p_times, n_vals, str_values));
 	}
 }
 
@@ -1138,8 +673,10 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	split_file_to_jsons(vm["in_jsons"].as<string>(), jsons);
 	vector<json> all_jsons(jsons.size());
 
-	for (int i = 0; i < jsons.size(); i++)
+	for (int i = 0; i < jsons.size(); i++) {
+		MLOG("json %d : len %d\n", i, jsons[i].length());
 		all_jsons[i] = json::parse(jsons[i]);
+	}
 
 	MLOG("Parsed %d jsons\n", all_jsons.size());
 	int MAX_VALS = 10000, MAX_VAL_LEN = 200;
@@ -1152,30 +689,30 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	char *stypes[] = { "Raw" };
 	vector<MedSample> res;
 	ofstream dummy_stream;
-	int print_msgs = vm.count("print_msgs");
+	int print_msgs = (int)vm.count("print_msgs");
 	int n_tested = 0;
 
 	for (auto &js : all_jsons) {
 		add_data_to_am_from_json(am, js, &str_vals[0], &times[0], pid, _timestamp);
 
 		AMRequest *req;
-		int req_create_rc = AM_API_CreateRequest("test_request", stypes, 1, &pid, &_timestamp, 1, &req);
+		int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &pid, &_timestamp, 1, &req));
 		if (req == NULL) MTHROW_AND_ERR("ERROR: Got a NULL request for pid %d time %d rc %d!!\n", pid, (int)_timestamp, req_create_rc);
 
 		// create a response
 		AMResponses *resp;
-		AM_API_CreateResponses(&resp);
+		DYN(AM_API_CreateResponses(&resp));
 
 		// Calculate
-		AM_API_Calculate(am, req, resp);
+		DYN(AM_API_Calculate(am, req, resp));
 
-		int n_resp = AM_API_GetResponsesNum(resp);
+		int n_resp = DYN(AM_API_GetResponsesNum(resp));
 		//MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
 
 		// get scores
 		if (n_resp == 1) {
 			AMResponse *response;
-			int resp_rc = AM_API_GetResponseAtIndex(resp, 0, &response);
+			int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, 0, &response));
 			MedSample rs;
 			get_response_score_into_sample(response, resp_rc, rs);
 			res.push_back(rs);
@@ -1192,11 +729,11 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 		if (print_msgs) print_response_msgs(resp, pid, _timestamp, dummy_stream);
 
 		// and now need to dispose responses and request
-		AM_API_DisposeRequest(req);
-		AM_API_DisposeResponses(resp);
+		DYN(AM_API_DisposeRequest(req));
+		DYN(AM_API_DisposeResponses(resp));
 
 		// clearing data in algomarker
-		AM_API_ClearData(am);
+		DYN(AM_API_ClearData(am));
 
 		float pred = res.back().prediction[0];
 
@@ -1212,6 +749,81 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	
 }
 
+//========================================================================================
+// prep dictionaries for AA
+//========================================================================================
+void prep_dicts(po::variables_map &vm)
+{
+	
+	ofstream out_json_f;
+	out_json_f.open(vm["out_json_dict"].as<string>());
+	if (!out_json_f.is_open())
+		MTHROW_AND_ERR("Can't open output json dict file %s for writing\n", vm["out_json_dict"].as<string>().c_str());
+
+	// input config file format:
+
+	// SIGNAL	IN/OUT	code
+	vector<vector<string>> res;
+	read_text_file_cols(vm["dicts_config"].as<string>(), "\t", res);
+	unordered_map<string, unordered_set<string>> in_vals, out_vals;
+	for (auto &v : res) {
+		//MLOG("%s %s %s\n", v[0].c_str(), v[1].c_str(), v[2].c_str());
+		if (v[1] == "IN")
+			in_vals[v[0]].insert(v[2]);
+		else if (v[1] == "OUT")
+			out_vals[v[0]].insert(v[2]);
+	}
+
+
+	MedRepository rep;
+	if (rep.init(vm["rep"].as<string>()) < 0) MTHROW_AND_ERR("Can't open rep %s\n", vm["rep"].as<string>().c_str());
+
+	json dj = json({});
+
+	dj += { "dictionary" , json::array() };
+
+	for (auto &sig : in_vals) {
+		MLOG("Working on sig %s\n", sig.first.c_str());
+		int section_id = rep.dict.section_id(sig.first);
+		// preparing helper lists
+		unordered_map<int, string> id2out;
+		if (out_vals.find(sig.first) != out_vals.end()) {
+			for (auto &v : out_vals[sig.first]) {
+				if (rep.dict.dicts[section_id].Name2Id.find(v) == rep.dict.dicts[section_id].Name2Id.end())
+					MTHROW_AND_ERR("ERROR: Can't find value %s in dictionary for signal %s\n", v.c_str(), sig.first.c_str());
+				int id = rep.dict.dicts[section_id].Name2Id[v];
+				id2out[id] = v;
+				//MLOG("id2out: %s %d %s\n", sig.first.c_str(), id, v.c_str());
+			}
+		}
+
+		json js = json({});
+		js += { "signal", sig.first };
+		js += { "signal_map", json::array() };
+
+		for (auto &v : sig.second) {
+			if (rep.dict.dicts[section_id].Name2Id.find(v) == rep.dict.dicts[section_id].Name2Id.end())
+				MTHROW_AND_ERR("ERROR: Can't find value %s in dictionary for signal %s\n", v.c_str(), sig.first.c_str());
+			json jdef = json({});
+			jdef += { "def", v };
+			jdef += { "sets", json::array() };
+			int v_id = rep.dict.dicts[section_id].Name2Id[v];
+			if (rep.dict.dicts[section_id].Member2Sets[v_id].size() > 0) {
+				for (auto s : rep.dict.dicts[section_id].Member2Sets[v_id])
+					if (id2out.find(s) != id2out.end())
+						jdef["sets"].push_back(id2out[s]);
+			}
+			js["signal_map"].push_back(jdef);
+		}
+		dj["dictionary"].push_back(js);
+	}
+
+	out_json_f << dj.dump(1) << endl;
+	out_json_f.close();
+	MLOG("Wrote jsons output file %s\n", vm["out_jsons"].as<string>().c_str());
+
+}
+
 
 //========================================================================================
 // MAIN
@@ -1222,29 +834,30 @@ int main(int argc, char *argv[])
 	int rc = 0;
 	po::variables_map vm;
 
-
 	// Running Parameters
 	MLOG("Reading params\n");
 	rc = read_run_params(argc, argv, vm);
 	assert(rc >= 0);
 
-
-	if (vm.count("direct_test"))
-		return debug_me(vm);
-
-	if (vm.count("egfr_test"))
-		return simple_egfr_test();
-
-	if (vm.count("data_api_test"))
-		return test_data_api(vm);
-
-	if (vm.count("kp_test"))
-		return test_kp_format(vm);
-
+	if (vm["out_json_dict"].as<string>() != "") {
+		prep_dicts(vm);
+		return 0;
+	}
 
 	//--------------------------------------------------------------------
 	// preparations for tests
 	//--------------------------------------------------------------------
+
+	// upload dynamic libraru if needed
+	if (vm["amlib"].as<string>() != "") {
+		load_am(vm["amlib"].as<string>().c_str());
+	}
+
+	if (DynAM::initialized())
+		MLOG("Dynamic %s library loaded\n", vm["amlib"].as<string>().c_str());
+	else
+		MLOG("Dynamic library not loaded\n");
+
 
 	// read model file
 	MedModel model;
@@ -1263,12 +876,16 @@ int main(int argc, char *argv[])
 
 
 	// Initialize AlgoMarker
+	MLOG("Creating AM\n");
 	AlgoMarker *test_am;
 
-	if (AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am) != AM_OK_RC) {
-		MERR("ERROR: Failed creating test algomarker\n");
-		return -1;
+	int rc_am_init = DYN(AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am));
+
+	if (rc_am_init != AM_OK_RC) {
+			MERR("ERROR: Failed creating test algomarker\n");
+			return -1;
 	}
+
 
 	MLOG("Name is %s\n", test_am->get_name());
 
@@ -1277,10 +894,24 @@ int main(int argc, char *argv[])
 		m_am->set_am_matrix(vm["am_csv"].as<string>());
 	}
 
-	if ((rc = AM_API_Load(test_am, vm["amconfig"].as<string>().c_str())) != AM_OK_RC) {
+	// Load
+	MLOG("Loading AM\n");
+	rc = DYN(AM_API_Load(test_am, vm["amconfig"].as<string>().c_str()));
+	if (rc != AM_OK_RC) {
 		MERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), rc);
 		return -1;
 	}
+
+	// Additional load
+	if (vm["json_dict"].as<string>() != "") {
+		MLOG("Additional Loading AM\n");
+		rc = DYN(AM_API_AdditionalLoad(test_am, LOAD_DICT_FROM_FILE, vm["json_dict"].as<string>().c_str()));
+		if (rc != AM_OK_RC) {
+			MERR("ERROR: Failed additional loading of dict : algomarker %s with dict file %s ERR_CODE: %d\n", test_am->get_name(), vm["json_dict"].as<string>().c_str(), rc);
+			return -1;
+		}
+	}
+
 
 	// test that AM repo. contains all the required signal
 	unordered_set<string> am_signals;

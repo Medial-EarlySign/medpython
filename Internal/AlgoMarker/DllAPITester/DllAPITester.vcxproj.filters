@@ -18,5 +18,8 @@
     <ClCompile Include="DllAPITester.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="old_code_to_keep.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>
