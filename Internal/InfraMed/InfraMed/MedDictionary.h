@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <json/json.hpp>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ public:
 	map<int, vector<int>> Set2Members;	// for each set a vector of all members of that set
 	map<int, vector<int>> Member2Sets;	// for each id - a vector of all sets the id is a member of
 	int dict_id;	// for debug
-	unordered_set<string> section_name; // for debug
+	unordered_set<string> section_name; // for debug and for checking if a signal related to this dictionary
 
 	void clear() { fnames.clear(); Name2Id.clear(); MemberInSet.clear(); Set2Members.clear(); }
 	int read(const string &fname);
@@ -60,6 +61,8 @@ public:
 	// APIs to push new values into a dictionary
 	void push_new_def(string name, int id); // { Name2Id[name] = id; Id2Name[id] = name; Id2Names[id].push_back(name); }
 	void push_new_set(int set_id, int member_id);
+	
+
 
 	// write to file : mode=1: only defs, mode=2: defs+sets
 	int write_to_file(string fout, int mode = 1);
@@ -160,6 +163,12 @@ public:
 	// APIs to add a new dictionary section - this is needed in some cases of creating virtual signals that are categorial
 	void add_section(string new_section_name); // { MedDictionary dummy; dicts.push_back(dummy); SectionName2Id[new_section_name] = (int)dicts.size() - 1; }
 	void connect_to_section(string new_section_name, int section_id); // { SectionName2Id[new_section_name] = section_id; }
+
+	// push new defs/sets from a json object:
+	// new elements get an automatic new id.
+	// sets: elements must already be defined.
+	int add_json(json &js);
+
 };
 
 

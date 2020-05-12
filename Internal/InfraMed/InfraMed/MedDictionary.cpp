@@ -733,3 +733,55 @@ void MedDictionarySections::connect_to_section(string new_section_name, int sect
 	lock_guard<mutex> guard(lock_dict_changes);
 	SectionName2Id[new_section_name] = section_id;
 }
+
+//------------------------------------------------------------------------------------------------------
+int MedDictionarySections::add_json(json &js)
+{
+//	if (js.find("dictionary") == js.end())
+//		MTHROW_AND_ERR("MedDictionary: got json with no dictionary tag\n");
+
+	for (auto &jsig : js["dictionary"]) {
+
+		if (jsig.find("signal") != jsig.end()) {
+
+			int section = section_id(jsig["signal"].get<string>());
+			MedDictionary &sdict = dicts[section];
+
+			// first pass : add all defs
+			int max_id = sdict.Id2Name.rbegin()->first;
+			for (auto &jdef : jsig["signal_map"]) {
+				if (jdef.find("def") != jdef.end()) {
+
+					// if not defined, will add it
+					string def = jdef["def"].get<string>();
+
+					if (sdict.Name2Id.find(def) == sdict.Name2Id.end()) {
+						// new def addition
+						max_id++;
+						sdict.push_new_def(def, max_id);
+					}
+				}
+			}
+
+			// second pass : add all sets
+			for (auto &jdef : jsig["signal_map"]) {
+				if (jdef.find("def") != jdef.end() && jdef.find("sets") != jdef.end()) {
+
+					// if not defined, will add it
+					string def = jdef["def"].get<string>();
+					int member_id = sdict.Name2Id[def];
+
+					for (auto &s : jdef["sets"]) {
+						string dset = s.get<string>();
+						if (sdict.Name2Id.find(dset) != sdict.Name2Id.end()) {
+							sdict.push_new_set(sdict.Name2Id[dset], member_id);
+						} else
+							MTHROW_AND_ERR("MedDictionary: json dict : %s is used but not defined previously\n", dset.c_str());
+					}
+				}
+			}
+		} 
+	}
+
+	return 0;
+}
