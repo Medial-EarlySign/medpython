@@ -13,6 +13,7 @@ class DynAM {
 public:
 	typedef int(*t_AM_API_Create)(int am_type, AlgoMarker **new_am);
 	typedef int(*t_AM_API_Load)(AlgoMarker * pAlgoMarker, const char *config_fname);
+	typedef int(*t_AM_API_AdditionalLoad)(AlgoMarker * pAlgoMarker, const int load_type, const char *load);
 	typedef int(*t_AM_API_ClearData)(AlgoMarker * pAlgoMarker);
 	typedef int(*t_AM_API_AddData)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	typedef int(*t_AM_API_AddDataStr)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
@@ -37,6 +38,7 @@ public:
 	typedef void(*t_AM_API_DisposeRequest)(AMRequest*);
 	void *addr_AM_API_Create = nullptr;
 	void *addr_AM_API_Load = nullptr;
+	void *addr_AM_API_AdditionalLoad = nullptr;
 	void *addr_AM_API_ClearData = nullptr;
 	void *addr_AM_API_AddData = nullptr;
 	void *addr_AM_API_AddDataStr = nullptr;
@@ -84,12 +86,14 @@ public:
 	static int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
 	static int AM_API_Create(int am_type, AlgoMarker **new_am);
 	static int AM_API_Load(AlgoMarker * pAlgoMarker, const char *config_fname);
+	static int AM_API_AdditionalLoad(AlgoMarker * pAlgoMarker, const int load_type, const char *load);
 	static int AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	static int AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	static int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 	static int AM_API_CreateResponses(AMResponses **new_responses);
 	static int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 
+	static bool initialized() { return (sos.size() > 0); }
 };
 
 

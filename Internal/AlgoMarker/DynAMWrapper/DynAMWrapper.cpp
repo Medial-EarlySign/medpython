@@ -62,6 +62,7 @@ int DynAM::load(const char * am_fname){
   printf("OK\n");
   so->addr_AM_API_Create = load_sym(lib_handle, "AM_API_Create");
   so->addr_AM_API_Load = load_sym(lib_handle, "AM_API_Load");
+  so->addr_AM_API_AdditionalLoad = load_sym(lib_handle, "AM_API_AdditionalLoad");
   so->addr_AM_API_ClearData = load_sym(lib_handle, "AM_API_ClearData");
   so->addr_AM_API_AddData = load_sym(lib_handle, "AM_API_AddData");
   so->addr_AM_API_AddDataStr = load_sym(lib_handle, "AM_API_AddDataStr", false);
@@ -173,6 +174,11 @@ int DynAM::AM_API_Create(int am_type, AlgoMarker **new_am){
 int DynAM::AM_API_Load(AlgoMarker * pAlgoMarker, const char *config_fname){
   return (*((DynAM::t_AM_API_Load)DynAM::so->addr_AM_API_Load))
     (pAlgoMarker, config_fname);
+}
+
+int DynAM::AM_API_AdditionalLoad(AlgoMarker * pAlgoMarker, const int load_type , const char *load) {
+	return (*((DynAM::t_AM_API_AdditionalLoad)DynAM::so->addr_AM_API_AdditionalLoad))
+		(pAlgoMarker, load_type, load);
 }
 
 int DynAM::AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values){
