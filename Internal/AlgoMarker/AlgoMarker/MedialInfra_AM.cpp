@@ -66,8 +66,8 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 			return AM_ERROR_LOAD_READ_MODEL_ERR;
 		if (ma.model_check_required_signals() < 0)
 			return AM_ERROR_LOAD_MISSING_REQ_SIGS;
-		if (ma.init_model_for_apply() < 0)
-			return AM_ERROR_LOAD_READ_MODEL_ERR;
+		//if (ma.init_model_for_apply() < 0)
+		//	return AM_ERROR_LOAD_READ_MODEL_ERR;
 		
 	}
 	catch (...) {
@@ -77,6 +77,7 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 
 	ma.data_load_init();
 	// That's it. All is ready for data insert and prediction cycles
+	is_loaded = true;
 	return AM_OK_RC;
 }
 
@@ -87,6 +88,7 @@ int MedialInfraAlgoMarker::Unload()
 {
 	ClearData();
 	ma.clear();
+	is_loaded = false;
 	return AM_OK_RC;
 }
 
@@ -116,6 +118,7 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 		// currently assuming we only work with dates ... will have to change this when we'll move to other units
 		for (int i = 0; i < TimeStamps_len; i++) {
 			times_int[i] = AMPoint::auto_time_convert(TimeStamps[i], tu);
+			//MLOG("time convert %ld to %d\n", TimeStamps[i], times_int[i]);
 		}
 		i_times = &times_int[0];
 	}
@@ -172,6 +175,11 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
+			return AM_FAIL_RC;
+	}
+
+	if (!ma.model_initiated()) {
+		if (ma.init_model_for_apply() < 0)
 			return AM_FAIL_RC;
 	}
 
@@ -373,6 +381,38 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		shared_msgs->insert_message(AM_RESPONSES_ELIGIBILITY_ERROR, msg.c_str());
 		return AM_FAIL_RC;
 	}
+
+	return AM_OK_RC;
+}
+
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
+{
+	if (!is_loaded) return AM_ERROR_MUST_BE_LOADED;
+	if (LoadType != LOAD_DICT_FROM_FILE && LoadType != LOAD_DICT_FROM_JSON)
+		return AM_ERROR_UNKNOWN_LOAD_TYPE;
+
+	json js;
+
+	if (LoadType == LOAD_DICT_FROM_FILE) {
+		string sload;
+		string f_in(load);
+		if (read_file_into_string(f_in, sload) < 0)
+			return AM_ERROR_READING_DICT_FILE;
+		js = json::parse(sload);
+	}
+	else
+		js = json::parse(load);
+
+	try {
+		ma.add_json_dict(js);
+	}
+	catch (...) {
+		return AM_ERROR_PARSING_JSON_DICT;
+	}
+
+	// now that we added the json dictionary, we need to reinitialize the model ! as it needs to prepare potential tables using these new definitions and sets
+	//ma.init_model_for_apply();
 
 	return AM_OK_RC;
 }

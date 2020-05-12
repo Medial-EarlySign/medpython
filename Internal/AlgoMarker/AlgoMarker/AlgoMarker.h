@@ -56,6 +56,11 @@ typedef enum {
 	AM_TYPE_SIMPLE_EXAMPLE_EGFR = 2,
 } AlgoMarkerType;
 
+
+// Extension modes options
+#define LOAD_DICT_FROM_JSON	1001
+#define LOAD_DICT_FROM_FILE	1002
+
 #ifndef ALGOMARKER_FLAT_API
 
 //===============================================================================
@@ -279,6 +284,12 @@ public:
 	virtual int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
+	// Extenstions
+	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
+	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
+	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
+	
+
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);
 
@@ -326,6 +337,7 @@ private:
 	string am_matrix = ""; // for debugging : if not empty will write matrix to given file name
 	int model_end_stage = MED_MDL_END;
 	vector<string> extended_result_fields;
+	bool is_loaded = false;
 
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
@@ -336,11 +348,12 @@ public:
 	int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
+	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 	void set_am_matrix(string s) { am_matrix = s;  }
 	void get_am_rep_signals(unordered_set<string> &am_sigs) { ma.get_rep_signals(am_sigs); } // returns the available 
-	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels) { ma.get_signal_structure(sig, n_time_channels, n_val_channels); }
+	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ) { ma.get_signal_structure(sig, n_time_channels, n_val_channels, is_categ); }
 };
 
 //===============================================================================
@@ -382,6 +395,9 @@ extern "C" DLL_WORK_MODE int AM_API_Create(int am_type, AlgoMarker **new_am);
 
 // loading AlgoMarker and making it ready to get Requests
 extern "C" DLL_WORK_MODE int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname);
+
+// Additional load options for AlgoMarker
+extern "C" DLL_WORK_MODE int AM_API_AdditionalLoad(AlgoMarker* pAlgoMarker, const int load_type, const char *load);
 
 // clearing data from AlgoMarker (recommended at the start and/or end of each query session
 extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);

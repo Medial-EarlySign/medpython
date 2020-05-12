@@ -27,6 +27,7 @@ private:
 	string rep_fname;
 	vector<int> pids;
 	int model_end_stage = MED_MDL_END;
+	bool model_init_done = false;
 
 public:
 
@@ -80,6 +81,7 @@ public:
 
 	// init model for apply
 	int init_model_for_apply() {
+		model_init_done = true;
 		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
 	}
 
@@ -90,6 +92,9 @@ public:
 	// init input_tester
 	//int init_input_tester(const char *_fname) { return ist.read_config(string(_fname)); }
 
+	void add_json_dict(json &js) { rep.dict.add_json(js); }
+
+	bool model_initiated() { return model_init_done; }
 
    //========================================================
    // Loading data to rep
@@ -233,7 +238,7 @@ public:
 	
 	void write_features_mat(const string feat_mat) { model.write_feature_matrix(feat_mat); }
 
-	void get_signal_structure(string &sig, int &n_time_channels, int &n_val_channels)
+	void get_signal_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ)
 	{
 		int sid = this->rep.sigs.sid(sig);
 		if (sid <= 0) {
@@ -243,6 +248,7 @@ public:
 		else {
 			n_time_channels = this->rep.sigs.Sid2Info[sid].n_time_channels;
 			n_val_channels = this->rep.sigs.Sid2Info[sid].n_val_channels;
+			is_categ = &(this->rep.sigs.Sid2Info[sid].is_categorical_per_val_channel[0]);
 		}
 	}
 

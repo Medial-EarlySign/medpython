@@ -237,6 +237,23 @@ int AM_API_Load(AlgoMarker* pAlgoMarker, const char *config_fname)
 
 
 //-----------------------------------------------------------------------------------------------------------
+// Additional load options for AlgoMarker
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_AdditionalLoad(AlgoMarker* pAlgoMarker, const int load_type, const char *load)
+{
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		return pAlgoMarker->AdditionalLoad(load_type, load);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
 // clearing data from AlgoMarker (recommended at the start and/or end of each query session
 //-----------------------------------------------------------------------------------------------------------
 int AM_API_ClearData(AlgoMarker* pAlgoMarker)
