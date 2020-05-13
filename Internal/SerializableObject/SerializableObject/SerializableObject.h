@@ -64,11 +64,6 @@ public:
 	virtual size_t deserialize(vector<unsigned char> &blob) { return deserialize_vec(blob); }
 
 
-	//template <class T> void copy_object(T* dst) { 
-	//	vector<unsigned int> blob; 
-	//	serialize(blob);
-	//	dst->deserialize(blob);
-	//}
 
 	/// read and deserialize model
 	virtual int read_from_file(const string &fname);
@@ -89,6 +84,13 @@ public:
 private:
 	void _read_from_file(const string &fname, bool throw_on_version_error);
 };
+
+template <class T> void copy_serializeable_object(T &source, T& dst) {
+	vector<unsigned int> blob;
+	source.serialize(blob);
+	dst.deserialize(blob);
+}
+
 
 // generalized safe stoi/stof
 float med_stof(const string& _Str);
