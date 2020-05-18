@@ -8,10 +8,14 @@
 */
 class DiabetesFinderGenerator : public FeatureGenerator {
 	// dm related privates
-	int df_drug_idx = -1; // idx for drug signal in usvs, sig_ids, etc...
-	int df_diagnoses_idx = -1;
-	int df_glucose_idx = -1;
-	int df_hba1c_idx = -1;
+	int df_drug_sid = -1; // idx for drug signal in usvs, sig_ids, etc...
+	int df_diagnosis_sid = -1;
+	int df_coded_sid = -1;
+	int df_glucose_sid = -1;
+	int df_hba1c_sid = -1;
+	int df_drug_section_id = -1;
+	int df_diagnosis_section_id = -1;
+	int df_coded_section_id = -1;
 
 	enum {
 		REASON_RECENT_LABS = 1,
@@ -36,6 +40,9 @@ class DiabetesFinderGenerator : public FeatureGenerator {
 		int de_type;
 		float val;
 		bool is_second = false;
+		bool is_first = false;
+		bool is_non_dm = false;
+		string reason = "";
 
 		DiabetesEvent() {};
 		DiabetesEvent(int _type, int _time,  float _val) { time = _time; de_type = _type; val = _val; }
@@ -44,7 +51,7 @@ class DiabetesFinderGenerator : public FeatureGenerator {
 	vector<unsigned char> df_diagnosis_lut;
 	vector<unsigned char> df_coded_lut;
 
-	int _resolve(vector<DiabetesEvent>& df_events, int calc_time, json& json_out);
+	int _resolve(PidDynamicRec& rec, vector<DiabetesEvent>& df_events, int coded_date, int coded_val, int calc_time, json& json_out);
 public:
 
 	bool df_score_is_flag = true;
@@ -53,16 +60,18 @@ public:
 	// dm registry related parameters
 	vector<string> df_drug_sets = { "ATC_A10_____" };
 	//TODO - Diabetes diagnosis sets?
-	vector<string> df_coded_sets;
+	vector<string> df_coded_sets; // if not given explicitly will be defaulted to df_diagnosis sets
 
 	vector<string> df_diagnosis_sets;
-	string df_diagnosis_sig = "RC";
-	string df_coded_sig = "RC";
+	string df_diagnosis_sig = "RC"; // These are optional sig + diagnosis codes (in df_diagnosis_sets) that can point to Diabetes but are not in the coded sig and sets.
+	string df_coded_sig = "RC"; // This is the signal that will define who's coded (along with the df_coded_sets)
 	string df_glucose_sig = "Glucose";
 	string df_hba1c_sig = "HbA1C";
 	string df_drug_sig = "Drug";
 	int df_diagnoses_severity = 4; // 3: need supporting evidence as well, 4: single code is enough
 	int df_bio_mode = 0; // bio mode - takes the FIRST suggestive test for a condition 
+	int df_output_verbosity = 2; // 1 - "score" only, 2 - add reason for detected date, 3 - add all supporting evidences in history
+	int df_output_non_dm_period = 0; // 1 - report also the period of non dm tests prior to the predition time
 	
 	int df_past_event_days = (365)*3;
 	float df_by_single_glucose = 200.0f;
@@ -89,6 +98,7 @@ public:
 	int init(map<string, string>& mapper);
 	
 	void init_tables(MedDictionarySections& dict);
+	void set_signal_ids(MedSignals& sigs);
 
 	void init_defaults();
 
@@ -104,7 +114,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(DiabetesFinderGenerator)
-		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, req_signals, df_drug_sets, df_coded_sets, df_diagnosis_sets, df_diagnosis_sig, df_coded_sig, df_glucose_sig, 
+	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, req_signals, df_drug_sets, df_coded_sets, df_diagnosis_sets, df_diagnosis_sig, df_coded_sig, df_glucose_sig, 
 			df_hba1c_sig, df_drug_sig, df_past_event_days, df_by_single_glucose, df_by_second_glucose, df_by_second_hba1c, df_by_second_time_delta_days)
 };
 
