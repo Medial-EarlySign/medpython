@@ -3813,6 +3813,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		rec.uget(in_sid, iver, usv);
 
 		//MLOG("working on iver %d , time %d dont_look_back %d\n", iver, time_points[iver], dont_look_back);
+
+		// max_look_at_time : a safety parameter enabling to make sure we are NOT looking at presctiptions from the current (or very near to) days.
 		int max_look_at_time = med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration);
 		//MLOG("max_look_at_time %d\n", max_look_at_time);
 
@@ -3826,6 +3828,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				if (duration < min_duration) duration = min_duration;
 				if (duration > max_duration) duration = max_duration;
 				int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, duration, time_unit_duration);
+
+				// at this point we have i_val and we assume it happens in the time range [i_time, to_time]
+				// we used the duration and fixed it to its min/max values.
+
 				for (int j = 0; j < N; j++) {
 
 					if (categories_luts[j][i_val]) {
@@ -3852,13 +3858,17 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		// now packing these into states
 		// first step : get a single chain of events
 		// we encode the events with a +1 on the index, 1 for start, and 0 for end
+		// general idea: create an event for every start and end of an interval and later sort it and pass over it.
 		vector<category_event_state> ev;
 		for (int j = 0; j < N; j++)
 			for (auto &e : time_intervals[j])
 				//if (e.first > 0) {
 				if (e.first_appearance > 0) {
 
+					// start of an interval
 					ev.push_back(category_event_state(e.first_appearance, e.last_time, j, 1));
+
+					// end of an interval : we have some uncertainty regarding the EXACT time to code the drug OFF in the range [e.last_appearance, e.last_time]
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
@@ -3878,10 +3888,13 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				if (min_time < ev[i].time) {
 					for (int j = i - 1; j > 0; j--) {
 						if (ev[j].type) {
+							// this is a start event
+
 							if (ev[j].time < min_time)
-								break;
+								break; // no need to keep testing, all times will be lower (since sorted).
+
 							if (ev[j].categ != ev[i].categ)
-								ev[i].time = ev[j].time;
+								ev[i].time = ev[j].time; // new stop time is shortened to the start time of the starting event. earliest one will survive.
 						}
 					}
 				}
@@ -3950,6 +3963,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				//MLOG("##1.1## j %d state %d %d : v1 %x v2 %x v3 %x len %d min_jitter %d\n", j, states[j].first, states[j].second, v1,v2,v3,len,min_jitter);
 				if (len < min_jitter && (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1))) {
 					//MLOG("##1.2## j %d state %d %d\n", j, states[j].first, states[j].second);
+					states[j + 1].first = states[j].first;
 					continue;
 				}
 			}

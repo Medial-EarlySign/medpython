@@ -1820,7 +1820,7 @@ struct category_time_interval {
 	int first_appearance = 0;
 	int last_appearance = 0;
 	int n_appearances = 0;
-	int last_time = 0;
+	int last_time = 0; // last_appearance + duration
 
 	category_time_interval() {};
 	category_time_interval(int _first, int _last, int _n, int _last_time) { first_appearance = _first; last_appearance = _last; n_appearances = _n; last_time = _last_time; }
