@@ -263,6 +263,12 @@ private:
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 
+	// Applying non FTR_CATEGORY_SET_* types to categorical data
+	unordered_set<int> categ_require_dict = { FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_LAST_NTH_VALUE }; // Types that requriew dictionary if applied on categorical data
+	unordered_set<int> categ_forbidden = { FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE,  FTR_STD_VALUE, FTR_LAST_DELTA_VALUE,
+		FTR_SLOPE_VALUE,FTR_WIN_DELTA_VALUE, FTR_MAX_DIFF,FTR_RANGE_WIDTH, FTR_SUM_VALUE }; // Types that are not allowed for categorical data
+	map<string, int> categ_value2id;
+
 public:
 	// Feature Descrption
 	string signalName;
@@ -294,6 +300,8 @@ public:
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
+	vector<float> categ_map;					///< to be used when applying non FTR_CATEGORY_SET_* types to categorical data
+	bool apply_categ_map;
 
 	// Naming 
 	void set_names();
@@ -356,7 +364,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing)
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing, categ_value2id)
 
 };
 

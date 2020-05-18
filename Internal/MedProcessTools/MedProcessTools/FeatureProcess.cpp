@@ -1007,6 +1007,7 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 		else if (field == "allow_other") allow_other = (med_stoi(entry.second) != 0);
 		else if (field == "remove_last") remove_last = (med_stoi(entry.second) != 0);
 		else if (field == "max_values") max_values = med_stoi(entry.second);
+		else if (field == "other_suffix") other_suffix = entry.second;
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
 		//! [OneHotFeatProcessor::init]
@@ -1019,7 +1020,7 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
-string OneHotFeatProcessor::get_feature_name(float value, const string &out_prefix, const unordered_map<float, string> &value2Name, float missing_value) {
+string OneHotFeatProcessor::get_feature_name(float value, const string &out_prefix, unordered_map<float, string> &value2Name, float missing_value) {
 	stringstream s;
 
 	s << out_prefix << ".";
@@ -1030,8 +1031,8 @@ string OneHotFeatProcessor::get_feature_name(float value, const string &out_pref
 		s <<  "MISSING_VALUE";
 	else {
 		if (value2Name.find(value) == value2Name.end())
-			MTHROW_AND_ERR("Cannot find value %f for in feature %s value2Name\n", value, resolved_feature_name.c_str());
-		s << value2Name.at(value);
+			MTHROW_AND_ERR("Value %f missing from dictionary for OneHot for feature %s\n", value, feature_name.c_str());
+		s << value2Name[value];
 	}
 
 	return s.str();
@@ -1049,37 +1050,47 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	get_all_values(features, resolved_feature_name, ids, values, 0);
 
 	// Build value2feature
-	unordered_set<float> all_values(values.begin(), values.end());
+	set<float> all_values(values.begin(), values.end());
 	if (all_values.size() > max_values)
 		MTHROW_AND_ERR("Found %zd different values for %s. More than allowed %d\n", all_values.size(), feature_name.c_str(), max_values);
 
+	string feature_name;
+	set<string> feature_names_s;
 	for (float value : all_values) {
-		features_names.insert(get_feature_name(value, out_prefix, features.attributes[resolved_feature_name].value2Name, features.medf_missing_value));
+		string name = get_feature_name(value, out_prefix, features.attributes[resolved_feature_name].value2Name, features.medf_missing_value);
+		value2feature[value] = name;
+		feature_names_s.insert(name);
 	}
 
-	other_feature_name = out_prefix + "." + index_feature_prefix + "_other";
+	if (add_other) {
+		other_feature_name = out_prefix + "." + index_feature_prefix + "_" + other_suffix;
 
+		if (feature_names_s.find(other_feature_name) != feature_names_s.end())
+			MTHROW_AND_ERR("Feature name %s cannot be used for other-value in oneHot for %s. Change using other_suffix\n", other_feature_name.c_str(), feature_name.c_str());
+		feature_names_s.insert(other_feature_name);
+	}
+	
 	// Remove last one
-	if (remove_last && !features_names.empty())
-		removed_feature_name = *features_names.rbegin();
+	if (remove_last && !value2feature.empty())
+		removed_feature_name = *feature_names_s.begin();
 
 	return 0;
 }
 
 int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 
-
 	// Prepare new Features
 	int samples_size = (int)features.samples.size();
-	for (auto& feature_name : features_names) {
-		if (feature_name != removed_feature_name)
+	for (auto& feature_name : value2feature) {
+		string& name = feature_name.second;
+		if (name != removed_feature_name)
 #pragma omp critical
 		{
-			features.data[feature_name].clear();
-			features.data[feature_name].resize(samples_size, 0.0);
+			features.data[name].clear();
+			features.data[name].resize(samples_size, 0.0);
 			// Attributes
-			features.attributes[feature_name].normalized = false;
-			features.attributes[feature_name].imputed = true;
+			features.attributes[name].normalized = false;
+			features.attributes[name].imputed = true;
 		}
 	}
 
@@ -1093,22 +1104,22 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 			features.attributes[other_feature_name].imputed = true;
 		}
 	}
-	string out_prefix = resolved_feature_name;
-	boost::replace_first(out_prefix, feature_name, index_feature_prefix);
+
+
 	// Fill it up
 	for (int i = 0; i < samples_size; i++) {
 		if (ids.empty() || ids.find(features.samples[i].id) != ids.end()) {
 			float num_value = features.data[resolved_feature_name][i];
-			string final_value = get_feature_name(num_value, out_prefix, features.attributes[resolved_feature_name].value2Name, features.medf_missing_value);
-			if (features_names.find(final_value) != features_names.end()) {
-				if (final_value != removed_feature_name)
-					features.data[final_value][i] = 1.0;
+			if (value2feature.find(num_value) != value2feature.end()) {
+				string& name = value2feature[num_value];
+				if (name != removed_feature_name)
+					features.data[name][i] = 1.0;
 			}
 			else {
 				if (add_other)
 					features.data[other_feature_name][i] = 1.0;
 				else if (!allow_other)
-					MTHROW_AND_ERR("Unknown value %s for feature %s\n", final_value.c_str(), feature_name.c_str());
+					MTHROW_AND_ERR("Unknown value %f for feature %s\n", num_value, feature_name.c_str());
 			}
 		}
 	}
@@ -1132,8 +1143,8 @@ bool OneHotFeatProcessor::are_features_affected(unordered_set<string>& out_req_f
 		return true;
 
 	// Otherwise - check in generated features
-	for (auto& feature_name : features_names) {
-		if (out_req_features.find(feature_name) != out_req_features.end())
+	for (auto& feature_name : value2feature) {
+		if (out_req_features.find(feature_name.second) != out_req_features.end())
 			return true;
 	}
 
@@ -1157,8 +1168,6 @@ void OneHotFeatProcessor::update_req_features_vec(unordered_set<string>& out_req
 			in_req_features.insert(resolved_feature_name);
 	}
 }
-
-
 
 
 //=======================================================================================
