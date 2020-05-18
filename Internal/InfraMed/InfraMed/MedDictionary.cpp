@@ -81,6 +81,8 @@ int MedDictionary::read(const string &fname)
 					Id2Name[n_id] = fields[2];
 					if (used.find(fields[2]) == used.end()) {
 						Id2Names[n_id].push_back(fields[2]);
+						if ((Id2LongestName.find(n_id) == Id2LongestName.end()) || (fields[2].length() > Id2LongestName[n_id].length()))
+							Id2LongestName[n_id] = fields[2];
 						used[fields[2]] = 1;
 					}
 					MLOG_D("n_id = %d Name =@@@ %s @@@, name2id %d , id2name %s\n", n_id, fields[2].c_str(), Name2Id[fields[2]], Id2Name[n_id].c_str());
@@ -95,6 +97,8 @@ int MedDictionary::read(const string &fname)
 					Id2Name[n_id] = fields[1];
 					if (used.find(fields[1]) == used.end()) {
 						Id2Names[n_id].push_back(fields[1]);
+						if ((Id2LongestName.find(n_id) == Id2LongestName.end()) || (fields[1].length() > Id2LongestName[n_id].length()))
+							Id2LongestName[n_id] = fields[1];
 						used[fields[1]] = 1;
 					}
 					MLOG_D("SIG n_id = %d Name =@@@ %s @@@, name2id %d , id2name %s\n", n_id, fields[1].c_str(), Name2Id[fields[1]], Id2Name[n_id].c_str());
@@ -577,6 +581,9 @@ void MedDictionary::push_new_def(string name, int id)
 	Name2Id[name] = id;
 	Id2Name[id] = name;
 	Id2Names[id].push_back(name);
+	if ((Id2LongestName.find(id) == Id2LongestName.end()) || (name.length() > Id2LongestName[id].length()))
+		Id2LongestName[id] = name;
+
 }
 
 //-----------------------------------------------------------------------------------------------

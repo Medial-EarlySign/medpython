@@ -20,6 +20,7 @@ public:
 	vector<string> fnames;
 	map<string, int> Name2Id;			// we allow several names for each Id, the first one read will be the "official" name
 	map<int, string> Id2Name;			// from an id to the "official" name
+	map<int, string> Id2LongestName;			// from an id to its most "comprehensive" name
 	map<int, vector<string>> Id2Names;	// a list of all the names given to an id.
 	map<pair<int, int>, int> MemberInSet; // pair.first = set number, pair second = member number
 	map<int, vector<int>> Set2Members;	// for each set a vector of all members of that set
