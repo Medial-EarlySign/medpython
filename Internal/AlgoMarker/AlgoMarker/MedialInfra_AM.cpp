@@ -399,7 +399,7 @@ int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
 		string f_in(load);
 		if (read_file_into_string(f_in, sload) < 0)
 			return AM_ERROR_READING_DICT_FILE;
-		js = json::parse(sload);
+		js = json::parse(sload.c_str());
 	}
 	else
 		js = json::parse(load);
