@@ -505,6 +505,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
 			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
+		if (!categ_map.empty() && (p_feat[i] != missing_val)) p_feat[i] = categ_map[p_feat[i]];
 		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
 	}
 	return 0;
@@ -514,7 +515,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
-
+	// Look-up table for FTR_CATEGORY_SET types
 	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME
 		|| type == FTR_CATEGORY_SET_LAST_NTH) {
 		if (lut.size() == 0) {
@@ -527,23 +528,47 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 	else
 		lut.clear();
 
+	// Look-up tables for categ_require_dict types
+	if (categ_require_dict.find(type) != categ_require_dict.end()) {
+		MedDictionary& _dict = dict.dicts[dict.section_id(signalName)];
+		if (_dict.Id2Name.size() == 0)
+			MTHROW_AND_ERR("Empty dictionary for signal %s\n", signalName.c_str());
+		
+		// Before learning: Generate a map from name (in dictionary) to dictionary-independent value (this also usefull for backward compatability)
+		if (categ_value2id.empty())
+			categ_value2id = _dict.Name2Id;
+
+		// For generation : Generate a map from dictionary value to dictionary-independent value
+		categ_map.resize(_dict.Id2Name.rbegin()->first + 1);
+
+		int maxId = 0;
+		for (auto& rec : categ_value2id) {
+			if (rec.second > maxId)
+				maxId = rec.second;
+		}
+
+		for (auto& rec : _dict.Id2Name) {
+			if (categ_value2id.find(rec.second) == categ_value2id.end())
+				categ_map[rec.first] = maxId + 1;
+			else 
+				categ_map[rec.first] = categ_value2id[rec.second];
+		}
+	}
+
 	return;
 }
 
 void BasicFeatGenerator::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
 	FeatureGenerator::prepare(features, rep, samples);
-	unordered_set<int> allowed_categ_types = { FTR_LAST_VALUE };
 
-	// If last and categorical signal - keep dictionary for One hot rep processor 
-	if ((allowed_categ_types.find(type) != allowed_categ_types.end()) && (rep.sigs.is_categorical_channel(signalId, val_channel)))
-	{
-		if (rep.dict.SectionName2Id.find(signalName) != rep.dict.SectionName2Id.end())
-		{
+	// Handle categorical data
+	if (rep.sigs.is_categorical_channel(signalId, val_channel)) {
+		if (categ_forbidden.find(type) != categ_forbidden.end())
+			MTHROW_AND_ERR("Type %d not allowed on categorical data in BasicFeatureGenerator\n", type);
+		if (categ_require_dict.find(type) != categ_require_dict.end()) {
 			int section_id = rep.dict.SectionName2Id[signalName];
-			for (auto & rec : rep.dict.dicts[section_id].Id2Name)
-			{
+			for (auto& rec : rep.dict.dicts[section_id].Id2Name)
 				features.attributes[names[0]].value2Name[rec.first] = rec.second;
-			}
 		}
 	}
 }
