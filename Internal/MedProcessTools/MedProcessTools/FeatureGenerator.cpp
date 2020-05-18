@@ -514,6 +514,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 
+
 	if (type == FTR_CATEGORY_SET || type == FTR_CATEGORY_SET_COUNT || type == FTR_CATEGORY_SET_SUM || type == FTR_CATEGORY_SET_FIRST || type == FTR_CATEGORY_SET_FIRST_TIME
 		|| type == FTR_CATEGORY_SET_LAST_NTH) {
 		if (lut.size() == 0) {
@@ -527,6 +528,24 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 		lut.clear();
 
 	return;
+}
+
+void BasicFeatGenerator::prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples) {
+	FeatureGenerator::prepare(features, rep, samples);
+	unordered_set<int> allowed_categ_types = { FTR_LAST_VALUE };
+
+	// If last and categorical signal - keep dictionary for One hot rep processor 
+	if ((allowed_categ_types.find(type) != allowed_categ_types.end()) && (rep.sigs.is_categorical_channel(signalId, val_channel)))
+	{
+		if (rep.dict.SectionName2Id.find(signalName) != rep.dict.SectionName2Id.end())
+		{
+			int section_id = rep.dict.SectionName2Id[signalName];
+			for (auto & rec : rep.dict.dicts[section_id].Id2Name)
+			{
+				features.attributes[names[0]].value2Name[rec.first] = rec.second;
+			}
+		}
+	}
 }
 
 void BasicFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
@@ -814,12 +833,12 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 	//MLOG("sets size = %d \n", lut.size());
 	if (sets.size() > 0) {
 		// This is a categorial variable.
-		if (lut.size() == 0) {
-			int section_id = dict.section_id(signalName);
-			//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
-			dict.prep_sets_lookup_table(section_id, sets, lut);
-			//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
-		}
+		//if (lut.size() == 0) {
+		int section_id = dict.section_id(signalName);
+		//MLOG("BEFORE_LEARN:: signalName %s section_id %d sets size %d sets[0] %s\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str());
+		dict.prep_sets_lookup_table(section_id, sets, lut);
+		//MLOG("AFTER_LEARN:: signalName %s section_id %d sets size %d sets[0] %s LUT %d\n", signalName.c_str(), section_id, sets.size(), sets[0].c_str(), lut.size());
+	//}
 	}
 	else {
 		lut.clear();

@@ -351,6 +351,8 @@ public:
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
 
+	void prepare(MedFeatures &features, MedPidRepository& rep, MedSamples& samples);
+
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,

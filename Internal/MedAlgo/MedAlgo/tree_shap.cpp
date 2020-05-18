@@ -109,7 +109,7 @@ void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, un
 	// prepare features_sets (used for grouping)
 	vector<unsigned> feature_sets(mat_x_in.ncols); 
 	for (size_t i = 0; i < feature_sets.size(); i++)
-		feature_sets[i] = i;
+		feature_sets[i] = (int)i;
 
 	unique_ptr<bool[]> x_missing = unique_ptr<bool[]>(new bool[mat_x_in.ncols]);
 	for (size_t i = 0; i < mat_x_in.ncols; ++i)

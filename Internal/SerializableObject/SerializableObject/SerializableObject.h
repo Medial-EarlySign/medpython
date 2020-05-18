@@ -85,10 +85,10 @@ private:
 	void _read_from_file(const string &fname, bool throw_on_version_error);
 };
 
-template <class T> void copy_serializeable_object(T &source, T& dst) {
-	vector<unsigned int> blob;
-	source.serialize(blob);
-	dst.deserialize(blob);
+template <class T> void copy_serializable_object(T &source, T& dst) {
+	vector<unsigned char> blob;
+	source.serialize_vec(blob);
+	dst.deserialize_vec(blob);
 }
 
 

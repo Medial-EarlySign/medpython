@@ -1009,7 +1009,8 @@ public:
 	bool remove_last = false; ///< if true, remove the feature corresponding to the last value to avoid linear dependency
 	int max_values = 32; ///< maximal allowed number of different values
 
-	map<float, string> value2feature;
+	//map<float, string> value2feature;
+	set<string> features_names;
 
 	// Constructor
 	OneHotFeatProcessor() { init_defaults(); }
@@ -1028,10 +1029,11 @@ public:
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	ADD_CLASS_NAME(OneHotFeatProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, features_names)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
+	string get_feature_name(float value, const string &out_prefix, const unordered_map<float, string> &value2Name, float missing_value);
 };
 
 /**

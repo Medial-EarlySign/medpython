@@ -989,11 +989,16 @@ int MedConvert::create_indexes()
 		if (n_pids_extracted % 10000 == 0 && (int)difftime(time(NULL), last_time_print) >= 30) {
 			last_time_print = time(NULL);
 			float time_elapsed = (float)difftime(time(NULL), start);
-			float estimate_time = float(n_open_in_files) / (n_files_opened - n_open_in_files) * time_elapsed;
+			int left_files = n_files_opened - n_open_in_files;
+			float estimate_time = 0;
+			if (left_files > 0)
+				estimate_time = (float(n_open_in_files) / left_files) * time_elapsed;
+			float perc = 0;
+			if (n_files_opened > 0)
+				perc = 100.0*(left_files / float(n_files_opened));
 			MLOG("Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes."
 				" extracted %d pids\n",
-				n_files_opened - n_open_in_files, n_files_opened,
-				100.0*((n_files_opened - n_open_in_files) / float(n_files_opened)),
+				n_files_opened - n_open_in_files, n_files_opened, perc,
 				time_elapsed / 60, estimate_time / 60.0, n_pids_extracted);
 		}
 	}
@@ -1008,7 +1013,7 @@ int MedConvert::create_indexes()
 	}
 	for (auto& entry : missing_forced_signals) {
 		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
-		if (safe_mode && 1.0*entry.second / n_pids_extracted > 0.05)
+		if (n_pids_extracted > 0 && safe_mode && 1.0*entry.second / n_pids_extracted > 0.05)
 			MTHROW_AND_ERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
 	}
 	// all files are closed, all are written correctly
