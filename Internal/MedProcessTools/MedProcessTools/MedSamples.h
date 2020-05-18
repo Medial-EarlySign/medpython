@@ -7,6 +7,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <MedTime/MedTime/MedTime.h>
 #include <unordered_set>
+#include <json/json.hpp>
 
 class MedFeatures;
 
@@ -26,6 +27,7 @@ public:
 	vector<float> prediction;	///< Prediction(s) - empty if non given
 	map<string, float> attributes;	///< Attribute(s) - empty if non given
 	map<string, string> str_attributes;	///< Attribute(s) - empty if non given
+	json jrec;	///< a json record that can be built along side the sample to contain any information in a nice json format
 
 	/// <summary> Constructor </summary>
 	MedSample() { prediction.clear(); }
@@ -229,6 +231,9 @@ public:
 
 	/// <summary> adding splits to the samples given in an external file
 	void add_splits_from_file(string f_splits);
+
+	/// <summary> initializing all jrecs to contain pid and time
+	void init_all_jrecs();
 
 
 	void flatten(vector<MedSample> &flat) const;

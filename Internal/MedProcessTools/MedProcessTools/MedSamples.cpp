@@ -1055,6 +1055,16 @@ void MedSamples::add_splits_from_file(string f_split)
 
 }
 
+//.......................................................................................
+void MedSamples::init_all_jrecs()
+{
+	for (auto &id_s : idSamples)
+		for (auto &s : id_s.samples) {
+			s.jrec += {"patient_id", s.id};
+			s.jrec += {"time", s.time};
+		}
+}
+
 
 void medial::print::print_samples_stats(const vector<MedSample> &samples, const string &log_file) {
 	ofstream fo;
