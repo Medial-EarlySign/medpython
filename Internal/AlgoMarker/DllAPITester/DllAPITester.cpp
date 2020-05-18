@@ -173,7 +173,7 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 			else
 				DYN(AM_API_AddData(am, pid, sig.c_str(), i_time, p_times, i_val, p_vals));
 		}
-		t.take_curr_time();  t_add += t.diff_microsec();
+		t.take_curr_time();  t_add += t.diff_sec();
 	}
 
 	return t_add;
@@ -412,7 +412,8 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 	{ "requestId", reqId.c_str() },
 	{ "customerId", "Earlysign" },
 	{ "calculator" , vm["calculator"].as<string>().c_str() },
-	{ "signals",json::array() }
+	{ "signals",json::array() },
+	{ "patient_id" , pid}
 	};
 	json_out["header"] = {
 		{ "Accept", "application/json" },
@@ -554,7 +555,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 		}
 
 	_t_all.take_curr_time(); t_all += _t_all.diff_sec();
-	MLOG("Time report: t_all %f sec , t_add_data %f sec , t_add_data_api %f micro-sec , t_calculate %f sec\n", t_all, t_add_data, t_add_data_api, t_calculate);
+	MLOG("Time report: t_all %f sec , t_add_data %f sec , t_add_data_api %f sec , t_calculate %f sec\n", t_all, t_add_data, t_add_data_api, t_calculate);
 
 
 	if (write_jsons) {
