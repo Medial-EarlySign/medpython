@@ -301,6 +301,7 @@ public:
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
 	vector<float> categ_map;					///< to be used when applying non FTR_CATEGORY_SET_* types to categorical data
+	bool apply_categ_map;
 
 	// Naming 
 	void set_names();

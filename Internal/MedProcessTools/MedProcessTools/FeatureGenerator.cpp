@@ -505,7 +505,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	for (int i = 0; i < num; i++) {
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
 			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
-		if (!categ_map.empty() && (p_feat[i] != missing_val)) p_feat[i] = categ_map[p_feat[i]];
+		if (apply_categ_map && (p_feat[i] != missing_val)) p_feat[i] = categ_map[p_feat[i]];
 		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
 	}
 	return 0;
@@ -571,6 +571,8 @@ void BasicFeatGenerator::prepare(MedFeatures &features, MedPidRepository& rep, M
 				features.attributes[names[0]].value2Name[rec.first] = rec.second;
 		}
 	}
+
+	apply_categ_map = (rep.sigs.is_categorical_channel(signalId, val_channel) && (!categ_map.empty()));
 }
 
 void BasicFeatGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
