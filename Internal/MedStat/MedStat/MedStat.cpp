@@ -8,6 +8,8 @@
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <Logger/Logger/Logger.h>
+#include <boost/math/distributions/students_t.hpp>
+
 #define LOCAL_SECTION LOG_MEDSTAT
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -740,7 +742,7 @@ float medial::performance::mutual_information(const vector<float>& x, const vect
 		MTHROW_AND_ERR("Size mismatch in calculating mutual information\n");
 	//transofrm into bin idx:
 	unordered_map<float, int> val_to_ind_x, val_to_ind_y;
-	for (float v: x)
+	for (float v : x)
 	{
 		if (val_to_ind_x.find(v) == val_to_ind_x.end()) {
 			int curr_sz = (int)val_to_ind_x.size();
@@ -1749,3 +1751,78 @@ double medial::stats::chi_square_table(double grp1_cntrl, double grp1_cases, dou
 
 	return regScore;
 }
+
+double get_t_test_pvalue(double t, int dof) {
+	if (dof < 1 || t <= 0)
+		return 1;
+	else {
+		boost::math::students_t dist(dof);
+		return (1.0 - boost::math::cdf(dist, t));
+	}
+}
+
+template<typename T> void medial::stats::t_test(const vector<T> &grp1, const vector<T> &grp2,
+	double &t_value, double &degree_of_freedom, double &p_value) {
+	if (grp1.size() < 2 || grp2.size() < 2)
+		MTHROW_AND_ERR("Error medial::stats::t_test - both groups should have more than 1 obs\n");
+	if (grp1.size() != grp2.size())
+		MTHROW_AND_ERR("Error medial::stats::t_test - t test should accept samples with equal size\n");
+	int sz = (int)grp1.size();
+	degree_of_freedom = 2 * (sz - 1);
+
+	T mean1, mean2;
+	mean1 = mean_without_cleaning(grp1);
+	mean2 = mean_without_cleaning(grp2);
+
+	double var1 = pow(std_without_cleaning(grp1, mean1), 2) * sz / (sz - 1);
+	double var2 = pow(std_without_cleaning(grp2, mean2), 2) * sz / (sz - 1);
+	double s = sqrt((var1 + var2) / 2);
+
+	t_value = abs(mean1 - mean2) / (s*sqrt(2 / sz));
+	p_value = get_t_test_pvalue(t_value, degree_of_freedom);
+}
+template void medial::stats::t_test<float>(const vector<float> &grp1, const vector<float> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+template void medial::stats::t_test<double>(const vector<double> &grp1, const vector<double> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+template<typename T> void medial::stats::t_test_unequal_sample_size(const vector<T> &grp1, const vector<T> &grp2,
+	double &t_value, double &degree_of_freedom, double &p_value) {
+	if (grp1.size() < 2 || grp2.size() < 2)
+		MTHROW_AND_ERR("Error medial::stats::t_test - both groups should have more than 1 obs\n");
+	T mean1, mean2;
+	mean1 = mean_without_cleaning(grp1);
+	mean2 = mean_without_cleaning(grp2);
+	double sz1 = (double)grp1.size();
+	double sz2 = (double)grp2.size();
+	degree_of_freedom = sz1 + sz2 - 2;
+
+	double var1 = pow(std_without_cleaning(grp1, mean1), 2) * sz1 / (sz1 - 1);
+	double var2 = pow(std_without_cleaning(grp2, mean2), 2) * sz2 / (sz2 - 1);
+	double s = sqrt((((sz1 - 1)*var1) + ((sz2 - 1)*var2)) / degree_of_freedom);
+	//calc t_test statstic value:
+	t_value = abs(mean1 - mean2) / (s * sqrt((1 / sz1) + (1 / sz2)));
+
+	p_value = get_t_test_pvalue(t_value, degree_of_freedom);
+}
+template void medial::stats::t_test_unequal_sample_size<float>(const vector<float> &grp1, const vector<float> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+template void medial::stats::t_test_unequal_sample_size<double>(const vector<double> &grp1, const vector<double> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+template<typename T> void medial::stats::welch_t_test(const vector<T> &grp1, const vector<T> &grp2,
+	double &t_value, double &degree_of_freedom, double &p_value) {
+	if (grp1.size() < 2 || grp2.size() < 2)
+		MTHROW_AND_ERR("Error medial::stats::welch_t_test - both groups should have more than 1 obs\n");
+	T mean1, std1, mean2, std2;
+	get_mean_and_std_without_cleaning(grp1, mean1, std1);
+	get_mean_and_std_without_cleaning(grp2, mean2, std2);
+	double var1 = std1 * std1;
+	double var2 = std2 * std2;
+	double sz1 = (double)grp1.size();
+	double sz2 = (double)grp2.size();
+
+	double ele = (var1 / sz1) + (var2 / sz2);
+	t_value = abs(mean1 - mean2) / sqrt(ele);
+	degree_of_freedom = pow(ele, 2) / ((pow(var1, 2) / (pow(sz1, 2) * (sz1 - 1))) + (pow(var2, 2) / (pow(sz2, 2) * (sz2 - 1))));
+
+	p_value = get_t_test_pvalue(t_value, degree_of_freedom);
+}
+template void medial::stats::welch_t_test<float>(const vector<float> &grp1, const vector<float> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+template void medial::stats::welch_t_test<double>(const vector<double> &grp1, const vector<double> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
