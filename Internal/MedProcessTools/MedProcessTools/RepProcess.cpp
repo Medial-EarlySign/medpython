@@ -879,6 +879,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			// No need to clean past the latest relevant time-point
 			if (time_points.size() != 0 && itime > time_points[iver])	break;
 
+			//MLOG("Checking pid %d with remove %d %f %f trim %d %f %f\n", rec.pid, params.doRemove, removeMin, removeMax, params.doTrim, trimMin, trimMax);
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
 				//MLOG("pid %d ver %d time %d %s channel %d %f removed\n", rec.pid, iver, itime, signalName.c_str(), val_channel, ival);
