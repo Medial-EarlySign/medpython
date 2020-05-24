@@ -249,22 +249,34 @@ int MedPatientPlotlyDate::add_basic_demographics(string &shtml, PidDataRec &rec,
 {
 	float age;
 	UniversalSigVec usv;
+	int byear_sid = rec.my_base_rep()->sigs.sid("BYEAR");
+	if (byear_sid < 0)
+		MTHROW_AND_ERR("Error repository should have BYEAR in signals\n");
+	int gender_sid = rec.my_base_rep()->sigs.sid("GENDER");
+	if (gender_sid < 0)
+		MTHROW_AND_ERR("Error repository should have GENDER in signals\n");
+	int death_sid = rec.my_base_rep()->sigs.sid("DEATH");
+	if (death_sid < 0)
+		MWARN("WARN repository doesn't have DEATH in signals\n");
 
 	MLOG("add_basic_demographics 1\n");
-	rec.uget("BYEAR", usv);
+	rec.uget(byear_sid, usv);
 	int byear = fetch_usv_val(usv);
-	rec.uget("GENDER", usv);
+	rec.uget(gender_sid, usv);
 	int gender = fetch_usv_val(usv);
-	rec.uget("DEATH", usv);
-	int death = fetch_usv_val(usv);
-	if (death < 0)
-		death = 0;
-
-	MLOG("add_basic_demographics 2 death is %d (len %d)\n", death, usv.len);
+	int death = 0;
+	if (death_sid >= 0) {
+		rec.uget(death_sid, usv);
+		death = fetch_usv_val(usv);
+		if (death < 0)
+			death = 0;
+		MLOG("add_basic_demographics 2 death is %d (len %d)\n", death, usv.len);
+	}
+	
 	shtml += "<h1> Patient Report </h1>\n";
 
 	shtml += "<h3> pid " + to_string(rec.pid()) + " , ";
-	if (gender == 1)
+	if (gender == GENDER_MALE)
 		shtml += "Male , ";
 	else
 		shtml += "Female ,";
@@ -448,7 +460,7 @@ void MedPatientPlotlyDate::get_drugs_heatmap(PidDataRec &rec, vector<int> &_xdat
 		MLOG("%s : ", sets[s][0].c_str());
 		for (int i = 0; i < hmap[s].size(); i++) MLOG("[%d] %f ", i, hmap[s][i]);
 		MLOG("\n");
-	}
+}
 #endif
 
 }

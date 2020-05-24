@@ -10,19 +10,24 @@
 */
 class TrainMissingProcessor : public FeatureProcessor {
 public:
-	vector<string> selected_tags; ///< the selected tags to activeate on
+	vector<string> selected_tags; ///< the selected tags to activate on
+	vector<string> removed_tags; ///< blacklist of tags to skip
 	float missing_value; ///< missing value 
 
 	//grouping of imputattion - for example handle imputations by signal (or other groups):
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
 
 	int add_new_data; ///< how many new data data points to add for train according to sample masks
-	bool sample_masks_with_repeats; ///< Whether or not to sample masks with repeats
-	bool uniform_rand; ///< it True will sample masks uniformlly
-	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
-	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
+	//Sampling options - general parameters:
 	int limit_mask_size; ///< if set will limit mask size in the train - maximal number of missing values
+	bool sample_masks_with_repeats; ///< Whether or not to sample masks with repeats
+	//Sampling random
+	bool uniform_rand; ///< it True will sample masks uniformlly
+	float uniform_rand_p; ///< the p for uniform rand
+	//When Sampling not random uniform_rand is false
+	bool use_shuffle; ///< if not sampling uniformlly, If true will use shuffle (to speed up runtime)
 
+	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
 	bool verbose; ///< print verbose
 
 	TrainMissingProcessor() : FeatureProcessor() { init_defaults(); }
@@ -43,8 +48,9 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TrainMissingProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, missing_value, add_new_data, sample_masks_with_repeats,
-			uniform_rand, use_shuffle, subsample_train, limit_mask_size, grouping, groupNames, group2Inds, verbose)
+		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, removed_tags, missing_value, add_new_data, sample_masks_with_repeats,
+			uniform_rand, uniform_rand_p, use_shuffle, subsample_train, limit_mask_size, grouping, groupNames,
+			group2Inds, verbose)
 private:
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;

@@ -12,6 +12,7 @@ void TrainMissingProcessor::init_defaults() {
 	use_shuffle = true;
 	subsample_train = 0;
 	limit_mask_size = 0;
+	uniform_rand_p = (float)0.5;
 	verbose = true;
 	processor_type = FTR_PROCESS_ADD_MISSING_TO_LEARN;
 	grouping = "";
@@ -25,6 +26,10 @@ int TrainMissingProcessor::init(map<string, string>& mapper) {
 			missing_value = med_stof(it.second);
 		else if (it.first == "add_new_data")
 			add_new_data = med_stoi(it.second);
+		else if (it.first == "selected_tags")
+			boost::split(selected_tags, it.second, boost::is_any_of(","));
+		else if (it.first == "removed_tags")
+			boost::split(removed_tags, it.second, boost::is_any_of(","));
 		else if (it.first == "sample_masks_with_repeats")
 			sample_masks_with_repeats = med_stoi(it.second) > 0;
 		else if (it.first == "uniform_rand")
@@ -35,6 +40,8 @@ int TrainMissingProcessor::init(map<string, string>& mapper) {
 			subsample_train = med_stoi(it.second);
 		else if (it.first == "limit_mask_size")
 			limit_mask_size = med_stoi(it.second);
+		else if (it.first == "uniform_rand_p")
+			uniform_rand_p = med_stof(it.second);
 		else if (it.first == "verbose")
 			verbose = med_stoi(it.second) > 0;
 		else if (it.first == "grouping")
@@ -79,6 +86,56 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 	int nftrs = (int)features.data.size();
 	int train_mat_size = (int)features.samples.size();
 
+	unordered_set<string> whitelist(selected_tags.begin(), selected_tags.end());
+	unordered_set<string> blacklist(removed_tags.begin(), removed_tags.end());
+	vector<bool> allowed_selection(nftrs);
+	for (size_t i = 0; i < nftrs; ++i)
+	{
+		const unordered_set<string> &candidate_tags = features.tags.at(features_nms[i]);
+		bool allowed = whitelist.empty(); //by default allow to select all to generate missing value if whitelist is empty
+		//find in whitelist if needed:
+		string allow_reason = "";
+		for (const string &c : candidate_tags)
+		{
+			allowed = whitelist.find(c) != whitelist.end();
+			if (allowed) {
+				allow_reason = c;
+				break;
+			}
+		}
+		//only if allowed check for blacklist, otherwise not needed:
+		if (allowed) {
+			string black_reason = "";
+			for (const string &c : candidate_tags)
+			{
+				allowed = blacklist.find(c) == blacklist.end(); //allow only if not in blacklist
+				if (!allowed) {
+					black_reason = c;
+					break;
+				}
+			}
+			//check if not allowed now and whitelist was not empty, means tag was in both sets directly - raise error:
+			if (!(allowed) && !whitelist.empty())
+				MTHROW_AND_ERR("Error TrainMissingProcessor::Learn - feature %s is both in whitelist selected_tags (tag=%s) "
+					" and blacklist remove_tags (tag=%s) directly\n",
+					features_nms[i].c_str(), allow_reason.c_str(), black_reason.c_str());
+		}
+		allowed_selection[i] = allowed;
+	}
+	vector<int> skip_grp;
+	for (int i = 0; i < nftrs_grp; ++i) {
+		bool all_not_allowed = true;
+		for (size_t k = 0; k < group2Inds[i].size() && all_not_allowed; ++k)
+			all_not_allowed = !allowed_selection[group2Inds[i][k]];
+		if (all_not_allowed)
+			skip_grp.push_back(i);
+	}
+	int allowed_grp_cnt = nftrs_grp - (int)skip_grp.size();
+	if (nftrs_grp != nftrs && (!whitelist.empty() || !blacklist.empty()))
+		MLOG("INFO :: has %d groups, and can erase values in %d groups after whitelist, blacklist\n",
+			nftrs_grp, allowed_grp_cnt);
+	unordered_set<int> skip_grp_set(skip_grp.begin(), skip_grp.end());
+
 	vector<int> missing_hist(nftrs + 1), added_missing_hist(nftrs + 1), added_grp_hist(nftrs_grp + 1);
 	MedMat<float> x_mat;
 	vector<int> original_samples_id(features.samples.size());
@@ -121,19 +178,23 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			//select row:
 			int row_sel = rnd_row(gen);
 
-			vector<bool> curr_mask; curr_mask.resize(nftrs_grp);
+			//True means - use mat value (don't override with missing values). in this stage it means you can select it
+			vector<bool> curr_mask(nftrs_grp);
 			for (int j = 0; j < nftrs_grp; ++j) {
 				bool has_missing = false;
 				for (size_t k = 0; k < group2Inds[j].size() && !has_missing; ++k)
 					has_missing = x_mat(row_sel, group2Inds[j][k]) == missing_value;
-				curr_mask[j] = !has_missing;
+				curr_mask[j] = !has_missing && (skip_grp_set.find(j) == skip_grp_set.end());
 			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, uniform_rand_p, use_shuffle, limit_mask_size);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, uniform_rand_p, use_shuffle, limit_mask_size);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
+			//fix mask and return skip_grp to True to keep values as they are:
+			for (int g : skip_grp)
+				curr_mask[g] = true;
 
 			//commit mask to curr_row
 			int msn_cnt = 0;

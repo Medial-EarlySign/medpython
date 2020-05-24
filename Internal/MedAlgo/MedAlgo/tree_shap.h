@@ -183,7 +183,7 @@ void dense_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, 
 * Iterative calling to Shapley
 */
 void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &data, tfloat *out_contribs,
-	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose, 
+	const int feature_dependence, unsigned model_transform, bool interactions, unsigned *feature_sets, bool verbose,
 	vector<string>& names, const MedMat<float>& abs_cov_mat, int iteration_cnt, bool max_in_groups);
 
 namespace medial {
@@ -196,7 +196,8 @@ namespace medial {
 		/// \brief generate random mask
 		void generate_mask(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true);
 		/// \brief generate random mask using already existed mask
-		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, bool use_shuffle = true, int limit_zero_cnt = 0);
+		void generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand = false, float uniform_rand_p = 0.5,
+			bool use_shuffle = true, int limit_zero_cnt = 0);
 		/// \brief generate all masks for shapley
 		void sample_options_SHAP(int nfeats, vector<vector<bool>> &all_opts, int opt_count, mt19937 &gen, bool with_repeats
 			, bool uniform_rand = false, bool use_shuffle = true);
@@ -216,7 +217,7 @@ namespace medial {
 		/// \brief calculates minimal set
 		void explain_minimal_set(const MedFeatures &matrix, int selected_sample, int max_tests,
 			MedPredictor *predictor, float missing_value, const vector<vector<int>>& group2index
-			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size, 
+			, vector<float> &features_coeff, vector<float> &scores_history, int max_set_size,
 			float baseline_score, float param_all_alpha, float param_all_beta,
 			float param_all_k1, float param_all_k2, bool verbose);
 

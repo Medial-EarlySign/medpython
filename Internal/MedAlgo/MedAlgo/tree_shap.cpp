@@ -96,8 +96,8 @@ void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, un
 {
 	//create adjusted tree by setting a row according to the mask
 	vector<tfloat> features_vec(mat_x_in.get_ncols(), 0);
-	vector<pair<int,float>> ind_to_val_vec;
-	vector<int> mask(mat_x_in.get_ncols(),0);
+	vector<pair<int, float>> ind_to_val_vec;
+	vector<int> mask(mat_x_in.get_ncols(), 0);
 
 	for (auto & contiditional_variable : contiditional_variables)
 	{
@@ -107,14 +107,14 @@ void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, un
 		mask[i] = 1;
 	}
 	// prepare features_sets (used for grouping)
-	vector<unsigned> feature_sets(mat_x_in.ncols); 
+	vector<unsigned> feature_sets(mat_x_in.ncols);
 	for (size_t i = 0; i < feature_sets.size(); i++)
 		feature_sets[i] = (int)i;
 
 	unique_ptr<bool[]> x_missing = unique_ptr<bool[]>(new bool[mat_x_in.ncols]);
 	for (size_t i = 0; i < mat_x_in.ncols; ++i)
 	{
-		x_missing.get()[i] = false; 
+		x_missing.get()[i] = false;
 	}
 
 	tfloat *R_p = NULL; // R.data()
@@ -131,7 +131,7 @@ void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, un
 	ExplanationDataset instance(features_vec.data(), x_missing.get(), &y, R_p, R_missing.get(), num_X, M, num_R, mat_x_in.ncols);
 	adjusted_trees.resize(this->tree_limit);
 
-	for (unsigned j = 0; j < this->tree_limit; ++j) {	
+	for (unsigned j = 0; j < this->tree_limit; ++j) {
 		this->get_tree(tree, j);
 		tree.create_adjusted_tree(instance, mask.data(), feature_sets.data(), adjusted_trees[j]);
 	}
@@ -169,11 +169,11 @@ void TreeEnsemble::calc_feature_contribs_conditional(MedMat<float> &mat_x_in, un
 			tree_shap(adjusted_tree, instance_eval, instance_contrib.data(), 0, 0, feature_sets.data());
 		}
 		mat_x_out.add_rows(row);
-//		mat_x_out.recordsMetadata.push_back(mat_x_in.recordsMetadata[i]);
+		//		mat_x_out.recordsMetadata.push_back(mat_x_in.recordsMetadata[i]);
 		mat_contribs.add_rows(instance_contrib);
 		//mat_contribs.recordsMetadata.push_back(mat_x_in.recordsMetadata[i]);
 	}
-	
+
 	// free trees
 	for (auto &adjusted_tree : adjusted_trees)
 	{
@@ -1787,7 +1787,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 
 		data.get_x_instance(instance, i);
 		vector<int> mask(data.num_Exp, 0);
-		
+
 		// Do iterations
 		MedMat<tfloat> last_instance_contribs(data.num_Exp, 1);
 		MedMat<tfloat> first_instance_contribs(data.M, 1); // for cov/mi fix if used when no groups:
@@ -2003,7 +2003,8 @@ void medial::shapley::generate_mask(vector<bool> &mask, int nfeat, mt19937 &gen,
 	}
 }
 
-void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand, bool use_shuffle, int limit_zero_cnt) {
+void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen, bool uniform_rand, 
+	float uniform_rand_p, bool use_shuffle,	int limit_zero_cnt) {
 	//mask is not empty - sample from non-empty
 	if (limit_zero_cnt >= nfeat)
 		limit_zero_cnt = nfeat; //problem with arguments
@@ -2011,16 +2012,19 @@ void medial::shapley::generate_mask_(vector<bool> &mask, int nfeat, mt19937 &gen
 	if (limit_zero_cnt <= 0) //when not set - or default of no limit
 		limit_zero_cnt = nfeat;
 
-	if (uniform_rand) {
-		uniform_int_distribution<> rnd_coin(0, 1);
-		for (size_t i = 0; i < nfeat; ++i)
-			if (mask[i])
-				mask[i] = (rnd_coin(gen) > 0);
-		return;
-	}
 	int curr_cnt = 0;
 	for (size_t i = 0; i < mask.size(); ++i)
 		curr_cnt += int(!mask[i]); //how many zeros now
+	if (curr_cnt >= limit_zero_cnt)
+		return;
+
+	if (uniform_rand) {
+		uniform_real_distribution<> rnd_coin(0, 1);
+		for (size_t i = 0; i < nfeat; ++i)
+			if (mask[i])
+				mask[i] = (rnd_coin(gen) > uniform_rand_p);
+		return;
+	}
 
 	uniform_int_distribution<> rnd_dist(0, limit_zero_cnt);
 	int zero_count = rnd_dist(gen);
