@@ -589,21 +589,27 @@ int split_file_to_jsons(string fin_name, vector<string> &jsons)
 	string curr_s = "";
 	char ch;
 	int counter = 0;
+	int nch = 0;
+	int in_string = 0;
 	while (fin >> noskipws >> ch) {
-		if (ch == '{') counter++;
+		nch++;
+		if (ch == '\"' || ch == '\'') in_string = 1 - in_string;
+		if ((!in_string) && ch == '{') counter++;
 		if (counter > 0) curr_s += ch;
 
-		if (ch == '}') counter--;
+		if ((!in_string) && ch == '}') counter--;
 		if (counter == 0 && curr_s != "") {
 			jsons.push_back(curr_s);
 			curr_s = "";
+			if (jsons.size() > 0 && jsons.size() % 1000 == 0)
+				MLOG("Found %d jsons so far\n", jsons.size());
 		}
 		if (counter < 0) MTHROW_AND_ERR("Mismatch in {} count in file %s\n", fin_name.c_str());
-		if (jsons.size() > 0 && jsons.size() % 1000 == 0)
-			MLOG("Found %d jsons so far\n", jsons.size());
+		//MLOG("ch %c %d nch %d counter %d curr_s %d\n", ch, ch, nch, counter, curr_s.length());
 	}
 
-	MLOG("Read %d jsons from %s into strings\n", jsons.size(), fin_name.c_str());
+	MLOG("Read %d jsons from %s into strings (debug info: counter = %d)\n", jsons.size(), fin_name.c_str(), counter);
+//	MLOG("debug info: counter = %d nch %d len %d curr_s %s \n", counter , nch, curr_s.length(), curr_s.c_str());
 	fin.close();
 	return 0;
 }
