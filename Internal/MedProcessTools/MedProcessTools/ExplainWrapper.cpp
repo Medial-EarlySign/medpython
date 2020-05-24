@@ -1589,7 +1589,7 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 					has_missing = test_mat(i, processing.group2Inds[j][k]) == missing_value;
 				curr_mask[j] = !has_missing;
 			}
-			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, 0.5, use_shuffle, limit_mask_size);
 			//commit mask:
 			for (int j = 0; j < nftrs_grp; ++j)
 				if (!curr_mask[j]) {
@@ -1671,9 +1671,9 @@ void MissingShapExplainer::_learn(const MedFeatures &train_mat) {
 				curr_mask[j] = !has_missing;
 			}
 
-			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+			medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, 0.5, use_shuffle, limit_mask_size);
 			while (!sample_masks_with_repeats && seen_mask.find(curr_mask) != seen_mask.end())
-				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, use_shuffle, limit_mask_size);
+				medial::shapley::generate_mask_(curr_mask, nftrs_grp, gen, uniform_rand, 0.5, use_shuffle, limit_mask_size);
 			if (!sample_masks_with_repeats)
 				seen_mask.insert(curr_mask);
 
