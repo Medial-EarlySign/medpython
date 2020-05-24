@@ -78,6 +78,8 @@ public:
 	float df_by_single_hba1c = 7.0f;
 	float df_by_second_glucose = 126.0f;
 	float df_by_second_hba1c = 6.5f;
+	float df_pre_d_hba1c = 5.8f;
+	float df_pre_d_glucose = 101.0f;
 	int df_by_second_time_delta_days = (365) * 2;
 
 	// Constructor/Destructor
