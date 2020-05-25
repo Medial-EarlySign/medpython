@@ -1321,7 +1321,28 @@ namespace MedSerialize {
 	template<> inline string object_json<const long long>(const long long &v) { return to_string(v); }
 	template<> inline string object_json<const unsigned long long>(const unsigned long long &v) { return to_string(v); }
 	template<> inline string object_json<const bool>(const bool &v) { return to_string(v); }
+	template<> inline string object_json<int>(int &v) { return to_string(v); }
+	template<> inline string object_json<unsigned int>(unsigned int &v) { return to_string(v); }
+	template<> inline string object_json<float>(float &v) { return to_string(v); }
+	template<> inline string object_json<double>(double &v) { return to_string(v); }
+	template<> inline string object_json<char>(char &v) { return to_string(v); }
+	template<> inline string object_json<unsigned char>(unsigned char &v) { return to_string(v); }
+	template<> inline string object_json<long>(long &v) { return to_string(v); }
+	template<> inline string object_json<long long>(long long &v) { return to_string(v); }
+	template<> inline string object_json<unsigned long long>(unsigned long long &v) { return to_string(v); }
+	template<> inline string object_json<bool>(bool &v) { return to_string(v); }
+	template<> inline string object_json<string>(string &str) { return "\"" + str + "\""; }
 	template<> inline string object_json<const string>(const string &str) { return "\"" + str + "\""; }
+	inline string object_json(int v) { return to_string(v); }
+	inline string object_json(unsigned int v) { return to_string(v); }
+	inline string object_json(float v) { return to_string(v); }
+	inline string object_json(double v) { return to_string(v); }
+	inline string object_json(char v) { return to_string(v); }
+	inline string object_json(unsigned char v) { return to_string(v); }
+	inline string object_json(long v) { return to_string(v); }
+	inline string object_json(long long v) { return to_string(v); }
+	inline string object_json(unsigned long long v) { return to_string(v); }
+	inline string object_json(bool v) { return to_string(v); }
 
 
 }

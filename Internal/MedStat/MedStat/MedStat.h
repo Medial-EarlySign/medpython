@@ -180,6 +180,15 @@ namespace medial {
 
 		double chi_square_table(double grp1_cntrl, double grp1_cases, double grp2_cntrl, double grp2_cases,
 			int smooth_balls = 0, float allowed_error = 0);
+
+		/// <summary> standart t_test - assume equal sample size form both groups </summary>
+		template<typename T> void t_test(const vector<T> &grp1, const vector<T> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+		/// <summary> standart t_test - assume unequal sample size form both groups, but similar variance - no more than factor 2 </summary>
+		template<typename T> void t_test_unequal_sample_size(const vector<T> &grp1, const vector<T> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+		/// <summary> welch t_test when the samples sizes are unequal or the variance of the 2 samples is different </summary>
+		template<typename T> void welch_t_test(const vector<T> &grp1, const vector<T> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
 	}
 }
 

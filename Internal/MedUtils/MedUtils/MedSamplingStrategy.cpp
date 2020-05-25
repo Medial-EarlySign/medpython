@@ -531,6 +531,10 @@ int MedSamplingStick::init(map<string, string>& map) {
 			take_count = med_stoi(it->second);
 		else if (it->first == "sample_with_filters")
 			sample_with_filters = med_stoi(it->second) > 0;
+		else if (it->first == "delta_time")
+			delta_time = med_stoi(it->second);
+		else if (it->first == "delta_time_unit") delta_time_unit = med_time_converter.string_to_type(it->second);
+
 		else
 			MTHROW_AND_ERR("Unsupported parameter %s for Sampler\n", it->first.c_str());
 	}
@@ -572,7 +576,14 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 			UniversalSigVec usv;
 			p_rep->uget(pid, sig_ids[k], usv);
 			for (int l = 0; l < usv.len; ++l)
-				possible_dates.insert(usv.Time(l));
+			{
+				int time = usv.Time(l);
+				if (delta_time != 0)
+					time = med_time_converter.add_subtract_time(time, usv.time_unit(), delta_time, delta_time_unit);
+
+				possible_dates.insert(time);
+			}
+				
 		}
 
 		if (!possible_dates.empty())
