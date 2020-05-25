@@ -240,7 +240,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 
 	if (subsample_train > 0 && subsample_train < train_mat_size) {
 		//do subsampling:
-		MLOG("INFO:: TrainMissingProcessor::Learn - subsampling original train matrix");
+		MLOG("INFO:: TrainMissingProcessor::Learn - subsampling original train matrix\n");
 		unordered_set<int> selected_idx;
 
 		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);

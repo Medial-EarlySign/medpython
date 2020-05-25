@@ -253,6 +253,7 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	while (i < p_matrix->samples.size())
 	{
 		//prepate batch
+		int start_idx_i = i;
 		int curr_sz = 0;
 		MedFeatures apply_batch = batch;
 		for (auto &it : p_matrix->data)
@@ -293,7 +294,7 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 		//aggregate results using collected_preds for each original pred:
 
 		for (size_t j = 0; j < curr_sz; ++j) {
-			unordered_map<string, float> &dict = samples_res[j];
+			unordered_map<string, float> &dict = samples_res[start_idx_i + j];
 			vector<float> &dt = collected_preds[j];
 			float mean, std;
 			medial::stats::get_mean_and_std_without_cleaning(dt, mean, std);
