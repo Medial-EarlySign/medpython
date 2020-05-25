@@ -76,7 +76,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AlcoholGenerator.cpp" />
-    <ClCompile Include="AveragePredsPostProcessor.cpp" />
+    <ClCompile Include="AggregatePredsPostProcessor.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
     <ClCompile Include="Calibration.cpp" />
     <ClCompile Include="CategoryDependencyGenerator.cpp" />
@@ -113,12 +113,12 @@
     <ClCompile Include="SampleFilter.cpp" />
     <ClCompile Include="SmokingGenerator.cpp" />
     <ClCompile Include="StripComments.cpp" />
-    <ClCompile Include="TrainWithMissingProcessor.cpp" />
+    <ClCompile Include="ResampleWithMissingProcessor.cpp" />
     <ClCompile Include="UnifiedSmokingGenerator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlcoholGenerator.h" />
-    <ClInclude Include="AveragePredsPostProcessor.h" />
+    <ClInclude Include="AggregatePredsPostProcessor.h" />
     <ClInclude Include="Calibration.h" />
     <ClInclude Include="CrossValidator.h" />
     <ClInclude Include="DiabetesFinderGenerator.h" />
@@ -146,7 +146,7 @@
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />
     <ClInclude Include="StripComments.h" />
-    <ClInclude Include="TrainWithMissingProcessor.h" />
+    <ClInclude Include="ResampleWithMissingProcessor.h" />
     <ClInclude Include="UnifiedSmokingGenerator.h" />
   </ItemGroup>
   <ItemGroup>

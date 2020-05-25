@@ -2,7 +2,7 @@
 #include "Calibration.h"
 #include <boost/algorithm/string.hpp>
 #include "ExplainWrapper.h"
-#include "AveragePredsPostProcessor.h"
+#include "AggregatePredsPostProcessor.h"
 #include "ProbAdjustPostProcessor.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -28,8 +28,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_KNN_EXPLAIN;
 	else if (lower_p == "iterative_set")
 		return FTR_POSTPROCESS_ITERATIVE_SET;
-	else if (lower_p == "average_preds")
-		return FTR_POSTPROCESS_AVERAGE_PREDS;
+	else if (lower_p == "aggregate_preds")
+		return FTR_POSTPROCESS_AGGREGATE_PREDS;
 	else if (lower_p == "adjust_probs")
 		return FTR_POSTPROCESS_ADJUST;
 	else
@@ -64,8 +64,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new KNN_Explainer;
 	else if (type == FTR_POSTPROCESS_ITERATIVE_SET)
 		prc = new IterativeSetExplainer;
-	else if (type == FTR_POSTPROCESS_AVERAGE_PREDS)
-		prc = new AveragePredsPostProcessor;
+	else if (type == FTR_POSTPROCESS_AGGREGATE_PREDS)
+		prc = new AggregatePredsPostProcessor;
 	else if (type == FTR_POSTPROCESS_ADJUST)
 		prc = new ProbAdjustPostProcessor;
 	else
@@ -104,7 +104,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, LinearExplainer);
 	CONDITIONAL_NEW_CLASS(dname, KNN_Explainer);
 	CONDITIONAL_NEW_CLASS(dname, IterativeSetExplainer);
-	CONDITIONAL_NEW_CLASS(dname, AveragePredsPostProcessor);
+	CONDITIONAL_NEW_CLASS(dname, AggregatePredsPostProcessor);
 	CONDITIONAL_NEW_CLASS(dname, ProbAdjustPostProcessor);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;

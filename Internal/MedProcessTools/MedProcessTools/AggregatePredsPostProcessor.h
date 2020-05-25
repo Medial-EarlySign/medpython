@@ -10,7 +10,7 @@ using namespace std;
 /**
 * Post processor to resample input and apply predictor multiple time with aggregation.
 */
-class AveragePredsPostProcessor : public PostProcessor {
+class AggregatePredsPostProcessor : public PostProcessor {
 private: 
 	MedPredictor *model_predictor = NULL; ///< predictor we're trying to explain
 	FeatureProcessor *feature_processor = NULL; ///< feature processor that manipulate the features - for example imputations for missing values. can be new one without learn
@@ -31,7 +31,7 @@ public:
 	bool print_missing_cnt;
 	//Add: batch_size, resample_cnt, store_mean (or median)
 
-	AveragePredsPostProcessor();
+	AggregatePredsPostProcessor();
 
 	 /// Global init for general args in all explainers
 	int init(map<string, string> &mapper);
@@ -44,14 +44,14 @@ public:
 
 	void dprint(const string &pref) const;
 
-	virtual ~AveragePredsPostProcessor();
+	virtual ~AggregatePredsPostProcessor();
 
-	ADD_CLASS_NAME(AveragePredsPostProcessor)
+	ADD_CLASS_NAME(AggregatePredsPostProcessor)
 		ADD_SERIALIZATION_FUNCS(model_predictor, feature_processor, feature_processor_type, 
 			feature_processor_args, use_median, resample_cnt, batch_size, force_cancel_imputations, 
 			before_processors, after_processors, print_missing_cnt)
 };
 
-MEDSERIALIZE_SUPPORT(AveragePredsPostProcessor)
+MEDSERIALIZE_SUPPORT(AggregatePredsPostProcessor)
 
 #endif

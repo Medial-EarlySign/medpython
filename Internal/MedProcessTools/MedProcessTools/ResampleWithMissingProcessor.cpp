@@ -1,10 +1,10 @@
-#include "TrainWithMissingProcessor.h"
+#include "ResampleWithMissingProcessor.h"
 #include "ExplainWrapper.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-void TrainMissingProcessor::init_defaults() {
+void ResampleMissingProcessor::init_defaults() {
 	missing_value = MED_MAT_MISSING_VALUE;
 	add_new_data = 0;
 	sample_masks_with_repeats = true;
@@ -14,14 +14,14 @@ void TrainMissingProcessor::init_defaults() {
 	limit_mask_size = 0;
 	uniform_rand_p = (float)0.5;
 	verbose = true;
-	processor_type = FTR_PROCESS_ADD_MISSING_TO_LEARN;
+	processor_type = FTR_PROCESS_RESAMPLE_WITH_MISSING;
 	grouping = "";
 }
 
-int TrainMissingProcessor::init(map<string, string>& mapper) {
+int ResampleMissingProcessor::init(map<string, string>& mapper) {
 	for (const auto &it : mapper)
 	{
-		//! [TrainMissingProcessor::init]
+		//! [ResampleMissingProcessor::init]
 		if (it.first == "missing_value")
 			missing_value = med_stof(it.second);
 		else if (it.first == "add_new_data")
@@ -48,14 +48,14 @@ int TrainMissingProcessor::init(map<string, string>& mapper) {
 			grouping = it.second;
 		else if (it.first == "fp_type" || it.first == "use_parallel_learn" || it.first == "use_parallel_apply") {}
 		else
-			MTHROW_AND_ERR("Error in TrainMissingProcessor::init - unsupported argument %s\n", it.first.c_str());
-		//! [TrainMissingProcessor::init]
+			MTHROW_AND_ERR("Error in ResampleMissingProcessor::init - unsupported argument %s\n", it.first.c_str());
+		//! [ResampleMissingProcessor::init]
 	}
 
 	return 0;
 }
 
-void TrainMissingProcessor::dprint(const string &pref, int fp_flag) {
+void ResampleMissingProcessor::dprint(const string &pref, int fp_flag) {
 	string res = this->object_json();
 	boost::replace_all(res, "\n", " ");
 	MLOG("%s :: %s\n", pref.c_str(), res.c_str());
@@ -68,7 +68,7 @@ int _count_msn(const float *vals, int sz, float val) {
 	return res;
 }
 
-int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
+int ResampleMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<string> features_nms;
 	features.get_feature_names(features_nms);
 	if (!grouping.empty())
@@ -116,7 +116,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			}
 			//check if not allowed now and whitelist was not empty, means tag was in both sets directly - raise error:
 			if (!(allowed) && !whitelist.empty())
-				MTHROW_AND_ERR("Error TrainMissingProcessor::Learn - feature %s is both in whitelist selected_tags (tag=%s) "
+				MTHROW_AND_ERR("Error ResampleMissingProcessor::Learn - feature %s is both in whitelist selected_tags (tag=%s) "
 					" and blacklist remove_tags (tag=%s) directly\n",
 					features_nms[i].c_str(), allow_reason.c_str(), black_reason.c_str());
 		}
@@ -240,7 +240,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 
 	if (subsample_train > 0 && subsample_train < train_mat_size) {
 		//do subsampling:
-		MLOG("INFO:: TrainMissingProcessor::Learn - subsampling original train matrix\n");
+		MLOG("INFO:: ResampleMissingProcessor::Learn - subsampling original train matrix\n");
 		unordered_set<int> selected_idx;
 
 		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);

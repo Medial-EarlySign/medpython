@@ -6,7 +6,7 @@
 #include "FeatureProcess.h"
 #include "DoCalcFeatProcessor.h"
 #include "PredictorImputer.h"
-#include "TrainWithMissingProcessor.h"
+#include "ResampleWithMissingProcessor.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -51,8 +51,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_PREDICTOR_IMPUTER;
 	else if (processor_name == "multiplier")
 		return FTR_PROCESS_MULTIPLIER;
-	else if (processor_name == "add_missing_to_learn")
-		return FTR_PROCESS_ADD_MISSING_TO_LEARN;
+	else if (processor_name == "resample_with_missing")
+		return FTR_PROCESS_RESAMPLE_WITH_MISSING;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -92,7 +92,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, GetProbFeatProcessor);
 	CONDITIONAL_NEW_CLASS(dname, PredictorImputer);
 	CONDITIONAL_NEW_CLASS(dname, MultiplierProcessor);
-	CONDITIONAL_NEW_CLASS(dname, TrainMissingProcessor);
+	CONDITIONAL_NEW_CLASS(dname, ResampleMissingProcessor);
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -136,8 +136,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new PredictorImputer;
 	else if (processor_type == FTR_PROCESS_MULTIPLIER)
 		return new MultiplierProcessor;
-	else if (processor_type == FTR_PROCESS_ADD_MISSING_TO_LEARN)
-		return new TrainMissingProcessor;
+	else if (processor_type == FTR_PROCESS_RESAMPLE_WITH_MISSING)
+		return new ResampleMissingProcessor;
 	else
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
 
