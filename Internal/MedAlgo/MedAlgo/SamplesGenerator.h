@@ -248,13 +248,24 @@ public:
 	void post_deserialization();
 
 	ADD_CLASS_NAME(UnivariateSamplesGenerator<T>)
-		ADD_SERIALIZATION_FUNCS(feature_val_agg, names, missing_value, strata_settings, 
-			strata_feature_val_agg, strata_sizes, min_samples)
+		ADD_SERIALIZATION_FUNCS(feature_values, feature_val_probs, strata_feature_val_agg_prob, names, missing_value, strata_settings,
+			strata_sizes, min_samples, strata_feature_val_agg_val)
 private:
-	unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob
-	vector<unordered_map<string, map<T, double>>> strata_feature_val_agg; ///<indexed by strata
+	//new data
+	//global
+	vector<vector<T>> feature_values; ///< first index is feature name, second is order index
+	vector<vector<double>> feature_val_probs; ///< feature name to map of value and prob - first index is feature name, second is order index
+	//by strata
+	vector<vector<vector<T>>> strata_feature_val_agg_val; ///< indexed by strata, feature_name, index of sorted value
+	vector<vector<vector<double>>> strata_feature_val_agg_prob; ///< indexed by strata, feature_name, index of sorted value
+	
+
+	//unordered_map<string, map<T, double>> feature_val_agg; ///< feature name to map of value and prob
+	//vector<unordered_map<string, map<T, double>>> strata_feature_val_agg; ///<indexed by strata
 	vector<int> strata_sizes; ///<the strata size
-	vector<string> names;
+	vector<string> names; ///< names for all features
+
+	T find_pos(const vector<T> &v, const vector<double> &cumsum, double p) const;
 };
 
 MEDSERIALIZE_SUPPORT(MaskedGANParams)

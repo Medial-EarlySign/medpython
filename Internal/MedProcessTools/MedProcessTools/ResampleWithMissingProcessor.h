@@ -4,11 +4,11 @@
 #include "FeatureProcess.h"
 
 /**
-* TrainMissingProcessor:
+* ResampleMissingProcessor:
 * Add missing values to the train matrix for the train process.
 * Should be first feature_processor before imputations/normalization if exists.
 */
-class TrainMissingProcessor : public FeatureProcessor {
+class ResampleMissingProcessor : public FeatureProcessor {
 public:
 	vector<string> selected_tags; ///< the selected tags to activate on
 	vector<string> removed_tags; ///< blacklist of tags to skip
@@ -30,12 +30,12 @@ public:
 	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
 	bool verbose; ///< print verbose
 
-	TrainMissingProcessor() : FeatureProcessor() { init_defaults(); }
+	ResampleMissingProcessor() : FeatureProcessor() { init_defaults(); }
 	// Copy
-	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<TrainMissingProcessor *>(processor)); }
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<ResampleMissingProcessor *>(processor)); }
 
 	/// The parsed fields from init command.
-	/// @snippet TrainWithMissingProcessor.cpp TrainMissingProcessor::init
+	/// @snippet TrainWithMissingProcessor.cpp ResampleMissingProcessor::init
 	int init(map<string, string>& mapper);
 	void init_defaults();
 
@@ -47,7 +47,7 @@ public:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
 	// Serialization
-	ADD_CLASS_NAME(TrainMissingProcessor)
+	ADD_CLASS_NAME(ResampleMissingProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, removed_tags, missing_value, add_new_data, sample_masks_with_repeats,
 			uniform_rand, uniform_rand_p, use_shuffle, subsample_train, limit_mask_size, grouping, groupNames,
 			group2Inds, verbose)
@@ -56,7 +56,7 @@ private:
 	vector<string> groupNames;
 };
 
-MEDSERIALIZE_SUPPORT(TrainMissingProcessor)
+MEDSERIALIZE_SUPPORT(ResampleMissingProcessor)
 
 #endif // !TRAIN_WITH_MISSING_PROCESSOR_H__
 

@@ -36,7 +36,7 @@ typedef enum {
 	FTR_PROCESS_GET_PROB, ///< "get_prob" to create GetProbFeatProcessor - replace categorical feature with probability of outcome in training set
 	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
 	FTR_PROCESS_MULTIPLIER, ///<"multiplier" to create MultiplierProcessor - to multiply feature by other feature
-	FTR_PROCESS_ADD_MISSING_TO_LEARN, ///<"add_missing_to_learn" to create TrainMissingProcessor - adds missing values to learn matrix
+	FTR_PROCESS_RESAMPLE_WITH_MISSING, ///<"resample_with_missing" to create ResampleMissingProcessor - adds missing values to learn matrix
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
