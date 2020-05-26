@@ -200,7 +200,7 @@ void print_msn(const MedFeatures &f, float missing_value, const string &prefix) 
 void AggregatePredsPostProcessor::Learn(const MedFeatures &train_mat) {
 	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
 		unordered_set<int> empt;
-		if (!after_processors.empty()) { //need to cancel imputations
+		if (!p_model->feature_processors.empty() && force_cancel_imputations) { //need to cancel imputations
 			MedFeatures train_mat_for_processor;
 			generate_matrix_till_feature_process(train_mat, train_mat_for_processor);
 			if (print_missing_cnt)
