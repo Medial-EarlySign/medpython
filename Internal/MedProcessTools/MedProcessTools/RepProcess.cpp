@@ -3662,6 +3662,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
 		else if (field == "print_dict") print_dict = entry.second;
+		else if (field == "time_channels") time_channels = med_stoi(entry.second);
 		else if (field == "categories") {
 
 			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
@@ -3696,7 +3697,12 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 	req_signals.insert(in_sig);
 	virtual_signals.clear();
 	virtual_signals_generic.clear();
-	virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
+	if (time_channels == 1)
+		virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
+	else if (time_channels == 2)
+		virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),T(i),V(f)"));
+	else
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - %d time channels not allowed. maximum of 2 \n", time_channels);
 
 	return 0;
 }
@@ -3986,9 +3992,18 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		vector<float> v_vals;
 		if (states.size() > 0) {
 			for (auto &e : unjittered_states) {
-				v_times.push_back(e.first);
+				if (!v_times.empty() && (time_channels == 2))
+				{
+					int end_time = med_time_converter.add_subtract_time(e.first, time_unit_sig, -1, time_unit_duration);
+					v_times.push_back(end_time);
+				}
+				v_times.push_back(e.first);				
 				v_vals.push_back((float)e.second);
 			}
+			//handle last range
+			if (time_channels == 2)
+				v_times.push_back(MAX_DATE);
+
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
 	}

@@ -1881,6 +1881,7 @@ public:
 	MedDictionarySections *_dict; // for debug
 	// next will NOT be serialized, and is here for debug reasons
 	string print_dict = "";
+	int time_channels = 1;
 
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
