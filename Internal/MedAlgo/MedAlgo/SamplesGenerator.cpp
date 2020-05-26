@@ -641,48 +641,13 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 		MWARN("Has %d skipped strats with few samples\n", skip_cnt);
 }
 
-//returns first position before equals search value
-template<class T> inline int binary_search_index(const vector<T> &v, T search, int start, int end) {
-	int maxSize = (end - start) + 1;
-	while (maxSize > 2) {
-		int mid = int((maxSize - 1) / 2);
-		if (search <= v[mid])
-			end = mid;
-		else
-			start = mid;
-		maxSize = (end - start) + 1;
-	}
-
-	//finish, when has 1-2 elements from start to end
-	if (search <= v[start])
-		return start;
-	else if (search <= v[end])
-		return end;
-	else
-		return end + 1;
-}
-
-template<class T> inline int binary_search_index(const vector<T> &v, T search) {
-	return binary_search_index(v, search, 0, (int)v.size() - 1);
-}
-
 template<typename T> T UnivariateSamplesGenerator<T>::find_pos(const vector<T> &v, const vector<double> &cumsum, double p) const {
-	T val = missing_value;
-	for (int k = 0; k < v.size(); ++k)
-		if (cumsum[k] >= p) {
-			val = v[k];
-			break;
-		}
-	return val;
-
-	
-	/*
-	int pos = binary_search_index(cumsum, p);
+	int pos = medial::process::binary_search_position(cumsum, p);
 	//int pos = medial::process::binary_search_position(cumsum.data(), cumsum.data() + cumsum.size() - 1, p);
 	if (pos >= v.size())
 		pos = (int)v.size() - 1;
 	return v[pos];
-	*/
+	
 }
 
 template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
