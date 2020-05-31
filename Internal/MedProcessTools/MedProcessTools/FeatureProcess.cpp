@@ -1007,6 +1007,8 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 		else if (field == "allow_other") allow_other = (med_stoi(entry.second) != 0);
 		else if (field == "remove_last") remove_last = (med_stoi(entry.second) != 0);
 		else if (field == "max_values") max_values = med_stoi(entry.second);
+		else if (field == "regex_list") boost::split(regex_list, entry.second, boost::is_any_of(","));
+		else if (field == "regex_list_names") boost::split(regex_list_names, entry.second, boost::is_any_of(","));
 		else if (field == "other_suffix") other_suffix = entry.second;
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for OneHotFeatProcessor\n", field.c_str());
@@ -1016,6 +1018,9 @@ int OneHotFeatProcessor::init(map<string, string>& mapper) {
 	// Set output names
 	if (index_feature_prefix == "")
 		index_feature_prefix = feature_name;
+
+	if (regex_list.size() != regex_list_names.size())
+		MTHROW_AND_ERR("regex_list with size: %zu, regex_list_names with size: %zu. Should be same size \n", regex_list.size(), regex_list_names.size());
 
 	return 0;
 }
@@ -1028,7 +1033,7 @@ string OneHotFeatProcessor::get_feature_name(float value, const string &out_pref
 	if (value2Name.empty())
 		s << to_string(value);
 	else if (value == missing_value)
-		s <<  "MISSING_VALUE";
+		s << "MISSING_VALUE";
 	else {
 		if (value2Name.find(value) == value2Name.end())
 			MTHROW_AND_ERR("Value %f missing from dictionary for OneHot for feature %s\n", value, feature_name.c_str());
@@ -1045,22 +1050,45 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	string out_prefix = resolved_feature_name;
 	boost::replace_first(out_prefix, feature_name, index_feature_prefix);
 
-	// Get all values
-	vector<float> values;
-	get_all_values(features, resolved_feature_name, ids, values, 0);
-
-	// Build value2feature
-	set<float> all_values(values.begin(), values.end());
-	if (all_values.size() > max_values)
-		MTHROW_AND_ERR("Found %zd different values for %s. More than allowed %d\n", all_values.size(), feature_name.c_str(), max_values);
-
-	string feature_name;
 	set<string> feature_names_s;
-	for (float value : all_values) {
-		string name = get_feature_name(value, out_prefix, features.attributes[resolved_feature_name].value2Name, features.medf_missing_value);
-		value2feature[value] = name;
-		feature_names_s.insert(name);
+	if (regex_list.size() > 0)
+	{
+		// multilabel mode - with regex
+		for (int i = 0; i < regex_list.size(); i++)
+		{
+			boost::regex regf(regex_list[i]);
+			for (auto& value2Name : features.attributes[resolved_feature_name].value2Name)
+			{
+				if (boost::regex_match(value2Name.second, regf)) {
+					unordered_map<float, string> val2name_tmp = { { value2Name.first, regex_list_names[i]} };
+					string name = get_feature_name(value2Name.first, out_prefix, val2name_tmp, features.medf_missing_value);
+					value2feature[value2Name.first].push_back(name);
+					feature_names_s.insert(name);
+				}
+			}
+		}
 	}
+	else
+	{
+		// Get all values
+		vector<float> values;
+		get_all_values(features, resolved_feature_name, ids, values, 0);
+
+		// Build value2feature
+		set<float> all_values(values.begin(), values.end());
+		if (all_values.size() > max_values)
+			MTHROW_AND_ERR("Found %zd different values for %s. More than allowed %d\n", all_values.size(), feature_name.c_str(), max_values);
+
+		string feature_name;
+
+		for (float value : all_values) {
+			string name = get_feature_name(value, out_prefix, features.attributes[resolved_feature_name].value2Name, features.medf_missing_value);
+			value2feature[value].push_back(name);
+			feature_names_s.insert(name);
+		}
+	}
+
+	// Remove last one
 
 	if (add_other) {
 		other_feature_name = out_prefix + "." + index_feature_prefix + "_" + other_suffix;
@@ -1068,12 +1096,11 @@ int OneHotFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 		if (feature_names_s.find(other_feature_name) != feature_names_s.end())
 			MTHROW_AND_ERR("Feature name %s cannot be used for other-value in oneHot for %s. Change using other_suffix\n", other_feature_name.c_str(), feature_name.c_str());
 		feature_names_s.insert(other_feature_name);
+
 	}
-	
 	// Remove last one
 	if (remove_last && !value2feature.empty())
 		removed_feature_name = *feature_names_s.begin();
-
 	return 0;
 }
 
@@ -1082,15 +1109,17 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	// Prepare new Features
 	int samples_size = (int)features.samples.size();
 	for (auto& feature_name : value2feature) {
-		string& name = feature_name.second;
-		if (name != removed_feature_name)
-#pragma omp critical
+		for (string& name : feature_name.second)
 		{
-			features.data[name].clear();
-			features.data[name].resize(samples_size, 0.0);
-			// Attributes
-			features.attributes[name].normalized = false;
-			features.attributes[name].imputed = true;
+			if (name != removed_feature_name)
+#pragma omp critical
+			{
+				features.data[name].clear();
+				features.data[name].resize(samples_size, 0.0);
+				// Attributes
+				features.attributes[name].normalized = false;
+				features.attributes[name].imputed = true;
+			}
 		}
 	}
 
@@ -1111,15 +1140,17 @@ int OneHotFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 		if (ids.empty() || ids.find(features.samples[i].id) != ids.end()) {
 			float num_value = features.data[resolved_feature_name][i];
 			if (value2feature.find(num_value) != value2feature.end()) {
-				string& name = value2feature[num_value];
-				if (name != removed_feature_name)
-					features.data[name][i] = 1.0;
+				for (string& name : value2feature[num_value])
+				{
+					if (name != removed_feature_name)
+						features.data[name][i] = 1.0;
+				}
 			}
 			else {
 				if (add_other)
 					features.data[other_feature_name][i] = 1.0;
 				else if (!allow_other)
-					MTHROW_AND_ERR("Unknown value %f for feature %s\n", num_value, feature_name.c_str());
+					MTHROW_AND_ERR("Unknown value %f for feature %s. Consider using allow_other \n", num_value, feature_name.c_str());
 			}
 		}
 	}
@@ -1143,9 +1174,11 @@ bool OneHotFeatProcessor::are_features_affected(unordered_set<string>& out_req_f
 		return true;
 
 	// Otherwise - check in generated features
-	for (auto& feature_name : value2feature) {
-		if (out_req_features.find(feature_name.second) != out_req_features.end())
-			return true;
+	for (auto& feature_names : value2feature) {
+		for (auto& feature_name : feature_names.second) {
+			if (out_req_features.find(feature_name) != out_req_features.end())
+				return true;
+		}
 	}
 
 	if (add_other &&out_req_features.find(other_feature_name) != out_req_features.end())

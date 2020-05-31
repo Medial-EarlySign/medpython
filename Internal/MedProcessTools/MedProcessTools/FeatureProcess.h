@@ -1008,10 +1008,12 @@ public:
 	bool allow_other = false; ///< if true, values in test, but not in learning-set are allowed
 	bool remove_last = false; ///< if true, remove the feature corresponding to the last value to avoid linear dependency
 	int max_values = 32; ///< maximal allowed number of different values
+	vector<string> regex_list; ///< define multilabel according to regexs list comma separated (don't check values in learn).
+	vector<string> regex_list_names; ///< define the names for the columns in regex_list case.
 	string other_suffix = "other";
 
 	//map<float, string> value2feature;
-	map<float,string> value2feature;
+	map<float,vector<string>> value2feature;
 
 	// Constructor
 	OneHotFeatProcessor() { init_defaults(); }
