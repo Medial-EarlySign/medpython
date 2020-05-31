@@ -1189,7 +1189,7 @@ public:
 	vector<string> sets;
 	float in_range_val = 1; ///< return value when within range
 	float out_range_val = 0; ///< return value when not within range
-
+	bool regex_on_sets = false;
 	SetCalculator() { calculator_name = "set"; };
 	/// @snippet RepCalculators.cpp SetCalculator::init
 	int init(map<string, string>& mapper);
@@ -1685,6 +1685,7 @@ public:
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
 	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 will not filter
 	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel
+	bool regex_on_sets = 0;  ///< Whether to use .*sets[0].* regex to create new sets vector (override original sets)
 
 
 	/// <summary> default constructor </summary>

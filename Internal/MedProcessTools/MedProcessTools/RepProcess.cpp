@@ -3399,6 +3399,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
 		else if (field == "range_operator") range_operator = get_range_op(entry.second);
 		else if (field == "range_val_channel") range_val_channel = med_stoi(entry.second);
+		else if (field == "regex_on_sets") regex_on_sets = (bool)med_stoi(entry.second);
 		else if (field == "sets") { boost::split(sets, entry.second, boost::is_any_of(",;")); }
 		else if (field == "output_type") {
 			if (_is_numeric(entry.second))
@@ -3415,6 +3416,9 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		MTHROW_AND_ERR("ERROR in RepBasicRangeCleaner::init - must provide ranges_sig_name\n");
 	if (output_name.empty()) {
 		output_name = signal_name + "_" + ranges_name;
+		if (sets.size() > 0)
+			output_name += "_" + sets[0];
+
 		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s", output_name.c_str());
 	}
 
@@ -3443,6 +3447,19 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 
 	if (range_val_channel >= 0 && !sets.empty()) {
 		int sec_id = dict.section_id(ranges_name);
+		if (regex_on_sets)
+		{
+			unordered_set<string> aggregated_values;
+			for (auto& s : sets)
+			{
+				vector<string> curr_set;
+				dict.dicts[sec_id].get_regex_names(".*" + s + ".*", curr_set);
+				aggregated_values.insert(curr_set.begin(), curr_set.end());
+			}
+			sets.clear();
+			sets.insert(sets.begin(), aggregated_values.begin(), aggregated_values.end());
+		}
+			
 		dict.prep_sets_lookup_table(sec_id, sets, lut);
 	}
 }

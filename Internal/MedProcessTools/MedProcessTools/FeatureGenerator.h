@@ -219,6 +219,7 @@ typedef enum {
 	FTR_SUM_VALUE=22, ///<"sum" - sum of values in window
 	FTR_LAST_NTH_VALUE = 23, ///<"last_nth" : (set also N_th parameter to use), get the last N_th in window, 0 is last, 1 is last2, etc.
 	FTR_CATEGORY_SET_LAST_NTH = 24, ///<"category_set_last_nth" : (set also N_th parameter to use), check is the last N_th in window is in the given set
+	FTR_TIME_SINCE_LAST_CHANGE = 25, ///<"time_since_last_change" : go over states signal, take last time since the value changed
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -262,6 +263,7 @@ private:
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_time_since_last_change(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 
 	// Applying non FTR_CATEGORY_SET_* types to categorical data
 	unordered_set<int> categ_require_dict = { FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_LAST_NTH_VALUE }; // Types that requriew dictionary if applied on categorical data
@@ -662,6 +664,7 @@ public:
 	int zero_missing = 0;	///< in some cases we may want to get 0 instead of missing values
 	int strict_times = 0;  ///< if on , will ignore cases in which the second time channel is after the prediction time
 	int conditional_channel = -1; ///< in some cases (currently last_nth_len, and time_covered) we allow doing the calculation only on ranges passing the condition of being included in sets in this channel
+	bool regex_on_sets= false;        ///< if on , regex is applied on .*sets[0].*. 
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
