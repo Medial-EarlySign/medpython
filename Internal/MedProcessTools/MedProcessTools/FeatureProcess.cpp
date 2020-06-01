@@ -576,7 +576,8 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Attribute
 #pragma omp critical
 	{
-		features.attributes[resolved_feature_name].normalized = true;
+		if (!resolution_only)
+			features.attributes[resolved_feature_name].normalized = true;
 		if (fillMissing)
 			features.attributes[resolved_feature_name].imputed = true;
 		features.attributes[resolved_feature_name].denorm_mean = mean;
