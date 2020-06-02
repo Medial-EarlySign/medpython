@@ -16,6 +16,7 @@ void ResampleMissingProcessor::init_defaults() {
 	verbose = true;
 	processor_type = FTR_PROCESS_RESAMPLE_WITH_MISSING;
 	grouping = "";
+	duplicate_only_with_missing = false;
 }
 
 int ResampleMissingProcessor::init(map<string, string>& mapper) {
@@ -42,6 +43,8 @@ int ResampleMissingProcessor::init(map<string, string>& mapper) {
 			limit_mask_size = med_stoi(it.second);
 		else if (it.first == "uniform_rand_p")
 			uniform_rand_p = med_stof(it.second);
+		else if (it.first == "duplicate_only_with_missing")
+			duplicate_only_with_missing = med_stoi(it.second) > 0;
 		else if (it.first == "verbose")
 			verbose = med_stoi(it.second) > 0;
 		else if (it.first == "grouping")
@@ -66,6 +69,11 @@ int _count_msn(const float *vals, int sz, float val) {
 	for (size_t i = 0; i < sz; ++i)
 		res += int(vals[i] == val);
 	return res;
+}
+
+string ResampleMissingProcessor::select_learn_matrix(const vector<string> &matrix_tags) const {
+	//creates new tag
+	return my_class_name();
 }
 
 int ResampleMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
@@ -162,7 +170,7 @@ int ResampleMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& i
 		original_samples_id.reserve(original_samples_id.size() + add_new_data);
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
-		uniform_int_distribution<> rnd_row(0, train_mat_size - 1);
+		
 		double log_max_opts = log(add_new_data) / log(2.0);
 		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
@@ -171,15 +179,37 @@ int ResampleMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& i
 		}
 		if (verbose)
 			MLOG("Adding %d Data points (has %d features with %d groups)\n", add_new_data, nftrs, nftrs_grp);
+		vector<int> allowed_to_duplicate_list;
+		int max_opts = train_mat_size;
+		if (duplicate_only_with_missing) {
+			//check who can be duplicated
+			for (int i = 0; i < train_mat_size; ++i)
+			{
+				bool has_missing = false;
+				for (int j = 0; j < x_mat.ncols && !has_missing; ++j)
+					has_missing = x_mat(i, j) == missing_value;
+				if (has_missing)
+					allowed_to_duplicate_list.push_back(i);
+			}
+			if (allowed_to_duplicate_list.size() == train_mat_size)
+				allowed_to_duplicate_list.clear(); //all are allowed
+			else
+				max_opts = (int)allowed_to_duplicate_list.size();
+		}
+
+		uniform_int_distribution<> rnd_row(0, max_opts - 1);
 		MedProgress add_progress("Add_Train_Data", add_new_data, 30, 1);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
 			//select row:
 			int row_sel = rnd_row(gen);
+			if (!allowed_to_duplicate_list.empty()) //fetch real index if has limitation. row_sel is index in allowed_to_duplicate_list
+				row_sel = allowed_to_duplicate_list[row_sel];
 
 			//True means - use mat value (don't override with missing values). in this stage it means you can select it
 			vector<bool> curr_mask(nftrs_grp);
+
 			for (int j = 0; j < nftrs_grp; ++j) {
 				bool has_missing = false;
 				for (size_t k = 0; k < group2Inds[j].size() && !has_missing; ++k)

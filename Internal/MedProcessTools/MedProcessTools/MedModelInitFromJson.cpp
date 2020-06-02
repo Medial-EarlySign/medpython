@@ -161,6 +161,9 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	boost::optional<int> v = pt.get_optional<int>("generate_masks_for_features");
 	if (v)
 		this->generate_masks_for_features = v.get();
+	v = pt.get_optional<int>("take_mean_pred");
+	if (v)
+		this->take_mean_pred = v.get();
 
 	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 

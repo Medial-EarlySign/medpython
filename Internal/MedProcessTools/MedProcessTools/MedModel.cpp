@@ -37,8 +37,13 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 	string _stage = stage;
 	boost::to_lower(_stage);
 
-	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end())
-		MTHROW_AND_ERR("unknown stage %s\n", stage.c_str())
+	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end()) {
+		unordered_map<int, string> op;
+		for (const auto &it : med_mdl_stage_name_to_stage)
+			op[it.second] = it.first;
+		string all_opts = medial::io::get_list_op(op, "\n");
+		MTHROW_AND_ERR("unknown stage %s\nOptions are:\n%s", stage.c_str(), all_opts.c_str())
+	}
 	else
 		return med_mdl_stage_name_to_stage[_stage];
 }
@@ -68,7 +73,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 // special common case of wanting to keep the model matrix training info and retrain predictor
 // note that there will be some mess at the moment regarding post_processors and their exact training list - this is TBD !!!
-int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage) 
+int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage)
 {
 	p_rep = &rep;
 	MLOG("Starting a learn process but skipping the train of the matrix !!!!\n");
@@ -81,6 +86,72 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 	// second: going for a training session for the predictor and on
 	vector<MedSamples> dummy;
 	return(learn(rep, (*samples), dummy, MED_MDL_LEARN_PREDICTOR, end_stage));
+}
+
+void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean) {
+	if (features.samples.size() != sample_ids.size())
+		MTHROW_AND_ERR("Error aggregate_samples - mismatch size (%zu, %zu)\n", features.samples.size(), sample_ids.size());
+
+	int max_id = *max_element(sample_ids.begin(), sample_ids.end());
+	int min_id = 0;
+	vector<bool> seen_id(max_id - min_id + 1);
+	MedFeatures final_f;
+	final_f.attributes = features.attributes;
+	final_f.medf_missing_value = features.medf_missing_value;
+	final_f.tags = features.tags;
+	final_f.time_unit = features.time_unit;
+	vector<vector<float>> col_preds(max_id - min_id + 1);
+	vector<int> ids_ord;
+	for (size_t i = 0; i < sample_ids.size(); ++i)
+	{
+		if (!seen_id[sample_ids[i]]) {
+			seen_id[sample_ids[i]] = true;
+			//take features and create samples. update data,samples,weights,masks:
+			final_f.samples.push_back(features.samples[i]);
+			final_f.weights.push_back(features.weights[i]);
+			for (const auto &it : features.data)
+				final_f.data[it.first].push_back(it.second[i]);
+			for (const auto &it : features.masks)
+				final_f.masks[it.first].push_back(it.second[i]);
+			ids_ord.push_back(sample_ids[i]);
+		}
+		//collect prediction of sample to aggregated:
+		col_preds[sample_ids[i]].push_back(features.samples[i].prediction[0]);
+	}
+	final_f.init_pid_pos_len();
+	//aggregate preds:
+	for (size_t i = 0; i < ids_ord.size(); ++i)
+	{
+		int id = ids_ord[i];
+		vector<float> &collected = col_preds[id]; //at least 1 element
+		float res;
+		if (take_mean)
+			res = medial::stats::mean_without_cleaning(collected);
+		else
+			res = medial::stats::median_without_cleaning(collected, true);
+		//override pred
+		final_f.samples[i].prediction[0] = res;
+	}
+
+	features = move(final_f);
+}
+
+void aggregate_samples(MedFeatures &features, bool take_mean) {
+	//if sample_ids is empty use pid+time:
+	vector<int> sample_ids(features.samples.size());
+	int id = 0;
+	unordered_map<int, unordered_set<int>> pid_to_times;
+	for (size_t i = 0; i < sample_ids.size(); ++i)
+	{
+		if (pid_to_times.find(features.samples[i].id) == pid_to_times.end()
+			|| pid_to_times[features.samples[i].id].find(features.samples[i].time) == pid_to_times[features.samples[i].id].end()) {
+			pid_to_times[features.samples[i].id].insert(features.samples[i].time);
+			++id;
+		}
+		sample_ids[i] = id;
+	}
+
+	aggregate_samples(features, sample_ids, take_mean);
 }
 
 // Learn with multiple MedSamples
@@ -222,7 +293,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 		// Just apply feature processors
 		timer.start();
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features,true) < 0) {
+		if (apply_feature_processors(features, true) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_processors()\n");
 			return -1;
 		}
@@ -257,6 +328,20 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	// saves us a lot of cross-validation mess ...
 	if (start_stage <= MED_MDL_LEARN_POST_PROCESSORS) {
 		MLOG("MedModel::learn() : learn post_processors\n");
+		//aggregate preds from learn process - features might be resampled.
+		if (!post_processors.empty()) {
+			bool need_agg = false;
+			vector<string> m_tags = { "" };
+			for (const FeatureProcessor * fp : feature_processors)
+			{
+				need_agg = fp->select_learn_matrix(m_tags) != "";
+				if (need_agg)
+					break;
+			}
+			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+				aggregate_samples(features, take_mean_pred);
+		}
+
 		for (size_t i = 0; i < post_processors.size(); ++i) {
 			post_processors[i]->init_post_processor(*this);
 
@@ -354,7 +439,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features, req_features_vec,false) < 0) {
+		if (apply_feature_processors(features, req_features_vec, false) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
 		}
@@ -542,7 +627,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 				features_vec[i_feat] = it.second[0];
 				++i_feat;
 			}
-			predictor->predict_single(features_vec,pred_res);
+			predictor->predict_single(features_vec, pred_res);
 			features.samples[0].prediction = move(pred_res);
 		}
 		else {
@@ -746,9 +831,30 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 //.......................................................................................
 int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 {
+	vector<string> matrix_versions = { "" };
+	vector<MedFeatures> allocated_mem_mat;
+
+	unordered_map<string, MedFeatures *> ver_set;
+	ver_set[""] = &features;
 	for (auto& processor : feature_processors) {
-		if (processor->learn(features) < 0) return -1;
-		if (processor->apply(features,true) < 0) return -1;
+		string ver = processor->select_learn_matrix(matrix_versions);
+		if (ver_set.find(ver) == ver_set.end()) {
+			//create new version:
+			matrix_versions.push_back(ver);
+			MedFeatures new_mat = features;
+			allocated_mem_mat.push_back(move(new_mat));
+			ver_set[ver] = &allocated_mem_mat.back();
+		}
+
+		if (processor->learn(*ver_set.at(ver)) < 0) return -1;
+		//Apply on all versions:
+		for (const auto &it : ver_set)
+			if (processor->apply(*it.second, true) < 0) return -1;
+	}
+	//update feature with last version for predcitor - if needed and has more than one version
+	if (matrix_versions.size() > 1) {
+		features = move(*ver_set.at(matrix_versions.back()));
+		MLOG("INFO:: has more than one version of matrix in learn_and_apply\n");
 	}
 	return 0;
 }
@@ -756,8 +862,27 @@ int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 //.......................................................................................
 int MedModel::learn_feature_processors(MedFeatures &features)
 {
-	for (auto& processor : feature_processors)
-		if (processor->learn(features) < 0) return -1;
+	vector<string> matrix_versions = { "" };
+	vector<MedFeatures> allocated_mem_mat;
+
+	unordered_map<string, MedFeatures *> ver_set;
+	ver_set[""] = &features;
+	for (auto& processor : feature_processors) {
+		string ver = processor->select_learn_matrix(matrix_versions);
+		if (ver_set.find(ver) == ver_set.end()) {
+			//create new version:
+			matrix_versions.push_back(ver);
+			MedFeatures new_mat = features;
+			allocated_mem_mat.push_back(move(new_mat));
+			ver_set[ver] = &allocated_mem_mat.back();
+		}
+
+		if (processor->learn(*ver_set.at(ver)) < 0) return -1;
+	}
+	if (matrix_versions.size() > 1) {
+		features = move(*ver_set.at(matrix_versions.back()));
+		MLOG("INFO:: has more than one version of matrix in learn\n");
+	}
 
 	return 0;
 }
@@ -1378,7 +1503,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size() + virtual_signals_generic.size());
 
 }
 
@@ -1417,14 +1542,14 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
-	
+
 	for (auto &vsig : virtual_signals_generic) {
 		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size() + virtual_signals_generic.size());
 
 }
 
@@ -1963,7 +2088,7 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 
 	// Process Features
 	for (auto& processor : feature_processors) {
-		if (processor->apply(_feat,false) < 0)
+		if (processor->apply(_feat, false) < 0)
 			return -1;
 	}
 
@@ -2000,7 +2125,7 @@ int MedModel::get_nfeatures()
 			res += generator->nfeatures();
 	}
 	res += (int)ftr_names.size();
-	
+
 	// next is done in order to return feature list sorted in the order it will be in the final matrix
 	return res;
 }

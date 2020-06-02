@@ -13,6 +13,7 @@ public:
 	vector<string> selected_tags; ///< the selected tags to activate on
 	vector<string> removed_tags; ///< blacklist of tags to skip
 	float missing_value; ///< missing value 
+	bool duplicate_only_with_missing; ///< flag to indicate whether to duplicate only rows with missing values
 
 	//grouping of imputattion - for example handle imputations by signal (or other groups):
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
@@ -29,6 +30,8 @@ public:
 
 	int subsample_train; ///< if not zero will use this to subsample original train sampels to this number
 	bool verbose; ///< print verbose
+
+	string select_learn_matrix(const vector<string> &matrix_tags) const;
 
 	ResampleMissingProcessor() : FeatureProcessor() { init_defaults(); }
 	// Copy
@@ -50,7 +53,7 @@ public:
 	ADD_CLASS_NAME(ResampleMissingProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, removed_tags, missing_value, add_new_data, sample_masks_with_repeats,
 			uniform_rand, uniform_rand_p, use_shuffle, subsample_train, limit_mask_size, grouping, groupNames,
-			group2Inds, verbose)
+			group2Inds, verbose, duplicate_only_with_missing)
 private:
 	vector<vector<int>> group2Inds;
 	vector<string> groupNames;
