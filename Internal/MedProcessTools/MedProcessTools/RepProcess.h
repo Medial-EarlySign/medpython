@@ -1685,8 +1685,9 @@ public:
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
 	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 will not filter
 	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel
-	bool regex_on_sets = 0;  ///< Whether to use .*sets[0].* regex to create new sets vector (override original sets)
-
+	bool regex_on_sets = 0;  ///< Whether to use aggregation of .*sets[i].* regex to create new sets vector (override original sets)
+	int last_n = 0;  ///< instead of looking on sets, take last value from range. 0 means current state, 1 one before, etc.j
+	bool do_on_last_n = false;
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
@@ -1701,6 +1702,8 @@ public:
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
+	bool get_last_n_value(int time, const UniversalSigVec& range_sig, float& last_value);
+
 	/// <summary> Fill required- and affected-signals sets </summary>
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepBasicRangeCleaner::init
@@ -1713,8 +1716,8 @@ public:
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel,
 			req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic,
-			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel)
-
+			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel, last_n, do_on_last_n)
+	
 		/// <summary> Print processors information </summary>
 		void print();
 };
