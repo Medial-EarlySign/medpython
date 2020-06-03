@@ -3583,7 +3583,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				MTHROW_AND_ERR("Not Supported\n");
 			}
 
-			if (j < rec.usvs[1].len && time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1) && (time < time_points[tp_idx]))
+			if (j < rec.usvs[1].len && time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1))
 				doRemove = false;
 
 			if ((doRemove && get_values_in_range) || ((!doRemove) && (!get_values_in_range)))
