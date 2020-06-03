@@ -434,6 +434,19 @@ int MultiFeatureProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
+string MultiFeatureProcessor::select_learn_matrix(const vector<string> &matrix_tags) const {
+	if (processors.empty())
+		return "";
+	string res = processors.front()->select_learn_matrix(matrix_tags);
+	for (size_t i = 1; i < processors.size(); ++i)
+	{
+		string r = processors[i]->select_learn_matrix(matrix_tags);
+		if (r != res)
+			MTHROW_AND_ERR("Error MultiFeatureProcessor::select_learn_matrix - can't select matrix. ascenders has different choises\n");
+	}
+	return res;
+}
+
 //.......................................................................................
 void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 {
@@ -532,6 +545,16 @@ int FeatureBasicOutlierCleaner::_apply(MedFeatures& features, unordered_set<int>
 		}
 	}
 	return 0;
+}
+
+string FeatureNormalizer::select_learn_matrix(const vector<string> &matrix_tags) const {
+	//see if it has more recent matrix - for example with resampling + imputations
+	if (matrix_tags.empty())
+		return "";
+	if (matrix_tags.size() == 1)
+		return matrix_tags.front();
+	//select last one:
+	return matrix_tags.back(); //won't create new tag
 }
 
 //=======================================================================================

@@ -61,6 +61,9 @@ public:
 	/// Safe Mode for train/test intersection
 	int safe_mode = 0;
 
+	/// when having multiple prediction for same samples - how to aggregate preds - mean or median?
+	bool take_mean_pred = true;
+
 	/// All required signal names + ids
 	unordered_set<string> required_signal_names;
 	unordered_set<int> required_signal_ids;
@@ -213,7 +216,7 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet, take_mean_pred)
 
 	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);

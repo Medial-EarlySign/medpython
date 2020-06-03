@@ -51,6 +51,9 @@ public:
 	string feature_name = "unset_feature_name";
 	string resolved_feature_name;
 
+	/// Will be called before learn to create new version for the matrix if needed - in parallel of existing matrix
+	virtual string select_learn_matrix(const vector<string> &matrix_tags) const { return ""; };
+
 	// Type
 	FeatureProcessorTypes processor_type = FTR_PROCESS_LAST;
 
@@ -171,6 +174,8 @@ public:
 
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
+
+	string select_learn_matrix(const vector<string> &matrix_tags) const;
 
 	// Constructor/Destructor
 	MultiFeatureProcessor() { init_defaults(); };
@@ -302,6 +307,8 @@ public:
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
 	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
 
+	string select_learn_matrix(const vector<string> &matrix_tags) const;
+
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 
@@ -399,7 +406,7 @@ public:
 	}
 
 	int getIndex(float missing_val,
-		const vector<const vector<float> *> &strataValues, int row) const{
+		const vector<const vector<float> *> &strataValues, int row) const {
 		int index = 0;
 		for (int i = 0; i < nStratas(); i++)
 			index += factors[i] * stratas[i].getIndex(strataValues[i]->at(row), missing_val);
@@ -436,13 +443,13 @@ public:
 	// Moment (learning/applying)
 	vector<imputeMomentTypes> moment_type_vec;
 	vector<float> default_moment_vec;
-	vector<vector<float>> moments_vec ;
+	vector<vector<float>> moments_vec;
 
 	// For backword compatability ...
 	imputeMomentTypes moment_type = IMPUTE_MMNT_MEAN;
 	float default_moment;
 	vector<float> moments;
-	
+
 	// for sampling-imputation
 	vector < pair<float, float> > default_histogram;
 	vector < vector<pair<float, float> > > histograms;
@@ -1013,7 +1020,7 @@ public:
 	string other_suffix = "other";
 
 	//map<float, string> value2feature;
-	map<float,vector<string>> value2feature;
+	map<float, vector<string>> value2feature;
 
 	// Constructor
 	OneHotFeatProcessor() { init_defaults(); }
@@ -1092,7 +1099,7 @@ public:
 * usefull for example to dividide counting features by membership time cover.
 */
 class MultiplierProcessor : public FeatureProcessor {
-public: 
+public:
 	vector<string> selected_tags; ///< the selected tags to activeate on
 	string multiplier_name; ///< the name of the feature to multiply by
 	bool divide; ///< if true will divide instead of multiply
