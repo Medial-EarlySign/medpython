@@ -477,9 +477,17 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 {
 	process(explain_list);
 	if (zero_missing == 0 || missing_value_mask == NULL) 	return;
+	//check if has groups - has, zero missings must be done before. skip it here:
+	bool has_groups = false;
+	for (const vector<int> &v : group2Inds)
+	{
+		has_groups = v.size() > 1;
+		if (has_groups)
+			break;
+	}
+	
 
-
-	if (!group_by_sum) {
+	if (!has_groups) {
 		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
