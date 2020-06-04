@@ -3538,7 +3538,6 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		if (do_on_last_n)
 			found_last_n = get_last_n_value(time_points[tp_idx], rec.usvs[1], last_value_n);
 
-		MLOG("last_n : %d, last_value_n %f , found_last_n: %d \n", last_n, last_value_n, found_last_n);
 		// Collect elements to keep
 		int nKeep = 0;
 		int j = 0;
