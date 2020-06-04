@@ -212,10 +212,10 @@ typedef enum {
 	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
 	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
 	FTR_CATEGORY_SET_FIRST = 17, ///<"category_set_first" - boolean 0/1 if the signal apears in the time window and did not appear ever before the window
-	FTR_MAX_DIFF = 18, ///<maximum diff in window
-	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
-	FTR_RANGE_WIDTH = 20, ///< maximal value - minimal value in a given window time frame
-	FTR_CATEGORY_SET_FIRST_TIME = 21,
+	FTR_MAX_DIFF = 18, ///<"max_diff" maximum diff in window
+	FTR_FIRST_DAYS = 19, ///<"first_time" time diffrence from prediction time to first time with signal
+	FTR_RANGE_WIDTH = 20, ///<"range_width" maximal value - minimal value in a given window time frame
+	FTR_CATEGORY_SET_FIRST_TIME = 21, ///<"category_set_first_time" - first time of category set found in the time window
 	FTR_SUM_VALUE=22, ///<"sum" - sum of values in window
 	FTR_LAST_NTH_VALUE = 23, ///<"last_nth" : (set also N_th parameter to use), get the last N_th in window, 0 is last, 1 is last2, etc.
 	FTR_CATEGORY_SET_LAST_NTH = 24, ///<"category_set_last_nth" : (set also N_th parameter to use), check is the last N_th in window is in the given set
