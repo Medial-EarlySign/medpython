@@ -33,6 +33,20 @@ typedef enum {
 } MedModelStage;
 
 class PostProcessor;
+
+class ChangeModelInfo :public SerializableObject {
+public:
+	string object_type_name = "";
+	vector<string> json_query_whitelist;
+	vector<string> json_query_blacklist;
+	string change_command = "";
+	bool verbose = true;
+
+	int init(map<string, string>& mapper);
+
+	ADD_CLASS_NAME(ChangeModelInfo)
+		ADD_SERIALIZATION_FUNCS(object_type_name, json_query_whitelist, json_query_blacklist, change_command, verbose)
+};
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel final : public SerializableObject {
 public:
@@ -89,6 +103,21 @@ public:
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
+
+	/// <summary>
+	/// change model object in run time
+	/// @param change_request.object_type_name - object type name to search for in rep_processors,generators,feature_processors, etc. For example "FeatureNormalizer"
+	/// @param change_request.json_query query on the object json to filter on specific attributes. leave empty to operate on all
+	/// @param change_request.change_command - The command to send each matched object. use "DELETE" to remove the object, "PRINT" to print object josn into stdout. otherwise it will pass the argument into init function
+	/// </summary>
+	void change_model(const ChangeModelInfo &change_request);
+	/// <summary>
+	/// change model object in run time - multiple requests, one by one
+	/// @param change_request.object_type_name - object type name to search for in rep_processors,generators,feature_processors, etc. For example "FeatureNormalizer"
+	/// @param change_request.json_query query on the object json to filter on specific attributes. leave empty to operate on all
+	/// @param change_request.change_command - The command to send each matched object. use "DELETE" to remove the object, "PRINT" to print object josn into stdout. otherwise it will pass the argument into init function
+	/// </summary>
+	void change_model(const vector<ChangeModelInfo> &change_request);
 
 	// staging
 	static MedModelStage get_med_model_stage(const string& stage);
@@ -256,6 +285,16 @@ private:
 	// Handle learning sets for model/post-processors
 	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 	void split_learning_set(MedSamples& inSamples_orig, vector<MedSamples>& post_processors_learning_sets_orig, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
+
+	void clean_model();
+	void find_object(RepProcessor *c, vector<RepProcessor *> &res, vector<RepProcessor **> &res_pointer);
+	void find_object(FeatureGenerator *c, vector<FeatureGenerator *> &res, vector<FeatureGenerator **> &res_pointer);
+	void find_object(FeatureProcessor *c, vector<FeatureProcessor *> &res, vector<FeatureProcessor **> &res_pointer);
+	void find_object(PostProcessor *c, vector<PostProcessor *> &res, vector<PostProcessor **> &res_pointer);
+	void find_object(MedPredictor *c, vector<MedPredictor *> &res, vector<MedPredictor **> &res_pointer);
+
+
+	template <class T> void apply_change(const ChangeModelInfo &change_request, void *obj);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

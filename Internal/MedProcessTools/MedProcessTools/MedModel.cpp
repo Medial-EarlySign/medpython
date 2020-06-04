@@ -2437,5 +2437,294 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 	medial::medmodel::apply(model, rep_fname, f_samples, samples, to_stage);
 }
 
+void MedModel::change_model(const vector<ChangeModelInfo> &change_request) {
+	for (const ChangeModelInfo &req : change_request)
+		change_model(req);
+}
+
+void MedModel::clean_model() {
+	vector<RepProcessor *> final_res;
+	for (size_t i = 0; i < rep_processors.size(); ++i)
+	{
+		if (rep_processors[i] != NULL) {
+			if (rep_processors[i]->processor_type == REP_PROCESS_MULTI) {
+				RepMultiProcessor *multi = static_cast<RepMultiProcessor *>(rep_processors[i]);
+				vector<RepProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->processors.size(); ++j)
+					if (multi->processors[j] != NULL)
+						final_res_internal.push_back(multi->processors[j]);
+				multi->processors = move(final_res_internal);
+			}
+			final_res.push_back(rep_processors[i]);
+		}
+	}
+	rep_processors = move(final_res);
+
+	vector<FeatureGenerator *> final_res_g;
+	for (size_t i = 0; i < generators.size(); ++i)
+		if (generators[i] != NULL)
+			final_res_g.push_back(generators[i]);
+	generators = move(final_res_g);
+
+	vector<FeatureProcessor *> final_res_fp;
+	for (size_t i = 0; i < feature_processors.size(); ++i)
+	{
+		if (feature_processors[i] != NULL) {
+			if (feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
+				MultiFeatureProcessor *multi = static_cast<MultiFeatureProcessor *>(feature_processors[i]);
+				vector<FeatureProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->processors.size(); ++j)
+					if (multi->processors[j] != NULL)
+						final_res_internal.push_back(multi->processors[j]);
+				multi->processors = move(final_res_internal);
+			}
+			final_res_fp.push_back(feature_processors[i]);
+		}
+	}
+	feature_processors = move(final_res_fp);
+
+	vector<PostProcessor *> final_res_pp;
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		if (post_processors[i] != NULL) {
+			if (post_processors[i]->processor_type == FTR_POSTPROCESS_MULTI) {
+				MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+				vector<PostProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->post_processors.size(); ++j)
+					if (multi->post_processors[j] != NULL)
+						final_res_internal.push_back(multi->post_processors[j]);
+				multi->post_processors = move(final_res_internal);
+			}
+			final_res_pp.push_back(post_processors[i]);
+		}
+	}
+	post_processors = move(final_res_pp);
+}
+
+
+void MedModel::find_object(RepProcessor *c, vector<RepProcessor *> &res, vector<RepProcessor **> &res_pointer) {
+	for (size_t i = 0; i < rep_processors.size(); ++i)
+	{
+		if (typeid(*rep_processors[i]) == typeid(*c)) {
+			res.push_back(rep_processors[i]);
+			res_pointer.push_back(&rep_processors[i]);
+		}
+		else if (rep_processors[i]->processor_type == REP_PROCESS_MULTI) {
+			RepMultiProcessor *multi = static_cast<RepMultiProcessor *>(rep_processors[i]);
+			for (size_t j = 0; j < multi->processors.size(); ++j) {
+				if (typeid(*multi->processors[j]) == typeid(*c)) {
+					res.push_back(multi->processors[j]);
+					res_pointer.push_back(&multi->processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(FeatureGenerator *c, vector<FeatureGenerator *> &res, vector<FeatureGenerator **> &res_pointer) {
+	for (size_t i = 0; i < generators.size(); ++i)
+		if (typeid(*generators[i]) == typeid(*c)) {
+			res.push_back(generators[i]);
+			res_pointer.push_back(&generators[i]);
+		}
+}
+
+void MedModel::find_object(FeatureProcessor *c, vector<FeatureProcessor *> &res, vector<FeatureProcessor **> &res_pointer) {
+	for (size_t i = 0; i < feature_processors.size(); ++i)
+	{
+		if (typeid(*feature_processors[i]) == typeid(*c)) {
+			res.push_back(feature_processors[i]);
+			res_pointer.push_back(&feature_processors[i]);
+		}
+		else if (feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
+			MultiFeatureProcessor *multi = static_cast<MultiFeatureProcessor *>(feature_processors[i]);
+			for (size_t j = 0; j < multi->processors.size(); ++j) {
+				if (typeid(*multi->processors[j]) == typeid(*c)) {
+					res.push_back(multi->processors[j]);
+					res_pointer.push_back(&multi->processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(PostProcessor *c, vector<PostProcessor *> &res, vector<PostProcessor **> &res_pointer) {
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		if (typeid(*post_processors[i]) == typeid(*c)) {
+			res.push_back(post_processors[i]);
+			res_pointer.push_back(&post_processors[i]);
+		}
+		else if (post_processors[i]->processor_type == FTR_POSTPROCESS_MULTI) {
+			MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+			for (size_t j = 0; j < multi->post_processors.size(); ++j) {
+				if (typeid(*multi->post_processors[j]) == typeid(*c)) {
+					res.push_back(multi->post_processors[j]);
+					res_pointer.push_back(&multi->post_processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(MedPredictor *c, vector<MedPredictor *> &res, vector<MedPredictor **> &res_pointer) {
+	if (typeid(*predictor) == typeid(*c)) {
+		res.push_back(predictor);
+		res_pointer.push_back(&predictor);
+	}
+}
+
+bool filter_by_json_query(SerializableObject &obj, const vector<string> &json_query_whitelist,
+	const vector<string> &json_query_blacklist) {
+	if (json_query_whitelist.empty() && json_query_blacklist.empty())
+		return true;
+
+	string obj_json = obj.object_json();
+	bool status = true;
+	//check whitelist:
+	for (const string &s : json_query_whitelist)
+	{
+		boost::regex reg_pat(s);
+		status = boost::regex_match(obj_json, reg_pat);
+		if (!status)
+			break;
+	}
+	//check blacklist if passed whitelist:
+	if (status) {
+		for (const string &s : json_query_blacklist)
+		{
+			boost::regex reg_pat(s);
+			status = !boost::regex_match(obj_json, reg_pat);
+			if (!status)
+				break;
+		}
+	}
+
+	return status;
+}
+
+template <class T> void MedModel::apply_change(const ChangeModelInfo &change_request, void *obj) {
+	T *c = static_cast<T *>(obj);
+	T *cl_name = new T;
+	string class_name = cl_name->my_class_name();
+	delete cl_name;
+	if (change_request.verbose)
+		MLOG("Identified object \"%s\" as %s\n", change_request.object_type_name.c_str(), class_name.c_str());
+	vector<T *> found_res;
+	vector<T **> found_p_res;
+	find_object(c, found_res, found_p_res);
+
+	int did_cnt = 0;
+	int succ_cnt = 0;
+	for (size_t i = 0; i < found_res.size(); ++i)
+	{
+		if (!filter_by_json_query(*found_res[i], change_request.json_query_whitelist, change_request.json_query_blacklist))
+			continue;
+		++did_cnt;
+		if (change_request.change_command == "DELETE") {
+			delete found_res[i];
+			//need to erase from original pos:
+			*found_p_res[i] = NULL;
+			++succ_cnt;
+		}
+		else {
+			if (change_request.change_command == "PRINT") {
+				string str = found_res[i]->object_json();
+				cout << "PRINT:\n" << str << endl;
+				++succ_cnt;
+			}
+			else {
+				try {
+					found_res[i]->init_from_string(change_request.change_command);
+					++succ_cnt;
+				}
+				catch (exception &exp) {
+					MWARN("Error in sending init, got %s\n", exp.what());
+				}
+			}
+		}
+	}
+	if (change_request.change_command == "DELETE")
+		clean_model();
+	if (change_request.verbose)
+		MLOG("Found object as %s - touched %d objects - succesed in %d\n", class_name.c_str(), did_cnt, succ_cnt);
+	delete c;
+}
+
+void MedModel::change_model(const ChangeModelInfo &change_request) {
+	//non interactive:
+	RepProcessor test_rep;
+	FeatureGenerator test_gen;
+	FeatureProcessor ftr_processor; //needs try catch
+	PostProcessor pp_processor;
+	MedPredictor predictor;
+
+	global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL + 1;
+	void *obj = test_rep.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_REPCLEANER] = LOG_DEF_LEVEL;
+	if (obj != NULL) {
+		apply_change<RepProcessor>(change_request, obj);
+		return;
+	}
+
+	global_logger.levels[LOG_FTRGNRTR] = MAX_LOG_LEVEL + 1;
+	void *obj_gen = test_gen.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_FTRGNRTR] = LOG_DEF_LEVEL;
+	if (obj_gen != NULL) {
+		apply_change<FeatureGenerator>(change_request, obj_gen);
+		return;
+	}
+
+	void *obj_ftr_processor = NULL;
+	global_logger.levels[LOG_FEATCLEANER] = MAX_LOG_LEVEL + 1;
+	try {
+		obj_ftr_processor = ftr_processor.new_polymorphic(change_request.object_type_name);
+	}
+	catch (...) {
+		obj_ftr_processor = NULL;
+	}
+	global_logger.levels[LOG_FEATCLEANER] = LOG_DEF_LEVEL;
+	if (obj_ftr_processor != NULL) {
+		apply_change<FeatureProcessor>(change_request, obj_ftr_processor);
+		return;
+	}
+
+	global_logger.levels[LOG_MED_MODEL] = MAX_LOG_LEVEL + 1;
+	void *obj_post_processor = pp_processor.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_MED_MODEL] = LOG_DEF_LEVEL;
+	if (obj_post_processor != NULL) {
+		apply_change<PostProcessor>(change_request, obj_post_processor);
+		return;
+	}
+
+	global_logger.levels[LOG_MEDALGO] = MAX_LOG_LEVEL + 1;
+	void *obj_predictor = predictor.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_MEDALGO] = LOG_DEF_LEVEL;
+	if (obj_predictor != NULL) {
+		apply_change<MedPredictor>(change_request, obj_predictor);
+		return;
+	}
+
+	MLOG("Warn - can't find object %s - exits without save\n", change_request.object_type_name.c_str());
+}
+
+int ChangeModelInfo::init(map<string, string>& mapper) {
+	for (auto &it : mapper)
+	{
+		if (it.first == "change_command")
+			change_command = it.second;
+		else if (it.first == "object_type_name")
+			object_type_name = it.second;
+		else if (it.first == "verbose")
+			verbose = med_stoi(it.second) > 0;
+		else if (it.first == "json_query_whitelist")
+			boost::split(json_query_whitelist, it.second, boost::is_any_of("~"));
+		else if (it.first == "json_query_blacklist")
+			boost::split(json_query_blacklist, it.second, boost::is_any_of("~"));
+		else
+			MTHROW_AND_ERR("Error ChangeModelInfo::init - unsupported param \"%s\"\n", it.first.c_str());
+	}
+	return 0;
+}
 
 #endif
