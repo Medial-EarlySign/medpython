@@ -1853,6 +1853,7 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 					if (mask[ii] == 1)
 						MLOG(" %s", names[ii].c_str());
 				}
+				MLOG("\nBias=%f\n", bias);
 				for (size_t ii = 0; ii < mask.size(); ii++) {
 					if (mask[ii] == 0)
 						MLOG("\tSHAP-Val(%s)= %f\n", names[ii].c_str(), fixed_contrib(0, ii));
