@@ -185,24 +185,36 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
 	for (size_t j = 0; j < data_p.size(); j++)
 		data_p[j] = priorsModel->features.data.at(resolvedNames[j]).data();
 
+	string err_s = "";
 #pragma omp parallel for if (priorsModel->features.samples.size() > 10)
 	for (int i = 0; i < priorsModel->features.samples.size(); i++) {
+		if (err_s.length() > 0) continue;
 		// Prior
 		int index = 0;
-		for (size_t j = 0; j < resolvedNames.size(); j++) {
+		for (size_t j = 0; j < resolvedNames.size() && err_s.length()==0; j++) {
 			//int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
 			int value = (int)data_p[j][i];
-			if (value < min[j] || value > max[j])
-				MTHROW_AND_ERR("Value %d of %s is outside priors range [%d,%d] sample: %d %d\n", 
-					value, resolvedNames[j].c_str(), min[j], max[j],
-					priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
+			if (value < min[j] || value > max[j]) {
+#pragma omp critical
+				if (err_s.length() == 0)
+					err_s = "ProbAdjustPostProcessor: Value " + to_string(value) + " of " + resolvedNames[j] + " is outside priors range";
+			//MTHROW_AND_ERR("ProbAdjustPostProcessor: Value %d of %s is outside priors range [%d,%d] sample: %d %d\n",
+				//value, resolvedNames[j].c_str(), min[j], max[j],
+				//priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
+				///break;
+			}
 			index += (value - min[j])*factors[j];
 		}
-		float prior = probs[index];
+		if (err_s.length() == 0) {
+			float prior = probs[index];
 
-		for (size_t j = 0; j < odds.size(); j++)
-			matrix.samples[i].prediction[j] = (matrix.samples[i].prediction[j] * prior) / (matrix.samples[i].prediction[j] * prior + (1.0 - matrix.samples[i].prediction[j])*(1.0 - prior)*odds[j]);
+			for (size_t j = 0; j < odds.size(); j++)
+				matrix.samples[i].prediction[j] = (matrix.samples[i].prediction[j] * prior) / (matrix.samples[i].prediction[j] * prior + (1.0 - matrix.samples[i].prediction[j])*(1.0 - prior)*odds[j]);
+		}
 	}
+
+	if (err_s.length() > 0)
+		MTHROW_AND_ERR(err_s.c_str());
 }
 
 

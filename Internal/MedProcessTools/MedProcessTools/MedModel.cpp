@@ -704,41 +704,49 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	int RC = 0;
 	int thrown = 0;
 
+	try {
 #pragma omp parallel for schedule(dynamic) if (samples->idSamples.size() > 1)
-	for (int j = 0; j < samples->idSamples.size(); j++) {
-		try {
-			MedIdSamples& pid_samples = samples->idSamples[j];
-			int n_th = omp_get_thread_num();
-			int rc = 0;
+		for (int j = 0; j < samples->idSamples.size(); j++) {
+			try {
+				MedIdSamples& pid_samples = samples->idSamples[j];
+				int n_th = omp_get_thread_num();
+				int rc = 0;
 
-			// Generate DynamicRec with all relevant signals
-			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
+				// Generate DynamicRec with all relevant signals
+				if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 
-			// Apply rep-processing
-			for (unsigned int i = 0; i < rep_processors.size(); i++) {
-				rep_processors[i]->dprint(to_string(i), 0);
-				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
-			}
+				// Apply rep-processing
+				for (unsigned int i = 0; i < rep_processors.size(); i++) {
+					rep_processors[i]->dprint(to_string(i), 0);
+					if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
+				}
 
-			// Generate Features
-			for (auto& generator : _generators)
-				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+				// Generate Features
+				for (auto& generator : _generators)
+					if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
 
 
 #pragma omp critical 
-			if (rc < 0) RC = -1;
-		}
-		catch (int &i_e) {
-			// have to catch each thread
-			if (i_e < thrown) thrown = i_e;
+				if (rc < 0) RC = -1;
+			}
+				catch (...) {
+					// have to catch each thread
+					thrown = -1;
+					MERR("!!! Got thrown set to %d\n", thrown);
+					//throw std::runtime_error("thrown from openmp");
+				}
 		}
 	}
-
+	catch (...) {
+		MERR("Caught An error in generate_feature()\n");
+		throw;
+	}
 	// call summary for generation
 	for (auto& generator : _generators)
 		generator->make_summary();
 
-	if (thrown < 0) throw thrown; // throwing if needed
+	if (thrown < 0) MTHROW_AND_ERR("Thrown in generate_features()\n");
+		//throw thrown; // throwing if needed
 	return RC;
 
 }

@@ -687,7 +687,7 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 
 	UniversalSigVec usv;
 	rec.uget(signalId, 0, usv);
-	if (usv.len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
+	if (usv.len != 1) { MTHROW_AND_ERR("AgeGenerator: id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
 	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	if (signalName == "BYEAR") {
 		int byear = usv.Val<int>(0);
