@@ -615,11 +615,8 @@ int split_file_to_jsons(string fin_name, vector<string> &jsons)
 }
 
 //========================================================================================
-void add_data_to_am_from_json(AlgoMarker *am, json &js_in, char **str_values, long long *p_times, int &pid, long long &score_time)
+void add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str, char **str_values, long long *p_times, int &pid, long long &score_time)
 {
-	// a small technicality
-	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
-
 	json &js = js_in;
 	if (js_in.find("body") != js_in.end())
 		js = js_in["body"];
@@ -639,6 +636,8 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js_in, char **str_values, lo
 	if (js.find("scoreOnDate") != js.end())
 		score_time = js["scoreOnDate"].get<long long>();
 
+//	DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
+//	return;
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
 	for (auto &s : js["signals"]) {
@@ -677,6 +676,9 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js_in, char **str_values, lo
 //========================================================================================
 void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 {
+	// a small technicality
+	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
+
 	vector<string> jsons;
 	split_file_to_jsons(vm["in_jsons"].as<string>(), jsons);
 	vector<json> all_jsons(jsons.size());
@@ -700,8 +702,10 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	int print_msgs = (int)vm.count("print_msgs");
 	int n_tested = 0;
 
-	for (auto &js : all_jsons) {
-		add_data_to_am_from_json(am, js, &str_vals[0], &times[0], pid, _timestamp);
+	for (int j = 0; j < jsons.size(); j++) {
+		//for (auto &js : all_jsons) {
+		json &js = all_jsons[j];
+		add_data_to_am_from_json(am, js, jsons[j].c_str(), &str_vals[0], &times[0], pid, _timestamp);
 
 		AMRequest *req;
 		int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &pid, &_timestamp, 1, &req));
@@ -931,10 +935,16 @@ int main(int argc, char *argv[])
 	// Additional load
 	if (vm["json_dict"].as<string>() != "") {
 		MLOG("Additional Loading AM\n");
-		rc = DYN(AM_API_AdditionalLoad(test_am, LOAD_DICT_FROM_FILE, vm["json_dict"].as<string>().c_str()));
-		if (rc != AM_OK_RC) {
-			MERR("ERROR: Failed additional loading of dict : algomarker %s with dict file %s ERR_CODE: %d\n", test_am->get_name(), vm["json_dict"].as<string>().c_str(), rc);
-			return -1;
+		vector<string> dictionaries;
+		boost::split(dictionaries, vm["json_dict"].as<string>(), boost::is_any_of(","));
+		for (auto fdict : dictionaries) {
+			rc = DYN(AM_API_AdditionalLoad(test_am, LOAD_DICT_FROM_FILE, fdict.c_str()));
+			if (rc != AM_OK_RC) {
+				MERR("ERROR: Failed additional loading of dict : algomarker %s with dict file %s ERR_CODE: %d\n", test_am->get_name(), fdict.c_str(), rc);
+				return -1;
+			}
+			else
+				MLOG("Loaded dictionary %s\n", fdict.c_str());
 		}
 	}
 
