@@ -110,8 +110,6 @@ void BinnedLmEstimates::set(string& _signalName, BinnedLmEstimatesParams* _param
 
 //..............................................................................
 int BinnedLmEstimates::init(map<string, string>& mapper) {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [BinnedLmEstimates::init]

@@ -467,8 +467,6 @@ void MultiFeatureProcessor::dprint(const string &pref, int fp_flag)
 //.......................................................................................
 int FeatureBasicOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [FeatureBasicOutlierCleaner::init]
@@ -643,9 +641,6 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 // Init
 //.......................................................................................
 int FeatureNormalizer::init(map<string, string>& mapper) {
-
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [FeatureNormalizer::init]
@@ -927,8 +922,6 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids, bool 
 // Init : starta can be a vector, separated by ":"
 //.......................................................................................
 int FeatureImputer::init(map<string, string>& mapper) {
-
-	init_defaults();
 	vector<string> strata;
 
 	for (auto entry : mapper) {
@@ -1380,9 +1373,6 @@ int GetProbFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 // Init
 //.......................................................................................
 int GetProbFeatProcessor::init(map<string, string>& mapper) {
-
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [GetProbFeatProcessor::init]

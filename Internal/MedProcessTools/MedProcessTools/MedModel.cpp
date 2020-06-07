@@ -2585,7 +2585,7 @@ bool filter_by_json_query(SerializableObject &obj, const vector<string> &json_qu
 	for (const string &s : json_query_whitelist)
 	{
 		boost::regex reg_pat(s);
-		status = boost::regex_match(obj_json, reg_pat);
+		status = boost::regex_search(obj_json, reg_pat);
 		if (!status)
 			break;
 	}
@@ -2594,7 +2594,7 @@ bool filter_by_json_query(SerializableObject &obj, const vector<string> &json_qu
 		for (const string &s : json_query_blacklist)
 		{
 			boost::regex reg_pat(s);
-			status = !boost::regex_match(obj_json, reg_pat);
+			status = !boost::regex_search(obj_json, reg_pat);
 			if (!status)
 				break;
 		}

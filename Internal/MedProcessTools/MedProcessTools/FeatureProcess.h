@@ -236,7 +236,7 @@ public:
 	FeatureBasicOutlierCleaner() : FeatureProcessor() { init_defaults(); }
 	FeatureBasicOutlierCleaner(string& feature_name) : FeatureProcessor() { set_feature_name(feature_name); init_defaults(); }
 	FeatureBasicOutlierCleaner(string& feature_name, string init_string) : FeatureProcessor() { set_feature_name(feature_name);  init_defaults();  init_from_string(init_string); }
-	FeatureBasicOutlierCleaner(string& feature_name, ValueCleanerParams *_params) : FeatureProcessor() { set_feature_name(feature_name);  MedValueCleaner::init(_params); }
+	FeatureBasicOutlierCleaner(string& feature_name, ValueCleanerParams *_params) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name);  MedValueCleaner::init(_params); }
 
 	void init_defaults() {
 		processor_type = FTR_PROCESS_BASIC_OUTLIER_CLEANER;
@@ -305,7 +305,7 @@ public:
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
-	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
+	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); init_from_string(init_string);  set_feature_name(feature_name); }
 
 	string select_learn_matrix(const vector<string> &matrix_tags) const;
 
@@ -462,7 +462,7 @@ public:
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
-	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
+	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); init_from_string(init_string);  set_feature_name(feature_name); }
 
 	// Add stratifier
 	void addStrata(string& init_string);
@@ -1068,9 +1068,9 @@ public:
 	vector<float> overall_prob; ///< default prob for unknown classes
 
 	// Constructor
-	GetProbFeatProcessor() : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; }
-	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
-	GetProbFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB;; init_from_string(init_string);  set_feature_name(feature_name); }
+	GetProbFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB; }
+	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
+	GetProbFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB;; init_from_string(init_string);  set_feature_name(feature_name); }
 
 	// Learn probabilities
 	int Learn(MedFeatures& features, unordered_set<int>& ids);

@@ -361,7 +361,7 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
 	RepBasicOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
-	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
+	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -655,7 +655,7 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
 	RepNbrsOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
-	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
+	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -732,11 +732,11 @@ public:
 	bool debug = false; ///<If True will print out till 3 examples for samples have been changed
 
 	/// <summary> default constructor </summary>
-	RepSimValHandler() { processor_type = REP_PROCESS_SIM_VAL; }
+	RepSimValHandler() { init_defaults(); processor_type = REP_PROCESS_SIM_VAL; }
 	/// <summary> default constructor + setting signal name </summary>
-	RepSimValHandler(const string& _signalName) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
+	RepSimValHandler(const string& _signalName) { init_defaults(); processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
-	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
+	RepSimValHandler(const string& _signalName, string init_string) { init_defaults(); processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
@@ -1988,6 +1988,8 @@ public:
 	int win_to = 0;
 	int delete_sig = 0; /// simply delete the signal (set it's len to 0).
 	int take_last_events = -1; /// It given >0 and delete_sig==0 and win_from==0,win_to==0  will use only last events number in the signal to keep
+
+	RepHistoryLimit() { init_defaults(); }
 
 	// default init
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }

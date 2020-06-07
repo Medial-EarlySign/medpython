@@ -727,8 +727,6 @@ void RepBasicOutlierCleaner::init_lists() {
 //.......................................................................................
 int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepBasicOutlierCleaner::init]
@@ -1053,7 +1051,6 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 }
 int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
 	map<string, confRecord> outlierParams_dict;
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -1786,8 +1783,6 @@ void RepNbrsOutlierCleaner::init_lists() {
 //.......................................................................................
 int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepNbrsOutlierCleaner::init]
@@ -2159,8 +2154,6 @@ void RepSimValHandler::init_lists() {
 //.......................................................................................
 int RepSimValHandler::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepSimValHandler::init]
@@ -4220,8 +4213,6 @@ void RepHistoryLimit::init_lists() {
 //.......................................................................................
 int RepHistoryLimit::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepHistoryLimit::init]
