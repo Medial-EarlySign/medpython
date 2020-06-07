@@ -2608,8 +2608,9 @@ template <class T> void MedModel::apply_change(const ChangeModelInfo &change_req
 	T *cl_name = new T;
 	string class_name = cl_name->my_class_name();
 	delete cl_name;
-	if (change_request.verbose)
-		MLOG("Identified object \"%s\" as %s\n", change_request.object_type_name.c_str(), class_name.c_str());
+	if (change_request.verbose_level >= 2)
+		MLOG("Change Request \"%s\" :: Identified object \"%s\" as %s\n",
+			change_request.change_name.c_str(), change_request.object_type_name.c_str(), class_name.c_str());
 	vector<T *> found_res;
 	vector<T **> found_p_res;
 	find_object(c, found_res, found_p_res);
@@ -2644,10 +2645,14 @@ template <class T> void MedModel::apply_change(const ChangeModelInfo &change_req
 			}
 		}
 	}
-	if (change_request.change_command == "DELETE")
+	if (did_cnt > 0 && change_request.change_command == "DELETE")
 		clean_model();
-	if (change_request.verbose)
-		MLOG("Found object as %s - touched %d objects - succesed in %d\n", class_name.c_str(), did_cnt, succ_cnt);
+	if (change_request.verbose_level >= 2)
+		MLOG("Change Request \"%s\" :: Found object as %s - matched to %d objects - succeed in %d\n",
+			change_request.change_name.c_str(), class_name.c_str(), did_cnt, succ_cnt);
+	else if (change_request.verbose_level >= 1 && (did_cnt == 0 || succ_cnt != did_cnt))
+		MLOG("Change Request \"%s\" :: Found object as %s - matched to %d objects - succeed in %d\n",
+			change_request.change_name.c_str(), class_name.c_str(), did_cnt, succ_cnt);
 	delete c;
 }
 
@@ -2705,26 +2710,61 @@ void MedModel::change_model(const ChangeModelInfo &change_request) {
 		return;
 	}
 
-	MLOG("Warn - can't find object %s - exits without save\n", change_request.object_type_name.c_str());
+	if (change_request.verbose_level >= 1)
+		MLOG("Warn in change request \"%s\" - can't find object %s - no change\n",
+			change_request.change_name.c_str(), change_request.object_type_name.c_str());
 }
 
 int ChangeModelInfo::init(map<string, string>& mapper) {
+	vector<string> field_names;
+	serialized_fields_name(field_names);
+	string option_fields = medial::io::get_list(field_names);
+
 	for (auto &it : mapper)
 	{
+		//! [ChangeModelInfo::init]
 		if (it.first == "change_command")
 			change_command = it.second;
+		else if (it.first == "change_name")
+			change_name = it.second;
 		else if (it.first == "object_type_name")
 			object_type_name = it.second;
-		else if (it.first == "verbose")
-			verbose = med_stoi(it.second) > 0;
+		else if (it.first == "verbose_level")
+			verbose_level = med_stoi(it.second);
 		else if (it.first == "json_query_whitelist")
 			boost::split(json_query_whitelist, it.second, boost::is_any_of("~"));
 		else if (it.first == "json_query_blacklist")
 			boost::split(json_query_blacklist, it.second, boost::is_any_of("~"));
+		else if (it.first == "from_json_file") {
+			vector<ChangeModelInfo> res;
+			ifstream inf(it.second);
+			if (!inf)
+				MTHROW_AND_ERR("can't open json file [%s] for read\n", it.second.c_str());
+			stringstream sstr;
+			sstr << inf.rdbuf();
+			inf.close();
+			string json_content = stripComments(sstr.str());
+			ChangeModelInfo::parse_json_string(json_content, res);
+			if (res.size() != 1)
+				MTHROW_AND_ERR("Can read only 1 ChangeModelInfo from ChangeModelInfo::init\n");
+			*this = move(res[0]);
+		}
+		//! [ChangeModelInfo::init]
 		else
-			MTHROW_AND_ERR("Error ChangeModelInfo::init - unsupported param \"%s\"\n", it.first.c_str());
+			MTHROW_AND_ERR("Error ChangeModelInfo::init - unsupported param \"%s\", options: [%s]\n",
+				it.first.c_str(), option_fields.c_str());
 	}
 	return 0;
+}
+
+void MedModel::read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes) {
+	read_from_file(model_binary_path);
+
+	vector<string> alts;
+	string json_content = json_file_to_string(0, path_to_json_changes, alts);
+	vector<ChangeModelInfo> change_reqs;
+	ChangeModelInfo::parse_json_string(json_content, change_reqs);
+	change_model(change_reqs);
 }
 
 #endif
