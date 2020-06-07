@@ -389,6 +389,7 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 		else if (field == "df_drug_sig") df_drug_sig = entry.second; // "Drug";
 		else if (field == "df_past_event_days") df_past_event_days = med_stoi(entry.second); //(365) * 3;
 		else if (field == "df_by_single_glucose") df_by_single_glucose = med_stof(entry.second); //200.0f;
+		else if (field == "df_by_single_hba1c") df_by_single_hba1c = med_stof(entry.second); //7.0f;
 		else if (field == "df_by_second_glucose") df_by_second_glucose = med_stof(entry.second); //126.0f;
 		else if (field == "df_by_second_hba1c") df_by_second_hba1c = med_stof(entry.second); //6.5f;
 		else if (field == "df_pre_d_hba1c") df_pre_d_hba1c = med_stof(entry.second); //5.8f;
