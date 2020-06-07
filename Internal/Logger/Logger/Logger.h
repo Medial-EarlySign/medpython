@@ -153,7 +153,10 @@ extern MedLogger global_logger;
 
 #define MOUT(fmt,...) global_logger.out(fmt, ##__VA_ARGS__)
 
-#define MTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
+#define MTHROW_AND_ERR_STR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
+
+#define MTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(LOCAL_SECTION,MAX_LOG_LEVEL,"RunTime ERROR: ");global_logger.log(LOCAL_SECTION, MAX_LOG_LEVEL, buff); throw std::runtime_error("Error");}
+
 
 // next works and compiles also in H files
 #define HMTHROW_AND_ERR(fmt,...) {char buff[300];snprintf(buff, sizeof(buff), fmt, ##__VA_ARGS__);global_logger.log(0, MAX_LOG_LEVEL, buff); throw runtime_error(string(buff));}
