@@ -33,6 +33,24 @@ typedef enum {
 } MedModelStage;
 
 class PostProcessor;
+
+class ChangeModelInfo :public SerializableObject {
+public:
+	string change_name = ""; ///< documentation of change name
+	string object_type_name = ""; ///< Object type to change - should match my_class_name() of Serialization Object
+	vector<string> json_query_whitelist; ///< array of AND condition by regex search for those patterns in the json - to whitelist
+	vector<string> json_query_blacklist; ///< array of AND condition by regex search for those patterns in the json - to blacklist
+	string change_command = ""; ///< the command, might be "DELETE" ot delete element, "PRINT" to print element ot otherwise pass into object init command
+	int verbose_level = 2; ///< 0 - no output, 1 - only warnings, 2 - also info
+
+	int init(map<string, string>& mapper);
+
+	static void parse_json_string(const string &json_content, vector<ChangeModelInfo> &res);
+
+	ADD_CLASS_NAME(ChangeModelInfo)
+		ADD_SERIALIZATION_FUNCS(change_name, object_type_name, json_query_whitelist, json_query_blacklist, change_command,
+			verbose_level)
+};
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel final : public SerializableObject {
 public:
@@ -61,6 +79,9 @@ public:
 	/// Safe Mode for train/test intersection
 	int safe_mode = 0;
 
+	/// when having multiple prediction for same samples - how to aggregate preds - mean or median?
+	bool take_mean_pred = true;
+
 	/// All required signal names + ids
 	unordered_set<string> required_signal_names;
 	unordered_set<int> required_signal_ids;
@@ -86,6 +107,21 @@ public:
 	// initialize from configuration files
 	//int init_rep_processors(const string &fname);
 	//int init_feature_generators(const string &fname);
+
+	/// <summary>
+	/// change model object in run time
+	/// @param change_request.object_type_name - object type name to search for in rep_processors,generators,feature_processors, etc. For example "FeatureNormalizer"
+	/// @param change_request.json_query query on the object json to filter on specific attributes. leave empty to operate on all
+	/// @param change_request.change_command - The command to send each matched object. use "DELETE" to remove the object, "PRINT" to print object josn into stdout. otherwise it will pass the argument into init function
+	/// </summary>
+	void change_model(const ChangeModelInfo &change_request);
+	/// <summary>
+	/// change model object in run time - multiple requests, one by one
+	/// @param change_request.object_type_name - object type name to search for in rep_processors,generators,feature_processors, etc. For example "FeatureNormalizer"
+	/// @param change_request.json_query query on the object json to filter on specific attributes. leave empty to operate on all
+	/// @param change_request.change_command - The command to send each matched object. use "DELETE" to remove the object, "PRINT" to print object josn into stdout. otherwise it will pass the argument into init function
+	/// </summary>
+	void change_model(const vector<ChangeModelInfo> &change_request);
 
 	// staging
 	static MedModelStage get_med_model_stage(const string& stage);
@@ -185,8 +221,8 @@ public:
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
 	int learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage);
-	int apply(MedPidRepository& rep, MedSamples& samples)  { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
-	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) ;
+	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
+	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
 	// follows are apply methods separating the initialization of the model from the actual apply
 	int init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage);
@@ -201,7 +237,7 @@ public:
 
 	// Envelopes for normal calling 
 	int learn(MedPidRepository& rep, MedSamples& samples) { return learn(rep, &samples); }
-	int learn(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) { return learn(rep, &samples,start_stage,end_stage); }
+	int learn(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) { return learn(rep, &samples, start_stage, end_stage); }
 
 	// Apply on a given Rec : this is needed when someone outside the model runs on Records. No matching method for learn.
 	// The process is started with an initialization using init_for_apply_rec
@@ -213,9 +249,9 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet, take_mean_pred)
 
-	int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
+		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_all_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	void filter_rep_processors();
@@ -239,6 +275,8 @@ public:
 	void load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment = false);
 	void load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment = false);
 	void fit_for_repository(MedPidRepository& rep);
+	/// Read binary model from file + json changes req for run-time.
+	void read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes);
 
 	MedPidRepository *p_rep = NULL; ///< not serialized. stores pointer to rep used in Learn or Apply after call.
 private:
@@ -253,6 +291,16 @@ private:
 	// Handle learning sets for model/post-processors
 	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
 	void split_learning_set(MedSamples& inSamples_orig, vector<MedSamples>& post_processors_learning_sets_orig, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);
+
+	void clean_model();
+	void find_object(RepProcessor *c, vector<RepProcessor *> &res, vector<RepProcessor **> &res_pointer);
+	void find_object(FeatureGenerator *c, vector<FeatureGenerator *> &res, vector<FeatureGenerator **> &res_pointer);
+	void find_object(FeatureProcessor *c, vector<FeatureProcessor *> &res, vector<FeatureProcessor **> &res_pointer);
+	void find_object(PostProcessor *c, vector<PostProcessor *> &res, vector<PostProcessor **> &res_pointer);
+	void find_object(MedPredictor *c, vector<MedPredictor *> &res, vector<MedPredictor **> &res_pointer);
+
+
+	template <class T> void apply_change(const ChangeModelInfo &change_request, void *obj);
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

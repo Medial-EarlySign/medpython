@@ -1,10 +1,10 @@
-#include "TrainWithMissingProcessor.h"
+#include "ResampleWithMissingProcessor.h"
 #include "ExplainWrapper.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
-void TrainMissingProcessor::init_defaults() {
+void ResampleMissingProcessor::init_defaults() {
 	missing_value = MED_MAT_MISSING_VALUE;
 	add_new_data = 0;
 	sample_masks_with_repeats = true;
@@ -14,14 +14,15 @@ void TrainMissingProcessor::init_defaults() {
 	limit_mask_size = 0;
 	uniform_rand_p = (float)0.5;
 	verbose = true;
-	processor_type = FTR_PROCESS_ADD_MISSING_TO_LEARN;
+	processor_type = FTR_PROCESS_RESAMPLE_WITH_MISSING;
 	grouping = "";
+	duplicate_only_with_missing = false;
 }
 
-int TrainMissingProcessor::init(map<string, string>& mapper) {
+int ResampleMissingProcessor::init(map<string, string>& mapper) {
 	for (const auto &it : mapper)
 	{
-		//! [TrainMissingProcessor::init]
+		//! [ResampleMissingProcessor::init]
 		if (it.first == "missing_value")
 			missing_value = med_stof(it.second);
 		else if (it.first == "add_new_data")
@@ -42,20 +43,22 @@ int TrainMissingProcessor::init(map<string, string>& mapper) {
 			limit_mask_size = med_stoi(it.second);
 		else if (it.first == "uniform_rand_p")
 			uniform_rand_p = med_stof(it.second);
+		else if (it.first == "duplicate_only_with_missing")
+			duplicate_only_with_missing = med_stoi(it.second) > 0;
 		else if (it.first == "verbose")
 			verbose = med_stoi(it.second) > 0;
 		else if (it.first == "grouping")
 			grouping = it.second;
 		else if (it.first == "fp_type" || it.first == "use_parallel_learn" || it.first == "use_parallel_apply") {}
 		else
-			MTHROW_AND_ERR("Error in TrainMissingProcessor::init - unsupported argument %s\n", it.first.c_str());
-		//! [TrainMissingProcessor::init]
+			MTHROW_AND_ERR("Error in ResampleMissingProcessor::init - unsupported argument %s\n", it.first.c_str());
+		//! [ResampleMissingProcessor::init]
 	}
 
 	return 0;
 }
 
-void TrainMissingProcessor::dprint(const string &pref, int fp_flag) {
+void ResampleMissingProcessor::dprint(const string &pref, int fp_flag) {
 	string res = this->object_json();
 	boost::replace_all(res, "\n", " ");
 	MLOG("%s :: %s\n", pref.c_str(), res.c_str());
@@ -68,7 +71,12 @@ int _count_msn(const float *vals, int sz, float val) {
 	return res;
 }
 
-int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
+string ResampleMissingProcessor::select_learn_matrix(const vector<string> &matrix_tags) const {
+	//creates new tag
+	return my_class_name();
+}
+
+int ResampleMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<string> features_nms;
 	features.get_feature_names(features_nms);
 	if (!grouping.empty())
@@ -116,7 +124,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 			}
 			//check if not allowed now and whitelist was not empty, means tag was in both sets directly - raise error:
 			if (!(allowed) && !whitelist.empty())
-				MTHROW_AND_ERR("Error TrainMissingProcessor::Learn - feature %s is both in whitelist selected_tags (tag=%s) "
+				MTHROW_AND_ERR("Error ResampleMissingProcessor::Learn - feature %s is both in whitelist selected_tags (tag=%s) "
 					" and blacklist remove_tags (tag=%s) directly\n",
 					features_nms[i].c_str(), allow_reason.c_str(), black_reason.c_str());
 		}
@@ -162,7 +170,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 		original_samples_id.reserve(original_samples_id.size() + add_new_data);
 		vector<float> rows_m(add_new_data * nftrs);
 		unordered_set<vector<bool>> seen_mask;
-		uniform_int_distribution<> rnd_row(0, train_mat_size - 1);
+		
 		double log_max_opts = log(add_new_data) / log(2.0);
 		if (log_max_opts >= nftrs_grp) {
 			if (!sample_masks_with_repeats)
@@ -171,15 +179,37 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 		}
 		if (verbose)
 			MLOG("Adding %d Data points (has %d features with %d groups)\n", add_new_data, nftrs, nftrs_grp);
+		vector<int> allowed_to_duplicate_list;
+		int max_opts = train_mat_size;
+		if (duplicate_only_with_missing) {
+			//check who can be duplicated
+			for (int i = 0; i < train_mat_size; ++i)
+			{
+				bool has_missing = false;
+				for (int j = 0; j < x_mat.ncols && !has_missing; ++j)
+					has_missing = x_mat(i, j) == missing_value;
+				if (has_missing)
+					allowed_to_duplicate_list.push_back(i);
+			}
+			if (allowed_to_duplicate_list.size() == train_mat_size)
+				allowed_to_duplicate_list.clear(); //all are allowed
+			else
+				max_opts = (int)allowed_to_duplicate_list.size();
+		}
+
+		uniform_int_distribution<> rnd_row(0, max_opts - 1);
 		MedProgress add_progress("Add_Train_Data", add_new_data, 30, 1);
 		for (size_t i = 0; i < add_new_data; ++i)
 		{
 			float *curr_row = &rows_m[i *  nftrs];
 			//select row:
 			int row_sel = rnd_row(gen);
+			if (!allowed_to_duplicate_list.empty()) //fetch real index if has limitation. row_sel is index in allowed_to_duplicate_list
+				row_sel = allowed_to_duplicate_list[row_sel];
 
 			//True means - use mat value (don't override with missing values). in this stage it means you can select it
 			vector<bool> curr_mask(nftrs_grp);
+
 			for (int j = 0; j < nftrs_grp; ++j) {
 				bool has_missing = false;
 				for (size_t k = 0; k < group2Inds[j].size() && !has_missing; ++k)
@@ -240,7 +270,7 @@ int TrainMissingProcessor::Learn(MedFeatures& features, unordered_set<int>& ids)
 
 	if (subsample_train > 0 && subsample_train < train_mat_size) {
 		//do subsampling:
-		MLOG("INFO:: TrainMissingProcessor::Learn - subsampling original train matrix");
+		MLOG("INFO:: ResampleMissingProcessor::Learn - subsampling original train matrix\n");
 		unordered_set<int> selected_idx;
 
 		uniform_int_distribution<> rnd_opts(0, train_mat_size - 1);

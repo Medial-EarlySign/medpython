@@ -82,10 +82,10 @@ void Calibrator::learn_isotonic_regression(const vector<float> &x, const vector<
 		float curr_w = (y[i] > 0) ? weights[i] : weights[i] * control_weight_down_sample;
 		x2y[i] = { x[i],y[i], curr_w };
 	}
-		
+
 
 	sort(x2y.begin(), x2y.end(), [](const vector<float> &v1, const vector<float> &v2) {return (v1[0] < v2[0]); });
-	
+
 	// Add regularizers
 	float min_score = x2y[0][0];
 	float max_score = x2y.back()[0];
@@ -148,7 +148,7 @@ void Calibrator::learn_isotonic_regression(const vector<float> &x, const vector<
 	max_preds[j] = (float)INT32_MAX;
 	for (int i = 1; i <= j; i++)
 		min_preds[i] = max_preds[i - 1];
-	
+
 	min_preds.resize(j + 1);
 	max_preds.resize(j + 1);
 	val.resize(j + 1);
@@ -173,7 +173,7 @@ void Calibrator::learn_isotonic_regression(const vector<float> &x, const vector<
 				min_range[i], max_range[i], map_prob[i],
 				100 * double(nag[i]) / sum_weights, nag[i], sum_weights);
 	}
-		
+
 }
 
 
@@ -265,31 +265,32 @@ void collect_preds_labels(const vector<MedSample>& orig_samples,
 	}
 }
 
+inline float apply_binned_prob(float pred, const vector<float> &min_range, const vector<float> &max_range,
+	const vector<float> &map_prob) {
+	int pos = medial::process::binary_search_position_last(min_range.data(), min_range.data() + min_range.size() - 1, pred, true);
+
+	return map_prob[pos];
+}
+
 void apply_binned_prob(const vector<float> &preds, const vector<float> &min_range,
 	const vector<float> &max_range, const vector<float> &map_prob, vector<float> &probs) {
 	probs.resize(preds.size());
 
 	for (size_t i = 0; i < probs.size(); ++i)
-	{
-		//search for right range:
-		int pos = 0;
-		while (pos < map_prob.size() &&
-			!((preds[i] > min_range[pos] || pos == map_prob.size() - 1) && (preds[i] <= max_range[pos] || pos == 0)))
-			++pos;
-		probs[i] = map_prob[pos];
-	}
+		probs[i] = apply_binned_prob(preds[i], min_range, max_range, map_prob); //search for right range:
 }
 
+template<class T> float apply_platt_scale(T pred, const vector<double> &params) {
+	double val = params[0];
+	for (size_t k = 1; k < params.size(); ++k)
+		val += params[k] * pow(double(pred), double(k));
+	val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
+	return (float)val;
+}
 template<class T, class L> void apply_platt_scale(const vector<T> &preds, const vector<double> &params, vector<L> &converted) {
 	converted.resize((int)preds.size());
 	for (size_t i = 0; i < converted.size(); ++i)
-	{
-		double val = params[0];
-		for (size_t k = 1; k < params.size(); ++k)
-			val += params[k] * pow(double(preds[i]), double(k));
-		val = 1 / (1 + exp(val));//Platt Scale technique for probability calibaration
-		converted[i] = (L)val;
-	}
+		converted[i] = apply_platt_scale(preds[i], params);//Platt Scale technique for probability calibaration
 }
 template void apply_platt_scale<double, double>(const vector<double> &preds, const vector<double> &params, vector<double> &converted);
 template void apply_platt_scale<double, float>(const vector<double> &preds, const vector<double> &params, vector<float> &converted);
@@ -331,7 +332,7 @@ void write_to_predicition(vector<MedSample>& samples, vector<float> &probs) {
 }
 
 
-int Calibrator::Apply(MedSamples& samples)  {
+int Calibrator::Apply(MedSamples& samples) {
 	vector<MedSample> samples_vec;
 	samples.export_to_sample_vec(samples_vec);
 	int return_val = Apply(samples_vec);
@@ -339,7 +340,41 @@ int Calibrator::Apply(MedSamples& samples)  {
 	return return_val;
 }
 
-int Calibrator::Apply(vector <MedSample>& samples)  {
+void Calibrator::Apply(const vector<float> &preds, vector<float> &probs) const {
+	switch (calibration_type)
+	{
+	case CalibrationTypes::probability_time_window:
+		MTHROW_AND_ERR("Error Calibrator::Apply for single pred is not supported for probability_time_window\n");
+	case CalibrationTypes::probability_binning:
+	case CalibrationTypes::probability_isotonic:
+		apply_binned_prob(preds, min_range, max_range, map_prob, probs);
+		break;
+	case CalibrationTypes::probability_platt_scale:
+		apply_platt_scale(preds, platt_params, probs);
+		break;
+	default:
+		MTHROW_AND_ERR("Unsupported implementation for applying calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
+	}
+}
+
+float Calibrator::Apply(float pred) const {
+	switch (calibration_type)
+	{
+	case CalibrationTypes::probability_time_window:
+		MTHROW_AND_ERR("Error Calibrator::Apply for single pred is not supported for probability_time_window\n");
+	case CalibrationTypes::probability_binning:
+	case CalibrationTypes::probability_isotonic:
+		return apply_binned_prob(pred, min_range, max_range, map_prob);
+	case CalibrationTypes::probability_platt_scale:
+		return apply_platt_scale(pred, platt_params);
+	default:
+		MTHROW_AND_ERR("Unsupported implementation for applying calibration method %s\n",
+			calibration_method_to_name[calibration_type].c_str());
+	}
+}
+
+int Calibrator::Apply(vector <MedSample>& samples) {
 	vector<float> preds, labels, probs;
 	switch (calibration_type)
 	{
@@ -372,7 +407,7 @@ int Calibrator::Learn(const MedSamples& orig_samples) {
 }
 
 
-void Calibrator::Apply(MedFeatures &matrix)  {
+void Calibrator::Apply(MedFeatures &matrix) {
 	Apply(matrix.samples);
 }
 
@@ -563,8 +598,8 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		ce.max_pred = bin_max_preds[i];
 		ce.cnt_controls = cnt_controls[i]; ce.cnt_cases = cnt_cases[i];
 		ce.cnt_controls_no_w = cnt_ctrl_no_w[i]; ce.cnt_cases_no_w = cnt_cases_no_w[i];
-		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i]  + cnt_cases[i]);
-		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i]  + cnt_cases[i]) / 2)) / (float)tot_weight;
+		ce.mean_pred = 1.0f * bin_sum_preds[i] / (cnt_controls[i] + cnt_cases[i]);
+		ce.cumul_pct = 1.0f * (cumul_cnt + ((cnt_controls[i] + cnt_cases[i]) / 2)) / (float)tot_weight;
 		ce.controls_per_time_slot = bin_controls_per_time_slot[i];
 		ce.cases_per_time_slot = bin_cases_per_time_slot[i];
 		if (do_km) {
@@ -573,7 +608,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 		}
 		else {
 			ce.kaplan_meier = 0.0;
-			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i]  + cnt_cases[i]);
+			ce.mean_outcome = 1.0F * cnt_cases[i] / (cnt_controls[i] + cnt_cases[i]);
 		}
 		cumul_cnt += (ce.cnt_controls) + ce.cnt_cases;
 		cals.push_back(ce);
@@ -590,7 +625,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 				collected_probs[i] = cals[i].mean_outcome;
 		}
 		vector<float> min_r, max_r, map_r;
-		learn_isotonic_regression(collected_bin_idx, collected_probs, weights,  min_r, max_r, map_r, n_top_controls, n_bottom_cases, verbose);
+		learn_isotonic_regression(collected_bin_idx, collected_probs, weights, min_r, max_r, map_r, n_top_controls, n_bottom_cases, verbose);
 		//use new bins:
 		vector<calibration_entry> new_cals(map_r.size());
 		cumul_cnt = 0;
@@ -635,7 +670,7 @@ int Calibrator::learn_time_window(const vector<MedSample>& orig_samples, const i
 
 			if (do_km) {
 				ce.kaplan_meier = map_r[i];
-				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls  + ce.cnt_cases);
+				ce.mean_outcome = 1.0F * ce.cnt_cases / (ce.cnt_controls + ce.cnt_cases);
 			}
 			else {
 				ce.kaplan_meier = 0.0;

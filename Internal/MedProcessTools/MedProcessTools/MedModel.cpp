@@ -37,8 +37,13 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 	string _stage = stage;
 	boost::to_lower(_stage);
 
-	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end())
-		MTHROW_AND_ERR("unknown stage %s\n", stage.c_str())
+	if (med_mdl_stage_name_to_stage.find(_stage) == med_mdl_stage_name_to_stage.end()) {
+		unordered_map<int, string> op;
+		for (const auto &it : med_mdl_stage_name_to_stage)
+			op[it.second] = it.first;
+		string all_opts = medial::io::get_list_op(op, "\n");
+		MTHROW_AND_ERR("unknown stage %s\nOptions are:\n%s", stage.c_str(), all_opts.c_str())
+	}
 	else
 		return med_mdl_stage_name_to_stage[_stage];
 }
@@ -68,7 +73,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage s
 
 // special common case of wanting to keep the model matrix training info and retrain predictor
 // note that there will be some mess at the moment regarding post_processors and their exact training list - this is TBD !!!
-int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage) 
+int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples, MedModelStage end_stage)
 {
 	p_rep = &rep;
 	MLOG("Starting a learn process but skipping the train of the matrix !!!!\n");
@@ -81,6 +86,72 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 	// second: going for a training session for the predictor and on
 	vector<MedSamples> dummy;
 	return(learn(rep, (*samples), dummy, MED_MDL_LEARN_PREDICTOR, end_stage));
+}
+
+void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean) {
+	if (features.samples.size() != sample_ids.size())
+		MTHROW_AND_ERR("Error aggregate_samples - mismatch size (%zu, %zu)\n", features.samples.size(), sample_ids.size());
+
+	int max_id = *max_element(sample_ids.begin(), sample_ids.end());
+	int min_id = 0;
+	vector<bool> seen_id(max_id - min_id + 1);
+	MedFeatures final_f;
+	final_f.attributes = features.attributes;
+	final_f.medf_missing_value = features.medf_missing_value;
+	final_f.tags = features.tags;
+	final_f.time_unit = features.time_unit;
+	vector<vector<float>> col_preds(max_id - min_id + 1);
+	vector<int> ids_ord;
+	for (size_t i = 0; i < sample_ids.size(); ++i)
+	{
+		if (!seen_id[sample_ids[i]]) {
+			seen_id[sample_ids[i]] = true;
+			//take features and create samples. update data,samples,weights,masks:
+			final_f.samples.push_back(features.samples[i]);
+			final_f.weights.push_back(features.weights[i]);
+			for (const auto &it : features.data)
+				final_f.data[it.first].push_back(it.second[i]);
+			for (const auto &it : features.masks)
+				final_f.masks[it.first].push_back(it.second[i]);
+			ids_ord.push_back(sample_ids[i]);
+		}
+		//collect prediction of sample to aggregated:
+		col_preds[sample_ids[i]].push_back(features.samples[i].prediction[0]);
+	}
+	final_f.init_pid_pos_len();
+	//aggregate preds:
+	for (size_t i = 0; i < ids_ord.size(); ++i)
+	{
+		int id = ids_ord[i];
+		vector<float> &collected = col_preds[id]; //at least 1 element
+		float res;
+		if (take_mean)
+			res = medial::stats::mean_without_cleaning(collected);
+		else
+			res = medial::stats::median_without_cleaning(collected, true);
+		//override pred
+		final_f.samples[i].prediction[0] = res;
+	}
+
+	features = move(final_f);
+}
+
+void aggregate_samples(MedFeatures &features, bool take_mean) {
+	//if sample_ids is empty use pid+time:
+	vector<int> sample_ids(features.samples.size());
+	int id = 0;
+	unordered_map<int, unordered_set<int>> pid_to_times;
+	for (size_t i = 0; i < sample_ids.size(); ++i)
+	{
+		if (pid_to_times.find(features.samples[i].id) == pid_to_times.end()
+			|| pid_to_times[features.samples[i].id].find(features.samples[i].time) == pid_to_times[features.samples[i].id].end()) {
+			pid_to_times[features.samples[i].id].insert(features.samples[i].time);
+			++id;
+		}
+		sample_ids[i] = id;
+	}
+
+	aggregate_samples(features, sample_ids, take_mean);
 }
 
 // Learn with multiple MedSamples
@@ -222,7 +293,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 		// Just apply feature processors
 		timer.start();
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features,true) < 0) {
+		if (apply_feature_processors(features, true) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_processors()\n");
 			return -1;
 		}
@@ -257,6 +328,20 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	// saves us a lot of cross-validation mess ...
 	if (start_stage <= MED_MDL_LEARN_POST_PROCESSORS) {
 		MLOG("MedModel::learn() : learn post_processors\n");
+		//aggregate preds from learn process - features might be resampled.
+		if (!post_processors.empty()) {
+			bool need_agg = false;
+			vector<string> m_tags = { "" };
+			for (const FeatureProcessor * fp : feature_processors)
+			{
+				need_agg = fp->select_learn_matrix(m_tags) != "";
+				if (need_agg)
+					break;
+			}
+			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+				aggregate_samples(features, take_mean_pred);
+		}
+
 		for (size_t i = 0; i < post_processors.size(); ++i) {
 			post_processors[i]->init_post_processor(*this);
 
@@ -354,7 +439,7 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
 		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
 		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features, req_features_vec,false) < 0) {
+		if (apply_feature_processors(features, req_features_vec, false) < 0) {
 			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
 			return -1;
 		}
@@ -542,7 +627,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 				features_vec[i_feat] = it.second[0];
 				++i_feat;
 			}
-			predictor->predict_single(features_vec,pred_res);
+			predictor->predict_single(features_vec, pred_res);
 			features.samples[0].prediction = move(pred_res);
 		}
 		else {
@@ -754,9 +839,30 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 //.......................................................................................
 int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 {
+	vector<string> matrix_versions = { "" };
+	vector<MedFeatures> allocated_mem_mat;
+
+	unordered_map<string, MedFeatures *> ver_set;
+	ver_set[""] = &features;
 	for (auto& processor : feature_processors) {
-		if (processor->learn(features) < 0) return -1;
-		if (processor->apply(features,true) < 0) return -1;
+		string ver = processor->select_learn_matrix(matrix_versions);
+		if (ver_set.find(ver) == ver_set.end()) {
+			//create new version:
+			matrix_versions.push_back(ver);
+			MedFeatures new_mat = features;
+			allocated_mem_mat.push_back(move(new_mat));
+			ver_set[ver] = &allocated_mem_mat.back();
+		}
+
+		if (processor->learn(*ver_set.at(ver)) < 0) return -1;
+		//Apply on all versions:
+		for (const auto &it : ver_set)
+			if (processor->apply(*it.second, true) < 0) return -1;
+	}
+	//update feature with last version for predcitor - if needed and has more than one version
+	if (matrix_versions.size() > 1) {
+		features = move(*ver_set.at(matrix_versions.back()));
+		MLOG("INFO:: has more than one version of matrix in learn_and_apply\n");
 	}
 	return 0;
 }
@@ -764,8 +870,27 @@ int MedModel::learn_and_apply_feature_processors(MedFeatures &features)
 //.......................................................................................
 int MedModel::learn_feature_processors(MedFeatures &features)
 {
-	for (auto& processor : feature_processors)
-		if (processor->learn(features) < 0) return -1;
+	vector<string> matrix_versions = { "" };
+	vector<MedFeatures> allocated_mem_mat;
+
+	unordered_map<string, MedFeatures *> ver_set;
+	ver_set[""] = &features;
+	for (auto& processor : feature_processors) {
+		string ver = processor->select_learn_matrix(matrix_versions);
+		if (ver_set.find(ver) == ver_set.end()) {
+			//create new version:
+			matrix_versions.push_back(ver);
+			MedFeatures new_mat = features;
+			allocated_mem_mat.push_back(move(new_mat));
+			ver_set[ver] = &allocated_mem_mat.back();
+		}
+
+		if (processor->learn(*ver_set.at(ver)) < 0) return -1;
+	}
+	if (matrix_versions.size() > 1) {
+		features = move(*ver_set.at(matrix_versions.back()));
+		MLOG("INFO:: has more than one version of matrix in learn\n");
+	}
 
 	return 0;
 }
@@ -1386,7 +1511,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size() + virtual_signals_generic.size());
 
 }
 
@@ -1425,14 +1550,14 @@ void MedModel::get_required_signal_names_for_processed_values(unordered_set<stri
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
-	
+
 	for (auto &vsig : virtual_signals_generic) {
 		if (verbosity) MLOG("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
 
-	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size()+virtual_signals_generic.size());
+	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals after erasing\n", signalNames.size(), virtual_signals.size() + virtual_signals_generic.size());
 
 }
 
@@ -1971,7 +2096,7 @@ int MedModel::apply_rec(PidDynamicRec &drec, MedIdSamples idSamples, MedFeatures
 
 	// Process Features
 	for (auto& processor : feature_processors) {
-		if (processor->apply(_feat,false) < 0)
+		if (processor->apply(_feat, false) < 0)
 			return -1;
 	}
 
@@ -2008,7 +2133,7 @@ int MedModel::get_nfeatures()
 			res += generator->nfeatures();
 	}
 	res += (int)ftr_names.size();
-	
+
 	// next is done in order to return feature list sorted in the order it will be in the final matrix
 	return res;
 }
@@ -2320,5 +2445,334 @@ void medial::medmodel::apply(MedModel &model, string rep_fname, string f_samples
 	medial::medmodel::apply(model, rep_fname, f_samples, samples, to_stage);
 }
 
+void MedModel::change_model(const vector<ChangeModelInfo> &change_request) {
+	for (const ChangeModelInfo &req : change_request)
+		change_model(req);
+}
+
+void MedModel::clean_model() {
+	vector<RepProcessor *> final_res;
+	for (size_t i = 0; i < rep_processors.size(); ++i)
+	{
+		if (rep_processors[i] != NULL) {
+			if (rep_processors[i]->processor_type == REP_PROCESS_MULTI) {
+				RepMultiProcessor *multi = static_cast<RepMultiProcessor *>(rep_processors[i]);
+				vector<RepProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->processors.size(); ++j)
+					if (multi->processors[j] != NULL)
+						final_res_internal.push_back(multi->processors[j]);
+				multi->processors = move(final_res_internal);
+			}
+			final_res.push_back(rep_processors[i]);
+		}
+	}
+	rep_processors = move(final_res);
+
+	vector<FeatureGenerator *> final_res_g;
+	for (size_t i = 0; i < generators.size(); ++i)
+		if (generators[i] != NULL)
+			final_res_g.push_back(generators[i]);
+	generators = move(final_res_g);
+
+	vector<FeatureProcessor *> final_res_fp;
+	for (size_t i = 0; i < feature_processors.size(); ++i)
+	{
+		if (feature_processors[i] != NULL) {
+			if (feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
+				MultiFeatureProcessor *multi = static_cast<MultiFeatureProcessor *>(feature_processors[i]);
+				vector<FeatureProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->processors.size(); ++j)
+					if (multi->processors[j] != NULL)
+						final_res_internal.push_back(multi->processors[j]);
+				multi->processors = move(final_res_internal);
+			}
+			final_res_fp.push_back(feature_processors[i]);
+		}
+	}
+	feature_processors = move(final_res_fp);
+
+	vector<PostProcessor *> final_res_pp;
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		if (post_processors[i] != NULL) {
+			if (post_processors[i]->processor_type == FTR_POSTPROCESS_MULTI) {
+				MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+				vector<PostProcessor *> final_res_internal;
+				for (size_t j = 0; j < multi->post_processors.size(); ++j)
+					if (multi->post_processors[j] != NULL)
+						final_res_internal.push_back(multi->post_processors[j]);
+				multi->post_processors = move(final_res_internal);
+			}
+			final_res_pp.push_back(post_processors[i]);
+		}
+	}
+	post_processors = move(final_res_pp);
+}
+
+
+void MedModel::find_object(RepProcessor *c, vector<RepProcessor *> &res, vector<RepProcessor **> &res_pointer) {
+	for (size_t i = 0; i < rep_processors.size(); ++i)
+	{
+		if (typeid(*rep_processors[i]) == typeid(*c)) {
+			res.push_back(rep_processors[i]);
+			res_pointer.push_back(&rep_processors[i]);
+		}
+		else if (rep_processors[i]->processor_type == REP_PROCESS_MULTI) {
+			RepMultiProcessor *multi = static_cast<RepMultiProcessor *>(rep_processors[i]);
+			for (size_t j = 0; j < multi->processors.size(); ++j) {
+				if (typeid(*multi->processors[j]) == typeid(*c)) {
+					res.push_back(multi->processors[j]);
+					res_pointer.push_back(&multi->processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(FeatureGenerator *c, vector<FeatureGenerator *> &res, vector<FeatureGenerator **> &res_pointer) {
+	for (size_t i = 0; i < generators.size(); ++i)
+		if (typeid(*generators[i]) == typeid(*c)) {
+			res.push_back(generators[i]);
+			res_pointer.push_back(&generators[i]);
+		}
+}
+
+void MedModel::find_object(FeatureProcessor *c, vector<FeatureProcessor *> &res, vector<FeatureProcessor **> &res_pointer) {
+	for (size_t i = 0; i < feature_processors.size(); ++i)
+	{
+		if (typeid(*feature_processors[i]) == typeid(*c)) {
+			res.push_back(feature_processors[i]);
+			res_pointer.push_back(&feature_processors[i]);
+		}
+		else if (feature_processors[i]->processor_type == FTR_PROCESS_MULTI) {
+			MultiFeatureProcessor *multi = static_cast<MultiFeatureProcessor *>(feature_processors[i]);
+			for (size_t j = 0; j < multi->processors.size(); ++j) {
+				if (typeid(*multi->processors[j]) == typeid(*c)) {
+					res.push_back(multi->processors[j]);
+					res_pointer.push_back(&multi->processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(PostProcessor *c, vector<PostProcessor *> &res, vector<PostProcessor **> &res_pointer) {
+	for (size_t i = 0; i < post_processors.size(); ++i)
+	{
+		if (typeid(*post_processors[i]) == typeid(*c)) {
+			res.push_back(post_processors[i]);
+			res_pointer.push_back(&post_processors[i]);
+		}
+		else if (post_processors[i]->processor_type == FTR_POSTPROCESS_MULTI) {
+			MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+			for (size_t j = 0; j < multi->post_processors.size(); ++j) {
+				if (typeid(*multi->post_processors[j]) == typeid(*c)) {
+					res.push_back(multi->post_processors[j]);
+					res_pointer.push_back(&multi->post_processors[j]);
+				}
+			}
+		}
+	}
+}
+
+void MedModel::find_object(MedPredictor *c, vector<MedPredictor *> &res, vector<MedPredictor **> &res_pointer) {
+	if (typeid(*predictor) == typeid(*c)) {
+		res.push_back(predictor);
+		res_pointer.push_back(&predictor);
+	}
+}
+
+bool filter_by_json_query(SerializableObject &obj, const vector<string> &json_query_whitelist,
+	const vector<string> &json_query_blacklist) {
+	if (json_query_whitelist.empty() && json_query_blacklist.empty())
+		return true;
+
+	string obj_json = obj.object_json();
+	bool status = true;
+	//check whitelist:
+	for (const string &s : json_query_whitelist)
+	{
+		boost::regex reg_pat(s);
+		status = boost::regex_search(obj_json, reg_pat);
+		if (!status)
+			break;
+	}
+	//check blacklist if passed whitelist:
+	if (status) {
+		for (const string &s : json_query_blacklist)
+		{
+			boost::regex reg_pat(s);
+			status = !boost::regex_search(obj_json, reg_pat);
+			if (!status)
+				break;
+		}
+	}
+
+	return status;
+}
+
+template <class T> void MedModel::apply_change(const ChangeModelInfo &change_request, void *obj) {
+	T *c = static_cast<T *>(obj);
+	T *cl_name = new T;
+	string class_name = cl_name->my_class_name();
+	delete cl_name;
+	if (change_request.verbose_level >= 2)
+		MLOG("Change Request \"%s\" :: Identified object \"%s\" as %s\n",
+			change_request.change_name.c_str(), change_request.object_type_name.c_str(), class_name.c_str());
+	vector<T *> found_res;
+	vector<T **> found_p_res;
+	find_object(c, found_res, found_p_res);
+
+	int did_cnt = 0;
+	int succ_cnt = 0;
+	for (size_t i = 0; i < found_res.size(); ++i)
+	{
+		if (!filter_by_json_query(*found_res[i], change_request.json_query_whitelist, change_request.json_query_blacklist))
+			continue;
+		++did_cnt;
+		if (change_request.change_command == "DELETE") {
+			delete found_res[i];
+			//need to erase from original pos:
+			*found_p_res[i] = NULL;
+			++succ_cnt;
+		}
+		else {
+			if (change_request.change_command == "PRINT") {
+				string str = found_res[i]->object_json();
+				cout << "PRINT:\n" << str << endl;
+				++succ_cnt;
+			}
+			else {
+				try {
+					found_res[i]->init_from_string(change_request.change_command);
+					++succ_cnt;
+				}
+				catch (exception &exp) {
+					MWARN("Error in sending init, got %s\n", exp.what());
+				}
+			}
+		}
+	}
+	if (did_cnt > 0 && change_request.change_command == "DELETE")
+		clean_model();
+	if (change_request.verbose_level >= 2)
+		MLOG("Change Request \"%s\" :: Found object as %s - matched to %d objects - succeed in %d\n",
+			change_request.change_name.c_str(), class_name.c_str(), did_cnt, succ_cnt);
+	else if (change_request.verbose_level >= 1 && (did_cnt == 0 || succ_cnt != did_cnt))
+		MLOG("Change Request \"%s\" :: Found object as %s - matched to %d objects - succeed in %d\n",
+			change_request.change_name.c_str(), class_name.c_str(), did_cnt, succ_cnt);
+	delete c;
+}
+
+void MedModel::change_model(const ChangeModelInfo &change_request) {
+	//non interactive:
+	RepProcessor test_rep;
+	FeatureGenerator test_gen;
+	FeatureProcessor ftr_processor; //needs try catch
+	PostProcessor pp_processor;
+	MedPredictor predictor;
+
+	global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL + 1;
+	void *obj = test_rep.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_REPCLEANER] = LOG_DEF_LEVEL;
+	if (obj != NULL) {
+		apply_change<RepProcessor>(change_request, obj);
+		return;
+	}
+
+	global_logger.levels[LOG_FTRGNRTR] = MAX_LOG_LEVEL + 1;
+	void *obj_gen = test_gen.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_FTRGNRTR] = LOG_DEF_LEVEL;
+	if (obj_gen != NULL) {
+		apply_change<FeatureGenerator>(change_request, obj_gen);
+		return;
+	}
+
+	void *obj_ftr_processor = NULL;
+	global_logger.levels[LOG_FEATCLEANER] = MAX_LOG_LEVEL + 1;
+	try {
+		obj_ftr_processor = ftr_processor.new_polymorphic(change_request.object_type_name);
+	}
+	catch (...) {
+		obj_ftr_processor = NULL;
+	}
+	global_logger.levels[LOG_FEATCLEANER] = LOG_DEF_LEVEL;
+	if (obj_ftr_processor != NULL) {
+		apply_change<FeatureProcessor>(change_request, obj_ftr_processor);
+		return;
+	}
+
+	global_logger.levels[LOG_MED_MODEL] = MAX_LOG_LEVEL + 1;
+	void *obj_post_processor = pp_processor.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_MED_MODEL] = LOG_DEF_LEVEL;
+	if (obj_post_processor != NULL) {
+		apply_change<PostProcessor>(change_request, obj_post_processor);
+		return;
+	}
+
+	global_logger.levels[LOG_MEDALGO] = MAX_LOG_LEVEL + 1;
+	void *obj_predictor = predictor.new_polymorphic(change_request.object_type_name);
+	global_logger.levels[LOG_MEDALGO] = LOG_DEF_LEVEL;
+	if (obj_predictor != NULL) {
+		apply_change<MedPredictor>(change_request, obj_predictor);
+		return;
+	}
+
+	if (change_request.verbose_level >= 1)
+		MLOG("Warn in change request \"%s\" - can't find object %s - no change\n",
+			change_request.change_name.c_str(), change_request.object_type_name.c_str());
+}
+
+int ChangeModelInfo::init(map<string, string>& mapper) {
+	vector<string> field_names;
+	serialized_fields_name(field_names);
+	string option_fields = medial::io::get_list(field_names);
+
+	for (auto &it : mapper)
+	{
+		//! [ChangeModelInfo::init]
+		if (it.first == "change_command")
+			change_command = it.second;
+		else if (it.first == "change_name")
+			change_name = it.second;
+		else if (it.first == "object_type_name")
+			object_type_name = it.second;
+		else if (it.first == "verbose_level")
+			verbose_level = med_stoi(it.second);
+		else if (it.first == "json_query_whitelist")
+			boost::split(json_query_whitelist, it.second, boost::is_any_of("~"));
+		else if (it.first == "json_query_blacklist")
+			boost::split(json_query_blacklist, it.second, boost::is_any_of("~"));
+		else if (it.first == "from_json_file") {
+			vector<ChangeModelInfo> res;
+			ifstream inf(it.second);
+			if (!inf)
+				MTHROW_AND_ERR("can't open json file [%s] for read\n", it.second.c_str());
+			stringstream sstr;
+			sstr << inf.rdbuf();
+			inf.close();
+			string json_content = stripComments(sstr.str());
+			ChangeModelInfo::parse_json_string(json_content, res);
+			if (res.size() != 1)
+				MTHROW_AND_ERR("Can read only 1 ChangeModelInfo from ChangeModelInfo::init\n");
+			*this = move(res[0]);
+		}
+		//! [ChangeModelInfo::init]
+		else
+			MTHROW_AND_ERR("Error ChangeModelInfo::init - unsupported param \"%s\", options: [%s]\n",
+				it.first.c_str(), option_fields.c_str());
+	}
+	return 0;
+}
+
+void MedModel::read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes) {
+	read_from_file(model_binary_path);
+
+	vector<string> alts;
+	string json_content = json_file_to_string(0, path_to_json_changes, alts);
+	vector<ChangeModelInfo> change_reqs;
+	ChangeModelInfo::parse_json_string(json_content, change_reqs);
+	change_model(change_reqs);
+}
 
 #endif

@@ -727,8 +727,6 @@ void RepBasicOutlierCleaner::init_lists() {
 //.......................................................................................
 int RepBasicOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepBasicOutlierCleaner::init]
@@ -1054,7 +1052,6 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 }
 int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
 	map<string, confRecord> outlierParams_dict;
 	for (auto entry : mapper) {
 		string field = entry.first;
@@ -1787,8 +1784,6 @@ void RepNbrsOutlierCleaner::init_lists() {
 //.......................................................................................
 int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepNbrsOutlierCleaner::init]
@@ -2160,8 +2155,6 @@ void RepSimValHandler::init_lists() {
 //.......................................................................................
 int RepSimValHandler::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepSimValHandler::init]
@@ -3400,6 +3393,8 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		else if (field == "get_values_in_range") get_values_in_range = med_stoi(entry.second);
 		else if (field == "range_operator") range_operator = get_range_op(entry.second);
 		else if (field == "range_val_channel") range_val_channel = med_stoi(entry.second);
+		else if (field == "regex_on_sets") regex_on_sets = (bool)med_stoi(entry.second);
+		else if (field == "last_n") { last_n = med_stoi(entry.second); do_on_last_n = true; }
 		else if (field == "sets") { boost::split(sets, entry.second, boost::is_any_of(",;")); }
 		else if (field == "output_type") {
 			if (_is_numeric(entry.second))
@@ -3416,6 +3411,15 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		MTHROW_AND_ERR("ERROR in RepBasicRangeCleaner::init - must provide ranges_sig_name\n");
 	if (output_name.empty()) {
 		output_name = signal_name + "_" + ranges_name;
+		if (sets.size() > 0)
+		{
+			for (int i = 0; i < sets.size(); i++)
+			output_name += "_" + sets[i];
+		}
+
+		if (do_on_last_n)
+			output_name += "_last_" + to_string(last_n);
+
 		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s", output_name.c_str());
 	}
 
@@ -3444,6 +3448,19 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 
 	if (range_val_channel >= 0 && !sets.empty()) {
 		int sec_id = dict.section_id(ranges_name);
+		if (regex_on_sets)
+		{
+			unordered_set<string> aggregated_values;
+			for (auto& s : sets)
+			{
+				vector<string> curr_set;
+				dict.dicts[sec_id].get_regex_names(".*" + s + ".*", curr_set);
+				aggregated_values.insert(curr_set.begin(), curr_set.end());
+			}
+			sets.clear();
+			sets.insert(sets.begin(), aggregated_values.begin(), aggregated_values.end());
+		}
+
 		dict.prep_sets_lookup_table(sec_id, sets, lut);
 	}
 }
@@ -3451,6 +3468,27 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 void RepBasicRangeCleaner::register_virtual_section_name_id(MedDictionarySections& dict) {
 	int sec_id = dict.section_id(signal_name);
 	dict.connect_to_section(output_name, sec_id);
+}
+
+bool RepBasicRangeCleaner::get_last_n_value(int time, const UniversalSigVec& range_sig, float& last_value)
+{
+	bool found_flag = false;
+	int i = 0;
+	if (range_sig.len > 0)
+	{
+		// find first i before time
+		for (i = range_sig.len - 1; i >= 0; i--)
+		{
+			if (range_sig.Time(i) <= time)
+				break;
+		}
+	}
+	if (i - last_n >= 0)
+	{
+		last_value = range_sig.Val(i - last_n, range_val_channel);
+		found_flag = true;
+	}
+	return found_flag;
 }
 
 int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
@@ -3488,6 +3526,11 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		len = rec.usvs[0].len;
 		vector<int> v_times(len * time_channels); // initialize size to avoid multiple resizings for long signals
 		vector<float> v_vals(len * val_channels);
+		
+		float last_value_n;
+		bool found_last_n = false;
+		if (do_on_last_n)
+			found_last_n = get_last_n_value(time_points[tp_idx], rec.usvs[1], last_value_n);
 
 		// Collect elements to keep
 		int nKeep = 0;
@@ -3501,8 +3544,8 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			case all:
 				//increase till end or till end_time of signal passed time (sorted so no need to search after)
 				//or if has filter on sets - skip is not in set
-				while (j < rec.usvs[1].len && (time > rec.usvs[1].Time(j, 1) || (!lut.empty() &&
-					!lut[(int)rec.usvs[1].Val(j, range_val_channel)])))
+				while ((j < rec.usvs[1].len) && ((time > rec.usvs[1].Time(j, 1)) || !((!lut.empty() &&  
+					lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n)))))
 					++j;
 				if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
 					j = -1;//mark as no match, passed prediction time
@@ -3511,9 +3554,9 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				if (i == 0) {
 					j = 0;
 					//find first occourence if has set:
-					if (!lut.empty()) //can do once - only in first time
-						while (j < rec.usvs[1].len && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
-							++j;
+
+					while (j < rec.usvs[1].len && !((!lut.empty() && lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n))))
+						++j;
 					if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
 						j = -1;//mark as no match
 				}
@@ -3524,9 +3567,9 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 					//last till time_point:
 					while (j >= 0 && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
 						--j;
-					if (!lut.empty())
-						while (j >= 0 && !lut[(int)rec.usvs[1].Val(j, range_val_channel)])
-							--j;
+			
+					while (j >= 0 && !((!lut.empty() && lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n))))
+						--j;
 				}
 				break;
 			default:
@@ -3540,7 +3583,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				doRemove = true;
 			else
 				doRemove = false;
-
+			//MLOG("remove : %d , i: %d, j :%d, time: %d, time_0: %d, time_1: %d, lut: %d last: %d \n",doRemove,i,j,time, rec.usvs[1].Time(j, 0), rec.usvs[1].Time(j, 1), (!lut.empty() && lut[(int)rec.usvs[1].Val(j, range_val_channel)]), (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n)));
 			if (!doRemove) {
 				for (int t = 0; t < time_channels; t++) v_times[nKeep * time_channels + t] = rec.usvs[0].Time(i, t);
 				for (int v = 0; v < val_channels; v++) v_vals[nKeep * val_channels + v] = rec.usvs[0].Val(i, v);
@@ -3663,6 +3706,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
 		else if (field == "print_dict") print_dict = entry.second;
+		else if (field == "time_channels") time_channels = med_stoi(entry.second);
 		else if (field == "categories") {
 
 			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
@@ -3697,7 +3741,12 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 	req_signals.insert(in_sig);
 	virtual_signals.clear();
 	virtual_signals_generic.clear();
-	virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
+	if (time_channels == 1)
+		virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),V(f)"));
+	else if (time_channels == 2)
+		virtual_signals_generic.push_back(pair<string, string>(out_virtual, "T(i),T(i),V(f)"));
+	else
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - %d time channels not allowed. maximum of 2 \n", time_channels);
 
 	return 0;
 }
@@ -3987,9 +4036,18 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		vector<float> v_vals;
 		if (states.size() > 0) {
 			for (auto &e : unjittered_states) {
-				v_times.push_back(e.first);
+				if (!v_times.empty() && (time_channels == 2))
+				{
+					int end_time = med_time_converter.add_subtract_time(e.first, time_unit_sig, -1, time_unit_duration);
+					v_times.push_back(end_time);
+				}
+				v_times.push_back(e.first);				
 				v_vals.push_back((float)e.second);
 			}
+			//handle last range
+			if (time_channels == 2)
+				v_times.push_back(MAX_DATE);
+
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
 	}
@@ -4156,8 +4214,6 @@ void RepHistoryLimit::init_lists() {
 //.......................................................................................
 int RepHistoryLimit::init(map<string, string>& mapper)
 {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [RepHistoryLimit::init]

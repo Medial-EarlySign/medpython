@@ -21,6 +21,12 @@ public:
 	bool MEDPY_GET_normalized();
 	void MEDPY_SET_imputed(bool _imputed);
 	bool MEDPY_GET_imputed();
+	void MEDPY_SET_denorm_mean(float _denorm_mean);
+	float MEDPY_GET_denorm_mean();
+	void MEDPY_SET_denorm_sdv(float _denorm_sdv);
+	float MEDPY_GET_denorm_sdv();
+
+
 	MPSerializableObject asSerializable();
 };
 

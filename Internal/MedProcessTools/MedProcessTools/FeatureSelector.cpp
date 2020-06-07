@@ -171,8 +171,6 @@ int UnivariateFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 //.......................................................................................
 int UnivariateFeatureSelector::init(map<string, string>& mapper) {
 
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [UnivariateFeatureSelector::init]
@@ -394,9 +392,6 @@ int MRMRFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& ids) 
 // Init
 //.......................................................................................
 int MRMRFeatureSelector::init(map<string, string>& mapper) {
-
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [MRMRFeatureSelector::init]
@@ -789,9 +784,6 @@ int LassoSelector::_learn(MedFeatures& features, unordered_set<int>& ids) {
 // Init
 //.......................................................................................
 int LassoSelector::init(map<string, string>& mapper) {
-
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [LassoSelector::init]
@@ -855,9 +847,6 @@ int DgnrtFeatureRemvoer::_learn(MedFeatures& features, unordered_set<int>& ids) 
 // Init
 //.......................................................................................
 int DgnrtFeatureRemvoer::init(map<string, string>& mapper) {
-
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [DgnrtFeatureRemvoer::init]
@@ -874,8 +863,6 @@ int DgnrtFeatureRemvoer::init(map<string, string>& mapper) {
 }
 
 int TagFeatureSelector::init(map<string, string>& mapper) {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		string val = boost::trim_copy(entry.second);
@@ -988,8 +975,6 @@ void TagFeatureSelector::dprint(const string &pref, int fp_flag) {
 // Init 
 //.......................................................................................
 int ImportanceFeatureSelector::init(map<string, string>& mapper) {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [ImportanceFeatureSelector::init]
@@ -1064,8 +1049,6 @@ int ImportanceFeatureSelector::_learn(MedFeatures& features, unordered_set<int>&
 // Init 
 //.......................................................................................
 int IterativeFeatureSelector::init(map<string, string>& mapper) {
-	init_defaults();
-
 	string folds_s;
 	for (auto entry : mapper) {
 		string field = entry.first;

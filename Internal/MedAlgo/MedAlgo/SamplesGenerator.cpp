@@ -538,20 +538,25 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 		strataData[j] = &data.at(resolved_strata_name);
 	}
 	if (strata_settings.nStratas() > 0)
-	MLOG("INFO:: UnivariateSamplesGenerator::learn - has %zu stratas with %d bins\n", 
-		strata_settings.nStratas(), strata_settings.nValues());
+		MLOG("INFO:: UnivariateSamplesGenerator::learn - has %zu stratas with %d bins\n",
+			strata_settings.nStratas(), strata_settings.nValues());
 	//already sorted because map
-	for (const string &feat : final_feats)
+	feature_values.resize(names.size());
+	feature_val_probs.resize(names.size());
+	unordered_set<string> learn_set(final_feats.begin(), final_feats.end());
+	for (int i = 0; i < names.size(); ++i)
 	{
-		if (data.find(feat) == data.end())
-			MTHROW_AND_ERR("Error can't find feature %s\n", feat.c_str());
-		const vector<T> &v = data.at(feat);
-		map<float, double> &val_to_prob = feature_val_agg[feat];
+		if (learn_set.find(names[i]) == learn_set.end())
+			continue;
+		const vector<T> &v = data.at(names[i]);
+		map<T, double> val_to_prob;
+
 		double tot_cnt = 0; //count non missings or all
-		for (float val : v)
+		for (T val : v)
 		{
 			if (skip_missing && val == missing_value)
 				continue;
+			//find val index in val_to_val
 			++val_to_prob[val];
 			++tot_cnt;
 		}
@@ -560,13 +565,24 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 			for (auto &it : val_to_prob)
 				val_to_prob[it.first] /= tot_cnt;
 
+		vector<T> &val_to_val = feature_values[i];
+		vector<double> &val_to_p = feature_val_probs[i];
+		//update val_to_val,val_to_prob from val_to_prob which is already ordered (map)
+		double cumsum = 0;
+		for (auto &it : val_to_prob) {
+			val_to_val.push_back(it.first);
+			cumsum += it.second;
+			val_to_p.push_back(cumsum);
+		}
+
 	}
 
 	//calc for stratas: strata_sizes, strata_feature_val_agg:
 	int num_of_rows = (int)data.begin()->second.size();
 	vector<int> strata_ind(num_of_rows);
 	strata_sizes.resize(strata_settings.nValues());
-	strata_feature_val_agg.resize(strata_sizes.size());
+	strata_feature_val_agg_val.resize(strata_sizes.size());
+	strata_feature_val_agg_prob.resize(strata_sizes.size());
 	vector<vector<int>> strata_to_indexes(strata_sizes.size());
 	for (int i = 0; i < num_of_rows; ++i)
 	{
@@ -576,21 +592,26 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 	}
 	//update strata_feature_val_agg:
 	int skip_cnt = 0;
-	for (int i = 0; i < strata_feature_val_agg.size(); ++i)
+	for (int i = 0; i < strata_sizes.size(); ++i)
 	{
+		vector<vector<T>> &feat_val_val = strata_feature_val_agg_val[i];
+		vector<vector<double>> &feat_val_prb = strata_feature_val_agg_prob[i];
 		if (strata_sizes[i] >= min_samples) {
-
-			for (const string &feat : final_feats)
+			feat_val_val.resize(names.size());
+			feat_val_prb.resize(names.size());
+			for (int j = 0; j < names.size(); ++j)
 			{
-				if (data.find(feat) == data.end())
-					MTHROW_AND_ERR("Error can't find feature %s\n", feat.c_str());
+				const string &feat = names[j];
+				if (learn_set.find(feat) == learn_set.end())
+					continue;
 				const vector<T> &v = data.at(feat);
-				map<float, double> &val_to_prob = strata_feature_val_agg[i][feat];
+				map<T, double> val_to_prob;
+				//map<float, double> &val_to_prob = strata_feature_val_agg[i][feat];
 				double tot_cnt = 0; //count non missings or all
 				const vector<int> &relevant_idx = strata_to_indexes[i];
 				for (int idx : relevant_idx) //go over relevant indexes only
 				{
-					float val = v[idx];
+					T val = v[idx];
 					if (skip_missing && val == missing_value)
 						continue;
 					++val_to_prob[val];
@@ -601,6 +622,15 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 					for (auto &it : val_to_prob)
 						val_to_prob[it.first] /= tot_cnt;
 
+				vector<T> &val_vec = feat_val_val[j];
+				vector<double> &prob_vec = feat_val_prb[j];
+				//update val_vec,prob_vec from val_to_prob 
+				double cumsum = 0;
+				for (auto &it : val_to_prob) {
+					val_vec.push_back(it.first);
+					cumsum += it.second;
+					prob_vec.push_back(cumsum);
+				}
 			}
 
 		}
@@ -609,6 +639,15 @@ template<typename T> void UnivariateSamplesGenerator<T>::learn(const map<string,
 	}
 	if (skip_cnt > 0)
 		MWARN("Has %d skipped strats with few samples\n", skip_cnt);
+}
+
+template<typename T> T UnivariateSamplesGenerator<T>::find_pos(const vector<T> &v, const vector<double> &cumsum, double p) const {
+	int pos = medial::process::binary_search_position(cumsum, p);
+	//int pos = medial::process::binary_search_position(cumsum.data(), cumsum.data() + cumsum.size() - 1, p);
+	if (pos >= v.size())
+		pos = (int)v.size() - 1;
+	return v[pos];
+	
 }
 
 template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string, vector<T>> &data, void *params,
@@ -637,21 +676,18 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(map<string,
 				//get strata index for this one sample:
 				int strata_index = strata_settings.getIndex(missing_value, strataData, 0);
 
-				const map<T, double> *feat_prob = &feature_val_agg.at(names[i]);
-				if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg[strata_index].empty())
-					feat_prob = &strata_feature_val_agg[strata_index].at(names[i]);
+				//const map<T, double> *feat_prob = &feature_val_agg.at(names[i]);
+				const vector<T> *feat_vals = &feature_values[i];
+				const vector<double> *feat_prbs = &feature_val_probs[i];
 
-				float p = rnd_prob(rnd_gen);
-				double agg = 0;
-				T val = missing_value;
-				for (const auto &it : *feat_prob)
-				{
-					agg += it.second;
-					if (agg >= p) {
-						val = it.first;
-						break;
-					}
+				if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg_val[strata_index].empty()) {
+					feat_vals = &strata_feature_val_agg_val[strata_index][i];
+					feat_prbs = &strata_feature_val_agg_prob[strata_index][i];
+					//feat_prob = &strata_feature_val_agg[strata_index].at(names[i]);
 				}
+
+				double p = rnd_prob(rnd_gen);
+				T val = find_pos(*feat_vals, *feat_prbs, p);
 
 				data[names[i]].push_back(val);
 			}
@@ -690,23 +726,19 @@ template<typename T> void UnivariateSamplesGenerator<T>::get_samples(MedMat<T> &
 				if (masks[i][j])
 					data(i, j) = mask_values(i, j);
 				else {
-					
 
-					const map<T, double> *feat_prob = &feature_val_agg.at(names[j]);
-					if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg[strata_index].empty())
-						feat_prob = &strata_feature_val_agg[strata_index].at(names[j]);
 
-					float p = rnd_prob(rnd_gen);
-					double agg = 0;
-					T val = missing_value;
-					for (const auto &it : *feat_prob)
-					{
-						agg += it.second;
-						if (agg >= p) {
-							val = it.first;
-							break;
-						}
+					//const map<T, double> *feat_prob = &feature_val_agg.at(names[j]);
+					const vector<T> *feat_vals = &feature_values[j];
+					const vector<double> *feat_prbs = &feature_val_probs[j];
+					if (strata_sizes[strata_index] >= min_samples && !strata_feature_val_agg_val[strata_index].empty()) {
+						feat_vals = &strata_feature_val_agg_val[strata_index][j];
+						feat_prbs = &strata_feature_val_agg_prob[strata_index][j];
+						//feat_prob = &strata_feature_val_agg[strata_index].at(names[i]);
 					}
+
+					double p = rnd_prob(rnd_gen);
+					T val = find_pos(*feat_vals, *feat_prbs, p);
 					data(i, j) = val;
 				}
 			}

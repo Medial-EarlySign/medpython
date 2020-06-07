@@ -1,11 +1,11 @@
-#include "AveragePredsPostProcessor.h"
+#include "AggregatePredsPostProcessor.h"
 #include <boost/algorithm/string.hpp>
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 //defaults:
-AveragePredsPostProcessor::AveragePredsPostProcessor() {
+AggregatePredsPostProcessor::AggregatePredsPostProcessor() {
 	feature_processor_type = "";
 	feature_processor_args = "";
 	use_median = false;
@@ -15,7 +15,7 @@ AveragePredsPostProcessor::AveragePredsPostProcessor() {
 	print_missing_cnt = false;
 }
 
-int AveragePredsPostProcessor::init(map<string, string> &mapper) {
+int AggregatePredsPostProcessor::init(map<string, string> &mapper) {
 	for (const auto &it : mapper)
 	{
 		if (it.first == "feature_processor_type")
@@ -34,16 +34,16 @@ int AveragePredsPostProcessor::init(map<string, string> &mapper) {
 			print_missing_cnt = med_stoi(it.second) > 0;
 		else if (it.first == "pp_type") {} //ignore
 		else
-			MTHROW_AND_ERR("Error AveragePredsPostProcessor::init - unknown argument %s\n",
+			MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init - unknown argument %s\n",
 				it.first.c_str());
 	}
 
 	if (feature_processor_type.empty())
-		MTHROW_AND_ERR("Error AveragePredsPostProcessor::init - must provide feature_processor_type\n");
+		MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init - must provide feature_processor_type\n");
 	if (resample_cnt <= 0)
-		MTHROW_AND_ERR("Error AveragePredsPostProcessor::init - resample_cnt > 0\n");
+		MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init - resample_cnt > 0\n");
 	if (batch_size <= 0)
-		MTHROW_AND_ERR("Error AveragePredsPostProcessor::init - batch_size > 0\n");
+		MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init - batch_size > 0\n");
 
 	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
 		feature_processor = FeatureProcessor::make_processor(feature_processor_type, feature_processor_args);
@@ -52,7 +52,7 @@ int AveragePredsPostProcessor::init(map<string, string> &mapper) {
 	return 0;
 }
 
-void AveragePredsPostProcessor::init_post_processor(MedModel& model)
+void AggregatePredsPostProcessor::init_post_processor(MedModel& model)
 {
 	p_model = &model;
 	model_predictor = model.predictor;
@@ -77,7 +77,7 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		{
 			if (f->my_class_name() == feature_type) {
 				if (feature_processor != NULL)
-					MTHROW_AND_ERR("Error AveragePredsPostProcessor::init_post_processor - found multiple feature processors of type %s\n",
+					MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init_post_processor - found multiple feature processors of type %s\n",
 						feature_type.c_str());
 				feature_processor = f;
 			}
@@ -89,12 +89,12 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 			}
 		}
 		if (feature_processor == NULL)
-			MTHROW_AND_ERR("Error AveragePredsPostProcessor::init_post_processor - can't find feature processors of type %s\n",
+			MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init_post_processor - can't find feature processors of type %s\n",
 				feature_type.c_str());
 		if (!before_processors.empty())
-			MWARN("WARN:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
+			MWARN("WARN:: AggregatePredsPostProcessor :: found %zu processors before\n", before_processors.size());
 		if (!after_processors.empty())
-			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors after\n", after_processors.size());
+			MLOG("INFO:: AggregatePredsPostProcessor :: found %zu processors after\n", after_processors.size());
 	}
 	else if (force_cancel_imputations) {
 		//find imputer and store all what happens after him:
@@ -130,20 +130,20 @@ void AveragePredsPostProcessor::init_post_processor(MedModel& model)
 		}
 
 		if (!before_processors.empty())
-			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors before\n", before_processors.size());
+			MLOG("INFO:: AggregatePredsPostProcessor :: found %zu processors before\n", before_processors.size());
 		if (!after_processors.empty())
-			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors after\n", after_processors.size());
+			MLOG("INFO:: AggregatePredsPostProcessor :: found %zu processors after\n", after_processors.size());
 	}
 	else
 	{
 		before_processors.insert(before_processors.end(),
 			model.feature_processors.begin(), model.feature_processors.end());
 		if (!before_processors.empty())
-			MLOG("INFO:: AveragePredsPostProcessor :: found %zu processors before (fp added to end)\n", before_processors.size());
+			MLOG("INFO:: AggregatePredsPostProcessor :: found %zu processors before (fp added to end)\n", before_processors.size());
 	}
 }
 
-void AveragePredsPostProcessor::generate_matrix_till_feature_process(const MedFeatures &input_mat, MedFeatures &res) const {
+void AggregatePredsPostProcessor::generate_matrix_till_feature_process(const MedFeatures &input_mat, MedFeatures &res) const {
 	//get samples:
 	MedSamples input_smps;
 	input_smps.import_from_sample_vec(input_mat.samples);
@@ -197,10 +197,10 @@ void print_msn(const MedFeatures &f, float missing_value, const string &prefix) 
 
 }
 
-void AveragePredsPostProcessor::Learn(const MedFeatures &train_mat) {
+void AggregatePredsPostProcessor::Learn(const MedFeatures &train_mat) {
 	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
 		unordered_set<int> empt;
-		if (!after_processors.empty()) { //need to cancel imputations
+		if (!p_model->feature_processors.empty() && force_cancel_imputations) { //need to cancel imputations
 			MedFeatures train_mat_for_processor;
 			generate_matrix_till_feature_process(train_mat, train_mat_for_processor);
 			if (print_missing_cnt)
@@ -219,7 +219,7 @@ void clear_map(map<string, vector<float>> &data) {
 		data[it.first].clear();
 }
 
-void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
+void AggregatePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	//Apply plan, do in batches:
 	//1. resample input - apply feature_processor multiple times for each sample (if imputer and using existing in model. will get matrix without feature processors/ rerun model again)
 	//2. predict with model_predictor
@@ -249,10 +249,11 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	//data, samples
 	int i = 0;
 	vector<unordered_map<string, float>> samples_res(p_matrix->samples.size());
-	MedProgress progrees("", int(p_matrix->samples.size() / batch_size) + 1, 30, 10);
+	MedProgress progrees("AggregatePredsPostProcessor::Apply", int(p_matrix->samples.size() / batch_size) + 1, 30, 10);
 	while (i < p_matrix->samples.size())
 	{
 		//prepate batch
+		int start_idx_i = i;
 		int curr_sz = 0;
 		MedFeatures apply_batch = batch;
 		for (auto &it : p_matrix->data)
@@ -293,7 +294,7 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 		//aggregate results using collected_preds for each original pred:
 
 		for (size_t j = 0; j < curr_sz; ++j) {
-			unordered_map<string, float> &dict = samples_res[j];
+			unordered_map<string, float> &dict = samples_res[start_idx_i + j];
 			vector<float> &dt = collected_preds[j];
 			float mean, std;
 			medial::stats::get_mean_and_std_without_cleaning(dt, mean, std);
@@ -330,7 +331,7 @@ void AveragePredsPostProcessor::Apply(MedFeatures &matrix)   {
 
 }
 
-AveragePredsPostProcessor::~AveragePredsPostProcessor() {
+AggregatePredsPostProcessor::~AggregatePredsPostProcessor() {
 	if (boost::starts_with(feature_processor_type, "MODEL::")) {
 		if (feature_processor != NULL) {
 			delete feature_processor;
@@ -339,7 +340,7 @@ AveragePredsPostProcessor::~AveragePredsPostProcessor() {
 	}
 }
 
-void AveragePredsPostProcessor::dprint(const string &pref) const {
+void AggregatePredsPostProcessor::dprint(const string &pref) const {
 	MLOG("%s using %s preidctor, feature_processor of %s\n", pref.c_str(), model_predictor->my_class_name().c_str(),
 		feature_processor->my_class_name().c_str());
 }

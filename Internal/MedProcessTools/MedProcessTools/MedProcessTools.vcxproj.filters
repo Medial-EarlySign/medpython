@@ -129,13 +129,13 @@
     <ClCompile Include="MultiplierProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AveragePredsPostProcessor.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ProbAdjustPostProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="TrainWithMissingProcessor.cpp">
+    <ClCompile Include="ResampleWithMissingProcessor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AggregatePredsPostProcessor.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -224,13 +224,13 @@
     <ClInclude Include="DiabetesFinderGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AveragePredsPostProcessor.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ProbAdjustPostProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="TrainWithMissingProcessor.h">
+    <ClInclude Include="ResampleWithMissingProcessor.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AggregatePredsPostProcessor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

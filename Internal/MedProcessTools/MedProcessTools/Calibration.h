@@ -88,6 +88,8 @@ public:
 	virtual int Learn(const vector <MedSample>& samples, const int samples_time_unit);
 	virtual int Apply(MedSamples& samples);
 	virtual int Apply(vector <MedSample>& samples);
+	void Apply(const vector<float> &preds, vector<float> &probs) const;
+	float Apply(float pred) const;
 
 	//PostProcessor functions:
 	void Learn(const MedFeatures &matrix) {Learn(matrix.samples); }

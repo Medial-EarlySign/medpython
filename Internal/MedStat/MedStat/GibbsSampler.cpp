@@ -99,7 +99,7 @@ template<typename T> int GibbsSampler<T>::init(map<string, string>& map) {
 	return params.init(map);
 }
 
-template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen)  {
+template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &gen) {
 	if (!sample_cohort.empty()) {
 		uniform_int_distribution<> rnd_gen(0, (int)sample_cohort.size() - 1);
 		int sel = rnd_gen(gen);
@@ -135,15 +135,8 @@ template<typename T> T PredictorOrEmpty<T>::get_sample(vector<T> &x, mt19937 &ge
 		predictor->predict_single(x, prd);
 		if (!calibrators.empty()) {
 			//need to use calibrator for all predictions:
-			vector<MedSample> smps(1);
-			smps[0].id = 0;
-			smps[0].outcome = 0;
 			for (size_t i = 0; i < prd.size(); ++i)
-			{
-				smps[0].prediction = { (float)prd[i] };
-				calibrators[i].Apply(smps);
-				prd[i] = smps[0].prediction[0]; //return calibrated value
-			}
+				prd[i] = calibrators[i].Apply(prd[i]);
 		}
 		double tot_num = 0;
 		for (size_t i = 0; i < prd.size(); ++i)
@@ -443,7 +436,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 }
 
 template<typename T> void GibbsSampler<T>::get_samples(map<string, vector<T>> &results, const GibbsSamplingParams &sampling_params, mt19937 &rnd_gen
-	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress)  {
+	, const vector<bool> *mask, const vector<T> *mask_values, bool print_progress) {
 
 	vector<bool> mask_f(all_feat_names.size());
 	vector<T> mask_values_f(all_feat_names.size());

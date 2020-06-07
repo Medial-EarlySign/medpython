@@ -389,6 +389,7 @@ BasicFeatureTypes BasicFeatGenerator::name_to_type(const string &name)
 	if (name == "first_time")		return FTR_FIRST_DAYS;
 	if (name == "category_set_first")				return FTR_CATEGORY_SET_FIRST;
 	if (name == "category_set_first_time")				return FTR_CATEGORY_SET_FIRST_TIME;
+	if (name == "time_since_last_change")			return FTR_TIME_SINCE_LAST_CHANGE;
 
 
 	if (isInteger(name))
@@ -452,6 +453,7 @@ void BasicFeatGenerator::set_names() {
 	case FTR_RANGE_WIDTH:			name += "range_width"; break;
 	case FTR_MAX_DIFF:			name += "max_diff"; break;
 	case FTR_FIRST_DAYS:		name += "first_time"; break;
+	case FTR_TIME_SINCE_LAST_CHANGE: name += "last_time_since_change"; break;
 
 	default: {
 		name += "ERROR";
@@ -621,7 +623,7 @@ float BasicFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time, int o
 	case FTR_FIRST_DAYS:		return uget_first_time(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_FIRST:		return uget_category_set_first(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	case FTR_CATEGORY_SET_FIRST_TIME:		return uget_category_set_first_time(rec, rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
-
+	case FTR_TIME_SINCE_LAST_CHANGE:		 return uget_time_since_last_change(rec.usv, time, updated_win_from, updated_win_to, outcomeTime);
 	default:	return missing_val;
 	}
 
@@ -1003,6 +1005,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
 		else if (field == "strict_times") strict_times = med_stoi(entry.second);
 		else if (field == "conditional_channel") conditional_channel = med_stoi(entry.second);
+		else if (field == "regex_on_sets") regex_on_sets = (bool)med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
 		//! [RangeFeatGenerator::init]
@@ -1023,6 +1026,19 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 	if (type == FTR_RANGE_EVER || type == FTR_RANGE_TIME_DIFF || type == FTR_RANGE_TIME_DIFF_START || conditional_channel >= 0) {
 		if (lut.size() == 0) {
 			int section_id = dict.section_id(signalName);
+			if (regex_on_sets)
+			{
+				unordered_set<string> aggregated_values;
+				for (auto& s : sets)
+				{
+					vector<string> curr_set;
+					dict.dicts[section_id].get_regex_names(".*" + s + ".*", curr_set);
+					aggregated_values.insert(curr_set.begin(), curr_set.end());
+				}
+				sets.clear();
+				sets.insert(sets.begin(),aggregated_values.begin(),aggregated_values.end());
+			}
+
 			dict.prep_sets_lookup_table(section_id, sets, lut);
 		}
 	}
@@ -1403,6 +1419,33 @@ float BasicFeatGenerator::uget_first_time(UniversalSigVec &usv, int time, int _w
 	}
 	return missing_val;
 }
+
+//.......................................................................................
+float BasicFeatGenerator::uget_time_since_last_change(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime)
+{
+	int min_time, max_time;
+	get_window_in_sig_time(_win_from, _win_to, time_unit_win, time_unit_sig, time_point, min_time, max_time, bound_outcomeTime, outcomeTime);
+	float time_since_last_change = missing_val;
+	if (usv.len > 1)
+	{
+		float val = usv.Val(0, val_channel);
+		for (int i = 1; i < usv.len; i++) {
+			float last_val = val;
+			int itime = usv.Time(i, time_channel);
+			if (itime >= min_time) {
+				if (itime > max_time)
+					break;
+				else {
+					val = usv.Val(i, val_channel);
+					if (val != last_val)
+						time_since_last_change = (float)(time_point - usv.TimeU(i, time_channel, time_unit_win));
+				}
+			}
+		}
+	}
+	return time_since_last_change;
+}
+
 
 //.......................................................................................
 float BasicFeatGenerator::uget_last2_time(UniversalSigVec &usv, int time, int _win_from, int _win_to, int outcomeTime)

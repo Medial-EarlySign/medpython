@@ -171,7 +171,7 @@ public:
 	int _filter(MedSamples& inSamples, MedSamples& outSamples);
 
 	/// <summary> init from map </summary>
-	int init(map<string, string>& mapper) { init_defaults();  return MedValueCleaner::init(mapper); }
+	int init(map<string, string>& mapper) { return MedValueCleaner::init(mapper); }
 	/// <summary> init to defaults </summary>
 	void init_defaults() {
 		filter_type = SMPL_FILTER_OUTLIERS;

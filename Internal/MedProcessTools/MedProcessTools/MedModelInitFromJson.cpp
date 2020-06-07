@@ -22,7 +22,7 @@ using namespace boost::property_tree;
 
 void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt);
 
-void parse_my_json_to_pt(string &str, ptree &pt) {
+void parse_my_json_to_pt(const string &str, ptree &pt) {
 	istringstream i_str(str);
 	parse_my_json_to_pt(i_str, pt);
 }
@@ -161,6 +161,9 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	boost::optional<int> v = pt.get_optional<int>("generate_masks_for_features");
 	if (v)
 		this->generate_masks_for_features = v.get();
+	v = pt.get_optional<int>("take_mean_pred");
+	if (v)
+		this->take_mean_pred = v.get();
 
 	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 
@@ -380,4 +383,55 @@ void MedModel::replace_predictor_with_json_predictor(string f_json)
 	}
 	else MWARN("NOTE: no [predictor] node found in file\n");
 
+}
+
+void ChangeModelInfo::parse_json_string(const string &json_content, vector<ChangeModelInfo> &res) {
+	ptree pt;
+	parse_my_json_to_pt(json_content, pt);
+
+	res.clear();
+	for (auto &p : pt.get_child("changes")) {
+		auto& action = p.second;
+		ChangeModelInfo change_req;
+		for (ptree::value_type &attr : action) {
+			string attr_name = attr.first;
+			string single_attr_value = attr.second.data();
+			if (attr_name == "object_type_name") {
+				if (single_attr_value.length() == 0)
+					MTHROW_AND_ERR("Error ChangeModelInfo::parse_json_string - object_type_name must has a single string value\n");
+				change_req.object_type_name = single_attr_value;
+			}
+			else if (attr_name == "change_command") {
+				if (single_attr_value.length() == 0)
+					MTHROW_AND_ERR("Error ChangeModelInfo::parse_json_string - change_command must has a single string value\n");
+				change_req.change_command = single_attr_value;
+			}
+			else if (attr_name == "change_name") {
+				if (single_attr_value.length() == 0)
+					MTHROW_AND_ERR("Error ChangeModelInfo::parse_json_string - change_name must has a single string value\n");
+				change_req.change_name = single_attr_value;
+			}
+			else if (attr_name == "verbose_level") {
+				if (single_attr_value.length() == 0)
+					MTHROW_AND_ERR("Error ChangeModelInfo::parse_json_string - verbose_level must has a single string value\n");
+				change_req.verbose_level = med_stoi(single_attr_value);
+			}
+			else if (attr_name == "json_query_whitelist") {
+				for (ptree::value_type &attr_value : attr.second) {
+					string regex_pat = attr_value.second.data();
+					change_req.json_query_whitelist.push_back(regex_pat);
+				}
+			}
+			else if (attr_name == "json_query_blacklist") {
+				for (ptree::value_type &attr_value : attr.second) {
+					string regex_pat = attr_value.second.data();
+					change_req.json_query_blacklist.push_back(regex_pat);
+				}
+			}
+			else
+				MTHROW_AND_ERR("Error ChangeModelInfo::parse_json_string - Unsupported attribute %s\n", attr_name.c_str());
+		}
+		res.push_back(move(change_req));
+	}
+	MLOG("Succesfully parsed %zu ChangeModelInfo\n", res.size());
 }
