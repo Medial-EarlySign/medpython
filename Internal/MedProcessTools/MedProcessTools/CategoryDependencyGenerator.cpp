@@ -665,16 +665,29 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	if (verbose) {
 		MLOG("CategoryDependencyGenerator on %s - created %d(out of %zu passed filters) features\n",
 			signalName.c_str(), top_codes.size(), sort_pars.size());
+		// file header
+		if (use_file)
+			print_or_log(fw_verbose, use_file, "Name\tTOT_CNT\tP_VAL\tScore\tLift\tDOF\n");
+
 		for (size_t i = 0; i < indexes_order.size(); ++i)
 		{
-			MLOG("#NUM %zu:\t%s", i + 1, categoryId_to_name.at(code_list[indexes_order[i]]).front().c_str());
+			MLOG("#NUM %zu:\t", i + 1);
+			stringstream names_ss;
+			names_ss << categoryId_to_name.at(code_list[indexes_order[i]]).front();
 			for (size_t j = 1; j < 4 && j < categoryId_to_name.at(code_list[indexes_order[i]]).size(); ++j)
-				MLOG("|%s", categoryId_to_name.at(code_list[indexes_order[i]])[j].c_str());
+				names_ss << "|" << categoryId_to_name.at(code_list[indexes_order[i]])[j];
+
+			MLOG("%s", names_ss.str().c_str());
 			MLOG("\tTOT_CNT:%d\tP_VAL=%.12g\tScore=%.3f\tLift=%1.3f\tDOF=%d\n",
 				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
 				dof[indexes_order[i]]);
+			if (use_file)
+				print_or_log(fw_verbose, use_file, "%s\t%d\t%.12g\t%.3f\t%1.3f\t%d\n", names_ss.str().c_str(),(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
+					dof[indexes_order[i]]);
 		}
 	}
+	if (use_file)
+		fw_verbose.close();
 
 	return 0;
 }

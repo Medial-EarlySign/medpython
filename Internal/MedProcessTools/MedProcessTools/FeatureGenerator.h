@@ -212,13 +212,14 @@ typedef enum {
 	FTR_NSAMPLES = 15, ///<"nsamples" - counts the number of times the signal apear in the time window
 	FTR_EXISTS = 16, ///<"exists" - boolean 0/1 if the signal apears in the time window
 	FTR_CATEGORY_SET_FIRST = 17, ///<"category_set_first" - boolean 0/1 if the signal apears in the time window and did not appear ever before the window
-	FTR_MAX_DIFF = 18, ///<maximum diff in window
-	FTR_FIRST_DAYS = 19, ///< time diffrence from prediction time to first time with signal
-	FTR_RANGE_WIDTH = 20, ///< maximal value - minimal value in a given window time frame
-	FTR_CATEGORY_SET_FIRST_TIME = 21,
+	FTR_MAX_DIFF = 18, ///<"max_diff" maximum diff in window
+	FTR_FIRST_DAYS = 19, ///<"first_time" time diffrence from prediction time to first time with signal
+	FTR_RANGE_WIDTH = 20, ///<"range_width" maximal value - minimal value in a given window time frame
+	FTR_CATEGORY_SET_FIRST_TIME = 21, ///<"category_set_first_time" - first time of category set found in the time window
 	FTR_SUM_VALUE=22, ///<"sum" - sum of values in window
 	FTR_LAST_NTH_VALUE = 23, ///<"last_nth" : (set also N_th parameter to use), get the last N_th in window, 0 is last, 1 is last2, etc.
 	FTR_CATEGORY_SET_LAST_NTH = 24, ///<"category_set_last_nth" : (set also N_th parameter to use), check is the last N_th in window is in the given set
+	FTR_TIME_SINCE_LAST_CHANGE = 25, ///<"time_since_last_change" : go over states signal, take last time since the value changed
 	FTR_LAST
 } BasicFeatureTypes;
 
@@ -262,6 +263,7 @@ private:
 	float uget_first_time(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 	float uget_category_set_first_time(PidDynamicRec &rec, UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
+	float uget_time_since_last_change(UniversalSigVec &usv, int time_point, int _win_from, int _win_to, int outcomeTime);
 
 	// Applying non FTR_CATEGORY_SET_* types to categorical data
 	unordered_set<int> categ_require_dict = { FTR_LAST_VALUE, FTR_FIRST_VALUE, FTR_LAST2_VALUE, FTR_LAST_NTH_VALUE }; // Types that requriew dictionary if applied on categorical data
@@ -662,6 +664,7 @@ public:
 	int zero_missing = 0;	///< in some cases we may want to get 0 instead of missing values
 	int strict_times = 0;  ///< if on , will ignore cases in which the second time channel is after the prediction time
 	int conditional_channel = -1; ///< in some cases (currently last_nth_len, and time_covered) we allow doing the calculation only on ranges passing the condition of being included in sets in this channel
+	bool regex_on_sets= false;        ///< if on , regex is applied on .*sets[i].* and aggregated. 
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";
@@ -708,7 +711,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing, strict_times,conditional_channel)
+			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing, strict_times,conditional_channel, regex_on_sets)
 };
 
 /**

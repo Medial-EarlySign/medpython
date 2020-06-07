@@ -2522,15 +2522,6 @@ void parse_vector(const string &value, vector<float> &output_vec) {
 		output_vec[i] = stof(vec[i]);
 }
 int ROC_Params::init(map<string, string>& map) {
-	max_diff_working_point = (float)0.05;
-	use_score_working_points = false;
-	working_point_FPR = { (float)0.1, 1, 5, 10,20,30,40,50,55,60,65,70,75,80,85,90,95 };
-	score_bins = 0;
-	score_resolution = 0;
-	incidence_fix = 0;
-	score_min_samples = 0;
-	fix_label_to_binary = true;
-
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		const string &param_name = boost::to_lower_copy(it->first);

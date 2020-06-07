@@ -477,9 +477,17 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 {
 	process(explain_list);
 	if (zero_missing == 0 || missing_value_mask == NULL) 	return;
+	//check if has groups - has, zero missings must be done before. skip it here:
+	bool has_groups = false;
+	for (const vector<int> &v : group2Inds)
+	{
+		has_groups = v.size() > 1;
+		if (has_groups)
+			break;
+	}
+	
 
-
-	if (!group_by_sum) {
+	if (!has_groups) {
 		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
 		for (auto &s : skip_bias_names) explain_list.erase(s);
 
@@ -579,7 +587,8 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 	int nftrs = (int)features.size();
 	map<string, vector<int>> groups;
 	vector<bool> grouped_ftrs(nftrs);
-	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff" };
+	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff", "range_width", "sum" };
+	unordered_set<string> time_set = { "last_time", "last_time2", "first_time", "time_since_last_change" };
 
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
@@ -653,6 +662,8 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 				string tp = "_Values";
 				if (idx + 1 < tokens.size() && trends_set.find(tokens[idx + 1]) != trends_set.end())
 					tp = "_Trends";
+				if (idx + 1 < tokens.size() && time_set.find(tokens[idx + 1]) != time_set.end())
+					tp = "_Time";
 				if (idx > 0)
 					word += tp;
 			}

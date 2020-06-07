@@ -78,17 +78,7 @@ MedBootstrap::MedBootstrap()
 }
 
 int MedBootstrap::init(map<string, string>& map) {
-	sample_ratio = (float)1.0;
-	sample_per_pid = 1;
-	sample_patient_label = false;
-	sample_seed = 0;
-	loopCnt = 500;
-	filter_cohort["All"] = {};
-	simTimeWindow = false;
-	is_binary_outcome = true;
-
 	//now read init_string to override default:
-
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		const string &param_name = boost::to_lower_copy(it->first);

@@ -77,7 +77,7 @@ namespace LightGBM {
 			Log::ResetLogLevel(LogLevel::Warning);
 		if (only_fatal)
 			Log::ResetLogLevel(LogLevel::Fatal);
-		Log::Info("init train data %d x %d\n", nrows, ncols);
+		Log::Info("init train data %d x %d", nrows, ncols);
 		if (config_.num_threads > 0) omp_set_num_threads(config_.num_threads);
 
 		std::unique_ptr<Dataset> ret;
@@ -127,9 +127,10 @@ namespace LightGBM {
 			train_data_->SetFloatField("weight", weight, nrows);
 
 		// create training metric
-		Log::Info("training eval bit %d\n", config_.is_provide_training_metric);
+		Log::Info("training eval bit %d", config_.is_provide_training_metric);
 		if (config_.is_provide_training_metric) {
-			Log::Info("Creating training metrics: types %d\n", config_.metric.size());
+			Log::Info("Creating training metrics: types %d [%s]", 
+				config_.metric.size(), medial::io::get_list(config_.metric, ", ").c_str());
 			for (auto metric_type : config_.metric) {
 				auto metric = std::unique_ptr<Metric>(Metric::CreateMetric(metric_type, config_));
 				if (metric == nullptr) { continue; }
@@ -139,7 +140,7 @@ namespace LightGBM {
 		}
 		train_metric_.shrink_to_fit();
 
-		Log::Info("finished loading train mat\n");
+		Log::Info("finished loading train mat");
 		return 0;
 	}
 
@@ -185,7 +186,7 @@ namespace LightGBM {
 		bool is_finished = false;
 		bool need_eval = true;
 		auto start_time = std::chrono::steady_clock::now();
-		Log::Info("total_iter %d is_finished %d need_eval %d\n", total_iter, (int)is_finished, (int)need_eval);
+		Log::Info("total_iter %d is_finished %d need_eval %d", total_iter, (int)is_finished, (int)need_eval);
 		for (int iter = 0; iter < total_iter && !is_finished; ++iter) {
 			is_finished = boosting_->TrainOneIter(nullptr, nullptr);
 			auto end_time = std::chrono::steady_clock::now();

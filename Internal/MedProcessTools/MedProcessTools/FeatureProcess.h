@@ -51,6 +51,9 @@ public:
 	string feature_name = "unset_feature_name";
 	string resolved_feature_name;
 
+	/// Will be called before learn to create new version for the matrix if needed - in parallel of existing matrix
+	virtual string select_learn_matrix(const vector<string> &matrix_tags) const { return ""; };
+
 	// Type
 	FeatureProcessorTypes processor_type = FTR_PROCESS_LAST;
 
@@ -172,6 +175,8 @@ public:
 	// Processors (if empty, will be generated upon learning for all featuers)
 	vector<FeatureProcessor *> processors;
 
+	string select_learn_matrix(const vector<string> &matrix_tags) const;
+
 	// Constructor/Destructor
 	MultiFeatureProcessor() { init_defaults(); };
 	~MultiFeatureProcessor() { clear(); };
@@ -231,7 +236,7 @@ public:
 	FeatureBasicOutlierCleaner() : FeatureProcessor() { init_defaults(); }
 	FeatureBasicOutlierCleaner(string& feature_name) : FeatureProcessor() { set_feature_name(feature_name); init_defaults(); }
 	FeatureBasicOutlierCleaner(string& feature_name, string init_string) : FeatureProcessor() { set_feature_name(feature_name);  init_defaults();  init_from_string(init_string); }
-	FeatureBasicOutlierCleaner(string& feature_name, ValueCleanerParams *_params) : FeatureProcessor() { set_feature_name(feature_name);  MedValueCleaner::init(_params); }
+	FeatureBasicOutlierCleaner(string& feature_name, ValueCleanerParams *_params) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name);  MedValueCleaner::init(_params); }
 
 	void init_defaults() {
 		processor_type = FTR_PROCESS_BASIC_OUTLIER_CLEANER;
@@ -300,7 +305,9 @@ public:
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
-	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
+	FeatureNormalizer(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); init_from_string(init_string);  set_feature_name(feature_name); }
+
+	string select_learn_matrix(const vector<string> &matrix_tags) const;
 
 	// Learn cleaning model
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -399,7 +406,7 @@ public:
 	}
 
 	int getIndex(float missing_val,
-		const vector<const vector<float> *> &strataValues, int row) const{
+		const vector<const vector<float> *> &strataValues, int row) const {
 		int index = 0;
 		for (int i = 0; i < nStratas(); i++)
 			index += factors[i] * stratas[i].getIndex(strataValues[i]->at(row), missing_val);
@@ -436,13 +443,13 @@ public:
 	// Moment (learning/applying)
 	vector<imputeMomentTypes> moment_type_vec;
 	vector<float> default_moment_vec;
-	vector<vector<float>> moments_vec ;
+	vector<vector<float>> moments_vec;
 
 	// For backword compatability ...
 	imputeMomentTypes moment_type = IMPUTE_MMNT_MEAN;
 	float default_moment;
 	vector<float> moments;
-	
+
 	// for sampling-imputation
 	vector < pair<float, float> > default_histogram;
 	vector < vector<pair<float, float> > > histograms;
@@ -455,7 +462,7 @@ public:
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
-	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_from_string(init_string);  set_feature_name(feature_name); }
+	FeatureImputer(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); init_from_string(init_string);  set_feature_name(feature_name); }
 
 	// Add stratifier
 	void addStrata(string& init_string);
@@ -1008,10 +1015,12 @@ public:
 	bool allow_other = false; ///< if true, values in test, but not in learning-set are allowed
 	bool remove_last = false; ///< if true, remove the feature corresponding to the last value to avoid linear dependency
 	int max_values = 32; ///< maximal allowed number of different values
+	vector<string> regex_list; ///< define multilabel according to regexs list comma separated (don't check values in learn).
+	vector<string> regex_list_names; ///< define the names for the columns in regex_list case.
 	string other_suffix = "other";
 
 	//map<float, string> value2feature;
-	map<float,string> value2feature;
+	map<float, vector<string>> value2feature;
 
 	// Constructor
 	OneHotFeatProcessor() { init_defaults(); }
@@ -1030,7 +1039,7 @@ public:
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	ADD_CLASS_NAME(OneHotFeatProcessor);
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature)
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, remove_last, allow_other, value2feature, regex_list, regex_list_names)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
@@ -1059,9 +1068,9 @@ public:
 	vector<float> overall_prob; ///< default prob for unknown classes
 
 	// Constructor
-	GetProbFeatProcessor() : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; }
-	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
-	GetProbFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { processor_type = FTR_PROCESS_GET_PROB;; init_from_string(init_string);  set_feature_name(feature_name); }
+	GetProbFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB; }
+	GetProbFeatProcessor(const  string& feature_name) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB; set_feature_name(feature_name); }
+	GetProbFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_GET_PROB;; init_from_string(init_string);  set_feature_name(feature_name); }
 
 	// Learn probabilities
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -1090,7 +1099,7 @@ public:
 * usefull for example to dividide counting features by membership time cover.
 */
 class MultiplierProcessor : public FeatureProcessor {
-public: 
+public:
 	vector<string> selected_tags; ///< the selected tags to activeate on
 	string multiplier_name; ///< the name of the feature to multiply by
 	bool divide; ///< if true will divide instead of multiply

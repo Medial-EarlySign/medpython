@@ -149,6 +149,13 @@ bool MPFeatureAttr::MEDPY_GET_normalized() { return o->normalized; };
 
 void MPFeatureAttr::MEDPY_SET_imputed(bool _imputed) { o->imputed = _imputed; };
 bool MPFeatureAttr::MEDPY_GET_imputed() { return o->imputed; };
+
+void MPFeatureAttr::MEDPY_SET_denorm_mean(float _denorm_mean) { o->denorm_mean = _denorm_mean; };
+float MPFeatureAttr::MEDPY_GET_denorm_mean() { return o->denorm_mean; };
+void MPFeatureAttr::MEDPY_SET_denorm_sdv(float _denorm_sdv) { o->denorm_sdv = _denorm_sdv; };
+float MPFeatureAttr::MEDPY_GET_denorm_sdv() { return o->denorm_sdv; };
+
+
 MPSerializableObject MPFeatureAttr::asSerializable() { return MPSerializableObject(o); }
 
 MPStringFeatureAttrMapAdaptor::MPStringFeatureAttrMapAdaptor() { o = new std::map<std::string, FeatureAttr>(); };;

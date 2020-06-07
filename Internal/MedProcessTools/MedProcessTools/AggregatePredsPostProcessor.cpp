@@ -249,7 +249,7 @@ void AggregatePredsPostProcessor::Apply(MedFeatures &matrix)   {
 	//data, samples
 	int i = 0;
 	vector<unordered_map<string, float>> samples_res(p_matrix->samples.size());
-	MedProgress progrees("", int(p_matrix->samples.size() / batch_size) + 1, 30, 10);
+	MedProgress progrees("AggregatePredsPostProcessor::Apply", int(p_matrix->samples.size() / batch_size) + 1, 30, 10);
 	while (i < p_matrix->samples.size())
 	{
 		//prepate batch

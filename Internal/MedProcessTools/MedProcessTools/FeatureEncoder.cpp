@@ -204,8 +204,6 @@ int FeaturePCA::_apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 int FeaturePCA::init(map<string, string>& mapper) {
-	init_defaults();
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [FeaturePCA::init]

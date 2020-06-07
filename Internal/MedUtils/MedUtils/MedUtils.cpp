@@ -179,140 +179,143 @@ template void medial::print::print_hist_vec<double>(const vector<double> &vec, c
 template void medial::print::print_hist_vec<float>(const vector<float> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
 template void medial::print::print_hist_vec<int>(const vector<int> &vec, const string &title, const string &format, const vector<double> *prctile_samples);
 
-template<typename T> int medial::process::binary_search_index(const T *begin, const T *end, T val) {
-	int maxSize = (int)(end - begin) + 1;
-	int mid = int((maxSize - 1) / 2);
-	if (maxSize <= 2) {
-		if (*begin == val) {
-			return 0;
-		}
-		else if (*end == val) {
-			return 1;
-		}
-		else {
-			return -1;
-		}
+template<class T> int medial::process::binary_search_position(const vector<T> &v, T search, int start, int end) {
+	int maxSize = (end - start) + 1;
+	while (maxSize > 2) {
+		int mid = start + int((maxSize - 1) / 2);
+		if (search <= v[mid])
+			end = mid;
+		else
+			start = mid;
+		maxSize = (end - start) + 1;
 	}
 
-	if (begin[mid] == val) {
-		//return first Index if there are more then one
-		if (mid > 0 && begin[mid - 1] == val)
-		{
-			if (*begin == val) {
-				return 0;
-			}
-			else {
-				return binary_search_index(begin, begin + mid + 1, val);
-			}
+	//finish, when has 1-2 elements from start to end
+	if (search <= v[start])
+		return start;
+	else if (search <= v[end])
+		return end;
+	else
+		return end + 1;
+}
+template<class T> int medial::process::binary_search_position(const vector<T> &v, T search) {
+	return binary_search_position(v, search, 0, (int)v.size() - 1);
+}
+
+template<typename T> int medial::process::binary_search_index(const T *begin, const T *end, T val) {
+	int maxSize = (int)(end - begin) + 1;
+	int pos = 0;
+	while (maxSize > 2) {
+		int mid = int((maxSize - 1) / 2);
+		if (val < begin[mid])
+			end = begin + mid;
+		else if (val > begin[mid]) {
+			begin = begin + mid;
+			pos += mid;
 		}
-		else {
-			return mid;
+		else { //equals - find first positions
+			if (begin[mid - 1] == val)
+				end = begin + mid;
+			else
+				return pos + mid;
 		}
+		maxSize = (end - begin) + 1;
 	}
-	else {
-		if (val > begin[mid]) {
-			int p = binary_search_index(begin + mid, end, val);
-			if (p > 0) {
-				return mid + p;
-			}
-			else {
-				return -1;
-			}
-		}
-		else {
-			return binary_search_index(begin, begin + mid, val);
-		}
-	}
+	//maxSize <= 2
+	if (*begin == val)
+		return pos;
+	else if (*end == val)
+		return pos + 1;
+	else
+		return -1; //not found
 }
 template<typename T> int medial::process::binary_search_position(const T *begin, const T *end, T val, bool reversed) {
 	int maxSize = (int)(end - begin) + 1;
-	int mid = int((maxSize - 1) / 2);
-	if (maxSize <= 2) {
+	int pos = 0;
+	while (maxSize > 2) {
+		int mid = int((maxSize - 1) / 2);
 		if (!reversed) {
-			if (val < *begin) {
-				return 0;
-			}
-			else if (val < *end) {
-				return 1;
-			}
+			if (val <= begin[mid])
+				end = begin + mid;
 			else {
-				return maxSize;
+				begin = begin + mid;
+				pos += mid;
 			}
 		}
 		else {
-			if (val >= *begin) {
-				return 0;
-			}
-			else if (val >= *end) {
-				return 1;
-			}
+			if (val >= begin[mid])
+				end = begin + mid;
 			else {
-				return maxSize;
+				begin = begin + mid;
+				pos += mid;
 			}
 		}
+		maxSize = (end - begin) + 1;
 	}
 
+	//maxSize <= 2) 
 	if (!reversed) {
-		if (val <= begin[mid]) {
-			return binary_search_position(begin, begin + mid, val, reversed);
-		}
-		else {
-			return mid + binary_search_position(begin + mid, end, val, reversed);
-		}
+		if (val <= *begin)
+			return pos;
+		else if (val <= *end)
+			return pos + 1;
+		else
+			return pos + maxSize;
 	}
 	else {
-		if (val >= begin[mid]) {
-			return binary_search_position(begin, begin + mid, val, reversed);
-		}
-		else {
-			return mid + binary_search_position(begin + mid, end, val, reversed);
-		}
+		if (val >= *begin)
+			return pos;
+		else if (val >= *end)
+			return pos + 1;
+		else
+			return pos + maxSize;
 	}
+
+
+
 }
 template<typename T> int medial::process::binary_search_position_last(const T *begin, const T *end, T val, bool reversed) {
 	int maxSize = (int)(end - begin) + 1;
-	int mid = int((maxSize - 1) / 2);
-	if (maxSize <= 2) {
+	int pos = 0;
+	while (maxSize > 2) {
+		int mid = int((maxSize - 1) / 2);
 		if (!reversed) {
-			if (val < *begin) {
-				return 0;
-			}
-			else if (val < *end) {
-				return 1;
-			}
+			if (val < begin[mid])
+				end = begin + mid;
 			else {
-				return maxSize;
+				begin = begin + mid;
+				pos += mid;
 			}
 		}
 		else {
-			if (val > *begin) {
-				return 0;
-			}
-			else if (val > *end) {
-				return 1;
-			}
+			if (val > begin[mid])
+				end = begin + mid;
 			else {
-				return maxSize;
+				begin = begin + mid;
+				pos += mid;
 			}
 		}
+		maxSize = (end - begin) + 1;
 	}
 
+	//maxSize <= 2
 	if (!reversed) {
-		if (val < begin[mid]) {
-			return binary_search_position_last(begin, begin + mid, val, reversed);
-		}
-		else {
-			return mid + binary_search_position_last(begin + mid, end, val, reversed);
-		}
+		if (val < *begin)
+			return pos;
+		else if (val < *end)
+			return pos + 1;
+		else
+			return pos + maxSize;
 	}
 	else {
-		if (val > begin[mid]) {
-			return binary_search_position_last(begin, begin + mid, val, reversed);
-		}
-		else {
-			return mid + binary_search_position_last(begin + mid, end, val, reversed);
-		}
+		if (val > *begin)
+			return pos;
+		else if (val > *end)
+			return pos + 1;
+		else
+			return pos + maxSize;
 	}
+
 }
 template int medial::process::binary_search_position<int>(const int *begin, const int *end, int val, bool reversed);
 template int medial::process::binary_search_position<double>(const double *begin, const double *end, double val, bool reversed);
@@ -320,6 +323,9 @@ template int medial::process::binary_search_position<float>(const float *begin, 
 template int medial::process::binary_search_position_last<int>(const int *begin, const int *end, int val, bool reversed);
 template int medial::process::binary_search_position_last<double>(const double *begin, const double *end, double val, bool reversed);
 template int medial::process::binary_search_position_last<float>(const float *begin, const float *end, float val, bool reversed);
+template int medial::process::binary_search_position<int>(const vector<int> &v, int search);
+template int medial::process::binary_search_position<double>(const vector<double> &v, double search);
+template int medial::process::binary_search_position<float>(const vector<float> &v, float search);
 
 template int medial::process::binary_search_index(const float *begin, const float *end, float val);
 template int medial::process::binary_search_index(const int *begin, const int *end, int val);

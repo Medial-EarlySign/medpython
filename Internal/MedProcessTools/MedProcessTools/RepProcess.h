@@ -361,7 +361,7 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
 	RepBasicOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
-	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
+	RepBasicOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -655,7 +655,7 @@ public:
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
 	RepNbrsOutlierCleaner(const string& _signalName, string init_string) { init_defaults(); signalId = -1; signalName = _signalName; init_from_string(init_string); }
 	/// <summary> default constructor + setting signal name + initialize from parameters </summary>
-	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
+	RepNbrsOutlierCleaner(const string& _signalName, ValueCleanerParams *_params) { init_defaults(); signalId = -1; signalName = _signalName; init_lists(); MedValueCleaner::init(_params); }
 
 	/// <summary> Initialize to default values </summary>
 	void init_defaults() {
@@ -732,11 +732,11 @@ public:
 	bool debug = false; ///<If True will print out till 3 examples for samples have been changed
 
 	/// <summary> default constructor </summary>
-	RepSimValHandler() { processor_type = REP_PROCESS_SIM_VAL; }
+	RepSimValHandler() { init_defaults(); processor_type = REP_PROCESS_SIM_VAL; }
 	/// <summary> default constructor + setting signal name </summary>
-	RepSimValHandler(const string& _signalName) { processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
+	RepSimValHandler(const string& _signalName) { init_defaults(); processor_type = REP_PROCESS_SIM_VAL;; signalId = -1; signalName = _signalName; init_lists(); }
 	/// <summary> default constructor + setting signal name + initialize from string </summary>
-	RepSimValHandler(const string& _signalName, string init_string) { processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
+	RepSimValHandler(const string& _signalName, string init_string) { init_defaults(); processor_type = REP_PROCESS_SIM_VAL; signalId = -1; signalName = _signalName; init_from_string(init_string); }
 
 	/// <summary> Set signal name and fill affected and required signals sets </summary> 
 	void set_signal(const string& _signalName) { signalId = -1; signalName = _signalName; init_lists(); }
@@ -1189,7 +1189,7 @@ public:
 	vector<string> sets;
 	float in_range_val = 1; ///< return value when within range
 	float out_range_val = 0; ///< return value when not within range
-
+	bool regex_on_sets = false;
 	SetCalculator() { calculator_name = "set"; };
 	/// @snippet RepCalculators.cpp SetCalculator::init
 	int init(map<string, string>& mapper);
@@ -1685,7 +1685,9 @@ public:
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
 	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 will not filter
 	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel
-
+	bool regex_on_sets = 0;  ///< Whether to use aggregation of .*sets[i].* regex to create new sets vector (override original sets)
+	int last_n = 0;  ///< instead of looking on sets, take last value from range. 0 means current state, 1 one before, etc.j
+	bool do_on_last_n = false;
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :
@@ -1700,6 +1702,8 @@ public:
 
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 
+	bool get_last_n_value(int time, const UniversalSigVec& range_sig, float& last_value);
+
 	/// <summary> Fill required- and affected-signals sets </summary>
 	/// The parsed fields from init command.
 	/// @snippet RepProcess.cpp RepBasicRangeCleaner::init
@@ -1712,8 +1716,8 @@ public:
 	ADD_CLASS_NAME(RepBasicRangeCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, signal_name, ranges_name, output_name, time_channel,
 			req_signals, aff_signals, signal_id, ranges_id, output_id, virtual_signals, virtual_signals_generic,
-			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel)
-
+			output_type, get_values_in_range, range_operator, range_val_channel, sets, range_time_channel, last_n, do_on_last_n)
+	
 		/// <summary> Print processors information </summary>
 		void print();
 };
@@ -1881,6 +1885,7 @@ public:
 	MedDictionarySections *_dict; // for debug
 	// next will NOT be serialized, and is here for debug reasons
 	string print_dict = "";
+	int time_channels = 1;
 
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
@@ -1901,7 +1906,7 @@ public:
 
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode)
+		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, virtual_signals_generic, time_channels)
 
 private:
 	int v_out_sid = -1;
@@ -1983,6 +1988,8 @@ public:
 	int win_to = 0;
 	int delete_sig = 0; /// simply delete the signal (set it's len to 0).
 	int take_last_events = -1; /// It given >0 and delete_sig==0 and win_from==0,win_to==0  will use only last events number in the signal to keep
+
+	RepHistoryLimit() { init_defaults(); }
 
 	// default init
 	void init_defaults() { processor_type = REP_PROCESS_HISTORY_LIMIT; }

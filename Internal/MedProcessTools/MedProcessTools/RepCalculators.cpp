@@ -335,6 +335,9 @@ int SetCalculator::init(map<string, string>& mapper) {
 			out_range_val = stof(it->second);
 		else if (it->first == "keep_only_in_range")
 			keep_only_in_range = stoi(it->second) > 0;
+		else if (it->first == "regex_on_sets")
+			regex_on_sets = (bool)stoi(it->second) > 0;
+		
 		else
 			MTHROW_AND_ERR("Error in SumCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -363,6 +366,18 @@ void SetCalculator::list_output_signals(const vector<string> &input_signals, vec
 
 void SetCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
 	int section_id = dict.section_id(input_signals.front());
+	if (regex_on_sets)
+	{
+		unordered_set<string> aggregated_values;
+		for (auto& s : sets)
+		{
+			vector<string> curr_set;
+			dict.dicts[section_id].get_regex_names(".*" + s + ".*", curr_set);
+			aggregated_values.insert(curr_set.begin(), curr_set.end());
+		}
+		sets.clear();
+		sets.insert(sets.begin(), aggregated_values.begin(), aggregated_values.end());
+	}
 	dict.prep_sets_lookup_table(section_id, sets, Flags);
 }
 
