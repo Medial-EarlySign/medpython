@@ -61,6 +61,8 @@ typedef enum {
 #define LOAD_DICT_FROM_JSON	1001
 #define LOAD_DICT_FROM_FILE	1002
 
+#define DATA_JSON_FORMAT		2001
+
 #ifndef ALGOMARKER_FLAT_API
 
 //===============================================================================
@@ -349,6 +351,7 @@ public:
 	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
+	int AddDataByType(int DataType, int patient_id, const char *data); // options for DataType : DATA_JSON_FORMAT
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 	void set_am_matrix(string s) { am_matrix = s;  }
@@ -406,6 +409,9 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 // this API allows adding a specific signal, with matching arrays of times and values
 extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
+
+// adding data in a new DataType
+extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data);
 
 // Prepare a Request
 // Null RC means failure

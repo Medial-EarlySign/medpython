@@ -46,6 +46,8 @@
 
 // AddData Errors
 #define AM_ERROR_ADD_DATA_FAILED					1201
+#define AM_ERROR_DATA_JSON_PARSE					1202
+#define AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE			1203
 
 // Messages Codes For Responses
 #define AM_MSG_NULL_REQUEST							101

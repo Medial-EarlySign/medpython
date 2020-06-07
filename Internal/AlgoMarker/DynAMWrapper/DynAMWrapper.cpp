@@ -65,7 +65,8 @@ int DynAM::load(const char * am_fname){
   so->addr_AM_API_AdditionalLoad = load_sym(lib_handle, "AM_API_AdditionalLoad");
   so->addr_AM_API_ClearData = load_sym(lib_handle, "AM_API_ClearData");
   so->addr_AM_API_AddData = load_sym(lib_handle, "AM_API_AddData");
-  so->addr_AM_API_AddDataStr = load_sym(lib_handle, "AM_API_AddDataStr", false);
+  so->addr_AM_API_AddDataStr = load_sym(lib_handle, "AM_API_AddDataStr",false);
+  so->addr_AM_API_AddDataByType = load_sym(lib_handle, "AM_API_AddDataByType", false);
   so->addr_AM_API_CreateRequest = load_sym(lib_handle, "AM_API_CreateRequest");
   so->addr_AM_API_CreateResponses = load_sym(lib_handle, "AM_API_CreateResponses");
   so->addr_AM_API_Calculate = load_sym(lib_handle, "AM_API_Calculate");
@@ -189,6 +190,11 @@ int DynAM::AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *
 int DynAM::AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) {
 	return (*((DynAM::t_AM_API_AddDataStr)DynAM::so->addr_AM_API_AddDataStr))
 		(pAlgoMarker, patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
+}
+
+int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data) {
+	return (*((DynAM::t_AM_API_AddDataByType)DynAM::so->addr_AM_API_AddDataByType))
+		(pAlgoMarker, patient_id, DataType, data);
 }
 
 

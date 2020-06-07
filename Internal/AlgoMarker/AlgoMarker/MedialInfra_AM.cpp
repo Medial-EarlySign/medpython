@@ -168,6 +168,92 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 
 }
 
+//-----------------------------------------------------------------------------------
+// AddDataByType() : 
+// Supporting loading data directly from a json
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const char *data)
+{
+	if (DataType != DATA_JSON_FORMAT)
+		return AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE;
+
+	json jsdata;
+	
+	try {
+		jsdata = json::parse(data);
+	}
+	catch (...) {
+		return AM_ERROR_DATA_JSON_PARSE;
+	}
+
+	try {
+		json &js = jsdata;
+		if (jsdata.find("body") != jsdata.end())
+			js = jsdata["body"];
+
+
+		vector<long long> times;
+		int s_data_size = 100000;
+		vector<char> sdata(s_data_size);
+		vector<int> sinds;
+		int curr_s = 0;
+		//char str_values[MAX_VALS][MAX_VAL_LEN];
+		for (auto &s : js["signals"]) {
+			times.clear();
+			curr_s = 0;
+			string sig = s["code"].get<string>();
+			int n_time_channels, n_val_channels, *is_categ;
+			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+			MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
+			for (auto &d : s["data"]) {
+				//MLOG("time ");
+				int nt = 0;
+				for (auto &t : d["timestamp"]) {
+					times.push_back(t.get<long long>());
+					nt++;
+					//MLOG("%d ", itime);
+				}
+				//MLOG("val ");
+				int nv = 0;
+				for (auto &v : d["value"]) {
+					string sv = v.get<string>().c_str();
+					int slen = (int)sv.length();
+					if (curr_s + 1 + slen > s_data_size) {
+						s_data_size *= 2;
+						sdata.resize(s_data_size);
+					}
+					if (nv < n_val_channels) {
+						sv.copy(&sdata[curr_s], slen);
+						sdata[curr_s + slen] = 0;
+						sinds.push_back(curr_s);
+						curr_s += slen + 1;
+						nv++;
+					}
+					//MLOG("%s ", v.get<string>().c_str());
+				}
+				//MLOG("\n");
+			}
+
+			vector<char *> p_str;
+			for (auto j : sinds)
+				p_str.push_back(&sdata[sinds[j]]);
+			long long *p_times = &times[0];
+			int n_times = (int)times.size();
+			char **str_values = &p_str[0];
+			int n_vals = (int)p_str.size();
+
+			MLOG("%s n_times %d n_vals %d\n", sig.c_str(), n_times, n_vals);
+			if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC)
+				return AM_FAIL_RC;
+		}
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+
+	return AM_OK_RC;
+}
+
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------

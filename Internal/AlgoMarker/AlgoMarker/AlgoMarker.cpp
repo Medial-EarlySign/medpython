@@ -305,6 +305,25 @@ int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signa
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
+// Adding data by type
+// DataType signals the format, data contains the actual data.
+// Currently MedInfraAlgoMarker implements the DATA_JSON_FORMAT with data given as a json string
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data)
+{
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		return pAlgoMarker->AddDataByType(DataType, patient_id, data);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
 // Prepare a Request
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
