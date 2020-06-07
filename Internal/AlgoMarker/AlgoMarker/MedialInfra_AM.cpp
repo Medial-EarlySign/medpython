@@ -371,9 +371,16 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
-	int get_preds_rc;
-	if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
-		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+	int get_preds_rc = -1;
+	try {
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
+			string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+			return AM_FAIL_RC;
+		}
+	}
+	catch (...) {
+		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " caught a crash. ";
 		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
