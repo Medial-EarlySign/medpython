@@ -656,6 +656,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "max_value") max_value = stof(entry.second);
 		else if (field == "nth" || field == "Nth") N_th = stoi(entry.second);
 		else if (field == "zero_missing") zero_missing = stoi(entry.second);
+		else if (field == "missing_value") missing_val = stof(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
