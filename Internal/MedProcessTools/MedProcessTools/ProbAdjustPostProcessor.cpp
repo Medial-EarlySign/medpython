@@ -191,17 +191,14 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
 		if (err_s.length() > 0) continue;
 		// Prior
 		int index = 0;
-		for (size_t j = 0; j < resolvedNames.size() && err_s.length()==0; j++) {
+		for (size_t j = 0; j < resolvedNames.size() && err_s.length() == 0; j++) {
 			//int value = (int)priorsModel->features.data.at(resolvedNames[j])[i];
 			int value = (int)data_p[j][i];
 			if (value < min[j] || value > max[j]) {
 #pragma omp critical
-				if (err_s.length() == 0)
-					err_s = "ProbAdjustPostProcessor: Value " + to_string(value) + " of " + resolvedNames[j] + " is outside priors range";
-			//MTHROW_AND_ERR("ProbAdjustPostProcessor: Value %d of %s is outside priors range [%d,%d] sample: %d %d\n",
-				//value, resolvedNames[j].c_str(), min[j], max[j],
-				//priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
-				///break;
+			if (err_s.length() == 0)
+				err_s = "ProbAdjustPostProcessor: Value " + to_string(value) + " of " + resolvedNames[j] + " is outside priors range";
+				//MTHROW_AND_ERR("ProbAdjustPostProcessor: Value %d of %s is outside priors range [%d,%d] sample: %d %d\n", value, resolvedNames[j].c_str(), min[j], max[j], priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
 			}
 			index += (value - min[j])*factors[j];
 		}
