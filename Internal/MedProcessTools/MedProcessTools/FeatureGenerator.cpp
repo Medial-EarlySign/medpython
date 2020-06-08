@@ -2099,7 +2099,8 @@ int TimeFeatGenerator::get_time_unit(string name) {
 	else if (name == "day_in_week") time_unit = FTR_TIME_DAY_IN_WEEK;
 	else if (name == "hour") time_unit = FTR_TIME_HOUR;
 	else if (name == "minute") time_unit = FTR_TIME_MINUTE;
-
+	else if (name == "date") time_unit = FTR_TIME_DATE;
+	
 	if (time_unit != FTR_TIME_LAST) {
 		set_default_bins();
 		return 0;
@@ -2113,6 +2114,7 @@ int TimeFeatGenerator::get_nBins() {
 
 	switch (time_unit) {
 	case FTR_TIME_YEAR: return 0;
+	case FTR_TIME_DATE: return 0;
 	case FTR_TIME_MONTH: return 12;
 	case FTR_TIME_DAY_IN_MONTH: return 31;
 	case FTR_TIME_DAY_IN_WEEK: return 7;
@@ -2143,10 +2145,14 @@ int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	float *p_feat = _p_data[0] + index;
 
 	// Special care of year
-	if (time_unit == FTR_TIME_YEAR) {
+	if ((time_unit == FTR_TIME_YEAR) || (time_unit == FTR_TIME_DATE)) {
+		int dest_type = (time_unit == FTR_TIME_YEAR) ? MedTime::Years : MedTime::Date;
 		for (int i = 0; i < num; i++)
-			p_feat[i] = med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[index + i].time) + 1900;
-
+		{
+			p_feat[i] = med_time_converter.convert_times(features.time_unit, dest_type, features.samples[index + i].time);
+			if (time_unit == FTR_TIME_YEAR)
+				p_feat[i] += 1900;
+		}
 		return 0;
 	}
 
