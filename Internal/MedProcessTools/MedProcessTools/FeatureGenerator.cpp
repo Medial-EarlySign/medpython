@@ -2000,6 +2000,7 @@ string TimeFeatGenerator::time_unit_to_string(TimeFeatTypes time_unit) {
 
 	switch (time_unit) {
 	case FTR_TIME_YEAR: return "Year";
+	case FTR_TIME_DATE: return "Date";
 	case FTR_TIME_MONTH: return "Month";
 	case FTR_TIME_DAY_IN_MONTH: return "Day_in_Month";
 	case FTR_TIME_DAY_IN_WEEK: return "Day_in_Week";
