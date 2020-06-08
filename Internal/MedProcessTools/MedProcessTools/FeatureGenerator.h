@@ -771,6 +771,7 @@ typedef enum {
 	FTR_TIME_DAY_IN_WEEK = 3, ///< Day of the week (0-6)
 	FTR_TIME_HOUR = 4, ///< Hour of the day (0-23)
 	FTR_TIME_MINUTE = 5, ///< Minute of the hout (0-59)
+	FTR_TIME_DATE = 6, ///< Completete date (as is)
 	FTR_TIME_LAST,
 } TimeFeatTypes;
 
