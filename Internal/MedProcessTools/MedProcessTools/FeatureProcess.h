@@ -37,6 +37,7 @@ typedef enum {
 	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
 	FTR_PROCESS_MULTIPLIER, ///<"multiplier" to create MultiplierProcessor - to multiply feature by other feature
 	FTR_PROCESS_RESAMPLE_WITH_MISSING, ///<"resample_with_missing" to create ResampleMissingProcessor - adds missing values to learn matrix
+	FTR_PROCESS_DUPLICATE, ///<"duplicate" to create DuplicateProcessor - duplicates samples in order to do multiple imputations.
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 

@@ -13,6 +13,7 @@ AggregatePredsPostProcessor::AggregatePredsPostProcessor() {
 	batch_size = 10000;
 	force_cancel_imputations = false;
 	print_missing_cnt = false;
+	processor_type = FTR_POSTPROCESS_AGGREGATE_PREDS;
 }
 
 int AggregatePredsPostProcessor::init(map<string, string> &mapper) {
