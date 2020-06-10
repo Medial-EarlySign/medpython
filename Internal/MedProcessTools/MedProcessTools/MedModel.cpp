@@ -388,7 +388,12 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
 	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
-	int max_smp_batch = int(((INT_MAX / 10) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
+	int max_sz = max_data_in_mem;
+	if (max_sz <= 0) {
+		//TODO: change to use size to suit free memory in the machine
+		max_sz = INT_MAX;
+	}
+	int max_smp_batch = int(((max_sz) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
 	init_model_for_apply(rep, start_stage, end_stage);
 
 	if (samples.nSamples() <= max_smp_batch)
@@ -2626,6 +2631,29 @@ void MedModel::change_model(const ChangeModelInfo &change_request) {
 	FeatureProcessor ftr_processor; //needs try catch
 	PostProcessor pp_processor;
 	MedPredictor predictor;
+
+	if (change_request.object_type_name == "MedModel") {
+		//Global model changes:
+		map<string, string> mapper;
+		if (MedSerialize::init_map_from_string(change_request.change_command, mapper) < 0)
+			MTHROW_AND_ERR("Error Init from String %s\n", change_request.change_command.c_str());
+		for (const auto &it : mapper)
+		{
+			if (it.first == "max_data_in_mem")
+				max_data_in_mem = med_stoi(it.second);
+			else if (it.first == "serialize_learning_set")
+				serialize_learning_set = med_stoi(it.second) > 0;
+			else if (it.first == "take_mean_pred")
+				take_mean_pred = med_stoi(it.second) > 0;
+			else if (it.first == "generate_masks_for_features")
+				generate_masks_for_features = med_stoi(it.second) > 0;
+			else if (it.first == "verbosity" || it.first == "verbose")
+				verbosity = med_stoi(it.second) > 0;
+			else
+				MTHROW_AND_ERR("Error - unkown model param \"%s\"", it.first.c_str());
+		}
+		return;
+	}
 
 	global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL + 1;
 	void *obj = test_rep.new_polymorphic(change_request.object_type_name);

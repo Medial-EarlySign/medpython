@@ -58,6 +58,8 @@ public:
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
 
+	int max_data_in_mem = 0; ///< maximal data size in memory. when <=0 mean auto mode
+
 	/// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
 
@@ -76,9 +78,6 @@ public:
 	/// Learning samples
 	MedSamples *LearningSet = NULL;
 
-	/// Safe Mode for train/test intersection
-	int safe_mode = 0;
-
 	/// when having multiple prediction for same samples - how to aggregate preds - mean or median?
 	bool take_mean_pred = true;
 
@@ -93,7 +92,7 @@ public:
 	map<string, string> virtual_signals_generic;
 
 	// Constructor/Destructor
-	MedModel() { safe_mode = 0; serialize_learning_set = 0; };
+	MedModel() { serialize_learning_set = 0; };
 	~MedModel() { clear(); };
 
 	void clear();
