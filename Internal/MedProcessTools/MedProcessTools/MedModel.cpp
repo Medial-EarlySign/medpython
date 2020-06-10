@@ -90,7 +90,7 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 	return(learn(rep, (*samples), dummy, MED_MDL_LEARN_PREDICTOR, end_stage));
 }
 
-void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean) {
+void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean, bool get_attr) {
 	if (features.samples.size() != sample_ids.size())
 		MTHROW_AND_ERR("Error aggregate_samples - mismatch size (%zu, %zu)\n", features.samples.size(), sample_ids.size());
 	MLOG("INFO: model is aggregating samples\n");
@@ -133,12 +133,32 @@ void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, boo
 			res = medial::stats::median_without_cleaning(collected, true);
 		//override pred
 		final_f.samples[i].prediction[0] = res;
+		if (get_attr) {
+			vector<float> prctile_list = { (float)0.05, (float)0.5, (float)0.95 };
+			float std, mean;
+			vector<float> res_p;
+			if (take_mean) {
+				std = medial::stats::std_without_cleaning(collected, res);
+				mean = res;
+				medial::stats::get_percentiles(collected, prctile_list, res_p);
+			}
+			else {
+				medial::stats::get_mean_and_std_without_cleaning(collected, mean, std);
+				medial::stats::get_percentiles(collected, prctile_list, res_p);
+			}
+			map<string, float> &s = final_f.samples[i].attributes;
+			s["pred.std"] = std;
+			s["pred.ci_lower"] = res_p[0];
+			s["pred.ci_upper"] = res_p[2];
+			s["pred.mean"] = mean;
+			s["pred.median"] = res_p[1];
+		}
 	}
 
 	features = move(final_f);
 }
 
-void aggregate_samples(MedFeatures &features, bool take_mean) {
+void aggregate_samples(MedFeatures &features, bool take_mean, bool get_attr = false) {
 	//if sample_ids is empty use pid+time:
 	vector<int> sample_ids(features.samples.size());
 	int id = 0;
@@ -153,7 +173,7 @@ void aggregate_samples(MedFeatures &features, bool take_mean) {
 		sample_ids[i] = id;
 	}
 
-	aggregate_samples(features, sample_ids, take_mean);
+	aggregate_samples(features, sample_ids, take_mean, get_attr);
 }
 
 // Learn with multiple MedSamples
@@ -368,7 +388,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
 	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
-	int max_smp_batch = int((INT_MAX / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
+	int max_smp_batch = int(((INT_MAX / 10) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
 	init_model_for_apply(rep, start_stage, end_stage);
 
 	if (samples.nSamples() <= max_smp_batch)
@@ -551,7 +571,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 			}
 			bool need_agg = samples.nSamples() != features.samples.size();
 			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
-				aggregate_samples(features, take_mean_pred);
+				aggregate_samples(features, take_mean_pred, true);
 		}
 	}
 
