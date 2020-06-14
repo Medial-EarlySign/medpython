@@ -878,7 +878,7 @@ void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
 				totCnt += jt->second[2] + jt->second[3];
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+					weighted_lift += double(jt->second[1 + 2]) / double(jt->second[1 + 0]) * double(jt->second[1 + 0] + jt->second[0 + 0]);
 				//weighted_lift += jt->second[1 + 2] / prior_lift_males[jt->first];
 			}
 		if (female_stats.find(signalVal) != female_stats.end())
@@ -886,7 +886,7 @@ void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
 				totCnt += jt->second[2] + jt->second[3];
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+					weighted_lift += double(jt->second[1 + 2]) / double(jt->second[1 + 0]) * double(jt->second[1 + 0] + jt->second[0 + 0]);
 			}
 		if (totCnt == 0)
 			continue;
