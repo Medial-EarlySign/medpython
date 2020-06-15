@@ -3962,7 +3962,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			states.push_back(pair<int, int>(first_date, 0));
 
 			for (auto &e : ev) {
-				if (e.time > time_points[iver])
+				if (e.time > max_look_at_time)
 					break;
 
 				if (states.back().first < e.time)
@@ -3983,7 +3983,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
-					if (i_time > time_points[iver])
+					if (i_time > max_look_at_time)
 						break;
 					int i_val = (int)usv.Val(i, c_chan);
 					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
