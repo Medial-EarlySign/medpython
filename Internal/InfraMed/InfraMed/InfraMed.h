@@ -51,6 +51,7 @@ using namespace std;
 #define INFRAMED_MAX_AGE		150
 
 class MedRepository;
+class PidRec;
 class InMemRepData;
 
 class MedBufferedFile {
@@ -674,6 +675,8 @@ namespace medial {
 		int DateAdd(int refDate, int daysAdd);
 		/// \brief fetching specifc signal code value
 		int get_value(MedRepository &rep, int pid, int sigCode);
+		/// \brief fetching specifc signal code value
+		int get_value(PidRec &rep, int sigCode);
 
 		enum fix_method {
 			none = 0,

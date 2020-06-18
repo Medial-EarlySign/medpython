@@ -10,6 +10,7 @@
 
 #include "InfraMed.h"
 #include "Utils.h"
+#include "MedPidRepository.h"
 #include <fstream>
 #include <Logger/Logger/Logger.h>
 #include <MedUtils/MedUtils/MedUtils.h>
@@ -2039,6 +2040,20 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	UniversalSigVec usv;
 
 	rep.uget(pid, sigCode, usv);
+
+	if (usv.len > 0) {
+		if (usv.n_val_channels() > 0)
+			gend = (int)usv.Val(0);
+		else if (usv.n_time_channels() > 0)
+			gend = usv.Time(0);
+	}
+	return gend;
+}
+
+int medial::repository::get_value(PidRec &rep, int sigCode) {
+	int gend = -1;
+	UniversalSigVec usv;
+	rep.uget(sigCode);
 
 	if (usv.len > 0) {
 		if (usv.n_val_channels() > 0)

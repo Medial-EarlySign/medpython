@@ -532,7 +532,7 @@ int MatchingSampleFilter::getSampleSignature(MedSample& sample, MedFeatures& fea
 //.......................................................................................
 int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams& stratum, MedFeatures& features, int i, MedRepository& rep, string& signature) {
 
-	int len, age;
+	int age;
 	UniversalSigVec usv;
 	int bin;
 
@@ -544,7 +544,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	}
 	else if (stratum.match_type == SMPL_MATCH_AGE) {
 		// Take binned age
-		int byear = (int)((SVal *)rep.get(sample.id, byearId, len))[0].val;
+		int byear = medial::repository::get_value(rep, sample.id, byearId);
 		age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
 		
 		bin = (int)((float)age / stratum.resolution);
@@ -976,11 +976,10 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		// TBD: Must make this work also for the cases in which Age is given as a signal
 		if (byear_id > 0) {
 			// calculate using byear
-			int len;
 			float y = 1900 + (float)med_time_converter.convert_times(samples_time_unit, MedTime::Years, sample.time);
-			SVal *sv = (SVal *)rep.get(sample.id, byear_id, len);
-			if (len > 0) {
-				float age = y - sv[0].val;
+			int byear = medial::repository::get_value(rep, sample.id, byear_id);
+			if (byear > 0) {
+				float age = y - byear;
 #if SANITY_FILTER_DBG
 				MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : byear %f y %f time %d : age %f min_val %f max_val %f\n", sv[0].val, y, sample.time, age, min_val, max_val);
 #endif

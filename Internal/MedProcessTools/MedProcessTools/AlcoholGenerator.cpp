@@ -25,8 +25,8 @@ void AlcoholGenerator::set_names() {
 
 void AlcoholGenerator::set_names() {
 	names.clear();
-	unordered_set<string> legal_features({ "Current_Drinker", "Ex_Drinker", "Drinker_Years_Since_Quitting", 
-										   "Drinker_Years", "Drink_Unit_Years", "PLM_Drinking_Level","Never_Drinker", 
+	unordered_set<string> legal_features({ "Current_Drinker", "Ex_Drinker", "Drinker_Years_Since_Quitting",
+										   "Drinker_Years", "Drink_Unit_Years", "PLM_Drinking_Level","Never_Drinker",
 										   "Unknown_Drinker", "Drinker_Quantity", "Current_Alcoholic","Ex_Alcoholic" });
 
 	if (raw_feature_names.size() == 0)
@@ -62,7 +62,8 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 
-
+	int bear_sid = rec.my_base_rep->sigs.sid("BYEAR");
+	int alcohol_sid = rec.my_base_rep->sigs.sid("Alcohol_quantity");
 	for (int i = 0; i < num; i++) {
 
 		float __current_drinker, __ex_drinker, __never_drinker, __unknown_drinker, __drinker_years, __drinker_quantity, __plm_drinker_level;
@@ -75,8 +76,7 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 		int qa_print = 0;
 		int plm_drinking_level = MED_MAT_MISSING_VALUE;
 
-		string sname = "Alcohol_quantity";
-		SDateShort2 *drk_info = (SDateShort2 *)rec.get(sname, i, len);
+		SDateShort2 *drk_info = (SDateShort2 *)rec.get(alcohol_sid, i, len);
 
 		if (len > 0) {
 
@@ -84,12 +84,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				fprintf(stderr, "**************************************************\n");
 				fprintf(stderr, "**************************** pid: %i  \n", rec.pid);
 			}
-
-			sname = "BYEAR";
-			int len_byear;
-			SVal *bYearSignal = (SVal *)rec.get(sname, i, len_byear);
-			assert(len_byear == 1);
-			int byear = (int)(bYearSignal[0].val);
+			int byear = medial::repository::get_value(rec, bear_sid);
+			assert(byear != -1);
 
 			int MAX_TO_TRIM = 30;
 			int MAX_TO_REMOVE = 150;
@@ -358,8 +354,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 						int diff = end_n - start_n + 1;   //smoking
 						drinking_year += diff;
 						int temp_unit_years = 0;
-						if (drinking_quan != missing_val) temp_unit_years += diff* ((int)drinking_quan);
-						else temp_unit_years += diff*DRINKING_QUANTITY_IMPUTE;
+						if (drinking_quan != missing_val) temp_unit_years += diff * ((int)drinking_quan);
+						else temp_unit_years += diff * DRINKING_QUANTITY_IMPUTE;
 						unit_years += temp_unit_years;
 						if (qa_print == 1) fprintf(stderr, "years: smoker %f quantity  %f \n", (float)diff / 365, (float)temp_unit_years / (365 * UNIT_SIZE));
 					}
@@ -370,8 +366,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 						if (diff >= 365 * BACK_YEARS) diff = 365 * BACK_YEARS;
 
 						int temp_unit_years = 0;
-						if (drinking_quan != missing_val) temp_unit_years += diff* ((int)drinking_quan);
-						else temp_unit_years += diff*DRINKING_QUANTITY_IMPUTE;
+						if (drinking_quan != missing_val) temp_unit_years += diff * ((int)drinking_quan);
+						else temp_unit_years += diff * DRINKING_QUANTITY_IMPUTE;
 						unit_years += temp_unit_years;
 						if (qa_print == 1) fprintf(stderr, "years: unknown and drinker %f diff %f \n", (float)diff / 365, (float)temp_unit_years / (365 * UNIT_SIZE));
 					}
@@ -383,8 +379,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 							drinking_year += diff;   // unknown before smoking
 
 							int temp_unit_years = 0;
-							if (ex_drinking_quan != missing_val) temp_unit_years += diff* ((int)ex_drinking_quan);
-							else temp_unit_years += diff*DRINKING_QUANTITY_IMPUTE;
+							if (ex_drinking_quan != missing_val) temp_unit_years += diff * ((int)ex_drinking_quan);
+							else temp_unit_years += diff * DRINKING_QUANTITY_IMPUTE;
 							unit_years += temp_unit_years;
 							if (qa_print == 1) fprintf(stderr, "years: unknown and ex drinker %f diff %f \n", (float)diff / 365, (float)temp_unit_years / (365 * UNIT_SIZE));
 						}
@@ -400,8 +396,8 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 							drinking_year += diff;   // unknown before smoking
 
 							int temp_unit_years = 0;
-							if (drinking_quan != missing_val) temp_unit_years += diff*((int)drinking_quan);
-							else temp_unit_years += diff*DRINKING_QUANTITY_IMPUTE;
+							if (drinking_quan != missing_val) temp_unit_years += diff * ((int)drinking_quan);
+							else temp_unit_years += diff * DRINKING_QUANTITY_IMPUTE;
 							unit_years += temp_unit_years;
 							if (qa_print == 1) fprintf(stderr, "years: unknown and drinker %f diff %f \n", (float)diff / 365, (float)temp_unit_years / (365 * UNIT_SIZE));
 						}
@@ -496,26 +492,26 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				__drinker_years = drinking_year_ff;
 				__drinker_quantity = quantity_f;
 				__unit_years = unit_years_ff;
-			
-
-
-			if (qa_print == 1) {
-				fprintf(stderr, "====== final : \n");
-				fprintf(stderr, "__years_since_quitting %i \n", __years_since_quitting);
-				fprintf(stderr, "__never_drinker %f \n", __never_drinker);
-				fprintf(stderr, "__ex_drinker %f \n", __ex_drinker);
-				fprintf(stderr, "__current_drinker %f \n", __current_drinker);
-				fprintf(stderr, "__unknown_drinker %f \n", __unknown_drinker);
-				fprintf(stderr, "__drinking_quantity  %f \n", __drinker_quantity);
-				fprintf(stderr, "__drinking_years: %f \n", __drinker_years);
-				fprintf(stderr, "__unit_years : %f \n", __unit_years);
-				fprintf(stderr, "__current_alcoholist : %i \n", __current_alcoholist);
-				fprintf(stderr, "__ex_alcoholist : %i \n", __ex_alcoholist);
-			}
 
 
 
-			//************************************************** PLM ***********************************************
+				if (qa_print == 1) {
+					fprintf(stderr, "====== final : \n");
+					fprintf(stderr, "__years_since_quitting %i \n", __years_since_quitting);
+					fprintf(stderr, "__never_drinker %f \n", __never_drinker);
+					fprintf(stderr, "__ex_drinker %f \n", __ex_drinker);
+					fprintf(stderr, "__current_drinker %f \n", __current_drinker);
+					fprintf(stderr, "__unknown_drinker %f \n", __unknown_drinker);
+					fprintf(stderr, "__drinking_quantity  %f \n", __drinker_quantity);
+					fprintf(stderr, "__drinking_years: %f \n", __drinker_years);
+					fprintf(stderr, "__unit_years : %f \n", __unit_years);
+					fprintf(stderr, "__current_alcoholist : %i \n", __current_alcoholist);
+					fprintf(stderr, "__ex_alcoholist : %i \n", __ex_alcoholist);
+				}
+
+
+
+				//************************************************** PLM ***********************************************
 
 
 				int current_drinker = (int)__current_drinker;
@@ -525,10 +521,10 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				else if (drinking_level == 0)
 					plm_drinking_level = 0;
 				else if (drinking_level <= 7)
-					plm_drinking_level = 1; 
-				else if (drinking_level <=14)
+					plm_drinking_level = 1;
+				else if (drinking_level <= 14)
 					plm_drinking_level = 2;
-				else if (drinking_level <=21)
+				else if (drinking_level <= 21)
 					plm_drinking_level = 3;
 				else if (drinking_level <= 28)
 					plm_drinking_level = 4;
@@ -576,7 +572,7 @@ void AlcoholGenerator::get_p_data(MedFeatures& features, vector<float *> &_p_dat
 		else
 			p_data[0] = &(features.weights[0]);
 	}
-		
+
 	for (string &name : names) {
 		if (algorithm::ends_with(name, "Current_Drinker"))
 			_p_data[ALC_CURRENT_DRINKER] = &(features.data[name][0]);
