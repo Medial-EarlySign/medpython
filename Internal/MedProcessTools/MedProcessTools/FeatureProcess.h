@@ -1147,7 +1147,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MissingIndicatorProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, name, replace_value, new_feature_name)
+		ADD_SERIALIZATION_FUNCS(processor_type, name, replace_value, new_feature_name, feature_name)
 };
 
 

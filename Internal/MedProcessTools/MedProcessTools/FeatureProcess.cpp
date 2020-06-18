@@ -99,6 +99,8 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MultiplierProcessor);
 	CONDITIONAL_NEW_CLASS(dname, ResampleMissingProcessor);
 	CONDITIONAL_NEW_CLASS(dname, DuplicateProcessor);
+	CONDITIONAL_NEW_CLASS(dname, MissingIndicatorProcessor);
+	
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
