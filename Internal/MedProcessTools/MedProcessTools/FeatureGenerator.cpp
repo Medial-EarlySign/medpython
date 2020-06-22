@@ -566,7 +566,7 @@ void BasicFeatGenerator::prepare(MedFeatures &features, MedPidRepository& rep, M
 	// Handle categorical data
 	if (rep.sigs.is_categorical_channel(signalId, val_channel)) {
 		if (categ_forbidden.find(type) != categ_forbidden.end())
-			MTHROW_AND_ERR("Type %d not allowed on categorical data in BasicFeatureGenerator\n", type);
+			MTHROW_AND_ERR("name %s SignalId %d val_channel %d , Type %d not allowed on categorical data in BasicFeatureGenerator\n", names[0].c_str(), signalId, val_channel, type);
 		if (categ_require_dict.find(type) != categ_require_dict.end()) {
 			int section_id = rep.dict.SectionName2Id[signalName];
 			for (auto& rec : rep.dict.dicts[section_id].Id2Name)
