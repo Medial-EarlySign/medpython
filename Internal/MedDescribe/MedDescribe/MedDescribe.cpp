@@ -89,7 +89,7 @@ int MedMutualDist::collect_values(MedRepository &rep)
 
 		//MLOG("Working on pid %d\n", pid);
 
-		int gender = (int)(((SVal *)rep.get(pid, gender_sid, len))[0].val);	
+		int gender = medial::repository::get_value(rep, pid, gender_sid);
 		if (!(gender & gender_mask)) continue;
 
 		//MLOG("gender is %d\n", gender);

@@ -37,6 +37,8 @@ typedef enum {
 	FTR_PROCESS_PREDICTOR_IMPUTER, ///<"predcitor_imputer" to create PredictorImputer
 	FTR_PROCESS_MULTIPLIER, ///<"multiplier" to create MultiplierProcessor - to multiply feature by other feature
 	FTR_PROCESS_RESAMPLE_WITH_MISSING, ///<"resample_with_missing" to create ResampleMissingProcessor - adds missing values to learn matrix
+	FTR_PROCESS_DUPLICATE, ///<"duplicate" to create DuplicateProcessor - duplicates samples in order to do multiple imputations.
+	FTR_PROCESS_MISSING_INDICATOR, ///<"missing_indicator" to create MissingIndicatorProcessor - creates a feature that indicates if a feature is missing or not
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -1125,6 +1127,29 @@ private:
 	// Apply multiplier
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 };
+/**
+* FeatureMissingIndicator:
+* creates a feature that indicates if a feature is missing or not
+*/
+class MissingIndicatorProcessor : public FeatureProcessor {
+public:
+	float missing_value; ///< missing value in origianl features matrix
+	string name;  ///< feature name postfix (new feautre X is XXX.name)
+	float replace_value; ///< if added, replace value in original matrix
+	string new_feature_name; ///<generated feature name
+	
+	MissingIndicatorProcessor() { init_defaults(); }
+
+	void init_defaults() { processor_type = FTR_PROCESS_MISSING_INDICATOR;  missing_value = MED_MAT_MISSING_VALUE; name = "is_missing"; }
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+	int init(map<string, string>& mapper);
+	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
+
+	// Serialization
+	ADD_CLASS_NAME(MissingIndicatorProcessor)
+		ADD_SERIALIZATION_FUNCS(processor_type, name, replace_value, new_feature_name, feature_name)
+};
+
 
 
 //=======================================
@@ -1151,4 +1176,5 @@ MEDSERIALIZE_SUPPORT(IterativeFeatureSelector)
 MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
 MEDSERIALIZE_SUPPORT(univariateSelectionParams)
 MEDSERIALIZE_SUPPORT(MultiplierProcessor)
+MEDSERIALIZE_SUPPORT(MissingIndicatorProcessor)
 #endif

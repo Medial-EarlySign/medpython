@@ -1028,6 +1028,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 			int section_id = dict.section_id(signalName);
 			if (regex_on_sets)
 			{
+				vector<string> agg_sets;
 				unordered_set<string> aggregated_values;
 				for (auto& s : sets)
 				{
@@ -1035,11 +1036,11 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 					dict.dicts[section_id].get_regex_names(".*" + s + ".*", curr_set);
 					aggregated_values.insert(curr_set.begin(), curr_set.end());
 				}
-				sets.clear();
-				sets.insert(sets.begin(),aggregated_values.begin(),aggregated_values.end());
+				agg_sets.insert(agg_sets.begin(),aggregated_values.begin(),aggregated_values.end());
+				dict.prep_sets_lookup_table(section_id, agg_sets, lut);
 			}
-
-			dict.prep_sets_lookup_table(section_id, sets, lut);
+			else
+				dict.prep_sets_lookup_table(section_id, sets, lut);
 		}
 	}
 	else

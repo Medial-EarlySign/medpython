@@ -13,6 +13,7 @@ AggregatePredsPostProcessor::AggregatePredsPostProcessor() {
 	batch_size = 10000;
 	force_cancel_imputations = false;
 	print_missing_cnt = false;
+	processor_type = FTR_POSTPROCESS_AGGREGATE_PREDS;
 }
 
 int AggregatePredsPostProcessor::init(map<string, string> &mapper) {
@@ -45,7 +46,7 @@ int AggregatePredsPostProcessor::init(map<string, string> &mapper) {
 	if (batch_size <= 0)
 		MTHROW_AND_ERR("Error AggregatePredsPostProcessor::init - batch_size > 0\n");
 
-	if (!boost::starts_with(feature_processor_type, "MODEL::")) {
+	if (feature_processor == NULL && !boost::starts_with(feature_processor_type, "MODEL::")) {
 		feature_processor = FeatureProcessor::make_processor(feature_processor_type, feature_processor_args);
 	}
 
@@ -219,7 +220,7 @@ void clear_map(map<string, vector<float>> &data) {
 		data[it.first].clear();
 }
 
-void AggregatePredsPostProcessor::Apply(MedFeatures &matrix)   {
+void AggregatePredsPostProcessor::Apply(MedFeatures &matrix) {
 	//Apply plan, do in batches:
 	//1. resample input - apply feature_processor multiple times for each sample (if imputer and using existing in model. will get matrix without feature processors/ rerun model again)
 	//2. predict with model_predictor

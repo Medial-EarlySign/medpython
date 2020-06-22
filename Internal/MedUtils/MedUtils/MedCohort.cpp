@@ -246,7 +246,6 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
-	int len;
 
 	vector<int> all_cnts = { 0,0 };
 
@@ -284,9 +283,9 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 				}
 			}
 			int tyear = to_date / 10000;
-			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
-			int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
-			int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
+			int byear = medial::repository::get_value(rep, crec.pid, byear_sid);
+			int gender = medial::repository::get_value(rep, crec.pid, gender_sid);
+			int train = medial::repository::get_value(rep, crec.pid, train_sid);
 
 			if ((gender & i_params.gender_mask) && (train_to_take[train]))
 				for (int year = fyear; year <= tyear; year++) {
@@ -389,9 +388,9 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 			//MLOG("\n");
 
 			// go over dates, filter and count
-			int byear = (int)((((SVal *)rep.get(crec.pid, byear_sid, len))[0]).val);
-			int gender = (int)((((SVal *)rep.get(crec.pid, gender_sid, len))[0]).val);
-			int train = (int)((((SVal *)rep.get(crec.pid, train_sid, len))[0]).val);
+			int byear = medial::repository::get_value(rep, crec.pid, byear_sid);
+			int gender = medial::repository::get_value(rep, crec.pid, gender_sid);
+			int train = medial::repository::get_value(rep, crec.pid, train_sid);
 			for (int i = 0; i < edates.size(); i++) {
 				int year = edates[i] / 10000;
 				if ((gender & i_params.gender_mask) && (train_to_take[train]))
@@ -546,7 +545,6 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
-	int len;
 
 	int nsamp = 0;
 
@@ -558,9 +556,9 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 		if (rc.from < min_date) rc.from = min_date;
 		if (rc.to > max_date) rc.from = max_date;
 
-		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
-		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
-		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
+		int byear = medial::repository::get_value(rep, rc.pid, byear_sid);
+		int gender = medial::repository::get_value(rep, rc.pid, gender_sid);
+		int train = medial::repository::get_value(rep, rc.pid, train_sid);
 
 		//MLOG("s: %d outcome %d %d from-to %d %d byear %d gender %d (mask %d) train %d (mask %d)\n", rc.pid, (int)rc.outcome, rc.outcome_date, rc.from, rc.to, byear, gender, s_params.gender_mask, train, s_params.train_mask);
 		if ((gender & s_params.gender_mask) && (train_to_take[train])) {
@@ -688,7 +686,6 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 	//vector<int> sids_to_stick;
 	//for (auto &sig : sigs) sids_to_stick.push_back(rep.sigs.sid(sig));
 
-	int len;
 	vector<int> dates_to_take;
 
 	int from0_days = (int)(s_params.max_control_years * 365.0f);
@@ -702,9 +699,9 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 
 	for (auto &rc : recs) {
 		bool print = false;
-		int byear = (int)((((SVal *)rep.get(rc.pid, byear_sid, len))[0]).val);
-		int gender = (int)((((SVal *)rep.get(rc.pid, gender_sid, len))[0]).val);
-		int train = (int)((((SVal *)rep.get(rc.pid, train_sid, len))[0]).val);
+		int byear = medial::repository::get_value(rep, rc.pid, byear_sid);
+		int gender = medial::repository::get_value(rep, rc.pid, gender_sid);
+		int train = medial::repository::get_value(rep, rc.pid, train_sid);
 
 		if (print) MLOG("pid %d from %d to %d outcome %f outcome %d : byear %d gender %d train %d\n", rc.pid, rc.from, rc.to, rc.outcome, rc.outcome_date, byear, gender, train);
 		if (print) MLOG("pid %d from0 %d to0 %d from1 %d to1 %d\n", rc.pid, from0_days, to0_days, from1_days, to1_days);
