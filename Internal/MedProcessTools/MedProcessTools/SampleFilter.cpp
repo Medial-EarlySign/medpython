@@ -982,7 +982,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			if (len > 0) {
 				float age = y - sv[0].val;
 #if SANITY_FILTER_DBG
-				MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : byear %f y %f time %d : age %f min_val %f max_val %f\n", sv[0].val, y, sample.time, age, min_val, max_val);
+				MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, sv[0].val, y, sample.time, age, min_val, max_val);
 #endif
 				if (age < min_val || age > max_val)
 					return SanitySimpleFilter::Failed_Age;
