@@ -70,6 +70,16 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("json_dict", po::value<string>()->default_value(""), "input json dict to test with AA as an additional load")
 			("simple_dict", "use to generate simpler dictionaries")
 
+			("json_req_test", "use to do a direct test using a request given as json, load data in req or in in_jsons")
+			("jreq", po::value<string>()->default_value(""), "input json request")
+			("jresp", po::value<string>()->default_value(""), "output json response")
+
+			("create_jreq", "use to create a json request for given samples")
+			("add_data_to_jreq", "use to create a json request for given samples")
+			("jreq_defs", po::value<string>()->default_value(""), "defaulted json to start with (if not empty) when creating a request")
+			("jreq_out", po::value<string>()->default_value(""), "output json request")
+
+
 			;
 
 
@@ -382,7 +392,8 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 
 			// time
 			for (int j = 0; j < n_time_channels; j++) {
-				json_sig_data_item["timestamp"].push_back((long long)usv.Time(i, j));
+				long long t = min((long long)time, (long long)usv.Time(i, j)); // chopping future time channels to the current time
+				json_sig_data_item["timestamp"].push_back(t);
 			}
 
 			// vals
@@ -636,8 +647,8 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str,
 	if (js.find("scoreOnDate") != js.end())
 		score_time = js["scoreOnDate"].get<long long>();
 
-//	DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
-//	return;
+	DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
+	return;
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
 	for (auto &s : js["signals"]) {
@@ -684,7 +695,7 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	vector<json> all_jsons(jsons.size());
 
 	for (int i = 0; i < jsons.size(); i++) {
-		MLOG("json %d : len %d\n", i, jsons[i].length());
+		if (i % 1000 == 0) MLOG("so far parsed as objects %d jsons\n", i);
 		all_jsons[i] = json::parse(jsons[i]);
 	}
 
@@ -760,6 +771,35 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	}
 	
 }
+
+
+//========================================================================================
+void json_req_test(po::variables_map &vm, AlgoMarker *am)
+{
+	// loading data from in_jsons if provided
+	if (vm["in_jsons"].as<string>() != "") {
+		string in_jsons;
+		read_file_into_string(vm["in_jsons"].as<string>(), in_jsons);
+		MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), vm["in_jsons"].as<string>().c_str());
+		DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
+		MLOG("Added data from %s\n", vm["in_jsons"].as<string>().c_str());
+	}
+
+	// direct call to CalculateByType
+	string sjreq;
+	read_file_into_string(vm["jreq"].as<string>(), sjreq);
+	char *jreq = (char *)(sjreq.c_str());
+	char *jresp;
+	MLOG("Before Calculate jreq len %d\n", sjreq.length());
+	((MedialInfraAlgoMarker *)am)->CalculateByType(JSON_REQ_JSON_RESP, jreq, &jresp);	
+	MLOG("After Calculate jresp len %d\n", strlen(jresp));
+
+	if (vm["jresp"].as<string>() != "") {
+		string s = string(jresp);
+		write_string(vm["jresp"].as<string>(), s);
+	}
+}
+
 
 //========================================================================================
 // prep dictionaries for AA
@@ -854,6 +894,87 @@ void prep_dicts(po::variables_map &vm)
 
 }
 
+//========================================================================================
+// loaders and helpers
+//========================================================================================
+
+//========================================================================================
+void load_amlib(po::variables_map &vm)
+{
+	// upload dynamic library if needed
+	if (vm["amlib"].as<string>() != "") {
+		load_am(vm["amlib"].as<string>().c_str());
+	}
+
+	if (DynAM::initialized())
+		MLOG("Dynamic %s library loaded\n", vm["amlib"].as<string>().c_str());
+	else
+		MLOG("Dynamic library not loaded\n");
+
+}
+
+//========================================================================================
+void initialize_algomarker(po::variables_map &vm, AlgoMarker *&test_am)
+{
+	// Initialize AlgoMarker
+	MLOG("Creating AM\n");
+
+	if (DYN(AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am)) != AM_OK_RC)
+		MTHROW_AND_ERR("ERROR: Failed creating test algomarker\n");
+
+	MLOG("Name is %s\n", test_am->get_name());
+
+	if (vm["am_csv"].as<string>() != "")	((MedialInfraAlgoMarker *)test_am)->set_am_matrix(vm["am_csv"].as<string>());
+
+	// Load
+	MLOG("Loading AM\n");
+	int rc = DYN(AM_API_Load(test_am, vm["amconfig"].as<string>().c_str()));
+	if (rc != AM_OK_RC) MTHROW_AND_ERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), rc);
+
+	// Additional load of dictionaries (if provided)
+	if (vm["json_dict"].as<string>() != "") {
+		MLOG("Additional Loading AM\n");
+		vector<string> dictionaries;
+		boost::split(dictionaries, vm["json_dict"].as<string>(), boost::is_any_of(","));
+		for (auto fdict : dictionaries) {
+			int rc = DYN(AM_API_AdditionalLoad(test_am, LOAD_DICT_FROM_FILE, fdict.c_str()));
+			if (rc != AM_OK_RC) {
+				MTHROW_AND_ERR("ERROR: Failed additional loading of dict : algomarker %s with dict file %s ERR_CODE: %d\n", test_am->get_name(), fdict.c_str(), rc);
+			}
+			else
+				MLOG("Loaded dictionary %s\n", fdict.c_str());
+		}
+	}
+}
+
+//========================================================================================
+void create_jreq(po::variables_map &vm)
+{
+	json jreq = json({});
+	if (vm["jreq_defs"].as<string>() != "") {
+		string s;
+		if (read_file_into_string(vm["jreq_defs"].as<string>(), s) < 0) MTHROW_AND_ERR("could not open file for jreq_defs\n");
+		jreq = json::parse(s);
+	}
+
+	MedSamples samples;
+	samples.read_from_file(vm["samples"].as<string>());
+
+	jreq.push_back({ "requests" , json::array() });
+	for (auto &ids : samples.idSamples)
+		for (auto &s : ids.samples) {
+			json js = json({});
+			js.push_back({ "patient_id", to_string(s.id) });
+			js.push_back({ "time" , to_string(s.time) });
+			jreq["requests"].push_back(js);
+		}
+
+	if (vm["jreq_out"].as<string>() != "") {
+		string s = jreq.dump(1);
+		write_string(vm["jreq_out"].as<string>(), s);
+		MLOG("Wrote request json to: %s\n", vm["jreq_out"].as<string>().c_str());
+	}
+}
 
 //========================================================================================
 // MAIN
@@ -874,21 +995,27 @@ int main(int argc, char *argv[])
 		return 0;
 	}
 
+	if (vm.count("create_jreq") > 0) {
+		create_jreq(vm);
+		return 0;
+	}
+
 	//--------------------------------------------------------------------
 	// preparations for tests
 	//--------------------------------------------------------------------
+	AlgoMarker *test_am;
 
-	// upload dynamic libraru if needed
-	if (vm["amlib"].as<string>() != "") {
-		load_am(vm["amlib"].as<string>().c_str());
+	load_amlib(vm);
+	initialize_algomarker(vm, test_am);
+
+	if (vm.count("json_req_test") > 0) {
+		json_req_test(vm, test_am);
+		return 0;
 	}
 
-	if (DynAM::initialized())
-		MLOG("Dynamic %s library loaded\n", vm["amlib"].as<string>().c_str());
-	else
-		MLOG("Dynamic library not loaded\n");
 
-
+	// from here and on: tests that involve loading a model, and comparing the 
+	// results from a repository + model with the repository + algomarker. (score compare test).
 	// read model file
 	MedModel model;
 	if (model.read_from_file(vm["model"].as<string>()) < 0) {
@@ -904,49 +1031,6 @@ int main(int argc, char *argv[])
 	vector<string> sigs;
 	model.get_required_signal_names(sigs);
 
-
-	// Initialize AlgoMarker
-	MLOG("Creating AM\n");
-	AlgoMarker *test_am;
-
-	int rc_am_init = DYN(AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am));
-
-	if (rc_am_init != AM_OK_RC) {
-			MERR("ERROR: Failed creating test algomarker\n");
-			return -1;
-	}
-
-
-	MLOG("Name is %s\n", test_am->get_name());
-
-	if (vm["am_csv"].as<string>() != "") {
-		MedialInfraAlgoMarker *m_am = (MedialInfraAlgoMarker *)test_am;
-		m_am->set_am_matrix(vm["am_csv"].as<string>());
-	}
-
-	// Load
-	MLOG("Loading AM\n");
-	rc = DYN(AM_API_Load(test_am, vm["amconfig"].as<string>().c_str()));
-	if (rc != AM_OK_RC) {
-		MERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), rc);
-		return -1;
-	}
-
-	// Additional load
-	if (vm["json_dict"].as<string>() != "") {
-		MLOG("Additional Loading AM\n");
-		vector<string> dictionaries;
-		boost::split(dictionaries, vm["json_dict"].as<string>(), boost::is_any_of(","));
-		for (auto fdict : dictionaries) {
-			rc = DYN(AM_API_AdditionalLoad(test_am, LOAD_DICT_FROM_FILE, fdict.c_str()));
-			if (rc != AM_OK_RC) {
-				MERR("ERROR: Failed additional loading of dict : algomarker %s with dict file %s ERR_CODE: %d\n", test_am->get_name(), fdict.c_str(), rc);
-				return -1;
-			}
-			else
-				MLOG("Loaded dictionary %s\n", fdict.c_str());
-		}
-	}
 
 
 	// test that AM repo. contains all the required signal

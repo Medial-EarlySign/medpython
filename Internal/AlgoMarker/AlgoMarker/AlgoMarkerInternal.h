@@ -188,13 +188,15 @@ public:
 
 			// export pids, times and preds to c arrays
 			int j = 0;
-			for (auto& idSample : samples.idSamples)
-				for (auto& sample : idSample.samples) {
-					_pids[j] = sample.id;
-					times[j] = sample.time;
-					preds[j] = sample.prediction.size() >0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
-					j++;
-				}
+			if (preds != NULL) {
+				for (auto& idSample : samples.idSamples)
+					for (auto& sample : idSample.samples) {
+						_pids[j] = sample.id;
+						times[j] = sample.time;
+						preds[j] = sample.prediction.size() > 0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
+						j++;
+					}
+			}
 
 			return 0;
 		}
