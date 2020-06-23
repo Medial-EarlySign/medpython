@@ -58,6 +58,13 @@ public:
 	/// </summary>
 	void get_pids(vector<int> &pids) const;
 
+	/// <summary>
+	/// Merges registry record with same registry values (and continues in time)
+	/// </summary>
+	void merge_records();
+
+
+
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
 	/// @snippet MedRegistry.cpp MedRegistry::make_registry

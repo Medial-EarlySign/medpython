@@ -1521,6 +1521,23 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, MedReposito
 	return registry;
 }
 
+void MedRegistry::merge_records()
+{
+	vector<MedRegistryRecord> merged_records;
+	merged_records.push_back(registry_records[0]);
+	
+	for (int i = 1; i < registry_records.size(); i++)
+	{
+		if ((registry_records[i].pid == merged_records.back().pid) && (registry_records[i].start_date <= merged_records.back().end_date + 1) && (registry_records[i].registry_value == merged_records.back().registry_value))
+		{
+			merged_records.back().end_date = registry_records[i].end_date;
+		}
+		else
+			merged_records.push_back(registry_records[i]);
+	}
+	registry_records = move(merged_records);
+}
+
 MedRegistry *MedRegistry::create_registry_full(const string &registry_type, const string &init_str,
 	const string &repository_path, MedModel &model_with_rep_processor, medial::repository::fix_method method) {
 	MedPidRepository rep;
