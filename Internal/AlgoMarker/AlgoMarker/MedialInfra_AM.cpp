@@ -554,6 +554,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				n_failed++;
 			}
 		}
+
 		else {
 			try {
 				req_i.sanity_test_rc = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
@@ -562,6 +563,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				req_i.sanity_caught_err = 1;
 			}
 		}
+
 #pragma omp critical
 		if (req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 			unsigned long long p = ((unsigned long long)req_i.sample_pid << 32) | req_i.conv_time;
@@ -616,6 +618,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			req_i.sanity_caught_err = 1;
 		}
 
+		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
 		json js = json({});
 
 		js.push_back({ "patient_id" , to_string(req_i.sample_pid) });

@@ -70,6 +70,7 @@ int DynAM::load(const char * am_fname){
   so->addr_AM_API_CreateRequest = load_sym(lib_handle, "AM_API_CreateRequest");
   so->addr_AM_API_CreateResponses = load_sym(lib_handle, "AM_API_CreateResponses");
   so->addr_AM_API_Calculate = load_sym(lib_handle, "AM_API_Calculate");
+  so->addr_AM_API_CalculateByType = load_sym(lib_handle, "AM_API_CalculateByType");
   so->addr_AM_API_GetResponsesNum = load_sym(lib_handle, "AM_API_GetResponsesNum");
   so->addr_AM_API_GetSharedMessages = load_sym(lib_handle, "AM_API_GetSharedMessages");
   so->addr_AM_API_GetResponseIndex = load_sym(lib_handle, "AM_API_GetResponseIndex");
@@ -86,6 +87,7 @@ int DynAM::load(const char * am_fname){
   so->addr_AM_API_DisposeAlgoMarker = load_sym(lib_handle, "AM_API_DisposeAlgoMarker");
   so->addr_AM_API_DisposeRequest = load_sym(lib_handle, "AM_API_DisposeRequest");
   so->addr_AM_API_DisposeResponses = load_sym(lib_handle, "AM_API_DisposeResponses");
+  so->addr_AM_API_Dispose = load_sym(lib_handle, "AM_API_Dispose");
   return (int)sos.size()-1;
 }
 
@@ -102,6 +104,11 @@ void DynAM::AM_API_DisposeAlgoMarker(AlgoMarker * pAlgoMarker){
 void DynAM::AM_API_DisposeRequest(AMRequest *pRequest){
   (*((DynAM::t_AM_API_DisposeRequest)DynAM::so->addr_AM_API_DisposeRequest))
     (pRequest);
+}
+
+void DynAM::AM_API_Dispose(char *data) {
+	(*((DynAM::t_AM_API_Dispose)DynAM::so->addr_AM_API_Dispose))
+		(data);
 }
 
 void DynAM::AM_API_DisposeResponses(AMResponses *responses){
@@ -211,4 +218,9 @@ int DynAM::AM_API_CreateResponses(AMResponses **new_responses){
 int DynAM::AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses){
   return (*((DynAM::t_AM_API_Calculate)DynAM::so->addr_AM_API_Calculate))
     (pAlgoMarker, request, responses);
+}
+
+int DynAM::AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses) {
+	return (*((DynAM::t_AM_API_CalculateByType)DynAM::so->addr_AM_API_CalculateByType))
+		(pAlgoMarker, CalcType, request, responses);
 }

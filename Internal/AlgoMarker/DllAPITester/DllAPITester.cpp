@@ -791,13 +791,16 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 	char *jreq = (char *)(sjreq.c_str());
 	char *jresp;
 	MLOG("Before Calculate jreq len %d\n", sjreq.length());
-	((MedialInfraAlgoMarker *)am)->CalculateByType(JSON_REQ_JSON_RESP, jreq, &jresp);	
+	DYN(AM_API_CalculateByType(am, JSON_REQ_JSON_RESP, jreq, &jresp));
+	//((MedialInfraAlgoMarker *)am)->CalculateByType(JSON_REQ_JSON_RESP, jreq, &jresp);	
 	MLOG("After Calculate jresp len %d\n", strlen(jresp));
 
 	if (vm["jresp"].as<string>() != "") {
 		string s = string(jresp);
 		write_string(vm["jresp"].as<string>(), s);
 	}
+
+	DYN(AM_API_Dispose(jresp));
 }
 
 

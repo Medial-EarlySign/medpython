@@ -430,6 +430,9 @@ extern "C" DLL_WORK_MODE int AM_API_CreateResponses(AMResponses **new_responses)
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 
+// Get scores in general types
+extern "C" DLL_WORK_MODE int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
+
 // get Responses num
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
 
@@ -478,6 +481,9 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeRequest(AMRequest *pRequest);
 // Dispose of responses - free all memory
 extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 
+
+// Dispose of allocated memory
+extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);
 
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#
