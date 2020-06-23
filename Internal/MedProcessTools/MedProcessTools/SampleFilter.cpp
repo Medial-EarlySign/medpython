@@ -978,11 +978,12 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			// calculate using byear
 			float y = 1900 + (float)med_time_converter.convert_times(samples_time_unit, MedTime::Years, sample.time);
 			int byear = medial::repository::get_value(rep, sample.id, byear_id);
+#if SANITY_FILTER_DBG
+			MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, byear, y, sample.time, y-byear, min_val, max_val);
+#endif
 			if (byear > 0) {
 				float age = y - byear;
-#if SANITY_FILTER_DBG
-				MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, sv[0].val, y, sample.time, age, min_val, max_val);
-#endif
+
 				if (age < min_val || age > max_val)
 					return SanitySimpleFilter::Failed_Age;
 			}
@@ -997,12 +998,12 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (section_id < 0 && sig_id > 0) {
 			section_id = rep.dict.section_id(sig_name);
 		}
-		//MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 
 		UniversalSigVec usv;
 
 		rep.uget(sample.id, sig_id, usv);
 #if SANITY_FILTER_DBG
+		MLOG("SanitySimpleFilter::test_filter(3.5) id %d sig %s sig_id %d\n", sample.id, sig_name.c_str(), sig_id);
 		MLOG("SanitySimpleFilter::test_filter(4) id %d sig_id %d len %d\n", sample.id, sig_id, usv.len);
 		MLOG("SanitySimpleFilter::test_filter(5) id %d sig_id %d len %d min_Nvals %d max_Nvals %d\n", sample.id, sig_id, usv.len, min_Nvals, max_Nvals);
 #endif
