@@ -558,7 +558,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (features.samples.size() == 1) {
+		if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
 			vector<float> pred_res, features_vec(features.data.size());
 			int i_feat = 0;
 			for (const auto &it : features.data)
