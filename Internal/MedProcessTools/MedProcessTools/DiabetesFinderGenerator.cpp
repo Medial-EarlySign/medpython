@@ -375,10 +375,6 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
-		else if (field == "df_score_mode") {
-			df_score_is_flag = (boost::to_upper_copy(entry.second) == "FLAG");
-			df_score_is_bitmask = (boost::to_upper_copy(entry.second) == "BITMASK");
-		}
 		else if (field == "df_diagnosis_sets") boost::split(df_diagnosis_sets, entry.second, boost::is_any_of(","));
 		else if (field == "df_coded_sets") boost::split(df_coded_sets, entry.second, boost::is_any_of(","));
 		else if (field == "df_drug_sets") boost::split(df_drug_sets, entry.second, boost::is_any_of(","));
