@@ -1444,13 +1444,13 @@ int MissingIndicatorProcessor::_apply(MedFeatures& features, unordered_set<int>&
 
 #pragma omp critical
 	{
-		features.data[new_feature_name].clear();
+		features.data[new_feature_name].reserve(features.samples.size());
 		// Attributes
 		features.attributes[new_feature_name].normalized = false;
 		features.attributes[new_feature_name].imputed = true;
 	}
 
-	for (auto &val : features.data[resolved_feature_name])
+	for (float &val : features.data[resolved_feature_name])
 	{
 		if (val == missing_value) {
 			features.data[new_feature_name].push_back(1.);
