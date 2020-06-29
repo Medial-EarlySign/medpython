@@ -1525,7 +1525,7 @@ void MedRegistry::merge_records()
 {
 	vector<MedRegistryRecord> merged_records;
 	merged_records.push_back(registry_records[0]);
-	
+
 	for (int i = 1; i < registry_records.size(); i++)
 	{
 		if ((registry_records[i].pid == merged_records.back().pid) && (registry_records[i].start_date <= merged_records.back().end_date + 1) && (registry_records[i].registry_value == merged_records.back().registry_value))
@@ -1979,7 +1979,7 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 	}
 
 	if (last_date > 0) {
-		r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+		r.end_date = medial::repository::DateAdd(last_date, duration - end_buffer_duration);
 		if (start_date > 0 && r.end_date > r.start_date)
 			results.push_back(r);
 	}

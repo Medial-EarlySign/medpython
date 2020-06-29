@@ -33,6 +33,8 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 			split(raw_source_feature_names, entry.second, boost::is_any_of(","));
 		else if (field == "parameters")
 			split(parameters, entry.second, boost::is_any_of(","));
+		else if (field == "missing_value")
+			missing_value = med_stof(entry.second);
 		else if (field == "weights") {
 			weights.clear();
 			vector<string> vals;
