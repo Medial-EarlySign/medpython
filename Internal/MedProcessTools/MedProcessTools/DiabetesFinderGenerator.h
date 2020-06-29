@@ -117,7 +117,8 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(DiabetesFinderGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights, req_signals, df_drug_sets, df_coded_sets, df_diagnosis_sets, df_diagnosis_sig, df_coded_sig, df_glucose_sig, 
-			df_hba1c_sig, df_drug_sig, df_past_event_days, df_by_single_glucose, df_by_second_glucose, df_by_second_hba1c, df_by_second_time_delta_days)
+			df_hba1c_sig, df_drug_sig, df_past_event_days, df_by_single_glucose, df_by_second_glucose, df_by_second_hba1c, df_by_single_hba1c, df_by_second_time_delta_days, df_pre_d_hba1c, df_pre_d_glucose,
+			df_diagnoses_severity, df_output_verbosity, df_output_non_dm_period)
 };
 
 MEDSERIALIZE_SUPPORT(DiabetesFinderGenerator);
