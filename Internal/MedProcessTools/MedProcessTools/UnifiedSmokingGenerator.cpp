@@ -84,6 +84,25 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void UnifiedSmokingGenerator::init_tables(MedDictionarySections& dict) {
+	//init luts:
+	smoke_status_sec_id = dict.section_id("Smoking_Status");
+	unordered_map<string, vector<string>> smoke_stat_categs;
+	get_required_signal_categories(smoke_stat_categs);
+	vector<string> smoke_st_vals = smoke_stat_categs.at("Smoking_Status");
+	smoke_status_luts.resize(smoke_st_vals.size());
+	for (size_t i = 0; i < smoke_status_luts.size(); ++i)
+	{
+		vector<string> set_vals = { smoke_st_vals[i] };
+		if (dict.id(smoke_st_vals[i]) < 0) {
+			MWARN("WARN UnifiedSmokingGenerator::init_tables - Smoking_Status \"%s\" is undefined\n",
+				smoke_st_vals[i].c_str());
+			set_vals.clear(); //Allow Unknown smoking status to be undefined
+		}
+		dict.prep_sets_lookup_table(smoke_status_sec_id, set_vals, smoke_status_luts[i]);
+	}
+}
+
 int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data)
 {
 	int unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
@@ -206,21 +225,14 @@ void UnifiedSmokingGenerator::get_p_data(MedFeatures& features, vector<float *> 
 	}
 }
 
-SMOKING_STATUS UnifiedSmokingGenerator::string2SmokingStatus(string &sigVal)
+SMOKING_STATUS UnifiedSmokingGenerator::val2SmokingStatus(int sigVal, int smokingStatusSid, PidRec &rec)
 {
-	if (sigVal == "Never")
-		return NEVER_SMOKER;
-	else if (sigVal == "Former")
-		return EX_SMOKER;
-	else if (sigVal == "Passive")
-		//return PASSIVE_SMOKER;
-		return NEVER_SMOKER;
-	else if (sigVal == "Current")
-		return CURRENT_SMOKER;
-	else if (sigVal == "Never_or_Former")
-		return 	NEVER_OR_EX_SMOKER;
-	else
-		MTHROW_AND_ERR("unknown smoking status name [%s]", sigVal.c_str());
+	for (size_t i = 0; i < smoke_status_luts.size(); ++i)
+		if (smoke_status_luts[i][sigVal])
+			return SMOKING_STATUS(i);
+
+	string sigVal_name = rec.my_base_rep->dict.name(smokingStatusSid, sigVal);
+	MTHROW_AND_ERR("unknown smoking status name [%s]", sigVal_name.c_str());
 }
 
 void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, vector<pair<SMOKING_STATUS, int>> &smokingStatusVec, int testDate, int &unknownSmoker, int &neverSmoker, int &passiveSmoker, int &formerSmoker, int &currentSmoker)
@@ -240,7 +252,6 @@ void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec 
 	}
 
 	// Calculate smoking status   
-	int smokingStatusSid = rec.my_base_rep->dict.section_id("Smoking_Status");
 
 	string sigVal;
 	int timeInd = 0;
@@ -248,10 +259,10 @@ void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec 
 	{
 		int currTime = smokingStatusUsv.Time(timeInd);
 		if (currTime > testDate) { break; }
-		sigVal = rec.my_base_rep->dict.name(smokingStatusSid, (int)smokingStatusUsv.Val(timeInd));
+		int sigVal_num = (int)smokingStatusUsv.Val(timeInd);
 		//cout << "Curr time: " << testDate << ". Sig time: " << smokingStatusUsv.Time(timeInd) << ". Sig Val: " << sigVal << endl;
 		// If has Quit or Current, must be Smoker or Ex smoker. will be set later according to last value
-		inVal = string2SmokingStatus(sigVal);
+		inVal = val2SmokingStatus(sigVal_num, smoke_status_sec_id, rec);
 		timeInd++;
 
 		// If there are several indications per time, pick maximal
@@ -259,8 +270,7 @@ void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec 
 		{
 			if (currTime == smokingStatusUsv.Time(timeInd))
 			{
-				string currVal = rec.my_base_rep->dict.name(smokingStatusSid, (int)smokingStatusUsv.Val(timeInd));
-				inVal = max(inVal, string2SmokingStatus(currVal));
+				inVal = max(inVal, val2SmokingStatus((int)smokingStatusUsv.Val(timeInd), smoke_status_sec_id, rec));
 				timeInd++;
 			}
 			else
@@ -293,15 +303,13 @@ void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec 
 
 void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, UniversalSigVec &quitTimeUsv, int testDate, map<SMOKING_STATUS, pair<int, int>> &smokingStatusDates, vector<int> &dates)
 {
-	int smokingStatusSid = rec.my_base_rep->dict.section_id("Smoking_Status");
 	for (int timeInd = 0; timeInd < smokingStatusUsv.len; timeInd++)
 	{
 		int currTime = smokingStatusUsv.Time(timeInd);
 		if (currTime > testDate) { break; }
 
 		dates.push_back(currTime);
-		string sigVal = rec.my_base_rep->dict.name(smokingStatusSid, (int)smokingStatusUsv.Val(timeInd));
-		SMOKING_STATUS inVal = string2SmokingStatus(sigVal);
+		SMOKING_STATUS inVal = val2SmokingStatus((int)smokingStatusUsv.Val(timeInd), smoke_status_sec_id, rec);
 
 		if (smokingStatusDates[inVal].first == NA_SMOKING_DATE)
 			smokingStatusDates[inVal].first = smokingStatusUsv.Time(timeInd);
@@ -626,7 +634,8 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 
 void UnifiedSmokingGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
 	vector<string> &in_use = signal_categories_in_use["Smoking_Status"];
-	vector<string> status = { "Never", "Passive", "Former", "Current", "Never_or_Former" };
+	//IMPORTANT - FETCH the names in the same order as SMOKING_STATUS enum - will use it to map values
+	vector<string> status = { "Unknown" ,"Never", "Passive", "Former", "Current", "Never_or_Former" };
 	in_use.insert(in_use.end(), status.begin(), status.end());
 }
 
@@ -833,7 +842,6 @@ void UnifiedSmokingGenerator::printDebug(vector<RangeStatus> &smokeRanges, int q
 #pragma omp critical
 	{
 		fprintf(fp, "********** Unified Smoking  pid: %i, birthdate %i, date %i  ************\n", rec.pid, birthDate, testDate);
-		int smokingStatusSid = rec.my_base_rep->dict.section_id("Smoking_Status");
 		char *smokingStatusDesc[] = { "UNKNOWN_SMOKER", "NEVER_SMOKER", "PASSIVE_SMOKER", "EX_SMOKER", "CURRENT_SMOKER" };
 		//fprintf(fp, "%d\t%d\t\n", rec.pid, testDate);
 		fprintf(fp, "Smoking Status\t");
@@ -841,7 +849,7 @@ void UnifiedSmokingGenerator::printDebug(vector<RangeStatus> &smokeRanges, int q
 		{
 			int currTime = smokingStatusUsv.Time(timeInd);
 			if (currTime > testDate) { break; }
-			string val = rec.my_base_rep->dict.name(smokingStatusSid, (int)smokingStatusUsv.Val(timeInd));
+			string val = rec.my_base_rep->dict.name(smoke_status_sec_id, (int)smokingStatusUsv.Val(timeInd));
 			fprintf(fp, "%d %s\t", currTime, val.c_str());
 		}
 		fprintf(fp, "\n");

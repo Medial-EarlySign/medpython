@@ -70,6 +70,8 @@ public:
 
 	};
 
+	void init_tables(MedDictionarySections& dict);
+
 	/// The parsed fields from init command.
 	/// @snippet UnifiedSmokingGenerator.cpp UnifiedSmokingGenerator::init
 	virtual int init(map<string, string>& mapper);
@@ -103,7 +105,7 @@ public:
 
 	int calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears);
 
-	SMOKING_STATUS string2SmokingStatus(string &sigVal);
+	SMOKING_STATUS val2SmokingStatus(int sigVal, int smokingStatusSid, PidRec &rec);
 
 	void genSmokingVec(PidDynamicRec & rec, UniversalSigVec & smokingStatusUsv, vector<pair<SMOKING_STATUS, int>>& smokingStatusVec, int testDate, int & unknownSmoker, int & neverSmoker, int & passiveSmoker, int & formerSmoker, int & currentSmoker);
 
@@ -125,6 +127,9 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(UnifiedSmokingGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, req_signals, timeSinceQuittingModelSlope, timeSinceQuittingModelConst)
+private:
+	vector<vector<char>> smoke_status_luts;
+	int smoke_status_sec_id;
 };
 
 MEDSERIALIZE_SUPPORT(UnifiedSmokingGenerator)
