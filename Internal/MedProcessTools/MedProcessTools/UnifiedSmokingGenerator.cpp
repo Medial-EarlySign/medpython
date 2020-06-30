@@ -94,7 +94,7 @@ void UnifiedSmokingGenerator::init_tables(MedDictionarySections& dict) {
 	for (size_t i = 0; i < smoke_status_luts.size(); ++i)
 	{
 		vector<string> set_vals = { smoke_st_vals[i] };
-		if (dict.id(smoke_st_vals[i]) < 0) {
+		if (dict.id(smoke_status_sec_id, smoke_st_vals[i]) < 0) {
 			MWARN("WARN UnifiedSmokingGenerator::init_tables - Smoking_Status \"%s\" is undefined\n",
 				smoke_st_vals[i].c_str());
 			set_vals.clear(); //Allow Unknown smoking status to be undefined
