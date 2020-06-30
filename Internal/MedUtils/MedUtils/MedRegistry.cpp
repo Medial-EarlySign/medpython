@@ -1919,13 +1919,6 @@ int MedRegistryKeepAlive::init(map<string, string>& map) {
 		//! [MedRegistryKeepAlive::init]
 	}
 
-	MedPidRepository repo;
-	if (rep_for_init == NULL) {
-		rep_for_init = &repo;
-		if (rep_for_init->init(repository_path) < 0)
-			MTHROW_AND_ERR("Error in MedRegistryKeepAlive::init - Unable to init repositrory from path %s\n", repository_path.c_str());
-	}
-
 	signalCodes_names = signal_list;
 	signalCodes_names.push_back("BDATE");
 	for (size_t i = 0; i < signal_list.size(); ++i)
