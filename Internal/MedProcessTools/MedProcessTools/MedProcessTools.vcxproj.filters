@@ -263,6 +263,9 @@
     <ClInclude Include="FeatureProcess.h">
       <Filter>Header Files\FeatureProcessors</Filter>
     </ClInclude>
+    <ClInclude Include="RepCreateRegistry.h">
+      <Filter>Header Files\RepProcessors</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\fragile_config.json">

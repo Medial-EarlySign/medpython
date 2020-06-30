@@ -5,6 +5,7 @@
 
 #include "RepProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
+#include "RepCreateRegistry.h"
 #include <cmath>
 #include <iomanip>
 
