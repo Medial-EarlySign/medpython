@@ -2221,7 +2221,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 	UniversalSigVec_mem &edited) {
 	edited.set(s);
 	edited.manage = false;
-	if (s.get_type() == T_Value || s.get_type() == T_TimeStamp || method == fix_method::none)
+	if (s.n_time_channels() == 0 || s.get_type() == T_TimeStamp || method == fix_method::none)
 		return false;
 
 	vector<vector<char *>> data_by_dates;

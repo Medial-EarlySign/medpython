@@ -580,7 +580,7 @@ bool RegistrySignalAny::get_outcome(const UniversalSigVec &s, int current_i, flo
 }
 
 inline int Date_wrapper(const UniversalSigVec &signal, int i) {
-	if (signal.get_type() != T_Value)
+	if (signal.n_time_channels() != 0)
 		return signal.Time(i);
 	else
 		return (int)signal.Val(i);
@@ -2170,7 +2170,7 @@ bool MedRegistry::get_pid_records(PidRec &rec, int bDateCode, const vector<int> 
 		UniversalSigVec vv;
 		rec.uget(used_sigs[k], vv);
 		bool did_something = medial::repository::fix_contradictions(vv, medial::repository::fix_method::none, sig_vec[k]);
-		if (did_something) 
+		if (did_something)
 			pid_fix = did_something;
 	}
 	int birth = medial::repository::get_value(rec, bDateCode);
