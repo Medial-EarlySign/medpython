@@ -69,6 +69,9 @@ public:
 	int from_sample;
 	int to_sample;
 	int size() { return (to_sample - from_sample + 1); }
+
+
+	size_t estimated_size() { return 12; }
 };
 
 class QRF_Tree {
@@ -88,7 +91,13 @@ public:
 	vector<float> histr_sum;
 	vector<int>	histr_num;
 
+
+	size_t estimated_size() { size_t s = histr_num.size() + histr_num.size() + inds.size() + qy.size() * 2 + hist[0].size() + hist[1].size() + feat_chosen.size() * 4 + sample_ids.size(); for (auto &n : nodes) s += n.estimated_size(); return s; }
+
 	mt19937 rand_gen;
+
+
+
 
 	void print(FILE *f);
 	void init_rand_state();
@@ -120,6 +129,9 @@ public:
 	int tot_n_values;
 	int majority;			// for categories cases
 
+
+	size_t estimated_size() { return 10 + counts.size() + values.size() + 2*value_counts.size(); }
+
 	void get_scores(int mode, int get_counts_flag, int n_categ, vector<float> &scores) const;
 
 	ADD_CLASS_NAME(QRF_ResNode)
@@ -131,6 +143,8 @@ public:
 class QRF_ResTree : public SerializableObject {
 public:
 	vector<QRF_ResNode> qnodes;
+	
+	size_t estimated_size() { size_t s = 0; for (auto &q : qnodes) s += q.estimated_size(); return s; }
 
 	ADD_CLASS_NAME(QRF_ResTree)
 		ADD_SERIALIZATION_FUNCS(qnodes)
@@ -331,6 +345,8 @@ private:
 
 	// transferring from inner algo data structure to exposed on
 	int transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, int mode);
+	int transfer_tree_to_res_tree(QuantizedRF &qrf, QRF_Tree &tree, QRF_ResTree &qt, int mode, map<float, int> &all_values);
+	int init_keep_all_values(QuantizedRF &qrf, int mode, map<float, int> &all_values);
 };
 
 MEDSERIALIZE_SUPPORT(QRF_ResNode)

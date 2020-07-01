@@ -288,10 +288,11 @@ int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 			return -1;
 		}
 		if (params.n_categ != n_categ) {
-			MERR("Mismatch between requested n_categ: %d and actual n_categ: %d. Discovered following cateogories:\n", params.n_categ, n_categ);
-			for (auto i : y_values)
-				MERR("%f %d\n", i.first, i.second);
-			return -1;
+			MWARN("Mismatch between requested n_categ: %d and actual n_categ: %d. Discovered following cateogories:\n", params.n_categ, n_categ);
+			//for (auto i : y_values)
+			//	MERR("%f %d\n", i.first, i.second);
+			//return -1;
+			n_categ = params.n_categ;
 		}
 	}
 
