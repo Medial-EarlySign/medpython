@@ -4,9 +4,9 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 #include "RepProcess.h"
+#include "RepCreateRegistry.h"
 #include <MedUtils/MedUtils/MedUtils.h>
 #include <queue>
-
 //=======================================================================================
 // RepCreateRegistry for creating repositories as signals
 //=======================================================================================
@@ -56,7 +56,10 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "ckd_egfr_sig") ckd_egfr_sig = entry.second;
 		else if (field == "ckd_proteinuria_sig") ckd_proteinuria_sig = entry.second;
 
-
+		//custom
+		else if (field == "registry_custom_type") registry_custom_type = entry.second;
+		else if (field == "registry_custom_args") registry_custom_args = entry.second;
+	
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateRegistry::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateRegistry::init]
@@ -82,13 +85,26 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 
 	MLOG_D("virtual 0 : %s\n", virtual_signals_generic[0].first.c_str());
 
-	if (!signals.empty()) {
-		if (signals.size() != type2reqSigs.at(registry).size())
-			MTHROW_AND_ERR("Wrong number of signals supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), signals.size(),
-				type2reqSigs.at(registry).size());
+	if (registry == REP_REGISTRY_CUSTOM) {
+		//update signals myself:
+		//only supports keep alive
+		custom_registry = MedRegistry::make_registry(registry_custom_type, registry_custom_args);
+		custom_registry->get_registry_creation_codes(signals);
+
+		registry_values.clear(); //no output categories
 	}
-	else
-		signals = type2reqSigs.at(registry);
+	else {
+		if (!signals.empty()) {
+			if (signals.size() != type2reqSigs.at(registry).size())
+				MTHROW_AND_ERR("Wrong number of signals supplied for RepCreateRegistry::%s - supplied %zd, required %zd\n", registry_name.c_str(), signals.size(),
+					type2reqSigs.at(registry).size());
+		}
+		else {
+			if (type2reqSigs.find(registry) == type2reqSigs.end())
+				MTHROW_AND_ERR("Error - RepCreateRegistry::init - must provide signals for this registry type\n");
+			signals = type2reqSigs.at(registry);
+		}
+	}
 
 	// required/affected signals
 	init_lists();
@@ -182,6 +198,19 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 		init_proteinuria_registry_tables(dict, sigs);
 	else if (registry == REP_REGISTRY_CKD)
 		init_ckd_registry_tables(dict, sigs);
+	else if (registry == REP_REGISTRY_CUSTOM) {
+		bDateCode = sigs.sid("BDATE");
+		vector<string> create_custom_input_sigs_names;
+		custom_registry->get_registry_use_codes(create_custom_input_sigs_names);
+		create_custom_input_sigs.resize(create_custom_input_sigs_names.size());
+		for (size_t i = 0; i < create_custom_input_sigs_names.size(); ++i)
+		{
+			create_custom_input_sigs[i] = sigs.sid(create_custom_input_sigs_names[i]);
+			if (create_custom_input_sigs[i] < 0)
+				MTHROW_AND_ERR("Error in RepCreateRegistry::init_tables - signal %s was not found\n",
+					create_custom_input_sigs_names[i].c_str());
+		}
+	}
 }
 
 void RepCreateRegistry::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
@@ -237,6 +266,9 @@ void RepCreateRegistry::get_required_signal_categories(unordered_map<string, vec
 	else if (registry == REP_REGISTRY_CKD) {
 		//empty - no categories
 	}
+	else if (registry == REP_REGISTRY_CUSTOM) {
+		//empty - no categories
+	}
 	else
 		MTHROW_AND_ERR("Unsupported registry type %d\n", registry);
 }
@@ -271,6 +303,8 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			proteinuria_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 		else if (registry == REP_REGISTRY_CKD)
 			ckd_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
+		else if (registry == REP_REGISTRY_CUSTOM)
+			custom_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
 		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++)
@@ -514,6 +548,28 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		all_v_vals[0].push_back(1);
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, firstHT));
 		all_v_times[0].push_back(med_time_converter.convert_times(MedTime::Days, time_unit, lastHT));
+	}
+}
+
+void RepCreateRegistry::custom_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, const vector<UniversalSigVec>& usvs,
+	vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times, vector<int>& final_sizes) {
+	vector<MedRegistryRecord> vals;
+	custom_registry->get_pid_records(rec, bDateCode, create_custom_input_sigs, vals);
+
+	//update outputs: all_v_vals, all_v_times, final_sizes: - 1 output signal:
+	final_sizes = { (int)vals.size() };
+	all_v_vals.resize(1);
+	all_v_times.resize(1);
+	vector<float> &out_vals = all_v_vals[0];
+	vector<int> &out_times = all_v_times[0];
+	//update out_vals, out_times:
+	out_vals.resize(vals.size());
+	out_times.resize(2* vals.size()); //2 time channels
+	for (size_t i = 0; i < vals.size(); ++i)
+	{
+		out_vals[i] = vals[i].registry_value;
+		out_times[2 * i + 0] = vals[i].start_date;
+		out_times[2 * i + 1] = vals[i].end_date;
 	}
 }
 
@@ -810,10 +866,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	int c = 0;
 	for (auto &ev : evs) {
 		MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
-	}
+		}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
-		}
+}
 
 //===============================================================================================================================
 // Proteinuria (3 levels) code
@@ -934,7 +990,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 		else
 			if (p.second > time2val[p.first])
 				time2val[p.first] = p.second;
-}
+	}
 
 	// loading into all_v_times, all_v_vals, final_sizes
 	all_v_times[0].clear();
@@ -1054,8 +1110,8 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 					if (ev.second > ckd_ev[i_time])
 						ckd_ev[i_time] = ev.second;
 			}
-			}
 		}
+	}
 
 	// loading into all_v_times, all_v_vals, final_sizes
 	all_v_times[0].clear();
