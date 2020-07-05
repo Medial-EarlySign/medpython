@@ -89,7 +89,7 @@ public:
 	vector<ValInd> qy;				// holding and sorting y values in a node when searching a split
 	vector<int> inds;
 
-	vector<float> histr_sum;
+	vector<double> histr_sum;
 	vector<int>	histr_num;
 
 

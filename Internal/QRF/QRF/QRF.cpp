@@ -295,16 +295,19 @@ int QuantizedRF::init_all(float *X, int *Y, float *Yr, const float *W, int nfeat
 	else {
 		// regression mode
 		yr.assign(Yr, Yr + nsamples);
-		int log_categ = (int)log2(n_categ);
 
-		yr_multilabel.resize(nsamples);
-		MLOG("len yr_multilabel: %d \n", yr_multilabel.size());
-		for (int i = 0; i < nsamples; i++)
-		{
-			for (int j = 0; j < log_categ; j++)
+		// This is used to make histogram quicker - we add only active labels (assumed that it sparse);
+		if (tree_mode == QRF_MULTILABEL_ENTROPY_TREE)
+		{ 
+			int log_categ = (int)log2(n_categ);
+			yr_multilabel.resize(nsamples);
+			for (int i = 0; i < nsamples; i++)
 			{
-				if ((1 << j) & int(yr[i]))
-					yr_multilabel[i].push_back(j);
+				for (int j = 0; j < log_categ; j++)
+				{
+					if ((1 << j) & int(yr[i]))
+						yr_multilabel[i].push_back(j);
+				}
 			}
 		}
 
@@ -1065,14 +1068,20 @@ int QuantizedRF::find_best_categories_entropy_split_multilabel(QRF_Tree &tree, i
 				else {
 					// zero hist and then fill it back with values
 					fill(tree.histr_num.begin(), tree.histr_num.begin() + (log_n_categ*max_q[ifeat]), 0);
-					fill(tree.histr_sum.begin(), tree.histr_sum.begin() + max_q[ifeat], (float)0);
+					fill(tree.histr_sum.begin(), tree.histr_sum.begin() + max_q[ifeat], (double)0);
+
+
 					for (i = nd->from_sample; i <= nd->to_sample; i++) {
 						for (int j = 0; j < yr_multilabel[tree.sample_ids[i]].size(); j++)
 						{
 							++tree.histr_num[log_n_categ*q_data[ifeat][tree.sample_ids[i]] + yr_multilabel[tree.sample_ids[i]][j]];
 						}
+					
+
 						++tree.histr_sum[q_data[ifeat][tree.sample_ids[i]]];
+
 					}
+ 
 
 					fill(histL.begin(), histL.end(), 0);
 					fill(histR.begin(), histR.end(), 0);
@@ -1098,9 +1107,6 @@ int QuantizedRF::find_best_categories_entropy_split_multilabel(QRF_Tree &tree, i
 							if (w.empty()) {
 								histL[j] += tree.histr_num[i*log_n_categ + j];
 								histR[j] -= tree.histr_num[i*log_n_categ + j];
-								
-								if (right_sum == 0)
-									break;
 							}
 							else {
 								histL_w[j] += histr_num_w[i*n_categ + j];
@@ -1118,8 +1124,9 @@ int QuantizedRF::find_best_categories_entropy_split_multilabel(QRF_Tree &tree, i
 						HR = 0.0;
 						for (j = 0; j < log_n_categ; j++) {
 							if (w.empty()) {
-								HL -= (log_table[histL[j]] + log_table[(int)left_sum - histL[j]]);
-								HR -= (log_table[histR[j]] + log_table[(int)right_sum - histR[j]]);
+								
+								HL -= (log_table[histL[j]] + log_table[(int)(left_sum - histL[j])]);
+								HR -= (log_table[histR[j]] + log_table[(int)(right_sum - histR[j])]);
 								//MLOG("Right: j: HR: %f, %d, log_table[histR[j]]: %f, log_table[(int)righ_sum - histR[j]] %f sum: %f \n", j, HR, log_table[histR[j]], log_table[(int)right_sum - histR[j]], (log_table[histR[j]] + log_table[(int)right_sum - histR[j]]));
 							}
 							else {
