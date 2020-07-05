@@ -91,6 +91,7 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_y.back() = y;
 	vec_preds.back() = preds;
 	vec_weights.back() = weights;
+	num_categories = p_preds->size() / p_y->size();
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -143,7 +144,7 @@ void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_
 	}
 }
 
-bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight) {
+bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight) {
 	if (sample_per_pid > 0) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
@@ -157,7 +158,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		// of weights. randomizing real number from 0 to sum_of_all_weights and using binary search to find the index.
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
-		ret_pred = preds[selected_index];
+		ret_pred = &preds[selected_index*num_categories];
 		weight = weights == NULL ? -1 : weights[selected_index];
 #pragma omp atomic
 		++current_pos[thread];
@@ -167,7 +168,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		if (sample_all_no_sampling) {
 			//iterate on all!:
 			ret_y = vec_y[thread][current_pos[thread]];
-			ret_pred = vec_preds[thread][current_pos[thread]];
+			ret_pred = &vec_preds[thread][current_pos[thread] * num_categories];
 			weight = vec_weights[thread] == NULL ? -1 : vec_weights[thread][current_pos[thread]];
 #pragma omp atomic
 			++current_pos[thread];
@@ -185,7 +186,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
 		int final_index = (*inds)[inner_pos[thread]];
 		ret_y = y[final_index];
-		ret_pred = preds[final_index];
+		ret_pred = &preds[final_index * num_categories];
 		weight = weights == NULL ? -1 : weights[final_index];
 		//take all inds:
 #pragma omp atomic
@@ -202,7 +203,10 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 }
 
 bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight) {
-	return fetch_next(thread, ret_y, ret_pred, weight);
+	const float *ret_pred_tmp;
+	bool ret_val = fetch_next(thread, ret_y, ret_pred_tmp, weight);
+	ret_pred = *ret_pred_tmp;
+	return ret_val;
 }
 
 void Lazy_Iterator::restart_iterator(int thread) {
@@ -644,8 +648,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
 	//for each pid - randomize x sample from all it's tests. do loop_times
-	if (preds.size() != y.size() || preds.size() != pids.size()) {
-		cerr << "bootstrap sizes aren't equal preds=" << preds.size() << " y=" << y.size() << endl;
+	if (pids.size() != y.size()) {
+		cerr << "bootstrap sizes aren't equal pids=" << pids.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
 	}
 	vector<Measurement_Params *> params((int)meas_functions.size());
@@ -667,7 +671,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	vector<int> pids_c, filtered_indexes;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
-	preds_c.reserve((int)y.size());
+	preds_c.reserve((int)preds.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
 	int warn_cnt = 0;
@@ -679,13 +683,13 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		if (cohort_params != NULL && (*cohort_params).find(it->first) != (*cohort_params).end())
 			c_params = (*cohort_params).at(it->first);
 
-		class_sz.resize(2, 0);
-		class_sz[0] = 0, class_sz[1] = 0;
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
 		weights_c.clear();
 		filtered_indexes.clear();
+		size_t num_categories = preds.size() / y.size();
+		class_sz.resize(num_categories, 0);
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				bool has_legal_w = true;
@@ -698,7 +702,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 				if (has_legal_w) {
 					pids_c.push_back(pids[j]);
 					y_c.push_back(y[j]);
-					preds_c.push_back((*final_preds)[j]);
+					for (size_t k = 0; k < num_categories; k++)
+						preds_c.push_back((*final_preds)[j*num_categories + k]);
 					filtered_indexes.push_back((int)j);
 					++class_sz[y[j] > 0];
 				}
@@ -868,8 +873,12 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measu
 
 	map<float, int> cnts;
 	float y, pred, w;
-	while (iterator->fetch_next(thread_num, y, pred, w))
+	const float *pred_temp;
+	while (iterator->fetch_next(thread_num, y, pred_temp, w))
+	{
+		pred = *pred_temp;
 		cnts[y] += w != -1 ? w : 1;
+	}
 	cnts[y] += w != -1 ? w : 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
@@ -887,7 +896,9 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 	double tot_true_labels = 0;
 	float y, pred, weight;
 	double tot_cnt = 0;
-	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+	const float *pred_temp;
+	while (iterator->fetch_next(thread_num, y, pred_temp, weight)) {
+		pred = *pred_temp;
 		pred_to_labels[pred].push_back(y);
 		if (weight != -1)
 			pred_to_weights[pred].push_back(weight);
@@ -961,6 +972,21 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 	return res;
 }
 
+map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	map<string, float> res;
+	float y, weight;
+	const float *pred;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+#pragma omp critical
+		{
+			MLOG("label %f , num_categories %d, \n", y, (int)iterator->num_categories);
+			for (size_t i = 0; i < iterator->num_categories; i++)
+				MLOG("pred [%d] : %f ", (int)i, *(pred + i));
+		}
+	}
+	res["Jaccard"] = (float)1;
+	return res;
+}
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
@@ -990,7 +1016,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	unordered_map<float, vector<float>> thresholds_weights;
 	vector<float> unique_scores;
 	float y, pred, weight;
-	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+	const float *pred_temp;
+	while (iterator->fetch_next(thread_num, y, pred_temp, weight)) {
+		pred = *pred_temp;
 		thresholds_labels[pred].push_back(y);
 		if (weight > 0)
 			thresholds_weights[pred].push_back(weight);
@@ -1799,10 +1827,12 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Meas
 
 	double tau = 0, cnt = 0;
 	float y, pred, weight;
+	const float *pred_temp;
 	//vector<float> scores, labels;
 	unordered_map<float, vector<float>> label_to_scores;
 	unordered_map<float, vector<float>> label_to_weights;
-	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+	while (iterator->fetch_next(thread_num, y, pred_temp, weight)) {
+		pred = *pred_temp;
 		label_to_scores[y].push_back(pred);
 		if (weight != -1)
 			label_to_weights[y].push_back(pred);

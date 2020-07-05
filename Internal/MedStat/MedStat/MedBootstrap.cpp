@@ -75,6 +75,7 @@ MedBootstrap::MedBootstrap()
 	simTimeWindow = false;
 	is_binary_outcome = true;
 	use_time_control_as_case = false;
+	num_categories = 1;
 }
 
 int MedBootstrap::init(map<string, string>& map) {
@@ -689,7 +690,11 @@ void MedBootstrap::add_filter_cohorts(const vector<vector<Filter_Param>> &parame
 
 void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
 	map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds) {
-	preds.resize((int)features.samples.size());
+	if (features.samples.empty() || features.samples[0].prediction.empty())
+		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)features.samples.size(), (int)features.samples[0].prediction.size());
+	num_categories = features.samples[0].prediction.size();
+	MLOG("prepare_bootstrap features.samples[0].prediction.size() %d , Num Catgeroies %d \n", (int)features.samples[0].prediction.size(), (int)num_categories);
+	preds.resize((int)features.samples.size()*num_categories);
 	y.resize((int)features.samples.size());
 	pids.resize((int)features.samples.size());
 	final_additional_info = features.data;
@@ -709,7 +714,8 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 		y[i] = features.samples[i].outcome;
 		if (features.samples[i].prediction.empty())
 			MTHROW_AND_ERR("MedFeautres Prediciton is empty. need to run on MedFeatures with predictions\n");
-		preds[i] = features.samples[i].prediction[0];
+		for (size_t j = 0; j < num_categories; j++)
+			preds[i*num_categories + j] = features.samples[i].prediction[j];
 		if (uses_time_window) {
 			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
@@ -772,6 +778,9 @@ void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<flo
 	pids.resize(samples.nSamples());
 	samples.get_y(y);
 	samples.get_preds(preds);
+	if (y.empty()|| preds.empty())
+		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)y.size(), (int)preds.size());
+	num_categories = preds.size() / y.size();
 	int c = 0;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i)
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
@@ -944,6 +953,12 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 		}
 	}
 	//new_samples.sort_by_id_date(); //not needed
+}
+MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
+	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = { { "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },{ "calc_jaccard",MeasurmentFunctionType::calc_jaccard } };
+	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end())
+		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s \n", measurement_function_name.c_str());
+	return measurement_function_name_map[measurement_function_name];
 }
 
 void MedBootstrap::change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features) {

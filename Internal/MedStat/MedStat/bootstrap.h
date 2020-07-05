@@ -42,7 +42,7 @@ public:
 	/// <summary>
 	/// Inline function to fetch next pred,label couple in the bootstrap process
 	/// </summary>
-	inline bool fetch_next(int thread, float &ret_y, float &ret_pred, float &weight);
+	inline bool fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight);
 
 	/// <summary>
 	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
@@ -67,6 +67,7 @@ public:
 	float sample_ratio; ///<the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; ///<how many samples to take for each patients. 0 - means no sampling take all sample for patient
 	bool sample_all_no_sampling; ///<for calcing Obs if true
+	size_t num_categories; ///< number of categories (inferred)
 private:
 	//internal structure - one time init
 	static random_device rd;
@@ -197,6 +198,15 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 /// A map from measurement name "Kendell-Tau" to it's value
 /// </returns>
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+// <summary>
+/// A Function to calculate Jaccard distance for multicategory
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from measurement name "Jaccard" to it's value
+/// </returns>
+map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 

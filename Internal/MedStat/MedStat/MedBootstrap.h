@@ -14,6 +14,14 @@
 * based on kaplan-meier(default option) and will use registry to censor samples when
 * using with sim_time_window mode
 */
+/// @enum
+/// Measurment types
+enum class MeasurmentFunctionType {
+	calc_npos_nneg = 0,
+	calc_only_auc = 1,
+	calc_roc_measures_with_inc = 2, 
+	calc_jaccard = 3
+};
 class with_registry_args {
 public:
 	MedRegistry *registry; ///< the registry of records
@@ -51,6 +59,7 @@ public:
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
+	int num_categories; ///< number of categories
 	vector<pair<MeasurementFunctions, Measurement_Params *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
@@ -234,7 +243,13 @@ public:
 	/// updates new_features from features
 	/// </returns>
 	void change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features);
-
+	/// <summary>
+	/// convert measurement function name to type 
+	/// </summary>
+	/// <returns>
+	/// MeasurmentFunctionType 
+	/// </returns>
+	MeasurmentFunctionType measurement_function_name_to_type(const string& measurement_function_name);
 	ADD_CLASS_NAME(MedBootstrap)
 	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow)
 
