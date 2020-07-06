@@ -2760,11 +2760,13 @@ int ChangeModelInfo::init(map<string, string>& mapper) {
 void MedModel::read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes) {
 	read_from_file(model_binary_path);
 
-	vector<string> alts;
-	string json_content = json_file_to_string(0, path_to_json_changes, alts);
-	vector<ChangeModelInfo> change_reqs;
-	ChangeModelInfo::parse_json_string(json_content, change_reqs);
-	change_model(change_reqs);
+	if (!path_to_json_changes.empty()) {
+		vector<string> alts;
+		string json_content = json_file_to_string(0, path_to_json_changes, alts);
+		vector<ChangeModelInfo> change_reqs;
+		ChangeModelInfo::parse_json_string(json_content, change_reqs);
+		change_model(change_reqs);
+	}
 }
 
 #endif

@@ -1826,3 +1826,38 @@ template<typename T> void medial::stats::welch_t_test(const vector<T> &grp1, con
 }
 template void medial::stats::welch_t_test<float>(const vector<float> &grp1, const vector<float> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
 template void medial::stats::welch_t_test<double>(const vector<double> &grp1, const vector<double> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+// KL divergence (+ some heuristics for zeros)
+template<typename T> double medial::stats::KL_divergence(const vector<T> &p, const vector<T> &q, T epsilon) {
+
+	if (p.size() != q.size())
+		MTHROW_AND_ERR("KL divergence requires probability vector of equal size\n");
+
+	// Correct for zeros if required.
+	bool req_corrections = false;
+	for (size_t i = 0; i < p.size(); i++) {
+		if ((p[i] == 0 && q[i] != 0) || (p[i] != 0 && q[i] == 0)) {
+			req_corrections = true;
+			break;
+		}
+	}
+
+	double _epsilon = (req_corrections) ? (double)epsilon : 0.0;
+	vector<T> _p(p.size()), _q(p.size());
+	
+	for (size_t i = 0; i < p.size(); i++) {
+		_p[i] = (p[i] + _epsilon) / (1 + p.size()*_epsilon);
+		_q[i] = (q[i] + _epsilon) / (1 + q.size()*_epsilon);
+	}
+
+	// Calculate
+	double kl = 0;
+	for (size_t i = 0; i < _p.size(); i++) {
+		if (_p[i] > 0)
+			kl += _p[i] * log(_p[i] / _q[i]);
+	}
+
+	return kl;
+}
+template double medial::stats::KL_divergence<float>(const vector<float> &p, const vector<float> &q, float epsilon);
+template double medial::stats::KL_divergence<double>(const vector<double> &p, const vector<double> &q, double epsilon);
