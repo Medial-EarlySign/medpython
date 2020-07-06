@@ -304,6 +304,29 @@ void MedFeatures::print_csv() const
 // Write features (samples + weights + data) as csv with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
+void MedFeatures::write_csv_data(ofstream& out_f, bool write_attributes, vector<string>& col_names) const {
+
+	for (int i = 0; i < samples.size(); i++) {
+
+		out_f << to_string(i); // serial
+		if (weights.size()) out_f << "," << weights[i]; // Weights
+
+														// sample
+		string sample_str;
+
+		samples[i].write_to_string(sample_str, time_unit, write_attributes, ",");
+		boost::replace_all(sample_str, "SAMPLE,", "");
+
+		out_f << "," << sample_str;
+
+		// features
+		for (int j = 0; j < col_names.size(); j++)
+			out_f << "," << data.at(col_names[j])[i];
+		out_f << "\n";
+
+	}
+}
+
 int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes) const
 {
 	ofstream out_f;
@@ -364,7 +387,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	if (weights.size()) out_f << ",weight"; // Weight (if given)
 	out_f << ",id,time,outcome,outcome_time,split"; // samples
 
-	// Predictions
+													// Predictions
 	if (samples.size() > 0 && samples[0].prediction.size() > 0) {
 		n_preds = (int)samples[0].prediction.size();
 		for (int j = 0; j < n_preds; j++)
@@ -385,29 +408,42 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	out_f << "\n";
 
 	// data
-	for (int i = 0; i < samples.size(); i++) {
-
-		out_f << to_string(i); // serial
-		if (weights.size()) out_f << "," << weights[i]; // Weights
-
-		// sample
-		string sample_str;
-
-		samples[i].write_to_string(sample_str, time_unit, write_attributes, ",");
-		boost::replace_all(sample_str, "SAMPLE,", "");
-
-		out_f << "," << sample_str;
-
-		// features
-		for (int j = 0; j < col_names.size(); j++)
-			out_f << "," << data.at(col_names[j])[i];
-		out_f << "\n";
-	}
+	write_csv_data(out_f, write_attributes, col_names);
 
 	out_f.close();
 	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
+
+
+	return 0;
+
+}
+
+int MedFeatures::add_to_csv_mat(const string &csv_fname, bool write_attributes) const
+{
+	ofstream out_f;
+
+	// No Sanity check - we assume fitting to previous data, and self-consistency.
+
+	out_f.open(csv_fname, ofstream::out | ofstream::app);
+
+	if (!out_f.is_open()) {
+		MERR("ERROR: MedFeatures::write_as_csv_mat() :: Can't open file %s for writing\n", csv_fname.c_str());
+		return -1;
+	}
+
+	vector<string> col_names;
+	get_feature_names(col_names);
+
+	// data
+	write_csv_data(out_f, write_attributes, col_names);
+
+	out_f.close();
+	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
+
+
 	return 0;
 }
+
 
 void add_to_map(map<string, int> &m, const vector<string> &names) {
 	int curr_size = (int)m.size();

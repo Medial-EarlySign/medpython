@@ -19,6 +19,7 @@ enum QRF_TreeType {
 	QRF_REGRESSION_TREE = 1,
 	QRF_CATEGORICAL_CHI2_TREE = 2,
 	QRF_CATEGORICAL_ENTROPY_TREE = 3,
+	QRF_MULTILABEL_ENTROPY_TREE = 4,
 	QRF_LAST = 4
 };
 
@@ -88,7 +89,7 @@ public:
 	vector<ValInd> qy;				// holding and sorting y values in a node when searching a split
 	vector<int> inds;
 
-	vector<float> histr_sum;
+	vector<double> histr_sum;
 	vector<int>	histr_num;
 
 
@@ -162,6 +163,7 @@ public:
 	vector<vector<float>> quant_values;
 	vector<vector<short>> q_data;
 	vector<float> yr; // y for regression trees
+	vector<vector<int>> yr_multilabel; // y for multilabel splitting
 	vector<float> w; // weights
 
 	vector<double> log_table;
@@ -223,6 +225,7 @@ private:
 	// categorized, split by chi square problem
 	int find_best_categories_chi2_split(QRF_Tree &tree, int node, int ntry);
 	int find_best_categories_entropy_split(QRF_Tree &tree, int node, int ntry);
+	int find_best_categories_entropy_split_multilabel(QRF_Tree &tree, int node, int ntry);
 
 };
 

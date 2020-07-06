@@ -189,6 +189,9 @@ QRF_TreeType MedQRF::get_tree_type(string name) {
 		return QRF_CATEGORICAL_CHI2_TREE;
 	else if (name == "categorial_entropy_tree" || name == "categorical_entropy_tree" || name == "categorial_entropy" || name == "categorical_entropy")
 		return QRF_CATEGORICAL_ENTROPY_TREE;
+	else if (name == "categorial_multilabel_entropy_tree" || name == "categorical_multilabel_entropy")
+		return QRF_MULTILABEL_ENTROPY_TREE;
+	
 	else
 		return QRF_LAST;
 	//! [MedQRF_get_types]
@@ -276,6 +279,7 @@ int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	qf.max_depth = params.max_depth;
 	qf.take_all_samples = params.take_all_samples;
 
+
 	if (params.type != QRF_REGRESSION_TREE) {
 		for (int i = 0; i < nsamples; i++)
 			y_values[y[i]] = 1;
@@ -287,16 +291,19 @@ int MedQRF::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 			MERR("Mismatch between QRF type and number of categories (%d)\n", qf.n_categ);
 			return -1;
 		}
-		if (params.n_categ != n_categ) {
-			MWARN("Mismatch between requested n_categ: %d and actual n_categ: %d. Discovered following cateogories:\n", params.n_categ, n_categ);
-			//for (auto i : y_values)
-			//	MERR("%f %d\n", i.first, i.second);
-			//return -1;
-			n_categ = params.n_categ;
+		if (params.n_categ < n_categ) {
+			MERR("Mismatch between requested n_categ: %d and actual n_categ: %d. Discovered following cateogories:\n", params.n_categ, n_categ);
+			for (auto i : y_values)
+				MERR("%f %d\n", i.first, i.second);
+			return -1;
 		}
+		if (params.n_categ > n_categ)
+			MWARN("requested n_categ: %d is bigger than actual n_categ: %d. \n", params.n_categ, n_categ);
+
+		n_categ = params.n_categ;
 	}
 
-	if (params.type == QRF_CATEGORICAL_CHI2_TREE || params.type == QRF_CATEGORICAL_ENTROPY_TREE) {
+	if (params.type == QRF_CATEGORICAL_CHI2_TREE || params.type == QRF_CATEGORICAL_ENTROPY_TREE || params.type == QRF_MULTILABEL_ENTROPY_TREE) {
 		vector<float> qf_y(nsamples);
 		for (int i = 0; i < nsamples; i++)
 			qf_y[i] = (float)y_values[y[i]];

@@ -472,7 +472,15 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 {
 	// convert names to ids
 	vector<int> sig_ids;
-	for (auto &name : set_names) {
+	for (auto name : set_names) {
+
+		size_t npos = name.find("#");
+		if (npos == 0)
+			continue;
+
+		if (npos < string::npos)
+			name = name.substr(0, npos);
+
 		int myid = id(name);
 		if (myid >= 0)
 			sig_ids.push_back(myid);

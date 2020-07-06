@@ -276,7 +276,7 @@ public:
 	void load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment = false);
 	void load_repository(const string& configFile, vector<int> ids, MedPidRepository& rep, bool allow_adjustment = false);
 	void fit_for_repository(MedPidRepository& rep);
-	/// Read binary model from file + json changes req for run-time.
+	/// Read binary model from file + json changes req for run-time (empty string for no changes)
 	void read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes);
 
 	MedPidRepository *p_rep = NULL; ///< not serialized. stores pointer to rep used in Learn or Apply after call.
