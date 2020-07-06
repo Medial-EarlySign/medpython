@@ -2761,6 +2761,7 @@ void MedModel::read_from_file_with_changes(const string &model_binary_path, cons
 }
 
 void MedModel::clone_model(MedModel &out) {
+	out.clear();
 	vector<unsigned char> blob;
 	serialize_vec(blob);
 	out.deserialize_vec(blob);
