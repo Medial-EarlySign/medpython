@@ -279,6 +279,11 @@ public:
 	/// Read binary model from file + json changes req for run-time (empty string for no changes)
 	void read_from_file_with_changes(const string &model_binary_path, const string &path_to_json_changes);
 
+	///clones this object into out
+	void clone_model(MedModel &out);
+	/// copy in modle into this object
+	void copy_from_model(MedModel &in);
+
 	MedPidRepository *p_rep = NULL; ///< not serialized. stores pointer to rep used in Learn or Apply after call.
 private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);

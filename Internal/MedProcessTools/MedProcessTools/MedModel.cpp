@@ -2760,4 +2760,17 @@ void MedModel::read_from_file_with_changes(const string &model_binary_path, cons
 	}
 }
 
+void MedModel::clone_model(MedModel &out) {
+	vector<unsigned char> blob;
+	serialize_vec(blob);
+	out.deserialize_vec(blob);
+}
+
+void MedModel::copy_from_model(MedModel &in) {
+	clear();
+	vector<unsigned char> blob;
+	in.serialize_vec(blob);
+	deserialize_vec(blob);
+}
+
 #endif
