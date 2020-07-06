@@ -48,15 +48,27 @@ public:
 	void create_registry(MedPidRepository &dataManager, medial::repository::fix_method method = medial::repository::fix_method::none, vector<RepProcessor *> *rep_processors = NULL);
 
 	/// <summary>
-	/// returns the signal codes used to create the registry
+	/// returns the signal codes used to create the registry - to load from rep
 	/// </summary>
 	void get_registry_creation_codes(vector<string> &signal_codes) const;
+	/// <summary>
+	/// returns the signal codes used to create the registry - to use in create_registry command as input
+	/// </summary>
+	void get_registry_use_codes(vector<string> &signal_codes) const;
+
 
 	/// <summary>
 	/// returns all patients ids from registry - unique patient ids
 	/// @param pids the unique patient ids result vector
 	/// </summary>
 	void get_pids(vector<int> &pids) const;
+
+	/// <summary>
+	/// Merges registry record with same registry values (and continues in time)
+	/// </summary>
+	void merge_records();
+
+	void *new_polymorphic(string dname);
 
 	/// creates registry type and initialize it if init_str is not empty
 	/// Use "binary" for MedRegistryCodesList and "categories" for MedRegistryCategories.
@@ -85,11 +97,14 @@ public:
 	/// A function to clear creation variables that are on memory if needed
 	virtual void clear_create_variables() {};
 
+	virtual bool get_pid_records(PidRec &rec, int bDateCode, const vector<int> &used_sigs, vector<MedRegistryRecord> &results);
+
 	/// Sets Repository object to initialize all registry object, if not given will try to use repository path
 	/// to read and initialize repository
 	void set_rep_for_init(MedRepository &rep) { rep_for_init = &rep; }
 
-	ADD_SERIALIZATION_FUNCS(time_unit, registry_records)
+	ADD_CLASS_NAME(MedRegistry)
+		ADD_SERIALIZATION_FUNCS(time_unit, registry_records)
 protected:
 	vector<string> signalCodes_names; ///< the signals codes by name
 	bool need_bdate; ///< If true Bdate is also used in registry creation
@@ -178,7 +193,7 @@ namespace medial {
 	*/
 	namespace registry {
 		/// \brief completes control period for registry giving active period for patient. active_periods_registry - is time ranges for each patient (not looking on registry_value - like in censor registry)
-		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry, 
+		void complete_active_period_as_controls(vector<MedRegistryRecord> &registry,
 			const vector<MedRegistryRecord> &active_periods_registry, bool unite_full_controls = true);
 	}
 }
@@ -232,6 +247,11 @@ public:
 	virtual void _init(const map<string, string>& mapper) {};
 
 	virtual ~RegistrySignal() {};
+
+	ADD_CLASS_NAME(RegistrySignal)
+		ADD_SERIALIZATION_FUNCS(signalName, duration_flag, buffer_duration, take_only_first, channel, outcome_value)
+
+		void *new_polymorphic(string dname);
 };
 
 /**
@@ -240,6 +260,8 @@ public:
 */
 class RegistrySignalSet : public RegistrySignal {
 public:
+	vector<string> sets;
+
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
 		MedRepository &rep, const vector<string> &sets, float outcome_val = 1, int chan = 0);
 	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
@@ -281,9 +303,12 @@ private:
 * Can have only time channel.
 * use "aby" keyword to refernce this class
 */
-class RegistrySignalAny: public RegistrySignal {
+class RegistrySignalAny : public RegistrySignal {
 
 	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
+
+	ADD_CLASS_NAME(RegistrySignalAny)
+		ADD_SERIALIZATION_FUNCS(signalName, duration_flag, buffer_duration, take_only_first, channel, outcome_value)
 };
 
 /**
@@ -291,6 +316,7 @@ class RegistrySignalAny: public RegistrySignal {
 */
 class RegistrySignalDrug : public RegistrySignal {
 public:
+	vector<string> sets;
 	RegistrySignalDrug(MedRepository &rep);
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalDrug::_init
@@ -381,6 +407,11 @@ public:
 
 	///clears the signal_filters
 	void clear_create_variables();
+
+	ADD_CLASS_NAME(MedRegistryCodesList)
+		ADD_SERIALIZATION_FUNCS(time_unit, registry_records,
+			start_buffer_duration, end_buffer_duration, max_repo_date, allow_prediciton_in_case,
+			seperate_cases)
 private:
 	vector<bool> SkipPids; ///< black list of patients mask
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
@@ -418,6 +449,10 @@ public:
 	~MedRegistryCategories() {
 		clear_create_variables();
 	}
+
+	ADD_CLASS_NAME(MedRegistryCategories)
+		ADD_SERIALIZATION_FUNCS(time_unit, registry_records, start_buffer_duration, end_buffer_duration,
+			max_repo_date)
 private:
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
@@ -449,6 +484,10 @@ public:
 	/// @snippet MedRegistry.cpp MedRegistryKeepAlive::init
 	/// </summary>
 	int init(map<string, string>& map);
+
+	ADD_CLASS_NAME(MedRegistryKeepAlive)
+		ADD_SERIALIZATION_FUNCS(time_unit, registry_records, duration, max_repo_date, start_buffer_duration,
+			secondry_start_buffer_duration, end_buffer_duration, signal_list)
 private:
 	unordered_map<int, int> pid_to_max_allowed; ///< max date allowed to each pid constrain
 
@@ -456,5 +495,8 @@ private:
 };
 
 MEDSERIALIZE_SUPPORT(MedRegistry)
+MEDSERIALIZE_SUPPORT(MedRegistryCodesList)
+MEDSERIALIZE_SUPPORT(MedRegistryCategories)
+MEDSERIALIZE_SUPPORT(MedRegistryKeepAlive)
 
 #endif

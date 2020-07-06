@@ -29,14 +29,21 @@ int DiabetesFinderGenerator::_resolve(PidDynamicRec& rec, vector<DiabetesEvent>&
 
 	int last_indication_date = -1;
 	int first_coding_date = -1;
-	json j_indications = json::array();
+	if (df_output_verbosity >= 3)
+		json_out += { "indications", json::array() };
 
 	int n_good_indications = 0;
-
+	int start_good_date = -1;
+	int pre_d_date = -1; // last day of pre diabetes and up
 	for (auto de : df_events) {
 
 		if (de.time > calc_time)
 			break;
+
+		if ((de.de_type == DFG_DIABETES_EVENT_GLUCOSE && de.val >= df_pre_d_glucose)
+			|| (de.de_type == DFG_DIABETES_EVENT_HBA1C && de.val >= df_pre_d_hba1c)) {
+			pre_d_date = de.time;
+		}
 
 		if (first_coding_date < 0) {
 
@@ -80,10 +87,12 @@ int DiabetesFinderGenerator::_resolve(PidDynamicRec& rec, vector<DiabetesEvent>&
 			last_indication_date = de.time;
 			n_good_indications = 0;
 		}
-		else
+		else {
+			if (n_good_indications == 0) start_good_date = de.time;
 			n_good_indications++;
+		}
 
-		if (!de.is_non_dm) {
+		if (!de.is_non_dm && df_output_verbosity>=3) {
 			json j_ind;
 			switch (de.de_type) {
 			case DFG_DIABETES_EVENT_GLUCOSE:
@@ -100,7 +109,7 @@ int DiabetesFinderGenerator::_resolve(PidDynamicRec& rec, vector<DiabetesEvent>&
 				break;
 			}
 			
-			j_indications.push_back(j_ind);
+			json_out["indications"].push_back(j_ind);
 			
 		}
 	}
@@ -116,17 +125,19 @@ int DiabetesFinderGenerator::_resolve(PidDynamicRec& rec, vector<DiabetesEvent>&
 
 	json_out += {"code", code};
 
-	if (code == 0)
-		j_explain += {"reason" , "no indication"};
+	if (code == 0) {
+		if (pre_d_date > 0) json_out += {"pre diabetic", pre_d_date};
+		j_explain += {"reason", "no indication"};
+	}
 	json_out += {"explanation", j_explain};
-	if (df_output_verbosity >= 2)
-		json_out += {"indications", j_indications};
 	if (code > 0)
 		json_out += {"dm_date", first_coding_date};
 	if (last_indication_date > 0)
 		json_out += {"last_indication_date", last_indication_date};
-	if (n_good_indications > 0)
-		json_out += {"n_last_good_indications", n_good_indications};
+	if (n_good_indications > 0 && df_output_non_dm_period >= 2) {
+		json_out += {"n_last_non_dm_indications", n_good_indications};
+		json_out += {"start_non_dm_date", start_good_date};
+	}
 
 	return code;
 
@@ -243,7 +254,7 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 	vector<DiabetesEvent> df_events;
 	UniversalSigVec usv;
 
-	MLOG("In here with pid %d\n", rec.pid);
+	//MLOG("In here with pid %d\n", rec.pid);
 
 	// we do here a pass over all data, we will later do the time calculations for each prediction point.
 	if (df_glucose_sid > 0) {
@@ -312,6 +323,7 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 	// mark the 2 events rule cases (if there is one)
 	int _latest_noteable_event_time = -1;
 	for (auto& de : df_events) {
+
 		if ((de.de_type == DFG_DIABETES_EVENT_GLUCOSE && de.val >= df_by_single_glucose)
 			|| (de.de_type == DFG_DIABETES_EVENT_HBA1C && de.val >= df_by_single_hba1c)) {
 			de.is_first = true;
@@ -347,8 +359,9 @@ int DiabetesFinderGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 
 	for (int i = 0; i < num; i++) {
 		int s_time = features.samples[index + i].time;
-		json json_out;
-		features.samples[index + i].prediction.push_back(_resolve(rec, df_events, coded_date, coded_val, s_time, json_out));
+		json json_out = json({});
+		p_feat[i] = _resolve(rec, df_events, coded_date, coded_val, s_time, json_out);
+		features.samples[index + i].prediction.push_back(p_feat[i]);
 		features.samples[index + i].jrec += {"DiabetesCoder", json_out};
 		features.samples[index + i].str_attributes["DiabetesCoder"] = json_out.dump();
 	}
@@ -362,10 +375,6 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;
 		if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
-		else if (field == "df_score_mode") {
-			df_score_is_flag = (boost::to_upper_copy(entry.second) == "FLAG");
-			df_score_is_bitmask = (boost::to_upper_copy(entry.second) == "BITMASK");
-		}
 		else if (field == "df_diagnosis_sets") boost::split(df_diagnosis_sets, entry.second, boost::is_any_of(","));
 		else if (field == "df_coded_sets") boost::split(df_coded_sets, entry.second, boost::is_any_of(","));
 		else if (field == "df_drug_sets") boost::split(df_drug_sets, entry.second, boost::is_any_of(","));
@@ -376,8 +385,11 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 		else if (field == "df_drug_sig") df_drug_sig = entry.second; // "Drug";
 		else if (field == "df_past_event_days") df_past_event_days = med_stoi(entry.second); //(365) * 3;
 		else if (field == "df_by_single_glucose") df_by_single_glucose = med_stof(entry.second); //200.0f;
+		else if (field == "df_by_single_hba1c") df_by_single_hba1c = med_stof(entry.second); //7.0f;
 		else if (field == "df_by_second_glucose") df_by_second_glucose = med_stof(entry.second); //126.0f;
 		else if (field == "df_by_second_hba1c") df_by_second_hba1c = med_stof(entry.second); //6.5f;
+		else if (field == "df_pre_d_hba1c") df_pre_d_hba1c = med_stof(entry.second); //5.8f;
+		else if (field == "df_pre_d_glucose") df_pre_d_glucose = med_stof(entry.second); //101f;
 		else if (field == "df_by_second_time_delta_days") df_by_second_time_delta_days = med_stoi(entry.second); //(365) * 2;
 		else if (field == "df_output_verbosity") df_output_verbosity = med_stoi(entry.second); // 2;
 		else if (field == "df_output_non_dm_period") df_output_non_dm_period = med_stoi(entry.second); // 0;
@@ -387,28 +399,34 @@ int DiabetesFinderGenerator::init(map<string, string>& mapper) {
 	}
 	set_names();
 
+
+	if (df_drug_sig == "NONE") df_drug_sig = "";
+	if (df_diagnosis_sig == "NONE") df_diagnosis_sig = "";
+	if (df_coded_sig == "NONE") df_coded_sig = "";
+
+
 	req_signals.clear();
 	req_signals.push_back(df_glucose_sig);
 	req_signals.push_back(df_hba1c_sig);
-	req_signals.push_back(df_diagnosis_sig);
-	req_signals.push_back(df_drug_sig);
+	if (df_diagnosis_sig != "") req_signals.push_back(df_diagnosis_sig);
+	if (df_drug_sig != "") req_signals.push_back(df_drug_sig);
 	if(df_coded_sig != df_diagnosis_sig)
-		req_signals.push_back(df_coded_sig);
+		if (df_coded_sig != "") req_signals.push_back(df_coded_sig);
 
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------------------------------
 void DiabetesFinderGenerator::init_tables(MedDictionarySections& dict) {
-	if (df_drug_lut.size() == 0) {
+	if (df_drug_lut.size() == 0 && df_drug_sig != "") {
 		dict.prep_sets_indexed_lookup_table(dict.section_id(df_drug_sig), df_drug_sets, df_drug_lut);
 	}
 
-	if (df_diagnosis_lut.size() == 0) {
+	if (df_diagnosis_lut.size() == 0 && df_diagnosis_sig != "") {
 		dict.prep_sets_indexed_lookup_table(dict.section_id(df_diagnosis_sig), df_diagnosis_sets, df_diagnosis_lut);
 	}
 
-	if (df_coded_lut.size() == 0) {
+	if (df_coded_lut.size() == 0 && df_coded_sig != "") {
 		dict.prep_sets_indexed_lookup_table(dict.section_id(df_coded_sig), df_coded_sets, df_coded_lut);
 	}
 

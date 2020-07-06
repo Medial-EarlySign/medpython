@@ -305,6 +305,25 @@ int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signa
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
+// Adding data by type
+// DataType signals the format, data contains the actual data.
+// Currently MedInfraAlgoMarker implements the DATA_JSON_FORMAT with data given as a json string
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data)
+{
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		return pAlgoMarker->AddDataByType(DataType, patient_id, data);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
 // Prepare a Request
 // Null RC means failure
 // pids and timestamps here are the timepoints to give predictions at
@@ -371,6 +390,23 @@ int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *r
 //-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
+// Get general Calculate results 
+//-----------------------------------------------------------------------------------------------------------
+int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses)
+{
+	try {
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
+
+		return pAlgoMarker->CalculateByType(CalcType , request, responses);
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
 // Dispose of AlgoMarker - free all memory 
 //-----------------------------------------------------------------------------------------------------------
 void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker)
@@ -420,6 +456,23 @@ void AM_API_DisposeResponses(AMResponses *responses)
 	}
 }
 //-----------------------------------------------------------------------------------------------------------
+
+//-----------------------------------------------------------------------------------------------------------
+// Dispose of general allocated memory
+//-----------------------------------------------------------------------------------------------------------
+void AM_API_Dispose(char *data)
+{
+	try {
+		if (data == NULL)
+			return;
+		delete[] data;
+	}
+	catch (...) {
+
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
+
 
 
 //-----------------------------------------------------------------------------------------------------------

@@ -569,13 +569,12 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
 	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
-	int len;
 	for (int i = 0; i < incidence_samples.idSamples.size(); ++i)
 		for (int j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
 			int pid = incidence_samples.idSamples[i].samples[j].id;
-			int byear = (int)((((SVal *)rep.get(pid, byear_sid, len))[0]).val);
+			int byear = medial::repository::get_value(rep, pid, byear_sid);
 			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
-			int gender = (int)((((SVal *)rep.get(pid, gender_sid, len))[0]).val);
+			int gender = medial::repository::get_value(rep, pid, gender_sid);
 			//int bin = age_bin*(age / age_bin);
 			int age_index = (age - min_age) / age_bin;
 			if (age < min_age || age > max_age || age_index < 0 || age_index >= counts.size())
@@ -653,6 +652,10 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	}
 	else {
 		//regular inc calc
+		if (all_cnts[0] == 0) {
+			MLOG("No samples\n");
+			return;
+		}
 		MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1],
 			(float)all_cnts[1] / all_cnts[0]);
 		int nlines = 0;

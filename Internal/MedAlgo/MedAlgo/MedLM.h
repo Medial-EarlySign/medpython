@@ -68,6 +68,8 @@ public:
 	int denormalize_model(float *f_avg, float *f_std, float lavel_avg, float label_std);
 	void print(FILE *fp, const string& prefix, int level = 0) const;
 
+	bool predict_single_not_implemented() { return true; }
+
 	ADD_CLASS_NAME(MedLM)
 		ADD_SERIALIZATION_FUNCS(classifier_type, n_ftrs, b0, b, err)
 };

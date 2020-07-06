@@ -74,10 +74,9 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				if (qa_print == 1) fprintf(stderr, "pid: %i  \n", rec.pid);
 
 				sname = "BYEAR";
-				int len_byear;
-				SVal *bYearSignal = (SVal *)rec.get(sname, i, len_byear);
-				assert(len_byear == 1);
-				int byear = (int)(bYearSignal[0].val);
+				int byearId = rec.my_base_rep->sigs.sid(sname);
+				int byear = medial::repository::get_value(rec, byearId);
+				assert(byear != -1);
 
 				int MAX_TO_TRIM = 60;
 				int MAX_TO_REMOVE = 100;
@@ -350,8 +349,8 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 							int diff = end_n - start_n + 1;   //smoking
 							smoking_year += diff;
 							int temp_pack_years = 0;
-							if (smoking_quan != missing_val) temp_pack_years += diff*((int)smoking_quan);
-							else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
+							if (smoking_quan != missing_val) temp_pack_years += diff * ((int)smoking_quan);
+							else temp_pack_years += diff * SMOKING_QUANTITY_IMPUTE;
 							pack_years += temp_pack_years;
 							if (qa_print == 1) fprintf(stderr, "years: smoker %f quantity  %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 						}
@@ -360,8 +359,8 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 							smoking_year += diff;   // unknown before smoking
 
 							int temp_pack_years = 0;
-							if (smoking_quan != missing_val) temp_pack_years += diff*((int)smoking_quan);
-							else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
+							if (smoking_quan != missing_val) temp_pack_years += diff * ((int)smoking_quan);
+							else temp_pack_years += diff * SMOKING_QUANTITY_IMPUTE;
 							pack_years += temp_pack_years;
 							if (qa_print == 1) fprintf(stderr, "years: unknown and smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 						}
@@ -373,8 +372,8 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 								smoking_year += diff;   // unknown before smoking
 
 								int temp_pack_years = 0;
-								if (ex_smoking_quan != missing_val) temp_pack_years += diff*((int)ex_smoking_quan);
-								else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
+								if (ex_smoking_quan != missing_val) temp_pack_years += diff * ((int)ex_smoking_quan);
+								else temp_pack_years += diff * SMOKING_QUANTITY_IMPUTE;
 								pack_years += temp_pack_years;
 								if (qa_print == 1) fprintf(stderr, "years: unknown and ex smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 							}
@@ -389,8 +388,8 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 								smoking_year += diff;   // unknown before smoking
 
 								int temp_pack_years = 0;
-								if (smoking_quan != missing_val) temp_pack_years += diff*(int)smoking_quan;
-								else temp_pack_years += diff*SMOKING_QUANTITY_IMPUTE;
+								if (smoking_quan != missing_val) temp_pack_years += diff * (int)smoking_quan;
+								else temp_pack_years += diff * SMOKING_QUANTITY_IMPUTE;
 								pack_years += temp_pack_years;
 								if (qa_print == 1) fprintf(stderr, "years: unknown and smoker %f diff %f \n", (float)diff / 365, (float)temp_pack_years / (365 * PACK_SIZE));
 							}
@@ -483,7 +482,7 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				}
 
 			}
-		}  
+		}
 		else {
 
 			int len1;

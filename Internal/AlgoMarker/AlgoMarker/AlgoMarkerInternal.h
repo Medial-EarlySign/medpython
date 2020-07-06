@@ -174,29 +174,38 @@ public:
 
 		try {
 
-			// run model to calculate predictions
-			if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
-				fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
+			try {
+				// run model to calculate predictions
+				if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
+					fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
+					return -1;
+				}
+			}
+			catch (...) {
+				fprintf(stderr, "Caught an exception in no_init_apply\n");
 				return -1;
 			}
 
 			// export pids, times and preds to c arrays
 			int j = 0;
-			for (auto& idSample : samples.idSamples)
-				for (auto& sample : idSample.samples) {
-					_pids[j] = sample.id;
-					times[j] = sample.time;
-					preds[j] = sample.prediction.size() >0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
-					j++;
-				}
+			if (preds != NULL) {
+				for (auto& idSample : samples.idSamples)
+					for (auto& sample : idSample.samples) {
+						_pids[j] = sample.id;
+						times[j] = sample.time;
+						preds[j] = sample.prediction.size() > 0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
+						j++;
+					}
+			}
 
 			return 0;
 		}
 		catch (int &exception_code) {
-			return exception_code;
+			fprintf(stderr, "Caught an exception code: %d\n", exception_code);
+			return -1; // exception_code;
 		}
 		catch (...) {
-			fprintf(stderr,"Caught Something...\n");
+			fprintf(stderr, "Caught Something...\n");
 			return -1;
 		}
 	}

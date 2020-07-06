@@ -17,9 +17,11 @@ public:
 	typedef int(*t_AM_API_ClearData)(AlgoMarker * pAlgoMarker);
 	typedef int(*t_AM_API_AddData)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	typedef int(*t_AM_API_AddDataStr)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
+	typedef int(*t_AM_API_AddDataByType)(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data);
 	typedef int(*t_AM_API_CreateRequest)(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 	typedef int(*t_AM_API_CreateResponses)(AMResponses **);
 	typedef int(*t_AM_API_Calculate)(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
+	typedef int(*t_AM_API_CalculateByType)(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
 	typedef int(*t_AM_API_GetSharedMessages)(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
 	typedef int(*t_AM_API_GetResponsesNum)(AMResponses *responses);
 	typedef int(*t_AM_API_GetResponseIndex)(AMResponses *responses, int _pid, long long _timestamp);
@@ -36,15 +38,18 @@ public:
 	typedef void(*t_AM_API_DisposeAlgoMarker)(AlgoMarker*);
 	typedef void(*t_AM_API_DisposeResponses)(AMResponses*);
 	typedef void(*t_AM_API_DisposeRequest)(AMRequest*);
+	typedef void(*t_AM_API_Dispose)(char *);
 	void *addr_AM_API_Create = nullptr;
 	void *addr_AM_API_Load = nullptr;
 	void *addr_AM_API_AdditionalLoad = nullptr;
 	void *addr_AM_API_ClearData = nullptr;
 	void *addr_AM_API_AddData = nullptr;
 	void *addr_AM_API_AddDataStr = nullptr;
+	void *addr_AM_API_AddDataByType = nullptr;
 	void *addr_AM_API_CreateRequest = nullptr;
 	void *addr_AM_API_CreateResponses = nullptr;
 	void *addr_AM_API_Calculate = nullptr;
+	void *addr_AM_API_CalculateByType = nullptr;
 	void *addr_AM_API_GetSharedMessages = nullptr;
 	void *addr_AM_API_GetResponsesNum = nullptr;
 	void *addr_AM_API_GetResponseIndex = nullptr;
@@ -61,6 +66,7 @@ public:
 	void *addr_AM_API_DisposeAlgoMarker = nullptr;
 	void *addr_AM_API_DisposeResponses = nullptr;
 	void *addr_AM_API_DisposeRequest = nullptr;
+	void *addr_AM_API_Dispose = nullptr;
 	// returns index in sos
 	static int load(const char * am_fname);
 	static DynAM* so;
@@ -70,6 +76,7 @@ public:
 	static int AM_API_ClearData(AlgoMarker * pAlgoMarker);
 	static void AM_API_DisposeAlgoMarker(AlgoMarker * pAlgoMarker);
 	static void AM_API_DisposeRequest(AMRequest *pRequest);
+	static void AM_API_Dispose(char *data);
 	static void AM_API_DisposeResponses(AMResponses *responses);
 	static int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 	static int AM_API_GetName(AlgoMarker * pAlgoMArker, char **name);
@@ -89,9 +96,11 @@ public:
 	static int AM_API_AdditionalLoad(AlgoMarker * pAlgoMarker, const int load_type, const char *load);
 	static int AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	static int AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
+	static int AM_API_AddDataByType(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data);
 	static int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 	static int AM_API_CreateResponses(AMResponses **new_responses);
 	static int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
+	static int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
 
 	static bool initialized() { return (sos.size() > 0); }
 };

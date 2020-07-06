@@ -61,6 +61,11 @@ typedef enum {
 #define LOAD_DICT_FROM_JSON	1001
 #define LOAD_DICT_FROM_FILE	1002
 
+#define DATA_JSON_FORMAT			2001
+#define DATA_BATCH_JSON_FORMAT		2002
+
+#define JSON_REQ_JSON_RESP			3001
+
 #ifndef ALGOMARKER_FLAT_API
 
 //===============================================================================
@@ -284,7 +289,7 @@ public:
 	virtual int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) { return 0; }
 	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
-	// Extenstions
+	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
 	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
 	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
@@ -339,6 +344,9 @@ private:
 	vector<string> extended_result_fields;
 	bool is_loaded = false;
 
+	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
+	int AddJsonData(int patient_id, json &j_data);
+
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 
@@ -349,6 +357,8 @@ public:
 	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
+	int AddDataByType(int DataType, int patient_id, const char *data); // options for DataType : DATA_JSON_FORMAT
+	int CalculateByType(int CalculateType, char *request, char **response); // options: JSON_REQ_JSON_RESP
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 	void set_am_matrix(string s) { am_matrix = s;  }
@@ -407,6 +417,9 @@ extern "C" DLL_WORK_MODE int AM_API_ClearData(AlgoMarker* pAlgoMarker);
 extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 
+// adding data in a new DataType
+extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data);
+
 // Prepare a Request
 // Null RC means failure
 extern "C" DLL_WORK_MODE int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
@@ -416,6 +429,9 @@ extern "C" DLL_WORK_MODE int AM_API_CreateResponses(AMResponses **new_responses)
 
 // Get scores for a ready request
 extern "C" DLL_WORK_MODE int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
+
+// Get scores in general types
+extern "C" DLL_WORK_MODE int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
 
 // get Responses num
 extern "C" DLL_WORK_MODE int AM_API_GetResponsesNum(AMResponses *responses);
@@ -465,6 +481,9 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeRequest(AMRequest *pRequest);
 // Dispose of responses - free all memory
 extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 
+
+// Dispose of allocated memory
+extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);
 
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#

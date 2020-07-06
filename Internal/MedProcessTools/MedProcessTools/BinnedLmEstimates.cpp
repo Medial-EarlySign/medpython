@@ -200,7 +200,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
 
 	// Collect Data
-	
+
 	int nthreads = omp_get_max_threads();
 	vector<PidDynamicRec> recs(nthreads);
 
@@ -211,15 +211,14 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 #pragma omp parallel for
 	for (int i = 0; i < nids; i++) {
 		UniversalSigVec usv, ageUsv;
-		int len, byear, gender, age;
+		int byear, gender, age;
 		int n_th = omp_get_thread_num();
 		PidDynamicRec &rec = recs[n_th];
 		int id = samples.idSamples[i].id;
 
 		// Gender
-		SVal *genderSignal = (SVal *)rep.get(id, genderId, len);
-		assert(len == 1);
-		gender = (int)(genderSignal[0].val);
+		gender = medial::repository::get_value(rec, genderId);
+		assert(gender != -1);
 
 		// Get signal (if not virtual)
 #pragma omp critical
@@ -496,16 +495,14 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	int iperiod = (int)nperiods;
 	int jperiod = (int)nperiods;
 
-	int len, byear, gender, age;
+	int byear, gender, age;
 
 	// BYear/Age
 	UniversalSigVec usv, ageUsv;
 	prepare_for_age(rec, ageUsv, age, byear);
 
 	// Gender
-	SVal *genderSignal = (SVal *)rec.get(genderId, len);
-	assert(len == 1);
-	gender = (int)(genderSignal[0].val);
+	gender = medial::repository::get_value(rec, genderId);
 
 	if (means[gender - 1][0] == 0) {
 		MERR("No age-dependent mean found for %s for gender %d\n", signalName.c_str(), gender);
@@ -631,19 +628,13 @@ int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
 // Age Related functions
 //.......................................................................................
 void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear) {
-
-	int len;
-	SVal *bYearSignal = (SVal *)rec.get(byearId, len);
-	assert(len == 1);
-	byear = (int)(bYearSignal[0].val);
+	byear = medial::repository::get_value(rec, byearId);
+	assert(byear != -1);
 }
 
 void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear) {
-
-	int len;
-	SVal *bYearSignal = (SVal *)rep.get(id, byearId, len);
-	assert(len == 1);
-	byear = (int)(bYearSignal[0].val);
+	byear = medial::repository::get_value(rep, id, byearId);
+	assert(byear != -1);
 
 }
 

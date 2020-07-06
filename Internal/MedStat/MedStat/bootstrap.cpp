@@ -688,16 +688,22 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		filtered_indexes.clear();
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
-				pids_c.push_back(pids[j]);
-				y_c.push_back(y[j]);
-				preds_c.push_back((*final_preds)[j]);
-				filtered_indexes.push_back((int)j);
-				++class_sz[y[j] > 0];
+				bool has_legal_w = true;
+				if (weights != NULL && !weights->empty()) {
+					if (weights->at(j) > 0)
+						weights_c.push_back(weights->at(j));
+					else
+						has_legal_w = false;
+				}
+				if (has_legal_w) {
+					pids_c.push_back(pids[j]);
+					y_c.push_back(y[j]);
+					preds_c.push_back((*final_preds)[j]);
+					filtered_indexes.push_back((int)j);
+					++class_sz[y[j] > 0];
+				}
+
 			}
-		if (weights != NULL && !weights->empty())
-			for (size_t j = 0; j < y.size(); ++j)
-				if (it->second(additional_info, (int)j, c_params))
-					weights_c.push_back(weights->at(j));
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
@@ -1034,7 +1040,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 			vector<float> *labels = &thresholds_labels[unique_scores[i]];
 			vector<float> *weights = &thresholds_weights[unique_scores[i]];
 			if (labels->size() != weights->size())
-				MTHROW_AND_ERR("Error in bootstrap: labels and weights not in same size\n");
+				MTHROW_AND_ERR("Error in bootstrap: labels(%zu) and weights(%zu) not in same size\n",
+					labels->size(), weights->size());
 			for (int y_i = 0; y_i < labels->size(); ++y_i)
 			{
 				float true_label = params->fix_label_to_binary ? (*labels)[y_i] > 0 : (*labels)[y_i];

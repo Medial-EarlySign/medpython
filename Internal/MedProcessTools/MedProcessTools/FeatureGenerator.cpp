@@ -566,7 +566,7 @@ void BasicFeatGenerator::prepare(MedFeatures &features, MedPidRepository& rep, M
 	// Handle categorical data
 	if (rep.sigs.is_categorical_channel(signalId, val_channel)) {
 		if (categ_forbidden.find(type) != categ_forbidden.end())
-			MTHROW_AND_ERR("Type %d not allowed on categorical data in BasicFeatureGenerator\n", type);
+			MTHROW_AND_ERR("name %s SignalId %d val_channel %d , Type %d not allowed on categorical data in BasicFeatureGenerator\n", names[0].c_str(), signalId, val_channel, type);
 		if (categ_require_dict.find(type) != categ_require_dict.end()) {
 			int section_id = rep.dict.SectionName2Id[signalName];
 			for (auto& rec : rep.dict.dicts[section_id].Id2Name)
@@ -690,7 +690,7 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 
 	UniversalSigVec usv;
 	rec.uget(signalId, 0, usv);
-	if (usv.len != 1) { MTHROW_AND_ERR("id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
+	if (usv.len != 1) { MTHROW_AND_ERR("AgeGenerator: id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
 	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
 	if (signalName == "BYEAR") {
 		int byear = usv.Val<int>(0);
@@ -1029,6 +1029,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 			int section_id = dict.section_id(signalName);
 			if (regex_on_sets)
 			{
+				vector<string> agg_sets;
 				unordered_set<string> aggregated_values;
 				for (auto& s : sets)
 				{
@@ -1036,11 +1037,11 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 					dict.dicts[section_id].get_regex_names(".*" + s + ".*", curr_set);
 					aggregated_values.insert(curr_set.begin(), curr_set.end());
 				}
-				sets.clear();
-				sets.insert(sets.begin(),aggregated_values.begin(),aggregated_values.end());
+				agg_sets.insert(agg_sets.begin(),aggregated_values.begin(),aggregated_values.end());
+				dict.prep_sets_lookup_table(section_id, agg_sets, lut);
 			}
-
-			dict.prep_sets_lookup_table(section_id, sets, lut);
+			else
+				dict.prep_sets_lookup_table(section_id, sets, lut);
 		}
 	}
 	else
@@ -2001,6 +2002,7 @@ string TimeFeatGenerator::time_unit_to_string(TimeFeatTypes time_unit) {
 
 	switch (time_unit) {
 	case FTR_TIME_YEAR: return "Year";
+	case FTR_TIME_DATE: return "Date";
 	case FTR_TIME_MONTH: return "Month";
 	case FTR_TIME_DAY_IN_MONTH: return "Day_in_Month";
 	case FTR_TIME_DAY_IN_WEEK: return "Day_in_Week";
@@ -2100,7 +2102,8 @@ int TimeFeatGenerator::get_time_unit(string name) {
 	else if (name == "day_in_week") time_unit = FTR_TIME_DAY_IN_WEEK;
 	else if (name == "hour") time_unit = FTR_TIME_HOUR;
 	else if (name == "minute") time_unit = FTR_TIME_MINUTE;
-
+	else if (name == "date") time_unit = FTR_TIME_DATE;
+	
 	if (time_unit != FTR_TIME_LAST) {
 		set_default_bins();
 		return 0;
@@ -2114,6 +2117,7 @@ int TimeFeatGenerator::get_nBins() {
 
 	switch (time_unit) {
 	case FTR_TIME_YEAR: return 0;
+	case FTR_TIME_DATE: return 0;
 	case FTR_TIME_MONTH: return 12;
 	case FTR_TIME_DAY_IN_MONTH: return 31;
 	case FTR_TIME_DAY_IN_WEEK: return 7;
@@ -2144,10 +2148,14 @@ int TimeFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 	float *p_feat = _p_data[0] + index;
 
 	// Special care of year
-	if (time_unit == FTR_TIME_YEAR) {
+	if ((time_unit == FTR_TIME_YEAR) || (time_unit == FTR_TIME_DATE)) {
+		int dest_type = (time_unit == FTR_TIME_YEAR) ? MedTime::Years : MedTime::Date;
 		for (int i = 0; i < num; i++)
-			p_feat[i] = med_time_converter.convert_times(features.time_unit, MedTime::Years, features.samples[index + i].time) + 1900;
-
+		{
+			p_feat[i] = med_time_converter.convert_times(features.time_unit, dest_type, features.samples[index + i].time);
+			if (time_unit == FTR_TIME_YEAR)
+				p_feat[i] += 1900;
+		}
 		return 0;
 	}
 

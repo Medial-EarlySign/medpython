@@ -10,6 +10,7 @@
 
 #include "InfraMed.h"
 #include "Utils.h"
+#include "MedPidRepository.h"
 #include <fstream>
 #include <Logger/Logger/Logger.h>
 #include <MedUtils/MedUtils/MedUtils.h>
@@ -2049,6 +2050,20 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 	return gend;
 }
 
+int medial::repository::get_value(PidRec &rep, int sigCode) {
+	int gend = -1;
+	UniversalSigVec usv;
+	rep.uget(sigCode);
+
+	if (usv.len > 0) {
+		if (usv.n_val_channels() > 0)
+			gend = (int)usv.Val(0);
+		else if (usv.n_time_channels() > 0)
+			gend = usv.Time(0);
+	}
+	return gend;
+}
+
 
 template<class T>int medial::repository::fetch_next_date(vector<T> &patientFile, vector<int> &signalPointers) {
 	int minDate = -1, minDate_index = -1;
@@ -2206,7 +2221,7 @@ bool medial::repository::fix_contradictions(UniversalSigVec &s, fix_method metho
 	UniversalSigVec_mem &edited) {
 	edited.set(s);
 	edited.manage = false;
-	if (s.get_type() == T_Value || s.get_type() == T_TimeStamp || method == fix_method::none)
+	if (s.n_time_channels() == 0 || s.get_type() == T_TimeStamp || method == fix_method::none)
 		return false;
 
 	vector<vector<char *>> data_by_dates;

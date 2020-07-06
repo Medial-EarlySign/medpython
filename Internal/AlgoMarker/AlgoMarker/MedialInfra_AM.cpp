@@ -9,6 +9,38 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
 
+#define PREDICTION_SOURCE_UNKNOWN	0
+#define PREDICTION_SOURCE_ATTRIBUTE	1
+#define PREDICTION_SOURCE_ATTRIBUTE_AS_JSON	2
+#define PREDICTION_SOURCE_JSON	3
+#define PREDICTION_SOURCE_PREDICTIONS	4
+
+class json_req_export {
+public:
+	string field;
+	int type = PREDICTION_SOURCE_UNKNOWN;
+	int pred_channel = -1; // relevant only if type is PREDICTION_SOURCE_PREDICTIONS
+};
+
+class json_req_info {
+public:
+	int sample_pid = -1;
+	long long sample_time = -1;
+	int load_data = 0;
+	unordered_map<string, json_req_export> exports;
+
+	int conv_time = -1; // this one is calculated
+	int sanity_test_rc = 0; // calculated, keeping eligibility testing result
+	int sanity_caught_err = 0;
+	vector<InputSanityTesterResult> sanity_res;
+	MedSample *res = NULL;
+};
+
+// local helper functions (these are CalculateByType helpers)
+void add_to_json_array(json &js, const string &key, const string &s_add);
+void json_to_char_ptr(json &js, char **jarr);
+bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
+int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
 
 //===========================================================================================================
 //===========================================================================================================
@@ -168,6 +200,41 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 
 }
 
+//-----------------------------------------------------------------------------------
+// AddDataByType() : 
+// Supporting loading data directly from a json
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const char *data)
+{
+	if (DataType != DATA_JSON_FORMAT && DataType != DATA_BATCH_JSON_FORMAT)
+		return AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE;
+
+
+	if (DataType == DATA_BATCH_JSON_FORMAT) {
+		vector<size_t> j_start, j_len;
+		vector<char> cdata;
+		get_jsons_locations(data, j_start, j_len);
+		for (int j = 0; j < j_start.size(); j++) {
+			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
+			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
+			cdata[j_len[j]] = 0;
+			AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
+		}
+	}
+
+
+	json jsdata;
+	
+	try {
+		jsdata = json::parse(data);
+	}
+	catch (...) {
+		return AM_ERROR_DATA_JSON_PARSE;
+	}
+
+	return AddJsonData(patient_id, jsdata);
+}
+
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------
@@ -285,9 +352,16 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
-	int get_preds_rc;
-	if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
-		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+	int get_preds_rc = -1;
+	try {
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], &raw_scores[0], _n_points)) < 0) {
+			string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc);
+			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
+			return AM_FAIL_RC;
+		}
+	}
+	catch (...) {
+		string msg = msg_prefix + "(" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting RAW scores in AlgoMarker " + string(get_name()) + " caught a crash. ";
 		shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 		return AM_FAIL_RC;
 	}
@@ -385,6 +459,219 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	return AM_OK_RC;
 }
 
+
+//------------------------------------------------------------------------------------------
+// CalculateByType : alllows for a general json in -> json out API with many more options 
+//------------------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, char **response)
+{
+	if (CalculateType != JSON_REQ_JSON_RESP)
+		return AM_FAIL_RC;
+
+	if (sort_needed) {
+		if (ma.data_load_end() < 0)
+			return AM_FAIL_RC;
+	}
+
+	if (!ma.model_initiated()) {
+		if (ma.init_model_for_apply() < 0)
+			return AM_FAIL_RC;
+	}
+
+	json jreq, jresp;
+
+	jresp = json({ { "type", "response" } });
+	try {
+		jreq = json::parse(request);
+	}
+	catch (...) {
+		add_to_json_array(jresp, "errors", "ERROR: Could not parse request as a valid json");
+		json_to_char_ptr(jresp, response);
+		return AM_FAIL_RC;
+	}
+
+	// verify the "type" : "request" , and the "request_id" : something fields
+	if (!json_verify_key(jreq, "type", 1, "request"))
+		add_to_json_array(jresp, "errors", "ERROR: missing type request");
+	string request_id;
+	if (!json_verify_key(jreq, "request_id", 0, ""))
+		add_to_json_array(jresp, "errors", "ERROR: no request_id provided");
+	else {
+		request_id = jreq["request_id"].get<string>();
+		jresp.push_back({ "request_id", request_id });
+	}
+
+	if (!json_verify_key(jreq, "requests", 0, ""))
+		add_to_json_array(jresp, "errors", "ERROR: missing actual requests in request " + request_id);
+		
+	if (json_verify_key(jresp, "errors", 0, "")) { json_to_char_ptr(jresp, response); return AM_FAIL_RC; } // Leave now if there are errors
+
+	// default parameters
+	json_req_info defaults;
+
+	vector<json_req_info> sample_reqs;
+
+//	try {
+		json_parse_request(jreq, defaults, defaults);
+
+		for (auto &jreq_i : jreq["requests"]) {
+			json_req_info j_i;
+			json_parse_request(jreq_i, defaults, j_i);
+			sample_reqs.push_back(j_i);
+			if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
+				if (AddJsonData(j_i.sample_pid, jreq_i["data"]) != AM_OK_RC) {
+					add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
+				}
+			}
+		}
+//	}
+
+//	catch (...) {
+//		add_to_json_array(jresp, "errors", "ERROR: error when parsing requests (or loading)");
+//	}
+	if (json_verify_key(jresp, "errors", 0, "")) { json_to_char_ptr(jresp, response); return AM_FAIL_RC; } // Leave now if there are errors
+
+   // We now convert times and do an initial sanity checks
+   // again - we only deal with int times in this class, so we convert the long long stamps to int
+   // we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
+	int n_points = (int)sample_reqs.size();
+	int tu = get_time_unit();
+	MedRepository &rep = ma.get_rep();
+	vector<int> eligible_pids, eligible_timepoints;
+	unordered_map<unsigned long long, vector<int>> sample2ind; // conversion of each sample to all the ts that were mapped to it.
+	int n_failed = 0, n_bad = 0;
+//#pragma omp parallel for if (n_points > 10)
+	for (int i = 0; i < n_points; i++) {
+		json_req_info &req_i = sample_reqs[i];
+		req_i.conv_time = AMPoint::auto_time_convert(req_i.sample_time, tu);
+		int ok_time = 1;
+		if (tu == MedTime::Date && (req_i.conv_time < 19500000 || req_i.conv_time > 30000000)) ok_time = 0;
+		if ((req_i.sample_pid <= 0) || (req_i.conv_time <= 0) || ok_time == 0) {
+#pragma omp critical 
+			{
+				add_to_json_array(jresp, "errors", "ERROR: BAD request patient id or time : failed in inserting pid: " + to_string(req_i.sample_pid) + " ts: " + to_string(req_i.sample_time));
+				req_i.sanity_test_rc = -2;
+				n_failed++;
+			}
+		}
+
+		else {
+			try {
+				req_i.sanity_test_rc = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+			}
+			catch (...) {
+				req_i.sanity_caught_err = 1;
+			}
+		}
+
+#pragma omp critical
+		if (req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
+			unsigned long long p = ((unsigned long long)req_i.sample_pid << 32) | req_i.conv_time;
+			if (sample2ind.find(p) == sample2ind.end()) {
+				eligible_pids.push_back(req_i.sample_pid);
+				eligible_timepoints.push_back(req_i.conv_time);
+				sample2ind[p] = vector<int>();
+			}
+			sample2ind[p].push_back(i);
+		}
+		else
+			n_bad++;
+	}
+
+	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
+
+	// at this point in time we are ready to score eligible_pids,eligible_timepoints. We will do that, and later wrap it all up into a single json back.
+	int _n_points = (int)eligible_pids.size();
+	int get_preds_rc = -1;
+	try {
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points)) < 0) {
+			add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc));
+			json_to_char_ptr(jresp, response);
+			return AM_FAIL_RC;
+		}
+	}
+	catch (...) {
+		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
+		json_to_char_ptr(jresp, response);
+		return AM_FAIL_RC;
+	}
+
+	// now we are ready ... we have the results, and we need to put it all into the response json one by one.
+
+	// adding result samples pointers to sample_reqs
+	MedSamples *samps = ma.get_samples_ptr();
+	for (auto &ids : samps->idSamples)
+		for (auto &s : ids.samples) {
+			unsigned long long p = ((unsigned long long)s.id << 32) | s.time;
+			for (auto j : sample2ind[p])
+				sample_reqs[j].res = &s;
+		}
+
+	jresp.push_back({ "responses", json::array() });
+	for (int i = 0; i < sample_reqs.size(); i++) {
+		json_req_info &req_i = sample_reqs[i];
+		try {
+			int test_rc = ist.test_if_ok(*(req_i.res), req_i.sanity_res);
+			if (test_rc == 0) req_i.sanity_test_rc = 0;
+		}
+		catch (...) {
+			req_i.sanity_caught_err = 1;
+		}
+
+		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
+		json js = json({});
+
+		js.push_back({ "patient_id" , to_string(req_i.sample_pid) });
+		js.push_back({ "time" , to_string(req_i.sample_time) });
+		if (req_i.sanity_caught_err)
+			add_to_json_array(js, "messages", "ERROR: sanity tests crashed");
+		if (req_i.sanity_res.size() > 0)
+			for (auto &its : req_i.sanity_res) {
+				add_to_json_array(js, "messages", "(" + to_string(its.external_rc) + ")" + its.err_msg);
+			}
+		for (auto &e : req_i.exports) {
+			if (e.second.type == PREDICTION_SOURCE_PREDICTIONS) {
+				if (req_i.res != NULL && req_i.res->prediction.size() > e.second.pred_channel && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0)
+					js.push_back({ e.first, to_string(req_i.res->prediction[e.second.pred_channel]) });
+				else
+					js.push_back({ e.first, to_string(AM_UNDEFINED_VALUE) });
+				if (req_i.res == NULL)
+					add_to_json_array(js, "messages", "ERROR: did not get result for field " + e.first + " : " + e.second.field );
+				else if (req_i.res->prediction.size() <= e.second.pred_channel || e.second.pred_channel < 0)
+					add_to_json_array(js, "messages", "ERROR: prediction channel " + to_string(e.second.pred_channel) + " is illegal");
+			}
+			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE && req_i.res != NULL) {
+				if (req_i.res->attributes.find(e.second.field) != req_i.res->attributes.end())
+					js.push_back({ e.first, to_string(req_i.res->attributes[e.second.field]) });
+				else if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end())
+					js.push_back({ e.first, req_i.res->str_attributes[e.second.field] });
+			}
+			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL) {
+				if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end()) {
+					json jattr;
+					try {
+						jattr = json::parse(req_i.res->str_attributes[e.second.field]);
+						js.push_back({ e.first, jattr });
+					}
+					catch (...) {
+						add_to_json_array(jresp, "messages", "ERROR: could not parse attribute " + e.second.field + " as a valid json");
+					}
+				}
+			}
+			else if (e.second.type == PREDICTION_SOURCE_JSON) {
+				if (req_i.res->jrec.find(e.second.field) != req_i.res->jrec.end()) {
+					auto &jj = req_i.res->jrec[e.second.field];
+					js.push_back({ e.first, jj });
+				}
+			}
+		}
+		jresp["responses"].push_back(js);
+	}
+
+	json_to_char_ptr(jresp, response);
+	return AM_OK_RC;
+}
+
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
 {
@@ -478,4 +765,235 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 
 
 	return AM_OK_RC;
+}
+
+// maximal input of 32GB
+#define MAX_POSSIBLE_STRING_LEN ((size_t)1 << 35)
+//-----------------------------------------------------------------------------------
+void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len)
+{
+	j_start.clear();
+	j_len.clear();
+
+	size_t j = 0;
+	int counter = 0;
+	int in_string = 0;
+	size_t start = 0;
+	size_t len = 0;
+	while (data[j] != 0 || j > MAX_POSSIBLE_STRING_LEN) {
+		char ch = data[j];
+		if (ch == '\"' || ch == '\'') in_string = 1 - in_string;
+		if ((!in_string) && ch == '{') {
+			if (counter == 0) start = j;
+			counter++;
+		}
+		if (counter > 0) len++;
+		if ((!in_string) && ch == '}') counter--;
+
+		if (counter == 0 && len > 0) {
+			j_start.push_back(start);
+			j_len.push_back(len);
+			len = 0;
+			if (j_start.size() > 0 && j_start.size() % 1000 == 0)
+				MLOG("Found %d jsons so far\n", j_start.size());
+		}
+		if (counter < 0) MTHROW_AND_ERR("Mismatch in {} count in jsons string\n");
+
+		j++;
+	}
+
+	MLOG("Read %d jsons from data string (debug info: counter = %d j = %ld)\n", j_start.size(), counter, j);
+}
+
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
+{
+	try {
+		json &js = j_data;
+
+		// supporting also older style jsons that were embeded in a "body" section
+		if (j_data.find("body") != j_data.end())
+			js = j_data["body"];
+
+		if (patient_id <= 0) {
+			// in this case we take the patient id directly from the json itself
+			if (js.find("patient_id") != js.end())
+				patient_id = js["patient_id"].get<long long>();
+			else if (js.find("pid") != js.end())
+				patient_id = js["pid"].get<long long>();
+		}
+
+		//MLOG("Loading with pid %d\n", patient_id);
+
+		vector<long long> times;
+		int s_data_size = 100000;
+		vector<char> sdata(s_data_size);
+		vector<int> sinds;
+		int curr_s = 0;
+		//char str_values[MAX_VALS][MAX_VAL_LEN];
+		for (auto &s : js["signals"]) {
+			times.clear();
+			sinds.clear();
+			curr_s = 0;
+			string sig = s["code"].get<string>();
+			int n_time_channels, n_val_channels, *is_categ;
+			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+			//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
+			int n_data = 0;
+			for (auto &d : s["data"]) {
+				//MLOG("time ");
+				int nt = 0;
+				for (auto &t : d["timestamp"]) {
+					times.push_back(t.get<long long>());
+					nt++;
+					//MLOG("%d ", itime);
+				}
+				//MLOG("val ");
+				int nv = 0;
+				for (auto &v : d["value"]) {
+					string sv = v.get<string>().c_str();
+					int slen = (int)sv.length();
+					//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
+					if (curr_s + 1 + slen > s_data_size) {
+						s_data_size *= 2;
+						sdata.resize(s_data_size);
+					}
+					if (nv < n_val_channels) {
+						sv.copy(&sdata[curr_s], slen);
+						sdata[curr_s + slen] = 0;
+						sinds.push_back(curr_s);
+						curr_s += slen + 1;
+						nv++;
+					}
+					//char *sp = &sdata[sinds.back()];
+					//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
+					//MLOG("%s ", v.get<string>().c_str());
+				}
+				//MLOG("\n");
+				n_data++;
+			}
+			vector<char *> p_str;
+			for (auto j : sinds)
+				p_str.push_back(&sdata[j]);
+			long long *p_times = &times[0];
+			int n_times = (int)times.size();
+			char **str_values = &p_str[0];
+			int n_vals = (int)p_str.size();
+
+			//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
+			//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
+			//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
+
+			if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
+				MLOG("Failed AddDataStr() in AddDataByType()\n");
+				return AM_FAIL_RC;
+			}
+		}
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+
+	return AM_OK_RC;
+}
+
+//-----------------------------------------------------------------------------------
+void add_to_json_array(json &js, const string &key, const string &s_add)
+{
+	if (js.find(key) == js.end())
+		js.push_back({ key, json::array() });
+	js[key] += s_add;
+}
+
+//-----------------------------------------------------------------------------------
+void json_to_char_ptr(json &js, char **jarr)
+{
+	*jarr = NULL;
+	string sj = js.dump(1, '\t');
+
+	*jarr = new char[sj.length() + 1];
+
+	if (*jarr != NULL) {
+		strncpy(*jarr, sj.c_str(), sj.length());
+		(*jarr)[sj.length()] = 0;
+	}
+}
+
+//-----------------------------------------------------------------------------------
+bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val)
+{
+	bool is_in = false;
+	if (js.find(key) != js.end()) is_in = true;
+
+	if (is_in && verify_val_flag) {
+		if (js[key].get<string>() != val)
+			is_in = false;
+	}
+
+	return is_in;
+}
+
+//------------------------------------------------------------------------------------------
+int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i)
+{
+	req_i = defaults;
+	// read defaults (if exist)
+	if (json_verify_key(jreq, "patient_id", 0, "") || json_verify_key(jreq, "pid", 0, "")) {
+		if (json_verify_key(jreq, "patient_id", 0, ""))
+			req_i.sample_pid = stoi(jreq["patient_id"].get<string>());
+		else
+			req_i.sample_pid = stoi(jreq["pid"].get<string>());
+	}
+
+	if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
+		if (json_verify_key(jreq, "scoreOnDate", 0, ""))
+			req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
+		else
+			req_i.sample_time = stoll(jreq["time"].get<string>());
+	}
+
+	if (json_verify_key(jreq, "load", 0, "")) {
+		req_i.load_data = stoi(jreq["load"].get<string>());
+	}
+
+	if (json_verify_key(jreq, "export", 0, "")) {
+
+		for (auto &jexp : jreq["export"].items()) {
+
+			string name = jexp.key();
+			string field = jexp.value().get<string>();
+
+			//MLOG("Working on %s : %s\n", name.c_str(), field.c_str());
+			int type = PREDICTION_SOURCE_UNKNOWN;
+			int pred_channel = -1;
+
+			vector<string> f;
+			boost::split(f, field, boost::is_any_of(" "));
+			if (f.size() == 2) {
+				if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
+				else if (f[0] == "json_attr") {	type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
+				else if (f[0] == "pred") {	type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
+				else if (f[0] == "json") {	type = PREDICTION_SOURCE_JSON; field = f[1]; }
+			}
+
+			if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
+				type = PREDICTION_SOURCE_PREDICTIONS;
+				pred_channel = stoi(field.substr(5));
+			}
+
+			if (type == PREDICTION_SOURCE_UNKNOWN) type = PREDICTION_SOURCE_ATTRIBUTE;
+
+			json_req_export jexport;
+
+			jexport.field = field;
+			jexport.pred_channel = pred_channel;
+			jexport.type = type;
+
+			req_i.exports[name] = jexport;
+
+		}
+
+	}
+
+	return 0;
 }

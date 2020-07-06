@@ -100,10 +100,6 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 	MLOG_D("Creating registry...\n");
 	vector<int> used_sigs;
 
-	time_t start = time(NULL);
-	time_t last_time_print = start;
-	double duration;
-	int prog_pid = 0;
 	int bDateCode = dataManager.sigs.sid("BDATE");
 	//update using rep_processors:
 	vector<string> physical_signals;
@@ -152,6 +148,7 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 
 	resolve_conlicts = method;
 	int fixed_cnt = 0; int example_pid = -1;
+	MedProgress prog_pid("MedRegistry::create_registry", (int)dataManager.pids.size(), 15);
 #pragma omp parallel for schedule(dynamic,1)
 	for (int i = 0; i < dataManager.pids.size(); ++i)
 	{
@@ -188,26 +185,15 @@ void MedRegistry::create_registry(MedPidRepository &dataManager, medial::reposit
 		if (registry_records.size() >= 1000000000 && registry_records.size() + vals.size() > registry_records.capacity())
 			MWARN("BIG DICTIONARY SIZE BEFORE %d may crash\n", (int)registry_records.size());
 #pragma omp critical 
-		{
-			registry_records.insert(registry_records.end(), vals.begin(), vals.end());
-			++prog_pid;
-		}
-
-		if (prog_pid % 10000 == 0 && (int)difftime(time(NULL), last_time_print) >= 15) {
-			last_time_print = time(NULL);
-			float time_elapsed = (float)difftime(time(NULL), start);
-			float estimate_time = float(dataManager.pids.size() - prog_pid) / prog_pid * time_elapsed;
-			MLOG("Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes. has %d records\n",
-				prog_pid, dataManager.pids.size(), 100.0*(prog_pid / float(dataManager.pids.size())), time_elapsed / 60, estimate_time / 60.0, registry_records.size());
-		}
+		registry_records.insert(registry_records.end(), vals.begin(), vals.end());
+		prog_pid.update();
 	}
 
-	duration = difftime(time(NULL), start);
 	string fixed_count_str = "";
 	if (fixed_cnt > 0)
-		fixed_count_str = "(fixed " + to_string(fixed_cnt) + " patient signals. example patient id=" +
+		fixed_count_str = " (fixed " + to_string(fixed_cnt) + " patient signals. example patient id=" +
 		to_string(example_pid) + ")";
-	MLOG("Finished creating registy in %d seconds%s\n", (int)duration, fixed_count_str.c_str());
+	MLOG("Finished creating registy%s\n", fixed_count_str.c_str());
 	dataManager.clear();
 }
 
@@ -216,12 +202,41 @@ void MedRegistry::get_registry_creation_codes(vector<string> &signal_codes) cons
 	signal_codes = signalCodes_names;
 }
 
+void MedRegistry::get_registry_use_codes(vector<string> &signal_codes) const
+{
+	if (need_bdate)
+		signal_codes = signalCodes_names;
+	else {
+		signal_codes.clear();
+		for (size_t i = 0; i < signalCodes_names.size(); ++i)
+			if (signalCodes_names[i] != "BDATE")
+				signal_codes.push_back(signalCodes_names[i]);
+	}
+}
+
+
 void MedRegistry::get_pids(vector<int> &pids) const {
 	pids.clear();
 	unordered_set<int> seen_pid;
 	for (size_t i = 0; i < registry_records.size(); ++i)
 		seen_pid.insert(registry_records[i].pid);
 	pids.insert(pids.end(), seen_pid.begin(), seen_pid.end());
+}
+
+void *MedRegistry::new_polymorphic(string dname) {
+	//SERIALIZATION NOT SUPPORTED YET:
+	//CONDITIONAL_NEW_CLASS(dname, MedRegistryCodesList);
+	//CONDITIONAL_NEW_CLASS(dname, MedRegistryCategories);
+
+	CONDITIONAL_NEW_CLASS(dname, MedRegistryKeepAlive);
+
+	MTHROW_AND_ERR("Error in MedRegistry::new_polymorphic - Unsupported class %s\n", dname.c_str());
+}
+
+void *RegistrySignal::new_polymorphic(string dname) {
+	CONDITIONAL_NEW_CLASS(dname, RegistrySignalAny);
+
+	MTHROW_AND_ERR("Error in RegistrySignal::new_polymorphic - Unsupported class %s\n", dname.c_str());
 }
 
 inline void init_list(const string &reg_path, vector<bool> &list) {
@@ -282,7 +297,6 @@ bool RegistrySignalSet::get_outcome(const UniversalSigVec &s, int current_i, flo
 }
 
 int RegistrySignal::init(map<string, string>& mapper) {
-	string sets_path = "";
 	map<string, string> rest_arguments;
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
@@ -331,7 +345,6 @@ void RegistrySignalSet::_init(const map<string, string>& mapper) {
 			channel, signalName.c_str());
 	//save to end
 	if (!sets_path.empty()) {
-		vector<string> sets;
 		medial::io::read_codes_file(sets_path, sets);
 		if (!sets.empty()) {
 			int section_id = repo->dict.section_id(signalName);
@@ -447,7 +460,6 @@ void RegistrySignalDrug::_init(const map<string, string>& mapper) {
 	}
 	//save to end
 	if (!sets_path.empty()) {
-		vector<string> sets;
 		medial::io::read_codes_file(sets_path, sets);
 		vector<int> matched_ids(sets.size());
 		int max_id = 0;
@@ -568,7 +580,7 @@ bool RegistrySignalAny::get_outcome(const UniversalSigVec &s, int current_i, flo
 }
 
 inline int Date_wrapper(const UniversalSigVec &signal, int i) {
-	if (signal.get_type() != T_Value)
+	if (signal.n_time_channels() != 0)
 		return signal.Time(i);
 	else
 		return (int)signal.Val(i);
@@ -878,7 +890,7 @@ void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
 				totCnt += jt->second[2] + jt->second[3];
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+					weighted_lift += double(jt->second[1 + 2]) / double(jt->second[1 + 0]) * double(jt->second[1 + 0] + jt->second[0 + 0]);
 				//weighted_lift += jt->second[1 + 2] / prior_lift_males[jt->first];
 			}
 		if (female_stats.find(signalVal) != female_stats.end())
@@ -886,7 +898,7 @@ void collect_stats(const map<float, map<float, vector<int>>> &male_stats,
 				totCnt += jt->second[2] + jt->second[3];
 				posCnts[index] += jt->second[1 + 2];
 				if (jt->second[1 + 0] > 0)
-					weighted_lift += jt->second[1 + 2] / (jt->second[1 + 0]) * (jt->second[1 + 0] + jt->second[0 + 0]);
+					weighted_lift += double(jt->second[1 + 2]) / double(jt->second[1 + 0]) * double(jt->second[1 + 0] + jt->second[0 + 0]);
 			}
 		if (totCnt == 0)
 			continue;
@@ -1521,6 +1533,23 @@ MedRegistry *MedRegistry::make_registry(const string &registry_type, MedReposito
 	return registry;
 }
 
+void MedRegistry::merge_records()
+{
+	vector<MedRegistryRecord> merged_records;
+	merged_records.push_back(registry_records[0]);
+
+	for (int i = 1; i < registry_records.size(); i++)
+	{
+		if ((registry_records[i].pid == merged_records.back().pid) && (registry_records[i].start_date <= merged_records.back().end_date + 1) && (registry_records[i].registry_value == merged_records.back().registry_value))
+		{
+			merged_records.back().end_date = registry_records[i].end_date;
+		}
+		else
+			merged_records.push_back(registry_records[i]);
+	}
+	registry_records = move(merged_records);
+}
+
 MedRegistry *MedRegistry::create_registry_full(const string &registry_type, const string &init_str,
 	const string &repository_path, MedModel &model_with_rep_processor, medial::repository::fix_method method) {
 	MedPidRepository rep;
@@ -1890,13 +1919,6 @@ int MedRegistryKeepAlive::init(map<string, string>& map) {
 		//! [MedRegistryKeepAlive::init]
 	}
 
-	MedPidRepository repo;
-	if (rep_for_init == NULL) {
-		rep_for_init = &repo;
-		if (rep_for_init->init(repository_path) < 0)
-			MTHROW_AND_ERR("Error in MedRegistryKeepAlive::init - Unable to init repositrory from path %s\n", repository_path.c_str());
-	}
-
 	signalCodes_names = signal_list;
 	signalCodes_names.push_back("BDATE");
 	for (size_t i = 0; i < signal_list.size(); ++i)
@@ -1962,7 +1984,7 @@ void MedRegistryKeepAlive::get_registry_records(int pid, int bdate, vector<Unive
 	}
 
 	if (last_date > 0) {
-		r.end_date = medial::repository::DateAdd(last_date, -end_buffer_duration);
+		r.end_date = medial::repository::DateAdd(last_date, duration - end_buffer_duration);
 		if (start_date > 0 && r.end_date > r.start_date)
 			results.push_back(r);
 	}
@@ -2137,4 +2159,22 @@ void medial::registry::complete_active_period_as_controls(vector<MedRegistryReco
 
 
 	registry = move(new_reg);
+}
+
+bool MedRegistry::get_pid_records(PidRec &rec, int bDateCode, const vector<int> &used_sigs,
+	vector<MedRegistryRecord> &results) {
+
+	vector<UniversalSigVec_mem> sig_vec((int)used_sigs.size());
+	bool pid_fix = false;
+	for (size_t k = 0; k < sig_vec.size(); ++k) {
+		UniversalSigVec vv;
+		rec.uget(used_sigs[k], vv);
+		bool did_something = medial::repository::fix_contradictions(vv, medial::repository::fix_method::none, sig_vec[k]);
+		if (did_something)
+			pid_fix = did_something;
+	}
+	int birth = medial::repository::get_value(rec, bDateCode);
+
+	get_registry_records(rec.pid, birth, sig_vec, results);
+	return pid_fix;
 }

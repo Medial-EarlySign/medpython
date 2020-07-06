@@ -84,6 +84,7 @@
     <ClCompile Include="DiabetesFinderGenerator.cpp" />
     <ClCompile Include="DoCalcFeatProcessor.cpp" />
     <ClCompile Include="DrugIntakeGenerator.cpp" />
+    <ClCompile Include="DuplicateProcessor.cpp" />
     <ClCompile Include="Elixhauser.cpp" />
     <ClCompile Include="EmbeddingGenerator.cpp" />
     <ClCompile Include="ExplainWrapper.cpp" />
@@ -124,6 +125,7 @@
     <ClInclude Include="DiabetesFinderGenerator.h" />
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />
+    <ClInclude Include="DuplicateProcessor.h" />
     <ClInclude Include="ElixhauserGenerator.h" />
     <ClInclude Include="EmbeddingGenerator.h" />
     <ClInclude Include="ExplainWrapper.h" />
@@ -142,6 +144,7 @@
     <ClInclude Include="PostProcessor.h" />
     <ClInclude Include="PredictorImputer.h" />
     <ClInclude Include="ProbAdjustPostProcessor.h" />
+    <ClInclude Include="RepCreateRegistry.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />

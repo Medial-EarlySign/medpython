@@ -853,7 +853,8 @@ template <typename T> float medial::performance::auc(vector<T> &preds, vector<fl
 		}
 	}
 
-	return (float)(((double)auc) / ((double)npos*(double)nneg));
+	double epsilon = 1e-15;
+	return (float)(((double)auc) / (epsilon + (double)npos*(double)nneg));
 }
 template float medial::performance::auc<float>(vector<float> &preds, vector<float> &y);
 template float medial::performance::auc<double>(vector<double> &preds, vector<float> &y);

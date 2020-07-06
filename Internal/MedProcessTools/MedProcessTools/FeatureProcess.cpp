@@ -7,6 +7,7 @@
 #include "DoCalcFeatProcessor.h"
 #include "PredictorImputer.h"
 #include "ResampleWithMissingProcessor.h"
+#include "DuplicateProcessor.h"
 #include <omp.h>
 
 //=======================================================================================
@@ -53,6 +54,10 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_MULTIPLIER;
 	else if (processor_name == "resample_with_missing")
 		return FTR_PROCESS_RESAMPLE_WITH_MISSING;
+	else if (processor_name == "duplicate")
+		return FTR_PROCESS_DUPLICATE;
+	else if (processor_name == "missing_indicator")
+		return FTR_PROCESS_MISSING_INDICATOR;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -93,6 +98,9 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, PredictorImputer);
 	CONDITIONAL_NEW_CLASS(dname, MultiplierProcessor);
 	CONDITIONAL_NEW_CLASS(dname, ResampleMissingProcessor);
+	CONDITIONAL_NEW_CLASS(dname, DuplicateProcessor);
+	CONDITIONAL_NEW_CLASS(dname, MissingIndicatorProcessor);
+	
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -138,6 +146,11 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new MultiplierProcessor;
 	else if (processor_type == FTR_PROCESS_RESAMPLE_WITH_MISSING)
 		return new ResampleMissingProcessor;
+	else if (processor_type == FTR_PROCESS_DUPLICATE)
+		return new DuplicateProcessor;
+	else if (processor_type == FTR_PROCESS_MISSING_INDICATOR)
+		return new MissingIndicatorProcessor;
+
 	else
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
 
@@ -1396,6 +1409,72 @@ int GetProbFeatProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
+
+//=======================================================================================
+// MissingIndicatorProcessor
+//=======================================================================================
+
+int MissingIndicatorProcessor::init(map<string, string>& mapper) {
+	bool replace_value_exists = false;
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [GetProbFeatProcessor::init]
+		if (field == "name") feature_name = entry.second;
+		else if (field == "missing_value") missing_value = stof(entry.second);
+		else if (field == "replace_value") {
+			replace_value = stof(entry.second);
+			replace_value_exists = true;
+		}
+		else if (field != "names" && field != "fp_type" && field != "tag")
+			MLOG("Unknonw parameter \'%s\' for FeatureMissingIndicator\n", field.c_str());
+	}
+	if (!replace_value_exists)
+		replace_value = missing_value;
+
+	return 0;
+}
+
+
+int MissingIndicatorProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
+{
+	// Resolve
+	resolved_feature_name = resolve_feature_name(features, feature_name);
+
+	new_feature_name = resolved_feature_name + "." + name;
+
+#pragma omp critical
+	{
+		features.data[new_feature_name].reserve(features.samples.size());
+		// Attributes
+		features.attributes[new_feature_name].normalized = false;
+		features.attributes[new_feature_name].imputed = true;
+	}
+
+	for (float &val : features.data[resolved_feature_name])
+	{
+		if (val == missing_value) {
+			features.data[new_feature_name].push_back(1.);
+			if (val != replace_value)
+#pragma omp critical
+			val = replace_value;
+		}
+		else
+			features.data[new_feature_name].push_back(0.);
+	}
+	return 0;
+}
+
+void MissingIndicatorProcessor::update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features)
+{
+	// If empty, keep as is
+	if (out_req_features.empty())
+		in_req_features.clear();
+	else {
+		in_req_features = out_req_features;
+		if (out_req_features.find(new_feature_name) != out_req_features.end())
+			in_req_features.insert(resolved_feature_name);
+	}
+}
 
 //=======================================================================================
 // Utilities

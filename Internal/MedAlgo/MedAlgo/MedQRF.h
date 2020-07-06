@@ -25,7 +25,7 @@ struct MedQRFParams : public SerializableObject {
 	float samp_factor; ///< if > 0 & sampsize if NULL : the maximal factor of samples between the 2 largest categories
 	vector<int> samp_vec; ///< to be used when sampsize is NULL and max_samp,samp_vector > 0
 	int *sampsize;
-	int ntry;
+	int ntry; ///< if ntry <= 0: ntry = (int)(sqrt((double)nfeat) + 1.0);
 	int get_only_this_categ;
 	int max_depth; ///<maximial depth of tree branches - if 0 no limit
 	bool take_all_samples; ///<use all samples - no sampling in building tree

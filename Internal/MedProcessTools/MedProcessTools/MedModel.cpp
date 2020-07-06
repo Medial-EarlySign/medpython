@@ -9,8 +9,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/regex.hpp>
 #include <boost/algorithm/string/regex.hpp>
+#include <cmath>
 #include <string>
 #include "StripComments.h"
+#include "DuplicateProcessor.h"
 #include "medial_utilities/medial_utilities/globalRNG.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
@@ -88,10 +90,10 @@ int MedModel::learn_skip_matrix_train(MedPidRepository &rep, MedSamples *samples
 	return(learn(rep, (*samples), dummy, MED_MDL_LEARN_PREDICTOR, end_stage));
 }
 
-void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean) {
+void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, bool take_mean, bool get_attr) {
 	if (features.samples.size() != sample_ids.size())
 		MTHROW_AND_ERR("Error aggregate_samples - mismatch size (%zu, %zu)\n", features.samples.size(), sample_ids.size());
-
+	MLOG("INFO: model is aggregating samples\n");
 	int max_id = *max_element(sample_ids.begin(), sample_ids.end());
 	int min_id = 0;
 	vector<bool> seen_id(max_id - min_id + 1);
@@ -131,12 +133,32 @@ void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, boo
 			res = medial::stats::median_without_cleaning(collected, true);
 		//override pred
 		final_f.samples[i].prediction[0] = res;
+		if (get_attr) {
+			vector<float> prctile_list = { (float)0.05, (float)0.5, (float)0.95 };
+			float std, mean;
+			vector<float> res_p;
+			if (take_mean) {
+				std = medial::stats::std_without_cleaning(collected, res);
+				mean = res;
+				medial::stats::get_percentiles(collected, prctile_list, res_p);
+			}
+			else {
+				medial::stats::get_mean_and_std_without_cleaning(collected, mean, std);
+				medial::stats::get_percentiles(collected, prctile_list, res_p);
+			}
+			map<string, float> &s = final_f.samples[i].attributes;
+			s["pred.std"] = std;
+			s["pred.ci_lower"] = res_p[0];
+			s["pred.ci_upper"] = res_p[2];
+			s["pred.mean"] = mean;
+			s["pred.median"] = res_p[1];
+		}
 	}
 
 	features = move(final_f);
 }
 
-void aggregate_samples(MedFeatures &features, bool take_mean) {
+void aggregate_samples(MedFeatures &features, bool take_mean, bool get_attr = false) {
 	//if sample_ids is empty use pid+time:
 	vector<int> sample_ids(features.samples.size());
 	int id = 0;
@@ -151,7 +173,7 @@ void aggregate_samples(MedFeatures &features, bool take_mean) {
 		sample_ids[i] = id;
 	}
 
-	aggregate_samples(features, sample_ids, take_mean);
+	aggregate_samples(features, sample_ids, take_mean, get_attr);
 }
 
 // Learn with multiple MedSamples
@@ -364,136 +386,53 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 //.......................................................................................
 // Apply
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
-
-	p_rep = &rep;
-	// Stage Sanity
-	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
-		MERR("MedModel apply() : Illegal end stage %d\n", end_stage);
-		return -1;
+	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
+	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
+	int max_sz = max_data_in_mem;
+	if (max_sz <= 0) {
+		//TODO: change to use size to suit free memory in the machine
+		max_sz = INT_MAX;
 	}
+	int max_smp_batch = int(((max_sz) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
+	init_model_for_apply(rep, start_stage, end_stage);
 
-	//only perform when needed
-	if (start_stage < MED_MDL_APPLY_PREDICTOR) {
-		//init to check we have remove all we can (or if need to create virtual signals?):
-		fit_for_repository(rep);
-		// init virtual signals
-		if (collect_and_add_virtual_signals(rep) < 0) {
-			MERR("FAILED collect_and_add_virtual_signals\n");
-			return -1;
+	if (samples.nSamples() <= max_smp_batch)
+		return no_init_apply(rep, samples, start_stage, end_stage);
+	else {
+		//Do in batches:
+		vector<MedSample> flat_samples;
+		samples.export_to_sample_vec(flat_samples);
+		int original_size = (int)flat_samples.size();
+		int num_of_batches = int(ceil(double(original_size) / max_smp_batch));
+		MLOG("INFO:: MedModel::apply - split into %d batches, each of size %d\n",
+			num_of_batches, max_smp_batch);
+
+		MedProgress progress("MedModel::Apply_IN_BATCHES", num_of_batches, 30, 1);
+		int pos = 0;
+		while (pos < original_size) {
+			int batch_size = original_size - pos;
+			if (batch_size > max_smp_batch)
+				batch_size = max_smp_batch;
+			vector<MedSample> flat_batch(flat_samples.data() + pos, flat_samples.data() + pos + batch_size);
+			MedSamples batch;
+			//1. store in batch
+			batch.import_from_sample_vec(flat_batch);
+			//2. Apply on batch
+			no_init_apply(rep, batch, start_stage, end_stage);
+			//3. fetch results from batch into samples
+			int inner_p = pos;
+			for (size_t i = 0; i < batch.idSamples.size(); ++i)
+				for (size_t j = 0; j < batch.idSamples[i].samples.size(); ++j) {
+					flat_samples[inner_p] = move(batch.idSamples[i].samples[j]);
+					++inner_p;
+				}
+			//4. advance into next batch:
+			pos += batch_size;
+			progress.update();
 		}
-
+		//convert from flat_samples back to samples:
+		samples.import_from_sample_vec(flat_samples);
 	}
-	//dprint_process("==> In Apply (1) <==", 2, 0, 0);
-
-	// Build sets of required features at each stage of processing
-	// The last entry tells us which features to generate
-	vector<unordered_set<string> > req_features_vec;
-	build_req_features_vec(req_features_vec);
-	unordered_set<string>& req_feature_generators = req_features_vec[feature_processors.size()];
-
-	if (start_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-
-		// Initialize
-		init_all(rep.dict, rep.sigs);
-
-		// Required signals
-		required_signal_names.clear();
-		required_signal_ids.clear();
-
-		get_required_signal_names(required_signal_names);
-		for (string signal : required_signal_names)
-			required_signal_ids.insert(rep.dict.id(signal));
-
-		for (int signalId : required_signal_ids) {
-			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
-				MLOG("MedModel::apply WARNING signal [%d] = [%s] is required by model but not loaded in rep\n",
-					signalId, rep.dict.name(signalId).c_str());;
-		}
-
-		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
-
-		// Generate features
-		features.clear();
-		features.set_time_unit(samples.time_unit);
-		if (verbosity > 0) MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
-		if (generate_all_features(rep, &samples, features, req_feature_generators) < 0) {
-			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
-			return -1;
-		}
-		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
-		if (samples.copy_attributes(features.samples) != 0) {
-			MERR("Insertion of Feature Generators attributes to samples failed\n");
-			return -1;
-		}
-	}
-
-	if (end_stage <= MED_MDL_APPLY_FTR_GENERATORS) {
-		if (samples.insert_preds(features) != 0) {
-			MERR("Insertion of predictions to samples failed\n");
-			return -1;
-		}
-		return 0;
-	}
-
-	// Process Features
-	if (start_stage <= MED_MDL_APPLY_FTR_PROCESSORS) {
-		if (verbosity > 0) MLOG("MedModel apply() on %d samples : before applying feature processors : generate_masks = %d\n", samples.idSamples.size(), generate_masks_for_features);
-		if (generate_masks_for_features) features.mark_imputed_in_masks();
-		if (apply_feature_processors(features, req_features_vec, false) < 0) {
-			MERR("MedModel::apply() : ERROR: Failed apply_feature_cleaners()\n");
-			return -1;
-		}
-		if (verbosity > 0) MLOG("MedModel apply() : after applying feature processors\n", samples.idSamples.size());
-	}
-
-	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
-		return 0;
-
-	// Apply predictor
-	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
-		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (predictor->predict(features) < 0) {
-			MERR("Predictor failed\n");
-			return -1;
-		}
-	}
-
-	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
-		return 0;
-
-	if (start_stage <= MED_MDL_INSERT_PREDS && end_stage < MED_MDL_APPLY_POST_PROCESSORS) { //insert preds now only if has no post_processors
-		if (verbosity > 0) MLOG("Inserting predictions\n");
-		if (samples.insert_preds(features) != 0) {
-			MERR("Insertion of predictions to samples failed\n");
-			return -1;
-		}
-		return 0;
-	}
-
-	if (start_stage <= MED_MDL_APPLY_POST_PROCESSORS) {
-
-		if (verbosity > 0) MLOG("Initializing %d postprocessors\n", (int)post_processors.size());
-		for (size_t i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->init_post_processor(*this);
-
-		if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
-		MedTimer pp_timer("post_processors"); pp_timer.start();
-		for (size_t i = 0; i < post_processors.size(); ++i)
-			post_processors[i]->Apply(features);
-		pp_timer.take_curr_time();
-		if (verbosity > 0) MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
-
-		if (samples.insert_preds(features) != 0) {
-			MERR("Insertion of predictions to samples failed\n");
-			return -1;
-		}
-
-		if (samples.copy_attributes(features.samples) != 0) {
-			MERR("Insertion of post_process to samples failed\n");
-			return -1;
-		}
-	}
-
 	return 0;
 }
 
@@ -582,12 +521,12 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 		// Generate features
 		features.clear();
 		features.set_time_unit(samples.time_unit);
-		if (verbosity > 0) MLOG("MedModel no_init_apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (verbosity > 0) MLOG("MedModel apply() : before generate_all_features() samples of %d ids\n", samples.idSamples.size());
 		if (generate_all_features(rep, &samples, features, required_feature_generators) < 0) {
 			MERR("MedModel apply() : ERROR: Failed generate_all_features()\n");
 			return -1;
 		}
-		if (verbosity > 0) MLOG("MedModel no_init_apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
+		if (verbosity > 0) MLOG("MedModel apply() : after generate_all_features() samples of %d ids\n", samples.idSamples.size());
 		if (samples.copy_attributes(features.samples) != 0) {
 			MERR("Insertion of Feature Generators attributes to samples failed\n");
 			return -1;
@@ -619,7 +558,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (features.samples.size() == 1) {
+		if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
 			vector<float> pred_res, features_vec(features.data.size());
 			int i_feat = 0;
 			for (const auto &it : features.data)
@@ -635,6 +574,9 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 				MERR("Predictor failed\n");
 				return -1;
 			}
+			bool need_agg = samples.nSamples() != features.samples.size();
+			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+				aggregate_samples(features, take_mean_pred, true);
 		}
 	}
 
@@ -789,41 +731,49 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	int RC = 0;
 	int thrown = 0;
 
+	try {
 #pragma omp parallel for schedule(dynamic) if (samples->idSamples.size() > 1)
-	for (int j = 0; j < samples->idSamples.size(); j++) {
-		try {
-			MedIdSamples& pid_samples = samples->idSamples[j];
-			int n_th = omp_get_thread_num();
-			int rc = 0;
+		for (int j = 0; j < samples->idSamples.size(); j++) {
+			try {
+				MedIdSamples& pid_samples = samples->idSamples[j];
+				int n_th = omp_get_thread_num();
+				int rc = 0;
 
-			// Generate DynamicRec with all relevant signals
-			if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
+				// Generate DynamicRec with all relevant signals
+				if (idRec[n_th].init_from_rep(std::addressof(rep), pid_samples.id, req_signals, (int)pid_samples.samples.size()) < 0) rc = -1;
 
-			// Apply rep-processing
-			for (unsigned int i = 0; i < rep_processors.size(); i++) {
-				rep_processors[i]->dprint(to_string(i), 0);
-				if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
-			}
+				// Apply rep-processing
+				for (unsigned int i = 0; i < rep_processors.size(); i++) {
+					rep_processors[i]->dprint(to_string(i), 0);
+					if (rep_processors[i]->conditional_apply(idRec[n_th], pid_samples, current_req_signal_ids[i]) < 0) rc = -1;
+				}
 
-			// Generate Features
-			for (auto& generator : _generators)
-				if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
+				// Generate Features
+				for (auto& generator : _generators)
+					if (generator->generate(idRec[n_th], features) < 0)	rc = -1;
 
 
 #pragma omp critical 
-			if (rc < 0) RC = -1;
-		}
-		catch (int &i_e) {
-			// have to catch each thread
-			if (i_e < thrown) thrown = i_e;
+				if (rc < 0) RC = -1;
+			}
+			catch (...) {
+				// have to catch each thread
+				thrown = -1;
+				MERR("!!! Got thrown set to %d\n", thrown);
+				//throw std::runtime_error("thrown from openmp");
+			}
 		}
 	}
-
+	catch (...) {
+		MERR("Caught An error in generate_feature()\n");
+		throw;
+	}
 	// call summary for generation
 	for (auto& generator : _generators)
 		generator->make_summary();
 
-	if (thrown < 0) throw thrown; // throwing if needed
+	if (thrown < 0) MTHROW_AND_ERR("Thrown in generate_features()\n");
+	//throw thrown; // throwing if needed
 	return RC;
 
 }
@@ -2130,6 +2080,24 @@ int MedModel::get_nfeatures()
 	return res;
 }
 //-----------------------------------------------------------------------------------------------------------------
+int MedModel::get_duplicate_factor() const {
+	int factor = 1;
+	//search for DuplicateProcessor (AggregatePredsPostProcessor has a built in batch processing, skip him)
+	for (FeatureProcessor *fp : feature_processors)
+	{
+		if (fp->processor_type == FTR_PROCESS_MULTI) {
+			for (FeatureProcessor *multi_fp : static_cast<MultiFeatureProcessor *>(fp)->processors)
+				if (multi_fp->processor_type == FTR_PROCESS_DUPLICATE)
+					factor *= static_cast<DuplicateProcessor *>(multi_fp)->resample_cnt;
+		}
+		else if (fp->processor_type == FTR_PROCESS_DUPLICATE)
+			factor *= static_cast<DuplicateProcessor *>(fp)->resample_cnt;
+	}
+
+	return factor;
+}
+//-----------------------------------------------------------------------------------------------------------------
+
 void MedModel::get_generated_features_names(vector<string> &feat_names)
 {
 	vector<unordered_set<string> > req_features_vec;
@@ -2663,6 +2631,29 @@ void MedModel::change_model(const ChangeModelInfo &change_request) {
 	FeatureProcessor ftr_processor; //needs try catch
 	PostProcessor pp_processor;
 	MedPredictor predictor;
+
+	if (change_request.object_type_name == "MedModel") {
+		//Global model changes:
+		map<string, string> mapper;
+		if (MedSerialize::init_map_from_string(change_request.change_command, mapper) < 0)
+			MTHROW_AND_ERR("Error Init from String %s\n", change_request.change_command.c_str());
+		for (const auto &it : mapper)
+		{
+			if (it.first == "max_data_in_mem")
+				max_data_in_mem = med_stoi(it.second);
+			else if (it.first == "serialize_learning_set")
+				serialize_learning_set = med_stoi(it.second) > 0;
+			else if (it.first == "take_mean_pred")
+				take_mean_pred = med_stoi(it.second) > 0;
+			else if (it.first == "generate_masks_for_features")
+				generate_masks_for_features = med_stoi(it.second) > 0;
+			else if (it.first == "verbosity" || it.first == "verbose")
+				verbosity = med_stoi(it.second) > 0;
+			else
+				MTHROW_AND_ERR("Error - unkown model param \"%s\"", it.first.c_str());
+		}
+		return;
+	}
 
 	global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL + 1;
 	void *obj = test_rep.new_polymorphic(change_request.object_type_name);

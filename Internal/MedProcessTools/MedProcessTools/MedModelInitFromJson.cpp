@@ -165,6 +165,10 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	if (v)
 		this->take_mean_pred = v.get();
 
+	v = pt.get_optional<int>("max_data_in_mem");
+	if (v)
+		this->max_data_in_mem = v.get();
+
 	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 
 	string ser = pt.get<string>("serialize_learning_set", to_string(this->serialize_learning_set).c_str());

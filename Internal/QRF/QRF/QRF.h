@@ -19,6 +19,7 @@ enum QRF_TreeType {
 	QRF_REGRESSION_TREE = 1,
 	QRF_CATEGORICAL_CHI2_TREE = 2,
 	QRF_CATEGORICAL_ENTROPY_TREE = 3,
+	QRF_MULTILABEL_ENTROPY_TREE = 4,
 	QRF_LAST = 4
 };
 
@@ -69,6 +70,9 @@ public:
 	int from_sample;
 	int to_sample;
 	int size() { return (to_sample - from_sample + 1); }
+
+
+	size_t estimated_size() { return 12; }
 };
 
 class QRF_Tree {
@@ -85,10 +89,16 @@ public:
 	vector<ValInd> qy;				// holding and sorting y values in a node when searching a split
 	vector<int> inds;
 
-	vector<float> histr_sum;
+	vector<double> histr_sum;
 	vector<int>	histr_num;
 
+
+	size_t estimated_size() { size_t s = histr_num.size() + histr_num.size() + inds.size() + qy.size() * 2 + hist[0].size() + hist[1].size() + feat_chosen.size() * 4 + sample_ids.size(); for (auto &n : nodes) s += n.estimated_size(); return s; }
+
 	mt19937 rand_gen;
+
+
+
 
 	void print(FILE *f);
 	void init_rand_state();
@@ -120,6 +130,9 @@ public:
 	int tot_n_values;
 	int majority;			// for categories cases
 
+
+	size_t estimated_size() { return 10 + counts.size() + values.size() + 2*value_counts.size(); }
+
 	void get_scores(int mode, int get_counts_flag, int n_categ, vector<float> &scores) const;
 
 	ADD_CLASS_NAME(QRF_ResNode)
@@ -131,6 +144,8 @@ public:
 class QRF_ResTree : public SerializableObject {
 public:
 	vector<QRF_ResNode> qnodes;
+	
+	size_t estimated_size() { size_t s = 0; for (auto &q : qnodes) s += q.estimated_size(); return s; }
 
 	ADD_CLASS_NAME(QRF_ResTree)
 		ADD_SERIALIZATION_FUNCS(qnodes)
@@ -148,6 +163,7 @@ public:
 	vector<vector<float>> quant_values;
 	vector<vector<short>> q_data;
 	vector<float> yr; // y for regression trees
+	vector<vector<int>> yr_multilabel; // y for multilabel splitting
 	vector<float> w; // weights
 
 	vector<double> log_table;
@@ -209,6 +225,7 @@ private:
 	// categorized, split by chi square problem
 	int find_best_categories_chi2_split(QRF_Tree &tree, int node, int ntry);
 	int find_best_categories_entropy_split(QRF_Tree &tree, int node, int ntry);
+	int find_best_categories_entropy_split_multilabel(QRF_Tree &tree, int node, int ntry);
 
 };
 
@@ -331,6 +348,8 @@ private:
 
 	// transferring from inner algo data structure to exposed on
 	int transfer_to_forest(vector<QRF_Tree> &trees, QuantizedRF &qrf, int mode);
+	int transfer_tree_to_res_tree(QuantizedRF &qrf, QRF_Tree &tree, QRF_ResTree &qt, int mode, map<float, int> &all_values);
+	int init_keep_all_values(QuantizedRF &qrf, int mode, map<float, int> &all_values);
 };
 
 MEDSERIALIZE_SUPPORT(QRF_ResNode)

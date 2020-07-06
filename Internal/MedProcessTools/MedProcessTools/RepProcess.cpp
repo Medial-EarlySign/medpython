@@ -5,6 +5,7 @@
 
 #include "RepProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
+#include "RepCreateRegistry.h"
 #include <cmath>
 #include <iomanip>
 
@@ -877,6 +878,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 			// No need to clean past the latest relevant time-point
 			if (time_points.size() != 0 && itime > time_points[iver])	break;
 
+			//MLOG("Checking pid %d with remove %d %f %f trim %d %f %f\n", rec.pid, params.doRemove, removeMin, removeMax, params.doTrim, trimMin, trimMax);
 			// Identify values to change or remove
 			if (params.doRemove && (ival < removeMin - NUMERICAL_CORRECTION_EPS || ival > removeMax + NUMERICAL_CORRECTION_EPS)) {
 				//MLOG("pid %d ver %d time %d %s channel %d %f removed\n", rec.pid, iver, itime, signalName.c_str(), val_channel, ival);
@@ -3961,7 +3963,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			states.push_back(pair<int, int>(first_date, 0));
 
 			for (auto &e : ev) {
-				if (e.time > time_points[iver])
+				if (e.time > max_look_at_time)
 					break;
 
 				if (states.back().first < e.time)
@@ -3982,7 +3984,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
-					if (i_time > time_points[iver])
+					if (i_time > max_look_at_time)
 						break;
 					int i_val = (int)usv.Val(i, c_chan);
 					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
