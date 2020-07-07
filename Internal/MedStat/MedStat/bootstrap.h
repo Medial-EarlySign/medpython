@@ -37,13 +37,16 @@ public:
 	/// @param seed if 0 will use random device to select seed for randomization
 	/// </summary>
 	Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+		const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed, const vector<int> *p_preds_order = NULL);
+
+	void init(const vector<int> *p_pids, const vector<float> *p_preds,
 		const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed);
 
 	/// <summary>
 	/// Inline function to fetch next pred,label couple in the bootstrap process
 	/// </summary>
-	inline bool fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight);
-
+	inline bool fetch_next(int thread, float &ret_y, float &ret_pred, float &weight);
+	inline bool fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight, const int *&preds_order);
 	/// <summary>
 	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
 	/// </summary>
@@ -87,12 +90,13 @@ private:
 	vector<const float *> vec_y;
 	vector<const float *> vec_preds;
 	vector<const float *> vec_weights;
-
+	vector<const int *> vec_preds_order;
 	//original vectors
 	const float *preds;
 	const float *y;
 	const float *weights;
 	const vector<int> *pids;
+	const int *preds_order;
 
 
 	//threading:
@@ -408,7 +412,7 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 /// <summary>
 /// to run bootstrap on single cohort
 /// </summary>
-map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
+map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y,
 	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
 	const vector<MeasurementFunctions> &meas_functions, const vector<Measurement_Params *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
@@ -444,7 +448,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 /// Returns a map from each cohort name to the measurments results. each measurments results
 /// is also a map from each measurement name to it's value
 /// </returns>
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights
+map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<float> *weights
 	, const vector<int> &pids, const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<Measurement_Params *> *function_params = NULL,

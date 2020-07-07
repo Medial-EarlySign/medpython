@@ -59,7 +59,8 @@ public:
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
-	int num_categories; ///< number of categories
+	bool sort_preds_in_multicategory;
+	size_t num_categories; ///< number of categories
 	vector<pair<MeasurementFunctions, Measurement_Params *>> measurements_with_params;  ///<not Serializable! the measurements with the params
 
 	/// <summary>
@@ -124,7 +125,7 @@ public:
 	/// indexes in the samples vector correspond to each split value
 	/// </returns>
 	void prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
-		map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds = NULL);
+		map<string, vector<float>> &final_additional_info, vector<int> &preds_order, unordered_map<int, vector<int>> *splits_inds = NULL);
 	/// <summary>
 	///prepares the required vectors for bootstrap from samples, additional_info
 	/// </summary>
@@ -133,7 +134,7 @@ public:
 	/// if splits_inds is provided (and not NULL) it will fill a mapping from split_index to the 
 	/// indexes in the samples vector correspond to each split value
 	/// </returns>
-	void prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
+	void prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids, vector<int> &preds_order,
 		unordered_map<int, vector<int>> *splits_inds = NULL);
 	/// <summary>
 	/// Will run the bootstraping process on all cohorts and measurements.
@@ -254,17 +255,18 @@ public:
 	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow)
 
 private:
-	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
+	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<int> &preds_order,  const vector<float> &y, const vector<int> &pids,
 		const vector<float> *weights, const map<string, vector<float>> &additional_info);
 	map<string, map<string, float>> bootstrap_using_registry(MedFeatures &features_mat,
 		const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split = NULL);
-	void add_splits_results(const vector<float> &preds, const vector<float> &y,
+	void add_splits_results(const vector<float> &preds, vector<int> &preds_order, const vector<float> &y,
 		const vector<int> &pids, const vector<float> *weights, const map<string, vector<float>> &data,
 		const unordered_map<int, vector<int>> &splits_inds,
 		map<int, map<string, map<string, float>>> &results_per_split);
 	bool use_time_window();
 	void add_filter_cohorts(const map<string, vector<pair<float, float>>> &parameters_ranges);
 	void add_filter_cohorts(const vector<vector<Filter_Param>> &parameters_ranges);
+	void sort_index_only(const vector<float> &vec, std::vector<int>::iterator ind_start, std::vector<int>::iterator ind_end);
 };
 
 /**
