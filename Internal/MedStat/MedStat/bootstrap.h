@@ -7,6 +7,7 @@
 #include <MedTime/MedTime/MedTime.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <Logger/Logger/Logger.h>
+#include <MedStat/MedStat/MedStat.h>
 
 
 using namespace std;

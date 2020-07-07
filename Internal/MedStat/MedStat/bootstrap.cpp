@@ -992,21 +992,61 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 	float y, weight;
 	const float *pred;
 	const int *preds_order;
+
+	int n = 5;
+	vector<float> jaccard_vals(iterator->num_categories);
+	float avg_jaccard_top_5= 0 , avg_weighted_jaccard_top_5 = 0 , avg_jaccard_top_until_correct = 0, avg_weighted_jaccard_top_until_correct = 0;
+	float avg_weighted_preds_jaccard_top_5 = 0, avg_weighted_preds_jaccard_top_until_correct = 0 ;
+	int n_samples = 0;
+
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
-#pragma omp critical
+		float sum_avg_top_5 = 0, sum_weighted_top_5 = 0, sum_den_weighted_top_5 = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
+		float sum_den_weighted_until_y = 0 , sum_weighted_preds_top_5 = 0, sum_weighted_preds_until_y = 0;
+		int i = 0;
+		int i_equal = -1;
+
+		while ((i_equal == -1) || (i < n))
 		{
-			MLOG("label %f , num_categories %d, \n", y, (int)iterator->num_categories);
-			for (size_t i = 0; i < iterator->num_categories; i++)
-			{
-				MLOG("pred [%d] : %f ", (int)i, *(pred + i));
-				MLOG("\n");
-				MLOG("pred [%d] : %d ", (int)i, *(preds_order + i));
-			}
+			jaccard_vals[i] = medial::performance::jaccard(y, preds_order[i]);
+			if (y == preds_order[i])
+				i_equal = i;
+			i++;
 		}
+
+		for (int i = 0; i < n; i++)
+		{
+			sum_avg_top_5 += jaccard_vals[i];
+			sum_weighted_top_5 += (n - i + 1)*jaccard_vals[i];
+			sum_den_weighted_top_5 += (n - i + 1);
+			sum_weighted_preds_top_5 += *(pred + preds_order[i]) * jaccard_vals[i];
+		}
+		
+		for (int i = 0; i <= i_equal; i++)
+		{
+			sum_avg_until_y += jaccard_vals[i];
+			sum_weighted_until_y += (i_equal - i + 1)*jaccard_vals[i];
+			sum_den_weighted_until_y += (i_equal - i + 1);
+			sum_weighted_preds_until_y += *(pred + preds_order[i]) *jaccard_vals[i];
+		}
+
+		avg_jaccard_top_5 += (sum_avg_top_5 / n);
+		avg_weighted_jaccard_top_5 += (sum_weighted_top_5 / sum_den_weighted_top_5);
+		avg_jaccard_top_until_correct += (sum_avg_until_y / (i_equal + 1));
+		avg_weighted_jaccard_top_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
+		avg_weighted_preds_jaccard_top_5 += sum_weighted_preds_top_5;
+		avg_weighted_preds_jaccard_top_until_correct += sum_weighted_preds_until_y;
+		n_samples++;
 	}
-	res["Jaccard"] = (float)1;
+
+	res["AVG_JACCARD_TOP_5"] = avg_jaccard_top_5 / n_samples;
+	res["AVG_WEIGHTED_JACCARD_TOP_5"] = avg_weighted_jaccard_top_5 / n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_5"] = avg_weighted_preds_jaccard_top_5 / n_samples;
+	res["AVG_JACCARD_TOP_UNTIL_CORRECT"] = avg_jaccard_top_until_correct / n_samples;
+	res["AVG_WEIGHTED_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_jaccard_top_until_correct/ n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_top_until_correct / n_samples;
 	return res;
 }
+
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
