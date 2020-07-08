@@ -119,6 +119,16 @@ int KerasLayer::apply_activation(vector<float> &in, vector<float> &out) const
 		}
 	}
 
+	else if (activation == A_SOFTMAX) {
+		float sum = 0;
+		for (int d = 0; d < in.size(); d++) {
+			out[d] = exp(in[d]);
+			sum += out[d];
+		}
+		for (int d = 0; d < in.size(); d++)
+			out[d] = out[d] / sum;
+
+	}
 	return 0;
 }
 
@@ -166,6 +176,9 @@ int KerasLayer::apply(vector<float> &in, vector<float> &out) const
 		for (int d=0; d<out.size(); d++)
 			out[d] *= factor;
 	}
+	else if (type == K_ACTIVATION) {
+		return apply_activation(in, out);
+	}
 
 	return 0;
 }
@@ -199,6 +212,9 @@ int KerasLayer::apply(MedMat<float> &in, MedMat<float> &out) const
 	else if (type == K_DROPOUT) {
 		out = in;
 	}
+	else if (type == K_ACTIVATION) {
+		return apply_activation(in, out);
+	}
 
 	return 0;
 }
@@ -210,13 +226,29 @@ int KerasLayer::apply_activation(MedMat<float> &in, MedMat<float> &out) const
 
 	// if needed apply sigmoid
 	if (activation == A_SIGMOID) {
+#pragma omp parallel for if (in.nrows > 4)
 		for (int irow=0; irow<in.nrows; irow++)
 			for (int icol=0; icol<in.ncols; icol++)
 				out(irow,icol)= 1.0f / (1.0f + exp(-in(irow,icol)));
 	}
 
+	// if needed apply softmax
+	if (activation == A_SOFTMAX) {
+#pragma omp parallel for if (in.nrows > 4)
+		for (int irow = 0; irow < in.nrows; irow++) {
+			float sum = 0;
+			for (int icol = 0; icol < in.ncols; icol++) {
+				out(irow, icol) = exp(in(irow, icol));
+				sum += out(irow, icol);
+			}
+			for (int icol = 0; icol < in.ncols; icol++)
+				out(irow, icol) = out(irow, icol) / sum;
+		}
+	}
+
 	// if needed apply ReLU
 	else if (activation == A_RELU) {
+#pragma omp parallel for if (in.nrows > 4)
 		for (int irow = 0; irow<in.nrows; irow++)
 			for (int icol = 0; icol < in.ncols; icol++) {
 				if (in(irow, icol) < 0)
@@ -227,6 +259,7 @@ int KerasLayer::apply_activation(MedMat<float> &in, MedMat<float> &out) const
 	}
 
 	else if (activation == A_LEAKY) {
+#pragma omp parallel for if (in.nrows > 4)
 		for (int irow = 0; irow<in.nrows; irow++)
 			for (int icol = 0; icol < in.ncols; icol++) {
 				out(irow, icol) = in(irow, icol);

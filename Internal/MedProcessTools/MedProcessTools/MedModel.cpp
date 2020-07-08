@@ -574,6 +574,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 				MERR("Predictor failed\n");
 				return -1;
 			}
+			//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
 			bool need_agg = samples.nSamples() != features.samples.size();
 			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
 				aggregate_samples(features, take_mean_pred, true);
