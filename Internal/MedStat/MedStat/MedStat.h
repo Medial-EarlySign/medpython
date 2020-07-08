@@ -193,6 +193,9 @@ namespace medial {
 
 		/// <summary> welch t_test when the samples sizes are unequal or the variance of the 2 samples is different </summary>
 		template<typename T> void welch_t_test(const vector<T> &grp1, const vector<T> &grp2, double &t_value, double &degree_of_freedom, double &p_value);
+
+		/// <summary> Kullback-Leibler divergence. Epsilon used to correct for zeros
+		template<typename T> double KL_divergence(const vector<T>& p, const vector<T>& q, T epsilon = 1e-8);
 	}
 }
 

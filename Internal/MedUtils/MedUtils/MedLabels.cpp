@@ -656,7 +656,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 			MLOG("No samples\n");
 			return;
 		}
-		MLOG("Total counts: 0: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1],
+		MLOG("Total counts: tot: %d 1: %d : inc %f\n", all_cnts[0], all_cnts[1],
 			(float)all_cnts[1] / all_cnts[0]);
 		int nlines = 0;
 		for (int c = 0; c < counts.size(); ++c) {
@@ -667,7 +667,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 			if (age >= min_age && age < max_age) nlines++;
 
 			if (n0 > 0)
-				MLOG("Ages: %d - %d : %d : 0: %d 1: %d : %f\n", age, age + age_bin,
+				MLOG("Ages: %d - %d : %d : tot: %d 1: %d : %f\n", age, age + age_bin,
 					age + age_bin / 2, n0, n1, (n0 > 0) ? (float)n1 / n0 : 0);
 		}
 
