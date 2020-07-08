@@ -232,7 +232,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 					signalId, rep.dict.name(signalId).c_str());;
 		}
 	}
-
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
@@ -919,7 +918,7 @@ void MedModel::filter_rep_processors() {
 		}
 	}
 	if (did_something)
-		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+		MLOG("Filtering unneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
 			filtered_processors.size(), rep_processors.size());
 
 	rep_processors.swap(filtered_processors);
@@ -1402,7 +1401,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 		generator->set_signal_ids(sigs);
 
 	// tables
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) 
 		processor->init_tables(dict, sigs);
 
 	for (FeatureGenerator *generator : generators)

@@ -3379,7 +3379,6 @@ range_op_type get_range_op(const string &op) {
 
 int RepBasicRangeCleaner::init(map<string, string>& mapper)
 {
-	MLOG("In RepBasicRangeCleaner init\n");
 	output_type = -1;
 	string output_type_s = "";
 	for (auto entry : mapper) {
@@ -3421,7 +3420,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		if (do_on_last_n)
 			output_name += "_last_" + to_string(last_n);
 
-		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s", output_name.c_str());
+		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s\n", output_name.c_str());
 	}
 
 
@@ -3440,6 +3439,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 }
 
 void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+
 	signal_id = sigs.sid(signal_name);
 	ranges_id = sigs.sid(ranges_name);
 	output_id = sigs.sid(output_name);
@@ -3756,6 +3756,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
+
 	v_out_sid = sigs.sid(out_virtual);
 	if (v_out_sid < 0)	MTHROW_AND_ERR("Error in RepAggregateSignal::init_tables - virtual output signal %s not found\n", out_virtual.c_str());
 
