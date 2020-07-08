@@ -110,7 +110,8 @@ void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, boo
 			seen_id[sample_ids[i]] = true;
 			//take features and create samples. update data,samples,weights,masks:
 			final_f.samples.push_back(features.samples[i]);
-			final_f.weights.push_back(features.weights[i]);
+			if (!features.weights.empty())
+				final_f.weights.push_back(features.weights[i]);
 			for (const auto &it : features.data)
 				final_f.data[it.first].push_back(it.second[i]);
 			for (const auto &it : features.masks)
