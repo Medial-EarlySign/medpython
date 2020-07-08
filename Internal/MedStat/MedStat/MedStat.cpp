@@ -156,6 +156,21 @@ template <typename T> float medial::performance::spearman_corr(const vector<T> &
 template float medial::performance::spearman_corr<float>(const vector<float> &v1, const vector<float> &v2, float missing_val, int &n, const vector<float> *weights);
 template float medial::performance::spearman_corr<double>(const vector<double> &v1, const vector<double> &v2, double missing_val, int &n, const vector<float> *weights);
 
+// Jaccard
+float medial::performance::jaccard(int val1, int val2)
+{
+	float num = std::bitset<16>(val1 & val2).count();
+	float den = std::bitset<16>(val1 | val2).count();
+	if (den != 0)
+		return num / den;
+	else
+		if (num == 0)
+			return 1.;
+		else
+			return 0.;
+}
+
+
 // RMSE
 //...............................................................................................................................
 template <typename T> float medial::performance::rmse_without_cleaning(const vector<T> &preds, const vector<T> &y, const vector<float> *weights) {

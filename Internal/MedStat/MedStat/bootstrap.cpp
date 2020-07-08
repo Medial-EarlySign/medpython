@@ -72,7 +72,8 @@ string printVec(const vector<float> &v, int from, int to) {
 
 random_device Lazy_Iterator::rd;
 
-Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+
+void Lazy_Iterator::init(const vector<int> *p_pids, const vector<float> *p_preds,
 	const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
 	sample_per_pid = p_sample_per_pid;
 	//sample_ratio = p_sample_ratio;
@@ -90,7 +91,9 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
+	
 	vec_weights.back() = weights;
+	num_categories = p_preds->size() / p_y->size();
 
 	unordered_map<int, vector<int>> pid_to_inds;
 	for (size_t i = 0; i < pids->size(); ++i)
@@ -131,19 +134,40 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	current_pos.resize(maxThreadCount, 0);
 	inner_pos.resize(maxThreadCount, 0);
 	sel_pid_index.resize(maxThreadCount, -1);
+
 }
 
-void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num) {
+Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+	const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed, const vector<int> *p_preds_order)
+{
+	init(p_pids, p_preds, p_y, p_w, p_sample_ratio, p_sample_per_pid, max_loops, seed);
+	preds_order = p_preds_order->data();
+	vec_preds_order.resize(maxThreadCount);
+	vec_preds_order.back() = preds_order;
+}
+
+void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, const vector<int> *p_preds_order, int thread_num) {
 #pragma omp critical 
 	{
 		vec_size[thread_num] = (int)p_y->size();
 		vec_y[thread_num] = p_y->data();
 		vec_preds[thread_num] = p_preds->data();
 		vec_weights[thread_num] = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
+		vec_preds_order[thread_num] = p_preds_order->data();
+		
+		
 	}
 }
+bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight)
+{
+	const float* ret_pred_pointer;
+	const int * preds_order;
+	bool res = this->fetch_next(thread, ret_y, ret_pred_pointer, weight, preds_order);
+	ret_pred = *ret_pred_pointer;
+	return res;
+}
 
-bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight) {
+bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight, const int * &ret_preds_order) {
 	if (sample_per_pid > 0) {
 		//choose pid:
 		int selected_pid_index = int(current_pos[thread] / sample_per_pid);
@@ -157,7 +181,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		// of weights. randomizing real number from 0 to sum_of_all_weights and using binary search to find the index.
 		int selected_index = (*inds)[(*rnd_num)(rd_gen[thread])];
 		ret_y = y[selected_index];
-		ret_pred = preds[selected_index];
+		ret_pred = &preds[selected_index*num_categories];
+		ret_preds_order = &preds_order[selected_index*num_categories];
 		weight = weights == NULL ? -1 : weights[selected_index];
 #pragma omp atomic
 		++current_pos[thread];
@@ -167,7 +192,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		if (sample_all_no_sampling) {
 			//iterate on all!:
 			ret_y = vec_y[thread][current_pos[thread]];
-			ret_pred = vec_preds[thread][current_pos[thread]];
+			ret_pred = &vec_preds[thread][current_pos[thread] * num_categories];
+			ret_preds_order = &vec_preds_order[thread][current_pos[thread] * num_categories];
 			weight = vec_weights[thread] == NULL ? -1 : vec_weights[thread][current_pos[thread]];
 #pragma omp atomic
 			++current_pos[thread];
@@ -185,7 +211,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
 		int final_index = (*inds)[inner_pos[thread]];
 		ret_y = y[final_index];
-		ret_pred = preds[final_index];
+		ret_pred = &preds[final_index * num_categories];
+		ret_preds_order = &preds_order[final_index * num_categories];
 		weight = weights == NULL ? -1 : weights[final_index];
 		//take all inds:
 #pragma omp atomic
@@ -202,7 +229,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 }
 
 bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight) {
-	return fetch_next(thread, ret_y, ret_pred, weight);
+	bool ret_val = fetch_next(thread, ret_y, ret_pred, weight);
+	return ret_val;
 }
 
 void Lazy_Iterator::restart_iterator(int thread) {
@@ -430,7 +458,7 @@ void prepare_for_bootstrap(const vector<int> &pids,
 	iterator.fetch_selection(indexes);
 }
 
-map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
+map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y,
 	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
 	const vector<MeasurementFunctions> &meas_functions, const vector<Measurement_Params *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
@@ -455,9 +483,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
 
 #ifdef USE_MIN_THREADS
-	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, omp_get_max_threads(), seed); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, omp_get_max_threads(), seed, &preds_order); //for Obs
 #else
-	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, loopCnt + 1, seed); //for Obs
+	Lazy_Iterator iterator(&pids, &preds, &y, weights, sample_ratio, sample_per_pid, loopCnt + 1, seed, &preds_order); //for Obs
 #endif
 	//MLOG_D("took %2.1f sec till allocate mem\n", (float)difftime(time(NULL), st));
 
@@ -543,19 +571,25 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			//create preds, y for all seleceted pids:
 			vector<int> idx;
 			mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
-			vector<float> selected_preds(idx.size()), selected_y(idx.size()), selected_weights;
+			vector<float> selected_preds(idx.size() * iterator.num_categories), selected_y(idx.size()), selected_weights;
+			vector<int> selected_preds_order(idx.size() * iterator.num_categories);
 			if (weights != NULL && !weights->empty())
 				selected_weights.resize(idx.size());
 			for (size_t k = 0; k < idx.size(); ++k)
 			{
 				int ind = idx[k];
-				selected_preds[k] = preds[ind];
+				for (size_t j = 0; j < iterator.num_categories; j++)
+				{
+					selected_preds[k * iterator.num_categories + j] = preds[ind * iterator.num_categories + j];
+					selected_preds_order[k * iterator.num_categories + j] = preds_order[ind * iterator.num_categories + j];
+				}
+
 				selected_y[k] = y[ind];
 				if (weights != NULL && !weights->empty())
 					selected_weights[k] = weights->at(ind);
 			}
 
-			iterator.set_static(&selected_y, &selected_preds, &selected_weights, i);
+			iterator.set_static(&selected_y, &selected_preds, &selected_weights, &selected_preds_order, i);
 #ifdef USE_MIN_THREADS
 			int th_num = omp_get_thread_num();
 #else
@@ -634,7 +668,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	return all_final_measures;
 }
 
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
+map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
 	const vector<Measurement_Params *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
@@ -644,8 +678,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
 	//for each pid - randomize x sample from all it's tests. do loop_times
-	if (preds.size() != y.size() || preds.size() != pids.size()) {
-		cerr << "bootstrap sizes aren't equal preds=" << preds.size() << " y=" << y.size() << endl;
+	if (pids.size() != y.size()) {
+		cerr << "bootstrap sizes aren't equal pids=" << pids.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
 	}
 	vector<Measurement_Params *> params((int)meas_functions.size());
@@ -667,25 +701,25 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	vector<int> pids_c, filtered_indexes;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
-	preds_c.reserve((int)y.size());
+	preds_c.reserve((int)preds.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
 	int warn_cnt = 0;
 	if (weights != NULL && !weights->empty())
 		weights_c.reserve(weights->size());
+	size_t num_categories = preds.size() / y.size();
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
 		if (cohort_params != NULL && (*cohort_params).find(it->first) != (*cohort_params).end())
 			c_params = (*cohort_params).at(it->first);
 
-		class_sz.resize(2, 0);
-		class_sz[0] = 0, class_sz[1] = 0;
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
 		weights_c.clear();
 		filtered_indexes.clear();
+		class_sz.assign(num_categories, 0);
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				bool has_legal_w = true;
@@ -698,7 +732,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 				if (has_legal_w) {
 					pids_c.push_back(pids[j]);
 					y_c.push_back(y[j]);
-					preds_c.push_back((*final_preds)[j]);
+					for (size_t k = 0; k < num_categories; k++)
+						preds_c.push_back((*final_preds)[j*num_categories + k]);
 					filtered_indexes.push_back((int)j);
 					++class_sz[y[j] > 0];
 				}
@@ -723,7 +758,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		vector<float> *weights_p = NULL;
 		if (!weights_c.empty())
 			weights_p = &weights_c;
-		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, y_c, pids_c,
+		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, preds_order, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
 			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, warn_cnt, cohort_name, seed);
@@ -867,9 +902,11 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measu
 	map<string, float> res;
 
 	map<float, int> cnts;
-	float y, pred, w;
+	float y, w, pred;
 	while (iterator->fetch_next(thread_num, y, pred, w))
+	{
 		cnts[y] += w != -1 ? w : 1;
+	}
 	cnts[y] += w != -1 ? w : 1; //last one
 
 	res["NPOS"] = (float)cnts[(float)1.0];
@@ -961,6 +998,66 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 	return res;
 }
 
+map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	map<string, float> res;
+	float y, weight;
+	const float *pred;
+	const int *preds_order;
+
+	int n = 5;
+	vector<float> jaccard_vals(iterator->num_categories);
+	float avg_jaccard_top_5= 0 , avg_weighted_jaccard_top_5 = 0 , avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
+	float avg_weighted_preds_jaccard_top_5 = 0, avg_weighted_preds_jaccard_until_correct = 0 ;
+	int n_samples = 0;
+
+	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
+		float sum_avg_top_5 = 0, sum_weighted_top_5 = 0, sum_den_weighted_top_5 = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
+		float sum_den_weighted_until_y = 0 , sum_weighted_preds_top_5 = 0, sum_weighted_preds_until_y = 0;
+		int i = 0;
+		int i_equal = -1;
+
+		while ((i_equal == -1) || (i < n))
+		{
+			jaccard_vals[i] = medial::performance::jaccard(y, preds_order[i]);
+			if (y == preds_order[i])
+				i_equal = i;
+			i++;
+		}
+
+		for (int i = 0; i < n; i++)
+		{
+			sum_avg_top_5 += jaccard_vals[i];
+			sum_weighted_top_5 += (n - i + 1)*jaccard_vals[i];
+			sum_den_weighted_top_5 += (n - i + 1);
+			sum_weighted_preds_top_5 += *(pred + preds_order[i]) * jaccard_vals[i];
+		}
+		
+		for (int i = 0; i <= i_equal; i++)
+		{
+			sum_avg_until_y += jaccard_vals[i];
+			sum_weighted_until_y += (i_equal - i + 1)*jaccard_vals[i];
+			sum_den_weighted_until_y += (i_equal - i + 1);
+			sum_weighted_preds_until_y += *(pred + preds_order[i]) *jaccard_vals[i];
+		}
+
+		avg_jaccard_top_5 += (sum_avg_top_5 / n);
+		avg_weighted_jaccard_top_5 += (sum_weighted_top_5 / sum_den_weighted_top_5);
+		avg_jaccard_until_correct += (sum_avg_until_y / (i_equal + 1));
+		avg_weighted_jaccard_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
+		avg_weighted_preds_jaccard_top_5 += sum_weighted_preds_top_5;
+		avg_weighted_preds_jaccard_until_correct += sum_weighted_preds_until_y;
+		n_samples++;
+	}
+
+	res["AVG_JACCARD_TOP_5"] = avg_jaccard_top_5 / n_samples;
+	res["AVG_WEIGHTED_JACCARD_TOP_5"] = avg_weighted_jaccard_top_5 / n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_5"] = avg_weighted_preds_jaccard_top_5 / n_samples;
+	res["AVG_JACCARD_UNTIL_CORRECT"] = avg_jaccard_until_correct / n_samples;
+	res["AVG_WEIGHTED_JACCARD_UNTIL_CORRECT"] = avg_weighted_jaccard_until_correct/ n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_until_correct / n_samples;
+	return res;
+}
+ 
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
@@ -2567,7 +2664,7 @@ int ROC_Params::init(map<string, string>& map) {
 	}
 	return 0;
 }
-ROC_Params::ROC_Params(const string &init_string) {
+ROC_Params::ROC_Params(const string &init_string) : ROC_Params() {
 	init_from_string(init_string);
 }
 #pragma endregion

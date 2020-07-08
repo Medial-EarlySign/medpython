@@ -110,7 +110,8 @@ void aggregate_samples(MedFeatures &features, const vector<int> &sample_ids, boo
 			seen_id[sample_ids[i]] = true;
 			//take features and create samples. update data,samples,weights,masks:
 			final_f.samples.push_back(features.samples[i]);
-			final_f.weights.push_back(features.weights[i]);
+			if (!features.weights.empty())
+				final_f.weights.push_back(features.weights[i]);
 			for (const auto &it : features.data)
 				final_f.data[it.first].push_back(it.second[i]);
 			for (const auto &it : features.masks)
@@ -232,7 +233,6 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 					signalId, rep.dict.name(signalId).c_str());;
 		}
 	}
-
 	//dprint_process("==> In Learn (1) <==", 2, 0, 0);
 
 	// Learn RepProcessors
@@ -920,7 +920,7 @@ void MedModel::filter_rep_processors() {
 		}
 	}
 	if (did_something)
-		MLOG("Filtering uneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
+		MLOG("Filtering unneeded rep_processors. keeping %zu rep_proccessors out of %zu\n",
 			filtered_processors.size(), rep_processors.size());
 
 	rep_processors.swap(filtered_processors);
@@ -1403,7 +1403,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 		generator->set_signal_ids(sigs);
 
 	// tables
-	for (RepProcessor *processor : rep_processors)
+	for (RepProcessor *processor : rep_processors) 
 		processor->init_tables(dict, sigs);
 
 	for (FeatureGenerator *generator : generators)
@@ -2759,6 +2759,20 @@ void MedModel::read_from_file_with_changes(const string &model_binary_path, cons
 		ChangeModelInfo::parse_json_string(json_content, change_reqs);
 		change_model(change_reqs);
 	}
+}
+
+void MedModel::clone_model(MedModel &out) {
+	out.clear();
+	vector<unsigned char> blob;
+	serialize_vec(blob);
+	out.deserialize_vec(blob);
+}
+
+void MedModel::copy_from_model(MedModel &in) {
+	clear();
+	vector<unsigned char> blob;
+	in.serialize_vec(blob);
+	deserialize_vec(blob);
 }
 
 #endif

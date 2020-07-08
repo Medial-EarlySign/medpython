@@ -75,6 +75,7 @@ MedBootstrap::MedBootstrap()
 	simTimeWindow = false;
 	is_binary_outcome = true;
 	use_time_control_as_case = false;
+	num_categories = 1;
 }
 
 int MedBootstrap::init(map<string, string>& map) {
@@ -109,6 +110,9 @@ int MedBootstrap::init(map<string, string>& map) {
 			is_binary_outcome = stoi(param_value) > 0;
 		else if (param_name == "use_time_control_as_case")
 			use_time_control_as_case = stoi(param_value) > 0;
+		else if (param_name == "sort_preds_in_multicategory")
+			sort_preds_in_multicategory = stoi(param_value) > 0;
+
 		//! [MedBootstrap::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for MedBootstrap::init\n", param_name.c_str());
@@ -200,7 +204,9 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	unordered_map<int, vector<int>> splits_inds;
 	for (size_t i = 0; i < mdl.features.samples.size(); ++i)
 		mdl.features.samples[i].prediction.resize(1, 0); //set to 0 that won't throw error in prepare
-	single_cohort.prepare_bootstrap(mdl.features, preds, y, pids, data_for_filtering);
+
+	vector<int> preds_order ;
+	single_cohort.prepare_bootstrap(mdl.features, preds, y, pids, data_for_filtering, preds_order);
 	inc_smps.swap(mdl.features.samples);
 }
 
@@ -251,7 +257,7 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 		cohort_name.c_str(), cases_censored, max_range, max_range * 2, cases_changed_to_controls, max_range * 2, cases_left_as_cases);
 }
 
-map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<float> &y, const vector<int> &pids,
+map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<int> &pids,
 	const vector<float> *weights, const map<string, vector<float>> &additional_info) {
 	if (weights != NULL && !weights->empty() && weights->size() != y.size())
 		MTHROW_AND_ERR("Bootstrap weights error - samples is of size %zu, weights.size()=%zu\n",
@@ -291,7 +297,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 	}
 
 	if (!simTimeWindow) {
-		return booststrap_analyze(preds, y, weights, *rep_ids, additional_info, cohorts,
+		return booststrap_analyze(preds, preds_order, y, weights, *rep_ids, additional_info, cohorts,
 			measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 			preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 	}
@@ -314,7 +320,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				MWARN("Cohort \"%s\" name already exists - skip additional\n");
 
 		if (!cohorts.empty())
-			all_results = booststrap_analyze(preds, y, weights, *rep_ids, additional_info, cohorts,
+			all_results = booststrap_analyze(preds, preds_order, y, weights, *rep_ids, additional_info, cohorts,
 				measures, &cohort_params, &measurements_params, fix_cohort_sample_incidence,
 				preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 
@@ -328,7 +334,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				medial::process::make_sim_time_window(it->first, it->second,
 					y, additional_info, y_changed, cp_info, cohorts_t, cohort_params_t);
 
-				auto agg_res = booststrap_analyze(preds, y_changed, weights, *rep_ids, cp_info, cohorts_t,
+				auto agg_res = booststrap_analyze(preds, preds_order, y_changed, weights, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
 					preprocess_bin_scores, &roc_Params, sample_ratio, sample_per_pid, loopCnt, sample_seed, is_binary_outcome);
 				if (!agg_res.empty()) // if the cohort is too small it does not return results
@@ -554,7 +560,7 @@ void MedBootstrap::clean_feature_name_prefix(map<string, vector<float>> &feature
 	name_data.swap(features); //feature_data will steal "name_data" data
 }
 
-void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<float> &y,
+void MedBootstrap::add_splits_results(const vector<float> &preds, vector<int> &preds_order, const vector<float> &y,
 	const vector<int> &pids, const vector<float> *weights, const map<string, vector<float>> &data,
 	const unordered_map<int, vector<int>> &splits_inds,
 	map<int, map<string, map<string, float>>> &results_per_split) {
@@ -585,7 +591,7 @@ void MedBootstrap::add_splits_results(const vector<float> &preds, const vector<f
 				split_weights[i] = weights->at(it->second[i]);
 		}
 		results_per_split[split_id] =
-			bootstrap_base(split_preds, split_y, split_pids, &split_weights, split_data);
+			bootstrap_base(split_preds, preds_order, split_y, split_pids, &split_weights, split_data);
 	}
 
 }
@@ -687,9 +693,19 @@ void MedBootstrap::add_filter_cohorts(const vector<vector<Filter_Param>> &parame
 		filter_cohort[it->first] = it->second;
 }
 
+void MedBootstrap::sort_index_only(const vector<float> &vec, vector<int>::iterator ind_start, vector<int>::iterator ind_end)
+{
+	iota(ind_start, ind_end, 0);
+	stable_sort(ind_start, ind_end, [&vec](size_t i1, size_t i2) {return vec[i1] > vec[i2]; });
+}
+
 void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
-	map<string, vector<float>> &final_additional_info, unordered_map<int, vector<int>> *splits_inds) {
-	preds.resize((int)features.samples.size());
+	map<string, vector<float>> &final_additional_info, vector<int> &preds_order, unordered_map<int, vector<int>> *splits_inds) {
+	if (features.samples.empty() || features.samples[0].prediction.empty())
+		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)features.samples.size(), (int)features.samples[0].prediction.size());
+	num_categories = features.samples[0].prediction.size();
+	
+	preds.resize((int)features.samples.size()*num_categories);
 	y.resize((int)features.samples.size());
 	pids.resize((int)features.samples.size());
 	final_additional_info = features.data;
@@ -703,13 +719,27 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	}
 	MedTime tm;
 	tm.init_time_tables();
+
+	preds_order.assign((int)features.samples.size()*num_categories, 0);	
+	
 	for (size_t i = 0; i < features.samples.size(); ++i)
 	{
 		pids[i] = features.samples[i].id;
 		y[i] = features.samples[i].outcome;
 		if (features.samples[i].prediction.empty())
 			MTHROW_AND_ERR("MedFeautres Prediciton is empty. need to run on MedFeatures with predictions\n");
-		preds[i] = features.samples[i].prediction[0];
+		
+		for (size_t j = 0; j < num_categories; j++)
+		{
+			preds[i*num_categories + j] = features.samples[i].prediction[j];
+			preds_order[i*num_categories + j] = (int)j;
+		}
+		if (sort_preds_in_multicategory)
+		{
+			sort_index_only(features.samples[i].prediction, preds_order.begin() + i * num_categories, preds_order.begin() + (i + 1) * num_categories);
+
+		}
+		
 		if (uses_time_window) {
 			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
@@ -727,13 +757,14 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 
 	vector<float> preds, y;
 	vector<int> pids;
+	vector<int> preds_order;
 	map<string, vector<float>> data;
 	unordered_map<int, vector<int>> splits_inds;
 
 	if (results_per_split != NULL)
-		prepare_bootstrap(features, preds, y, pids, data, &splits_inds);
+		prepare_bootstrap(features, preds, y, pids, data, preds_order, &splits_inds);
 	else
-		prepare_bootstrap(features, preds, y, pids, data);
+		prepare_bootstrap(features, preds, y, pids, data, preds_order);
 
 	//check we have all signals ececpt Time,Label (will be completed in prepare):
 	vector<string> all_names_ls;
@@ -762,16 +793,40 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 		}
 
 	if (results_per_split != NULL)
-		add_splits_results(preds, y, pids, &features.weights, data, splits_inds, *results_per_split);
+		add_splits_results(preds, preds_order, y, pids, &features.weights, data, splits_inds, *results_per_split);
 
-	return bootstrap_base(preds, y, pids, &features.weights, data);
+	return bootstrap_base(preds, preds_order, y, pids, &features.weights, data);
 }
 
-void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids,
+void MedBootstrap::prepare_bootstrap(MedSamples &samples, map<string, vector<float>> &additional_info, vector<float> &preds, vector<float> &y, vector<int> &pids, vector<int> &preds_order,
 	unordered_map<int, vector<int>> *splits_inds) {
 	pids.resize(samples.nSamples());
 	samples.get_y(y);
 	samples.get_preds(preds);
+	if (y.empty() || preds.empty())
+		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)y.size(), (int)preds.size());
+	num_categories = preds.size() / y.size();
+
+	preds_order.assign((int)preds.size()*num_categories, 0);
+
+	int i = 0;
+	if (num_categories > 1)
+	{
+		for (auto& idSamples : samples.idSamples)
+		{
+			for (auto& samples : idSamples.samples)
+			{
+				if (sort_preds_in_multicategory)
+				{
+					sort_index_only(samples.prediction, preds_order.begin() + i * num_categories, preds_order.begin() + (i + 1) * num_categories);
+				}
+				else
+					iota(preds_order.begin() + i * num_categories, preds_order.begin() + (i + 1) * num_categories, 0);
+				i++;
+			}
+		}
+	}
+
 	int c = 0;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i)
 		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j) {
@@ -944,6 +999,12 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 		}
 	}
 	//new_samples.sort_by_id_date(); //not needed
+}
+MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
+	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = { { "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },{ "calc_jaccard",MeasurmentFunctionType::calc_jaccard } };
+	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end())
+		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s \n", measurement_function_name.c_str());
+	return measurement_function_name_map[measurement_function_name];
 }
 
 void MedBootstrap::change_sample_autosim(MedFeatures &features, int min_time, int max_time, MedFeatures &new_features) {
