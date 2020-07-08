@@ -63,7 +63,7 @@ public:
 	/// @param p_preds a pointer to array predictions
 	/// @param thread_num an access point to the bootstrap state - thread_numbeer or bootstrap loop count
 	/// </summary>
-	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, const vector<int> *p_preds_order, int thread_num);
 
 	~Lazy_Iterator();
 
