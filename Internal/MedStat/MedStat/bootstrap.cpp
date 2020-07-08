@@ -2567,7 +2567,7 @@ int ROC_Params::init(map<string, string>& map) {
 	}
 	return 0;
 }
-ROC_Params::ROC_Params(const string &init_string) {
+ROC_Params::ROC_Params(const string &init_string) : ROC_Params() {
 	init_from_string(init_string);
 }
 #pragma endregion
