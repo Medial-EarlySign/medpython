@@ -7,6 +7,7 @@
 #include <MedTime/MedTime/MedTime.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include <Logger/Logger/Logger.h>
+#include <MedStat/MedStat/MedStat.h>
 
 
 using namespace std;
@@ -37,13 +38,16 @@ public:
 	/// @param seed if 0 will use random device to select seed for randomization
 	/// </summary>
 	Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_preds,
+		const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed, const vector<int> *p_preds_order = NULL);
+
+	void init(const vector<int> *p_pids, const vector<float> *p_preds,
 		const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed);
 
 	/// <summary>
 	/// Inline function to fetch next pred,label couple in the bootstrap process
 	/// </summary>
 	inline bool fetch_next(int thread, float &ret_y, float &ret_pred, float &weight);
-
+	inline bool fetch_next(int thread, float &ret_y, const float* &ret_pred, float &weight, const int *&preds_order);
 	/// <summary>
 	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
 	/// </summary>
@@ -59,7 +63,7 @@ public:
 	/// @param p_preds a pointer to array predictions
 	/// @param thread_num an access point to the bootstrap state - thread_numbeer or bootstrap loop count
 	/// </summary>
-	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, int thread_num);
+	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, const vector<int> *p_preds_order, int thread_num);
 
 	~Lazy_Iterator();
 
@@ -67,6 +71,7 @@ public:
 	float sample_ratio; ///<the sample ratio of the patients out of all patients in each bootstrap
 	int sample_per_pid; ///<how many samples to take for each patients. 0 - means no sampling take all sample for patient
 	bool sample_all_no_sampling; ///<for calcing Obs if true
+	size_t num_categories; ///< number of categories (inferred)
 private:
 	//internal structure - one time init
 	static random_device rd;
@@ -86,12 +91,13 @@ private:
 	vector<const float *> vec_y;
 	vector<const float *> vec_preds;
 	vector<const float *> vec_weights;
-
+	vector<const int *> vec_preds_order;
 	//original vectors
 	const float *preds;
 	const float *y;
 	const float *weights;
 	const vector<int> *pids;
+	const int *preds_order;
 
 
 	//threading:
@@ -197,6 +203,15 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 /// A map from measurement name "Kendell-Tau" to it's value
 /// </returns>
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+// <summary>
+/// A Function to calculate Jaccard distance for multicategory
+/// Implements MeasurementFunctions signature function
+/// </summary>
+/// <returns>
+/// A map from measurement name "Jaccard" to it's value
+/// </returns>
+map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
@@ -398,7 +413,7 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 /// <summary>
 /// to run bootstrap on single cohort
 /// </summary>
-map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<float> &y,
+map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y,
 	const vector<int> &pids, float sample_ratio, int sample_per_pid, int loopCnt,
 	const vector<MeasurementFunctions> &meas_functions, const vector<Measurement_Params *> &function_params,
 	ProcessMeasurementParamFunc process_measurments_params,
@@ -434,7 +449,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 /// Returns a map from each cohort name to the measurments results. each measurments results
 /// is also a map from each measurement name to it's value
 /// </returns>
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<float> &y, const vector<float> *weights
+map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<float> *weights
 	, const vector<int> &pids, const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
 	const map<string, void *> *cohort_params = NULL, const vector<Measurement_Params *> *function_params = NULL,
