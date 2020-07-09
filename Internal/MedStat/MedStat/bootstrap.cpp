@@ -518,7 +518,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//If True will create in memory selection of indexes. If false will do it lazy.
 	//In some cenarios it might be faster to use "lazy" or "memory" 
-	bool allow_use_memory_iter = false;
+	bool allow_use_memory_iter = true;
 
 	if (sample_per_pid > 0) {
 		//save results for all cohort:
@@ -554,7 +554,12 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = allow_use_memory_iter;
 
-		vector<mt19937> rd_gen(omp_get_max_threads());
+#ifdef USE_MIN_THREADS
+		int max_rnd_gen = omp_get_thread_num();
+#else
+		int max_rnd_gen = loopCnt;
+#endif
+		vector<mt19937> rd_gen(max_rnd_gen);
 		random_device rd;
 		for (size_t i = 0; i < rd_gen.size(); ++i)
 		{
@@ -577,11 +582,14 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			int th_num = i;
 #endif
 			//create preds, y for all seleceted pids:
+			vector<float> selected_preds, selected_y, selected_weights;
+			vector<int> selected_preds_order;
 			if (allow_use_memory_iter) {
 				vector<int> idx;
 				mem_iter.fetch_selection(rd_gen[th_num], idx);
-				vector<float> selected_preds(idx.size() * iterator.num_categories), selected_y(idx.size()), selected_weights;
-				vector<int> selected_preds_order(idx.size() * iterator.num_categories);
+				selected_preds.resize(idx.size() * iterator.num_categories);
+				selected_y.resize(idx.size());
+				selected_preds_order.resize(idx.size() * iterator.num_categories);
 				if (weights != NULL && !weights->empty())
 					selected_weights.resize(idx.size());
 				for (size_t k = 0; k < idx.size(); ++k)
@@ -628,11 +636,11 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
-			}
+		}
 
 			done_cnt.update();
-		}
 	}
+}
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
 	map<string, float> all_final_measures;

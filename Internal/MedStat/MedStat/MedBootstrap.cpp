@@ -76,6 +76,7 @@ MedBootstrap::MedBootstrap()
 	is_binary_outcome = true;
 	use_time_control_as_case = false;
 	num_categories = 1;
+	sort_preds_in_multicategory = false;
 }
 
 int MedBootstrap::init(map<string, string>& map) {
