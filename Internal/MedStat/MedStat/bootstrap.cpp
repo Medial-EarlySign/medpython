@@ -184,7 +184,6 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 		ret_pred = &preds[selected_index*num_categories];
 		ret_preds_order = &preds_order[selected_index*num_categories];
 		weight = weights == NULL ? -1 : weights[selected_index];
-#pragma omp atomic
 		++current_pos[thread];
 		return current_pos[thread] < sample_per_pid * cohort_size;
 	}
@@ -195,18 +194,14 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 			ret_pred = &vec_preds[thread][current_pos[thread] * num_categories];
 			ret_preds_order = &vec_preds_order[thread][current_pos[thread] * num_categories];
 			weight = vec_weights[thread] == NULL ? -1 : vec_weights[thread][current_pos[thread]];
-#pragma omp atomic
 			++current_pos[thread];
 			return current_pos[thread] < vec_size[thread];
 		}
 		if (sel_pid_index[thread] < 0)
 		{
 			int selected_pid_index = rand_pids(rd_gen[thread]);
-#pragma omp critical 
-			{
-				sel_pid_index[thread] = selected_pid_index;
-				inner_pos[thread] = 0;
-			}
+			sel_pid_index[thread] = selected_pid_index;
+			inner_pos[thread] = 0;
 		}
 		vector<int> *inds = &pid_index_to_indexes[sel_pid_index[thread]];
 		int final_index = (*inds)[inner_pos[thread]];
@@ -215,14 +210,10 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 		ret_preds_order = &preds_order[final_index * num_categories];
 		weight = weights == NULL ? -1 : weights[final_index];
 		//take all inds:
-#pragma omp atomic
 		++inner_pos[thread];
 		if (inner_pos[thread] >= inds->size()) {
-#pragma omp critical
-			{
-				sel_pid_index[thread] = -1;
-				++current_pos[thread]; //mark pid as done
-			}
+			sel_pid_index[thread] = -1;
+			++current_pos[thread]; //mark pid as done
 		}
 		return current_pos[thread] < cohort_size;
 	}
@@ -495,7 +486,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		for (size_t i = 0; i < pids.size(); ++i)
 			empty_all[i] = (int)i;
 		mem_iter = Mem_Iterator(pids, empty_all, sample_ratio, sample_per_pid, seed);
-	}
+}
 	map<string, vector<float>> all_measures;
 	iterator.sample_all_no_sampling = true;
 	//iterator.sample_per_pid = 0; //take all samples in Obs
@@ -518,7 +509,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #endif
 	//If True will create in memory selection of indexes. If false will do it lazy.
 	//In some cenarios it might be faster to use "lazy" or "memory" 
-	bool allow_use_memory_iter = true;
+	bool allow_use_memory_iter = false;
 
 	if (sample_per_pid > 0) {
 		//save results for all cohort:
@@ -567,7 +558,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				rd_gen[i] = mt19937(seed);
 			else
 				rd_gen[i] = mt19937(rd());
-		}
+	}
 
 		//other sampling - sample pids and take all thier data:
 		//now sample cohort 
@@ -607,7 +598,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				}
 
 				iterator.set_static(&selected_y, &selected_preds, &selected_weights, &selected_preds_order, i);
-			}
+		}
 
 			//calc measures for sample:
 			for (size_t k = 0; k < meas_functions.size(); ++k)
@@ -636,7 +627,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
-		}
+			}
 
 			done_cnt.update();
 	}
@@ -733,7 +724,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		y_c.clear();
 		weights_c.clear();
 		filtered_indexes.clear();
-		class_sz.assign(num_categories, 0);
+		class_sz.assign(2, 0);
 		for (size_t j = 0; j < y.size(); ++j)
 			if (it->second(additional_info, (int)j, c_params)) {
 				bool has_legal_w = true;
@@ -1352,9 +1343,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_fpr_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
 		//handle sens points:
 		i = 1; //first point is always before
@@ -1503,9 +1494,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_sens_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
 		//handle pr points:
 		i = 1; //first point is always before
@@ -1654,9 +1645,9 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_pr_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
 		//handle score points:
 		i = 1; //first point is always before
@@ -1804,11 +1795,11 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 				++curr_wp_score_ind;
 				continue;
-			}
+				}
 			++i;
-		}
+			}
 
-	}
+		}
 	else {
 		float score_working_point;
 		for (i = 0; i < true_rate.size(); ++i)
@@ -1903,7 +1894,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	}
 
 	return res;
-}
+		}
 
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
