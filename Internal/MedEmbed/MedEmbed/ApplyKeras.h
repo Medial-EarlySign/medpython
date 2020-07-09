@@ -11,6 +11,7 @@
 // (2) LeakyReLU activation (typically right AFTER a dense layer)
 // (3) Dropout (nothing to do, may need to multiply by a factor)
 // (4) batch normalization
+// (5) Softmax or Sigmoid
 //
 
 #include <SerializableObject/SerializableObject/SerializableObject.h>
@@ -20,8 +21,8 @@
 
 //===================================================================================================
 
-enum KerasLayerTypes { K_UNKNOWN = 0, K_DENSE, K_LEAKY, K_DROPOUT, K_BN };
-enum KerasActivations { A_UNKNOWN = 0, A_LINEAR, A_SIGMOID , A_RELU, A_LEAKY};
+enum KerasLayerTypes { K_UNKNOWN = 0, K_DENSE, K_LEAKY, K_DROPOUT, K_BN , K_ACTIVATION};
+enum KerasActivations { A_UNKNOWN = 0, A_LINEAR, A_SIGMOID , A_RELU, A_LEAKY, A_SOFTMAX};
 
 //===================================================================================================
 class KerasLayer : public SerializableObject {
@@ -53,8 +54,8 @@ public:
 	vector<float> bias;
 
 	// helpers
-	unordered_map<string, int> name_to_type ={ { "dense" , K_DENSE } ,{ "leaky", K_LEAKY } ,{ "dropout" , K_DROPOUT },{ "batch_normalization" , K_BN } };
-	unordered_map<string, int> name_to_activation ={ { "linear" , A_LINEAR } ,{ "relu", A_RELU } ,{ "leaky" , A_LEAKY },{ "sigmoid" , A_SIGMOID } };
+	unordered_map<string, int> name_to_type = { { "dense" , K_DENSE } ,{ "leaky", K_LEAKY } ,{ "dropout" , K_DROPOUT },{ "batch_normalization" , K_BN } , {"activation", K_ACTIVATION} };
+	unordered_map<string, int> name_to_activation = { { "linear" , A_LINEAR } ,{ "relu", A_RELU } ,{ "leaky" , A_LEAKY },{ "sigmoid" , A_SIGMOID }, {"softmax", A_SOFTMAX} };
 
 
 	// appliers for a single sample

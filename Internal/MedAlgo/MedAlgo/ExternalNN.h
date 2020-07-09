@@ -28,7 +28,13 @@ public:
 
 	int set_params(map<string, string>& mapper) {
 		for (auto &e : mapper)
-			if (e.first == "init_file") init_file = e.second;
+			if (e.first == "init_file") {
+				init_file = e.second;
+				if (ak.init_from_text_file(init_file) < 0)
+					HMTHROW_AND_ERR("ERROR: Failed reading layers file %s\n", init_file.c_str());
+				n_preds = ak.get_output_dimension();
+				//fprintf(stderr, " ===> n_preds is %d\n", n_preds);
+			}
 		return 0;
 	}
 
@@ -36,9 +42,7 @@ public:
 
 	// the following simply initializes 'ak' and 'n_preds' from init_file
 	int external_nn_learn() {
-		if (ak.init_from_text_file(init_file) < 0)
-			HMTHROW_AND_ERR("ERROR: Failed reading layers file %s\n", init_file.c_str());
-		n_preds = ak.get_output_dimension();
+
 		return 0;
 	};
 
@@ -54,6 +58,7 @@ public:
 		MedMat<float> res;
 		ak.apply(x, res);
 		res.copy_vec(preds);
+
 		return 0;
 	}
 
@@ -62,10 +67,12 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) { HMTHROW_AND_ERR("ExternalNN: Predict(float *,...) not implemented, used the MedMat API instead\n"); };
 	int Predict(float *x, float *&preds, int nsamples, int nftrs, int transposed_flag) { HMTHROW_AND_ERR("ExternalNN: Predict(float *,...) not implemented, used the MedMat API instead\n"); }; 
 
-	int n_preds_per_sample() { return n_preds; }
+	int n_preds_per_sample() const { return n_preds; } 
+
+	bool predict_single_not_implemented() { return true; }
 
 	ADD_CLASS_NAME(MedExternalNN)
-	ADD_SERIALIZATION_FUNCS(classifier_type, ak)
+	ADD_SERIALIZATION_FUNCS(classifier_type, n_preds, ak)
 };
 
 MEDSERIALIZE_SUPPORT(MedExternalNN)
