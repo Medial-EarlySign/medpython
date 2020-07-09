@@ -516,6 +516,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #ifdef USE_MIN_THREADS
 	iterator.restart_iterator(0);
 #endif
+	//If True will create in memory selection of indexes. If false will do it lazy.
+	//In some cenarios it might be faster to use "lazy" or "memory" 
+	bool allow_use_memory_iter = false;
 
 	if (sample_per_pid > 0) {
 		//save results for all cohort:
@@ -549,7 +552,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	}
 	else {
 		//old implementition with memory:
-		iterator.sample_all_no_sampling = true;
+		iterator.sample_all_no_sampling = allow_use_memory_iter;
 
 		vector<mt19937> rd_gen(omp_get_max_threads());
 		random_device rd;
@@ -569,27 +572,29 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		for (int i = 0; i < loopCnt; ++i)
 		{
 			//create preds, y for all seleceted pids:
-			vector<int> idx;
-			mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
-			vector<float> selected_preds(idx.size() * iterator.num_categories), selected_y(idx.size()), selected_weights;
-			vector<int> selected_preds_order(idx.size() * iterator.num_categories);
-			if (weights != NULL && !weights->empty())
-				selected_weights.resize(idx.size());
-			for (size_t k = 0; k < idx.size(); ++k)
-			{
-				int ind = idx[k];
-				for (size_t j = 0; j < iterator.num_categories; j++)
+			if (allow_use_memory_iter) {
+				vector<int> idx;
+				mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
+				vector<float> selected_preds(idx.size() * iterator.num_categories), selected_y(idx.size()), selected_weights;
+				vector<int> selected_preds_order(idx.size() * iterator.num_categories);
+				if (weights != NULL && !weights->empty())
+					selected_weights.resize(idx.size());
+				for (size_t k = 0; k < idx.size(); ++k)
 				{
-					selected_preds[k * iterator.num_categories + j] = preds[ind * iterator.num_categories + j];
-					selected_preds_order[k * iterator.num_categories + j] = preds_order[ind * iterator.num_categories + j];
+					int ind = idx[k];
+					for (size_t j = 0; j < iterator.num_categories; j++)
+					{
+						selected_preds[k * iterator.num_categories + j] = preds[ind * iterator.num_categories + j];
+						selected_preds_order[k * iterator.num_categories + j] = preds_order[ind * iterator.num_categories + j];
+					}
+
+					selected_y[k] = y[ind];
+					if (weights != NULL && !weights->empty())
+						selected_weights[k] = weights->at(ind);
 				}
 
-				selected_y[k] = y[ind];
-				if (weights != NULL && !weights->empty())
-					selected_weights[k] = weights->at(ind);
+				iterator.set_static(&selected_y, &selected_preds, &selected_weights, &selected_preds_order, i);
 			}
-
-			iterator.set_static(&selected_y, &selected_preds, &selected_weights, &selected_preds_order, i);
 #ifdef USE_MIN_THREADS
 			int th_num = omp_get_thread_num();
 #else
