@@ -1705,7 +1705,7 @@ public:
 
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, virtual_signals_generic, time_channels)
+	ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals,in_sig, out_virtual, t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, virtual_signals_generic, time_channels)
 
 private:
 	int v_out_sid = -1;
