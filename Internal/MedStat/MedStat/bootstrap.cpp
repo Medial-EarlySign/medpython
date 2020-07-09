@@ -91,7 +91,7 @@ void Lazy_Iterator::init(const vector<int> *p_pids, const vector<float> *p_preds
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
-	
+
 	vec_weights.back() = weights;
 	num_categories = p_preds->size() / p_y->size();
 
@@ -154,8 +154,8 @@ void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_
 		vec_preds[thread_num] = p_preds->data();
 		vec_weights[thread_num] = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
 		vec_preds_order[thread_num] = p_preds_order->data();
-		
-		
+
+
 	}
 }
 bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float &weight)
@@ -571,10 +571,15 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp parallel for schedule(dynamic,1)
 		for (int i = 0; i < loopCnt; ++i)
 		{
+#ifdef USE_MIN_THREADS
+			int th_num = omp_get_thread_num();
+#else
+			int th_num = i;
+#endif
 			//create preds, y for all seleceted pids:
 			if (allow_use_memory_iter) {
 				vector<int> idx;
-				mem_iter.fetch_selection(rd_gen[omp_get_thread_num()], idx);
+				mem_iter.fetch_selection(rd_gen[th_num], idx);
 				vector<float> selected_preds(idx.size() * iterator.num_categories), selected_y(idx.size()), selected_weights;
 				vector<int> selected_preds_order(idx.size() * iterator.num_categories);
 				if (weights != NULL && !weights->empty())
@@ -595,11 +600,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 
 				iterator.set_static(&selected_y, &selected_preds, &selected_weights, &selected_preds_order, i);
 			}
-#ifdef USE_MIN_THREADS
-			int th_num = omp_get_thread_num();
-#else
-			int th_num = i;
-#endif
+
 			//calc measures for sample:
 			for (size_t k = 0; k < meas_functions.size(); ++k)
 			{
@@ -1011,13 +1012,13 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 
 	int n = 5;
 	vector<float> jaccard_vals(iterator->num_categories);
-	float avg_jaccard_top_5= 0 , avg_weighted_jaccard_top_5 = 0 , avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
-	float avg_weighted_preds_jaccard_top_5 = 0, avg_weighted_preds_jaccard_until_correct = 0 ;
+	float avg_jaccard_top_5 = 0, avg_weighted_jaccard_top_5 = 0, avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
+	float avg_weighted_preds_jaccard_top_5 = 0, avg_weighted_preds_jaccard_until_correct = 0;
 	int n_samples = 0;
 
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
 		float sum_avg_top_5 = 0, sum_weighted_top_5 = 0, sum_den_weighted_top_5 = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
-		float sum_den_weighted_until_y = 0 , sum_weighted_preds_top_5 = 0, sum_weighted_preds_until_y = 0;
+		float sum_den_weighted_until_y = 0, sum_weighted_preds_top_5 = 0, sum_weighted_preds_until_y = 0;
 		int i = 0;
 		int i_equal = -1;
 
@@ -1036,7 +1037,7 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 			sum_den_weighted_top_5 += (n - i + 1);
 			sum_weighted_preds_top_5 += *(pred + preds_order[i]) * jaccard_vals[i];
 		}
-		
+
 		for (int i = 0; i <= i_equal; i++)
 		{
 			sum_avg_until_y += jaccard_vals[i];
@@ -1058,11 +1059,11 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 	res["AVG_WEIGHTED_JACCARD_TOP_5"] = avg_weighted_jaccard_top_5 / n_samples;
 	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_5"] = avg_weighted_preds_jaccard_top_5 / n_samples;
 	res["AVG_JACCARD_UNTIL_CORRECT"] = avg_jaccard_until_correct / n_samples;
-	res["AVG_WEIGHTED_JACCARD_UNTIL_CORRECT"] = avg_weighted_jaccard_until_correct/ n_samples;
+	res["AVG_WEIGHTED_JACCARD_UNTIL_CORRECT"] = avg_weighted_jaccard_until_correct / n_samples;
 	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_until_correct / n_samples;
 	return res;
 }
- 
+
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
 	int max_qunt_vals = 10;
