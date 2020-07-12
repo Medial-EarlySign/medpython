@@ -1051,7 +1051,7 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 		float sum_weighted_preds_jaccard_tmp = 0 ;
 		for (int i = 0; i < iterator->num_categories; i++)
 		{
-			sum_weighted_preds_jaccard_tmp += jaccard_vals[i] * *(pred + i);
+			sum_weighted_preds_jaccard_tmp += jaccard_vals[i] * *(pred + preds_order[i]);
 		}
 		sum_weighted_preds_jaccard += params->jaccard_weights[(int)y] * sum_weighted_preds_jaccard_tmp;
 
