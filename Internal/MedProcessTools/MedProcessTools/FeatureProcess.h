@@ -440,7 +440,10 @@ public:
 	int min_samples = 50;
 
 	// if true, doesn't impute missing values that are left due to small stratas
-	bool leave_missing_for_small_stratas = false;
+	int leave_missing_for_small_stratas = 0;
+
+	// if false (default), do NOT impute ANY case in which the strata contains a missing value
+	int impute_strata_with_missing = 0;
 
 	// Moment (learning/applying)
 	vector<imputeMomentTypes> moment_type_vec;
@@ -495,7 +498,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
 		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram,
-			moment_type_vec, moments_vec, default_moment_vec)
+			moment_type_vec, moments_vec, default_moment_vec, leave_missing_for_small_stratas, impute_strata_with_missing)
 
 		void dprint(const string &pref, int fp_flag);
 	/// debug and print

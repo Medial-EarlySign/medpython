@@ -903,24 +903,30 @@ int FeatureImputer::_apply(MedFeatures& features, unordered_set<int>& ids, bool 
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if (data[i] == missing_value) {
 			int index = 0;
-			for (int j = 0; j < imputerStrata.nStratas(); j++)
-				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex((*strataData[j])[i], missing_value);
-			if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE) {
-				if (strata_sizes[index] < min_samples)
-					data[i] = medial::stats::sample_from_histogram(default_histogram);
-				else
-					data[i] = medial::stats::sample_from_histogram(histograms[index]);
+			int missing_in_strata = 0;
+			for (int j = 0; j < imputerStrata.nStratas(); j++) {
+				float val = (*strataData[j])[i];
+				index += imputerStrata.factors[j] * imputerStrata.stratas[j].getIndex(val, missing_value);
+				if (val == missing_value) missing_in_strata = 1;
 			}
-			else {
-				if (strata_sizes[index] < min_samples)
-					data[i] = default_moment_vec[stage];
-				else
-					data[i] = moments_vec[stage][index];
+			if (!missing_in_strata || impute_strata_with_missing) {
+				if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE) {
+					if (strata_sizes[index] < min_samples)
+						data[i] = medial::stats::sample_from_histogram(default_histogram);
+					else
+						data[i] = medial::stats::sample_from_histogram(histograms[index]);
+				}
+				else {
+					if (strata_sizes[index] < min_samples)
+						data[i] = default_moment_vec[stage];
+					else
+						data[i] = moments_vec[stage][index];
+				}
+				if (!isfinite(data[i]))
+					MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n",
+						resolved_feature_name.c_str(), i, moment_type_vec[stage], index, strata_sizes[index], default_moment_vec[stage]);
+				++missing_cnt;
 			}
-			if (!isfinite(data[i]))
-				MTHROW_AND_ERR("[%s] imputed illegal value for row %d moment_type %d index %d strata_sizes[index] %d %f\n",
-					resolved_feature_name.c_str(), i, moment_type_vec[stage], index, strata_sizes[index], default_moment_vec[stage]);
-			++missing_cnt;
 		}
 	}
 
@@ -964,7 +970,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			verbose = stoi(entry.second) > 0;
 		else if (field == "verbose_learn")
 			verbose_learn = stoi(entry.second) > 0;
-		else if (field == "leave_missing_for_small_stratas") leave_missing_for_small_stratas = (bool)med_stoi(entry.second);
+		else if (field == "leave_missing_for_small_stratas") leave_missing_for_small_stratas = med_stoi(entry.second);
+		else if (field == "impute_strata_with_missing") impute_strata_with_missing = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for FeatureImputer\n", field.c_str());
 		//! [FeatureImputer::init]
