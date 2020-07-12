@@ -157,7 +157,7 @@ template float medial::performance::spearman_corr<float>(const vector<float> &v1
 template float medial::performance::spearman_corr<double>(const vector<double> &v1, const vector<double> &v2, double missing_val, int &n, const vector<float> *weights);
 
 // Jaccard
-float medial::performance::jaccard(int val1, int val2)
+float medial::performance::jaccard_similarity(int val1, int val2)
 {
 	float num = std::bitset<16>(val1 & val2).count();
 	float den = std::bitset<16>(val1 | val2).count();
@@ -170,6 +170,10 @@ float medial::performance::jaccard(int val1, int val2)
 			return 0.;
 }
 
+float medial::performance::jaccard_distance(int val1, int val2)
+{
+	return 1. - jaccard_similarity(val1, val2);
+}
 
 // RMSE
 //...............................................................................................................................

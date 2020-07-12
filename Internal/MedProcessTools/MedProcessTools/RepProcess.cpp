@@ -197,6 +197,7 @@ bool RepProcessor::filter(unordered_set<string>& neededSignals) {
 	for (string signal : aff_signals)
 		MLOG_D("[%s] ", signal.c_str());
 	MLOG_D("\n");
+
 	return true;
 
 }
@@ -3420,7 +3421,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		if (do_on_last_n)
 			output_name += "_last_" + to_string(last_n);
 
-		MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s\n", output_name.c_str());
+		//MLOG("WARNING in RepBasicRangeCleaner::init - no output_name provided, using input signal combination: %s\n", output_name.c_str());
 	}
 
 
