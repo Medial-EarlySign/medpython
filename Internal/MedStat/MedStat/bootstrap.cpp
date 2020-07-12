@@ -463,12 +463,15 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 
 	//initialize measurement params per cohort:
 	//time_t st = time(NULL);
+
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL) {
-			ROC_And_Filter_Params prm;
-			prm.roc_params = (ROC_Params *)function_params[i];
-			prm.filter = (vector<Filter_Param> *)cohort_params;
-			process_measurments_params(additional_info, y, pids, &prm,
+			ROC_And_Filter_Params* prm = dynamic_cast<ROC_And_Filter_Params*> (function_params[i]);
+			if (prm == NULL)
+				continue;
+			prm->roc_params = (ROC_Params *)function_params[i];
+			prm->filter = (vector<Filter_Param> *)cohort_params;
+			process_measurments_params(additional_info, y, pids, prm,
 				filter_indexes, y_full, pids_full);
 		}
 	//MLOG_D("took %2.1f sec to process_measurments_params\n", (float)difftime(time(NULL), st));
@@ -1009,32 +1012,32 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 	const float *pred;
 	const int *preds_order;
 
-	int n = 5;
+	Multiclass_Params* params = (Multiclass_Params *)function_params;
+	int n = params -> top_n;
+
 	vector<float> jaccard_vals(iterator->num_categories);
-	float avg_jaccard_top_5 = 0, avg_weighted_jaccard_top_5 = 0, avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
-	float avg_weighted_preds_jaccard_top_5 = 0, avg_weighted_preds_jaccard_until_correct = 0;
+	float avg_jaccard_top_n = 0, avg_weighted_jaccard_top_n = 0, avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
+	float avg_weighted_preds_jaccard_top_n = 0, avg_weighted_preds_jaccard_until_correct = 0, sum_weighted_preds_jaccard = 0, sum_correct_location = 0, sum_accuracy_top_n = 0;
 	int n_samples = 0;
 
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
-		float sum_avg_top_5 = 0, sum_weighted_top_5 = 0, sum_den_weighted_top_5 = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
-		float sum_den_weighted_until_y = 0, sum_weighted_preds_top_5 = 0, sum_weighted_preds_until_y = 0;
-		int i = 0;
+		float sum_avg_top_n = 0, sum_weighted_top_n = 0, sum_den_weighted_top_n = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
+		float sum_den_weighted_until_y = 0, sum_weighted_preds_top_n = 0, sum_weighted_preds_until_y = 0;
 		int i_equal = -1;
 
-		while ((i_equal == -1) || (i < n))
+		for (int i = 0; i < iterator->num_categories; i++)
 		{
-			jaccard_vals[i] = medial::performance::jaccard(y, preds_order[i]);
+			jaccard_vals[i] = medial::performance::jaccard_distance(y, preds_order[i]);
 			if (y == preds_order[i])
 				i_equal = i;
-			i++;
 		}
 
 		for (int i = 0; i < n; i++)
 		{
-			sum_avg_top_5 += jaccard_vals[i];
-			sum_weighted_top_5 += (n - i + 1)*jaccard_vals[i];
-			sum_den_weighted_top_5 += (n - i + 1);
-			sum_weighted_preds_top_5 += *(pred + preds_order[i]) * jaccard_vals[i];
+			sum_avg_top_n += jaccard_vals[i];
+			sum_weighted_top_n += (n - i + 1)*jaccard_vals[i];
+			sum_den_weighted_top_n += (n - i + 1);
+			sum_weighted_preds_top_n += *(pred + preds_order[i]) * jaccard_vals[i];
 		}
 
 		for (int i = 0; i <= i_equal; i++)
@@ -1045,21 +1048,38 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 			sum_weighted_preds_until_y += *(pred + preds_order[i]) *jaccard_vals[i];
 		}
 
-		avg_jaccard_top_5 += (sum_avg_top_5 / n);
-		avg_weighted_jaccard_top_5 += (sum_weighted_top_5 / sum_den_weighted_top_5);
+		float sum_weighted_preds_jaccard_tmp = 0 ;
+		for (int i = 0; i < iterator->num_categories; i++)
+		{
+			sum_weighted_preds_jaccard_tmp += jaccard_vals[i] * *(pred + i);
+		}
+		sum_weighted_preds_jaccard += params->jaccard_weights[(int)y] * sum_weighted_preds_jaccard_tmp;
+
+		sum_correct_location += (i_equal + 1); // start from one
+
+		sum_accuracy_top_n += (i_equal < n) ? 1 : 0;
+
+		avg_jaccard_top_n += (sum_avg_top_n / n);
+		avg_weighted_jaccard_top_n += (sum_weighted_top_n / sum_den_weighted_top_n);
 		avg_jaccard_until_correct += (sum_avg_until_y / (i_equal + 1));
 		avg_weighted_jaccard_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
-		avg_weighted_preds_jaccard_top_5 += sum_weighted_preds_top_5;
+		avg_weighted_preds_jaccard_top_n += sum_weighted_preds_top_n;
 		avg_weighted_preds_jaccard_until_correct += sum_weighted_preds_until_y;
+		
 		n_samples++;
+
 	}
 
-	res["AVG_JACCARD_TOP_5"] = avg_jaccard_top_5 / n_samples;
-	res["AVG_WEIGHTED_JACCARD_TOP_5"] = avg_weighted_jaccard_top_5 / n_samples;
-	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_5"] = avg_weighted_preds_jaccard_top_5 / n_samples;
+	res["AVG_JACCARD_TOP_" + to_string(n)] = avg_jaccard_top_n / n_samples;
+	res["AVG_WEIGHTED_JACCARD_TOP_" + to_string(n)] = avg_weighted_jaccard_top_n / n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_" + to_string(n)] = avg_weighted_preds_jaccard_top_n / n_samples;
 	res["AVG_JACCARD_UNTIL_CORRECT"] = avg_jaccard_until_correct / n_samples;
 	res["AVG_WEIGHTED_JACCARD_UNTIL_CORRECT"] = avg_weighted_jaccard_until_correct / n_samples;
 	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_until_correct / n_samples;
+	res["AVG_WEIGHTED_PREDS_JACCARD"] = sum_weighted_preds_jaccard / n_samples;
+	res["AVG_CORRECT_LOCATION"] = sum_correct_location / n_samples;
+	res["ACCURACY_TOP_ " + to_string(n)] = sum_accuracy_top_n / n_samples;
+
 	return res;
 }
 
@@ -2140,7 +2160,7 @@ void fix_cohort_sample_incidence(const map<string, vector<float>> &additional_in
 	const vector<float> &y, const vector<int> &pids, Measurement_Params *function_params,
 	const vector<int> &filtered_indexes, const vector<float> &y_full, const vector<int> &pids_full) {
 	ROC_And_Filter_Params *pr_full = (ROC_And_Filter_Params *)function_params;
-	ROC_Params *params = pr_full->roc_params;
+	ROC_Params *params = pr_full->roc_params; 
 	vector<Filter_Param> *cohort_filt = pr_full->filter;
 
 	if (params->inc_stats.sorted_outcome_labels.empty())
@@ -2670,6 +2690,41 @@ int ROC_Params::init(map<string, string>& map) {
 	return 0;
 }
 ROC_Params::ROC_Params(const string &init_string) : ROC_Params() {
+	init_from_string(init_string);
+}
+
+int Multiclass_Params::init(map<string, string>& map) {
+	for (auto it = map.begin(); it != map.end(); ++it)
+	{
+		const string &param_name = boost::to_lower_copy(it->first);
+		const string &param_value = it->second;
+
+		//! [Multiclass_Params::init]
+		if (param_name == "top_n")
+			top_n = stoi(param_value);
+		if (param_name == "n_categ")
+			n_categ = stoi(param_value);
+		
+		//! [Multiclass_Params::init]
+		else
+			MTHROW_AND_ERR("Unknown paramter \"%s\" for Multiclass_Params\n", param_name.c_str());
+	}
+
+	jaccard_weights.reserve(n_categ);
+	for (size_t i = 0; i < n_categ; i++)
+	{
+		float sum = 0;
+		for (size_t k = 0; k < n_categ; k++)
+		{
+			sum += medial::performance::jaccard_distance(i, k);
+		}
+		jaccard_weights[i] = (float)(n_categ) / sum;
+	}
+
+	return 0;
+}
+
+Multiclass_Params::Multiclass_Params(const string &init_string) : Multiclass_Params() {
 	init_from_string(init_string);
 }
 #pragma endregion

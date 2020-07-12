@@ -121,9 +121,10 @@ namespace medial {
 		template <typename T> void print_quantized_breakdown(MedMat<int> &cnt, vector<T> &bounds);
 		/// <summary>calculate ICI - calibration index </summary>
 		template <typename T> double integrated_calibration_index(const vector<T> &predicted_prob, const vector<float> &y_label, const vector<float>* weights = NULL);
+		/// <summary>calculate jaccard similarity   </summary>
+		float jaccard_similarity(int val1, int val2);
 		/// <summary>calculate jaccard distance   </summary>
-		float jaccard(int val1, int val2);
-
+		float jaccard_distance(int val1, int val2);
 	}
 
 	namespace stats {

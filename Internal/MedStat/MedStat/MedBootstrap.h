@@ -47,6 +47,7 @@ public:
 class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params; ///< Controling the roc parameters: sensitivity, specificity...
+	Multiclass_Params multiclass_params; ///< Controling the multi class parameters: top n...
 	map<string, vector<Filter_Param>> filter_cohort; ///< the cohorts definitions. name to parameters range to intersect
 	map<string, FilterCohortFunc> additional_cohorts; ///< not Serializable! additional cohorts given by function
 	float sample_ratio; ///<the sample ratio of the patients out of all patients in each bootstrap
@@ -252,7 +253,7 @@ public:
 	/// </returns>
 	MeasurmentFunctionType measurement_function_name_to_type(const string& measurement_function_name);
 	ADD_CLASS_NAME(MedBootstrap)
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow)
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow, multiclass_params)
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<int> &preds_order,  const vector<float> &y, const vector<int> &pids,

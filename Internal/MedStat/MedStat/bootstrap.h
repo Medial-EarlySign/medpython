@@ -167,6 +167,7 @@ class Measurement_Params {
 public:
 	bool show_warns; ///< If True will show warnnings
 	Measurement_Params();
+	virtual ~Measurement_Params() {};
 };
 
 #pragma region Measurements Fucntions
@@ -301,6 +302,20 @@ public:
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score, use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
+};
+
+/**
+* Parameter object for Multiclass measure functions
+*/
+class Multiclass_Params : public Measurement_Params, public SerializableObject {
+public:
+	int top_n; ///< when looking on top predictions, this is the maximal index
+	int n_categ; ///< Number of categories
+	vector<float> jaccard_weights; ///< Vector of weights - for index i : jaccard_weights[i] = 1/sum(Jacc(i,k)
+	Multiclass_Params() { top_n = 5; n_categ = 1; }
+	Multiclass_Params(const string &init_string);
+	int init(map<string, string>& map);
+	ADD_SERIALIZATION_FUNCS(top_n, n_categ, jaccard_weights)
 };
 
 #pragma region Cohort Fucntions
