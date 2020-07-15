@@ -1017,7 +1017,7 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 
 	vector<float> jaccard_vals(iterator->num_categories);
 	float avg_jaccard_top_n = 0, avg_weighted_jaccard_top_n = 0, avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
-	float avg_weighted_preds_jaccard_top_n = 0, avg_weighted_preds_jaccard_until_correct = 0, sum_weighted_preds_jaccard = 0, sum_correct_location = 0, sum_accuracy_top_n = 0;
+	float avg_weighted_preds_jaccard_top_n = 0, avg_weighted_preds_jaccard_until_correct = 0, sum_weighted_preds_jaccard = 0, sum_correct_location = 0, sum_accuracy_top_n = 0, sum_accuracy_top_1 = 0;
 	int n_samples = 0;
 
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
@@ -1057,7 +1057,9 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 
 		sum_correct_location += (i_equal + 1); // start from one
 
-		sum_accuracy_top_n += (i_equal < n) ? 1 : 0;
+		sum_accuracy_top_n += (i_equal < n);
+
+		sum_accuracy_top_1 += (i_equal == 0);
 
 		avg_jaccard_top_n += (sum_avg_top_n / n);
 		avg_weighted_jaccard_top_n += (sum_weighted_top_n / sum_den_weighted_top_n);
@@ -1067,7 +1069,6 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 		avg_weighted_preds_jaccard_until_correct += sum_weighted_preds_until_y;
 		
 		n_samples++;
-
 	}
 
 	res["AVG_JACCARD_TOP_" + to_string(n)] = avg_jaccard_top_n / n_samples;
@@ -1078,7 +1079,8 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_until_correct / n_samples;
 	res["AVG_WEIGHTED_PREDS_JACCARD"] = sum_weighted_preds_jaccard / n_samples;
 	res["AVG_CORRECT_LOCATION"] = sum_correct_location / n_samples;
-	res["ACCURACY_TOP_ " + to_string(n)] = sum_accuracy_top_n / n_samples;
+	res["ACCURACY_TOP_" + to_string(n)] = sum_accuracy_top_n / n_samples;
+	res["ACCURACY_TOP_1"] = sum_accuracy_top_1 / n_samples;
 
 	return res;
 }
