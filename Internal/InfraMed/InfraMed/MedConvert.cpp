@@ -757,10 +757,13 @@ int MedConvert::get_next_signal(ifstream &inf, int file_type, pid_data &curr, in
 									if (missing_dict_vals.size() < 10)
 										MWARN("MedConvert::get_next_signal: missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
 											sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
+#pragma omp critical
 									missing_dict_vals[my_key] = 1;
 								}
-								else
-									missing_dict_vals[my_key]++;
+								else {
+#pragma omp atomic
+									++missing_dict_vals[my_key];
+								}
 							}
 							catch (...) {
 								curr_fstat.n_bad_format_lines++;
@@ -949,6 +952,8 @@ int MedConvert::create_indexes()
 	MedProgress load_progress("MedConvert::create_indexes", 0, 30);
 	MedTimer timer_action;
 	vector<double> tot_time(3);
+	int curr_errors = 0;
+	map<string, int> prev_forced_errs = missing_forced_signals;
 	while (n_open_in_files > 0) {
 
 		// find current pid to extract
@@ -974,12 +979,16 @@ int MedConvert::create_indexes()
 		for (i = 0; i < n_files_opened; i++) {
 			int fpid = c_pid;
 			if (infs[i].is_open() && pid_in_file[i] <= c_pid) {
+				//pid_data curr_i;
+				//curr_i.raw_data.resize(serial2sid.size());
 				//MLOG("file %d :: pid_int_file %d fpid %d\n", i, pid_in_file[i], fpid);
 				if (get_next_signal(infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals) == -1) {
 					MERR("create_indexes : get_next_signal failed for file %d/%d\n", i, n_files_opened);
 					return -1;
 				}
 				pid_in_file[i] = fpid; // current pid after the one we wanted
+				//merge into curr from curr_i:
+
 			}
 			//MLOG("i=%d c_pid=%d fpid=%d curr %d %d %d\n",i,c_pid,fpid,curr.pid,n_files_opened,n_open_in_files);
 		}
@@ -1003,13 +1012,15 @@ int MedConvert::create_indexes()
 		load_progress.update();
 		if (check_for_error_pid_cnt > 0 && n_pids_extracted % check_for_error_pid_cnt == 0) {
 			timer_action.start();
-			test_for_load_error(missing_dict_vals, n_pids_extracted, false);
+			test_for_load_error(missing_dict_vals, n_pids_extracted, false, curr_errors, curr_errors,
+				prev_forced_errs);
+			prev_forced_errs = missing_forced_signals;
 			timer_action.take_curr_time();
 			tot_time[2] += timer_action.diff_sec();
 		}
 	}
-
-	test_for_load_error(missing_dict_vals, n_pids_extracted, true);
+	map<string, int> empty_cnts;
+	test_for_load_error(missing_dict_vals, n_pids_extracted, true, 0, curr_errors, empty_cnts);
 
 	MLOG("Finished reading all pids (%d pids extracted) - closing index and data files\n", n_pids_extracted);
 	if (mode < 3)
@@ -1022,18 +1033,22 @@ int MedConvert::create_indexes()
 }
 //------------------------------------------------
 void MedConvert::test_for_load_error(const map<pair<string, string>, int> &missing_dict_vals,
-	int n_pids_extracted, bool final_test) const {
-	int total_missing = 0;
+	int n_pids_extracted, bool final_test,
+	int prev_total_missings, int &total_missing, const map<string, int> &prev_missing_forced_signals) const {
+	total_missing = 0;
 	for (auto& entry : missing_dict_vals) {
 		total_missing += entry.second;
-		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
-			entry.first.second.c_str(), entry.second, total_missing);
+		if (prev_total_missings < total_missing)
+			MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
+				entry.first.second.c_str(), entry.second, total_missing);
 		if (safe_mode && total_missing > allowed_unknown_catgory_cnt) {
 			MTHROW_AND_ERR("%d > 50 missing entries is too much... refusing to create repo!\n", total_missing);
 		}
 	}
 	for (auto& entry : missing_forced_signals) {
-		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
+		if (prev_missing_forced_signals.find(entry.first) == prev_missing_forced_signals.end() ||
+			prev_missing_forced_signals.at(entry.first) < entry.second)
+			MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
 		if (n_pids_extracted > 0 && safe_mode &&
 			(double(entry.second) / n_pids_extracted > allowed_missing_pids_from_forced_ratio ||
 				entry.second > allowed_missing_pids_from_forced_cnt))

@@ -121,11 +121,11 @@ public:
 	map<string, int> missing_forced_signals;
 
 	// internal variables
-	map<string, string> codes2names;
+	unordered_map<string, string> codes2names;
 	MedDictionarySections   dict;
 	MedSignals sigs;
 	map<int, int> sid2fno;
-	map<int, int> sid2serial;
+	unordered_map<int, int> sid2serial;
 	vector<int> serial2sid;
 	vector<sig_info> serial2siginfo;
 
@@ -176,7 +176,8 @@ public:
 	int prep_sids_to_load();
 private:
 	/// tests for load error during load. The input flag is indicator for test after finish load all
-	void test_for_load_error(const map<pair<string, string>, int> &missing_dict_vals, int n_pids_extracted, bool final_test) const;
+	void test_for_load_error(const map<pair<string, string>, int> &missing_dict_vals, int n_pids_extracted, bool final_test
+		,int prev_total_missings, int &total_missing, const map<string, int> &prev_missing_forced_signals) const;
 };
 
 #endif
