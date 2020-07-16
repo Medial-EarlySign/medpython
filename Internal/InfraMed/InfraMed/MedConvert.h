@@ -159,7 +159,7 @@ public:
 
 	int n_open_in_files;
 	// actually reading data and creating index and data files
-	int get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+	void get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
 	int create_indexes();
 	int create_repository_config();
 	int create_signals_config();

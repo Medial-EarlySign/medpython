@@ -429,12 +429,14 @@ bool read_file_to_buffer(ifstream &inf, vector<string> &buffered_lines, int read
 	return false;
 }
 //------------------------------------------------
-int MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat &curr_fstat, map<pair<string, string>, int>& missing_dict_vals)
+void MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat &curr_fstat, map<pair<string, string>, int>& missing_dict_vals)
 {
 	if (buffered_lines.empty()) {
 		//fill buffer:
-		if (read_file_to_buffer(inf, buffered_lines, read_lines_buffer))
-			return 0;
+		if (read_file_to_buffer(inf, buffered_lines, read_lines_buffer)) {
+			fpid = -1;
+			return;
+		}
 	}
 
 	bool get_next = true;
@@ -457,7 +459,7 @@ int MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos,
 				get_next = false;
 				fpid = -1;
 				--n_open_in_files;
-				break;
+				return;
 			}
 		}
 
@@ -840,9 +842,8 @@ int MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos,
 	if (fpid > MAX_PID_TO_TAKE) {
 		fpid = -1;
 		--n_open_in_files;
-	}
 
-	return 0;
+	}
 }
 //------------------------------------------------
 int MedConvert::create_signals_config()
@@ -1051,38 +1052,33 @@ int MedConvert::create_indexes()
 
 
 		timer_action.start();
-		bool mark_err = false;
+		//bool mark_err = false;
 #pragma omp parallel for schedule(dynamic) if (run_parallel)
 		for (int i = 0; i < n_files_opened; i++) {
 			int fpid = c_pid;
-			if (infs[i].is_open() && pid_in_file[i] <= c_pid) {
+			if (pid_in_file[i] <= c_pid) {
 				if (run_parallel) {
 					pid_data curr_i;
 					curr_i.pid = c_pid;
 					curr_i.raw_data.resize(serial2sid.size());
 					//MLOG("file %d :: pid_int_file %d fpid %d\n", i, pid_in_file[i], fpid);
-					if (get_next_signal(file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr_i, fpid, fstats[i], missing_dict_vals) == -1) {
-						MERR("create_indexes : get_next_signal failed for file %d/%d\n", i, n_files_opened);
-#pragma omp critical
-						mark_err = true;
-
-					}
+					get_next_signal(file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr_i, fpid, fstats[i], missing_dict_vals);
 					pid_in_file[i] = fpid; // current pid after the one we wanted
 					//merge into curr from curr_i:
 					merge_changes(curr_i, curr);
 				}
 				else {
-					if (get_next_signal(file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals) == -1) {
-						MERR("create_indexes : get_next_signal failed for file %d/%d\n", i, n_files_opened);
-						mark_err = true;
-					}
+					//update pid if exit code is zero
+					get_next_signal(file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals);
 					pid_in_file[i] = fpid; // current pid after the one we wanted
 				}
+
 			}
-			//MLOG("i=%d c_pid=%d fpid=%d curr %d %d %d\n",i,c_pid,fpid,curr.pid,n_files_opened,n_open_in_files);
 		}
-		if (mark_err)
-			return -1;
+		//MLOG("i=%d c_pid=%d fpid=%d curr %d %d %d\n",i,c_pid,fpid,curr.pid,n_files_opened,n_open_in_files);
+
+	//if (mark_err)
+	//	return -1;
 		timer_action.take_curr_time();
 		tot_time[0] += timer_action.diff_sec();
 
@@ -1304,8 +1300,7 @@ int MedConvert::write_indexes(pid_data &curr)
 	if (curr.pid < 0)
 		MTHROW_AND_ERR("MedConvert::write_indexes negative pid %d", curr.pid);
 	// first we sort all elements by time
-	int i;
-	for (i = 0; i < curr.raw_data.size(); i++) {
+	for (int i = 0; i < curr.raw_data.size(); i++) {
 		GenericSigVec gsv1;
 		auto& info = sigs.Sid2Info[serial2siginfo[i].sid];
 		gsv1.init(info);
@@ -1318,7 +1313,7 @@ int MedConvert::write_indexes(pid_data &curr)
 
 	// getting rid of duplicates
 	vector<collected_data>::iterator it;
-	for (i = 0; i < curr.raw_data.size(); i++) {
+	for (int i = 0; i < curr.raw_data.size(); i++) {
 		int struct_size = sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
 		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [=](const collected_data &v1, const collected_data &v2) {
 			return memcmp(v1.buf, v2.buf, struct_size) == 0;
@@ -1333,7 +1328,7 @@ int MedConvert::write_indexes(pid_data &curr)
 //	if (curr.raw_data[sid2serial[dict.id(string("BYEAR"))]].size() != 1) return -1;
 
 	// forced signals
-	for (i = 0; i < forced.size(); i++) {
+	for (int i = 0; i < forced.size(); i++) {
 		if (curr.raw_data[sid2serial[dict.id(forced[i])]].size() != 1) {
 			if (missing_forced_signals.find(forced[i]) == missing_forced_signals.end())
 				missing_forced_signals[forced[i]] = 1;
@@ -1349,13 +1344,13 @@ int MedConvert::write_indexes(pid_data &curr)
 	// writing indexes
 	int fno;
 	int n_pid_sigs;
-	if (test_run_max_pids == 0) 
+	if (test_run_max_pids == 0)
 		for (fno = 0; fno < index_fnames.size(); fno++)
 			if (data_f[fno] != NULL)
 			{
 				n_pid_sigs = 0;
 				if (mode < 3) {
-					for (i = 0; i < curr.raw_data.size(); i++)
+					for (int i = 0; i < curr.raw_data.size(); i++)
 						if (curr.raw_data[i].size() > 0 && serial2siginfo[i].fno == fno &&
 							(serial2siginfo[i].type >= 0 && serial2siginfo[i].type < T_Last))
 							//if (curr.raw_data[i].size() > 0 && sid2fno[serial2sid[i]] == fno &&
@@ -1382,7 +1377,7 @@ int MedConvert::write_indexes(pid_data &curr)
 					}
 
 					// write data and index pointer for each signal
-					for (i = 0; i < curr.raw_data.size(); i++) {
+					for (int i = 0; i < curr.raw_data.size(); i++) {
 
 						int ilen = (int)curr.raw_data[i].size();
 						if (ilen > 0) {
