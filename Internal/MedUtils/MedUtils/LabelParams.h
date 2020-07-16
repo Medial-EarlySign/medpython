@@ -97,7 +97,7 @@ public:
 	ConflictMode conflict_method; ///< resolving conflicts
 	int censor_time_from; ///< time window from - for censor registry
 	int censor_time_to; ///< time window to - for censor registry
-
+	bool treat_0_class_as_other_classes; ///< used to define the way outcome time is set to 0 class. in case control should be false, inmulticlass true
 	LabelParams();
 
 	/// init function

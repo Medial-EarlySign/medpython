@@ -59,6 +59,7 @@ LabelParams::LabelParams() {
 	time_to = 0;
 	censor_time_from = MED_MAT_MISSING_VALUE;
 	censor_time_to = MED_MAT_MISSING_VALUE;
+	treat_0_class_as_other_classes = false;
 }
 
 int LabelParams::init(map<string, string>& map) {
@@ -78,6 +79,9 @@ int LabelParams::init(map<string, string>& map) {
 			censor_time_from = med_stoi(it->second);
 		else if (it->first == "censor_time_to")
 			censor_time_to = med_stoi(it->second);
+		else if (it->first == "treat_0_class_as_other_classes")
+			treat_0_class_as_other_classes = med_stoi(it->second);
+
 		else
 			MTHROW_AND_ERR("Error in LabelParams::init - unsupported param %s\n", it->first.c_str());
 	}
