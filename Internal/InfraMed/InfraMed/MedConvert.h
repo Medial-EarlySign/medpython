@@ -98,12 +98,15 @@ public:
 
 	//running parameters for load:
 	int check_for_error_pid_cnt = 10000; ///< after how many pids to check for error. If 0 only at the end
-	double dry_run_ratio = 0; ///< If bigger than 1 - will run in dry run on random subsample of the files
+	int read_lines_buffer = 100000; ///< how much lines to read for file
+	int test_run_max_pids = 0; ///< If bigger than 1 - will run in dry run till that number of pids
 	int allowed_unknown_catgory_cnt = 50; ///< how many unknown categories are allowed
 	int allowed_missing_pids_from_forced_cnt = 0; ///< how many pids are allowed to be missing in forced signals. 0 means no limit
 	double allowed_missing_pids_from_forced_ratio = 0.05; ///< how many pids are allowed to be missing in forced signals. 0 means no limit
 	double max_bad_line_ratio = 0.05; ///< maximal ratio for bad lines in file
 	double min_parsed_line_ratip = 0.01; ///< minimal ratio for parsed lines in file
+	bool verbose_open_files = false; ///< If true will print when openning files
+	bool run_parallel = false; ///< If true will load in parallel
 
 	void init_load_params(const string &init_str);
 
@@ -156,7 +159,7 @@ public:
 
 	int n_open_in_files;
 	// actually reading data and creating index and data files
-	int get_next_signal(ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+	int get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
 	int create_indexes();
 	int create_repository_config();
 	int create_signals_config();
