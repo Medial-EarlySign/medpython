@@ -90,6 +90,7 @@ int copy_file_IM(const string& in_file, const string& out_file) {
 int copy_files_IM(const string &in_path, const string &out_path, vector<string>& fnames) {
 
 	if (in_path != out_path) {
+		boost::filesystem::create_directories(out_path);
 		for (unsigned int i=0; i<fnames.size(); i++) {
 			if (fnames[i].size() > 0 && fnames[i][0] == '/') {
 				MLOG("not copying [%s] as its absolute path\n", fnames[i].c_str());

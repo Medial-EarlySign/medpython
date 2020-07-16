@@ -379,6 +379,13 @@ int MedConvert::read_all(const string &config_fname)
 		MTHROW_AND_ERR("MedConvert: read_all(): failed generating repository config file\n");
 
 	// Copy dict files as-is to output directory
+	//validate dir exits:
+	for (string d : dict_fnames)
+	{
+		add_path_to_name_IM(out_path, d);
+		boost::filesystem::path pt_dict(d);
+		boost::filesystem::create_directories(pt_dict.parent_path().string());
+	}
 	if (copy_files_IM(path, out_path, dict_fnames) < 0)
 		MTHROW_AND_ERR("MedConvert : read_all() : failed copying files from in to out directory\n");
 
@@ -939,8 +946,9 @@ int MedConvert::create_indexes()
 	map<pair<string, string>, int> missing_dict_vals;
 	vector<int> all_pids;  // a list of all pids in the repository to be written to file.
 	all_pids.push_back(0); // reserved place for later placing of total number of pids
-	time_t start = time(NULL);
-	time_t last_time_print = start;
+	MedProgress load_progress("MedConvert::create_indexes", 0, 30);
+	MedTimer timer_action;
+	vector<double> tot_time(3);
 	while (n_open_in_files > 0) {
 
 		// find current pid to extract
@@ -950,8 +958,11 @@ int MedConvert::create_indexes()
 			if (c_pid >= 0 && pid_in_file[i] > 0 && pid_in_file[i] < c_pid) c_pid = pid_in_file[i];
 		}
 
-		if (c_pid % 100000 == 0)
-			MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d\n", c_pid, n_pids_extracted, n_open_in_files);
+		if (c_pid % 100000 == 0) {
+			MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. "
+				"Times [%2.1f, %2.1f, %2.1f]\n",
+				c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[1], tot_time[2]);
+		}
 
 		// read data from files
 		curr.raw_data.clear();
@@ -959,7 +970,7 @@ int MedConvert::create_indexes()
 		curr.pid = c_pid;
 
 
-
+		timer_action.start();
 		for (i = 0; i < n_files_opened; i++) {
 			int fpid = c_pid;
 			if (infs[i].is_open() && pid_in_file[i] <= c_pid) {
@@ -972,8 +983,11 @@ int MedConvert::create_indexes()
 			}
 			//MLOG("i=%d c_pid=%d fpid=%d curr %d %d %d\n",i,c_pid,fpid,curr.pid,n_files_opened,n_open_in_files);
 		}
+		timer_action.take_curr_time();
+		tot_time[0] += timer_action.diff_sec();
 
 		// write data to output files
+		timer_action.start();
 		if (curr.pid >= 0) {
 			if (write_indexes(curr) < 0) {
 				//MERR("MedConvert: create_indexes: curr packet for pid %d was not written...\n", curr.pid);
@@ -982,58 +996,20 @@ int MedConvert::create_indexes()
 			else
 				all_pids.push_back(curr.pid);
 		}
+		timer_action.take_curr_time();
+		tot_time[1] += timer_action.diff_sec();
 
-		n_pids_extracted++;
-		//if (n_pids_extracted % 100000 == 0)
-		//	MLOG("MedConvert: create_indexes: extracted %d pids (%d open files)\n", n_pids_extracted, n_open_in_files);
-		if (n_pids_extracted % 10000 == 0 && (int)difftime(time(NULL), last_time_print) >= 30) {
-			last_time_print = time(NULL);
-			float time_elapsed = (float)difftime(time(NULL), start);
-			int left_files = n_files_opened - n_open_in_files;
-			float estimate_time = 0;
-			if (left_files > 0)
-				estimate_time = (float(n_open_in_files) / left_files) * time_elapsed;
-			float perc = 0;
-			if (n_files_opened > 0)
-				perc = 100.0*(left_files / float(n_files_opened));
-			MLOG("Processed %d out of %d(%2.2f%) time elapsed: %2.1f Minutes, estimate time to finish %2.1f Minutes."
-				" extracted %d pids\n",
-				n_files_opened - n_open_in_files, n_files_opened, perc,
-				time_elapsed / 60, estimate_time / 60.0, n_pids_extracted);
+		++n_pids_extracted;
+		load_progress.update();
+		if (check_for_error_pid_cnt > 0 && n_pids_extracted % check_for_error_pid_cnt == 0) {
+			timer_action.start();
+			test_for_load_error(missing_dict_vals, n_pids_extracted, false);
+			timer_action.take_curr_time();
+			tot_time[2] += timer_action.diff_sec();
 		}
 	}
-	int total_missing = 0;
-	for (auto& entry : missing_dict_vals) {
-		total_missing += entry.second;
-		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
-			entry.first.second.c_str(), entry.second, total_missing);
-		if (safe_mode && total_missing > 50) {
-			MTHROW_AND_ERR("%d > 50 missing entries is too much... refusing to create repo!\n", total_missing);
-		}
-	}
-	for (auto& entry : missing_forced_signals) {
-		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
-		if (n_pids_extracted > 0 && safe_mode && 1.0*entry.second / n_pids_extracted > 0.05)
-			MTHROW_AND_ERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
-	}
-	// all files are closed, all are written correctly
 
-	// print statistics for data files
-	MLOG("Statistics for %d data files\n", fstats.size());
-	for (auto& stat : fstats) {
-		float ratio = (float)(stat.n_parsed_lines + 1) / (float)(stat.n_relevant_lines + 1);
-		float bad_ratio = (float)(stat.n_bad_format_lines + 1) / (float)(stat.n_relevant_lines + 1);
-		MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_parsed_lines %d : parsed %g\n",
-			stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_bad_format_lines, stat.n_parsed_lines,
-			ratio);
-		if (ratio < 0.01 || bad_ratio > 0.05) {
-			if (stat.n_relevant_lines > 1000) {
-				MTHROW_AND_ERR("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
-			}
-			else MWARN("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
-		}
-
-	}
+	test_for_load_error(missing_dict_vals, n_pids_extracted, true);
 
 	MLOG("Finished reading all pids (%d pids extracted) - closing index and data files\n", n_pids_extracted);
 	if (mode < 3)
@@ -1044,7 +1020,49 @@ int MedConvert::create_indexes()
 
 	return 0;
 }
+//------------------------------------------------
+void MedConvert::test_for_load_error(const map<pair<string, string>, int> &missing_dict_vals,
+	int n_pids_extracted, bool final_test) const {
+	int total_missing = 0;
+	for (auto& entry : missing_dict_vals) {
+		total_missing += entry.second;
+		MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
+			entry.first.second.c_str(), entry.second, total_missing);
+		if (safe_mode && total_missing > allowed_unknown_catgory_cnt) {
+			MTHROW_AND_ERR("%d > 50 missing entries is too much... refusing to create repo!\n", total_missing);
+		}
+	}
+	for (auto& entry : missing_forced_signals) {
+		MWARN("MedConvert: saw missing_forced_signal [%s] %d times\n", entry.first.c_str(), entry.second);
+		if (n_pids_extracted > 0 && safe_mode &&
+			(double(entry.second) / n_pids_extracted > allowed_missing_pids_from_forced_ratio ||
+				entry.second > allowed_missing_pids_from_forced_cnt))
+			MTHROW_AND_ERR("%d / %d missing_forced_signal is too much... refusing to create repo!\n", entry.second, n_pids_extracted);
+	}
+	// all files are closed, all are written correctly
 
+	// print statistics for data files
+	if (final_test)
+		MLOG("Statistics for %d data files\n", fstats.size());
+	for (auto& stat : fstats) {
+		float ratio = (float)(stat.n_parsed_lines + 1) / (float)(stat.n_relevant_lines + 1);
+		float bad_ratio = (float)(stat.n_bad_format_lines + 1) / (float)(stat.n_relevant_lines + 1);
+		if (final_test)
+			MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_parsed_lines %d : parsed %g\n",
+				stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_bad_format_lines, stat.n_parsed_lines,
+				ratio);
+		if (ratio < min_parsed_line_ratip || bad_ratio > max_bad_line_ratio) {
+			if (stat.n_relevant_lines > 1000) {
+				MTHROW_AND_ERR("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
+			}
+			else {
+				if (final_test)
+					MWARN("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
+			}
+		}
+
+	}
+}
 //------------------------------------------------
 int MedConvert::open_indexes()
 {
@@ -1482,4 +1500,32 @@ int MedConvert::generate_prefix_names()
 	}
 
 	return 0;
+}
+
+void MedConvert::init_load_params(const string &init_str) {
+	map<string, string> mapper;
+	if (MedSerialize::init_map_from_string(init_str, mapper) < 0)
+		MTHROW_AND_ERR("Error Init from String %s\n", init_str.c_str());
+
+	for (const auto &it : mapper)
+	{
+		if (it.first == "check_for_error_pid_cnt")
+			check_for_error_pid_cnt = med_stoi(it.second);
+		else if (it.first == "dry_run_ratio")
+			dry_run_ratio = med_stof(it.second);
+		else if (it.first == "allowed_missing_pids_from_forced_ratio")
+			allowed_missing_pids_from_forced_ratio = med_stof(it.second);
+		else if (it.first == "max_bad_line_ratio")
+			max_bad_line_ratio = med_stof(it.second);
+		else if (it.first == "min_parsed_line_ratip")
+			min_parsed_line_ratip = med_stof(it.second);
+		else if (it.first == "allowed_unknown_catgory_cnt")
+			allowed_unknown_catgory_cnt = med_stoi(it.second);
+		else if (it.first == "allowed_missing_pids_from_forced_cnt")
+			allowed_missing_pids_from_forced_cnt = med_stoi(it.second);
+		else
+			MTHROW_AND_ERR("Error in MedConvert::init_load_params - unknown parameter %s\n",
+				it.first.c_str());
+	}
+
 }
