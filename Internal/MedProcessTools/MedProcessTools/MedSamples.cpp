@@ -716,33 +716,48 @@ int MedSamples::write_to_file(const string &fname, int pred_precision, bool prin
 		MERR("MedSamples: can't open file %s for writing\n", fname.c_str());
 		return -1;
 	}
-	int samples = 0;
+
+	write_to_file(of, pred_precision, print_attributes, true);
+
+	MLOG("wrote [%d] samples for [%d] patient IDs\n", nSamples(), idSamples.size());
+	of.close(); //will flush buffer if needed
+	return 0;
+}
+
+// write to text file in new format given ofstream. 
+//.......................................................................................
+void MedSamples::write_to_file(ofstream& of, int pred_precision, bool print_attributes, bool print_header)
+{
+	int nPreds;
+	if (get_predictions_size(nPreds) < 0)
+		MTHROW_AND_ERR("MedSampels: Predictions vectors sizes inconsistent\n");
+
+	vector<string> attributes, str_attributes;
+	if (get_all_attributes(attributes, str_attributes) < 0)
+		MTHROW_AND_ERR("MedSamples: Attributes sets inconsistency\n");
+
 	int buffer_write = 0;
 
-	of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split";
-	for (int i = 0; i < nPreds; i++)
-		of << "\tpred_" << i;
+	if (print_header) {
+		of << "EVENT_FIELDS" << '\t' << "id" << '\t' << "time" << '\t' << "outcome" << '\t' << "outcomeTime" << '\t' << "split";
+		for (int i = 0; i < nPreds; i++)
+			of << "\tpred_" << i;
 
-	if (print_attributes)
-	{
-		for (string name : attributes)
-			of << "\tattr_" << name;
-		for (string name : str_attributes)
-			of << "\tstr_attr_" << name;
+		if (print_attributes)
+		{
+			for (string name : attributes)
+				of << "\tattr_" << name;
+			for (string name : str_attributes)
+				of << "\tstr_attr_" << name;
+		}
+		of << "\n";
 	}
-	of << "\n";
-
-	//removing this line since it creates something which isn't a csv, and I can't read it with python later...
-	//of << "TIME_UNIT" << "\t" << med_time_converter.type_to_string(time_unit) << "\n";
 
 	int line = 0;
 	for (auto &s : idSamples) {
 		for (auto ss : s.samples) {
-			samples++;
 			string sout;
-			ss.write_to_string(sout, time_unit, print_attributes, string("\t") , pred_precision);
-			//of << "EVENT" << '\t' << ss.id << '\t' << ss.time << '\t' << ss.outcome << '\t' << 100000 << '\t' <<
-			//	ss.outcomeTime << '\t' << s.split << '\t' << ss.prediction.front() << endl;
+			ss.write_to_string(sout, time_unit, print_attributes, string("\t"), pred_precision);
 			if (buffer_write > 0 && line >= buffer_write) {
 				of << sout << endl;
 				line = 0;
@@ -754,10 +769,9 @@ int MedSamples::write_to_file(const string &fname, int pred_precision, bool prin
 		}
 	}
 
-	MLOG("wrote [%d] samples for [%d] patient IDs\n", samples, idSamples.size());
-	of.close(); //will flush buffer if needed
-	return 0;
+	return;
 }
+
 
 // Sort by id and then date
 //.......................................................................................
