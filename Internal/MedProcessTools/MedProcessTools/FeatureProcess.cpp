@@ -214,13 +214,18 @@ int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 //.......................................................................................
-mutex FeatureProcessor::FeatureProcess_Resolve;
-string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
-	lock_guard<mutex> guard(FeatureProcessor::FeatureProcess_Resolve);
-	//resolve_feature_name - access features.data names in not thread safe manner
-	string res = features.resolve_name(substr);
 
-	return res;
+string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
+	string res;
+#pragma omp critical
+	{
+		MLOG("inside resolve: %d \n", omp_get_thread_num());
+		//resolve_feature_name - access features.data names in not thread safe manner
+		res = features.resolve_name(substr);
+		MLOG("outside resolve: %d \n", omp_get_thread_num());
+	}
+		return res;
+
 }
 
 // (De)Serialize
