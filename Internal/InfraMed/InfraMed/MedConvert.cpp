@@ -920,8 +920,10 @@ int MedConvert::create_repository_config()
 //------------------------------------------------
 void merge_changes(const pid_data &curr_i, pid_data &curr) {
 #pragma omp critical
-	for (size_t i = 0; i < curr.raw_data.size(); ++i)
-		curr.raw_data[i].insert(curr.raw_data[i].end(), curr_i.raw_data[i].begin(), curr_i.raw_data[i].end());
+	for (size_t i = 0; i < curr.raw_data.size(); ++i) {
+		if (!curr_i.raw_data[i].empty())
+			curr.raw_data[i].insert(curr.raw_data[i].end(), curr_i.raw_data[i].begin(), curr_i.raw_data[i].end());
+	}
 }
 //------------------------------------------------
 int MedConvert::create_indexes()
@@ -1019,12 +1021,13 @@ int MedConvert::create_indexes()
 			file_to_lines[i].reserve(read_lines_buffer);
 	//read first buffers - without parallel:
 	MLOG("Reading first line buffer for all files\n");
-	MedTimer tm_read;
-	tm_read.start();
-	for (size_t i = 0; i < n_files_opened; ++i)
+
+	MedProgress prog_read_buf("Buffering files", n_files_opened, 15, 1);
+	prog_read_buf.alway_print_total = true;
+	for (size_t i = 0; i < n_files_opened; ++i) {
 		read_file_to_buffer(infs[i], file_to_lines[i], read_lines_buffer);
-	tm_read.take_curr_time();
-	MLOG("Done! took %2.1f seconds\n", tm_read.diff_sec());
+		prog_read_buf.update();
+	}
 	MedProgress load_progress("MedConvert::create_indexes", 0, 30);
 	while (n_open_in_files > 0) {
 
