@@ -1452,6 +1452,96 @@ int MedConvert::write_indexes(pid_data &curr)
 	return 0;
 }
 
+
+//------------------------------------------------
+int MedConvert::write_indexes_new_modes(pid_data &curr)
+{
+	if (curr.pid < 0)
+		MTHROW_AND_ERR("MedConvert::write_indexes negative pid %d", curr.pid);
+	// first we sort all elements by time
+	int i;
+	for (i = 0; i < curr.raw_data.size(); i++) {
+		GenericSigVec gsv1;
+		auto& info = sigs.Sid2Info[serial2siginfo[i].sid];
+		gsv1.init(info);
+		sort(curr.raw_data[i].begin(), curr.raw_data[i].end(),
+			[&](const collected_data &v1, const collected_data &v2)
+		{
+			return gsv1.compareTimeLt(&v1.buf[0], 0, &v2.buf[0], 0);
+		});
+	}
+
+	// getting rid of duplicates
+	vector<collected_data>::iterator it;
+	for (i = 0; i < curr.raw_data.size(); i++) {
+		int struct_size = sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
+		it = unique(curr.raw_data[i].begin(), curr.raw_data[i].end(), [=](const collected_data &v1, const collected_data &v2) {
+			return memcmp(v1.buf, v2.buf, struct_size) == 0;
+			//return cd_to_tuple(v1) == cd_to_tuple(v2); 
+		});
+		curr.raw_data[i].resize(distance(curr.raw_data[i].begin(), it));
+	}
+
+
+	// forced signals
+	for (i = 0; i < forced.size(); i++) {
+		if (curr.raw_data[sid2serial[dict.id(forced[i])]].size() != 1) {
+			if (missing_forced_signals.find(forced[i]) == missing_forced_signals.end())
+				missing_forced_signals[forced[i]] = 1;
+			else
+				missing_forced_signals[forced[i]] += 1;
+			if (missing_forced_signals[forced[i]] < 10)
+				MLOG("MedConvert: pid %d is missing forced signal %s (%d,%d,%d)\n", curr.pid, forced[i].c_str(),
+					dict.id(forced[i]), sid2serial[dict.id(forced[i])], curr.raw_data[sid2serial[dict.id(forced[i])]].size());
+			return -1;
+		}
+	}
+
+	// writing indexes
+	int fno;
+	for (fno = 0; fno < index_fnames.size(); fno++)
+		if (data_f[fno] != NULL)
+		{
+			if (curr.raw_data[fno].size() > 0 && serial2siginfo[fno].type >= 0 && serial2siginfo[fno].type < T_Last) {
+
+				// write data and index pointer for each signal
+				for (i = 0; i < curr.raw_data.size(); i++) {
+
+					int ilen = (int)curr.raw_data[i].size();
+					if (ilen > 0) {
+						int sid = serial2sid[i];
+						int sid_type = serial2siginfo[i].type; //sigs.type(sid);
+						int sid_fno = serial2siginfo[i].fno; //sid2fno[sid];
+
+						if ((ilen > 0) && (sid_fno == fno) && (sid_type >= 0 && sid_type < T_Last)) {
+
+							//int sid = serial2sid[i];
+							unsigned short file_n = fno;
+							unsigned long long pos = data_f_pos[fno];
+							int len = 0;
+
+							//if (sid_type == T_Generic) {
+							int struct_len = (int)sigs.Sid2Info[serial2siginfo[i].sid].bytes_len;
+							len = struct_len * ilen;
+							for (int j = 0; j < ilen; j++) {
+								data_f[fno]->write((char *)&(curr.raw_data[i][j].buf[0]), struct_len);
+							}
+							//}
+
+
+							indexes[fno].insert(curr.pid, ilen);
+							data_f_pos[fno] += len;
+
+						}
+					}
+				}
+			}
+
+		}
+	return 0;
+}
+
+
 /////////////////////////////////////////////////////////////////
 // mode >=2 related
 //-----------------------------------------------------------------------------------------------------------------

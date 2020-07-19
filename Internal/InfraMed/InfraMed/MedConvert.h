@@ -156,6 +156,7 @@ class  MedConvert {
 		vector<unsigned long long> data_f_pos;
 		int open_indexes();
 		int write_indexes(pid_data &curr);
+		int write_indexes_new_modes(pid_data &curr);
 		int close_indexes();
 		int write_all_indexes(vector<int> &all_pids);
 
