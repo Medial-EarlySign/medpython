@@ -85,7 +85,7 @@ namespace medial {
 			, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to, int censor_time_from, int  censor_time_to,
 			const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 			ConflictMode conflict_mode, vector<MedSample> &idSamples,
-			int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor = true, bool show_conflicts = false);
+			int &no_rule_found, int &conflict_count, int &done_count, bool treat_0_class_as_other_classes, bool filter_no_censor = true, bool show_conflicts = false);
 	}
 }
 

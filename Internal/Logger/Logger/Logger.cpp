@@ -318,11 +318,11 @@ void MedProgress::update() {
 				single_job_time_seconds = 1 / (jobs_in_minute / 60);
 			if (single_job_time_seconds < 0)
 				global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
-					"processing %2.1f jobs in minutes\n", print_title.c_str(),
+					"processing %2.1f jobs in a minute\n", print_title.c_str(),
 					progress, time_elapsed / 60, jobs_in_minute);
 			else
 				global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
-					"processing %2.1f jobs in minutes, single job take %2.4f seconds\n", print_title.c_str(),
+					"processing %2.1f jobs in a minute, single job take %2.4f seconds\n", print_title.c_str(),
 					progress, time_elapsed / 60, jobs_in_minute, single_job_time_seconds);
 		}
 	}

@@ -152,6 +152,8 @@ public:
 
 	// debug prints
 	virtual void dprint(const string &pref, int rp_flag);
+
+	static mutex FeatureProcess_Resolve;
 };
 
 // Utilities

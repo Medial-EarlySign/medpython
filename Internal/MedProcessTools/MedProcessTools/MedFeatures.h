@@ -183,6 +183,7 @@ namespace medial {
 		/// \brief matching by given groups uniq values. returns also the row_ids filtered. max_ratio is maximal allowed ratio, inf if < 0.
 		void match_by_general(MedFeatures &data_records, const vector<string> &groups,
 			vector<int> &filtered_row_ids, float price_ratio, float max_ratio, bool print_verbose);
+
 		/// \brief split matrix to train test based on iFold value. folds is fold id for each sample
 		void split_matrix(const MedFeatures& matrix, vector<int>& folds, int iFold,
 			MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features = NULL);
@@ -207,6 +208,14 @@ namespace medial {
 
 		/// \brief Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
 		int nSplits(vector<MedSample>& samples);
+
+		/// \brief multi-class matching.
+		float match_multi_class(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand = 10000, int verbose = false);
+		float match_multi_class(vector<MedSample>& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand = 10000, int verbose = false);
+
+		void match_multi_class_to_dist(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float> probs);
+		void match_multi_class_to_dist(vector<MedSample>& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float> probs);
+
 	}
 
 }

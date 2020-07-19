@@ -56,7 +56,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 		medial::sampling::get_label_for_sample(time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 			labeling_params.censor_time_from, labeling_params.time_to, labeling_params.label_interaction_mode,
 			labeling_params.censor_interaction_mode, labeling_params.conflict_method, samples, r.no_rule_cnt, r.conflict_cnt,
-			r.done_cnt, false, show_conflicts);
+			r.done_cnt, labeling_params.treat_0_class_as_other_classes, false, show_conflicts);
 	}
 	else
 		++r.miss_pid_in_reg_cnt;
@@ -82,7 +82,7 @@ SamplingRes MedLabels::get_samples(int pid, const vector<MedSample> &samples, ve
 			medial::sampling::get_label_for_sample(samples[i].time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 				labeling_params.censor_time_from, labeling_params.censor_time_to, labeling_params.label_interaction_mode,
 				labeling_params.censor_interaction_mode, labeling_params.conflict_method, new_samples, r.no_rule_cnt, r.conflict_cnt,
-				r.done_cnt, false, show_conflicts);
+				r.done_cnt, labeling_params.treat_0_class_as_other_classes, false, show_conflicts);
 
 			while (j < new_samples.size()) {
 				new_samples[j].split = samples[i].split;
@@ -113,7 +113,7 @@ SamplingRes MedLabels::get_samples(int pid, const vector<int> &times, vector<Med
 			medial::sampling::get_label_for_sample(times[i], pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 				labeling_params.censor_time_from, labeling_params.censor_time_to, labeling_params.label_interaction_mode,
 				labeling_params.censor_interaction_mode, labeling_params.conflict_method, samples, r.no_rule_cnt, r.conflict_cnt,
-				r.done_cnt, false, show_conflicts);
+				r.done_cnt, labeling_params.treat_0_class_as_other_classes, false, show_conflicts);
 		}
 
 	}

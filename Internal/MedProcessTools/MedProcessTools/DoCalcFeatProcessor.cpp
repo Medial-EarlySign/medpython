@@ -75,7 +75,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 			raw_source_feature_names.push_back("category_set_RC_Coginition_Problems");
 			raw_source_feature_names.push_back("category_set_RC_Social");
 		}
-		else if (calc_type == "min_chads2" || calc_type == "max_chads2") { 
+		else if (calc_type == "min_chads2" || calc_type == "max_chads2") {
 			raw_source_feature_names = { "Age", "DM_Registry", "HT_Registry", "strokeIndicator", "chfIndicator" };
 		}
 		else if (calc_type == "min_chads2_vasc" || calc_type == "max_chads_vasc2") {
@@ -83,7 +83,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 		}
 		else if (calc_type == "framingham_chd") {
 			raw_source_feature_names = { "Gender","Age", "DM_Registry", "Current_Smoker", "BP.last.win_0_1095", "BP.last.win_0_1095.t0v1",
-				"Cholesterol.last.win_0_1095","HDL.last.win_0_1095", "Drug.category_set_hypertension_drugs.win_0_1095"};
+				"Cholesterol.last.win_0_1095","HDL.last.win_0_1095", "Drug.category_set_hypertension_drugs.win_0_1095" };
 		}
 
 	}
@@ -101,22 +101,22 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void DoCalcFeatProcessor::prepare_feature(MedFeatures& features, int samples_size) const {
+	lock_guard<mutex> guard(FeatureProcessor::FeatureProcess_Resolve);
+	features.data[feature_name].clear();
+	features.data[feature_name].resize(samples_size);
+	// Attributes
+	features.attributes[feature_name].normalized = false;
+	features.attributes[feature_name].imputed = true;
+}
+
 int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Get Source Features
 	resolve_feature_names(features);
 
 	// Prepare new Feature
 	int samples_size = (int)features.samples.size();
-	// TODO: ihadanny 20180305 - the following critical section is a workaround for MedFeatures being not threadsafe
-	// a good solution might be adding a Prepare stage for processors, or maybe add a threadsafe AllocateNewFeature method
-#pragma omp critical 
-	{
-		features.data[feature_name].clear();
-		features.data[feature_name].resize(samples_size);
-		// Attributes
-		features.attributes[feature_name].normalized = false;
-		features.attributes[feature_name].imputed = true;
-	}
+	prepare_feature(features, samples_size);
 
 	float *p_out = &(features.data[feature_name][0]);
 
@@ -142,7 +142,7 @@ int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	else if (calc_type == "max_chads2_vasc")
 		chads2(p_sources, p_out, samples_size, 1, 1);
 	else if (calc_type == "fragile")
-		fragile(p_sources, p_out, samples_size);	
+		fragile(p_sources, p_out, samples_size);
 	else if (calc_type == "log")
 		_log(p_sources, p_out, samples_size);
 	else if (calc_type == "threshold")
@@ -173,7 +173,7 @@ bool DoCalcFeatProcessor::are_features_affected(unordered_set<string>& out_req_f
 
 	// Otherwise - check  generated features
 	if (out_req_features.find(feature_name) != out_req_features.end())
-			return true;
+		return true;
 
 	return false;
 }
@@ -268,7 +268,7 @@ void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *
 				if (p_sources[j][i] != missing_value) {
 					res &= (p_sources[j][i] != 0.0);
 				}
-				else 
+				else
 					any_missing = true;
 			}
 			if (any_missing)
@@ -492,7 +492,7 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 		float hdl = p_sources[7][i];
 		float BP_drug = p_sources[8][i];
 
-		if (DM_Registry== missing_value || Current_Smoker == missing_value || BP_dia == missing_value || BP_sys == missing_value || chol == missing_value || hdl == missing_value)
+		if (DM_Registry == missing_value || Current_Smoker == missing_value || BP_dia == missing_value || BP_sys == missing_value || chol == missing_value || hdl == missing_value)
 			MTHROW_AND_ERR("CalcFeatGenerator framingham_chd found missing value need to use imputer");
 		//Men
 
@@ -502,14 +502,14 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 				sum_beta += log(Age)*3.06117F;
 				sum_beta += log(chol)*1.12370F;
 				sum_beta += log(hdl)*-0.93263F;
-				
-				if (BP_drug==0) 
+
+				if (BP_drug == 0)
 					sum_beta += log(BP_sys)*1.93303F;
-				else 
+				else
 					sum_beta += log(BP_sys)*1.99881F;
 
-				sum_beta += Current_Smoker*0.65451F;
-				sum_beta += DM_Registry*0.57367F;
+				sum_beta += Current_Smoker * 0.65451F;
+				sum_beta += DM_Registry * 0.57367F;
 				res = 1 - pow(0.88936F, exp(sum_beta - 23.9802F));
 
 			}
@@ -518,14 +518,14 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 				sum_beta += log(Age)*2.32888F;
 				sum_beta += log(chol)*1.20904F;
 				sum_beta += log(hdl)*-0.70833F;
-				
+
 				if (BP_drug == 0)
 					sum_beta += log(BP_sys)*2.76157F;
-				else 
+				else
 					sum_beta += log(BP_sys)*2.82263F;
 
-				sum_beta += Current_Smoker*0.52873F;
-				sum_beta += DM_Registry*0.69154F;
+				sum_beta += Current_Smoker * 0.52873F;
+				sum_beta += DM_Registry * 0.69154F;
 				res = 1 - pow(0.95012F, exp(sum_beta - 26.1931F));
 			}
 		}
@@ -575,7 +575,7 @@ void DoCalcFeatProcessor::fragile(vector<float*> p_sources, float *p_out, int n_
 		//WBC:
 		res += p_sources[6][i] <= 3.2 || p_sources[7][i] >= 9.8;
 		//Hemoglobin:
-		int gen = (int) p_sources[8][i];
+		int gen = (int)p_sources[8][i];
 		if (gen == GENDER_MALE)
 			res += p_sources[9][i] < 12;
 		else

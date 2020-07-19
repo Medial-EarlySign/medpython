@@ -1259,6 +1259,415 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	}
 }
 
+// Helper functions for multi-class matching
+#define MATCHING_EPS 0.0001
+void get_sampling_ratios(vector<float>& targetRatios, vector<vector<float>>& ratios, vector<vector<float>>& samplingRatios) {
+
+	int nClasses = (int)targetRatios.size();
+	int nGroups = (int)ratios.size();
+	samplingRatios.resize(nGroups);
+
+	for (int i = 0; i < nGroups; i++) {
+		vector<float> ratioOfRatios(nClasses);
+		for (int j = 0; j < nClasses; j++)
+			ratioOfRatios[j] = ratios[i][j] / targetRatios[j];
+
+		// Minimum, non-zerio r-of-r
+		float minROR = 0;
+		for (int j = 0; j < nClasses; j++) {
+			if (ratioOfRatios[j] > 0 && (minROR == 0 || minROR > ratioOfRatios[j]))
+				minROR = ratioOfRatios[j];
+		}
+
+		// Sampling ratios
+		samplingRatios[i].assign(nClasses, 1.0);
+		for (int j = 0; j < nClasses; j++) {
+			if (ratioOfRatios[j] > 0)
+				samplingRatios[i][j] = minROR / ratioOfRatios[j];
+		}
+	}
+}
+float get_multi_class_matching_loss(vector<float>& targetRatios, vector<vector<float>>& ratios, vector<vector<int>>& counts, vector<float>& price_ratios, int verbose) {
+
+	vector<vector<float>> samplingRatios;
+	get_sampling_ratios(targetRatios, ratios, samplingRatios);
+
+	float loss = 0;
+	int nClasses = (int)targetRatios.size();
+	int nGroups = (int)ratios.size();
+
+	for (int i = 0; i < nGroups; i++) {
+		for (int j = 0; j < nClasses; j++)
+			loss += price_ratios[j] * counts[i][j] * (1 - samplingRatios[i][j]);
+	}
+
+	return loss;
+}
+
+// Check step size for increasing targetRatios[i] and decrasing targetRatios[j] until minROR is changed.
+float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, vector<float>& minROR, vector<int>& minROR_Idx,  int i, int j) {
+
+
+	float stepSize = 1.0 - MATCHING_EPS - targetRatios[i];
+	if (targetRatios[j] - (0.0 + MATCHING_EPS) < stepSize)
+		stepSize = targetRatios[j] - (0.0 + MATCHING_EPS);
+
+	for (size_t g = 0; g < minROR.size(); g++) {
+		float _minROR = 0.0;
+		int _minROR_Idx = -1;
+		if (minROR_Idx[g] == j) {
+			// Non-i classes - we can decrease j until we get ROR[j] == ROR[c]
+			for (size_t c = 0; c < targetRatios.size(); c++) {
+				if (c != i && c != j) {
+					float testStep = (ratios[g][c] * targetRatios[j] - ratios[g][j] * targetRatios[c]) / ratios[g][c];
+					if (testStep < stepSize) {
+						_minROR =  ratios[g][c] / targetRatios[c];
+						_minROR_Idx = c;
+						stepSize = testStep;
+					}
+				}
+			}
+			// i - we increase i and decrease j simultanously until  we get ROR[j] == ROR[j]
+			float testStep = (ratios[g][i] * targetRatios[j] - ratios[g][j] * targetRatios[i]) / (ratios[g][i] + ratios[g][j]);
+			if (testStep < stepSize) {
+				_minROR = ratios[g][i] / (targetRatios[i] + testStep);
+				_minROR_Idx = i;
+				stepSize = testStep;
+			}
+
+			if (_minROR_Idx != -1) {
+				minROR[g] = _minROR;
+				minROR_Idx[g] = _minROR_Idx;
+			}
+		}
+		else if (minROR_Idx[g] != i) { 
+			// We can increase i until we get ROR[i] = ROR[c]
+			float testStep = ratios[g][i] / minROR[g] - targetRatios[i];
+			if (testStep < stepSize) {
+				minROR_Idx[g] = i;
+				stepSize = testStep;
+			}
+		}
+		// If minROR_Idx[j] = j, and we decrease targetRatios[j], there is not boundary.
+	}
+
+	return stepSize;
+}
+float do_greedy_search(vector<float>& targetRatios, vector<vector<float>>& ratios, vector<vector<int>>& counts, vector<float>& price_ratios,  int verbose) {
+
+	int nClasses = (int)targetRatios.size();
+	int nGroups = (int)ratios.size();
+
+	// minimal Ratio of Ratios per group 
+	vector<float> minROR(nGroups);
+	vector<int> minROR_Idx(nGroups);
+	for (int i = 0; i < nGroups; i++) {
+		minROR[i] = ratios[i][0] / targetRatios[0];
+		minROR_Idx[i] = 0;
+		for (int j = 1; j < nClasses; j++) {
+			if (ratios[i][j] / targetRatios[j] < minROR[i]) {
+				minROR[i] = ratios[i][j] / targetRatios[j];
+				minROR_Idx[i] = j;
+			}
+		}
+	}
+
+	float loss = get_multi_class_matching_loss(targetRatios, ratios, counts, price_ratios, verbose);
+
+	// Search
+	bool keepGoing = true;
+	int nSteps = 0;
+	while (keepGoing) {
+		keepGoing = false;
+
+		// Verbosity
+		if (verbose) {
+			MLOG("minROR");
+			for (int i = 0; i < nGroups; i++)
+				MLOG("\t%.2f", minROR[i]);
+			MLOG("\n");
+			MLOG("Idx");
+			for (int i = 0; i < nGroups; i++)
+				MLOG("\t%d", minROR_Idx[i]);
+			MLOG("\n");
+			MLOG("TargetR");
+			for (int i = 0; i < nClasses; i++)
+				MLOG("\t%.4f", targetRatios[i]);
+			MLOG("\n");
+		}
+
+		// Check all neighbours
+		for (int i = 0; i < nClasses; i++) {
+			for (int j = 0; j < nClasses; j++) {
+				if (i != j) {
+					nSteps++;
+
+					vector<float> origMinROR = minROR;
+					vector<int> origMinROR_Idx = minROR_Idx;
+					float stepSize = get_step_size(ratios, targetRatios, minROR, minROR_Idx, i, j);
+				
+					if (stepSize > 0.001) {
+						targetRatios[i] += stepSize;
+						targetRatios[j] -= stepSize;
+						float newLoss = get_multi_class_matching_loss(targetRatios, ratios, counts, price_ratios, verbose);
+
+						if (verbose)
+							MLOG("Multi-Class Matching : Loss for %d/%d +- %f => (%f/%f) = %f", i, j, stepSize, targetRatios[i], targetRatios[j], newLoss);
+
+						if (newLoss < loss) {
+							keepGoing = true;
+							loss = newLoss;
+							if (verbose)
+								MLOG("  -- Found new Min Loss\n");
+							break;
+						}
+						if (verbose)
+							MLOG("\n");
+
+						targetRatios[i] -= stepSize;
+						targetRatios[j] += stepSize;
+					}
+					minROR = origMinROR;
+					minROR_Idx = origMinROR_Idx;
+				}
+			}
+			if (keepGoing)
+				break;
+		}
+	}
+
+	if (verbose)
+		MLOG("Multi-Class Matching : Number of steps to (local) minimum = %d. Loss = %f\n", nSteps,loss);
+	return loss;
+}
+
+int prepare_for_matching(vector<MedSample>& samples, const vector<string>& groups, vector<int>& class_idx, vector<string>& groups_v, vector<vector<float>>& ratios, vector<vector<int>>& counts, int verbose) {
+	
+	// Collect classes
+	set<int> classes_set;
+	for (MedSample& sample : samples)
+		classes_set.insert((int)sample.outcome);
+	int nClasses = classes_set.size();
+
+
+	int maxClass = 0;
+	for (int _class : classes_set) {
+		if (_class > maxClass)
+			maxClass = _class;
+	}
+
+	class_idx.resize(maxClass + 1);
+	int idx = 0;
+	for (int _class : classes_set)
+		class_idx[_class] = idx++;
+
+	// Collect group counts
+	map<string, vector<int>> group_class_counts;
+	map<string, int> group_tot_counts;
+	set<string> all_groups;
+	for (size_t i = 0; i < samples.size(); ++i)
+	{
+		int iClass = class_idx[(int)samples[i].outcome];
+		if (all_groups.find(groups[i]) == all_groups.end())
+			group_class_counts[groups[i]].assign(nClasses, 0);
+		group_tot_counts[groups[i]] ++;
+		all_groups.insert(groups[i]);
+		group_class_counts[groups[i]][iClass]++;
+	}
+
+	// Get ratios and counts
+	int nGroups = (int)all_groups.size();
+	groups_v.clear();
+	groups_v.insert(groups_v.end(), all_groups.begin(), all_groups.end());
+	ratios.resize(nGroups, vector<float>(nClasses));
+	counts.resize(nGroups, vector<int>(nClasses));
+	for (int i = 0; i < nGroups; i++) {
+		for (int j = 0; j < nClasses; j++) {
+			float ratio = (group_class_counts[groups_v[i]][j] + 0.0) / group_tot_counts[groups_v[i]];
+			if (ratio < MATCHING_EPS)
+				ratio = MATCHING_EPS;
+			ratios[i][j] = ratio;
+
+			counts[i][j] = group_class_counts[groups_v[i]][j];
+		}
+	}
+
+	// Verbosity
+	if (verbose) {
+		MLOG("GROUP");
+		for (int i = 0; i < nClasses; i++)
+			MLOG("\tCLS_%d", i);
+		MLOG("\n");
+		for (int i = 0; i < nGroups; i++) {
+			MLOG("%s", groups_v[i].c_str());
+			for (int j = 0; j < nClasses; j++)
+				MLOG("\t%d", counts[i][j]);
+			MLOG("\n");
+		}
+	}
+
+	return nClasses;
+}
+
+float get_matching_dist(vector<MedSample>& samples, const vector<string> &groups, vector<float>& targetRatios, vector<float>& price_ratios, int nRand, int verbose,
+	vector<vector<float>>& ratios, vector<vector<int>>& counts, vector<string>& groups_v, vector<int>& class_idx) {
+
+	// Sanity
+	if (groups.size() != samples.size())
+		MTHROW_AND_ERR("data samples and groups should hsve same size\n");
+
+	int nClasses = prepare_for_matching(samples, groups, class_idx, groups_v, ratios, counts, verbose);
+	if (nClasses != price_ratios.size())
+		MTHROW_AND_ERR("price_ratio and number of classes are not compatible\n");
+	int nGroups = (int)ratios.size();
+
+	// Find optimal ratios - search on the discrete steps
+	// Start with random ratio
+	targetRatios.resize(nClasses);
+	float sum, loss;
+
+	vector<pair<float, float>> rRanges(nClasses);
+	for (int i = 0; i < nClasses; i++) {
+		rRanges[i] = { ratios[0][i],ratios[0][i] };
+		for (int j = 1; j < nGroups; j++) {
+			if (ratios[j][i] < rRanges[i].first)
+				rRanges[i].first = ratios[j][i];
+			if (ratios[j][i] > rRanges[i].second)
+				rRanges[i].second = ratios[j][i];
+		}
+	}
+
+	// Do multiple greedy searches from random starting points
+
+	// Generate random intial vectors to have consistency when threading
+	vector<vector<float>> randRatios(nRand, vector<float>(nClasses));
+	vector<float> randLosses(nRand);
+
+	for (int i = 0; i < nRand; i++) {
+		sum = 0;
+		for (int j = 0; j < nClasses; j++) {
+			randRatios[i][j] = rRanges[j].first + (rRanges[j].second - rRanges[j].first)*(globalRNG::rand() / (globalRNG::max() + 1.0));
+			sum += randRatios[i][j];
+		}
+		for (int j = 0; j < nClasses; j++)
+			randRatios[i][j] /= sum;
+	}
+
+
+#pragma omp parallel for
+	for (int i = 0; i < nRand; i++) 
+		randLosses[i] = do_greedy_search(randRatios[i], ratios, counts, price_ratios, 0);
+
+	int idx = 0;
+	for (int i = 1; i < nRand; i++) {
+		if (randLosses[i] < randLosses[idx])
+			idx = i;
+	}
+
+	loss = randLosses[idx];
+	targetRatios = randRatios[idx];
+
+	if (verbose) {
+		MLOG("Minimal loss for %d random points = %f\n", nRand, loss);
+
+		MLOG("Ratio");
+		for (int i = 0; i < nClasses; i++)
+			MLOG("\t%.4f", targetRatios[i]);
+		MLOG("\n");
+	}
+
+	return loss;
+}
+
+void get_filtered_row_ids(vector<MedSample>& samples, const vector<string>& groups, vector<float>& targetRatios, vector<vector<float>>& ratios, vector<string>& groups_v, vector<int>& class_idx,
+	vector<int>& filtered_row_ids) {
+
+	int nClasses = (int)targetRatios.size();
+	int nGroups = (int)ratios.size();
+
+	vector<vector<float>> samplingRatios(nGroups, vector<float>(nClasses));
+	get_sampling_ratios(targetRatios, ratios, samplingRatios);
+
+	map<string, vector<vector<int>>> indices;
+	for (string& group : groups_v)
+		indices[group].resize(nClasses);
+
+	for (int i = 0; i < samples.size(); i++)
+		indices[groups[i]][class_idx[(int)samples[i].outcome]].push_back(i);
+
+	for (size_t i = 0; i < nGroups; i++) {
+		for (int j = 0; j < nClasses; j++) {
+			vector<int>& vec = indices[groups_v[i]][j];
+			random_shuffle(vec.begin(), vec.end());
+			filtered_row_ids.insert(filtered_row_ids.end(), vec.begin(), vec.begin() + (int)(0.5 + samplingRatios[i][j] * vec.size()));
+		}
+	}
+}
+
+float medial::process::match_multi_class(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand, int verbose) {
+ 
+	vector<float> targetRatios;
+	vector <vector<float>> ratios;
+	vector<string> groups_v;
+	vector<int> class_idx;
+	vector<vector<int>> counts;
+	float loss = get_matching_dist(data.samples, groups, targetRatios, price_ratios, nRand, verbose, ratios, counts, groups_v, class_idx);
+
+	// sample according to optimal ratio
+	get_filtered_row_ids(data.samples, groups, targetRatios, ratios, groups_v, class_idx, filtered_row_ids);
+
+	filter_row_indexes(data, filtered_row_ids);
+	return loss;
+}
+
+float medial::process::match_multi_class(vector<MedSample>& samples, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand, int verbose) {
+
+	vector<float> targetRatios;
+	vector <vector<float>> ratios;
+	vector<string> groups_v;
+	vector<int> class_idx;
+	vector<vector<int>> counts;
+	float loss = get_matching_dist(samples, groups, targetRatios, price_ratios, nRand, verbose, ratios, counts, groups_v, class_idx);
+
+	// sample according to optimal ratio
+	get_filtered_row_ids(samples, groups, targetRatios, ratios, groups_v, class_idx, filtered_row_ids);
+
+	for (size_t i = 0; i < filtered_row_ids.size(); i++)
+		samples[i] = samples[filtered_row_ids[i]];
+
+	return loss;
+}
+
+void medial::process::match_multi_class_to_dist(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float> probs) {
+
+	vector<vector<float>> ratios;
+	vector<string> groups_v;
+	vector<int> class_idx;
+	vector<vector<int>> counts;
+	
+	prepare_for_matching(data.samples, groups, class_idx, groups_v, ratios, counts, 0);
+	get_filtered_row_ids(data.samples, groups, probs, ratios, groups_v, class_idx, filtered_row_ids);
+	filter_row_indexes(data, filtered_row_ids);
+
+	return;
+}
+
+void medial::process::match_multi_class_to_dist(vector<MedSample>& samples, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float> probs) {
+	
+	vector<vector<float>> ratios;
+	vector<string> groups_v;
+	vector<int> class_idx;
+	vector<vector<int>> counts; 
+	
+	prepare_for_matching(samples, groups, class_idx, groups_v, ratios, counts, 0);
+	get_filtered_row_ids(samples, groups, probs, ratios, groups_v, class_idx, filtered_row_ids);
+
+	for (size_t i = 0; i < filtered_row_ids.size(); i++)
+		samples[i] = samples[filtered_row_ids[i]];
+
+	return;
+}
+
 void medial::process::split_matrix(const MedFeatures& matrix, vector<int>& folds, int iFold,
 	MedFeatures& trainMatrix, MedFeatures& testMatrix, const vector<string> *selected_features) {
 	MedFeatures *matrixPtrs[2] = { &trainMatrix, &testMatrix };

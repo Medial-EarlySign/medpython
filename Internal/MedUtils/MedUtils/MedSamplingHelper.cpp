@@ -131,7 +131,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	, const vector<const MedRegistryRecord *> &r_censor, int time_from, int time_to, int censor_time_from, int  censor_time_to,
 	const TimeWindowInteraction &mode_outcome, const TimeWindowInteraction &mode_censoring,
 	ConflictMode conflict_mode, vector<MedSample> &idSamples,
-	int &no_rule_found, int &conflict_count, int &done_count, bool filter_no_censor, bool show_conflicts) {
+	int &no_rule_found, int &conflict_count, int &done_count, bool treat_0_class_as_other_classes, bool filter_no_censor, bool show_conflicts) {
 	int curr_index = 0, final_selected = -1;
 	float reg_val = -1;
 	int reg_time = -1;
@@ -232,7 +232,7 @@ void medial::sampling::get_label_for_sample(int pred_time, const vector<const Me
 	}
 
 	if (reg_time != -1) {
-		smp.outcomeTime = reg_val > 0 ? pid_records[final_selected]->start_date : reg_time;
+		smp.outcomeTime = ((reg_val > 0) || (treat_0_class_as_other_classes)) ? pid_records[final_selected]->start_date : reg_time;
 		smp.outcome = reg_val;
 		idSamples.push_back(smp);
 		++done_count;
