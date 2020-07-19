@@ -107,6 +107,7 @@ public:
 	double min_parsed_line_ratip = 0.01; ///< minimal ratio for parsed lines in file
 	bool verbose_open_files = false; ///< If true will print when openning files
 	bool run_parallel = false; ///< If true will load in parallel
+	string full_error_file; ///< provide full path to error file
 
 	void init_load_params(const string &init_str);
 
@@ -181,6 +182,8 @@ private:
 	/// tests for load error during load. The input flag is indicator for test after finish load all
 	void test_for_load_error(const map<pair<string, string>, int> &missing_dict_vals, int n_pids_extracted, bool final_test
 		,int prev_total_missings, int &total_missing, const map<string, int> &prev_missing_forced_signals) const;
+
+	ofstream err_log_file;
 };
 
 #endif

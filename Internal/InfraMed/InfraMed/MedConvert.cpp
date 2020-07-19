@@ -799,9 +799,6 @@ void MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos
 						catch (invalid_argument e) {
 							pair<string, string> my_key = make_pair(sigs.name(sid), string(e.what()));
 							if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
-								if (missing_dict_vals.size() < 10)
-									MWARN("MedConvert::get_next_signal: missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
-										sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
 #pragma omp critical
 								missing_dict_vals[my_key] = 1;
 							}
@@ -809,12 +806,34 @@ void MedConvert::get_next_signal(vector<string> &buffered_lines, int &buffer_pos
 #pragma omp atomic
 								++missing_dict_vals[my_key];
 							}
+							if (missing_dict_vals.size() < 10)
+								MWARN("MedConvert::get_next_signal: missing from dictionary (sig [%s], type %d) : file [%s] : line [%s] \n",
+									sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
+							if (!full_error_file.empty()) {
+								if (err_log_file.good()) {
+									err_log_file << "MISSING_FROM_DICTIONARY"
+										<< "\t" << sigs.name(sid) << " (" << sigs.type(sid) << ")"
+										<< "\t" << curr_fstat.fname
+										<< "\t" << "\"" << curr_line << "\""
+										<< "\n";
+								}
+							}
 						}
 						catch (...) {
 							curr_fstat.n_bad_format_lines++;
-							if (curr_fstat.n_bad_format_lines < 10)
+							if (curr_fstat.n_bad_format_lines < 10) {
 								MWARN("MedConvert::get_next_signal: bad format in parsing file %s (file_type=%d) in line %d:\n%s\n",
 									curr_fstat.fname.c_str(), file_type, curr_fstat.n_parsed_lines, curr_line.c_str());
+							}
+							if (!full_error_file.empty()) {
+								if (err_log_file.good()) {
+									err_log_file << "BAD_FILE_FORMAT"
+										<< "\t" << curr_fstat.fname << " (" << file_type << ")"
+										<< "\t" << curr_fstat.n_parsed_lines
+										<< "\t" << "\"" << curr_line << "\""
+										<< "\n";
+								}
+							}
 						}
 					}
 				}
@@ -1028,6 +1047,12 @@ int MedConvert::create_indexes()
 		read_file_to_buffer(infs[i], file_to_lines[i], read_lines_buffer);
 		prog_read_buf.update();
 	}
+	if (!full_error_file.empty()) {
+		err_log_file.open(full_error_file);
+		if (!err_log_file.good())
+			MTHROW_AND_ERR("Error - unable to open error log file %s in write mode\n", full_error_file.c_str());
+	}
+
 	MedProgress load_progress("MedConvert::create_indexes", 0, 30);
 	while (n_open_in_files > 0) {
 
@@ -1118,6 +1143,8 @@ int MedConvert::create_indexes()
 			if (infs[i].is_open())
 				infs[i].close();
 	}
+	if (!full_error_file.empty())
+		err_log_file.close();
 	map<string, int> empty_cnts;
 	test_for_load_error(missing_dict_vals, n_pids_extracted, true, 0, curr_errors, empty_cnts);
 
@@ -1142,7 +1169,8 @@ void MedConvert::test_for_load_error(const map<pair<string, string>, int> &missi
 			MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
 				entry.first.second.c_str(), entry.second, total_missing);
 		if (safe_mode && total_missing > allowed_unknown_catgory_cnt) {
-			MTHROW_AND_ERR("%d > 50 missing entries is too much... refusing to create repo!\n", total_missing);
+			MTHROW_AND_ERR("%d > %d missing entries is too much... refusing to create repo!\n", 
+				total_missing, allowed_unknown_catgory_cnt);
 		}
 	}
 	for (auto& entry : missing_forced_signals) {
@@ -1340,6 +1368,17 @@ int MedConvert::write_indexes(pid_data &curr)
 			if (missing_forced_signals[forced[i]] < 10)
 				MLOG("MedConvert: pid %d is missing forced signal %s (%d,%d,%d)\n", curr.pid, forced[i].c_str(),
 					dict.id(forced[i]), sid2serial[dict.id(forced[i])], curr.raw_data[sid2serial[dict.id(forced[i])]].size());
+
+			if (!full_error_file.empty()) {
+				if (err_log_file.good()) {
+					err_log_file << "MISSING_FORCED_SIGNAL"
+						<< "\t" << curr.pid
+						<< "\t" << forced[i] << "(" << dict.id(forced[i]) << ","
+						<< sid2serial[dict.id(forced[i])] << ","
+						<< curr.raw_data[sid2serial[dict.id(forced[i])]].size() << ")"
+						<< "\n";
+				}
+			}
 			return -1;
 		}
 	}
@@ -1645,6 +1684,8 @@ void MedConvert::init_load_params(const string &init_str) {
 			verbose_open_files = med_stoi(it.second) > 0;
 		else if (it.first == "run_parallel")
 			run_parallel = med_stoi(it.second) > 0;
+		else if (it.first == "full_error_file")
+			full_error_file = it.second;
 		else
 			MTHROW_AND_ERR("Error in MedConvert::init_load_params - unknown parameter %s\n",
 				it.first.c_str());
