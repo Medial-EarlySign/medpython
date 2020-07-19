@@ -214,9 +214,9 @@ int FeatureProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) {
 }
 
 //.......................................................................................
-mutex FeatureProcess_Resolve;
+mutex FeatureProcessor::FeatureProcess_Resolve;
 string FeatureProcessor::resolve_feature_name(MedFeatures& features, string substr) {
-	lock_guard<mutex> guard(FeatureProcess_Resolve);
+	lock_guard<mutex> guard(FeatureProcessor::FeatureProcess_Resolve);
 	//resolve_feature_name - access features.data names in not thread safe manner
 	string res = features.resolve_name(substr);
 

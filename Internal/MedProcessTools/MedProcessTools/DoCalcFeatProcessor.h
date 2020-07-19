@@ -72,6 +72,7 @@ public:
 
 private:
 	virtual void resolve_feature_names(MedFeatures &features);
+	void prepare_feature(MedFeatures& features, int samples_size) const;
 };
 
 MEDSERIALIZE_SUPPORT(DoCalcFeatProcessor);
