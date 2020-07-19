@@ -104,13 +104,11 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 void DoCalcFeatProcessor::prepare_feature(MedFeatures& features, int samples_size) const {
 #pragma omp critical
 	{
-		MLOG("inside prepare: %d \n", omp_get_thread_num());
 		features.data[feature_name].clear();
 		features.data[feature_name].resize(samples_size);
 		// Attributes
 		features.attributes[feature_name].normalized = false;
 		features.attributes[feature_name].imputed = true;
-		MLOG("outside prepare: %d \n", omp_get_thread_num());
 	}
 }
 
