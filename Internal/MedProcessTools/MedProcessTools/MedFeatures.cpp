@@ -1322,7 +1322,7 @@ float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, 
 					float testStep = (ratios[g][c] * targetRatios[j] - ratios[g][j] * targetRatios[c]) / ratios[g][c];
 					if (testStep < stepSize) {
 						_minROR =  ratios[g][c] / targetRatios[c];
-						_minROR_Idx = c;
+						_minROR_Idx = (int)c;
 						stepSize = testStep;
 					}
 				}
@@ -1447,7 +1447,7 @@ int prepare_for_matching(vector<MedSample>& samples, const vector<string>& group
 	set<int> classes_set;
 	for (MedSample& sample : samples)
 		classes_set.insert((int)sample.outcome);
-	int nClasses = classes_set.size();
+	int nClasses = (int)classes_set.size();
 
 
 	int maxClass = 0;
@@ -1485,7 +1485,7 @@ int prepare_for_matching(vector<MedSample>& samples, const vector<string>& group
 		for (int j = 0; j < nClasses; j++) {
 			float ratio = (group_class_counts[groups_v[i]][j] + 0.0) / group_tot_counts[groups_v[i]];
 			if (ratio < MATCHING_EPS)
-				ratio = MATCHING_EPS;
+				ratio = (float)MATCHING_EPS;
 			ratios[i][j] = ratio;
 
 			counts[i][j] = group_class_counts[groups_v[i]][j];
