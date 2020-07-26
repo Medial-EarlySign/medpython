@@ -160,10 +160,18 @@ public:
 
 	int n_open_in_files;
 	// actually reading data and creating index and data files
-	void get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+	void collect_lines(vector<string> &lines, vector<int> &f_i, int file_i, vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+	void get_next_signal_all_lines(vector<string> &lines, vector<int> &f_i, pid_data &curr, vector<file_stat> &fstat, map<pair<string, string>, int>&);
+	void parse_fields_into_gsv(string &curr_line, vector<string> &fields, int sid, GenericSigVec &cd_sv);
 	int create_indexes();
 	int create_repository_config();
 	int create_signals_config();
+
+	// legacy
+	//void get_next_signal(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+	//int write_indexes(pid_data &curr);
+	//void get_next_signal_new_modes(vector<string> &buffered_lines, int &buffer_pos, ifstream &inf, int file_type, pid_data &curr, int &fpid, file_stat& curr_fstat, map<pair<string, string>, int>&);
+
 
 	// output files related
 	ofstream signals_config_f;
@@ -172,9 +180,9 @@ public:
 	vector<ofstream *> data_f;
 	vector<unsigned long long> data_f_pos;
 	int open_indexes();
-	int write_indexes(pid_data &curr);
-	int close_indexes();
 	int write_all_indexes(vector<int> &all_pids);
+	int write_indexes_new_modes(pid_data &curr);
+	int close_indexes();
 
 	// loading subsets
 	int prep_sids_to_load();

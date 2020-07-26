@@ -102,6 +102,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="InMemData.cpp" />
+    <ClCompile Include="legacy_code.cpp" />
     <ClCompile Include="MedConvert.cpp" />
     <ClCompile Include="MedIndex.cpp" />
     <ClCompile Include="MedDictionary.cpp" />
