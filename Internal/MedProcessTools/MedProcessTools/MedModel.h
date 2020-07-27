@@ -284,6 +284,9 @@ public:
 	/// copy in modle into this object
 	void copy_from_model(MedModel &in);
 
+	/// returns how many samples are done in a single batche (in apply)
+	int get_apply_batch_count();
+
 	MedPidRepository *p_rep = NULL; ///< not serialized. stores pointer to rep used in Learn or Apply after call.
 private:
 	void concatAllCombinations(const vector<vector<string> > &allVecs, size_t vecIndex, string strSoFar, vector<string>& result);
