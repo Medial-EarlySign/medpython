@@ -121,8 +121,8 @@ public:
 	/// <summary> Write features (samples + weights + data) as csv with a header line  </summary>
 	/// <returns> -1 upon failure to open file or attributes inconsistency (if write_attributes is true), 0 upon success </returns>
 	int write_as_csv_mat(const string &csv_fname, bool write_attributes = false) const;
-	int add_to_csv_mat(const string &csv_fname, bool write_attributes = false) const;
-	void write_csv_data(ofstream& out_f, bool write_attributes, vector<string>& col_names) const;
+	int add_to_csv_mat(const string &csv_fname, bool write_attributes, int start_idx) const;
+	void write_csv_data(ofstream& out_f, bool write_attributes, vector<string>& col_names, int start_idx) const;
 
 	/// <summary> Read features (samples + weights + data) from a csv file with a header line </summary>
 	/// <returns> -1 upon failure to open file, 0 upon success </returns>

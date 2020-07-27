@@ -304,11 +304,11 @@ void MedFeatures::print_csv() const
 // Write features (samples + weights + data) as csv with a header line
 // Return -1 upon failure to open file, 0 upon success
 //.......................................................................................
-void MedFeatures::write_csv_data(ofstream& out_f, bool write_attributes, vector<string>& col_names) const {
+void MedFeatures::write_csv_data(ofstream& out_f, bool write_attributes, vector<string>& col_names, int start_idx) const {
 
 	for (int i = 0; i < samples.size(); i++) {
 
-		out_f << to_string(i); // serial
+		out_f << to_string(i+start_idx); // serial
 		if (weights.size()) out_f << "," << weights[i]; // Weights
 
 														// sample
@@ -408,7 +408,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	out_f << "\n";
 
 	// data
-	write_csv_data(out_f, write_attributes, col_names);
+	write_csv_data(out_f, write_attributes, col_names,0);
 
 	out_f.close();
 	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
@@ -418,7 +418,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 
 }
 
-int MedFeatures::add_to_csv_mat(const string &csv_fname, bool write_attributes) const
+int MedFeatures::add_to_csv_mat(const string &csv_fname, bool write_attributes, int start_idx) const
 {
 	ofstream out_f;
 
@@ -435,7 +435,7 @@ int MedFeatures::add_to_csv_mat(const string &csv_fname, bool write_attributes) 
 	get_feature_names(col_names);
 
 	// data
-	write_csv_data(out_f, write_attributes, col_names);
+	write_csv_data(out_f, write_attributes, col_names, start_idx);
 
 	out_f.close();
 	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
