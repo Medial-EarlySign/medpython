@@ -62,6 +62,9 @@
     <ClCompile Include="InMemData.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="legacy_code.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Text Include="Doc.txt">
