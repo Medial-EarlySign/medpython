@@ -388,12 +388,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
 	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
 	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
-	int max_sz = max_data_in_mem;
-	if (max_sz <= 0) {
-		//TODO: change to use size to suit free memory in the machine
-		max_sz = INT_MAX;
-	}
-	int max_smp_batch = int(((max_sz) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
+	int max_smp_batch = get_apply_batch_count();
 	init_model_for_apply(rep, start_stage, end_stage);
 
 	if (samples.nSamples() <= max_smp_batch)
@@ -436,6 +431,17 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	return 0;
 }
 
+int MedModel::get_apply_batch_count() {
+	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
+	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
+	int max_sz = max_data_in_mem;
+	if (max_sz <= 0) {
+		//TODO: change to use size to suit free memory in the machine
+		max_sz = INT_MAX;
+	}
+	int max_smp_batch = int(((max_sz) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
+	return max_smp_batch;
+}
 
 //-------------------------------------------------------------------------------------------------------------------------------
 int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage)
@@ -1403,7 +1409,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 		generator->set_signal_ids(sigs);
 
 	// tables
-	for (RepProcessor *processor : rep_processors) 
+	for (RepProcessor *processor : rep_processors)
 		processor->init_tables(dict, sigs);
 
 	for (FeatureGenerator *generator : generators)
