@@ -195,7 +195,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 			ret_preds_order = &vec_preds_order[thread][current_pos[thread] * num_categories];
 			weight = vec_weights[thread] == NULL ? -1 : vec_weights[thread][current_pos[thread]];
 			++current_pos[thread];
-			return current_pos[thread] < vec_size[thread];
+			return current_pos[thread] <= vec_size[thread];
 		}
 		if (sel_pid_index[thread] < 0)
 		{
@@ -207,6 +207,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 		int final_index = (*inds)[inner_pos[thread]];
 		ret_y = y[final_index];
 		ret_pred = &preds[final_index * num_categories];
+
 		ret_preds_order = &preds_order[final_index * num_categories];
 		weight = weights == NULL ? -1 : weights[final_index];
 		//take all inds:
@@ -706,10 +707,11 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 
 	map<string, map<string, float>> all_cohorts_measurments;
 	vector<float> preds_c, y_c, weights_c;
-	vector<int> pids_c, filtered_indexes;
+	vector<int> pids_c, filtered_indexes, preds_order_c;
 	vector<int> class_sz;
 	pids_c.reserve((int)y.size());
 	preds_c.reserve((int)preds.size());
+	preds_order_c.reserve((int)preds.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
 	int warn_cnt = 0;
@@ -725,6 +727,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		pids_c.clear();
 		preds_c.clear();
 		y_c.clear();
+		preds_order_c.clear();
 		weights_c.clear();
 		filtered_indexes.clear();
 		class_sz.assign(2, 0);
@@ -741,12 +744,17 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 					pids_c.push_back(pids[j]);
 					y_c.push_back(y[j]);
 					for (size_t k = 0; k < num_categories; k++)
+					{
 						preds_c.push_back((*final_preds)[j*num_categories + k]);
+						preds_order_c.push_back(preds_order[j*num_categories + k]);
+					}
+
 					filtered_indexes.push_back((int)j);
 					++class_sz[y[j] > 0];
 				}
 
 			}
+
 		//now we have cohort: run analysis:
 		string cohort_name = it->first;
 
@@ -766,7 +774,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		vector<float> *weights_p = NULL;
 		if (!weights_c.empty())
 			weights_p = &weights_c;
-		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, preds_order, y_c, pids_c,
+		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, preds_order_c, y_c, pids_c,
 			sample_ratio, sample_per_pid, loopCnt, meas_functions,
 			function_params != NULL ? *function_params : params,
 			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, warn_cnt, cohort_name, seed);
@@ -1025,11 +1033,14 @@ map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measure
 		float sum_den_weighted_until_y = 0, sum_weighted_preds_top_n = 0, sum_weighted_preds_until_y = 0;
 		int i_equal = -1;
 
-		for (int i = 0; i < iterator->num_categories; i++)
-		{
-			jaccard_vals[i] = medial::performance::jaccard_distance(y, preds_order[i]);
-			if (y == preds_order[i])
-				i_equal = i;
+	
+			//MLOG("y = %f pred = %f Order: \n", y, *pred);
+			for (int i = 0; i < iterator->num_categories; i++)
+			{
+				//MLOG("preds_order[%d] %d \n", i, preds_order[i]);
+				jaccard_vals[i] = medial::performance::jaccard_distance(y, preds_order[i]);
+				if (y == preds_order[i])
+					i_equal = i;
 		}
 
 		for (int i = 0; i < n; i++)
