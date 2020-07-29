@@ -1517,9 +1517,18 @@ float get_matching_dist(vector<MedSample>& samples, const vector<string> &groups
 		MTHROW_AND_ERR("data samples and groups should hsve same size\n");
 
 	int nClasses = prepare_for_matching(samples, groups, class_idx, groups_v, ratios, counts, verbose);
+
 	if (nClasses != price_ratios.size())
 		MTHROW_AND_ERR("price_ratio and number of classes are not compatible\n");
 	int nGroups = (int)ratios.size();
+
+	// verbosity
+	if (verbose) {
+		MLOG("P.Ratio");
+		for (int j = 0; j < nClasses; j++)
+			MLOG("\t%.3f", price_ratios[j]);
+		MLOG("\n");
+	}
 
 	// Find optimal ratios - search on the discrete steps
 	// Start with random ratio
@@ -1602,6 +1611,7 @@ void get_filtered_row_ids(vector<MedSample>& samples, const vector<string>& grou
 			filtered_row_ids.insert(filtered_row_ids.end(), vec.begin(), vec.begin() + (int)(0.5 + samplingRatios[i][j] * vec.size()));
 		}
 	}
+	sort(filtered_row_ids.begin(), filtered_row_ids.end());
 }
 
 float medial::process::match_multi_class(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand, int verbose) {
@@ -1631,9 +1641,12 @@ float medial::process::match_multi_class(vector<MedSample>& samples, const vecto
 
 	// sample according to optimal ratio
 	get_filtered_row_ids(samples, groups, targetRatios, ratios, groups_v, class_idx, filtered_row_ids);
+	if (verbose)
+		MLOG("filtered_row_ids size = %d\n", (int)filtered_row_ids.size());
 
 	for (size_t i = 0; i < filtered_row_ids.size(); i++)
 		samples[i] = samples[filtered_row_ids[i]];
+	samples.resize(filtered_row_ids.size());
 
 	return loss;
 }
@@ -1664,6 +1677,7 @@ void medial::process::match_multi_class_to_dist(vector<MedSample>& samples, cons
 
 	for (size_t i = 0; i < filtered_row_ids.size(); i++)
 		samples[i] = samples[filtered_row_ids[i]];
+	samples.resize(filtered_row_ids.size());
 
 	return;
 }
