@@ -205,13 +205,13 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 /// </returns>
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 // <summary>
-/// A Function to calculate Jaccard distance for multicategory
+/// A Function to calculate performance measurements for multicategory
 /// Implements MeasurementFunctions signature function
 /// </summary>
 /// <returns>
-/// A map from measurement name "Jaccard" to it's value
+/// A map from measurement name to it's value
 /// </returns>
-map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
@@ -309,13 +309,19 @@ public:
 */
 class Multiclass_Params : public Measurement_Params, public SerializableObject {
 public:
-	int top_n; ///< when looking on top predictions, this is the maximal index
+	vector<int> top_n; ///< when looking on top predictions, this is the maximal index
 	int n_categ; ///< Number of categories
-	vector<float> jaccard_weights; ///< Vector of weights - for index i : jaccard_weights[i] = 1/sum(Jacc(i,k)
-	Multiclass_Params() { top_n = 5; n_categ = 1; }
+	vector<float> dist_weights; ///< Vector of weights - for index i : dist_weights[i] = 1/sum(dist(i,k))
+	vector<vector<float>> dist_matrix; /// dist(i,j)
+	string dist_name = "JACCARD";
+	string dist_file;
+	Multiclass_Params() { top_n = { 1,5 }; n_categ = 1; }
 	Multiclass_Params(const string &init_string);
+
 	int init(map<string, string>& map);
-	ADD_SERIALIZATION_FUNCS(top_n, n_categ, jaccard_weights)
+	void read_dist_matrix_from_file(const string& fileName);
+
+	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name)
 };
 
 #pragma region Cohort Fucntions

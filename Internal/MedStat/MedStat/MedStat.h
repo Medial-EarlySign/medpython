@@ -125,6 +125,8 @@ namespace medial {
 		float jaccard_similarity(int val1, int val2);
 		/// <summary>calculate jaccard distance   </summary>
 		float jaccard_distance(int val1, int val2);
+		/// <summary>calculate jaccard distance matrix
+		void get_jaccard_matrix(int n, vector<vector<float>>& jaccard_dist);
 	}
 
 	namespace stats {

@@ -1002,7 +1002,7 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 	//new_samples.sort_by_id_date(); //not needed
 }
 MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
-	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = { { "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },{ "calc_jaccard",MeasurmentFunctionType::calc_jaccard } };
+	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = { { "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class } };
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end())
 		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s \n", measurement_function_name.c_str());
 	return measurement_function_name_map[measurement_function_name];
