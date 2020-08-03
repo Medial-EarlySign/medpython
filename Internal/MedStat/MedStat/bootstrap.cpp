@@ -1014,84 +1014,99 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 	return res;
 }
 
-map<string, float> calc_jaccard(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	
 	map<string, float> res;
 	float y, weight;
 	const float *pred;
 	const int *preds_order;
 
 	Multiclass_Params* params = (Multiclass_Params *)function_params;
-	int n = params -> top_n;
+	int n_top_n = (int)params->top_n.size();
 
-	vector<float> jaccard_vals(iterator->num_categories);
-	float avg_jaccard_top_n = 0, avg_weighted_jaccard_top_n = 0, avg_jaccard_until_correct = 0, avg_weighted_jaccard_until_correct = 0;
-	float avg_weighted_preds_jaccard_top_n = 0, avg_weighted_preds_jaccard_until_correct = 0, sum_weighted_preds_jaccard = 0, sum_correct_location = 0, sum_accuracy_top_n = 0, sum_accuracy_top_1 = 0;
+	// Sanity
+	if (iterator->num_categories != params->n_categ)
+		MTHROW_AND_ERR("n_categ and predictions inconsistency\n");
+
+	vector<float> dist_vals(iterator->num_categories);
+	float avg_dist_until_correct = 0, avg_weighted_dist_until_correct = 0, avg_weighted_preds_dist_until_correct = 0;
+	float sum_weighted_preds_dist = 0, sum_correct_location = 0;
+	vector<float> avg_weighted_dist_top_n(n_top_n, 0), avg_dist_top_n(n_top_n, 0), avg_weighted_preds_dist_top_n(n_top_n, 0), sum_accuracy_top_n(n_top_n, 0);
 	int n_samples = 0;
 
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
-		float sum_avg_top_n = 0, sum_weighted_top_n = 0, sum_den_weighted_top_n = 0, sum_avg_until_y = 0, sum_weighted_until_y = 0;
-		float sum_den_weighted_until_y = 0, sum_weighted_preds_top_n = 0, sum_weighted_preds_until_y = 0;
+
+		// Sanity
+		if (y > params->n_categ)
+			MTHROW_AND_ERR("Found label %d while n_categ = %d\n", (int)y, params->n_categ);
+
+		// Position of true class
 		int i_equal = -1;
-
-	
-			//MLOG("y = %f pred = %f Order: \n", y, *pred);
-			for (int i = 0; i < iterator->num_categories; i++)
-			{
-				//MLOG("preds_order[%d] %d \n", i, preds_order[i]);
-				jaccard_vals[i] = medial::performance::jaccard_distance(y, preds_order[i]);
-				if (y == preds_order[i])
-					i_equal = i;
-		}
-
-		for (int i = 0; i < n; i++)
-		{
-			sum_avg_top_n += jaccard_vals[i];
-			sum_weighted_top_n += (n - i + 1)*jaccard_vals[i];
-			sum_den_weighted_top_n += (n - i + 1);
-			sum_weighted_preds_top_n += *(pred + preds_order[i]) * jaccard_vals[i];
-		}
-
-		for (int i = 0; i <= i_equal; i++)
-		{
-			sum_avg_until_y += jaccard_vals[i];
-			sum_weighted_until_y += (i_equal - i + 1)*jaccard_vals[i];
-			sum_den_weighted_until_y += (i_equal - i + 1);
-			sum_weighted_preds_until_y += *(pred + preds_order[i]) *jaccard_vals[i];
-		}
-
-		float sum_weighted_preds_jaccard_tmp = 0 ;
+		//MLOG("y = %f pred = %f Order: \n", y, *pred);
 		for (int i = 0; i < iterator->num_categories; i++)
 		{
-			sum_weighted_preds_jaccard_tmp += jaccard_vals[i] * *(pred + preds_order[i]);
+			//MLOG("preds_order[%d] %d \n", i, preds_order[i]);
+			if (preds_order[i] >= params->n_categ)
+				MTHROW_AND_ERR("Found predict %d while n_categ = %d\n", (int)y, params->n_categ);
+			dist_vals[i] = params->dist_matrix[(int)y][preds_order[i]];  
+			if (y == preds_order[i])
+				i_equal = i;
 		}
-		sum_weighted_preds_jaccard += params->jaccard_weights[(int)y] * sum_weighted_preds_jaccard_tmp;
+		
+		// Measures limited by position of true class
+		float sum_den_weighted_until_y = 0, sum_weighted_preds_until_y = 0, sum_weighted_until_y = 0, sum_avg_until_y = 0;
+		for (int i = 0; i <= i_equal; i++)
+		{
+			sum_avg_until_y += dist_vals[i];
+			sum_weighted_until_y += (i_equal - i + 1)*dist_vals[i];
+			sum_den_weighted_until_y += (i_equal - i + 1);
+			sum_weighted_preds_until_y += *(pred + preds_order[i]) *dist_vals[i];
+		}
+
+		avg_dist_until_correct += (sum_avg_until_y / (i_equal + 1));
+		avg_weighted_dist_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
+		avg_weighted_preds_dist_until_correct += sum_weighted_preds_until_y;
+
+		// Measures limited by top_n
+		for (int in = 0; in < n_top_n; in++) {
+			int top_n = params->top_n[in];
+			float sum_avg=0, sum_weighted=0, sum_den_weighted=0, sum_weighted_preds=0;
+			for (int i = 0; i < top_n; i++) {
+				sum_avg += dist_vals[i];
+				sum_weighted  += (top_n - i + 1)*dist_vals[i];
+				sum_den_weighted += (top_n - i + 1);
+				sum_weighted_preds += *(pred + preds_order[i]) * dist_vals[i];
+			}
+
+			sum_accuracy_top_n[in] += (i_equal < top_n);
+			avg_dist_top_n[in] += (sum_avg / top_n);
+			avg_weighted_dist_top_n[in] += (sum_weighted / sum_den_weighted);
+			avg_weighted_preds_dist_top_n[in] += sum_weighted_preds;
+		}
+
+		float sum_weighted_preds_dist_tmp = 0 ;
+		for (int i = 0; i < iterator->num_categories; i++)
+			sum_weighted_preds_dist_tmp += dist_vals[i] * *(pred + preds_order[i]);
+		sum_weighted_preds_dist += params->dist_weights[(int)y] * sum_weighted_preds_dist_tmp;
 
 		sum_correct_location += (i_equal + 1); // start from one
-
-		sum_accuracy_top_n += (i_equal < n);
-
-		sum_accuracy_top_1 += (i_equal == 0);
-
-		avg_jaccard_top_n += (sum_avg_top_n / n);
-		avg_weighted_jaccard_top_n += (sum_weighted_top_n / sum_den_weighted_top_n);
-		avg_jaccard_until_correct += (sum_avg_until_y / (i_equal + 1));
-		avg_weighted_jaccard_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
-		avg_weighted_preds_jaccard_top_n += sum_weighted_preds_top_n;
-		avg_weighted_preds_jaccard_until_correct += sum_weighted_preds_until_y;
-		
 		n_samples++;
 	}
 
-	res["AVG_JACCARD_TOP_" + to_string(n)] = avg_jaccard_top_n / n_samples;
-	res["AVG_WEIGHTED_JACCARD_TOP_" + to_string(n)] = avg_weighted_jaccard_top_n / n_samples;
-	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_" + to_string(n)] = avg_weighted_preds_jaccard_top_n / n_samples;
-	res["AVG_JACCARD_UNTIL_CORRECT"] = avg_jaccard_until_correct / n_samples;
-	res["AVG_WEIGHTED_JACCARD_UNTIL_CORRECT"] = avg_weighted_jaccard_until_correct / n_samples;
-	res["AVG_WEIGHTED_PREDS_JACCARD_TOP_UNTIL_CORRECT"] = avg_weighted_preds_jaccard_until_correct / n_samples;
-	res["AVG_WEIGHTED_PREDS_JACCARD"] = sum_weighted_preds_jaccard / n_samples;
+	for (int in = 0; in < n_top_n; in++) {
+		int n = params->top_n[in];
+		res["AVG_" + params->dist_name + "_TOP_" + to_string(n)] = avg_dist_top_n[in] / n_samples;
+		res["AVG_WEIGHTED_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_dist_top_n[in] / n_samples;
+		res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_preds_dist_top_n[in] / n_samples;
+
+		res["ACCURACY_TOP_" + to_string(n)] = sum_accuracy_top_n[in] / n_samples;
+	}
+	
+	res["AVG_" + params->dist_name + "_UNTIL_CORRECT"] = avg_dist_until_correct / n_samples;
+	res["AVG_WEIGHTED_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_dist_until_correct / n_samples;
+	res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_preds_dist_until_correct / n_samples;
+	res["AVG_WEIGHTED_PREDS_" + params->dist_name] = sum_weighted_preds_dist / n_samples;
 	res["AVG_CORRECT_LOCATION"] = sum_correct_location / n_samples;
-	res["ACCURACY_TOP_" + to_string(n)] = sum_accuracy_top_n / n_samples;
-	res["ACCURACY_TOP_1"] = sum_accuracy_top_1 / n_samples;
 
 	return res;
 }
@@ -2706,32 +2721,87 @@ ROC_Params::ROC_Params(const string &init_string) : ROC_Params() {
 	init_from_string(init_string);
 }
 
+void Multiclass_Params::read_dist_matrix_from_file(const string& fileName) {
+
+	ifstream inf(fileName);
+	if (!inf)
+		MTHROW_AND_ERR("Cannot open file \'%s\' for reading\n", fileName.c_str());
+
+	string line;
+	vector<string> fields;
+	while (getline(inf, line)) {
+		boost::split(fields, line, boost::is_any_of(","));
+		vector<float> row;
+		for (string& s : fields)
+			row.push_back(stof(s));
+
+		if ((!dist_matrix.empty()) && (row.size() != dist_matrix.back().size()))
+			MTHROW_AND_ERR("Row size inconsistency in distance matrix from \'%s\'\n", fileName.c_str());
+		dist_matrix.push_back(row);
+	}
+
+	if ((!dist_matrix.empty()) && (dist_matrix.size() != dist_matrix[0].size()))
+		MTHROW_AND_ERR("Distance matrix is not square in \'%s\'\n", fileName.c_str());
+
+	inf.close();
+}
+
 int Multiclass_Params::init(map<string, string>& map) {
+
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		const string &param_name = boost::to_lower_copy(it->first);
 		const string &param_value = it->second;
 
 		//! [Multiclass_Params::init]
-		if (param_name == "top_n")
-			top_n = stoi(param_value);
-		if (param_name == "n_categ")
+		if (param_name == "top_n") {
+			vector<string> fields;
+			boost::split(fields, param_value, boost::is_any_of(","));
+			for (string& _n : fields)
+				top_n.push_back(stoi(_n));
+			sort(top_n.begin(), top_n.end());
+		}
+		else if (param_name == "n_categ")
 			n_categ = stoi(param_value);
-		
+		else if (param_name == "dist") {
+			dist_name = param_value;
+			boost::to_upper(dist_name);
+		}
+		else if (param_name == "dist_matrix") {
+			dist_file = param_value;
+			read_dist_matrix_from_file(dist_file);
+		}
 		//! [Multiclass_Params::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for Multiclass_Params\n", param_name.c_str());
 	}
 
-	jaccard_weights.reserve(n_categ);
-	for (size_t i = 0; i < n_categ; i++)
-	{
+	// Distance
+	// fill distance matrix by name
+	if (dist_matrix.empty()) {
+		if (dist_name == "JACCARD")
+			medial::performance::get_jaccard_matrix(n_categ, dist_matrix);
+		else if (dist_name == "UNIFORM") {
+			dist_matrix.assign(n_categ, vector<float>(n_categ, 1.0));
+			for (int i = 0; i < n_categ; i++)
+				dist_matrix[i][i] = 0;
+		}
+	}
+
+	if (dist_matrix.empty())
+		MTHROW_AND_ERR("Cannot perform multi-class analysis without distance matrix (try JACCARD/UNIFORM)");
+
+	// Update n_categ according to matrix
+	if (n_categ != 1 && n_categ != dist_matrix.size())
+		MTHROW_AND_ERR("n_categ (%d) and distance matrix (%d) are inconsistent\n",n_categ,(int)dist_matrix.size());
+	n_categ = (int) dist_matrix.size();
+
+	dist_weights.reserve(n_categ);
+	for (size_t i = 0; i < n_categ; i++) {
 		float sum = 0;
 		for (size_t k = 0; k < n_categ; k++)
-		{
-			sum += medial::performance::jaccard_distance(i, k);
-		}
-		jaccard_weights[i] = (float)(n_categ) / sum;
+			sum += dist_matrix[i][k]; 
+		dist_weights[i] = (float)(n_categ) / sum;
 	}
 
 	return 0;

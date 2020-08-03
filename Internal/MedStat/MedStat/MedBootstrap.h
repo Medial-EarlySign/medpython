@@ -20,7 +20,7 @@ enum class MeasurmentFunctionType {
 	calc_npos_nneg = 0,
 	calc_only_auc = 1,
 	calc_roc_measures_with_inc = 2, 
-	calc_jaccard = 3
+	calc_multi_class = 3
 };
 class with_registry_args {
 public:

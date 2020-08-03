@@ -157,6 +157,16 @@ template float medial::performance::spearman_corr<float>(const vector<float> &v1
 template float medial::performance::spearman_corr<double>(const vector<double> &v1, const vector<double> &v2, double missing_val, int &n, const vector<float> *weights);
 
 // Jaccard
+void medial::performance::get_jaccard_matrix(int n, vector<vector<float>>& jaccard_dist) {
+
+	jaccard_dist.resize(n, vector<float>(n));
+	for (int i = 0; i < n; i++) {
+		for (int j = 0; j < n; j++)
+			jaccard_dist[i][j] = jaccard_distance(i, j);
+
+	}
+}
+
 float medial::performance::jaccard_similarity(int val1, int val2)
 {
 	float num = std::bitset<16>(val1 & val2).count();
