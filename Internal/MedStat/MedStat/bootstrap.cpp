@@ -1017,7 +1017,7 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	
 	map<string, float> res;
-	float y, weight;
+	float y, weight, w;
 	const float *pred;
 	const int *preds_order;
 
@@ -1032,13 +1032,18 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 	float avg_dist_until_correct = 0, avg_weighted_dist_until_correct = 0, avg_weighted_preds_dist_until_correct = 0;
 	float sum_weighted_preds_dist = 0, sum_correct_location = 0;
 	vector<float> avg_weighted_dist_top_n(n_top_n, 0), avg_dist_top_n(n_top_n, 0), avg_weighted_preds_dist_top_n(n_top_n, 0), sum_accuracy_top_n(n_top_n, 0);
-	int n_samples = 0;
+	float total_weights = 0;
 
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
 
 		// Sanity
 		if (y > params->n_categ)
 			MTHROW_AND_ERR("Found label %d while n_categ = %d\n", (int)y, params->n_categ);
+
+		if (weight == -1)
+			w = 1;
+		else
+			w = weight;
 
 		// Position of true class
 		int i_equal = -1;
@@ -1063,9 +1068,9 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 			sum_weighted_preds_until_y += *(pred + preds_order[i]) *dist_vals[i];
 		}
 
-		avg_dist_until_correct += (sum_avg_until_y / (i_equal + 1));
-		avg_weighted_dist_until_correct += (sum_weighted_until_y / sum_den_weighted_until_y);
-		avg_weighted_preds_dist_until_correct += sum_weighted_preds_until_y;
+		avg_dist_until_correct += w * (sum_avg_until_y / (i_equal + 1));
+		avg_weighted_dist_until_correct += w * (sum_weighted_until_y / sum_den_weighted_until_y);
+		avg_weighted_preds_dist_until_correct += w * sum_weighted_preds_until_y;
 
 		// Measures limited by top_n
 		for (int in = 0; in < n_top_n; in++) {
@@ -1078,35 +1083,34 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 				sum_weighted_preds += *(pred + preds_order[i]) * dist_vals[i];
 			}
 
-			sum_accuracy_top_n[in] += (i_equal < top_n);
-			avg_dist_top_n[in] += (sum_avg / top_n);
-			avg_weighted_dist_top_n[in] += (sum_weighted / sum_den_weighted);
-			avg_weighted_preds_dist_top_n[in] += sum_weighted_preds;
+			sum_accuracy_top_n[in] += w * (i_equal < top_n);
+			avg_dist_top_n[in] += w * (sum_avg / top_n);
+			avg_weighted_dist_top_n[in] += w * (sum_weighted / sum_den_weighted);
+			avg_weighted_preds_dist_top_n[in] += w * sum_weighted_preds;
 		}
 
 		float sum_weighted_preds_dist_tmp = 0 ;
 		for (int i = 0; i < iterator->num_categories; i++)
 			sum_weighted_preds_dist_tmp += dist_vals[i] * *(pred + preds_order[i]);
-		sum_weighted_preds_dist += params->dist_weights[(int)y] * sum_weighted_preds_dist_tmp;
+		sum_weighted_preds_dist += w * params->dist_weights[(int)y] * sum_weighted_preds_dist_tmp;
 
-		sum_correct_location += (i_equal + 1); // start from one
-		n_samples++;
+		sum_correct_location += w * (i_equal + 1); // start from one
+		total_weights += w;
 	}
 
 	for (int in = 0; in < n_top_n; in++) {
 		int n = params->top_n[in];
-		res["AVG_" + params->dist_name + "_TOP_" + to_string(n)] = avg_dist_top_n[in] / n_samples;
-		res["AVG_WEIGHTED_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_dist_top_n[in] / n_samples;
-		res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_preds_dist_top_n[in] / n_samples;
-
-		res["ACCURACY_TOP_" + to_string(n)] = sum_accuracy_top_n[in] / n_samples;
+		res["AVG_" + params->dist_name + "_TOP_" + to_string(n)] = avg_dist_top_n[in] / total_weights;
+		res["AVG_WEIGHTED_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_dist_top_n[in] / total_weights;
+		res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_TOP_" + to_string(n)] = avg_weighted_preds_dist_top_n[in] / total_weights;
+		res["ACCURACY_TOP_" + to_string(n)] = sum_accuracy_top_n[in] / total_weights;
 	}
 	
-	res["AVG_" + params->dist_name + "_UNTIL_CORRECT"] = avg_dist_until_correct / n_samples;
-	res["AVG_WEIGHTED_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_dist_until_correct / n_samples;
-	res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_preds_dist_until_correct / n_samples;
-	res["AVG_WEIGHTED_PREDS_" + params->dist_name] = sum_weighted_preds_dist / n_samples;
-	res["AVG_CORRECT_LOCATION"] = sum_correct_location / n_samples;
+	res["AVG_" + params->dist_name + "_UNTIL_CORRECT"] = avg_dist_until_correct / total_weights;
+	res["AVG_WEIGHTED_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_dist_until_correct / total_weights;
+	res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_preds_dist_until_correct / total_weights;
+	res["AVG_WEIGHTED_PREDS_" + params->dist_name] = sum_weighted_preds_dist / total_weights;
+	res["AVG_CORRECT_LOCATION"] = sum_correct_location / total_weights;
 
 	return res;
 }
