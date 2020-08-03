@@ -305,6 +305,9 @@ public:
 	/// if resolution only 
 	bool resolution_only = false;
 
+	/// verbosity
+	int verbosity = 0;
+
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
 	FeatureNormalizer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
@@ -328,7 +331,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity)
 
 };
 
