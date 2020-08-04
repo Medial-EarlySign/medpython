@@ -185,7 +185,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 		ret_preds_order = &preds_order[selected_index*num_categories];
 		weight = weights == NULL ? -1 : weights[selected_index];
 		++current_pos[thread];
-		return current_pos[thread] < sample_per_pid * cohort_size;
+		return current_pos[thread] <= sample_per_pid * cohort_size;
 	}
 	else { //taking all samples for pid when selected, sample_ratio is less than 1
 		if (sample_all_no_sampling) {
@@ -216,7 +216,7 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, const float* &ret_pred,
 			sel_pid_index[thread] = -1;
 			++current_pos[thread]; //mark pid as done
 		}
-		return current_pos[thread] < cohort_size;
+		return current_pos[thread] <= cohort_size;
 	}
 }
 
