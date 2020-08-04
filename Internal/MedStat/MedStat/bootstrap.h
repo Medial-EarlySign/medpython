@@ -315,13 +315,15 @@ public:
 	vector<vector<float>> dist_matrix; /// dist(i,j)
 	string dist_name = "JACCARD";
 	string dist_file;
+	bool do_class_auc = false;
+
 	Multiclass_Params() { top_n = { 1,5 }; n_categ = 1; }
 	Multiclass_Params(const string &init_string);
 
 	int init(map<string, string>& map);
 	void read_dist_matrix_from_file(const string& fileName);
 
-	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name)
+	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name, do_class_auc)
 };
 
 #pragma region Cohort Fucntions

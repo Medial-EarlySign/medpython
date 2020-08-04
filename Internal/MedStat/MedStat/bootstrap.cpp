@@ -931,37 +931,13 @@ map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measu
 	return res;
 }
 
-map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
-	map<string, float> res;
-
-	vector<float> pred_threshold;
-	unordered_map<float, vector<float>> pred_to_labels;
-	unordered_map<float, vector<float>> pred_to_weights;
-	double tot_true_labels = 0;
-	float y, pred, weight;
-	double tot_cnt = 0;
-	while (iterator->fetch_next(thread_num, y, pred, weight)) {
-		pred_to_labels[pred].push_back(y);
-		if (weight != -1)
-			pred_to_weights[pred].push_back(weight);
-		else
-			weight = 1;
-		tot_true_labels += int(y > 0) * weight;
-		tot_cnt += weight;
-	}
-	//last one
-	pred_to_labels[pred].push_back(y);
-	if (weight != -1)
-		pred_to_weights[pred].push_back(weight);
-	else
-		weight = 1;
-	tot_true_labels += int(y > 0)* weight;
-	tot_cnt += weight;
+float get_auc(float tot_cnt, float tot_true_labels, unordered_map<float, vector<float>>& pred_to_labels, unordered_map<float, vector<float>>& pred_to_weights) {
 
 	double tot_false_labels = tot_cnt - tot_true_labels;
 	if (tot_true_labels == 0 || tot_false_labels == 0)
-		MTHROW_AND_ERR("Error in bootstrap::calc_only_auc - only falses or positives exists in cohort");
-	pred_threshold = vector<float>((int)pred_to_labels.size());
+		MTHROW_AND_ERR("Error in bootstrap::get_auc - only falses or positives exists in cohort");
+	
+	 vector<float >pred_threshold = vector<float>((int)pred_to_labels.size());
 	unordered_map<float, vector<float>>::iterator it = pred_to_labels.begin();
 	for (size_t i = 0; i < pred_threshold.size(); ++i)
 	{
@@ -1009,8 +985,36 @@ map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measur
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
-	res["AUC"] = auc;
+	return auc;
+}
 
+map<string, float> calc_only_auc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	map<string, float> res;
+
+	unordered_map<float, vector<float>> pred_to_labels;
+	unordered_map<float, vector<float>> pred_to_weights;
+	double tot_true_labels = 0;
+	float y, pred, weight;
+	double tot_cnt = 0;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+		pred_to_labels[pred].push_back(y);
+		if (weight != -1)
+			pred_to_weights[pred].push_back(weight);
+		else
+			weight = 1;
+		tot_true_labels += int(y > 0) * weight;
+		tot_cnt += weight;
+	}
+	//last one
+	pred_to_labels[pred].push_back(y);
+	if (weight != -1)
+		pred_to_weights[pred].push_back(weight);
+	else
+		weight = 1;
+	tot_true_labels += int(y > 0)* weight;
+	tot_cnt += weight;
+
+	res["AUC"] = get_auc(tot_cnt, tot_true_labels, pred_to_labels, pred_to_weights);
 	return res;
 }
 
@@ -1034,12 +1038,32 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 	vector<float> avg_weighted_dist_top_n(n_top_n, 0), avg_dist_top_n(n_top_n, 0), avg_weighted_preds_dist_top_n(n_top_n, 0), sum_accuracy_top_n(n_top_n, 0);
 	int n_samples = 0;
 
+	// For AUCs
+	vector<unordered_map<float, vector<float>>> pred_to_labels(params->n_categ);
+	vector<unordered_map<float, vector<float>>> pred_to_weights(params->n_categ);
+	vector<float> tot_true_labels(params->n_categ);
+	float tot_count = 0.0;
+
 	while (iterator->fetch_next(thread_num, y, pred, weight, preds_order)) {
 
 		// Sanity
 		if (y > params->n_categ)
 			MTHROW_AND_ERR("Found label %d while n_categ = %d\n", (int)y, params->n_categ);
 
+		// AUC per category
+		if (params->do_class_auc) {
+			for (int i = 0; i < iterator->num_categories; i++) {
+				int outcome = ((int)y == i) ? 1 : 0;
+				pred_to_labels[i][pred[i]].push_back(outcome);
+				if (weight != -1)
+					pred_to_weights[i][pred[i]].push_back(weight);
+				else
+					weight = 1;
+				tot_true_labels[i] += outcome * weight;
+			}
+			tot_count += weight;
+		}
+		
 		// Position of true class
 		int i_equal = -1;
 		//MLOG("y = %f pred = %f Order: \n", y, *pred);
@@ -1107,6 +1131,14 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 	res["AVG_WEIGHTED_PREDS_" + params->dist_name + "_UNTIL_CORRECT"] = avg_weighted_preds_dist_until_correct / n_samples;
 	res["AVG_WEIGHTED_PREDS_" + params->dist_name] = sum_weighted_preds_dist / n_samples;
 	res["AVG_CORRECT_LOCATION"] = sum_correct_location / n_samples;
+
+	// AUC per category
+	if (params->do_class_auc) {
+		for (int i = 0; i < params->n_categ; i++) {
+			if (tot_true_labels[i] > 0)
+				res["CLASS_" + to_string(i) + "_AUC"] = get_auc(tot_count, tot_true_labels[i], pred_to_labels[i], pred_to_weights[i]);
+		}
+	}
 
 	return res;
 }
@@ -2771,6 +2803,8 @@ int Multiclass_Params::init(map<string, string>& map) {
 			dist_file = param_value;
 			read_dist_matrix_from_file(dist_file);
 		}
+		else if (param_name == "do_class_auc")
+			do_class_auc = (param_value == "1" || param_value == "y" || param_value == "Y");
 		//! [Multiclass_Params::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for Multiclass_Params\n", param_name.c_str());
