@@ -589,11 +589,13 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 	// Handle constant vector
 	if (sd == 0 && values.size()) {
-		MWARN("Got constant (%f) vector in feature %s....\n", feature_name.c_str());
+		if (verbosity > 0)
+			MWARN("Got constant (%f) vector in feature %s....\n", feature_name.c_str());
 		sd = 1.0;
 	}
 	else  if (sd == 1)
-		MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
+		if (verbosity > 0)
+			MLOG("got sd=1.0 in feature %s....\n", feature_name.c_str());
 
 	if (sd == 0)
 		MTHROW_AND_ERR("FeatureNormalizer learn sd: %f mean: %f size: %d", sd, mean, (int)values.size());
@@ -667,6 +669,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "resolution") resolution = med_stoi(entry.second);
 		else if (field == "signal") set_feature_name(entry.second);
+		else if (field == "vorbosity") verbosity = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
@@ -828,7 +831,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 
 			// Small stratas ...
 			if (all_existing_values.size() < min_samples) {
-				MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
+				if (verbose_learn)
+					MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
 					all_existing_values.size(), min_samples, feature_name.c_str());
 				if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
 					default_histogram.push_back({ missing_value,(float)1.0 });
@@ -839,7 +843,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 				if (too_small_stratas > 0) {
 					if (!leave_missing_for_small_stratas)
 					{
-						MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
+						if (verbose_learn)
+							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
 							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
 							default_moment_vec[stage] = medial::stats::mean_without_cleaning(all_existing_values);
@@ -852,7 +857,8 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 					}
 					else {
 						// leave_missing_for_small_stratas = true
-						MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
+						if (verbose_learn)
+							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
 							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 						if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
 							default_histogram.push_back({ missing_value,(float)1.0 });
