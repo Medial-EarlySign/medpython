@@ -120,6 +120,8 @@ int ExplainProcessings::init(map<string, string> &map) {
 			mutual_inf_bin_setting.init_from_string(it->second);
 		else if (it->first == "use_max_cov")
 			use_max_cov = med_stoi(it->second) > 0;
+		else if (it->first == "store_as_json")
+			store_as_json = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -168,7 +170,7 @@ double joint_dist_entropy(const vector<float> &v1, const vector<float> &v2) {
 	for (auto &it : joint_bins)
 	{
 		double prob = double(it.second) / total;
-		res += - prob * log(prob) / log(2.0);
+		res += -prob * log(prob) / log(2.0);
 	}
 
 	return res;
@@ -282,6 +284,8 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 			abs_cov_features = fixed_cov_abs;
 		}
 	}
+
+	post_deserialization();
 }
 
 float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const
@@ -485,7 +489,7 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 		if (has_groups)
 			break;
 	}
-	
+
 
 	if (!has_groups) {
 		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -571,13 +575,59 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (attr_name.empty()) //default name
 		group_name = my_class_name();
 
-#pragma omp parallel for
-	for (int i = 0; i < explain_reasons.size(); ++i) {
-		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	if (processing.store_as_json) {
+		vector<string> full_feat_names;
+		matrix.get_feature_names(full_feat_names);
+		vector<const vector<float> *> p_data(full_feat_names.size());
+		for (size_t i = 0; i < full_feat_names.size(); ++i)
+			p_data[i] = &matrix.data.at(full_feat_names[i]);
+
+		for (int i = 0; i < explain_reasons.size(); ++i) {
+			json full_res;
+			string global_explainer_section = "Explainer_Output";
+			full_res[global_explainer_section] = json::array();
+			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
+			int idx = 0;
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it) {
+				sorted_exp[idx].first = it->first;
+				sorted_exp[idx].second = it->second;
+				++idx;
+			}
+			sort(sorted_exp.begin(), sorted_exp.end(), [](const pair<string, float> &a, const pair<string, float> &b)
+			{ return abs(a.second) > abs(b.second); });
+			for (const auto &pt : sorted_exp) {
+				json group_json;
+				json child_elements = json::array();
+				//Fill with group features: Feature_Name, Feature_Value
+				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
+				// TODO: sort by importance
+				for (int feat_idx : grp_idx)
+				{
+					const string &feat_name = full_feat_names[feat_idx];
+					float feat_value = p_data[feat_idx]->at(i);
+					json child_e;
+					child_e["Feature_Name"] = feat_name;
+					child_e["Feature_Value"] = feat_value;
+					child_elements.push_back(child_e);
+				}
+
+				group_json["Contributer_Name"] = pt.first;
+				group_json["Contributer_Value"] = pt.second;
+				group_json["Contributer_Elements"] = child_elements;
+
+				full_res[global_explainer_section].push_back(group_json);
+			}
+
+			matrix.samples[i].str_attributes[group_name] = full_res.dump(1, '\t');
+		}
 	}
-
-
+	else {
+#pragma omp parallel for
+		for (int i = 0; i < explain_reasons.size(); ++i) {
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
+				matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+		}
+	}
 }
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
@@ -1332,7 +1382,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	case PROXY_IMPL:
 		proxy_predictor->calc_feature_contribs(x_mat, feat_res);
 		conv_to_vec(feat_res, sample_explain_reasons);
-		break; 
+		break;
 	case CONVERTED_TREES_IMPL:
 		if (!approximate) {
 			// Build sets

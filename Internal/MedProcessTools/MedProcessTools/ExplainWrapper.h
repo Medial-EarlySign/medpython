@@ -48,6 +48,7 @@ public:
 	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 	int iteration_cnt = 0; ///< if >0 the maximal number of iterations
 	bool use_max_cov = false; ///< If true will use max cov logic
+	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
 
 	bool use_mutual_information; ///< if true will use mutual information instead of covariance
 	BinSettings mutual_inf_bin_setting; ///< the bin setting for mutual information
