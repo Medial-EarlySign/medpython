@@ -1024,6 +1024,7 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 	MedLinearModel *lm;
 	MedGDLM *gdlm;
 	void *newM;
+	vector<unsigned char> blob;
 
 	switch (m->classifier_type) {
 	case MODEL_QRF:
@@ -1075,7 +1076,10 @@ void *medial::models::copyInfraModel(void *model, bool delete_old) {
 			delete (MedGDLM *)model;
 		break;
 	default:
-		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (copy)\n", m->my_class_name().c_str(), m->classifier_type);
+		newM = MedPredictor::make_predictor(m->classifier_type);
+		m->serialize_vec(blob);
+		static_cast<MedPredictor *>(newM)->deserialize_vec(blob);
+		//MTHROW_AND_ERR("Unsupported Type init for model %s:%d (copy)\n", m->my_class_name().c_str(), m->classifier_type);
 	}
 
 	return newM;
