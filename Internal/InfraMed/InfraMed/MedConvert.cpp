@@ -612,7 +612,7 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f_i, pid_data &curr, vector<file_stat> &fstat, map<pair<string, string>, int>& missing_dict_vals)
 {
 	//MLOG("===> lines %d\n", lines.size());
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (run_parallel)
 	for (int k = 0; k < lines.size(); k++) {
 		//MLOG("k=%d line %s\n", k, lines[k].c_str());
 		collected_data cd;
