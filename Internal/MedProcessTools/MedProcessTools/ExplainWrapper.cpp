@@ -537,6 +537,8 @@ int ModelExplainer::init(map<string, string> &mapper) {
 			use_p = stof(it->second);
 		else if (it->first == "store_as_json")
 			store_as_json = med_stoi(it->second) > 0;
+		else if (it->first == "denorm_features")
+			denorm_features = med_stoi(it->second) > 0;
 		else if (it->first == "pp_type") {} //ignore
 		else {
 			left_to_parse[it->first] = it->second;
@@ -545,6 +547,31 @@ int ModelExplainer::init(map<string, string> &mapper) {
 	_init(left_to_parse);
 
 	return 0;
+}
+
+void ModelExplainer::init_post_processor(MedModel& model) {
+	original_predictor = model.predictor;
+	//Find Norm Processors:
+	feats_to_norm.clear();
+	if (store_as_json && denorm_features) {
+		vector<const FeatureProcessor *> p_norms;
+		for (const FeatureProcessor *fp : model.feature_processors) {
+			if (fp->processor_type == FTR_PROCESS_MULTI) {
+				for (const FeatureProcessor *fp_i : static_cast<const MultiFeatureProcessor *>(fp)->processors)
+					if (fp_i->processor_type == FTR_PROCESS_NORMALIZER)
+						p_norms.push_back(fp_i);
+			}
+			if (fp->processor_type == FTR_PROCESS_NORMALIZER)
+				p_norms.push_back(fp);
+		}
+
+		//Map name to feature_processor
+		for (const FeatureProcessor *fp : p_norms)
+		{
+			const FeatureNormalizer *norm_fp = static_cast<const FeatureNormalizer *>(fp);
+			feats_to_norm[norm_fp->resolved_feature_name] = norm_fp;
+		}
+	}
 }
 
 void ModelExplainer::explain(MedFeatures &matrix) const {
@@ -602,11 +629,16 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 				//Fill with group features: Feature_Name, Feature_Value
 				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
 				// TODO: sort by importance
-				// TODO: Add support to save feature values without normalizations
+
 				for (int feat_idx : grp_idx)
 				{
 					const string &feat_name = full_feat_names[feat_idx];
 					float feat_value = p_data[feat_idx]->at(i);
+					// Save feature values without normalizations if requested
+					if (denorm_features && feats_to_norm.find(feat_name) != feats_to_norm.end()) {
+						const FeatureNormalizer *normalizer = feats_to_norm.at(feat_name);
+						normalizer->reverse_apply(feat_value);
+					}
 					json child_e;
 					child_e["Feature_Name"] = feat_name;
 					child_e["Feature_Value"] = feat_value;

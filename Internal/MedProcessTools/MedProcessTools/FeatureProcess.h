@@ -321,6 +321,9 @@ public:
 	// Apply cleaning model
 	int _apply(MedFeatures& features, unordered_set<int>& ids);
 
+	/// Reverse action of Apply - denorm feature value
+	void reverse_apply(float &feature_value) const;
+
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp FeatureNormalizer::init
 	int init(map<string, string>& mapper);
