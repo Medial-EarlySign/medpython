@@ -120,8 +120,6 @@ int ExplainProcessings::init(map<string, string> &map) {
 			mutual_inf_bin_setting.init_from_string(it->second);
 		else if (it->first == "use_max_cov")
 			use_max_cov = med_stoi(it->second) > 0;
-		else if (it->first == "store_as_json")
-			store_as_json = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Error in ExplainProcessings::init - Unknown param \"%s\"\n", it->first.c_str());
 	}
@@ -537,6 +535,8 @@ int ModelExplainer::init(map<string, string> &mapper) {
 			use_split = stoi(it->second);
 		else if (it->first == "use_p")
 			use_p = stof(it->second);
+		else if (it->first == "store_as_json")
+			store_as_json = med_stoi(it->second) > 0;
 		else if (it->first == "pp_type") {} //ignore
 		else {
 			left_to_parse[it->first] = it->second;
@@ -575,13 +575,14 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	if (attr_name.empty()) //default name
 		group_name = my_class_name();
 
-	if (processing.store_as_json) {
+	if (store_as_json) {
 		vector<string> full_feat_names;
 		matrix.get_feature_names(full_feat_names);
 		vector<const vector<float> *> p_data(full_feat_names.size());
 		for (size_t i = 0; i < full_feat_names.size(); ++i)
 			p_data[i] = &matrix.data.at(full_feat_names[i]);
 
+#pragma omp parallel for if (explain_reasons.size() > 2)
 		for (int i = 0; i < explain_reasons.size(); ++i) {
 			json full_res;
 			string global_explainer_section = "Explainer_Output";
@@ -601,6 +602,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 				//Fill with group features: Feature_Name, Feature_Value
 				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
 				// TODO: sort by importance
+				// TODO: Add support to save feature values without normalizations
 				for (int feat_idx : grp_idx)
 				{
 					const string &feat_name = full_feat_names[feat_idx];

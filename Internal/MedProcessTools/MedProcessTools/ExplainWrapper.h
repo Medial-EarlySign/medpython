@@ -48,7 +48,6 @@ public:
 	bool iterative = false; ///< if true will add explainers iteratively, conditioned on those already selected
 	int iteration_cnt = 0; ///< if >0 the maximal number of iterations
 	bool use_max_cov = false; ///< If true will use max cov logic
-	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
 
 	bool use_mutual_information; ///< if true will use mutual information instead of covariance
 	BinSettings mutual_inf_bin_setting; ///< the bin setting for mutual information
@@ -98,6 +97,7 @@ public:
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
 	string attr_name = ""; ///< attribute name for explainer
+	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
 
 	/// Global init for general args in all explainers
 	virtual int init(map<string, string> &mapper);
@@ -174,7 +174,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, verbose)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, store_as_json, verbose)
 };
 
 /**
@@ -233,7 +233,7 @@ public:
 			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
 			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, 
-			limit_mask_size, split_to_test)
+			limit_mask_size, split_to_test, store_as_json)
 };
 
 /**
@@ -277,7 +277,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			use_random_sampling, avg_bias_score, filters, processing, attr_name)
+			use_random_sampling, avg_bias_score, filters, processing, attr_name, store_as_json)
 };
 
 /**
@@ -321,7 +321,7 @@ public:
 
 	ADD_CLASS_NAME(LimeExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks, weighting,
-			filters, processing, attr_name)
+			filters, processing, attr_name, store_as_json)
 };
 
 /**
@@ -350,7 +350,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(KNN_Explainer)
-		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, attr_name, store_as_json)
 };
 
 /**
@@ -369,7 +369,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(LinearExplainer)
-		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name, store_as_json)
 };
 
 /**
@@ -421,7 +421,7 @@ public:
 	ADD_CLASS_NAME(IterativeSetExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
 			use_random_sampling, avg_bias_score, filters, processing, attr_name, max_set_size, 
-			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2)
+			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2, store_as_json)
 };
 
 MEDSERIALIZE_SUPPORT(ExplainFilters)
