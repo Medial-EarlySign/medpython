@@ -530,15 +530,15 @@ int ModelExplainer::init(map<string, string> &mapper) {
 		else if (it->first == "filters")
 			filters.init_from_string(it->second);
 		else if (it->first == "attr_name")
-			attr_name = it->second;
+			global_explain_params.attr_name = it->second;
 		else if (it->first == "use_split")
 			use_split = stoi(it->second);
 		else if (it->first == "use_p")
 			use_p = stof(it->second);
 		else if (it->first == "store_as_json")
-			store_as_json = med_stoi(it->second) > 0;
+			global_explain_params.store_as_json = med_stoi(it->second) > 0;
 		else if (it->first == "denorm_features")
-			denorm_features = med_stoi(it->second) > 0;
+			global_explain_params.denorm_features = med_stoi(it->second) > 0;
 		else if (it->first == "pp_type") {} //ignore
 		else {
 			left_to_parse[it->first] = it->second;
@@ -553,7 +553,7 @@ void ModelExplainer::init_post_processor(MedModel& model) {
 	original_predictor = model.predictor;
 	//Find Norm Processors:
 	feats_to_norm.clear();
-	if (store_as_json && denorm_features) {
+	if (global_explain_params.store_as_json && global_explain_params.denorm_features) {
 		vector<const FeatureProcessor *> p_norms;
 		for (const FeatureProcessor *fp : model.feature_processors) {
 			if (fp->processor_type == FTR_PROCESS_MULTI) {
@@ -598,11 +598,11 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	for (int i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
 
-	string group_name = attr_name;
-	if (attr_name.empty()) //default name
+	string group_name = global_explain_params.attr_name;
+	if (global_explain_params.attr_name.empty()) //default name
 		group_name = my_class_name();
 
-	if (store_as_json) {
+	if (global_explain_params.store_as_json) {
 		vector<string> full_feat_names;
 		matrix.get_feature_names(full_feat_names);
 		vector<const vector<float> *> p_data(full_feat_names.size());
@@ -635,7 +635,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 					const string &feat_name = full_feat_names[feat_idx];
 					float feat_value = p_data[feat_idx]->at(i);
 					// Save feature values without normalizations if requested
-					if (denorm_features && feats_to_norm.find(feat_name) != feats_to_norm.end()) {
+					if (global_explain_params.denorm_features && feats_to_norm.find(feat_name) != feats_to_norm.end()) {
 						const FeatureNormalizer *normalizer = feats_to_norm.at(feat_name);
 						normalizer->reverse_apply(feat_value);
 					}
@@ -826,7 +826,7 @@ void ModelExplainer::dprint(const string &pref) const {
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, attr_name=%s, processing={%s}, filters={%s}\n",
-		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), attr_name.c_str(),
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -2284,7 +2284,7 @@ void ShapleyExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -2441,7 +2441,7 @@ void LimeExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -2957,6 +2957,6 @@ void IterativeSetExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }

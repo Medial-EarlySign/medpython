@@ -86,6 +86,21 @@ public:
 };
 
 /**
+* A wrapper class to hold all global arguments needed for ModelExplainer
+*/
+class GlobalExplainerParams : public SerializableObject {
+public:
+	string attr_name = ""; ///< attribute name for explainer
+	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
+	bool denorm_features = true; ///< If true will save feature values denorm
+
+	//No init - will be initialized directly in ModelExplainer::init
+
+	ADD_CLASS_NAME(GlobalExplainerParams)
+		ADD_SERIALIZATION_FUNCS(attr_name, store_as_json, denorm_features)
+};
+
+/**
 * An abstract class API for explainer
 */
 class ModelExplainer : public PostProcessor {
@@ -98,11 +113,9 @@ public:
 	MedPredictor * original_predictor = NULL; ///< predictor we're trying to explain
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
-	string attr_name = ""; ///< attribute name for explainer
-	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
-	bool denorm_features = true; ///< If true will save feature values denorm
-
-	/// Global init for general args in all explainers
+	GlobalExplainerParams global_explain_params;
+	
+	/// Global init for general args in all explainers. initialize directly all args in GlobalExplainerParams
 	virtual int init(map<string, string> &mapper);
 
 	/// overload function for ModelExplainer - easier API
@@ -177,7 +190,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, store_as_json, denorm_features, verbose)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, global_explain_params, verbose)
 };
 
 /**
@@ -233,10 +246,10 @@ public:
 
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
-			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
+			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, global_explain_params,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
 			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train,
-			limit_mask_size, split_to_test, store_as_json, denorm_features)
+			limit_mask_size, split_to_test)
 };
 
 /**
@@ -280,7 +293,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			use_random_sampling, avg_bias_score, filters, processing, attr_name, store_as_json, denorm_features)
+			use_random_sampling, avg_bias_score, filters, processing, global_explain_params)
 };
 
 /**
@@ -324,7 +337,7 @@ public:
 
 	ADD_CLASS_NAME(LimeExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks, weighting,
-			filters, processing, attr_name, store_as_json, denorm_features)
+			filters, processing, global_explain_params)
 };
 
 /**
@@ -353,7 +366,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(KNN_Explainer)
-		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, attr_name, store_as_json, denorm_features)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, global_explain_params)
 };
 
 /**
@@ -372,7 +385,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(LinearExplainer)
-		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name, store_as_json, denorm_features)
+		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, global_explain_params)
 };
 
 /**
@@ -423,12 +436,13 @@ public:
 
 	ADD_CLASS_NAME(IterativeSetExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			use_random_sampling, avg_bias_score, filters, processing, attr_name, max_set_size,
-			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2, store_as_json, denorm_features)
+			use_random_sampling, avg_bias_score, filters, processing, global_explain_params, max_set_size,
+			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2)
 };
 
 MEDSERIALIZE_SUPPORT(ExplainFilters)
 MEDSERIALIZE_SUPPORT(ExplainProcessings)
+MEDSERIALIZE_SUPPORT(GlobalExplainerParams)
 MEDSERIALIZE_SUPPORT(TreeExplainer)
 MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)
