@@ -100,7 +100,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, ResampleMissingProcessor);
 	CONDITIONAL_NEW_CLASS(dname, DuplicateProcessor);
 	CONDITIONAL_NEW_CLASS(dname, MissingIndicatorProcessor);
-	
+
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -222,7 +222,7 @@ string FeatureProcessor::resolve_feature_name(MedFeatures& features, string subs
 		//resolve_feature_name - access features.data names in not thread safe manner
 		res = features.resolve_name(substr);
 	}
-		return res;
+	return res;
 
 }
 
@@ -656,6 +656,21 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	return 0;
 }
 
+// Reverse the Apply - Denorm
+void FeatureNormalizer::reverse_apply(float &feature_value) const {
+	// Clean
+	if (feature_value != missing_value) {
+		if (resolution > 0 && resolution_only)
+			return; // no norm occoured
+
+		if (normalizeSd)
+			feature_value *= sd;
+		feature_value += mean;
+	}
+
+}
+
+
 // Init
 //.......................................................................................
 int FeatureNormalizer::init(map<string, string>& mapper) {
@@ -833,7 +848,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 			if (all_existing_values.size() < min_samples) {
 				if (verbose_learn)
 					MLOG("WARNING: FeatureImputer::Learn found only %d < %d samples over all for [%s], will not learn to impute it\n",
-					all_existing_values.size(), min_samples, feature_name.c_str());
+						all_existing_values.size(), min_samples, feature_name.c_str());
 				if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
 					default_histogram.push_back({ missing_value,(float)1.0 });
 				else
@@ -845,7 +860,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 					{
 						if (verbose_learn)
 							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
-							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+								min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
 							default_moment_vec[stage] = medial::stats::mean_without_cleaning(all_existing_values);
 						else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN)
@@ -859,7 +874,7 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 						// leave_missing_for_small_stratas = true
 						if (verbose_learn)
 							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will NOT impute them using all values\n",
-							min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
+								min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
 						if (moment_type_vec[stage] == IMPUTE_MMNT_SAMPLE)
 							default_histogram.push_back({ missing_value,(float)1.0 });
 						else
@@ -1472,7 +1487,7 @@ int MissingIndicatorProcessor::_apply(MedFeatures& features, unordered_set<int>&
 			features.data[new_feature_name].push_back(1.);
 			if (val != replace_value)
 #pragma omp critical
-			val = replace_value;
+				val = replace_value;
 		}
 		else
 			features.data[new_feature_name].push_back(0.);

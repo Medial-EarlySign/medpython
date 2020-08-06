@@ -86,19 +86,36 @@ public:
 };
 
 /**
+* A wrapper class to hold all global arguments needed for ModelExplainer
+*/
+class GlobalExplainerParams : public SerializableObject {
+public:
+	string attr_name = ""; ///< attribute name for explainer
+	bool store_as_json = false; ///< If true will store ButWhy output as json in string attributes
+	bool denorm_features = true; ///< If true will save feature values denorm
+
+	//No init - will be initialized directly in ModelExplainer::init
+
+	ADD_CLASS_NAME(GlobalExplainerParams)
+		ADD_SERIALIZATION_FUNCS(attr_name, store_as_json, denorm_features)
+};
+
+/**
 * An abstract class API for explainer
 */
 class ModelExplainer : public PostProcessor {
 private:
 	/// init function for specific explainer
 	virtual void _init(map<string, string> &mapper) = 0;
+	/// map from feature names to thier normalizer if exsits. Get filled after init_post_processor. no need to serialize
+	unordered_map<string, const FeatureNormalizer *> feats_to_norm;
 public:
 	MedPredictor * original_predictor = NULL; ///< predictor we're trying to explain
 	ExplainFilters filters; ///< general filters of results
 	ExplainProcessings processing; ///< processing of results, like groupings, COV
-	string attr_name = ""; ///< attribute name for explainer
-
-	/// Global init for general args in all explainers
+	GlobalExplainerParams global_explain_params;
+	
+	/// Global init for general args in all explainers. initialize directly all args in GlobalExplainerParams
 	virtual int init(map<string, string> &mapper);
 
 	/// overload function for ModelExplainer - easier API
@@ -106,10 +123,10 @@ public:
 
 	///Learns from predictor and train_matrix (PostProcessor API)
 	virtual void Learn(const MedFeatures &train_mat);
-	void Apply(MedFeatures &matrix)  { explain(matrix); } ///< alias for explain
+	void Apply(MedFeatures &matrix) { explain(matrix); } ///< alias for explain
 
-
-	void init_post_processor(MedModel& model) { original_predictor = model.predictor; };
+	///Init ModelExplainer from MedModel - copies predictor pointer, might save normalizers pointers
+	void init_post_processor(MedModel& model);
 
 	///Virtual - return explain results in sample_feature_contrib
 	virtual void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const = 0;
@@ -143,7 +160,7 @@ class TreeExplainer : public ModelExplainer {
 private:
 	MedPredictor * proxy_predictor = NULL; //uses this if model has no tree implementation
 	//Tree structure of generic ensamble trees
-private:	
+private:
 	bool convert_qrf_trees();
 	bool convert_lightgbm_trees();
 	bool convert_xgb_trees();
@@ -173,7 +190,7 @@ public:
 	~TreeExplainer();
 
 	ADD_CLASS_NAME(TreeExplainer)
-		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, attr_name, verbose)
+		ADD_SERIALIZATION_FUNCS(proxy_predictor, interaction_shap, filters, processing, global_explain_params, verbose)
 };
 
 /**
@@ -229,9 +246,9 @@ public:
 
 	ADD_CLASS_NAME(MissingShapExplainer)
 		ADD_SERIALIZATION_FUNCS(retrain_predictor, max_test, missing_value, sample_masks_with_repeats,
-			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, attr_name,
+			select_from_all, uniform_rand, use_shuffle, no_relearn, avg_bias_score, filters, processing, global_explain_params,
 			predictor_type, predictor_args, max_weight, use_minimal_set, sort_params_a, sort_params_b,
-			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train, 
+			sort_params_k1, sort_params_k2, max_set_size, override_score_bias, verbose_apply, subsample_train,
 			limit_mask_size, split_to_test)
 };
 
@@ -276,7 +293,7 @@ public:
 
 	ADD_CLASS_NAME(ShapleyExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			use_random_sampling, avg_bias_score, filters, processing, attr_name)
+			use_random_sampling, avg_bias_score, filters, processing, global_explain_params)
 };
 
 /**
@@ -320,7 +337,7 @@ public:
 
 	ADD_CLASS_NAME(LimeExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, missing_value, sampling_args, p_mask, n_masks, weighting,
-			filters, processing, attr_name)
+			filters, processing, global_explain_params)
 };
 
 /**
@@ -349,7 +366,7 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(KNN_Explainer)
-		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(numClusters, trainingMap, average, std, fraction, chosenThreshold, filters, processing, global_explain_params)
 };
 
 /**
@@ -368,11 +385,11 @@ public:
 	void explain(const MedFeatures &matrix, vector<map<string, float>> &sample_explain_reasons) const;
 
 	ADD_CLASS_NAME(LinearExplainer)
-		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, attr_name)
+		ADD_SERIALIZATION_FUNCS(avg_bias_score, filters, processing, global_explain_params)
 };
 
 /**
-* iterative set explainer with (gibbs, GAN or other samples generator) or proxy predictor algorithm 
+* iterative set explainer with (gibbs, GAN or other samples generator) or proxy predictor algorithm
 * to get as close as we can to final prediction score with lowest variance with the smallest set as possible of varaibles
 */
 class IterativeSetExplainer : public ModelExplainer {
@@ -401,7 +418,7 @@ public:
 	float sort_params_k1; ///< weight for minimal distance from original score importance
 	float sort_params_k2; ///< weight for variance in prediction using imputation. the rest is change from prev
 	int max_set_size; ///< the size to look for to explain
-	
+
 	IterativeSetExplainer() { processor_type = FTR_POSTPROCESS_ITERATIVE_SET; avg_bias_score = 0; }
 
 	void _learn(const MedFeatures &train_mat);
@@ -419,12 +436,13 @@ public:
 
 	ADD_CLASS_NAME(IterativeSetExplainer)
 		ADD_SERIALIZATION_FUNCS(_sampler, gen_type, generator_args, n_masks, missing_value, sampling_args,
-			use_random_sampling, avg_bias_score, filters, processing, attr_name, max_set_size, 
+			use_random_sampling, avg_bias_score, filters, processing, global_explain_params, max_set_size,
 			sort_params_a, sort_params_b, sort_params_k1, sort_params_k2)
 };
 
 MEDSERIALIZE_SUPPORT(ExplainFilters)
 MEDSERIALIZE_SUPPORT(ExplainProcessings)
+MEDSERIALIZE_SUPPORT(GlobalExplainerParams)
 MEDSERIALIZE_SUPPORT(TreeExplainer)
 MEDSERIALIZE_SUPPORT(MissingShapExplainer)
 MEDSERIALIZE_SUPPORT(ShapleyExplainer)

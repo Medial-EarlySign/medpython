@@ -104,7 +104,7 @@ public:
 	int allowed_missing_pids_from_forced_cnt = 0; ///< how many pids are allowed to be missing in forced signals. 0 means no limit
 	double allowed_missing_pids_from_forced_ratio = 0.05; ///< how many pids are allowed to be missing in forced signals. 0 means no limit
 	double max_bad_line_ratio = 0.05; ///< maximal ratio for bad lines in file
-	double min_parsed_line_ratip = 0.01; ///< minimal ratio for parsed lines in file
+	double min_parsed_line_ratio = 0.01; ///< minimal ratio for parsed lines in file
 	bool verbose_open_files = false; ///< If true will print when openning files
 	bool run_parallel = false; ///< If true will load in parallel
 	string full_error_file; ///< provide full path to error file

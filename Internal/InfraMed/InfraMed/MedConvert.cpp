@@ -612,7 +612,7 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f_i, pid_data &curr, vector<file_stat> &fstat, map<pair<string, string>, int>& missing_dict_vals)
 {
 	//MLOG("===> lines %d\n", lines.size());
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (run_parallel)
 	for (int k = 0; k < lines.size(); k++) {
 		//MLOG("k=%d line %s\n", k, lines[k].c_str());
 		collected_data cd;
@@ -928,7 +928,7 @@ int MedConvert::create_indexes()
 
 			vector<string> lines;
 			vector<int> f_i;
-#pragma omp parallel for schedule(dynamic)
+#pragma omp parallel for schedule(dynamic) if (run_parallel)
 			for (int i = 0; i < n_files_opened; i++) {
 				int fpid = c_pid;
 				if (pid_in_file[i] <= c_pid) {
@@ -1047,7 +1047,7 @@ void MedConvert::test_for_load_error(const map<pair<string, string>, int> &missi
 			MLOG("file [%d] : %s : n_lines %d , n_relevant_lines %d , n_bad_format_lines %d n_parsed_lines %d : parsed %g\n",
 				stat.id, stat.fname.c_str(), stat.n_lines, stat.n_relevant_lines, stat.n_bad_format_lines, stat.n_parsed_lines,
 				ratio);
-		if (ratio < min_parsed_line_ratip || bad_ratio > max_bad_line_ratio) {
+		if (ratio < min_parsed_line_ratio || bad_ratio > max_bad_line_ratio) {
 			if (stat.n_relevant_lines > 1000) {
 				MTHROW_AND_ERR("%d/%d lines loaded for file [%s]\n", stat.n_parsed_lines, stat.n_relevant_lines, stat.fname.c_str());
 			}
@@ -1297,8 +1297,8 @@ void MedConvert::init_load_params(const string &init_str) {
 			allowed_missing_pids_from_forced_ratio = med_stof(it.second);
 		else if (it.first == "max_bad_line_ratio")
 			max_bad_line_ratio = med_stof(it.second);
-		else if (it.first == "min_parsed_line_ratip")
-			min_parsed_line_ratip = med_stof(it.second);
+		else if (it.first == "min_parsed_line_ratio")
+			min_parsed_line_ratio = med_stof(it.second);
 		else if (it.first == "allowed_unknown_catgory_cnt")
 			allowed_unknown_catgory_cnt = med_stoi(it.second);
 		else if (it.first == "allowed_missing_pids_from_forced_cnt")

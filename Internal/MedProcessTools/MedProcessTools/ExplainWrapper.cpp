@@ -168,7 +168,7 @@ double joint_dist_entropy(const vector<float> &v1, const vector<float> &v2) {
 	for (auto &it : joint_bins)
 	{
 		double prob = double(it.second) / total;
-		res += - prob * log(prob) / log(2.0);
+		res += -prob * log(prob) / log(2.0);
 	}
 
 	return res;
@@ -282,6 +282,8 @@ void ExplainProcessings::learn(const MedFeatures &train_mat) {
 			abs_cov_features = fixed_cov_abs;
 		}
 	}
+
+	post_deserialization();
 }
 
 float ExplainProcessings::get_group_normalized_contrib(const vector<int> &group_inds, vector<float> &contribs, float total_normalization_factor) const
@@ -485,7 +487,7 @@ void ExplainProcessings::process(map<string, float> &explain_list, unsigned char
 		if (has_groups)
 			break;
 	}
-	
+
 
 	if (!has_groups) {
 		unordered_set<string> skip_bias_names = { "b0", "Prior_Score" };
@@ -528,11 +530,15 @@ int ModelExplainer::init(map<string, string> &mapper) {
 		else if (it->first == "filters")
 			filters.init_from_string(it->second);
 		else if (it->first == "attr_name")
-			attr_name = it->second;
+			global_explain_params.attr_name = it->second;
 		else if (it->first == "use_split")
 			use_split = stoi(it->second);
 		else if (it->first == "use_p")
 			use_p = stof(it->second);
+		else if (it->first == "store_as_json")
+			global_explain_params.store_as_json = med_stoi(it->second) > 0;
+		else if (it->first == "denorm_features")
+			global_explain_params.denorm_features = med_stoi(it->second) > 0;
 		else if (it->first == "pp_type") {} //ignore
 		else {
 			left_to_parse[it->first] = it->second;
@@ -541,6 +547,31 @@ int ModelExplainer::init(map<string, string> &mapper) {
 	_init(left_to_parse);
 
 	return 0;
+}
+
+void ModelExplainer::init_post_processor(MedModel& model) {
+	original_predictor = model.predictor;
+	//Find Norm Processors:
+	feats_to_norm.clear();
+	if (global_explain_params.store_as_json && global_explain_params.denorm_features) {
+		vector<const FeatureProcessor *> p_norms;
+		for (const FeatureProcessor *fp : model.feature_processors) {
+			if (fp->processor_type == FTR_PROCESS_MULTI) {
+				for (const FeatureProcessor *fp_i : static_cast<const MultiFeatureProcessor *>(fp)->processors)
+					if (fp_i->processor_type == FTR_PROCESS_NORMALIZER)
+						p_norms.push_back(fp_i);
+			}
+			if (fp->processor_type == FTR_PROCESS_NORMALIZER)
+				p_norms.push_back(fp);
+		}
+
+		//Map name to feature_processor
+		for (const FeatureProcessor *fp : p_norms)
+		{
+			const FeatureNormalizer *norm_fp = static_cast<const FeatureNormalizer *>(fp);
+			feats_to_norm[norm_fp->resolved_feature_name] = norm_fp;
+		}
+	}
 }
 
 void ModelExplainer::explain(MedFeatures &matrix) const {
@@ -567,17 +598,70 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 	for (int i = 0; i < explain_reasons.size(); ++i)
 		filters.filter(explain_reasons[i]);
 
-	string group_name = attr_name;
-	if (attr_name.empty()) //default name
+	string group_name = global_explain_params.attr_name;
+	if (global_explain_params.attr_name.empty()) //default name
 		group_name = my_class_name();
 
-#pragma omp parallel for
-	for (int i = 0; i < explain_reasons.size(); ++i) {
-		for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
-			matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+	if (global_explain_params.store_as_json) {
+		vector<string> full_feat_names;
+		matrix.get_feature_names(full_feat_names);
+		vector<const vector<float> *> p_data(full_feat_names.size());
+		for (size_t i = 0; i < full_feat_names.size(); ++i)
+			p_data[i] = &matrix.data.at(full_feat_names[i]);
+
+#pragma omp parallel for if (explain_reasons.size() > 2)
+		for (int i = 0; i < explain_reasons.size(); ++i) {
+			json full_res;
+			string global_explainer_section = "Explainer_Output";
+			full_res[global_explainer_section] = json::array();
+			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
+			int idx = 0;
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it) {
+				sorted_exp[idx].first = it->first;
+				sorted_exp[idx].second = it->second;
+				++idx;
+			}
+			sort(sorted_exp.begin(), sorted_exp.end(), [](const pair<string, float> &a, const pair<string, float> &b)
+			{ return abs(a.second) > abs(b.second); });
+			for (const auto &pt : sorted_exp) {
+				json group_json;
+				json child_elements = json::array();
+				//Fill with group features: Feature_Name, Feature_Value
+				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
+				// TODO: sort by importance
+
+				for (int feat_idx : grp_idx)
+				{
+					const string &feat_name = full_feat_names[feat_idx];
+					float feat_value = p_data[feat_idx]->at(i);
+					// Save feature values without normalizations if requested
+					if (global_explain_params.denorm_features && feats_to_norm.find(feat_name) != feats_to_norm.end()) {
+						const FeatureNormalizer *normalizer = feats_to_norm.at(feat_name);
+						normalizer->reverse_apply(feat_value);
+					}
+					json child_e;
+					child_e["Feature_Name"] = feat_name;
+					child_e["Feature_Value"] = feat_value;
+					child_elements.push_back(child_e);
+				}
+
+				group_json["Contributer_Name"] = pt.first;
+				group_json["Contributer_Value"] = pt.second;
+				group_json["Contributer_Elements"] = child_elements;
+
+				full_res[global_explainer_section].push_back(group_json);
+			}
+
+			matrix.samples[i].str_attributes[group_name] = full_res.dump(1, '\t');
+		}
 	}
-
-
+	else {
+#pragma omp parallel for
+		for (int i = 0; i < explain_reasons.size(); ++i) {
+			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it)
+				matrix.samples[i].attributes[group_name + "::" + it->first] = it->second;
+		}
+	}
 }
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
@@ -742,7 +826,7 @@ void ModelExplainer::dprint(const string &pref) const {
 		filters.sort_mode, filters.max_count, filters.sum_ratio);
 	filters_str = string(buffer);
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, attr_name=%s, processing={%s}, filters={%s}\n",
-		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), attr_name.c_str(),
+		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -1332,7 +1416,7 @@ void TreeExplainer::explain(const MedFeatures &matrix, vector<map<string, float>
 	case PROXY_IMPL:
 		proxy_predictor->calc_feature_contribs(x_mat, feat_res);
 		conv_to_vec(feat_res, sample_explain_reasons);
-		break; 
+		break;
 	case CONVERTED_TREES_IMPL:
 		if (!approximate) {
 			// Build sets
@@ -2200,7 +2284,7 @@ void ShapleyExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -2357,7 +2441,7 @@ void LimeExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
 
@@ -2873,6 +2957,6 @@ void IterativeSetExplainer::dprint(const string &pref) const {
 
 	MLOG("%s :: ModelExplainer type %d(%s), original_predictor=%s, gen_type=%s, attr_name=%s, processing={%s}, filters={%s}\n",
 		pref.c_str(), processor_type, my_class_name().c_str(), predictor_nm.c_str(),
-		GeneratorType_toStr(gen_type).c_str(), attr_name.c_str(),
+		GeneratorType_toStr(gen_type).c_str(), global_explain_params.attr_name.c_str(),
 		processing_str.c_str(), filters_str.c_str());
 }
