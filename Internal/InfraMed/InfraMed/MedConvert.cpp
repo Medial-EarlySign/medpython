@@ -912,6 +912,7 @@ int MedConvert::create_indexes()
 			MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. "
 				"Times [%2.1f, %2.1f, %2.1f]\n",
 				c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[1], tot_time[2]);
+			if (err_log_file.is_open()) err_log_file.flush();
 		}
 
 		// read data from files
@@ -984,6 +985,7 @@ int MedConvert::create_indexes()
 
 	MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. Times [%2.1f, %2.1f, %2.1f]\n",
 		c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[1], tot_time[2]);
+	if (err_log_file.is_open()) err_log_file.flush();
 
 	if (test_run_max_pids > 0) {
 		//close all input files:
