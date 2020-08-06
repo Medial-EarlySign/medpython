@@ -468,7 +468,10 @@ void BasicFeatGenerator::set_names() {
 		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 	if (timeRangeSignalName != "")
 		name += ".time_range_" + timeRangeSignalName + "_" + time_range_type_to_name(timeRangeType);
-
+	if (min_value != -FLT_MAX)
+		name += ".min_value_" + to_string(min_value);
+	if (max_value != FLT_MAX)
+		name += ".max_value_" + to_string(max_value);
 	names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + "." + name);
 	// add the undecorated feature name as a tag, so we can later remove/select it with TagFeatureSelector
 	tags.push_back(name);
