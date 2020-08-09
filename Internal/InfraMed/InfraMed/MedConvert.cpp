@@ -615,7 +615,8 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f_i, pid_data &curr, vector<file_stat> &fstat, map<pair<string, string>, int>& missing_dict_vals)
 {
 	//MLOG("===> lines %d\n", lines.size());
-#pragma omp parallel for schedule(dynamic) if (run_parallel)
+//#pragma omp parallel for schedule(dynamic) if (run_parallel)
+#pragma omp parallel for if (run_parallel)
 	for (int k = 0; k < lines.size(); k++) {
 		//MLOG("k=%d line %s\n", k, lines[k].c_str());
 		collected_data cd;
@@ -931,6 +932,7 @@ int MedConvert::create_indexes()
 			inside_timer.start();
 			vector<string> lines;
 			vector<int> f_i;
+
 #pragma omp parallel for schedule(dynamic) if (run_parallel_files)
 			for (int i = 0; i < n_files_opened; i++) {
 				int fpid = c_pid;
