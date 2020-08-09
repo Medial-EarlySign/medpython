@@ -429,6 +429,8 @@ bool read_file_to_buffer(ifstream &inf, vector<string> &buffered_lines, int read
 	}
 	if (inf.eof())
 		inf.close();
+	if (buffered_lines.size() == 0)
+		return true;
 	return false;
 }
 
@@ -450,7 +452,8 @@ void MedConvert::collect_lines(vector<string> &lines, vector<int> &f_i, int file
 			bool finished = read_file_to_buffer(inf, buffered_lines, read_lines_buffer);
 			if (finished) {
 				get_next = false;
-				fpid = -1;
+				fpid = -2; // signing the true end of this file
+				MLOG("MedConvert: Closing file %s - reached end of file (n_lines %d) n_open_in_files is %d\n", curr_fstat.fname.c_str(), curr_fstat.n_lines, n_open_in_files);
 				--n_open_in_files;
 				return;
 			}
@@ -472,7 +475,7 @@ void MedConvert::collect_lines(vector<string> &lines, vector<int> &f_i, int file
 		}
 
 		if (line_pid == curr.pid) {
-#pragma omp critical 
+#pragma omp critical
 			{
 				//MLOG("pid is %d : file %d : pushing line : %s\n", line_pid, file_i, curr_line.c_str());
 				lines.push_back(curr_line);
@@ -867,8 +870,8 @@ int MedConvert::create_indexes()
 	map<pair<string, string>, int> missing_dict_vals;
 	vector<int> all_pids;  // a list of all pids in the repository to be written to file.
 	all_pids.push_back(0); // reserved place for later placing of total number of pids
-	MedTimer timer_action;
-	vector<double> tot_time(3);
+	MedTimer timer_action, inside_timer;
+	vector<double> tot_time(5, 0);
 	int curr_errors = 0;
 	map<string, int> prev_forced_errs = missing_forced_signals;
 	//stores in memory next lines. first index is file id. second is line
@@ -909,9 +912,8 @@ int MedConvert::create_indexes()
 		}
 
 		if (c_pid % 10000 == 0) {
-			MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. "
-				"Times [%2.1f, %2.1f, %2.1f]\n",
-				c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[1], tot_time[2]);
+			MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. Times [%2.1f (%2.1f, %2.1f), %2.1f, %2.1f]\n",
+				c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[3], tot_time[4], tot_time[1], tot_time[2]);
 			if (err_log_file.is_open()) err_log_file.flush();
 		}
 
@@ -926,18 +928,25 @@ int MedConvert::create_indexes()
 
 //		if (run_parallel) {
 
+			inside_timer.start();
 			vector<string> lines;
 			vector<int> f_i;
-#pragma omp parallel for schedule(dynamic) if (run_parallel)
+#pragma omp parallel for schedule(dynamic) if (run_parallel_files)
 			for (int i = 0; i < n_files_opened; i++) {
 				int fpid = c_pid;
-				if (pid_in_file[i] <= c_pid) {
+				if (pid_in_file[i] >= -1 && pid_in_file[i] <= c_pid) {
 					collect_lines(lines, f_i, i, file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals);
 					pid_in_file[i] = fpid; // current pid after the one we wanted
 				}
 			}
 
+			inside_timer.take_curr_time();
+			tot_time[3] += inside_timer.diff_sec();
+
+			inside_timer.start();
 			get_next_signal_all_lines(lines, f_i, curr, fstats, missing_dict_vals);
+			inside_timer.take_curr_time();
+			tot_time[4] += inside_timer.diff_sec();
 
 
 		//}
@@ -983,8 +992,8 @@ int MedConvert::create_indexes()
 			break;
 	}
 
-	MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. Times [%2.1f, %2.1f, %2.1f]\n",
-		c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[1], tot_time[2]);
+	MLOG("Current pid to extract is %d <<<<< >>>>> n_extracted %d n_open_in_files %d. Times [%2.1f (%2.1f, %2.1f), %2.1f, %2.1f]\n",
+		c_pid, n_pids_extracted, n_open_in_files, tot_time[0], tot_time[3], tot_time[4], tot_time[1], tot_time[2]);
 	if (err_log_file.is_open()) err_log_file.flush();
 
 	if (test_run_max_pids > 0) {
@@ -1308,7 +1317,9 @@ void MedConvert::init_load_params(const string &init_str) {
 		else if (it.first == "verbose_open_files")
 			verbose_open_files = med_stoi(it.second) > 0;
 		else if (it.first == "run_parallel")
-			run_parallel = med_stoi(it.second) > 0;
+			run_parallel = (med_stoi(it.second) > 0);
+		else if (it.first == "run_parallel_files")
+			run_parallel_files = (med_stoi(it.second) > 0);
 		else if (it.first == "full_error_file")
 			full_error_file = it.second;
 		else

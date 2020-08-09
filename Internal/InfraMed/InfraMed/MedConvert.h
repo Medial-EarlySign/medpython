@@ -106,7 +106,8 @@ public:
 	double max_bad_line_ratio = 0.05; ///< maximal ratio for bad lines in file
 	double min_parsed_line_ratio = 0.01; ///< minimal ratio for parsed lines in file
 	bool verbose_open_files = false; ///< If true will print when openning files
-	bool run_parallel = false; ///< If true will load in parallel
+	bool run_parallel = true; ///< If true will load in parallel
+	bool run_parallel_files = false; ///< If true will read files in parallel
 	string full_error_file; ///< provide full path to error file
 
 	void init_load_params(const string &init_str);
