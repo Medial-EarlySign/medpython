@@ -2053,7 +2053,7 @@ int medial::repository::get_value(MedRepository &rep, int pid, int sigCode) {
 int medial::repository::get_value(PidRec &rep, int sigCode) {
 	int gend = -1;
 	UniversalSigVec usv;
-	rep.uget(sigCode);
+	rep.uget(sigCode, usv);
 
 	if (usv.len > 0) {
 		if (usv.n_val_channels() > 0)
