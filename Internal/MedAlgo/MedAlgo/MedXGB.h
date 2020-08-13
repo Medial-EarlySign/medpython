@@ -142,21 +142,27 @@ public:
 	void pre_serialization() {
 		const char* out_dptr;
 		xgboost::bst_ulong len;
-		if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
-			throw runtime_error("failed XGBoosterGetModelRaw\n");
-		serial_xgb.resize(len);
-		memcpy(&serial_xgb[0], out_dptr, len);
+		if (my_learner != NULL) {
+			if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
+				throw runtime_error("failed XGBoosterGetModelRaw\n");
+			serial_xgb.resize(len);
+			memcpy(&serial_xgb[0], out_dptr, len);
+		}
+		else
+			serial_xgb.clear();
 	}
 
 	void post_deserialization() {
 		if (this->my_learner != NULL)
 			XGBoosterFree(this->my_learner);
-		DMatrixHandle h_train_empty[1];
-		if (XGBoosterCreate(h_train_empty, 0, &my_learner) != 0)
-			throw runtime_error("failed XGBoosterCreate\n");
-		if (XGBoosterLoadModelFromBuffer(my_learner, &serial_xgb[0], serial_xgb.size()) != 0)
-			throw runtime_error("failed XGBoosterLoadModelFromBuffer\n");
-		serial_xgb.clear();
+		if (!serial_xgb.empty()) {
+			DMatrixHandle h_train_empty[1];
+			if (XGBoosterCreate(h_train_empty, 0, &my_learner) != 0)
+				throw runtime_error("failed XGBoosterCreate\n");
+			if (XGBoosterLoadModelFromBuffer(my_learner, &serial_xgb[0], serial_xgb.size()) != 0)
+				throw runtime_error("failed XGBoosterLoadModelFromBuffer\n");
+			serial_xgb.clear();
+		}
 	}
 
 	void prepare_predict_single();

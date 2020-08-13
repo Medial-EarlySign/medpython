@@ -612,7 +612,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 #pragma omp parallel for if (explain_reasons.size() > 2)
 		for (int i = 0; i < explain_reasons.size(); ++i) {
 			json full_res;
-			string global_explainer_section = "Explainer_Output";
+			string global_explainer_section = "explainer_output";
 			full_res[global_explainer_section] = json::array();
 			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
 			int idx = 0;
@@ -640,14 +640,14 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 						normalizer->reverse_apply(feat_value);
 					}
 					json child_e;
-					child_e["Feature_Name"] = feat_name;
-					child_e["Feature_Value"] = feat_value;
+					child_e["feature_name"] = feat_name;
+					child_e["feature_value"] = feat_value;
 					child_elements.push_back(child_e);
 				}
 
-				group_json["Contributer_Name"] = pt.first;
-				group_json["Contributer_Value"] = pt.second;
-				group_json["Contributer_Elements"] = child_elements;
+				group_json["contributer_name"] = pt.first;
+				group_json["contributer_level"] = pt.second;
+				group_json["contributer_elements"] = child_elements;
 
 				full_res[global_explainer_section].push_back(group_json);
 			}
