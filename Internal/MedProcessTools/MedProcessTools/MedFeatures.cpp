@@ -882,7 +882,7 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 	int i = 0;
 	sort(all_groups.begin(), all_groups.end());
 	if (print_verbose) {
-		MLOG("Before Mathcing Total samples is %d on %d groups\n",
+		MLOG("Before Matching Total samples is %d on %d groups\n",
 			(int)data_records.samples.size(), (int)all_groups.size());
 		MLOG("Group" "\t" "Count_0" "\t" "Count_1" "\t" "ratio\n");
 	}
@@ -1062,7 +1062,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	int i = 0;
 	sort(all_groups.begin(), all_groups.end());
 	if (print_verbose) {
-		MLOG("Before Mathcing Total samples is %d on %d groups\n",
+		MLOG("Before Matching Total samples is %d on %d groups\n",
 			(int)data_records.samples.size(), (int)all_groups.size());
 		MLOG("Group"  "\t"  "Count_0"  "\t"  "Count_1"  "\t"  "ratio" "\t" "required_price_ratio" "\n");
 	}
@@ -1102,19 +1102,29 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			float grp_ratio = year_ratio[grp];
 			int ratio_ind = medial::process::binary_search_index(all_ratios.data(),
 				all_ratios.data() + all_ratios.size() - 1, grp_ratio);
+
 			if (ratio_ind < 0)
 				break;
+
 			float factor_needed_down = 0, factor_needed_up = -1;
 			if (ratio_ind < all_ratios.size() - 1) {
 				float diff_cases = abs(cases_sum[ratio_ind] - cases_sum[ratio_ind + 1]);
 				float diff_controls = abs(controls_sum[ratio_ind] - controls_sum[ratio_ind + 1]);
-				factor_needed_up = diff_controls / diff_cases;
+				if (diff_cases == 0)
+					factor_needed_up = -1;
+				else
+					factor_needed_up = diff_controls / diff_cases;
 			}
+
 			if (ratio_ind > 0) {
 				float diff_cases = abs(cases_sum[ratio_ind] - cases_sum[ratio_ind - 1]);
 				float diff_controls = abs(controls_sum[ratio_ind] - controls_sum[ratio_ind - 1]);
-				factor_needed_down = diff_controls / diff_cases;
+				if (diff_cases == 0)
+					factor_needed_down = -1;
+				else
+					factor_needed_down = diff_controls / diff_cases;
 			}
+
 			if (count_label_groups[0][grp] == 0)
 				grp_ratio = 1; //just for correct printing
 			if (factor_needed_up > 0)
