@@ -20,7 +20,6 @@
 #include <boost/algorithm/string/replace.hpp>
 #include <boost/filesystem.hpp>
 
-
 using namespace boost;
 
 #define LOCAL_SECTION LOG_CONVERT
@@ -414,6 +413,10 @@ int MedConvert::read_all(const string &config_fname)
 bool read_file_to_buffer(ifstream &inf, vector<string> &buffered_lines, int read_lines_buffer) {
 	if (!inf.is_open())
 		return true; // file is closed (and no lines in buffer) nothing to do
+	std::ios::sync_with_stdio(false);
+	std::ios_base::sync_with_stdio(false);
+
+
 	string line;
 	int curr_ln = 0;
 	//no more than 1 thread reading files
@@ -616,10 +619,12 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 {
 	//MLOG("===> lines %d\n", lines.size());
 //#pragma omp parallel for schedule(dynamic) if (run_parallel)
+
+	vector<collected_data> cds(lines.size());
 #pragma omp parallel for if (run_parallel)
 	for (int k = 0; k < lines.size(); k++) {
 		//MLOG("k=%d line %s\n", k, lines[k].c_str());
-		collected_data cd;
+		collected_data &cd = cds[k];
 		GenericSigVec cd_sv;
 		cd_sv.set_data(&cd.buf[0], 1);
 		string vfield, vfield2;
@@ -662,7 +667,8 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 		try {
 			int i = sid2serial[sid];
 			parse_fields_into_gsv(curr_line, fields, sid, cd_sv);
-
+			cd.serial = i;
+			/*
 #pragma omp critical
 			{
 				//lock_guard<mutex> guard(sid_mutex[i]);
@@ -670,6 +676,7 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 				curr.raw_data[i].push_back(cd);
 				curr_fstat.n_parsed_lines++;
 			}
+			*/
 		} catch (invalid_argument e) {
 
 			pair<string, string> my_key = make_pair(sigs.name(sid), string(e.what()));
@@ -707,6 +714,16 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 						<< "\t" << "\"" << curr_line << "\""
 						<< "\n";
 				}
+			}
+		}
+	}
+
+	for (int k = 0; k < cds.size(); k++) {
+		file_stat &curr_fstat = fstat[f_i[k]];
+		if (cds[k].serial >= 0) {
+			{
+				curr.raw_data[cds[k].serial].push_back(cds[k]);
+				curr_fstat.n_parsed_lines++;
 			}
 		}
 	}
@@ -788,6 +805,9 @@ int MedConvert::create_repository_config()
 //------------------------------------------------
 int MedConvert::create_indexes()
 {
+	std::ios::sync_with_stdio(false);
+	std::ios_base::sync_with_stdio(false);
+
 	pid_data curr;
 	vector<pid_data> curr_f; // for each file
 
@@ -923,44 +943,28 @@ int MedConvert::create_indexes()
 		curr.raw_data.resize(serial2sid.size());
 		curr.pid = c_pid;
 
-
 		timer_action.start();
 
-
-//		if (run_parallel) {
-
-			inside_timer.start();
-			vector<string> lines;
-			vector<int> f_i;
+		inside_timer.start();
+		vector<string> lines;
+		vector<int> f_i;
 
 #pragma omp parallel for schedule(dynamic) if (run_parallel_files)
-			for (int i = 0; i < n_files_opened; i++) {
-				int fpid = c_pid;
-				if (pid_in_file[i] >= -1 && pid_in_file[i] <= c_pid) {
-					collect_lines(lines, f_i, i, file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals);
-					pid_in_file[i] = fpid; // current pid after the one we wanted
-				}
+		for (int i = 0; i < n_files_opened; i++) {
+			int fpid = c_pid;
+			if (pid_in_file[i] >= -1 && pid_in_file[i] <= c_pid) {
+				collect_lines(lines, f_i, i, file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals);
+				pid_in_file[i] = fpid; // current pid after the one we wanted
 			}
+		}
 
-			inside_timer.take_curr_time();
-			tot_time[3] += inside_timer.diff_sec();
+		inside_timer.take_curr_time();
+		tot_time[3] += inside_timer.diff_sec();
 
-			inside_timer.start();
-			get_next_signal_all_lines(lines, f_i, curr, fstats, missing_dict_vals);
-			inside_timer.take_curr_time();
-			tot_time[4] += inside_timer.diff_sec();
-
-
-		//}
-		//else {
-		//	for (int i = 0; i < n_files_opened; i++) {
-		//		int fpid = c_pid;
-		//		if (pid_in_file[i] <= c_pid) {
-		//			get_next_signal_new_modes(file_to_lines[i], file_buffer_pos[i], infs[i], file_type[i], curr, fpid, fstats[i], missing_dict_vals);
-		//			pid_in_file[i] = fpid; // current pid after the one we wanted
-		//		}
-		//	}
-		//}
+		inside_timer.start();
+		get_next_signal_all_lines(lines, f_i, curr, fstats, missing_dict_vals);
+		inside_timer.take_curr_time();
+		tot_time[4] += inside_timer.diff_sec();
 
 
 		timer_action.take_curr_time();
