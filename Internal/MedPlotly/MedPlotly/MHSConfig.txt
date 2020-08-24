@@ -40,8 +40,8 @@ DRUG_GROUP	Non-Insulin	ATC_A10B____
 DRUG_GROUP	Metformin	ATC_A10B_A__,ATC_A10B_G__
 DRUG_GROUP	Sulphinil_Urea	ATC_A10B_B__,ATC_A10B_C__,ATC_A10B_H__
 DRUG_GROUP	alphaGlucosidaseI	ATC_A10B_F__
-DRUG_GROUP	glp1	ATC_A10B_J__
-DRUG_GROUP	sglt2I	ATC_A10B_K__
+#DRUG_GROUP	glp1	ATC_A10B_J__
+#DRUG_GROUP	sglt2I	ATC_A10B_K__
 DRUG_GROUP	Statins	ATC_C10A_A__
 DRUG_GROUP	Antithrombotic	ATC_B01_____
 DRUG_GROUP	Aspirin	ATC_B01A_C__
@@ -73,7 +73,6 @@ DRUG_GROUP	AntiAnemic	ATC_B03_____
 # PANEL <params>
 PANEL	name=P_Diabetes;title=Diabetes_Panel;sigs=Glucose,HbA1C,BMI;drugs=Insulin,Non-Insulin;width=900;height=600
 PANEL	name=P_Cholesterol;title=Cholesterol_Panel;sigs=LDL,Cholesterol,HDL,Triglycerides;drugs=Statins;width=900;height=600
-PANEL	name=P_BP;title=BP_Panel;sigs=BP,PULSE;drugs=Diuretics,Beta_blockers,Calcium_channels,AceI;width=900;height=600;log_scale=0
 PANEL	name=P_Renal;title=Renal;sigs=Creatinine,eGFR_CKD_EPI,Urea;width=900;height=600
 PANEL	name=P_Liver;title=Liver;sigs=ALT,GGT,AST,Albumin;width=900;height=600;
 PANEL	name=P_IONS;title=Ions;sigs=K+,Ca,Cl,Na,Phosphore;width=900;height=600;
