@@ -1672,6 +1672,7 @@ public:
 	int c_chan = 0; ///< channel for categorial data
 	int duration_chan = 1; ///< if >=0 the channel of duration for the categorial signal
 	int min_duration = 60; ///< minimal duration of a category
+	vector<int> min_durations = {}; ///<option to state the min_duration for each category specifically
 	int max_duration = 180; ///< maximal duration of a category
 	int dont_look_back = 7; ///< how many days back to not look at in in_sig. This is usefull in many cases
 	int min_clip_time = 7; ///< minimal number of days to consider clipping after due to change to other drugs.
@@ -1706,7 +1707,7 @@ public:
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
 	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, aff_signals,req_signals,
-		t_chan, c_chan, duration_chan, min_duration, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
+		t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
 		virtual_signals_generic, time_channels)
 
 private:

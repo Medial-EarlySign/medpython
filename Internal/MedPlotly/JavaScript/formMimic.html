@@ -66,6 +66,18 @@
 			text += "<tr>";
 			text += "<td>" + key + "</td>" + "<td>" + val + "</td>";
 			text += "</tr>";
+			if (key == "rep_fname") {
+				var max_el=3;
+				var split_tit=val.split('/');
+				var last_elm = '.';
+				for (i=split_tit.length - max_el; i < split_tit.length; i++) {
+					if (i < 0) {
+						continue;
+					}
+					last_elm = last_elm + "/" + split_tit[i];
+				}
+				document.title=last_elm;
+			}
 		});
 		text += "</tbody></table>";
 		text += '<a href="/config">Server Settings</a>';

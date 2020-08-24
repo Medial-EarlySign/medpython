@@ -610,14 +610,17 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	jresp.push_back({ "responses", json::array() });
 	for (int i = 0; i < sample_reqs.size(); i++) {
 		json_req_info &req_i = sample_reqs[i];
-		try {
-			int test_rc = ist.test_if_ok(*(req_i.res), req_i.sanity_res);
-			if (test_rc == 0) req_i.sanity_test_rc = 0;
-		}
-		catch (...) {
-			req_i.sanity_caught_err = 1;
-		}
+		if (req_i.res != NULL) {
 
+
+			try {
+				int test_rc = ist.test_if_ok(*(req_i.res), req_i.sanity_res);
+				if (test_rc == 0) req_i.sanity_test_rc = 0;
+			}
+			catch (...) {
+				req_i.sanity_caught_err = 1;
+			}
+		}
 		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
 		json js = json({});
 
