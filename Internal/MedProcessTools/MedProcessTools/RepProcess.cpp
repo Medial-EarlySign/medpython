@@ -3709,6 +3709,13 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
 		else if (field == "print_dict") print_dict = entry.second;
 		else if (field == "time_channels") time_channels = med_stoi(entry.second);
+		else if (field == "min_durations") {
+			vector<string> fs;
+			boost::split(fs, entry.second, boost::is_any_of(","));
+			min_durations.clear();
+			for (auto f : fs)
+				min_durations.push_back(stoi(f));
+		}
 		else if (field == "categories") {
 
 			// format is for example: Metformin:ATC_A10B_A__,ATC_A10B_D03,ATC_A10B_D07:Sulfonylureas:ATC_A10B_B__:SGLT2:ATC_A10B_K__,ATC_A10B_D15:Insulins:ATC_A10A____
@@ -3736,6 +3743,9 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - out_virtual must be passed\n");
 	if (categories_names.empty())
 		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - empty categories is not allowed\n");
+	if (min_durations.size() > 0 && min_durations.size() != categories_names.size())
+		MTHROW_AND_ERR("Error in RepCreateBitSignal::init - got min_durations of length %d, and %d categories. They must be the same (or use empty min_durations)\n", (int)min_durations.size(), (int)categories_names.size());
+
 
 	aff_signals.clear();
 	aff_signals.insert(out_virtual);
@@ -3852,6 +3862,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 	if (v_out_sid < 0)
 		MTHROW_AND_ERR("Error in RepCreateBitSignal::_apply - v_out_sid is not initialized - bad call\n");
 
+	vector<int> actual_min_durations = min_durations;
+	if (actual_min_durations.size() == 0)
+		actual_min_durations.resize(categories_names.size(), min_duration);
+
 	// plan:
 	// Go over versions:
 	// For each version, calculate a list of time intervals in which the category is contained.
@@ -3877,10 +3891,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			int i_time = (int)usv.Time(i, t_chan);
 			if (i_time <= max_look_at_time) {
 				int i_val = (int)usv.Val(i, c_chan);
+
 				int duration = (int)usv.Val(i, duration_chan);
-				if (duration < min_duration) duration = min_duration;
+				//if (duration < min_duration) duration = min_duration;
 				if (duration > max_duration) duration = max_duration;
-				int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, duration, time_unit_duration);
+				//int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, duration, time_unit_duration);
 
 				// at this point we have i_val and we assume it happens in the time range [i_time, to_time]
 				// we used the duration and fixed it to its min/max values.
@@ -3888,6 +3903,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int j = 0; j < N; j++) {
 
 					if (categories_luts[j][i_val]) {
+
+						int j_duration = duration;
+						if (j_duration < actual_min_durations[j]) j_duration = actual_min_durations[j];
+						int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, j_duration, time_unit_duration);
+
 						if (time_intervals[j].back().first_appearance == 0) {
 							// case it is the first interval
 							time_intervals[j].back().set(i_time, i_time, 1, to_time);
