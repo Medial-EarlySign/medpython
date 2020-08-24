@@ -3845,8 +3845,8 @@ void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections&
 
 int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
 
-	if (time_points.size() != rec.get_n_versions()) {
-		MERR("nversions mismatch\n");
+	if (time_points.size() != 0  && time_points.size() != rec.get_n_versions()) {
+		MERR("nversions mismatch: %d time-pints vs %d versions\n", time_points.size(), rec.get_n_versions());
 		return -1;
 	}
 	if (v_out_sid < 0)
@@ -3868,14 +3868,14 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		//MLOG("working on iver %d , time %d dont_look_back %d\n", iver, time_points[iver], dont_look_back);
 
 		// max_look_at_time : a safety parameter enabling to make sure we are NOT looking at presctiptions from the current (or very near to) days.
-		int max_look_at_time = med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration);
+		int max_look_at_time = (time_points.size()>0) ? med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration) : -1;
 		//MLOG("max_look_at_time %d\n", max_look_at_time);
 
 		// calculating a time interval for each category
 		vector<vector<category_time_interval>> time_intervals(N, { category_time_interval() });
 		for (int i = 0; i < usv.len; i++) {
 			int i_time = (int)usv.Time(i, t_chan);
-			if (i_time <= max_look_at_time) {
+			if (max_look_at_time==-1 || i_time <= max_look_at_time) {
 				int i_val = (int)usv.Val(i, c_chan);
 				int duration = (int)usv.Val(i, duration_chan);
 				if (duration < min_duration) duration = min_duration;
@@ -3965,7 +3965,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			states.push_back(pair<int, int>(first_date, 0));
 
 			for (auto &e : ev) {
-				if (e.time > max_look_at_time)
+				if (max_look_at_time!=-1 && e.time > max_look_at_time)
 					break;
 
 				if (states.back().first < e.time)
@@ -3986,7 +3986,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
-					if (i_time > max_look_at_time)
+					if (max_look_at_time!=-1 &&  i_time > max_look_at_time)
 						break;
 					int i_val = (int)usv.Val(i, c_chan);
 					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
