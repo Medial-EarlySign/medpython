@@ -4044,6 +4044,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			// search for max jitter at this point
 			int max_k = -1;
+			bool take_it = true;
 			if (j > 0 && j < states.size() - 1) {
 				// we have at least 3 states, hence we can check for jitters.
 				// we need to decide if (j-1) , (j,..,j+k) , (j+k+1) are in a state of jitter and look for the max k for which it happens
@@ -4057,16 +4058,18 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 					// the AB-A-AB and A-AB-B cases
 					if (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1)) max_k = k;
+
 					// the case of ABC - AB - A
 					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) max_k = k;
+					
 					// the case of A - AB - ABC
-					if (((v1 | v2) == v2) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
+					//if (((v1 | v2) == v2) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
 					// the case of AB - A - ABC
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
+					//if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
 					// the case of ABC-A-AB
 					//if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v1)) max_k = k;
 					// the case of AB-A-AC
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) max_k = k;
+					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) take_it = false;
 
 
 
@@ -4078,15 +4081,15 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (max_k >= 0) {
 				// there was a jitter, hence we push nothing, but fix the state after the jitter, and jump to it
 				states[j + max_k + 1].first = states[j].first;
-				j += max_k + 1;
+				j += max_k;
 
 			}
-			else {
+			else if (take_it) {
 				// all is well there was no jitter, hence we push the current state
 				if (unjittered_states.size() == 0 || unjittered_states.back().second != states[j].second)
 					unjittered_states.push_back(states[j]);
-				j++;
 			}
+			j++;
 		}
 
 
