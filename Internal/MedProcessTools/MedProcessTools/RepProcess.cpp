@@ -4038,8 +4038,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		}
 
 		// fixing jitters : remove all jitters that are too short and add to next state
-		int j = 0;
 		vector<pair<int, int>> unjittered_states;
+		int j = 0;
 		while (j < states.size()) {
 
 			// search for max jitter at this point
@@ -4057,7 +4057,6 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 					// the AB-A-AB and A-AB-B cases
 					if (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1)) max_k = k;
-
 					// the case of ABC - AB - A
 					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) max_k = k;
 					// the case of A - AB - ABC
@@ -4065,12 +4064,16 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					// the case of AB - A - ABC
 					if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
 					// the case of ABC-A-AB
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v1)) max_k = k;
+					//if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v1)) max_k = k;
+					// the case of AB-A-AC
+					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) max_k = k;
+
 
 
 				}
 
 			}
+
 
 			if (max_k >= 0) {
 				// there was a jitter, hence we push nothing, but fix the state after the jitter, and jump to it
@@ -4080,12 +4083,12 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 			else {
 				// all is well there was no jitter, hence we push the current state
-				if (unjittered_states.size()==0 || unjittered_states.back().second != states[j].second)
-				unjittered_states.push_back(states[j]);
+				if (unjittered_states.size() == 0 || unjittered_states.back().second != states[j].second)
+					unjittered_states.push_back(states[j]);
 				j++;
 			}
-
 		}
+
 
 		/*
 		//older jitter code: here for the transition period
