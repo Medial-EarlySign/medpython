@@ -1678,6 +1678,7 @@ public:
 	float duration_mult = 0.1f; ///< will add to each duration (duration_add + duration_mult*duration)
 	int dont_look_back = 7; ///< how many days back to not look at in in_sig. This is usefull in many cases
 	int min_clip_time = 7; ///< minimal number of days to consider clipping after due to change to other drugs.
+	int last_clip_period = 30; ///< after joining periods, we clip the last one to be exactly last_clip_period after the last appearance of the drug
 	int min_jitter = 0;	///< minimal length for allowed A-AB-B or A-AB-B Jitter 
 	vector<string> categories_names; ///< the names of the categories to create, categories_names[j] will sit at bit j (1 << j)
 	vector<vector<string>> categories_sets; ///< the sets defining each category.
@@ -1709,7 +1710,7 @@ public:
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
 	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, aff_signals,req_signals,
-		t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, duration_add, duration_mult, dont_look_back, min_clip_time, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
+		t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, duration_add, duration_mult, dont_look_back, min_clip_time, last_clip_period, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
 		virtual_signals_generic, time_channels)
 
 private:

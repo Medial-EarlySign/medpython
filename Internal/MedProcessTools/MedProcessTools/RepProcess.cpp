@@ -3707,6 +3707,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "duration_mult") duration_mult = med_stof(entry.second);
 		else if (field == "dont_look_back") dont_look_back = med_stoi(entry.second);
 		else if (field == "min_clip_time")  min_clip_time = med_stoi(entry.second);
+		else if (field == "last_clip_period")  last_clip_period = med_stoi(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_duration") time_unit_duration = med_time_converter.string_to_type(entry.second);
 		else if (field == "print_dict") print_dict = entry.second;
@@ -3908,13 +3909,13 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 					if (categories_luts[j][i_val]) {
 
-						//MLOG("go over drugs : %d %d d %d j=%d\n", i_time, i_val, duration, j);
 						int j_duration = duration;
 						if (j_duration < actual_min_durations[j]) j_duration = actual_min_durations[j];
 						j_duration += (int)(duration_add + duration_mult * (float)duration);
 						if (j_duration > max_duration) j_duration = max_duration;
 						int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, j_duration, time_unit_duration);
 
+						//MLOG("go over drugs : time %d drug %d urationd %d j=%d j_duration %d\n", i_time, i_val, duration, j, j_duration);
 
 						if (time_intervals[j].back().first_appearance == 0) {
 							// case it is the first interval
@@ -3934,6 +3935,17 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 				}
 			}
+		}
+
+		// doing the last period clips
+		for (int j = 0; j < N; j++) {
+
+			for (auto &e : time_intervals[j]) {
+				int clip_time = med_time_converter.add_subtract_time(e.last_appearance, time_unit_sig, last_clip_period, time_unit_duration);
+				if (e.last_time > clip_time)
+					e.last_time = clip_time;
+			}
+
 		}
 
 		// now packing these into states
@@ -4055,22 +4067,14 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					int len = med_time_converter.diff_times(states[j + k + 1].first, states[j].first, time_unit_sig, time_unit_duration);
 					if (len >= min_jitter) break;
 
-					// the AB-A-AB and A-AB-B cases
-					if (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1)) max_k = k;
+					// the A-AB-B case
+					if ((v1 | v3) == v2) max_k = k;
 
-					// the case of ABC - AB - A
+					// the case of ABC-AB-A
 					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) max_k = k;
-					
-					// the case of A - AB - ABC
-					//if (((v1 | v2) == v2) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
-					// the case of AB - A - ABC
-					//if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v3)) max_k = k;
-					// the case of ABC-A-AB
-					//if (((v1 | v2) == v1) && ((v2 | v3) == v3) && ((v1 | v3) == v1)) max_k = k;
+
 					// the case of AB-A-AC
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) take_it = false;
-
-
+					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) { take_it = false; }
 
 				}
 
@@ -4090,37 +4094,6 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 			j++;
 		}
-
-
-		/*
-		//older jitter code: here for the transition period
-		for (int j = 0; j < states.size(); j++) {
-			//MLOG("##1## j %d state %d %d\n", j, states[j].first, states[j].second);
-			if (j > 0 && j < states.size() - 1) {
-				int v1 = states[j - 1].second;
-				int v2 = states[j].second;
-				int v3 = states[j + 1].second;
-				int len = med_time_converter.diff_times(states[j + 1].first, states[j].first, time_unit_sig, time_unit_duration);
-				//MLOG("##1.1## j %d state %d %d : v1 %x v2 %x v3 %x len %d min_jitter %d\n", j, states[j].first, states[j].second, v1,v2,v3,len,min_jitter);
-				if (len < min_jitter && (((v1 | v3) == v2) || ((v1 | v2) == v3) || ((v2 | v3) == v1))) {
-					//MLOG("##1.2## j %d state %d %d\n", j, states[j].first, states[j].second);
-					states[j + 1].first = states[j].first;
-					continue;
-				}
-			}
-
-			//MLOG("##2## j %d state %d %d\n", j, states[j].first, states[j].second);
-			if (unjittered_states.size() == 0) {
-				//MLOG("##3## j %d state %d %d\n", j, states[j].first, states[j].second);
-				unjittered_states.push_back(states[j]);
-			}
-			else {
-				//MLOG("##4## j %d state %d %d\n", j, states[j].first, states[j].second);
-				if (unjittered_states.back().second != states[j].second)
-					unjittered_states.push_back(states[j]);
-			}
-		}
-		*/
 
 		// packing and pushing new virtual signal
 		vector<int> v_times;
