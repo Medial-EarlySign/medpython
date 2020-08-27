@@ -3729,9 +3729,14 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 			categories_sets.clear();
 			for (int i = 0; i < s1.size(); i += 2) {
 				categories_names.push_back(s1[i]);
-				vector<string> s2;
+				vector<string> s2,s3;
 				boost::split(s2, s1[i + 1], boost::is_any_of(","));
-				categories_sets.push_back(s2);
+				for (string& s : s2) //remove empty values (can happen due to comma additions when using list file)
+				{
+					if (s.size() > 0)
+						s3.push_back(s);
+				}
+				categories_sets.push_back(s3);
 			}
 
 		}
