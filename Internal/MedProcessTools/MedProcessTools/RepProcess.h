@@ -1689,6 +1689,7 @@ public:
 	// next will NOT be serialized, and is here for debug reasons
 	string print_dict = "";
 	int time_channels = 1;
+	vector<char> all_cat_lut;
 
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
@@ -1717,7 +1718,6 @@ private:
 	int v_out_sid = -1;
 	int in_sid = -1;
 	vector<vector<char>> categories_luts;
-	vector<char> all_cat_lut;
 	vector<string> registry_values;
 };
 
