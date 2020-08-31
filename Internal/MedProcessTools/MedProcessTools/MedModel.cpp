@@ -1007,7 +1007,11 @@ string MedModel::make_absolute_path(const string& main_file, const string& small
 		)
 		return small_file;
 
-	string abs = main_file_path + path_sep() + small_file;
+	string abs;
+	if (main_file_path.empty())
+		abs = small_file;
+	else
+		abs = main_file_path + path_sep() + small_file;
 	if (use_cwd)
 		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	else
