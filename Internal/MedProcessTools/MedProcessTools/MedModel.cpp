@@ -1035,6 +1035,33 @@ void MedModel::alter_json(string &json_contents, vector<string>& alterations) {
 	}
 	MLOG_D("\n");
 }
+
+void MedModel::insert_environment_params_to_json(string& json_content) {
+
+	boost::regex expr{ "ENV\\{(\\S+)\\}" };
+	boost::sregex_iterator it(json_content.begin(), json_content.end(), expr);
+	boost::sregex_iterator end;
+
+	map<string, string> mapping;
+	for (; it != end; ++it) {
+		string name = it->str(1);
+		char *val = getenv(name.c_str());
+		mapping["ENV{" + name + "}"] = string(val);
+	}
+
+	for (auto& rec : mapping) {
+		vector<string> res;
+		boost::find_all(res, json_content, rec.first);
+		if (res.size() > 0)
+			MLOG_D("[%s]*%d -> [%s] ", rec.first.c_str(), res.size(), rec.second.c_str());
+		else
+			MLOG_D("[%s]*%d ", rec.first.c_str(), res.size());
+		boost::replace_all(json_content, rec.first, rec.second);
+	}
+	MLOG_D("\n");
+
+}
+
 string MedModel::json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations,
 	const string& small_file, bool add_change_path) {
 	if (recursion_level > 3)
@@ -1053,6 +1080,8 @@ string MedModel::json_file_to_string(int recursion_level, const string& main_fil
 	inf.close();
 	string orig = stripComments(sstr.str());
 	alter_json(orig, alterations);
+	insert_environment_params_to_json(orig);
+
 	const char* pattern = "\\\"[[:blank:]]*json\\:(.+?)[[:blank:]]*?\\\"";
 	boost::regex ip_regex(pattern);
 
