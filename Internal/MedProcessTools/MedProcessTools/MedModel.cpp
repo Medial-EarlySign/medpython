@@ -431,6 +431,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 		}
 		//convert from flat_samples back to samples:
 		samples.import_from_sample_vec(flat_samples);
+
+		//Clean MedFeature samples and data:
+		features.samples = move(flat_samples);
+		for (auto &it : features.data) //Earse all - it's only partial data, clear memory
+			it.second.clear();
 	}
 	return 0;
 }
