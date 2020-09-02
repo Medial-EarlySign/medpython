@@ -3860,7 +3860,7 @@ void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections&
 	//dict.SectionName2Id[out_virtual] = dict.section_id(in_sig);
 }
 
-
+#define _APPLY_VERBOSE
 int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
 
 	if (time_points.size() != 0  && time_points.size() != rec.get_n_versions()) {
@@ -3893,15 +3893,31 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		int max_look_at_time = (time_points.size()>0) ? med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration) : -1;
 		//MLOG("max_look_at_time %d\n", max_look_at_time);
 
-		// calculating a time interval for each category
-		vector<vector<category_time_interval>> time_intervals(N, { category_time_interval() });
+		// Collect durations per category
+		vector <vector<pair<int, int>>> collected_info(N);
 		for (int i = 0; i < usv.len; i++) {
 			int i_time = (int)usv.Time(i, t_chan);
-			if (max_look_at_time==-1 || i_time <= max_look_at_time) {
+			if (max_look_at_time == -1 || i_time <= max_look_at_time) {
 				int i_val = (int)usv.Val(i, c_chan);
-
 				int duration = (int)usv.Val(i, duration_chan);
+				for (int j = 0; j < N; j++) {
+					if (categories_luts[j][i_val]) {
+						if (collected_info[j].empty() || collected_info[j].back().first != i_time)
+							collected_info[j].push_back({ i_time,duration });
+						else if (duration > collected_info[j].back().second)
+							collected_info[j].back().second = duration;
+					}
+				}
+			}
+		}
 
+
+		// calculating a time interval for each category
+		vector<vector<category_time_interval>> time_intervals(N, { category_time_interval() });
+		for (int j = 0; j < N; j++) {
+			for (size_t i=0; i<collected_info[j].size(); i++) {
+				int i_time = collected_info[j][i].first;
+				int j_duration = collected_info[j][i].second;
 
 				//if (duration < min_duration) duration = min_duration;
 				//if (duration > max_duration) duration = max_duration;
@@ -3910,34 +3926,26 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				// at this point we have i_val and we assume it happens in the time range [i_time, to_time]
 				// we used the duration and fixed it to its min/max values.
 
-				for (int j = 0; j < N; j++) {
+				if (j_duration < actual_min_durations[j]) j_duration = actual_min_durations[j];
+				j_duration += (int)(duration_add + duration_mult * (float)j_duration);
+				if (j_duration > max_duration) j_duration = max_duration;
+				int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, j_duration, time_unit_duration);
 
-					if (categories_luts[j][i_val]) {
+				//MLOG("go over drugs : time %d drug %d urationd %d j=%d j_duration %d\n", i_time, i_val, duration, j, j_duration);
 
-						int j_duration = duration;
-						if (j_duration < actual_min_durations[j]) j_duration = actual_min_durations[j];
-						j_duration += (int)(duration_add + duration_mult * (float)duration);
-						if (j_duration > max_duration) j_duration = max_duration;
-						int to_time = med_time_converter.add_subtract_time(i_time, time_unit_sig, j_duration, time_unit_duration);
-
-						//MLOG("go over drugs : time %d drug %d urationd %d j=%d j_duration %d\n", i_time, i_val, duration, j, j_duration);
-
-						if (time_intervals[j].back().first_appearance == 0) {
-							// case it is the first interval
-							time_intervals[j].back().set(i_time, i_time, 1, to_time);
-						}
-						else if (i_time > time_intervals[j].back().last_time) {
-							// starting too long after current interval, hence starting a new one
-							time_intervals[j].push_back(category_time_interval(i_time, i_time, 1, to_time));
-						}
-						else if (to_time > time_intervals[j].back().last_time) {
-							// means we need to extend the time_interval 
-							time_intervals[j].back().last_appearance = i_time;
-							time_intervals[j].back().n_appearances++;
-							time_intervals[j].back().last_time = to_time;
-						}
-					}
-
+				if (time_intervals[j].back().first_appearance == 0) {
+					// case it is the first interval
+					time_intervals[j].back().set(i_time, i_time, 1, to_time);
+				}
+				else if (i_time > time_intervals[j].back().last_time) {
+					// starting too long after current interval, hence starting a new one
+					time_intervals[j].push_back(category_time_interval(i_time, i_time, 1, to_time));
+				}
+				else if (to_time > time_intervals[j].back().last_time) {
+					// means we need to extend the time_interval 
+					time_intervals[j].back().last_appearance = i_time;
+					time_intervals[j].back().n_appearances++;
+					time_intervals[j].back().last_time = to_time;
 				}
 			}
 		}
@@ -3960,8 +3968,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		vector<category_event_state> ev;
 		for (int j = 0; j < N; j++) {
 			for (auto &e : time_intervals[j]) {
-				//if (e.first > 0) {
-				//MLOG("time intervals: j=%d first_a %d n %d last_a %d last_t %d\n", j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+#ifdef _APPLY_VERBOSE
+				if (e.first_appearance > 0) 
+					MLOG("time intervals: j=%d first_a %d n %d last_a %d last_t %d\n", j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+#endif
 				if (e.first_appearance > 0) {
 
 					// start of an interval
@@ -4001,6 +4011,15 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 		}
+		
+#ifdef _APPLY_VERBOSE
+		for (int j = 0; j < N; j++) {
+			for (auto &e : time_intervals[j]) {
+				if (e.first_appearance > 0)
+					MLOG("time intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+			}
+		}
+#endif
 
 		// sorting again as we may have touched times
 		sort(ev.begin(), ev.end());
@@ -4053,9 +4072,16 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 		}
 
+#ifdef _APPLY_VERBOSE
+		for (size_t j = 0; j < states.size(); j++)
+			MLOG("Jittered state %d - %d %d\n", j, states[j].first, states[j].second);
+#endif
+
 		// fixing jitters : remove all jitters that are too short and add to next state
 		vector<pair<int, int>> unjittered_states;
 		int j = 0;
+		int last_taken = 0;
+
 		while (j < states.size()) {
 
 			// search for max jitter at this point
@@ -4064,7 +4090,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (j > 0 && j < states.size() - 1) {
 				// we have at least 3 states, hence we can check for jitters.
 				// we need to decide if (j-1) , (j,..,j+k) , (j+k+1) are in a state of jitter and look for the max k for which it happens
-				int v1 = states[j - 1].second;
+				int v1 = states[last_taken].second;
 				int v2 = 0;
 				for (int k = 0; k < states.size() - j - 2; k++) {
 					v2 = v2 | states[j + k].second;
@@ -4073,13 +4099,28 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					if (len >= min_jitter) break;
 
 					// the A-AB-B case
-					if ((v1 | v3) == v2) max_k = k;
+					if ((v1 | v3) == v2) {
+						max_k = k;
+#ifdef _APPLY_VERBOSE
+						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", j, last_taken, v1, k, v2, v3);
+#endif
+					}
 
 					// the case of ABC-AB-A
-					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) max_k = k;
+					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
+						max_k = k;
+#ifdef _APPLY_VERBOSE
+						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", j, last_taken, v1, k, v2, v3);
+#endif
+					}
 
 					// the case of AB-A-AC
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) { take_it = false; }
+					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) { 
+						take_it = false; 
+#ifdef _APPLY_VERBOSE
+						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", j, last_taken, v1, k, v2, v3);
+#endif
+					}
 
 				}
 
@@ -4088,6 +4129,9 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			if (max_k >= 0) {
 				// there was a jitter, hence we push nothing, but fix the state after the jitter, and jump to it
+#ifdef _APPLY_VERBOSE
+				MLOG("Jitter fixing : j = %d max_k = %d (min_jitter = %d)\n",j, max_k, min_jitter);
+#endif
 				states[j + max_k + 1].first = states[j].first;
 				j += max_k;
 
@@ -4096,6 +4140,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				// all is well there was no jitter, hence we push the current state
 				if (unjittered_states.size() == 0 || unjittered_states.back().second != states[j].second)
 					unjittered_states.push_back(states[j]);
+				last_taken = j;
 			}
 			j++;
 		}
