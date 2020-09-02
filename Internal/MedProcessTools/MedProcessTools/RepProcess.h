@@ -1690,6 +1690,7 @@ public:
 	string print_dict = "";
 	int time_channels = 1;
 	vector<char> all_cat_lut;
+	vector<vector<char>> categories_luts;
 
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
@@ -1717,7 +1718,6 @@ public:
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
-	vector<vector<char>> categories_luts;
 	vector<string> registry_values;
 };
 
