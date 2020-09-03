@@ -239,9 +239,6 @@
     <ClInclude Include="DuplicateProcessor.h">
       <Filter>Header Files\FeatureProcessors</Filter>
     </ClInclude>
-    <ClInclude Include="ExplainWrapper.h">
-      <Filter>Header Files\RepProcessors</Filter>
-    </ClInclude>
     <ClInclude Include="FeatureGenExtractTable.h">
       <Filter>Header Files\FeatureGenerators</Filter>
     </ClInclude>
@@ -265,6 +262,9 @@
     </ClInclude>
     <ClInclude Include="RepCreateRegistry.h">
       <Filter>Header Files\RepProcessors</Filter>
+    </ClInclude>
+    <ClInclude Include="ExplainWrapper.h">
+      <Filter>Header Files\PostProcessors</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
