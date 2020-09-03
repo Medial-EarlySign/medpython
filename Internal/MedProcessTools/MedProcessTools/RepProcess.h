@@ -35,6 +35,7 @@ typedef enum {
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
+	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 

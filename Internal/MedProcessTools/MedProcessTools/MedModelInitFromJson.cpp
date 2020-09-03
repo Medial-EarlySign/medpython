@@ -283,7 +283,7 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 	parse_my_json_to_pt(json_contents, pt);
 
 	size_t n = 0;
-	int fp_set = rep_processors.size(); //Add to the end
+	int fp_set = (int)rep_processors.size(); //Add to the end
 	for (auto &p : pt.get_child("pre_processors")) {
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;

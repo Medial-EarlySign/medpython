@@ -109,6 +109,8 @@
     <ClCompile Include="PredictorImputer.cpp" />
     <ClCompile Include="ProbAdjustPostProcessor.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
+    <ClCompile Include="RepCategoryDescenders.cpp" />
+    <ClCompile Include="RepCategoryDescenders.h" />
     <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
