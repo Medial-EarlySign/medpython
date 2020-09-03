@@ -283,26 +283,54 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 	parse_my_json_to_pt(json_contents, pt);
 
 	size_t n = 0;
+	int fp_set = rep_processors.size(); //Add to the end
 	for (auto &p : pt.get_child("pre_processors")) {
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
-		//string action_type = action.get<string>("action_type").c_str();
-		int duplicate = 0;
-		parse_action(action, all_action_attrs, duplicate, pt, fname);
-		if (duplicate == 1)
-			MTHROW_AND_ERR("duplicate action requested and not inside a set!");
-		vector<string> all_combinations;
-		concatAllCombinations(all_action_attrs, 0, "", all_combinations);
-		if (all_combinations.empty())
-			MTHROW_AND_ERR("pre processor expanded to 0 combinations! did you put an empty list inside a []?!\n");
 
-		for (int idx = 0; idx < all_combinations.size(); idx++) {
-			string c = all_combinations[idx];
-			MLOG("Adding pre_processor: %s\n", c.c_str());
-			insert_rep_processor(c, idx);
+		string action_type = action.get<string>("action_type").c_str();
+		if (action_type == "rp_set") {
+			int process_set = fp_set++;;
+			int num_members = (int)action.get_child("members").size();
+			int num_actions = 0;
+			for (auto &member : action.get_child("members")) {
+				int duplicate = 0;
+				parse_action(member.second, all_action_attrs, duplicate, pt, fname);
+				if (duplicate == 1 && num_members != 1)
+					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] has %d members, please separate it to multiple sets\n",
+						action_type.c_str(), num_members);
+				vector<string> all_combinations;
+				concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+				if (all_combinations.empty())
+					MTHROW_AND_ERR("[%s] expanded to 0 combinations! did you put an empty list inside a []?!\n", action_type.c_str());
+				if (duplicate == 1 && all_combinations.size() != 1)
+					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] has one member which expanded to %d actions\n",
+						action_type.c_str(), (int)all_combinations.size());
+				for (string c : all_combinations)
+					add_process_to_set(process_set, duplicate, c);
+				num_actions += (int)all_combinations.size();
+				MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+				n += all_combinations.size();
+			}
 		}
-		MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
-		n += all_combinations.size();
+		else {
+			int duplicate = 0;
+			parse_action(action, all_action_attrs, duplicate, pt, fname);
+			if (duplicate == 1)
+				MTHROW_AND_ERR("duplicate action requested and not inside a set!");
+			vector<string> all_combinations;
+			concatAllCombinations(all_action_attrs, 0, "", all_combinations);
+			if (all_combinations.empty())
+				MTHROW_AND_ERR("pre processor expanded to 0 combinations! did you put an empty list inside a []?!\n");
+
+			for (int idx = 0; idx < all_combinations.size(); idx++) {
+				string c = all_combinations[idx];
+				MLOG("Adding pre_processor: %s\n", c.c_str());
+				insert_rep_processor(c, idx);
+			}
+			MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+			n += all_combinations.size();
+		}
 	}
 	MLOG("Succesfully added %d pre_processors\n", n);
 }
