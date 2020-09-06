@@ -128,13 +128,14 @@ ___fix_vecmap_iter()
 """
 External Methods in addition to api
 """
-def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True):
-    """get_sig(signame [, translate=True][, pids=None, float32to64=True]) -> Pandas DataFrame
+def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True, regex_str = None):
+    """get_sig(signame [, translate=True][, pids=None, float32to64=True][,regex_str = None]) -> Pandas DataFrame
          translate : If True, will decode categorical fields into a readable representation in Pandas
          pid : If list is provided, will load only pids from the given list
                If 'All' is provided, will use all available pids
          float32to64 : If True, will convert all float32 columns to float64
          free_signal : If True, will free signal memory as soon as it is loaded into export arrays
+         regex_str : regex string to filter
     """
     import pandas as pd
     import numpy as np
@@ -144,12 +145,28 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
       pids=list()
     if pids is None: pids=list()
     df = self.export_to_numpy(sig_name_str, pids, use_all_pids, int(translate), int(free_signal))
+    
+
     cat_dict = dict()
+    cat_dict_int = dict()
     if translate:
       for fld in df.get_categorical_fields():
-        cat_dict[fld] = df.get_categorical_field_dict(fld)
+        cat_dict[fld] = df.get_categorical_field_dict(fld)      
+        cat_dict_int[fld] = df.get_categorical_field_dict_int(fld)
     df = dict(df)
     df = pd.DataFrame.from_dict(df)
+
+    if not (regex_str is None):
+      dict_id = self.dict_section_id(sig_name_str)
+      if (dict_id == 0):
+        print("Invalid sig name - skip filter")
+      else:
+        lut = self.get_lut_from_regex(dict_id, regex_str)
+        lut_np = np.array(lut)
+        if translate:
+          lut_np = lut_np[np.array(cat_dict_int['val'])]
+        tt = df.val.astype(int).values
+        df = df[lut_np[tt - 1]].reset_index(drop=True) # values start from 1 
     if float32to64:
       for column_name in df:
         if df[column_name].dtype == np.float32:

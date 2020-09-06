@@ -12,6 +12,8 @@ class MPSigExporter {
 	std::vector<std::string> data_keys;
 	std::vector<void*> data_column;
 	std::vector<int> data_column_nptype;
+	std::map<std::string, std::vector<int> > raw_val_to_new_val;
+
 	std::map<std::string, std::vector<std::string> > categories;
 	int __get_key_id_or_throw(const string& key);
 	void gen_cat_dict(const string& field_name, int channel);
@@ -56,6 +58,15 @@ public:
 			throw runtime_error("MedPy: Not categorical key");		
 		return categories[field];
 	};
+
+	std::vector<int> get_categorical_field_dict_int(const std::string& field)
+	{
+		if (raw_val_to_new_val.count(field) == 0)
+			throw runtime_error("MedPy: int Not categorical key");
+		return raw_val_to_new_val[field];
+
+	};
+
 	std::vector<std::string> get_categorical_fields() {
 		std::vector<std::string> ret;
 		for (const auto& key : categories) {
