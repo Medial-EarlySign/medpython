@@ -39,6 +39,10 @@ int RepCategoryDescenders::init(map<string, string>& mapper) {
 		//! [RepCategoryDescenders::init]
 	}
 
+	if (signalName.empty())
+		MTHROW_AND_ERR("Error RepCategoryDescenders::init - Must provide signal\n");
+	init_lists();
+
 	return 0;
 }
 
