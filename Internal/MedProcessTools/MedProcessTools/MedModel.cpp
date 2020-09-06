@@ -2471,8 +2471,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					rep_processors[i] = NULL;
+				}
 			}
-			final_res.push_back(rep_processors[i]);
+			if (rep_processors[i] != NULL)
+				final_res.push_back(rep_processors[i]);
 		}
 	}
 	rep_processors = move(final_res);
@@ -2494,8 +2499,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					feature_processors[i] = NULL;
+				}
 			}
-			final_res_fp.push_back(feature_processors[i]);
+			if (feature_processors[i] != NULL)
+				final_res_fp.push_back(feature_processors[i]);
 		}
 	}
 	feature_processors = move(final_res_fp);
@@ -2511,8 +2521,13 @@ void MedModel::clean_model() {
 					if (multi->post_processors[j] != NULL)
 						final_res_internal.push_back(multi->post_processors[j]);
 				multi->post_processors = move(final_res_internal);
+				if (multi->post_processors.empty()) {
+					delete multi;
+					post_processors[i] = NULL;
+				}
 			}
-			final_res_pp.push_back(post_processors[i]);
+			if (post_processors[i] != NULL)
+				final_res_pp.push_back(post_processors[i]);
 		}
 	}
 	post_processors = move(final_res_pp);
