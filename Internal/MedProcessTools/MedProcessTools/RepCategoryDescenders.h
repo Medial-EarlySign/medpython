@@ -34,7 +34,7 @@ public:
 
 
 	ADD_CLASS_NAME(RepCategoryDescenders)
-		ADD_SERIALIZATION_FUNCS(signalName, val_channel)
+		ADD_SERIALIZATION_FUNCS(signalName, val_channel, req_signals, aff_signals)
 };
 
 MEDSERIALIZE_SUPPORT(RepCategoryDescenders)
