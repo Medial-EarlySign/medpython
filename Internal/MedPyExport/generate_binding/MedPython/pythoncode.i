@@ -135,7 +135,7 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
                If 'All' is provided, will use all available pids
          float32to64 : If True, will convert all float32 columns to float64
          free_signal : If True, will free signal memory as soon as it is loaded into export arrays
-         regex_str : regex string to filter
+         regex_str :  string (if string, defualt column is 'val') or dictionary between column name (e.g, 'val') to regex string to filter
     """
     import pandas as pd
     import numpy as np
@@ -161,12 +161,16 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
       if (dict_id == 0):
         print("Invalid sig name - skip filter")
       else:
-        lut = self.get_lut_from_regex(dict_id, regex_str)
-        lut_np = np.array(lut)
-        if translate:
-          lut_np = lut_np[np.array(cat_dict_int['val'])]
-        tt = df.val.astype(int).values
-        df = df[lut_np[tt - 1]].reset_index(drop=True) # values start from 1 
+        if not(type(regex_str) == dict):
+          regex_str = {'val' : regex_str}
+        
+        for fld in regex_str:
+          lut = self.get_lut_from_regex(dict_id, regex_str[fld])
+          lut_np = np.array(lut)
+          if translate:
+            lut_np = lut_np[np.array(cat_dict_int[fld])]
+          tt = df[fld].astype(int).values
+          df = df[lut_np[tt - 1]].reset_index(drop=True) # values start from 1 
     if float32to64:
       for column_name in df:
         if df[column_name].dtype == np.float32:
