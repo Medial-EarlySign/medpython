@@ -229,7 +229,12 @@ SMOKING_STATUS UnifiedSmokingGenerator::val2SmokingStatus(int sigVal, int smokin
 {
 	for (size_t i = 0; i < smoke_status_luts.size(); ++i)
 		if (smoke_status_luts[i][sigVal])
+		{
+			if (SMOKING_STATUS(i) == PASSIVE_SMOKER) // convert Passive smoker to Never Smoker (currently there is no treatment for passive smoker)
+				return NEVER_SMOKER;
 			return SMOKING_STATUS(i);
+		}
+			
 
 	string sigVal_name = rec.my_base_rep->dict.name(smokingStatusSid, sigVal);
 	MTHROW_AND_ERR("unknown smoking status name [%s]", sigVal_name.c_str());
@@ -310,6 +315,9 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 
 		dates.push_back(currTime);
 		SMOKING_STATUS inVal = val2SmokingStatus((int)smokingStatusUsv.Val(timeInd), smoke_status_sec_id, rec);
+		
+		// convert Passive to Never Smoker  
+
 
 		if (smokingStatusDates[inVal].first == NA_SMOKING_DATE)
 			smokingStatusDates[inVal].first = smokingStatusUsv.Time(timeInd);
