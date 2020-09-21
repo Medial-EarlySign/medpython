@@ -708,6 +708,11 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 
 		}
 	}
+	else if (signalName == "BYEAR") {
+		int byear = usv.Val<int>(0);
+		for (int i = 0; i < num; ++i)
+			p_feat[i] = float(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
+	}
 	else
 		MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
 
