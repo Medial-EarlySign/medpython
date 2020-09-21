@@ -68,11 +68,15 @@
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
     </Link>
+    <Lib>
+      <SuppressStartupBanner>false</SuppressStartupBanner>
+    </Lib>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="AlcoholGenerator.cpp" />
@@ -110,7 +114,6 @@
     <ClCompile Include="ProbAdjustPostProcessor.cpp" />
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepCategoryDescenders.cpp" />
-    <ClCompile Include="RepCategoryDescenders.h" />
     <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
@@ -147,6 +150,7 @@
     <ClInclude Include="PredictorImputer.h" />
     <ClInclude Include="ProbAdjustPostProcessor.h" />
     <ClInclude Include="RepCreateRegistry.h" />
+    <ClInclude Include="RepCategoryDescenders.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />
