@@ -703,8 +703,9 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 			bdate = (int)(usv.Time(0));
 		for (int i = 0; i < num; i++) {
 			int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
-			int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
-			p_feat[i] = (float)(1.0 * days_since_birth) / 365;
+			//int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
+			//p_feat[i] = (float)(1.0 * days_since_birth) / 365;
+			p_feat[i] = int(time / 10000) - int(bdate / 10000);
 
 		}
 	}
