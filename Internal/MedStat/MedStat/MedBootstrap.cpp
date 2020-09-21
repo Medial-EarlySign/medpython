@@ -161,7 +161,7 @@ void init_model(MedModel &mdl, MedPidRepository& rep, const string &json_model,
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER" };
+	vector<string> sigs = { "BDATE", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -876,7 +876,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples, con
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -905,7 +905,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples, Med
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());

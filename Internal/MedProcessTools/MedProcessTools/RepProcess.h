@@ -875,7 +875,7 @@ public:
 	vector<vector<int> > panel_signal_ids;
 
 	// Extra signal ids
-	int byearId, genderId;
+	int bdateId, genderId;
 	string genderSignalName;
 
 	// Missing value indication
@@ -1309,7 +1309,7 @@ private:
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)
 		//the general hospital processor's signals must be overridden from outside
-		{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}
+		{ "calc_eGFR", {"Creatinine", "GENDER", "BDATE"}}
 	};
 
 	vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)

@@ -385,7 +385,7 @@ public:
 
 	// Constructor/Destructor
 	AgeGenerator() {
-		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; signalName = "BYEAR"; req_signals.assign(1, signalName);
+		generator_type = FTR_GEN_AGE; names.push_back("Age"); signalId = -1; signalName = "BDATE"; req_signals.assign(1, signalName);
 	}
 	//~AgeGenerator() {};
 
@@ -534,7 +534,7 @@ class BinnedLmEstimates : public FeatureGenerator {
 public:
 	// Feature Descrption
 	string signalName;
-	int signalId, byearId, genderId;
+	int signalId, bdateId, genderId;
 
 	BinnedLmEstimatesParams params;
 	BinnedLMSamplingStrategy sampling_strategy = BINNED_LM_TAKE_ALL;
@@ -859,7 +859,7 @@ enum class category_stat_test {
 */
 class CategoryDependencyGenerator : public FeatureGenerator {
 private:
-	int byear_sid;
+	int bdate_sid;
 	int gender_sid;
 	map<int, vector<string>> categoryId_to_name; //for regex filter
 	map<int, vector<int>> _member2Sets; //for hierarchy

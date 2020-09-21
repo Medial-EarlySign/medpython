@@ -93,13 +93,13 @@ int eGFRCalculator::init(map<string, string>& mapper) {
 }
 
 void eGFRCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
-	//Signals order: "Creatinine", "GENDER", "BYEAR"
+	//Signals order: "Creatinine", "GENDER", "BDATE"
 	if (!(input_signals.size() == 3 && output_signals.size() == 1))
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Requires 3 input signals and 1 output signal\n");
 	if (input_signals[1] != "GENDER")
 		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Second signal should be GENDER- got \"%s\"\n", input_signals[1].c_str());
-	if (input_signals[2] != "BYEAR")
-		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BYEAR - got \"%s\"\n", input_signals[2].c_str());
+	if (input_signals[2] != "BDATE")
+		MTHROW_AND_ERR("Error eGFRCalculator::validate_arguments - Third signal should be BDATE - got \"%s\"\n", input_signals[2].c_str());
 }
 
 void eGFRCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
@@ -118,7 +118,8 @@ bool eGFRCalculator::do_calc(const vector<float> &vals, float &res) const {
 		MTHROW_AND_ERR("Error eGFRCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
 			vals.size());
 	//input: creatinine, gender, byear, time
-	int year = (int)vals[2]; //BYEAR
+	int bdate = (int)vals[2]; //BDATE
+	int year = int(bdate / 10000);
 	int time = (int)vals[3]; //TIME
 
 	float age = med_time_converter.get_age(time, MedTime::Date, year);

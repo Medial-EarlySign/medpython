@@ -66,7 +66,7 @@ SamplingRes MedLabels::get_samples(int pid, int time, vector<MedSample> &samples
 
 
 SamplingRes MedLabels::get_samples(int pid, const vector<MedSample> &samples, vector<MedSample>& new_samples, bool show_conflicts) const {
-	
+
 	new_samples.clear();
 	if (pid_reg_records.empty())
 		MTHROW_AND_ERR("Error in MedLabels::get_samples - please init MedLabels by calling prepare_from_registry\n");
@@ -75,10 +75,10 @@ SamplingRes MedLabels::get_samples(int pid, const vector<MedSample> &samples, ve
 	if (pid_censor_records.find(pid) != pid_censor_records.end())
 		censor_p = &pid_censor_records.at(pid);
 	SamplingRes r;
-	size_t j = 0; 
+	size_t j = 0;
 	if (pid_reg_records.find(pid) != pid_reg_records.end()) {
 		const vector<const MedRegistryRecord *> &pid_recs = pid_reg_records.at(pid);
-		for (size_t i=0; i<samples.size(); ++i) {
+		for (size_t i = 0; i < samples.size(); ++i) {
 			medial::sampling::get_label_for_sample(samples[i].time, pid_recs, *censor_p, labeling_params.time_from, labeling_params.time_to,
 				labeling_params.censor_time_from, labeling_params.censor_time_to, labeling_params.label_interaction_mode,
 				labeling_params.censor_interaction_mode, labeling_params.conflict_method, new_samples, r.no_rule_cnt, r.conflict_cnt,
@@ -542,7 +542,7 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	MedRepository rep;
 	vector<int> pids;
 	get_pids(pids);
-	vector<string> signal_to_read = { "BYEAR", "GENDER" };
+	vector<string> signal_to_read = { "BDATE", "GENDER" };
 	if (rep.read_all(rep_path, pids, signal_to_read) < 0)
 		MTHROW_AND_ERR("FAILED reading repository %s\n", rep_path.c_str());
 	min_age = int(min_age / age_bin) * age_bin;
@@ -567,12 +567,13 @@ void MedLabels::create_incidence_file(const string &file_path, const string &rep
 	}
 	for (int i = min_age; i < max_age; i += age_bin)
 		counts[(i - min_age) / age_bin] = pair<int, int>(0, 0);
-	int byear_sid = rep.sigs.sid("BYEAR");
+	int bdate_sid = rep.sigs.sid("BDATE");
 	int gender_sid = rep.sigs.sid("GENDER");
 	for (int i = 0; i < incidence_samples.idSamples.size(); ++i)
 		for (int j = 0; j < incidence_samples.idSamples[i].samples.size(); ++j) {
 			int pid = incidence_samples.idSamples[i].samples[j].id;
-			int byear = medial::repository::get_value(rep, pid, byear_sid);
+			int bdate = medial::repository::get_value(rep, pid, bdate_sid);
+			int byear = int(bdate / 10000);
 			int age = int(incidence_samples.idSamples[i].samples[j].time / 10000) - byear;
 			int gender = medial::repository::get_value(rep, pid, gender_sid);
 			//int bin = age_bin*(age / age_bin);

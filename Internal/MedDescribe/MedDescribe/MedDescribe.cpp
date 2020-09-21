@@ -42,7 +42,7 @@ int MedMutualDist::collect_values(const string &fname)
 {
 	MedRepository rep;
 
-	if (rep.read_all(fname, pids_to_check, { "BYEAR","GENDER", sig1, sig2 }) < 0) {
+	if (rep.read_all(fname, pids_to_check, { "BDATE","GENDER", sig1, sig2 }) < 0) {
 		MERR("ERROR: can't open repository %s\n", fname.c_str());
 		return -1;
 	}
@@ -73,7 +73,6 @@ struct sampling_candidate {
 //====================================================================================================
 int MedMutualDist::collect_values(MedRepository &rep)
 {
-	int byear_sid = rep.sigs.sid("BYEAR");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int sig1_sid = rep.sigs.sid(sig1);
 	int sig2_sid = rep.sigs.sid(sig2);

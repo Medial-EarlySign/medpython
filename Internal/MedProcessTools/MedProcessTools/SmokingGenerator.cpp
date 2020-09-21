@@ -46,7 +46,7 @@ int SmokingGenerator::init(map<string, string>& mapper) {
 	set_names();
 	req_signals.clear();
 	req_signals.push_back(smoking_method);
-	req_signals.push_back("BYEAR");
+	req_signals.push_back("BDATE");
 	return 0;
 }
 
@@ -73,9 +73,10 @@ int SmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 
 				if (qa_print == 1) fprintf(stderr, "pid: %i  \n", rec.pid);
 
-				sname = "BYEAR";
-				int byearId = rec.my_base_rep->sigs.sid(sname);
-				int byear = medial::repository::get_value(rec, byearId);
+				sname = "BDATE";
+				int bdateId = rec.my_base_rep->sigs.sid(sname);
+				int bdate = medial::repository::get_value(rec, bdateId);
+				int byear = int(bdate / 10000);
 				assert(byear != -1);
 
 				int MAX_TO_TRIM = 60;
