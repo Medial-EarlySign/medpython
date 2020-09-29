@@ -50,7 +50,6 @@ void MedRepository::clear()
 	if (work_area != NULL)
 		delete[] work_area;
 	work_area = NULL;
-	_addtional_dict_path.clear();
 }
 //-----------------------------------------------------------
 int MedRepository::read_config(const string &fname)
@@ -174,6 +173,10 @@ int MedRepository::read_dictionary(const string &fname)
 void MedRepository::load_additional_dict(const string &dict_path) {
 	MLOG("Adding new dictionary in runtime %s\n", dict_path.c_str());
 	_addtional_dict_path.push_back(dict_path);
+}
+
+void MedRepository::clear_additional_dict() {
+	_addtional_dict_path.clear();
 }
 
 //-----------------------------------------------------------
