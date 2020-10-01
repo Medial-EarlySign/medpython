@@ -172,7 +172,7 @@ void BinnedLmEstimates::set_signal_ids(MedSignals& sigs) {
 
 	signalId = sigs.sid(signalName);
 	genderId = sigs.sid("GENDER");
-	bdateId = sigs.sid("BDATE");
+	bdateId = sigs.sid(req_signals[1]);
 }
 
 // Learn a generator
@@ -629,15 +629,20 @@ int BinnedLmEstimates::filter_features(unordered_set<string>& validFeatures) {
 //.......................................................................................
 void BinnedLmEstimates::prepare_for_age(PidDynamicRec& rec, UniversalSigVec& ageUsv, int &age, int &byear) {
 	int bdate = medial::repository::get_value(rec, bdateId);
-	byear = int(bdate / 10000);
-	assert(byear != -1);
+	assert(bdate != -1);
+	if (req_signals[1] == "BDATE")
+		byear = int(bdate / 10000);
+	else
+		byear = bdate;
 }
 
 void BinnedLmEstimates::prepare_for_age(MedPidRepository& rep, int id, UniversalSigVec& ageUsv, int &age, int &byear) {
 	int bdate = medial::repository::get_value(rep, id, bdateId);
-	byear = int(bdate / 10000);
-	assert(byear != -1);
-
+	assert(bdate != -1);
+	if (req_signals[1] == "BDATE")
+		byear = int(bdate / 10000);
+	else
+		byear = bdate;
 }
 
 inline void BinnedLmEstimates::get_age(int time, int time_unit_from, int& age, int byear) {

@@ -381,7 +381,9 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 {
 
 	int bdate = usvs[bdate_idx].Val(0);
-	int byear = int(bdate / 10000);
+	int byear = bdate;
+	if (signals[bdate_idx] == "BDATE")
+		byear = int(bdate / 10000);
 	vector<pair<int, int> > data; // 0 = Normal BP ; 1 = High BP ; 20 + X = HT Drug ; 3 = HT Read Code (4/5/6 = CHF/MI/AF Read Codes ; 7 = DM)
 
 	// Blood Pressure
@@ -867,10 +869,10 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	int c = 0;
 	for (auto &ev : evs) {
 		MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
-	}
+		}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
-		}
+}
 
 //===============================================================================================================================
 // Proteinuria (3 levels) code
@@ -1012,7 +1014,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 		MLOG(" %d,%d :", e.first, e.second);
 	MLOG("\n");
 #endif
-}
+	}
 
 //===============================================================================================================================
 // CKD (5 levels) code
@@ -1134,4 +1136,4 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 #endif
 
 
-}
+	}

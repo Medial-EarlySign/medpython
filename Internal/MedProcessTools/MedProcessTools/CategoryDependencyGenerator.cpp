@@ -380,6 +380,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		int pid = samples.idSamples[i].id;
 		int gend_idx = medial::repository::get_value(rep, pid, gender_sid) - 1;
 		int bdate = medial::repository::get_value(rep, pid, bdate_sid);
+		assert(bdate != -1);
 		int byear = int(bdate / 10000);
 
 		idRec[n_th].init_from_rep(std::addressof(rep), pid, all_req_signal_ids_v, nSamples);

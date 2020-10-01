@@ -85,8 +85,9 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				fprintf(stderr, "**************************** pid: %i  \n", rec.pid);
 			}
 			int bdate = medial::repository::get_value(rec, bdate_sid);
+			assert(bdate != -1);
 			int byear = int(bdate / 10000);
-			assert(byear != -1);
+			
 
 			int MAX_TO_TRIM = 30;
 			int MAX_TO_REMOVE = 150;
