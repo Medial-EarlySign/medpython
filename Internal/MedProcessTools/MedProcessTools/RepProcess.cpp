@@ -3700,7 +3700,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 		else if (field == "t_chan") t_chan = med_stoi(entry.second);
 		else if (field == "c_chan") c_chan = med_stoi(entry.second);
 		else if (field == "duration_chan") duration_chan = med_stoi(entry.second);
-		else if (field == "min_jitter") min_jitter = med_stoi(entry.second);
+		else if (field == "min_jitter") get_min_jitters(entry.second);
 		else if (field == "min_duration") min_duration = med_stoi(entry.second);
 		else if (field == "max_duration") max_duration = med_stoi(entry.second);
 		else if (field == "duration_add") duration_add = med_stof(entry.second);
@@ -3772,6 +3772,21 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 }
 
 //-------------------------------------------------------------------------------------------------------
+void RepCreateBitSignal::get_min_jitters(string &jitters_s) {
+	
+	vector<string> jitters_v;
+	boost::split(jitters_v, jitters_s, boost::is_any_of(","));
+
+	if (jitters_v.size() == min_jitters.size()) {
+		for (size_t i = 0; i < min_jitters.size(); i++)
+			min_jitters[i] = stoi(jitters_v[i]);
+	} else if (jitters_v.size()==1) {
+		for (size_t i = 0; i < min_jitters.size(); i++)
+			min_jitters[i] = stoi(jitters_v[0]);
+	}
+	else
+		MTHROW_AND_ERR("min_jitter initialization must have 1 or %d entries\n", (int)min_jitters.size());
+}
 
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& sigs) {
@@ -3845,7 +3860,12 @@ void RepCreateBitSignal::init_tables(MedDictionarySections& dict, MedSignals& si
 		if (print_dict != "") dict.dicts[newSectionId].write_to_file(print_dict);
 	}
 
-
+	// Maximal min_jitters ;
+	max_min_jitters = min_jitters[0];
+	for (size_t i = 1; i < min_jitters.size(); i++) {
+		if (min_jitters[i] > max_min_jitters)
+			max_min_jitters = min_jitters[i];
+	}
 }
 
 void RepCreateBitSignal::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
@@ -3860,7 +3880,7 @@ void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections&
 	//dict.SectionName2Id[out_virtual] = dict.section_id(in_sig);
 }
 
-#define _APPLY_VERBOSE
+//#define _APPLY_VERBOSE
 int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
 
 	if (time_points.size() != 0  && time_points.size() != rec.get_n_versions()) {
@@ -3970,7 +3990,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : time_intervals[j]) {
 #ifdef _APPLY_VERBOSE
 				if (e.first_appearance > 0) 
-					MLOG("time intervals: j=%d first_a %d n %d last_a %d last_t %d\n", j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+					MLOG("ID=%d\ttime intervals: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
 #endif
 				if (e.first_appearance > 0) {
 
@@ -4004,8 +4024,12 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 							if (ev[j].time < min_time)
 								break; // no need to keep testing, all times will be lower (since sorted).
 
-							if (ev[j].categ != ev[i].categ)
+							if (ev[j].categ != ev[i].categ) {
 								ev[i].time = ev[j].time; // new stop time is shortened to the start time of the starting event. earliest one will survive.
+#ifdef _APPLY_VERBOSE
+								MLOG("ID=%d\tClipping period %d of category %d to %d\n", rec.pid, i, ev[i].categ, ev[i].time);
+#endif
+							}
 						}
 					}
 				}
@@ -4016,7 +4040,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		for (int j = 0; j < N; j++) {
 			for (auto &e : time_intervals[j]) {
 				if (e.first_appearance > 0)
-					MLOG("time intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
 			}
 		}
 #endif
@@ -4025,60 +4049,71 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		sort(ev.begin(), ev.end());
 
 		// actually creating the states
-		vector<pair<int, int>> states; // date , encoded N bits state
+		vector<combination_state> states;
 
 		if (usv.len > 0) {
 			int first_date = usv.Time(0);
-			states.push_back(pair<int, int>(first_date, 0));
+			states.push_back(combination_state(first_date, 0, N));
 
 			for (auto &e : ev) {
 				if (max_look_at_time!=-1 && e.time > max_look_at_time)
 					break;
 
-				if (states.back().first < e.time)
-					states.push_back(pair<int, int>(e.time, states.back().second));
-				if (e.type == 1) {
-					states.back().second |= (1 << e.categ);
-				}
-				else {
-					states.back().second &= (maskN ^ (1 << e.categ));
-				}
-				//MLOG("states back: %d %d\n", states.back().first, states.back().second);
+				if (states.back().start < e.time)
+					states.push_back(combination_state(e.time, states.back().state, N));
+
+				if (e.type == 1)
+					states.back().state |= (1 << e.categ);
+				else
+					states.back().state &= (maskN ^ (1 << e.categ));
 			}
+
 			if (change_at_prescription_mode)
 			{
-				vector<pair<int, int>> updated_states; // date , encoded N bits state
-				updated_states.push_back(pair<int, int>(first_date, 0));
-				vector<pair<int, int>>::iterator curr_state = states.begin();
-				int state;
+				vector<combination_state> updated_states; // date , encoded N bits state
+				updated_states.push_back(combination_state(first_date, 0, N));
+
+				vector<combination_state>::iterator curr_state = states.begin();
+				combination_state prev;
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
 					if (max_look_at_time!=-1 &&  i_time > max_look_at_time)
 						break;
 					int i_val = (int)usv.Val(i, c_chan);
-					if (all_cat_lut[i_val] && updated_states.back().first != i_time)
+					if (all_cat_lut[i_val] && updated_states.back().start != i_time)
 					{
 						//MLOG("%d:%s is relevant: %d, duration: %f \n", i_time, (_dict->dicts[_dict->SectionName2Id["Drug"]].Id2Names[i_val][0]).c_str(), all_cat_lut[i_val], (float)usv.Val(i, 1));
-						while ((curr_state->first <= i_time) && (curr_state != states.end()))
+						while ((curr_state->start <= i_time) && (curr_state != states.end()))
 						{
-							state = curr_state->second;
+							prev = *curr_state;
 							curr_state++;
 						}
-						updated_states.push_back({ i_time , state });
+						updated_states.push_back(prev);
+						updated_states.back().start = i_time;
 					}
 				}
 				states = move(updated_states);
+			}
+
+			// Roll back last-appearances information
+			if (states.size() > 1) {
+				for (int i = states.size() - 2; i >= 0; i--) {
+					for (int j = 0; j < N; j++) {
+						if (states[i].last[j] == -1 && states[i + 1].last[j] != -1)
+							states[i].last[j] = states[i + 1].last[j];
+					}
+				}
 			}
 		}
 
 #ifdef _APPLY_VERBOSE
 		for (size_t j = 0; j < states.size(); j++)
-			MLOG("Jittered state %d - %d %d\n", j, states[j].first, states[j].second);
+			MLOG("ID=%d\tJittered state %d - %d %d\n", rec.pid, j, states[j].start, states[j].state);
 #endif
 
 		// fixing jitters : remove all jitters that are too short and add to next state
-		vector<pair<int, int>> unjittered_states;
+		vector<combination_state> unjittered_states;
 		int j = 0;
 		int last_taken = 0;
 
@@ -4090,35 +4125,40 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (j > 0 && j < states.size() - 1) {
 				// we have at least 3 states, hence we can check for jitters.
 				// we need to decide if (j-1) , (j,..,j+k) , (j+k+1) are in a state of jitter and look for the max k for which it happens
-				int v1 = states[last_taken].second;
+				int v1 = states[last_taken].state;
 				int v2 = 0;
 				for (int k = 0; k < states.size() - j - 2; k++) {
-					v2 = v2 | states[j + k].second;
-					int v3 = states[j + k + 1].second;
-					int len = med_time_converter.diff_times(states[j + k + 1].first, states[j].first, time_unit_sig, time_unit_duration);
-					if (len >= min_jitter) break;
+
+					// We can't add another drug at k>0 - otherwise we would be backtracking that drug start day 
+					if (k > 0 && ((states[j + k + 1].state | v2) != v2))
+						break;
+
+					v2 = v2 | states[j + k].state;
+					int v3 = states[j + k + 1].state;
+					int len = med_time_converter.diff_times(states[j + k + 1].start, states[j].start, time_unit_sig, time_unit_duration);
+					if (len >= max_min_jitters) break;
 
 					// the A-AB-B case
-					if ((v1 | v3) == v2) {
+					if ((len < min_jitters[0]) && ((v1 | v3) == v2)) {
 						max_k = k;
 #ifdef _APPLY_VERBOSE
-						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", j, last_taken, v1, k, v2, v3);
+						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
 					}
 
 					// the case of ABC-AB-A
-					if (((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
+					if ((len < min_jitters[1]) && ((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
 						max_k = k;
 #ifdef _APPLY_VERBOSE
-						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", j, last_taken, v1, k, v2, v3);
+						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
 					}
 
 					// the case of AB-A-AC
-					if (((v1 | v2) == v1) && ((v2 | v3) == v3)) { 
+					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
 						take_it = false; 
 #ifdef _APPLY_VERBOSE
-						MLOG("Jitter at j=%d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", j, last_taken, v1, k, v2, v3);
+						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
 					}
 
@@ -4130,17 +4170,18 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			if (max_k >= 0) {
 				// there was a jitter, hence we push nothing, but fix the state after the jitter, and jump to it
 #ifdef _APPLY_VERBOSE
-				MLOG("Jitter fixing : j = %d max_k = %d (min_jitter = %d)\n",j, max_k, min_jitter);
+				MLOG("ID=%d\tJitter fixing : j = %d max_k = %d\n", rec.pid, j, max_k);
 #endif
-				states[j + max_k + 1].first = states[j].first;
+				states[j + max_k + 1].start = states[j].start;
 				j += max_k;
 
 			}
 			else if (take_it) {
 				// all is well there was no jitter, hence we push the current state
-				if (unjittered_states.size() == 0 || unjittered_states.back().second != states[j].second)
+				if (unjittered_states.size() == 0 || unjittered_states.back().state != states[j].state) {
 					unjittered_states.push_back(states[j]);
-				last_taken = j;
+					last_taken = j;
+				}
 			}
 			j++;
 		}
@@ -4152,11 +4193,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : unjittered_states) {
 				if (!v_times.empty() && (time_channels == 2))
 				{
-					int end_time = med_time_converter.add_subtract_time(e.first, time_unit_sig, -1, time_unit_duration);
+					int end_time = med_time_converter.add_subtract_time(e.start, time_unit_sig, -1, time_unit_duration);
 					v_times.push_back(end_time);
 				}
-				v_times.push_back(e.first);				
-				v_vals.push_back((float)e.second);
+				v_times.push_back(e.start);				
+				v_vals.push_back((float)e.state);
 				//MLOG("Final: state: %d %d\n", e.first, e.second);
 			}
 			//handle last range

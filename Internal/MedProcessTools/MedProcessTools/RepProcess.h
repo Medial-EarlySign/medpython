@@ -1651,6 +1651,17 @@ struct category_event_state {
 		return false;
 	}
 };
+
+struct combination_state {
+	int start;
+	int state;
+	vector<int> last;
+
+	combination_state() {};
+	combination_state(int time, int _state, int N) { start = time; state = _state; last.assign(N, -1); }
+};
+
+
 //---------------------------------------------------------------------------------------------------------------
 // RepCreateBitSignal
 // Given N<32 categories defined as groups of sets on a categorial signal, creates a united signal
@@ -1679,7 +1690,8 @@ public:
 	int dont_look_back = 7; ///< how many days back to not look at in in_sig. This is usefull in many cases
 	int min_clip_time = 7; ///< minimal number of days to consider clipping after due to change to other drugs.
 	int last_clip_period = 30; ///< after joining periods, we clip the last one to be exactly last_clip_period after the last appearance of the drug
-	int min_jitter = 0;	///< minimal length for allowed A-AB-B or A-AB-B Jitter 
+	vector<int> min_jitters = { 0,0,0 };	///< minimal length for allowed jitters : A-AB-B,ABC-AB-A,AB-A-AC
+	int max_min_jitters;
 	vector<string> categories_names; ///< the names of the categories to create, categories_names[j] will sit at bit j (1 << j)
 	vector<vector<string>> categories_sets; ///< the sets defining each category.
 	int time_unit_sig = MedTime::Date; ///< time unit of the time channel in in_sig
@@ -1695,6 +1707,7 @@ public:
 
 	/// @snippet RepProcess.cpp RepAggregateSignal::init
 	int init(map<string, string>& mapper);
+	void get_min_jitters(string& jitters_s);
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
 	void register_virtual_section_name_id(MedDictionarySections& dict);
 	void set_required_signal_ids(MedDictionarySections& dict) {};
@@ -1712,7 +1725,7 @@ public:
 	ADD_CLASS_NAME(RepCreateBitSignal)
 	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, aff_signals,req_signals,
 		t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, duration_add, duration_mult, dont_look_back, min_clip_time, last_clip_period, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
-		virtual_signals_generic, time_channels)
+		virtual_signals_generic, time_channels, min_jitters)
 
 private:
 	int v_out_sid = -1;
