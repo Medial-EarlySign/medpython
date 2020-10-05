@@ -35,6 +35,7 @@ typedef enum {
 	REP_PROCESS_HISTORY_LIMIT, ///<"history_limit" chomps the history for a signal to be at a certain given time window relative to the prediction point. creates RepHistoryLimit
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
+	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -874,7 +875,7 @@ public:
 	vector<vector<int> > panel_signal_ids;
 
 	// Extra signal ids
-	int byearId, genderId;
+	int bdateId, genderId;
 	string genderSignalName;
 
 	// Missing value indication
@@ -1308,7 +1309,7 @@ private:
 	const map<string, vector<string>> calc2req_sigs = {
 		//--------- level 1 - calculated from raw signals (level0)
 		//the general hospital processor's signals must be overridden from outside
-		{ "calc_eGFR", {"Creatinine", "GENDER", "BYEAR"}}
+		{ "calc_eGFR", {"Creatinine", "GENDER", "BDATE"}}
 	};
 
 	vector<int> V_ids; ///< ids of signals created by the calculator (for faster usage at run time: save name conversions)
@@ -1702,6 +1703,7 @@ public:
 	string print_dict = "";
 	int time_channels = 1;
 	vector<char> all_cat_lut;
+	vector<vector<char>> categories_luts;
 
 	RepCreateBitSignal() { processor_type = REP_PROCESS_CREATE_BIT_SIGNAL; };
 
@@ -1730,7 +1732,6 @@ public:
 private:
 	int v_out_sid = -1;
 	int in_sid = -1;
-	vector<vector<char>> categories_luts;
 	vector<string> registry_values;
 };
 

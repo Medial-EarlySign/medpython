@@ -1007,7 +1007,11 @@ string MedModel::make_absolute_path(const string& main_file, const string& small
 		)
 		return small_file;
 
-	string abs = main_file_path + path_sep() + small_file;
+	string abs;
+	if (main_file_path.empty())
+		abs = small_file;
+	else
+		abs = main_file_path + path_sep() + small_file;
 	if (use_cwd)
 		MLOG_D("resolved relative path using cwd [%s] to [%s]\n", small_file.c_str(), abs.c_str());
 	else
@@ -1873,7 +1877,7 @@ void medial::repository::prepare_repository(const vector<int> &pids, const strin
 
 	mod.get_required_signal_names(req_names);
 
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -2467,8 +2471,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					rep_processors[i] = NULL;
+				}
 			}
-			final_res.push_back(rep_processors[i]);
+			if (rep_processors[i] != NULL)
+				final_res.push_back(rep_processors[i]);
 		}
 	}
 	rep_processors = move(final_res);
@@ -2490,8 +2499,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					feature_processors[i] = NULL;
+				}
 			}
-			final_res_fp.push_back(feature_processors[i]);
+			if (feature_processors[i] != NULL)
+				final_res_fp.push_back(feature_processors[i]);
 		}
 	}
 	feature_processors = move(final_res_fp);
@@ -2507,8 +2521,13 @@ void MedModel::clean_model() {
 					if (multi->post_processors[j] != NULL)
 						final_res_internal.push_back(multi->post_processors[j]);
 				multi->post_processors = move(final_res_internal);
+				if (multi->post_processors.empty()) {
+					delete multi;
+					post_processors[i] = NULL;
+				}
 			}
-			final_res_pp.push_back(post_processors[i]);
+			if (post_processors[i] != NULL)
+				final_res_pp.push_back(post_processors[i]);
 		}
 	}
 	post_processors = move(final_res_pp);

@@ -95,6 +95,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 	auto& Id2Names = o->dict.dict(section_id)->Id2Names;
 	std::unordered_map<int, int> translation_dict;
 	translation_dict.reserve(Id2Names.size());
+	raw_val_to_new_val[field_name].reserve(Id2Names.size());
 	std::vector<std::string> category;
 	category.push_back("Undefined Category");  // category[0] , (code 0) is undefined
 	for (size_t i = 0; i < arr_sz;i++) {
@@ -116,6 +117,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 					cat_name += string("|") + names[j];
 				category.push_back(cat_name);
 				translation_dict[raw_val] = category.size() - 1;
+				raw_val_to_new_val[field_name].push_back(raw_val);
 			} while (0);
 		}
 		new_arr[i] = translation_dict[raw_val];

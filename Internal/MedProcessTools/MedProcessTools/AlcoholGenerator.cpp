@@ -62,7 +62,7 @@ int AlcoholGenerator::init(map<string, string>& mapper) {
 int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data) {
 
 
-	int bear_sid = rec.my_base_rep->sigs.sid("BYEAR");
+	int bdate_sid = rec.my_base_rep->sigs.sid(req_signals.back());
 	int alcohol_sid = rec.my_base_rep->sigs.sid("Alcohol_quantity");
 	for (int i = 0; i < num; i++) {
 
@@ -84,8 +84,12 @@ int AlcoholGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int i
 				fprintf(stderr, "**************************************************\n");
 				fprintf(stderr, "**************************** pid: %i  \n", rec.pid);
 			}
-			int byear = medial::repository::get_value(rec, bear_sid);
-			assert(byear != -1);
+			int bdate = medial::repository::get_value(rec, bdate_sid);
+			assert(bdate != -1);
+			int byear = bdate;
+			if (req_signals.back() == "BDATE")
+				byear = int(bdate / 10000);
+
 
 			int MAX_TO_TRIM = 30;
 			int MAX_TO_REMOVE = 150;

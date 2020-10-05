@@ -163,7 +163,7 @@ private:
 
 	// required signals
 	const map<RegistryTypes, vector<string>> type2reqSigs = { { REP_REGISTRY_DM,{ "Glucose","HbA1C","Drug","RC" } },
-	{ REP_REGISTRY_HT,{ "BP","RC","Drug","BYEAR","DM_Registry" } },
+	{ REP_REGISTRY_HT,{ "BP","RC","Drug","BDATE","DM_Registry" } },
 	{ REP_REGISTRY_PROTEINURIA ,{ "Urine_Microalbumin", "UrineTotalProtein" , "UrineAlbumin" , "Urine_dipstick_for_protein" , "Urinalysis_Protein" , "Urine_Protein_Creatinine" , "UrineAlbumin_over_Creatinine" } },
 	{ REP_REGISTRY_CKD,{ "Proteinuria_State", "eGFR_CKD_EPI" } } };
 
@@ -205,7 +205,7 @@ private:
 	void buildLookupTableForHTDrugs(MedDictionary& dict, vector<char>& lut);
 
 	vector<string> ht_def_values = { "HT_Registry_Non_Hypertensive","HT_Registry_Hypertensive" };
-	int bp_idx = 0, rc_idx = 1, drug_idx = 2, byear_idx = 3, dm_registry_idx = 4;
+	int bp_idx = 0, rc_idx = 1, drug_idx = 2, bdate_idx = 3, dm_registry_idx = 4;
 	vector<char> htLut, chfLut, miLut, afLut;
 	vector<char> htDrugLut;
 

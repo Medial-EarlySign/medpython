@@ -479,11 +479,21 @@ public:
 	int read_pid_list();
 
 	int generate_fnames_for_prefix();
+
+	/// <summary>
+	///Option to read additional dictionary - should be called before!! read_all or init. Can be called multiple time for multiple dicts
+	/// </summary>
+	void load_additional_dict(const string &dict_path);
+	/// <summary>
+	///Clear additional dict list
+	/// </summary>
+	void clear_additional_dict();
 private:
 	int get_data_mode(const string &fname);
 	unsigned char *work_area;
 	unsigned long long work_size;
 
+	vector<string> _addtional_dict_path;
 };
 
 

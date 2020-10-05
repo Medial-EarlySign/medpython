@@ -238,8 +238,8 @@ int FeatureGenExtractTable::init(map<string, string>& mapper) {
 				req_signals.push_back(kr.rep_signal);
 
 			else if (kr.type == Rule_Type::AGE_RANGE)
-				//requires BYEAR - if more complicated (other feature generator - use this feature generator to retrieve req_features)
-				req_signals.push_back("BYEAR");
+				//requires BDATE - if more complicated (other feature generator - use this feature generator to retrieve req_features)
+				req_signals.push_back("BDATE");
 			else
 				MTHROW_AND_ERR("Error FeatureGenExtractTable::set_signal_ids - not impelmented for rule type %d\n",
 					int(kr.type));
@@ -267,11 +267,11 @@ void FeatureGenExtractTable::set_signal_ids(MedSignals& sigs) {
 				req_signal_ids.push_back(sid);
 			}
 			else if (kr.type == Rule_Type::AGE_RANGE) {
-				//requires BYEAR - if more complicated (other feature generator - use this feature generator to retrieve req_features)
-				req_signals.push_back("BYEAR");
-				int sid = sigs.sid("BYEAR");
+				//requires BDATE - if more complicated (other feature generator - use this feature generator to retrieve req_features)
+				req_signals.push_back("BDATE");
+				int sid = sigs.sid("BDATE");
 				if (sid < 0)
-					MTHROW_AND_ERR("Error FeatureGenExtractTable::set_signal_ids - can't find BYEAR\n");
+					MTHROW_AND_ERR("Error FeatureGenExtractTable::set_signal_ids - can't find BDATE\n");
 				req_signal_ids.push_back(sid);
 			}
 			else
@@ -345,7 +345,7 @@ int FeatureGenExtractTable::_generate(PidDynamicRec& in_rep, MedFeatures& featur
 		int ind_sig = 0;
 		for (size_t k = 0; k < join_n; ++k)
 		{
-			int byear;
+			int byear, bdate;
 			float set_val;
 			switch (rules_cond[k].type)
 			{
@@ -357,9 +357,10 @@ int FeatureGenExtractTable::_generate(PidDynamicRec& in_rep, MedFeatures& featur
 			case Rule_Type::AGE_RANGE:
 				//calculate Age: has byear
 				if (usvs[ind_sig].n_val_channels() > 0)
-					byear = usvs[ind_sig].Val(0);
+					bdate = usvs[ind_sig].Val(0);
 				else
-					byear = usvs[ind_sig].Time(0);
+					bdate = usvs[ind_sig].Time(0);
+				byear = int(bdate / 10000);
 				set_val = float(med_time_converter.convert_times(features.time_unit, MedTime::Date, p_samples[i].time) / 10000) - byear;
 				join_vals[k] = set_val;
 				++ind_sig;
@@ -425,6 +426,6 @@ void FeatureGenExtractTable::prepare(MedFeatures &features, MedPidRepository& re
 
 void FeatureGenExtractTable::make_summary() {
 	if (missing_values_cnt > 0)
-		MLOG("FeatureGenExtractTable :: has %d missing samples to join with table %s\n", 
+		MLOG("FeatureGenExtractTable :: has %d missing samples to join with table %s\n",
 			missing_values_cnt, table_nice_name.c_str());
 }

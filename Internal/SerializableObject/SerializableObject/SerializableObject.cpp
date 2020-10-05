@@ -161,7 +161,11 @@ int SerializableObject::init_param_from_file(string file_str, string &param)
 	}
 
 	if (upper_cp.compare(0, 9, "LIST_REL:") == 0) {
-		string fname = run_current_path + path_sep() + file_str.substr(9);
+		string fname;
+		if (!run_current_path.empty())
+			fname = run_current_path + path_sep() + file_str.substr(9);
+		else
+			fname = file_str.substr(9);
 		if (MedSerialize::read_list_into_string(fname, param) < 0) return -1;
 	}
 

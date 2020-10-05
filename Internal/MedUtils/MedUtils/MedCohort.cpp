@@ -67,7 +67,8 @@ int CohortRec::from_string(string &from_str)
 	}
 	else if (fields.size() >= 6) {
 		comments = fields[5];
-	} else
+	}
+	else
 		return -1;
 
 	return 0;
@@ -226,7 +227,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 
 	// read byears, gender and TRAIN
 	MedRepository rep;
-	if (rep.read_all(i_params.rep_fname, pids, { "BYEAR", "GENDER", "TRAIN" }) < 0) {
+	if (rep.read_all(i_params.rep_fname, pids, { "BDATE", "GENDER", "TRAIN" }) < 0) {
 		MERR("FAILED reading repository %s\n", i_params.rep_fname.c_str());
 		return -1;
 	}
@@ -243,7 +244,7 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 	for (int i = 0; i < 200; i += i_params.age_bin) female_counts[i] = pair<int, int>(0, 0);
 
 
-	int byear_sid = rep.sigs.sid("BYEAR");
+	int bdate_sid = rep.sigs.sid("BDATE");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
 
@@ -283,7 +284,8 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 				}
 			}
 			int tyear = to_date / 10000;
-			int byear = medial::repository::get_value(rep, crec.pid, byear_sid);
+			int bdate = medial::repository::get_value(rep, crec.pid, bdate_sid);
+			int byear = int(bdate / 10000);
 			int gender = medial::repository::get_value(rep, crec.pid, gender_sid);
 			int train = medial::repository::get_value(rep, crec.pid, train_sid);
 
@@ -388,7 +390,8 @@ int MedCohort::create_incidence_file(IncidenceParams &i_params, string out_file,
 			//MLOG("\n");
 
 			// go over dates, filter and count
-			int byear = medial::repository::get_value(rep, crec.pid, byear_sid);
+			int bdate = medial::repository::get_value(rep, crec.pid, bdate_sid);
+			int byear = int(bdate / 10000);
 			int gender = medial::repository::get_value(rep, crec.pid, gender_sid);
 			int train = medial::repository::get_value(rep, crec.pid, train_sid);
 			for (int i = 0; i < edates.size(); i++) {
@@ -518,7 +521,7 @@ int MedCohort::create_sampling_file(SamplingParams &s_params, string out_sample_
 	vector<int> pids;
 	get_pids(pids);
 	MedRepository rep;
-	if (rep.read_all(s_params.rep_fname, pids, { "BYEAR", "GENDER", "TRAIN" }) < 0) {
+	if (rep.read_all(s_params.rep_fname, pids, { "BDATE", "GENDER", "TRAIN" }) < 0) {
 		MERR("FAILED reading repository %s\n", s_params.rep_fname.c_str());
 		return -1;
 	}
@@ -542,7 +545,7 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 	if (s_params.train_mask & 0x2) train_to_take[2] = 1;
 	if (s_params.train_mask & 0x4) train_to_take[3] = 1;
 
-	int byear_sid = rep.sigs.sid("BYEAR");
+	int bdate_sid = rep.sigs.sid("BDATE");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
 
@@ -556,7 +559,8 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 		if (rc.from < min_date) rc.from = min_date;
 		if (rc.to > max_date) rc.from = max_date;
 
-		int byear = medial::repository::get_value(rep, rc.pid, byear_sid);
+		int bdate = medial::repository::get_value(rep, rc.pid, bdate_sid);
+		int byear = int(bdate / 10000);
 		int gender = medial::repository::get_value(rep, rc.pid, gender_sid);
 		int train = medial::repository::get_value(rep, rc.pid, train_sid);
 
@@ -624,7 +628,7 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 				MedIdSamples mis_new;
 				for (auto ms = mis.samples.begin(); ms != last_it; ++ms) {
 					int age = (ms->time / 10000) - byear;
-				
+
 					//MLOG("pid %d age %d delta %d \n", rc.pid, age, delta);
 					if (age >= s_params.min_age && age <= s_params.max_age)
 						mis_new.samples.push_back(*ms);
@@ -655,7 +659,7 @@ int MedCohort::create_sampling_file_sticked(SamplingParams &s_params, string out
 	vector<int> pids;
 	get_pids(pids);
 	MedRepository rep;
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	sigs.insert(sigs.end(), s_params.stick_to_sigs.begin(), s_params.stick_to_sigs.end());
 	if (rep.read_all(s_params.rep_fname, pids, sigs) < 0) {
 		MERR("FAILED reading repository %s\n", s_params.rep_fname.c_str());
@@ -680,7 +684,7 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 	if (s_params.train_mask & 0x4) train_to_take[3] = 1;
 
 
-	int byear_sid = rep.sigs.sid("BYEAR");
+	int bdate_sid = rep.sigs.sid("BDATE");
 	int gender_sid = rep.sigs.sid("GENDER");
 	int train_sid = rep.sigs.sid("TRAIN");
 	//vector<int> sids_to_stick;
@@ -699,7 +703,8 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 
 	for (auto &rc : recs) {
 		bool print = false;
-		int byear = medial::repository::get_value(rep, rc.pid, byear_sid);
+		int bdate = medial::repository::get_value(rep, rc.pid, bdate_sid);
+		int byear = int(bdate / 10000);
 		int gender = medial::repository::get_value(rep, rc.pid, gender_sid);
 		int train = medial::repository::get_value(rep, rc.pid, train_sid);
 

@@ -142,7 +142,7 @@ public:
 	// universal API
 	inline void *uget(int sid, int version, UniversalSigVec &_usv) { _usv.init(my_base_rep->sigs.Sid2Info.at(sid)); return (_usv.data = get(sid, version, _usv.len)); }
 	inline void *uget(int sid, int version) { return uget(sid, version, usv); }
-	inline void *uget(const string &sig_name, int version, UniversalSigVec &_usv) { return uget(my_base_rep->sigs.sid(sig_name), version, _usv); }
+	inline void *uget(const string &sig_name, int version, UniversalSigVec &_usv) { int sid = my_base_rep->sigs.sid(sig_name); if (sid < 0) HMTHROW_AND_ERR("Error: can't find signal %s in repository\n", sig_name.c_str()); return uget(sid, version, _usv); }
 	inline void *uget(const string &sig_name, int version) { return uget(sig_name, version, usv); }
 
 	// clearing

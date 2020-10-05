@@ -65,6 +65,10 @@ public:
 	"  returns a look-up-table for given set names");
 	std::vector<bool> dict_prep_sets_lookup_table(int section_id, const std::vector<std::string> &set_names);
 	
+	MEDPY_DOC(get_lut_from_regex, "get get_lut_from_regex to names -> BoolVector\n"
+		"  returns a lut  - boolean vector");
+	std::vector<bool> get_lut_from_regex(int section_id, const std::string & regex_s);
+
 	MEDPY_DOC(export_to_numpy, "export_to_numpy(str_signame) -> SigExporter\n"
 	"  Returns the signal data represented as a list of numpy arrays, one for each field");
 	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig);

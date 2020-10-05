@@ -252,7 +252,7 @@ public:
 
 	// helpers
 	int samplesTimeUnit; ///< Time unit of samples
-	int byearId; ///< signal-id for byear
+	int bdateId; ///< signal-id for byear
 
 	/// <summary> Constructor </summary>
 	MatchingSampleFilter() { init_defaults(); };
@@ -457,7 +457,7 @@ public:
 private:
 	int sig_id = -1; ///< signal-id : uninitialized until first usage (0 is kept for the age special case)
 	int section_id = -1; /// uninitialized section_id
-	int byear_id = -1;
+	int bdate_id = -1;
 };
 
 //=======================================

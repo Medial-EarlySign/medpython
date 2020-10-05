@@ -6,6 +6,7 @@
 #include "RepProcess.h"
 #include <MedUtils/MedUtils/MedUtils.h>
 #include "RepCreateRegistry.h"
+#include "RepCategoryDescenders.h"
 #include <cmath>
 #include <iomanip>
 
@@ -51,6 +52,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CREATE_REGISTRY;
 	else if (processor_name == "bit_signal")
 		return REP_PROCESS_CREATE_BIT_SIGNAL;
+	else if (processor_name == "category_descenders")
+		return REP_PROCESS_CATEGORY_DESCENDERS;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -77,6 +80,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepHistoryLimit);
 	CONDITIONAL_NEW_CLASS(dname, RepCreateRegistry);
 	CONDITIONAL_NEW_CLASS(dname, RepCreateBitSignal);
+	CONDITIONAL_NEW_CLASS(dname, RepCategoryDescenders);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -144,6 +148,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCreateRegistry;
 	else if (processor_type == REP_PROCESS_CREATE_BIT_SIGNAL)
 		return new RepCreateBitSignal;
+	else if (processor_type == REP_PROCESS_CATEGORY_DESCENDERS)
+		return new RepCategoryDescenders;
 	else
 		return NULL;
 
