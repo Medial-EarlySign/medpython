@@ -200,7 +200,6 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 	handle_required_signals(processors, generators, extra_req_signal_ids, all_req_signal_ids_v, current_required_signal_ids);
 
 	// Collect Data
-
 	int nthreads = omp_get_max_threads();
 	vector<PidDynamicRec> recs(nthreads);
 
@@ -217,7 +216,8 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 		int id = samples.idSamples[i].id;
 
 		// Gender
-		gender = medial::repository::get_value(rec, genderId);
+		gender = medial::repository::get_value(rep, id, genderId);
+
 		assert(gender != -1);
 
 		// Get signal (if not virtual)
@@ -356,6 +356,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 			means[igender][iage] = (float)(sums[igender][iage] / nums[igender][iage]);
 		}
 	}
+	
 	// Collect data
 	MedMat<float> x((int)values.size(), (int)nperiods);
 	vector<float> y(values.size());
@@ -417,6 +418,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 			types[irow++] = type;
 		}
 	}
+	
 	// Build model for each class 
 	// Collect Data
 	int inrows = irow;
