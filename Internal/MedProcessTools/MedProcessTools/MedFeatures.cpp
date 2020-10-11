@@ -1017,11 +1017,11 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		return (double)0;
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, bool print_verbose) {
-	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, print_verbose);
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, int min_grp_size, bool print_verbose) {
+	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, min_grp_size, print_verbose);
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, bool print_verbose) {
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, int min_grp_size, bool print_verbose) {
 	if (groups.size() != data_records.samples.size())
 		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
 
@@ -1196,7 +1196,6 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	}
 
 	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
-	int min_grp_size = 5;
 	seen_pid_0.clear();
 	vector<int> skip_grp_indexs;
 	for (int k = int(all_groups.size() - 1); k >= 0; --k) {

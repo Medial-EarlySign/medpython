@@ -247,6 +247,7 @@ public:
 	vector<matchingParams> matchingStrata; ///< Matching parameters
 
 	float eventToControlPriceRatio = 100.0; ///< Cost of removing case relative to removing control
+	int min_group_size = 5; ///< minimal group size to take - smaller than that, will drop
 	float maxControlToEventRatio = -1.0; ///< maximal allowed control/case ratio
 	int verbose = 0; ///< control level of debug printing
 
@@ -297,7 +298,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MatchingSampleFilter)
-	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio)
+	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio, min_group_size)
 };
 
 //.......................................................................................
