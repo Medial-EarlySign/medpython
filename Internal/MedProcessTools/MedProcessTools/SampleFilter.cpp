@@ -964,7 +964,10 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			sig_id = 0;
 			bdate_id = rep.sigs.sid("BDATE");
 			if (bdate_id < 0) {
-				MWARN("WARNING: !!!! ===> Using SanitySimpleFilter for age but without BDATE... Are you using a repository with an AGE signal??\n");
+				used_byear = true;
+				bdate_id = rep.sigs.sid("BYEAR");
+				if (bdate_id < 0)
+					MWARN("WARNING: !!!! ===> Using SanitySimpleFilter for age but without BDATE/BYEAR... Are you using a repository with an AGE signal??\n");
 			}
 		}
 		else
@@ -983,18 +986,19 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			// calculate using byear
 			float y = 1900 + (float)med_time_converter.convert_times(samples_time_unit, MedTime::Years, sample.time);
 			int bdate_val = medial::repository::get_value(rep, sample.id, bdate_id);
-			int byear = int(bdate_val / 10000);
+			int byear = bdate_val;
+			if (byear < 0)
+				return SanitySimpleFilter::Failed_Age_No_Byear;
+
+			if (!used_byear)
+				byear = int(bdate_val / 10000);
 #if SANITY_FILTER_DBG
 			MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, byear, y, sample.time, y - byear, min_val, max_val);
 #endif
-			if (byear > 0) {
-				float age = y - byear;
+			float age = y - byear;
 
-				if (age < min_val || age > max_val)
-					return SanitySimpleFilter::Failed_Age;
-			}
-			else
-				return SanitySimpleFilter::Failed_Age_No_Byear;
+			if (age < min_val || age > max_val)
+				return SanitySimpleFilter::Failed_Age;
 		}
 		else
 			return SanitySimpleFilter::Failed_Age_No_Byear;

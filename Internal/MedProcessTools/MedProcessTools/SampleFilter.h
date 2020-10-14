@@ -459,6 +459,7 @@ private:
 	int sig_id = -1; ///< signal-id : uninitialized until first usage (0 is kept for the age special case)
 	int section_id = -1; /// uninitialized section_id
 	int bdate_id = -1;
+	bool used_byear = false; ///< If true will use BYEAR when no BDATE
 };
 
 //=======================================
