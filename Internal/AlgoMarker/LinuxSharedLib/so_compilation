@@ -73,7 +73,8 @@ cp ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release/AlgoMarker/libdyn_AlgoMarker.so
 strip ${DIR}/../Linux/Release/libdyn_AlgoMarker.so
 nm -CD ${DIR}/../Linux/Release/libdyn_AlgoMarker.so | grep " T " > ${BLDDIR}/AlgoMarker/AlgoMarker.public_symbols
 ldd ${DIR}/../Linux/Release/libdyn_AlgoMarker.so > ${BLDDIR}/AlgoMarker/AlgoMarker.ldd
-echo "AlgoMarker Shared Objecy file written to ${DIR}/../Linux/Release/libdyn_AlgoMarker.so"
+FINAL_PT=$(realpath ${DIR}/../Linux/Release/libdyn_AlgoMarker.so)
+echo "AlgoMarker Shared Objecy file written to ${FINAL_PT}"
 popd
 fi
 
