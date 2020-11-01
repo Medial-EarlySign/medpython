@@ -1,15 +1,19 @@
 #!/bin/bash
 
-DIST_NAME="unknown"
-if [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/dist"* ]]; then DIST_NAME="medial-python36"
-elif [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/python27"* ]]; then DIST_NAME="medial-python27"
-elif [[ ${PYTHON_INCLUDE_DIR} == *"anaconda2"* ]]; then DIST_NAME="anaconda2"
-elif [[ ${PYTHON_INCLUDE_DIR} == "/usr"* ]]; then DIST_NAME="rh-python27"
+DIST_NAME=${1-unknown}
+if [ $DIST_NAME == "unknown" ]; then
+	if [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/dist"* ]]; then DIST_NAME="medial-python36"
+	elif [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/python27"* ]]; then DIST_NAME="medial-python27"
+	elif [[ ${PYTHON_INCLUDE_DIR} == *"anaconda2"* ]]; then DIST_NAME="anaconda2"
+	elif [[ ${PYTHON_INCLUDE_DIR} == "/usr"* ]]; then DIST_NAME="rh-python27"
+	fi
 fi
 
 echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
 echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
+
+read -p "Press [Enter] to approve"
 
 cp SWIG.CMakeLists.txt CMakeLists.txt
 cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
