@@ -22,6 +22,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <chrono>
+#include <stdexcept>
 
 #include <iostream>
 #include <fstream>
