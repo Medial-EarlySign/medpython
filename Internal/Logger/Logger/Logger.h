@@ -118,7 +118,7 @@ public:
 	void init_out(FILE *of);
 	void init_out(const string &fname);
 
-	int log(int section, int print_level, char *fmt, ...);
+	int log(int section, int print_level, const char *fmt, ...);
 	void out(char *fmt, ...);
 
 	/// <summary>

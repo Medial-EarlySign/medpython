@@ -228,7 +228,7 @@ void MedLogger::init_all_formats(int section, const string &new_format) {
 }
 
 //-----------------------------------------------------------------------------------------------
-int MedLogger::log(int section, int print_level, char *fmt, ...)
+int MedLogger::log(int section, int print_level, const char *fmt, ...)
 {
 	if (section >= MAX_LOG_SECTION)
 		return -2;
