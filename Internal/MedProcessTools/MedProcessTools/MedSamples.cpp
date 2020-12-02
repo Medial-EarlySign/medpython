@@ -175,7 +175,8 @@ int MedSample::parse_from_string(const vector<string> &fields, const map<string,
 		if (pos.find("outcome") != pos.end()) {
 			if (pos.at("outcome") >= 0)
 				outcome = stof(fields[pos.at("outcome")]);
-		} else
+		}
+		else
 			MTHROW_AND_ERR("Couldn't find outcome in sample\n");
 
 		string outcomeTime_name = "outcome_date";
@@ -977,8 +978,8 @@ void MedSamples::binary_dilute(float p0, float p1)
 					mid.samples.push_back(s);
 			}
 
-		if (mid.samples.size() > 0)
-			NewidSamples.push_back(mid);
+			if (mid.samples.size() > 0)
+				NewidSamples.push_back(mid);
 	}
 
 	idSamples = NewidSamples;
@@ -1357,7 +1358,7 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 
 	vector<int> all_selected_indexes(final_cnt);
 	vector<bool> seen_index((int)id_to_pid.size());
-	
+
 	mt19937 gen(globalRNG::rand());
 	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
 	MedSamples filterd;
@@ -1379,6 +1380,108 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 	samples.idSamples.swap(filterd.idSamples);
 	samples.sort_by_id_date();
 }
+
+void medial::process::down_sample_by_pid(MedSamples &samples, int no_more_than, bool with_repeats) {
+	if (no_more_than <= 0)
+		return;
+	unordered_map<int, vector<int>> pid_to_inds;
+	vector<int> id_to_pid;
+	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
+		if (pid_to_inds.find(samples.idSamples[i].id) == pid_to_inds.end())
+			id_to_pid.push_back(samples.idSamples[i].id);
+		pid_to_inds[samples.idSamples[i].id].push_back((int)i);
+	}
+	int final_cnt = no_more_than;
+
+	vector<int> all_selected_indexes(final_cnt);
+	vector<bool> seen_index((int)id_to_pid.size());
+
+	mt19937 gen(globalRNG::rand());
+	uniform_int_distribution<> dist_gen(0, (int)id_to_pid.size() - 1);
+	MedSamples filterd;
+	filterd.time_unit = samples.time_unit;
+	int tot_size = 0, no_commit = 0;
+	int max_no_commit = 100;
+	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
+	{
+		int num_ind = dist_gen(gen);
+		if (!with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
+		int pid = id_to_pid[num_ind];
+		vector<int> take_inds = pid_to_inds.at(pid);
+		int transaction_size = 0;
+		for (int ind : take_inds)
+			transaction_size += (int)samples.idSamples[ind].samples.size();
+		if (tot_size + transaction_size <= final_cnt) {
+			//commit
+			for (int ind : take_inds)
+				//#pragma omp critical
+				filterd.idSamples.push_back(samples.idSamples[ind]);
+			tot_size += transaction_size;
+			no_commit = 0;
+		}
+		else
+			++no_commit;
+
+		if (tot_size >= final_cnt || no_commit >= max_no_commit)
+			break;
+	}
+	samples.idSamples.swap(filterd.idSamples);
+	samples.sort_by_id_date();
+}
+
+void medial::process::down_sample(MedSamples &samples, int no_more_than, bool with_repeats) {
+	if (no_more_than <= 0)
+		return;
+	int tot_samples = samples.nSamples();
+	//int tot_samples = (int)samples.idSamples.size();
+	vector<int> pids_index;
+	pids_index.reserve(tot_samples);
+	for (size_t i = 0; i < samples.idSamples.size(); ++i)
+		for (size_t j = 0; j < samples.idSamples[i].samples.size(); ++j)
+			pids_index.push_back((int)i);
+
+	int final_cnt = no_more_than;
+
+	vector<int> all_selected_indexes(final_cnt);
+	vector<bool> seen_index(tot_samples);
+
+	mt19937 gen(globalRNG::rand());
+	uniform_int_distribution<> dist_gen(0, tot_samples - 1);
+	MedSamples filterd;
+	filterd.time_unit = samples.time_unit;
+	vector<vector<MedSample>> new_samples((int)samples.idSamples.size());
+	for (size_t k = 0; k < final_cnt; ++k) //for 0 and 1:
+	{
+		int num_ind = dist_gen(gen);
+		if (!with_repeats) {
+			while (seen_index[num_ind])
+				num_ind = dist_gen(gen);
+			seen_index[num_ind] = true;
+		}
+		int index_i = pids_index[num_ind];
+		int index_j = 0;
+		while (index_j < samples.idSamples[index_i].samples.size() &&
+			num_ind - index_j - 1 >= 0 &&
+			pids_index[num_ind - index_j - 1] == index_i)
+			++index_j;
+
+		new_samples[index_i].push_back(samples.idSamples[index_i].samples[index_j]);
+	}
+	for (size_t i = 0; i < new_samples.size(); ++i)
+		if (!new_samples[i].empty()) {
+			MedIdSamples smp(new_samples[i].front().id);
+			smp.samples.swap(new_samples[i]);
+			filterd.idSamples.push_back(smp);
+		}
+	samples.idSamples.swap(filterd.idSamples);
+	samples.sort_by_id_date();
+	medial::print::print_samples_stats(samples);
+}
+
 
 double medial::stats::kaplan_meir_on_samples(const vector<MedSample> &incidence_samples, int time_unit, int time_period, const vector<int> *filtered_idx) {
 	vector<int> sorted_times;
