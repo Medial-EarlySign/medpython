@@ -6,6 +6,7 @@
 #include "FeatureProcess.h"
 #include "MedStat/MedStat/MedBootstrap.h"
 #include "MedStat/MedStat/bootstrap.h"
+#include "ExplainWrapper.h"
 #include <fstream>
 
 // Selection top to bottom.
@@ -560,6 +561,8 @@ void IterativeFeatureSelector::read_params_vec()
 // Get Families of signals
 void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies) {
 
+
+
 	vector<string> names;
 	features.get_feature_names(names);
 	if (!work_on_sets) {
@@ -569,35 +572,17 @@ void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<
 		}
 	}
 	else { // Create sets
-		for (string name : names) {
-			if (resolved_required.find(name) == resolved_required.end() && resolved_ignored.find(name) == resolved_ignored.end()) {
-				vector<string> fields;
-				boost::split(fields, name, boost::is_any_of("."));
 
-				if (fields.size() == 1)
-					featureFamilies[name] = { name };
-				else {
-					if (ungroupd_names.find(fields[0]) == ungroupd_names.end() &&
-						(fields.size() < 2 || ungroupd_names.find(fields[1]) == ungroupd_names.end())) {
-						//no grouping sig
-						featureFamilies[fields[1]].push_back(name);
-					}
-					else {
-						int ind = -1;
-						if (ungroupd_names.find(fields[0]) != ungroupd_names.end())
-							ind = 0;
-						else if (fields.size() > 2 && ungroupd_names.find(fields[1]) != ungroupd_names.end())
-							ind = 1;
-						if (ind == -1)
-							MTHROW_AND_ERR("Error - Bug. invalid state:IterativeFeatureSelector::get_features_families \n");
-
-						if (!group_to_sigs)
-							featureFamilies[fields[ind] + "." + fields[ind + 1]].push_back(name);
-						else
-							featureFamilies[fields[ind]].push_back(name);
-					}
-				}
-			}
+		vector<vector<int>> group_inds;
+		vector<string> group_names;
+		ExplainProcessings::read_feature_grouping(grouping_mode, names, group_inds, group_names);
+		for (size_t i = 0; i < group_names.size(); ++i)
+		{
+			vector<string> &grp_childs = featureFamilies[group_names[i]];
+			const vector<int> &curr_grp_idx = group_inds[i];
+			grp_childs.resize(curr_grp_idx.size());
+			for (size_t j = 0; j < curr_grp_idx.size(); ++j)
+				grp_childs[j] = names[curr_grp_idx[j]];
 		}
 	}
 

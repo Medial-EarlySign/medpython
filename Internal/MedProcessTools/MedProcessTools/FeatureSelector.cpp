@@ -1073,6 +1073,7 @@ int IterativeFeatureSelector::init(map<string, string>& mapper) {
 		else if (field == "ignored") boost::split(ignored, entry.second, boost::is_any_of(","));
 		else if (field == "ungrouped") boost::split(ungroupd_names, entry.second, boost::is_any_of(","));
 		else if (field == "progress_file_path") progress_file_path = entry.second;
+		else if (field == "grouping_mode") grouping_mode = entry.second;
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknown parameter \'%s\' for IterativeFeatureSelector\n", field.c_str());
 		//! [ImportanceFeatureSelector::init]
