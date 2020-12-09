@@ -990,12 +990,17 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 
 		}
 		if (keep_control_index >= 0) {
-			new_samples.idSamples.push_back(MedIdSamples(samples.idSamples[i].id));
+			MedIdSamples smp_pid(samples.idSamples[i].id);
+			smp_pid.split = samples.idSamples[i].split;
+			new_samples.idSamples.push_back(smp_pid);
 			new_samples.idSamples.back().samples.push_back(samples.idSamples[i].samples[keep_control_index]);
 		}
 		if (keep_case_index >= 0) {
-			if (keep_control_index < 0)
-				new_samples.idSamples.push_back(MedIdSamples(samples.idSamples[i].id));
+			if (keep_control_index < 0) {
+				MedIdSamples smp_pid(samples.idSamples[i].id);
+				smp_pid.split = samples.idSamples[i].split;
+				new_samples.idSamples.push_back(smp_pid);
+			}
 			new_samples.idSamples.back().samples.push_back(samples.idSamples[i].samples[keep_case_index]);
 		}
 	}

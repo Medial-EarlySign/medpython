@@ -1336,6 +1336,7 @@ void medial::process::down_sample(MedSamples &samples, double take_ratio, bool w
 	for (size_t i = 0; i < new_samples.size(); ++i)
 		if (!new_samples[i].empty()) {
 			MedIdSamples smp(new_samples[i].front().id);
+			smp.split = new_samples[i].front().split;
 			smp.samples.swap(new_samples[i]);
 			filterd.idSamples.push_back(smp);
 		}
@@ -1474,6 +1475,7 @@ void medial::process::down_sample(MedSamples &samples, int no_more_than, bool wi
 	for (size_t i = 0; i < new_samples.size(); ++i)
 		if (!new_samples[i].empty()) {
 			MedIdSamples smp(new_samples[i].front().id);
+			smp.split = new_samples[i].front().split;
 			smp.samples.swap(new_samples[i]);
 			filterd.idSamples.push_back(smp);
 		}
