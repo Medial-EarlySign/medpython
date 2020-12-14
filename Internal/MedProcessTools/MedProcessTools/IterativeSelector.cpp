@@ -40,6 +40,31 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
 
+	//Commit rew, ignore on slecetedFamilies
+	//skip if all familiy is in required or ignored.
+	set<string> selectedFamilies_filtered;
+	for (const string &family : selectedFamilies) {
+		//check candidate for filters:
+		bool all_in_req = true, all_in_ignore = true;
+		const vector<string> &family_feats = featureFamilies.at(family);
+		for (int i = 0; i < family_feats.size() && all_in_req; ++i)
+			all_in_req = resolved_required.find(family_feats[i]) != resolved_required.end();
+		for (int i = 0; i < family_feats.size() && all_in_ignore; ++i)
+			all_in_ignore = resolved_ignored.find(family_feats[i]) != resolved_ignored.end();
+		if (!all_in_req && !all_in_ignore)
+			selectedFamilies_filtered.insert(family);
+		else {
+			if (all_in_req && all_in_ignore)
+				MWARN("WARN!!! Skip family %s - both in required and in ignored\n", family.c_str());
+			else {
+				if (all_in_req)
+					MLOG("Skip family %s (in required)\n", family.c_str());
+				if (all_in_ignore)
+					MLOG("Skip family %s (in ignored)\n", family.c_str());
+			}
+		}
+	}
+	selectedFamilies = move(selectedFamilies_filtered);
 
 	// Iterative addition of families
 	MedTimer timer;
@@ -52,16 +77,17 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 		set<string> families = selectedFamilies;
 		timer.start();
 		int counter = 0;
-		for (string family : families) {
+		for (const string &family : families) {
 			selectedFamilies.erase(family);
-			counter++;
+			++counter;
 
 			// names
 			vector<string> selectedFeatures;
-			for (string ftr : resolved_required)
+			//add required
+			for (const string &ftr : resolved_required)
 				selectedFeatures.push_back(ftr);
-
-			for (string addFamily : selectedFamilies)
+			//add current families (expect family - iteration loop)
+			for (const string &addFamily : selectedFamilies)
 				selectedFeatures.insert(selectedFeatures.end(), featureFamilies[addFamily].begin(), featureFamilies[addFamily].end());
 
 			// Set parameters value:

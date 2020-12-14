@@ -1127,11 +1127,11 @@ void IterativeFeatureSelector::pre_learn(MedFeatures& features, MedBootstrapResu
 		// check first if inside a family
 		if (featureFamilies.find(ignrd) != featureFamilies.end())
 			for (string ftr_name : featureFamilies.at(ignrd))
-				resolved_required.insert(ftr_name);
+				resolved_ignored.insert(ftr_name);
 		else
 		{
 			string resolved = resolve_feature_name(features, ignrd);
-			resolved_required.insert(resolved);
+			resolved_ignored.insert(resolved);
 		}
 	}
 
