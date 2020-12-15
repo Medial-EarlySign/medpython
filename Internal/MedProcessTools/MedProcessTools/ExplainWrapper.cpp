@@ -699,11 +699,11 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 				word = tokens[1];
 				idx = 1;
 			}
-			
+
 			if (idx + 1 < tokens.size()) {
 				if (boost::starts_with(tokens[idx + 1], "category_") ||
 					boost::starts_with(tokens[idx + 1], "time_covered_") ||
-					boost::regex_match(tokens[idx + 1], last_nth_reg)) {
+					boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
@@ -712,7 +712,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					boost::replace_all(tokens[idx + 1], "time_covered_", "");
-					boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
+					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 				}
 			}
@@ -735,9 +735,9 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 			}
 			bool categ = false;
 			if (idx + 1 < tokens.size()) {
-				if (boost::starts_with(tokens[idx + 1], "category_") 
+				if (boost::starts_with(tokens[idx + 1], "category_")
 					|| boost::starts_with(tokens[idx + 1], "time_covered_")
-					|| boost::regex_match(tokens[idx + 1], last_nth_reg)) {
+					|| boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
@@ -746,7 +746,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
 					boost::replace_all(tokens[idx + 1], "time_covered_", "");
-					boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
+					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 					categ = true;
 				}
