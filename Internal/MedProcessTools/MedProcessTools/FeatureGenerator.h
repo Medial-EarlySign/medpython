@@ -623,6 +623,7 @@ typedef enum {
 	/// "last_nth_time_len"  : gives the length (in win_time_unit) of the last_n range in the window. If in middle of range, cuts to current time
 	FTR_RANGE_LAST_NTH_TIME_LENGTH = 8,
 	FTR_RANGE_TIME_DIFF_START = 9,
+	FTR_RANGE_TIME_INSIDE = 10, ///<< "time_inside" : checks if the prediction time point is currently INSIDE a range, if not returns 0, if it is , then how long since the start.
 	FTR_RANGE_LAST
 } RangeFeatureTypes;
 
@@ -642,6 +643,7 @@ private:
 	float uget_range_time_covered(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_last_nth_time_len(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 	float uget_range_time_diff_start(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
+	float uget_range_time_inside(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time);
 
 public:
 
@@ -665,6 +667,8 @@ public:
 	int strict_times = 0;  ///< if on , will ignore cases in which the second time channel is after the prediction time
 	int conditional_channel = -1; ///< in some cases (currently last_nth_len, and time_covered) we allow doing the calculation only on ranges passing the condition of being included in sets in this channel
 	bool regex_on_sets= false;        ///< if on , regex is applied on .*sets[i].* and aggregated. 
+
+	int first_evidence_time_channel = 1;	 ///< sometimes we have a different time channel stating WHEN the range started. We are strict and use the default of last time in range, but sometimes it is not like that and this can allow calculating if we are now IN the range, and how LONG since the start.
 
 	// Signal to determine allowed time-range (e.g. current stay/admission for inpatients)
 	string timeRangeSignalName = "";

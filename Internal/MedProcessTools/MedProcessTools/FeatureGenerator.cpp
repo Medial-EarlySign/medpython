@@ -1011,6 +1011,7 @@ int RangeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "zero_missing") zero_missing = med_stoi(entry.second);
 		else if (field == "strict_times") strict_times = med_stoi(entry.second);
 		else if (field == "conditional_channel") conditional_channel = med_stoi(entry.second);
+		else if (field == "first_evidence_time_channel") first_evidence_time_channel = med_stoi(entry.second);
 		else if (field == "regex_on_sets") regex_on_sets = (bool)med_stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for RangeFeatGenerator\n", field.c_str());
@@ -1091,6 +1092,7 @@ RangeFeatureTypes RangeFeatGenerator::name_to_type(const string &name)
 	if (name == "time_covered")		return FTR_RANGE_TIME_COVERED;
 	if (name == "last_nth_time_len")		return FTR_RANGE_LAST_NTH_TIME_LENGTH;
 	if (name == "time_diff_start")  return FTR_RANGE_TIME_DIFF_START;
+	if (name == "time_inside")  return FTR_RANGE_TIME_INSIDE;
 
 	return (RangeFeatureTypes)med_stoi(name);
 }
@@ -1139,6 +1141,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: return uget_range_last_nth_time_len(rec.usv, win_from, win_to, time);
 	case FTR_RANGE_TIME_DIFF_START: 	return uget_range_time_diff_start(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_TIME_INSIDE: 	return uget_range_time_diff_start(rec.usv, updated_win_from, updated_win_to, time);
 
 
 	default:	return missing_val;
@@ -1730,6 +1733,38 @@ float RangeFeatGenerator::uget_range_current(UniversalSigVec &usv, int updated_w
 	return missing_val;
 }
 
+
+//.......................................................................................
+// get the value in a range that includes time - win_from, if available
+float RangeFeatGenerator::uget_range_time_inside(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
+{
+	//int dummy_time, time_to_check;
+	//get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check, false);
+
+	int time_inside = 0;
+	for (int i = 0; i < usv.len; i++) {
+
+		int fromTime = usv.Time(i, 0);
+		int toTime = usv.Time(i, 1);
+		int firstKnowTime = toTime;
+		if (first_evidence_time_channel >= 0)
+			firstKnowTime = usv.Time(i, first_evidence_time_channel);
+		
+		if (fromTime > time)
+			break;
+
+		if ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)]) {
+			if (time >= fromTime && time <= toTime && time >= firstKnowTime) {
+				time_inside = 1 + med_time_converter.diff_times(time, fromTime, time_unit_sig, time_unit_win);
+				break;
+			}
+		}
+
+	}
+
+	return (float)time_inside;
+}
+
 //.......................................................................................
 // get the value in the latest range that intersets with time-win_to to time-win_from
 float RangeFeatGenerator::uget_range_latest(UniversalSigVec &usv, int updated_win_from, int updated_win_to, int time)
@@ -1938,8 +1973,12 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 
 		int curr_from = usv.Time(i, 0);
 		int curr_to = usv.Time(i, 1);
+		int firstKnowTime = curr_to;
+		if (first_evidence_time_channel >= 0)
+			firstKnowTime = usv.Time(i, first_evidence_time_channel);
 
 		if (curr_from > max_time) break;
+		if (firstKnowTime > max_time) break;
 		if (curr_to < min_time) continue;
 
 		if (curr_from < min_time) curr_from = min_time;
@@ -1964,10 +2003,13 @@ float RangeFeatGenerator::uget_range_last_nth_time_len(UniversalSigVec &usv, int
 	for (int i = usv.len - 1; i >= 0; i--) {
 		int curr_from = usv.Time(i, 0);
 		int curr_to = usv.Time(i, 1);
+		int firstKnowTime = curr_to;
+		if (first_evidence_time_channel >= 0)
+			firstKnowTime = usv.Time(i, first_evidence_time_channel);
 
 		if (curr_from > max_time) continue; // skip cases 
 		if (curr_to > max_time) {
-			if (strict_times) continue;
+			if (strict_times && firstKnowTime > max_time) continue;
 			curr_to = max_time;
 		}
 
