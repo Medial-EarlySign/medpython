@@ -157,6 +157,8 @@ namespace medial {
 			mean = medial::stats::mean(v, missing_value, n, weights); std = medial::stats::std(v, mean, missing_value, n, weights);
 		}
 
+		template<typename T> void get_z_transform(const vector<T> &v, T missing_value_in_v, T missing_value_z, vector<T> &z);
+
 		/// <summary> Backward compatible version for mean and std</summary>
 		void get_mean_and_std(float *values, const float* wgts, int size, float missing_value, float& mean, float&sd, int& n, bool do_missing);
 

@@ -1891,3 +1891,20 @@ template<typename T> double medial::stats::KL_divergence(const vector<T> &p, con
 }
 template double medial::stats::KL_divergence<float>(const vector<float> &p, const vector<float> &q, float epsilon);
 template double medial::stats::KL_divergence<double>(const vector<double> &p, const vector<double> &q, double epsilon);
+
+template<typename T> void medial::stats::get_z_transform(const vector<T> &v, T missing_value_in_v, T missing_value_z, vector<T> &z)
+{
+	int n;
+	float m, s;
+	medial::stats::get_mean_and_std<T>(v, missing_value_in_v, n, m, s, NULL);
+	z.clear();
+	if (s == 0) s = 1;
+	for (auto val : v) {
+		if (val == missing_value_in_v)
+			z.push_back(missing_value_z);
+		else
+			z.push_back((val - m) / s);
+	}
+}
+template void medial::stats::get_z_transform<float>(const vector<float> &v, float missing_value_in_v, float missing_value_z, vector<float> &z);
+//template void medial::stats::get_z_transform<double>(const vector<double> &v, double missing_value_in_v, double missing_value_z, vector<double> &z);
