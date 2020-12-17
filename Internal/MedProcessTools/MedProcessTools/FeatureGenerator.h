@@ -715,7 +715,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(RangeFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, signalName, type, win_from, win_to, val_channel, names, tags, req_signals, sets, check_first, timeRangeSignalName, timeRangeType, recurrence_delta, min_range_time,
-			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing, strict_times,conditional_channel, regex_on_sets)
+			time_unit_sig, time_unit_win, div_factor, N_th, zero_missing, strict_times,conditional_channel, regex_on_sets, first_evidence_time_channel)
 };
 
 /**
