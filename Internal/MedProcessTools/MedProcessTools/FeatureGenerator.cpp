@@ -1979,7 +1979,7 @@ float RangeFeatGenerator::uget_range_time_covered(UniversalSigVec &usv, int win_
 			firstKnowTime = usv.Time(i, first_evidence_time_channel);
 
 		if (curr_from > max_time) break;
-		if (firstKnowTime > max_time) break;
+		if (strict_times && firstKnowTime > max_time) break;
 		if (curr_to < min_time) continue;
 
 		if (curr_from < min_time) curr_from = min_time;
