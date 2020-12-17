@@ -967,6 +967,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th) + ((sets.size() > 0) ? "_" + sets[0] : "");; break;
 	case FTR_RANGE_TIME_DIFF_START: name += "time_diff_start" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_TIME_INSIDE: name += "time_inside_" + ((sets.size() > 0) ? sets[0] : ""); break;
 	default: {
 		name += "ERROR";
 		MTHROW_AND_ERR("Got a wrong type in range feature generator %d\n", type);
@@ -1141,7 +1142,7 @@ float RangeFeatGenerator::get_value(PidDynamicRec& rec, int idx, int time) {
 	case FTR_RANGE_TIME_COVERED: return uget_range_time_covered(rec.usv, win_from, win_to, time);
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: return uget_range_last_nth_time_len(rec.usv, win_from, win_to, time);
 	case FTR_RANGE_TIME_DIFF_START: 	return uget_range_time_diff_start(rec.usv, updated_win_from, updated_win_to, time);
-	case FTR_RANGE_TIME_INSIDE: 	return uget_range_time_diff_start(rec.usv, updated_win_from, updated_win_to, time);
+	case FTR_RANGE_TIME_INSIDE: 	return uget_range_time_inside(rec.usv, updated_win_from, updated_win_to, time);
 
 
 	default:	return missing_val;
