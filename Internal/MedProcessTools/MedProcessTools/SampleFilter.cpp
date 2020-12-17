@@ -134,7 +134,7 @@ int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 
 	int rc = filter(rep, samples, out_samples);
 
-	if (rc == 0)	
+	if (rc == 0)
 		samples = out_samples;
 
 	return rc;
@@ -146,7 +146,7 @@ int SampleFilter::filter(MedRepository& rep, MedSamples& samples) {
 //=======================================================================================
 // Filter
 //.......................................................................................
-int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
+int BasicTrainFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
 
 	outSamples.time_unit = inSamples.time_unit;
 
@@ -160,7 +160,7 @@ int BasicTrainFilter::_filter(MedSamples& inSamples,MedSamples& outSamples) {
 			if (sample.outcome == 0 || sample.outcomeTime > sample.time)
 				outIdSamples.samples.push_back(sample);
 		}
-		
+
 		if (outIdSamples.samples.size() > 0)
 			outSamples.idSamples.push_back(outIdSamples);
 	}
@@ -230,7 +230,7 @@ int OutlierSampleFilter::iterativeLearn(MedSamples& samples) {
 
 	// Get all values
 	vector<float> values;
-	get_values(samples,values);
+	get_values(samples, values);
 
 	return get_iterative_min_max(values);
 }
@@ -241,7 +241,7 @@ int OutlierSampleFilter::quantileLearn(MedSamples& samples) {
 
 	// Get all values
 	vector<float> values;
-	get_values(samples,values);
+	get_values(samples, values);
 
 	return get_quantile_min_max(values);
 }
@@ -272,10 +272,12 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 		if (field == "priceRatio") eventToControlPriceRatio = med_stof(entry.second);
 		else if (field == "maxRatio") maxControlToEventRatio = med_stof(entry.second);
 		else if (field == "verbose") verbose = med_stoi(entry.second);
+		else if (field == "minGroup") min_group_size = med_stoi(entry.second);
 		else if (field == "strata") {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addMatchingStrata(stratum);
-		} else
+		}
+		else
 			MLOG("Unknonw parameter \'%s\' for MatchingSampleFilter\n", field.c_str());
 	}
 
@@ -379,10 +381,10 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 	for (unsigned int i = 0; i < signatures.size(); i++)
 		getSampleSignature(features.samples[i], features, i, rep, signatures[i]);
-	
+
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, (verbose>0));
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
 	outSamples.import_from_sample_vec(features.samples);
 
 	return 0;
@@ -436,7 +438,7 @@ int MatchingSampleFilter::_filter(MedFeatures& features, MedRepository& rep, Med
 
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio,(verbose>0));
+	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
 	outSamples.import_from_sample_vec(features.samples);
 
 
@@ -481,11 +483,11 @@ int MatchingSampleFilter::initHelpers(MedSamples& inSamples, MedFeatures& featur
 		MWARN("WARNING Rep dictionary is empty\n");
 	}
 
-	// Age : either as a signal or using BYEAR
+	// Age : either as a signal or using BDATE
 	if (isAgeRequired()) {
-		byearId = rep.dict.id("BYEAR");
-		if (byearId == -1) {
-			MERR("Cannot find signalId for BYEAR\n");
+		bdateId = rep.dict.id("BDATE");
+		if (bdateId == -1) {
+			MERR("Cannot find signalId for BDATE\n");
 			return -1;
 		}
 	}
@@ -544,9 +546,10 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 	}
 	else if (stratum.match_type == SMPL_MATCH_AGE) {
 		// Take binned age
-		int byear = medial::repository::get_value(rep, sample.id, byearId);
+		int bdate = medial::repository::get_value(rep, sample.id, bdateId);
+		int byear = int(bdate / 10000);
 		age = med_time_converter.convert_times(samplesTimeUnit, MedTime::Date, sample.time) / 10000 - byear;
-		
+
 		bin = (int)((float)age / stratum.resolution);
 		signature += to_string(bin) + ":";
 	}
@@ -565,7 +568,7 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 			int target = med_time_converter.convert_times(samplesTimeUnit, stratum.windowTimeUnit, sample.time);
 			int maxTime = med_time_converter.convert_times(samplesTimeUnit, stratum.signalTimeUnit, sample.time);
 			int minTime = med_time_converter.convert_times(stratum.windowTimeUnit, stratum.signalTimeUnit, target - stratum.timeWindow);
-//			MLOG("units = %d/%d/%d time = %d Target = %d min = %d\n", samplesTimeUnit, stratum.signalTimeUnit, stratum.windowTimeUnit, sample.time, maxTime, minTime);
+			//			MLOG("units = %d/%d/%d time = %d Target = %d min = %d\n", samplesTimeUnit, stratum.signalTimeUnit, stratum.windowTimeUnit, sample.time, maxTime, minTime);
 
 			string tempSignature = "NULL";
 			// Find first value after maxTime and check previous value
@@ -578,10 +581,10 @@ int MatchingSampleFilter::addToSampleSignature(MedSample& sample, matchingParams
 			}
 
 			// Is last value between minTime and maxTime ? (missed by previous check)
-			if (usv.len>0 && usv.Time(usv.len-1) <= maxTime && usv.Time(usv.len-1) >= minTime)
+			if (usv.len > 0 && usv.Time(usv.len - 1) <= maxTime && usv.Time(usv.len - 1) >= minTime)
 				tempSignature = to_string((int)(0.001 + usv.Val(usv.len - 1) / stratum.resolution));
 
-			signature += tempSignature + ":";  
+			signature += tempSignature + ":";
 		}
 	}
 	else {
@@ -598,14 +601,14 @@ void MatchingSampleFilter::get_required_signals(vector<string>& req_sigs)
 {
 	req_sigs.clear();
 	if (isAgeRequired())
-		req_sigs.push_back("BYEAR");
+		req_sigs.push_back("BDATE");
 
 	for (auto &s : matchingStrata) {
 		if (s.signalName != "")
 			req_sigs.push_back(s.signalName);
 	}
 
-	return ;
+	return;
 
 }
 
@@ -654,7 +657,7 @@ int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 	UniversalSigVec usv;
 	for (auto& idSamples : inSamples.idSamples) {
 		MedIdSamples outIdSamples(idSamples.id);
-		
+
 		rep.uget(idSamples.id, signalId, usv);
 		int idx = 0;
 		for (auto& sample : idSamples.samples) {
@@ -687,9 +690,9 @@ int RequiredSignalFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 // Filter without repository : Return an error
 //.......................................................................................
-int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) { 
-	MERR("A repository is required for Required-Signal Filter\n"); 
-	return -1; 
+int RequiredSignalFilter::_filter(MedSamples& inSamples, MedSamples& outSamples) {
+	MERR("A repository is required for Required-Signal Filter\n");
+	return -1;
 }
 
 //=======================================================================================
@@ -711,7 +714,7 @@ int BasicFilteringParams::init_from_string(const string &init_str)
 
 	boost::split(fields, init_str, boost::is_any_of(":=,"));
 
-	for (int i=0; i<fields.size(); i++) {
+	for (int i = 0; i < fields.size(); i++) {
 		if (fields[i] == "sig") { sig_name = fields[++i]; }
 		if (fields[i] == "min_val") { min_val = stof(fields[++i]); }
 		if (fields[i] == "max_val") { max_val = stof(fields[++i]); }
@@ -735,7 +738,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 	if (sig_id < 0) {
 		if (sig_name == "Age") {
 			use_byear = 1;
-			sig_id = rep.sigs.sid("BYEAR");
+			sig_id = rep.sigs.sid("BDATE");
 		}
 		else
 			sig_id = rep.sigs.sid(sig_name);
@@ -753,7 +756,8 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 	// Special handling of age through byear
 	if (use_byear) {
 		int year = 1900 + med_time_converter.convert_times(global_default_time_unit, MedTime::Years, sample.time);
-		int age = year - (int)usv.Val(0);
+		int bdate_v = (int)usv.Val(0);
+		int age = year - int(bdate_v / 10000);
 		if (age < min_val || age > max_val)
 			return 0;
 		return 1;
@@ -774,7 +778,7 @@ int BasicFilteringParams::test_filter(MedSample &sample, MedRepository &rep, int
 		// go over all values
 		int nvals = 0;
 		int nvals_in_range = 0;
-		for (int i=0; i<usv.len; i++) {
+		for (int i = 0; i < usv.len; i++) {
 
 			// check if in relevant window
 			int i_time = usv.Time(i, time_channel);
@@ -820,12 +824,12 @@ int BasicSampleFilter::init(map<string, string>& mapper)
 				bfp.init_from_string(f);
 				bfilters.push_back(bfp);
 				if (bfp.sig_name == "Age")
-					req_sigs.push_back("BYEAR");
+					req_sigs.push_back("BDATE");
 				else
 					req_sigs.push_back(bfp.sig_name);
 			}
 		}
-		
+
 	}
 
 	if (bfilters.size() > 0 && (min_bfilter < 0 || min_bfilter > bfilters.size())) min_bfilter = (int)bfilters.size();
@@ -840,7 +844,7 @@ void BasicSampleFilter::get_required_signals(vector<string> &reqs)
 		req_sigs.clear();
 		for (auto &bf : bfilters) {
 			if (bf.sig_name == "Age")
-				req_sigs.push_back("BYEAR");
+				req_sigs.push_back("BDATE");
 			else
 				req_sigs.push_back(bf.sig_name);
 		}
@@ -916,7 +920,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 
 	boost::split(fields, init_str, boost::is_any_of(":=;"));
 
-	for (int i=0; i<fields.size(); i++) {
+	for (int i = 0; i < fields.size(); i++) {
 		//MLOG("INIT: %s -> %s\n", fields[i].c_str(), fields[i+1].c_str());
 		if (fields[i] == "sig") { sig_name = fields[++i]; }
 		if (fields[i] == "min_val") { min_val = stof(fields[++i]); }
@@ -934,7 +938,7 @@ int SanitySimpleFilter::init_from_string(const string &init_str)
 		if (fields[i] == "values_in_dictionary") { values_in_dictionary = stoi(fields[++i]); }
 		if (fields[i] == "allowed_values") {
 			vector<string> svals;
-			boost::split(svals, fields[++i], boost::is_any_of(","));	
+			boost::split(svals, fields[++i], boost::is_any_of(","));
 			for (auto &s : svals) allowed_values.insert(stof(s));
 		}
 	}
@@ -956,13 +960,17 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 #endif
 
 	if (sig_id < 0) {
-		if (boost::iequals(sig_name,"Age")) {
+		if (boost::iequals(sig_name, "Age")) {
 			sig_id = 0;
-			byear_id = rep.sigs.sid("BYEAR");
-			if (byear_id < 0) {
-				MWARN("WARNING: !!!! ===> Using SanitySimpleFilter for age but without BYEAR... Are you using a repository with an AGE signal??\n");
+			bdate_id = rep.sigs.sid("BDATE");
+			if (bdate_id < 0) {
+				used_byear = true;
+				bdate_id = rep.sigs.sid("BYEAR");
+				if (bdate_id < 0)
+					MWARN("WARNING: !!!! ===> Using SanitySimpleFilter for age but without BDATE/BYEAR... Are you using a repository with an AGE signal??\n");
 			}
-		} else
+		}
+		else
 			sig_id = rep.sigs.sid(sig_name);
 #if SANITY_FILTER_DBG
 		MLOG("SanitySimpleFilter::test_filter(2) ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
@@ -974,22 +982,25 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 	// Age case
 	if (sig_id == 0) {
 		// TBD: Must make this work also for the cases in which Age is given as a signal
-		if (byear_id > 0) {
+		if (bdate_id > 0) {
 			// calculate using byear
 			float y = 1900 + (float)med_time_converter.convert_times(samples_time_unit, MedTime::Years, sample.time);
-			int byear = medial::repository::get_value(rep, sample.id, byear_id);
-#if SANITY_FILTER_DBG
-			MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, byear, y, sample.time, y-byear, min_val, max_val);
-#endif
-			if (byear > 0) {
-				float age = y - byear;
-
-				if (age < min_val || age > max_val)
-					return SanitySimpleFilter::Failed_Age;
-			}
-			else
+			int bdate_val = medial::repository::get_value(rep, sample.id, bdate_id);
+			int byear = bdate_val;
+			if (byear < 0)
 				return SanitySimpleFilter::Failed_Age_No_Byear;
-		} else
+
+			if (!used_byear)
+				byear = int(bdate_val / 10000);
+#if SANITY_FILTER_DBG
+			MLOG("SanitySimpleFilter::test_filter(3) ====> AGE : id %d byear %f y %f time %d : age %f min_val %f max_val %f\n", sample.id, byear, y, sample.time, y - byear, min_val, max_val);
+#endif
+			float age = y - byear;
+
+			if (age < min_val || age > max_val)
+				return SanitySimpleFilter::Failed_Age;
+		}
+		else
 			return SanitySimpleFilter::Failed_Age_No_Byear;
 	}
 
@@ -1018,7 +1029,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			// timeless signal
 
 			nvals = usv.len;
-			for (int i=0; i<usv.len; i++) {
+			for (int i = 0; i < usv.len; i++) {
 				float i_val = usv.Val(i);
 				if (i_val < min_val || i_val > max_val)
 					noutliers++;
@@ -1041,7 +1052,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 			int ref_time = med_time_converter.convert_times(usv.time_unit(), win_time_unit, sample.time);
 
 			// go over all values
-			for (int i=0; i<usv.len; i++) {
+			for (int i = 0; i < usv.len; i++) {
 
 				// check if in relevant window
 				int i_time = usv.Time(i, time_channel);
@@ -1077,8 +1088,8 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		}
 
 #if SANITY_FILTER_DBG
-			MLOG("SanitySimpleFilter::test_filter(8) ###>>> id %d time %d sig %s (len %d) : min %d max %d maxout %d : nvals %d noutliers %d not_in_dict %d not_allowed %d\n",
-				sample.id, sample.time, sig_name.c_str(), usv.len, min_Nvals, max_Nvals, max_outliers, nvals, noutliers, n_not_in_dict , n_not_allowed);
+		MLOG("SanitySimpleFilter::test_filter(8) ###>>> id %d time %d sig %s (len %d) : min %d max %d maxout %d : nvals %d noutliers %d not_in_dict %d not_allowed %d\n",
+			sample.id, sample.time, sig_name.c_str(), usv.len, min_Nvals, max_Nvals, max_outliers, nvals, noutliers, n_not_in_dict, n_not_allowed);
 #endif
 
 		if (min_Nvals >= 0 && nvals < min_Nvals) return SanitySimpleFilter::Failed_Min_Nvals;
@@ -1086,7 +1097,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (max_outliers >= 0 && noutliers > max_outliers) return SanitySimpleFilter::Failed_Outliers;
 		if (values_in_dictionary && ((n_not_in_dict > 0) || section_id < 0)) return SanitySimpleFilter::Failed_Dictionary_Test;
 		if ((allowed_values.size() > 0) && (n_not_allowed > 0)) return SanitySimpleFilter::Failed_Allowed_Values;
-		if (min_left >=0 && n_left < min_left) return SanitySimpleFilter::Failed_Not_Enough_Non_Outliers_Left;
+		if (min_left >= 0 && n_left < min_left) return SanitySimpleFilter::Failed_Not_Enough_Non_Outliers_Left;
 	}
 
 	return SanitySimpleFilter::Passed;

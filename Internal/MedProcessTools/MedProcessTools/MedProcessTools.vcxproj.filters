@@ -165,6 +165,9 @@
     <ClCompile Include="DiabetesFinderGenerator.cpp">
       <Filter>Source Files\FeatureGenerators</Filter>
     </ClCompile>
+    <ClCompile Include="RepCategoryDescenders.cpp">
+      <Filter>Source Files\RepProcessors</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -239,9 +242,6 @@
     <ClInclude Include="DuplicateProcessor.h">
       <Filter>Header Files\FeatureProcessors</Filter>
     </ClInclude>
-    <ClInclude Include="ExplainWrapper.h">
-      <Filter>Header Files\RepProcessors</Filter>
-    </ClInclude>
     <ClInclude Include="FeatureGenExtractTable.h">
       <Filter>Header Files\FeatureGenerators</Filter>
     </ClInclude>
@@ -265,6 +265,12 @@
     </ClInclude>
     <ClInclude Include="RepCreateRegistry.h">
       <Filter>Header Files\RepProcessors</Filter>
+    </ClInclude>
+    <ClInclude Include="ExplainWrapper.h">
+      <Filter>Header Files\PostProcessors</Filter>
+    </ClInclude>
+    <ClInclude Include="RepCategoryDescenders.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

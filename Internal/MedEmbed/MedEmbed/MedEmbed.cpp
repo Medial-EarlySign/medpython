@@ -60,11 +60,11 @@ int EmbeddingSig::init(map<string, string>& _map)
 			for (auto &f : f1) {
 				vector<string> f2;
 				boost::split(f2, f, boost::is_any_of(","));
-				if (f2.size()>=2) {
-					for (int j=0; j<f2.size()-1; j++) {
+				if (f2.size() >= 2) {
+					for (int j = 0; j < f2.size() - 1; j++) {
 						vector<float> r;
 						r.push_back(stof(f2[j]));
-						r.push_back(stof(f2[j+1]));
+						r.push_back(stof(f2[j + 1]));
 						ranges.push_back(r);
 					}
 				}
@@ -125,7 +125,7 @@ int EmbeddingSig::get_categ_shrunk_codes(int val, vector<int> &codes)
 // given a val : get the serial range number it is contained in.
 int EmbeddingSig::get_continuous_orig(float val)
 {
-	for (int i=0; i<ranges.size(); i++) {
+	for (int i = 0; i < ranges.size(); i++) {
 		if (val >= ranges[i][0] && val < ranges[i][1])
 			return i;
 	}
@@ -164,7 +164,7 @@ string EmbeddingSig::print_to_string(int verbosity)
 	buffer << "add_hierarchy: " << add_hierarchy << " do_shrink: " << do_shrink << " channels: " << time_chan << "(t) " << val_chan << "(v)\n";
 
 	buffer << "sizes: categories " << categories_to_embed.size() << " Name2Id " << Name2Id.size() <<
-			" Orig2Code " << Orig2Code.size() << " Orig2Name " << Orig2Name.size() << " Orig2ShrunkCode " << Orig2ShrunkCode.size() << "\n";
+		" Orig2Code " << Orig2Code.size() << " Orig2Name " << Orig2Name.size() << " Orig2ShrunkCode " << Orig2ShrunkCode.size() << "\n";
 
 	if (verbosity > 0) {
 		// ranges
@@ -273,7 +273,7 @@ int EmbeddingSig::init_categorial_tables(MedDictionarySections &dict)
 int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
 {
 	if (type != ECTYPE_CATEGORIAL) return 0;
-	
+
 	MLOG("ES:init_categorial : model categorial sig %s\n", sig.c_str());
 
 	init_categorial_tables(dict);
@@ -306,15 +306,16 @@ int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shr
 		MTHROW_AND_ERR("ERROR: Using Model in Embedding, NOT Implemented in this path yet...\n");
 
 	if (type == ECTYPE_AGE) {
-		// in this case usv must be "BYEAR"
-		float age = (float)med_time_converter.get_age(time, sig_time_unit, (int)usv.Val(0));
+		// in this case usv must be "BDATE"
+		int bdate = (int)usv.Val(0);
+		float age = (float)med_time_converter.get_age(time, sig_time_unit, int(bdate / 10000));
 		codes.push_back(get_continuous_codes(age, use_shrink));
 	}
 
 	else if (type == ECTYPE_CATEGORIAL) {
 
 		if (usv.n_time_channels() > 0) {
-			for (int j = 0; j<usv.len; j++) {
+			for (int j = 0; j < usv.len; j++) {
 				int i_time = usv.Time(j, time_chan);
 				if (i_time > from_time && i_time <= to_time)
 					get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink); // ??? Consider translating values from current dictionary to originally train dictionary
@@ -323,7 +324,7 @@ int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shr
 		}
 		else {
 			// this is for non time signals like GENDER
-			for (int j = 0; j<usv.len; j++)
+			for (int j = 0; j < usv.len; j++)
 				get_categ_codes((int)usv.Val(j, val_chan), codes, use_shrink);
 		}
 
@@ -448,10 +449,10 @@ int EmbeddingSig::minimize()
 int EmbeddingSig::prep_model_batch(MedPidRepository &rep, MedSamples &samples)
 {
 	if (type != ECTYPE_MODEL) return 0; // nothing to do
-	
+
 	model->get_generated_features_names(model_features_names);
 	model->apply(rep, samples);
-	
+
 	MLOG("ES MODEL: generated MedFeatures of : %d x %d (names %d)\n", model->features.data.size(), model->features.data.begin()->second.size(), model_features_names.size());
 
 	feat_ptrs.clear();
@@ -522,7 +523,7 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 		if (es.type == ECTYPE_CATEGORIAL || es.type == ECTYPE_CONTINUOUS)
 			sigs_to_load.push_back(es.sig);
 		if (es.type == ECTYPE_AGE)
-			sigs_to_load.push_back("BYEAR"); // special case, assuming BYEAR exists if Age is asked for
+			sigs_to_load.push_back("BDATE"); // special case, assuming BDATE exists if Age is asked for
 		if (es.type == ECTYPE_MODEL) {
 			MLOG("Model type prepare() (%s) \n", es.sig.c_str());
 			es.model->get_required_signal_names(es.model_req_sigs);
@@ -537,7 +538,7 @@ int EmbedMatCreator::prepare(MedPidRepository &rep)
 
 	curr_code = 1; // 0 kept for dummy
 	for (auto &es : embed_sigs) {
-		
+
 		// prepare sig_members2sets , sig_members2sets_in_range, Orig2Code , Orig2Name and increase curr_code
 		prep_memebers_to_sets(rep, es);
 
@@ -559,7 +560,7 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 	es.Orig2ShrunkCode.clear();
 	es.Name2Id.clear();
 
-	if (es.type == ECTYPE_DUMMY) es.init_dummy(); 
+	if (es.type == ECTYPE_DUMMY) es.init_dummy();
 
 	if (es.type == ECTYPE_MODEL) {
 
@@ -567,8 +568,8 @@ void EmbedMatCreator::prep_memebers_to_sets(MedPidRepository &rep, EmbeddingSig 
 		es.do_shrink = 0; // we never shrink model features
 		es.model->get_generated_features_names(es.model_features_names);
 		MLOG("model generated features : %d\n", es.model_features_names.size());
-//		for (auto &s : es.model_features_names) MLOG("%s,", s.c_str());
-//		MLOG("\n");
+		//		for (auto &s : es.model_features_names) MLOG("%s,", s.c_str());
+		//		MLOG("\n");
 
 		int c = 0;
 		for (auto &feat : es.model_features_names) {
@@ -604,7 +605,7 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 	UniversalSigVec usv;
 	for (auto &es : embed_sigs) {
 
-		for (int t=0; t<times.size(); t++) {
+		for (int t = 0; t < times.size(); t++) {
 			int ver = t;
 			if (pdr.get_n_versions() == 0) ver = 0;
 
@@ -621,7 +622,7 @@ int EmbedMatCreator::add_pid_lines(PidDynamicRec &pdr, MedSparseMat &smat, vecto
 	{
 		SparseMatRowMetaData meta;
 		meta.pid = pdr.pid;
-		for (int t=0; t<times.size(); t++) {
+		for (int t = 0; t < times.size(); t++) {
 			meta.time = times[t];
 			smat.insert_line(meta, out_lines[times[t]]);
 		}
@@ -663,7 +664,7 @@ int EmbedMatCreator::get_shrinked_dictionary(MedSparseMat &smat, float min_p, fl
 			max_code = es.Orig2Code.rbegin()->second; // ??? who says max code is in the last one since we moved to go over categories.
 	}
 
-	vector<int> code2count(max_code+1, 0);
+	vector<int> code2count(max_code + 1, 0);
 
 	for (auto &line : smat.lines) {
 		for (auto & e : line)
@@ -683,9 +684,9 @@ int EmbedMatCreator::get_shrinked_dictionary(MedSparseMat &smat, float min_p, fl
 			// passing only those codes that appear in the min_p:max_p range
 			for (auto &e : es.Orig2Code) {
 				int j = e.second;
-				float p = (float)code2count[j]/(float)nlines;
+				float p = (float)code2count[j] / (float)nlines;
 				//MLOG("==> orig %d code %d name %s : j %d : count %d / %d : p %f (%f-%f)\n", e.first, e.second, es.Orig2Name[e.first].c_str(), j, code2count[j], nlines, p, min_p, max_p);
-				if (p>=min_p && p<=max_p) {
+				if (p >= min_p && p <= max_p) {
 					es.Orig2ShrunkCode[e.first] = curr_code++;
 				}
 			}
@@ -713,13 +714,13 @@ int EmbedMatCreator::shrink_mat(MedSparseMat &smat, MedSparseMat &shrunk_smat)
 {
 	// first we need to calculate a reverse from codes to shrunk codes
 	map<int, int> code2shrunk;
-	for (auto &es: embed_sigs) {
+	for (auto &es : embed_sigs) {
 		for (auto &e : es.Orig2ShrunkCode)
 			code2shrunk[es.Orig2Code[e.first]] = e.second;
 	}
 
 	shrunk_smat.clear();
-	for (int i=0; i<smat.meta.size(); i++) {
+	for (int i = 0; i < smat.meta.size(); i++) {
 		vector<pair<int, float>> new_line;
 		for (auto &e : smat.lines[i]) {
 			if (code2shrunk.find(e.first) != code2shrunk.end())
@@ -730,7 +731,7 @@ int EmbedMatCreator::shrink_mat(MedSparseMat &smat, MedSparseMat &shrunk_smat)
 			shrunk_smat.lines.push_back(new_line);
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -800,7 +801,7 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, MedSamples &samples, 
 int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>> &pids_times, int use_shrink, MedSparseMat &smat)
 {
 	MLOG("Generating sparse mat for %d lines\n", pids_times.size());
-	
+
 	smat.clear();
 	smat.lines.resize(pids_times.size());
 	smat.meta.resize(pids_times.size());
@@ -808,7 +809,7 @@ int EmbedMatCreator::get_sparse_mat(MedPidRepository &rep, vector<pair<int, int>
 	int n = 0;
 
 #pragma omp parallel for
-	for (int i=0; i<pids_times.size(); i++) {
+	for (int i = 0; i < pids_times.size(); i++) {
 
 		int pid = pids_times[i].first;
 		int time = pids_times[i].second;
@@ -867,7 +868,7 @@ string EmbedMatCreator::print_to_string(int verbosity)
 int EmbedTrainCreator::init(map<string, string>& _map)
 {
 	for (auto entry : _map) {
-		string field = entry.first; 
+		string field = entry.first;
 		if (field == "rep_time_unit") { rep_time_unit = med_time_converter.string_to_type(entry.second); }
 		if (field == "use_same_dictionaries") { use_same_dictionaries = stoi(entry.second); }
 		else if (field == "win_time_unit") { win_time_unit = med_time_converter.string_to_type(entry.second); }
@@ -907,7 +908,7 @@ int EmbedTrainCreator::read_xy_records(string xy_fname, vector<EmbedXYRecord> &x
 	vector<vector<string>> res;
 	if (read_text_file_cols(xy_fname, " \t", res) < 0) return -1;
 	if (res.size() >= 0) {
-		for (int i=0; i<res.size(); i++) {			
+		for (int i = 0; i < res.size(); i++) {
 			if (res[i].size() >= 3) {
 				EmbedXYRecord rec;
 				rec.pid = stoi(res[i][0]);
@@ -972,7 +973,7 @@ int EmbedTrainCreator::generate_from_xy_file(string xy_fname, string rep_fname, 
 	vector<pair<int, int>> x_list_train, y_list_train, x_list_test, y_list_test;
 	vector<int> pids;
 	unordered_map<int, int> pids2group;
-	for (auto &r : xy_recs) 
+	for (auto &r : xy_recs)
 		if (pids2group.find(r.pid) == pids2group.end()) {
 			if (rand_1() <= p_train)
 				pids2group[r.pid] = 1;
@@ -1000,7 +1001,7 @@ int EmbedTrainCreator::generate_from_xy_file(string xy_fname, string rep_fname, 
 	sigs = x_emc.sigs_to_load;
 	sigs.insert(sigs.end(), y_emc.sigs_to_load.begin(), y_emc.sigs_to_load.end());
 	MLOG("Reading into rep : %d pids x %d sigs\n", pids.size(), sigs.size());
-	if (rep.load(sigs, pids) < 0) MTHROW_AND_ERR("Failed reading pids x sigs from repository\n"); 
+	if (rep.load(sigs, pids) < 0) MTHROW_AND_ERR("Failed reading pids x sigs from repository\n");
 
 	//MLOG("x_emc:\n%s", x_emc.print_to_string(1).c_str());
 
@@ -1017,7 +1018,7 @@ int EmbedTrainCreator::generate_from_xy_file(string xy_fname, string rep_fname, 
 		MLOG("Use x shrinking in y as well\n");
 		if (x_emc.embed_sigs.size() != y_emc.embed_sigs.size())
 			MTHROW_AND_ERR("Can't use same dictionaries on x,y : different es sizes\n");
-		for (int i=0; i<x_emc.embed_sigs.size(); i++) {
+		for (int i = 0; i < x_emc.embed_sigs.size(); i++) {
 			if ((x_emc.embed_sigs[i].sig != y_emc.embed_sigs[i].sig) ||
 				(x_emc.embed_sigs[i].type != y_emc.embed_sigs[i].type) ||
 				(x_emc.embed_sigs[i].ranges.size() != y_emc.embed_sigs[i].ranges.size()) ||
@@ -1042,25 +1043,25 @@ int EmbedTrainCreator::generate_from_xy_file(string xy_fname, string rep_fname, 
 	MLOG("Generating x_train matrix (%d)\n", x_list_train.size());
 	x_emc.get_sparse_mat(rep, x_list_train, 1, x_train);
 	MLOG("writing x_train matrix (%d)\n", x_list_train.size());
-	x_train.write_to_files(out_prefix+"_xtrain.mat", out_prefix+"_xtrain.meta", "");
+	x_train.write_to_files(out_prefix + "_xtrain.mat", out_prefix + "_xtrain.meta", "");
 
 	if (x_list_test.size() > 0) {
 		MLOG("Generating x_test matrix (%d)\n", x_list_test.size());
 		x_emc.get_sparse_mat(rep, x_list_test, 1, x_test);
 		MLOG("writing x_test matrix (%d)\n", x_list_test.size());
-		x_test.write_to_files(out_prefix+"_xtest.mat", out_prefix+"_xtest.meta", "");
+		x_test.write_to_files(out_prefix + "_xtest.mat", out_prefix + "_xtest.meta", "");
 	}
 
 	MLOG("Generating y_train matrix (%d)\n", y_list_train.size());
 	y_emc.get_sparse_mat(rep, y_list_train, 1, y_train);
 	MLOG("writing y_train matrix (%d)\n", y_list_train.size());
-	y_train.write_to_files(out_prefix+"_ytrain.mat", out_prefix+"_ytrain.meta", "");
+	y_train.write_to_files(out_prefix + "_ytrain.mat", out_prefix + "_ytrain.meta", "");
 
 	if (y_list_test.size() > 0) {
 		MLOG("Generating y_test matrix (%d)\n", y_list_test.size());
 		y_emc.get_sparse_mat(rep, y_list_test, 1, y_test);
 		MLOG("writing y_test matrix (%d)\n", y_list_test.size());
-		y_test.write_to_files(out_prefix+"_ytest.mat", out_prefix+"_ytest.meta", "");
+		y_test.write_to_files(out_prefix + "_ytest.mat", out_prefix + "_ytest.meta", "");
 	}
 
 	MLOG("Writing schemes and dictionaries");
@@ -1087,14 +1088,14 @@ int EmbedTrainCreator::generate_xy_list(string xy_fname, string pids_fname, stri
 	if (rep.init(rep_fname) < 0) MTHROW_AND_ERR("Error initializing repository %s\n", rep_fname.c_str());
 
 	vector<string> sigs;
-	int byear_sid, start_sid, end_sid, death_sid;
+	int bdate_sid, start_sid, end_sid, death_sid;
 
-	if ((byear_sid = rep.sigs.sid("BYEAR")) > 0) sigs.push_back("BYEAR");
+	if ((bdate_sid = rep.sigs.sid("BDATE")) > 0) sigs.push_back("BDATE");
 	if ((start_sid = rep.sigs.sid("STARTDATE")) > 0) sigs.push_back("STARTDATE");
 	if ((end_sid = rep.sigs.sid("ENDDATE")) > 0) sigs.push_back("ENDDATE");
 	if ((death_sid = rep.sigs.sid("DEATH") > 0)) sigs.push_back("DEATH");
 
-	MLOG("sids byear %d start %d end %d death %d\n", byear_sid, start_sid, end_sid, death_sid);
+	MLOG("sids byear %d start %d end %d death %d\n", bdate_sid, start_sid, end_sid, death_sid);
 	if (rep.load(sigs, pids) < 0) return -1;
 
 	vector<EmbedXYRecord> xy_times;
@@ -1114,26 +1115,27 @@ int EmbedTrainCreator::generate_xy_list(string xy_fname, string pids_fname, stri
 			if (end_t < to_time) to_time = end_t;
 		}
 
-		
-		if (byear_sid > 0) {
+
+		if (bdate_sid > 0) {
 			// take age into account
-			int byear = medial::repository::get_value(rep, pid, byear_sid);
+			int bdate = medial::repository::get_value(rep, pid, bdate_sid);
+			int byear = int(bdate / 10000);
 			if (byear_time_unit == MedTime::Years) byear -= 1900;
-			int min_age_t = med_time_converter.convert_times(byear_time_unit, rep_time_unit, byear+min_age);
-			int max_age_t = med_time_converter.convert_times(byear_time_unit, rep_time_unit, byear+max_age);
+			int min_age_t = med_time_converter.convert_times(byear_time_unit, rep_time_unit, byear + min_age);
+			int max_age_t = med_time_converter.convert_times(byear_time_unit, rep_time_unit, byear + max_age);
 			//MLOG("byear=%d min_age %d max_age %d min_age_t %d max_age_t %d\n", byear, min_age, max_age, min_age_t, max_age_t);
 
 			if (from_time < min_age_t) from_time = min_age_t;
 			if (to_time > max_age_t) to_time = max_age_t;
 		}
-		
+
 		//MLOG("pid %d from %d to %d\n", pid, from_time, to_time);
 
 		// at this stage we have to choose time points between from_time and to_time
 
 		if (to_time > from_time) {
 
-			for (int i=0; i<npoints_per_pid; i++) {
+			for (int i = 0; i < npoints_per_pid; i++) {
 
 				// choose a random time :
 				int x_rtime, y_rtime;
@@ -1147,7 +1149,7 @@ int EmbedTrainCreator::generate_xy_list(string xy_fname, string pids_fname, stri
 				}
 				else {
 					// general case
-					x_rtime = from_time + rand_N(to_time - from_time + 1);					
+					x_rtime = from_time + rand_N(to_time - from_time + 1);
 				}
 
 				// choose a random time_dist and get y_rtime
@@ -1160,7 +1162,8 @@ int EmbedTrainCreator::generate_xy_list(string xy_fname, string pids_fname, stri
 				}
 				else if (time_dist_range.size() > 0) {
 					yd = time_dist_range[0] + rand_N(time_dist_range[1] - time_dist_range[0] + 1);
-				} else if (time_dist_points.size() > 0)
+				}
+				else if (time_dist_points.size() > 0)
 					yd = time_dist_points[rand_N((int)time_dist_points.size())];
 
 				if (rep_time_unit == MedTime::Date) {

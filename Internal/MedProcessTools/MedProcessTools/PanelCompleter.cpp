@@ -110,7 +110,7 @@ void RepPanelCompleter::set_signal_ids(MedSignals& sigs) {
 	// EGFR Requires age and gender
 	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
 		genderId = sigs.sid(genderSignalName);
-		byearId = sigs.sid("BYEAR");
+		bdateId = sigs.sid("BDATE");
 
 	}
 
@@ -207,7 +207,7 @@ void RepPanelCompleter::init_lists() {
 
 	if (panel_signal_names[REP_CMPLT_EGFR_PANEL].size()) {
 		req_signals.insert(genderSignalName);
-		req_signals.insert("BYEAR");
+		req_signals.insert("BDATE");
 
 	}
 }
@@ -562,12 +562,13 @@ int RepPanelCompleter::perpare_for_age_and_gender(PidDynamicRec& rec, int& age, 
 		return -1;
 	}
 	gender = (int)(rec.usv.Val(0));
-	rec.uget(byearId, 0);
+	rec.uget(bdateId, 0);
 	if (rec.usv.len == 0) {
-		MERR("No BYEAR given for %d\n", rec.pid);
+		MERR("No BDATE given for %d\n", rec.pid);
 		return -1;
 	}
-	bYear = (int)(rec.usv.Val(0));
+	int bdate_v= (int)(rec.usv.Val(0));
+	bYear = int(bdate_v / 10000);
 
 	return 0;
 }

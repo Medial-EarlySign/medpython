@@ -538,7 +538,7 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 		MedDictionary& _dict = dict.dicts[dict.section_id(signalName)];
 		if (_dict.Id2Name.size() == 0)
 			MTHROW_AND_ERR("Empty dictionary for signal %s\n", signalName.c_str());
-		
+
 		// Before learning: Generate a map from name (in dictionary) to dictionary-independent value (this also usefull for backward compatability)
 		if (categ_value2id.empty())
 			categ_value2id = _dict.Name2Id;
@@ -555,7 +555,7 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 		for (auto& rec : _dict.Id2Name) {
 			if (categ_value2id.find(rec.second) == categ_value2id.end())
 				categ_map[rec.first] = maxId + 1;
-			else 
+			else
 				categ_map[rec.first] = categ_value2id[rec.second];
 		}
 	}
@@ -695,12 +695,7 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 	rec.uget(signalId, 0, usv);
 	if (usv.len != 1) { MTHROW_AND_ERR("AgeGenerator: id %d , got len %d for signal %d [%s])...\n", rec.pid, usv.len, signalId, signalName.c_str()); }
 	if (usv.len == 0) throw MED_EXCEPTION_NO_BYEAR_GIVEN;
-	if (signalName == "BYEAR") {
-		int byear = usv.Val<int>(0);
-		for (int i = 0; i < num; i++)
-			p_feat[i] = (float)(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
-	}
-	else if (signalName == "BDATE") {
+	if (signalName == "BDATE") {
 		int bdate;
 		if (usv.n_val_channels() > 0)
 			bdate = (int)(usv.Val(0));
@@ -708,12 +703,19 @@ int AgeGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int index
 			bdate = (int)(usv.Time(0));
 		for (int i = 0; i < num; i++) {
 			int time = med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time);
-			int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
-			p_feat[i] = (float)(1.0 * days_since_birth) / 365;
+			//int days_since_birth = get_day_approximate(time) - get_day_approximate(bdate);
+			//p_feat[i] = (float)(1.0 * days_since_birth) / 365;
+			p_feat[i] = int(time / 10000) - int(bdate / 10000);
 
 		}
 	}
-	else MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
+	else if (signalName == "BYEAR") {
+		int byear = usv.Val<int>(0);
+		for (int i = 0; i < num; ++i)
+			p_feat[i] = float(med_time_converter.convert_times(features.time_unit, MedTime::Date, features.samples[index + i].time) / 10000 - byear);
+	}
+	else
+		MTHROW_AND_ERR("Unknown age signal [%s] \n", signalName.c_str());
 
 	return 0;
 }
@@ -1040,7 +1042,7 @@ void RangeFeatGenerator::init_tables(MedDictionarySections& dict) {
 					dict.dicts[section_id].get_regex_names(".*" + s + ".*", curr_set);
 					aggregated_values.insert(curr_set.begin(), curr_set.end());
 				}
-				agg_sets.insert(agg_sets.begin(),aggregated_values.begin(),aggregated_values.end());
+				agg_sets.insert(agg_sets.begin(), aggregated_values.begin(), aggregated_values.end());
 				dict.prep_sets_lookup_table(section_id, agg_sets, lut);
 			}
 			else
@@ -2106,7 +2108,7 @@ int TimeFeatGenerator::get_time_unit(string name) {
 	else if (name == "hour") time_unit = FTR_TIME_HOUR;
 	else if (name == "minute") time_unit = FTR_TIME_MINUTE;
 	else if (name == "date") time_unit = FTR_TIME_DATE;
-	
+
 	if (time_unit != FTR_TIME_LAST) {
 		set_default_bins();
 		return 0;

@@ -228,7 +228,7 @@ void MedLogger::init_all_formats(int section, const string &new_format) {
 }
 
 //-----------------------------------------------------------------------------------------------
-int MedLogger::log(int section, int print_level, char *fmt, ...)
+int MedLogger::log(int section, int print_level, const char *fmt, ...)
 {
 	if (section >= MAX_LOG_SECTION)
 		return -2;
@@ -312,18 +312,20 @@ void MedProgress::update() {
 				estimate_time / 60.0);
 		}
 		else { //unknown job count: print job speed - how many jobs in minutes, and how much time a single job takes
-			double jobs_in_minute = double(progress) / (double(time_elapsed) / 60);
-			double single_job_time_seconds = -1;
-			if (jobs_in_minute > 1)
-				single_job_time_seconds = 1 / (jobs_in_minute / 60);
-			if (single_job_time_seconds < 0)
-				global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
-					"processing %2.1f jobs in a minute\n", print_title.c_str(),
-					progress, time_elapsed / 60, jobs_in_minute);
-			else
-				global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
-					"processing %2.1f jobs in a minute, single job take %2.4f seconds\n", print_title.c_str(),
-					progress, time_elapsed / 60, jobs_in_minute, single_job_time_seconds);
+			if (time_elapsed > 0) {
+				double jobs_in_minute = double(progress) / (double(time_elapsed) / 60);
+				double single_job_time_seconds = -1;
+				if (jobs_in_minute > 1)
+					single_job_time_seconds = 1 / (jobs_in_minute / 60);
+				if (single_job_time_seconds < 0)
+					global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
+						"processing %2.1f jobs in a minute\n", print_title.c_str(),
+						progress, time_elapsed / 60, jobs_in_minute);
+				else
+					global_logger.log(print_section, print_level, "#%s# :: Processed %d time elapsed: %2.1f Minutes, "
+						"processing %2.1f jobs in a minute, single job take %2.4f seconds\n", print_title.c_str(),
+						progress, time_elapsed / 60, jobs_in_minute, single_job_time_seconds);
+			}
 		}
 	}
 }

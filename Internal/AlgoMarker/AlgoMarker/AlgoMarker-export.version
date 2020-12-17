@@ -1,4 +1,4 @@
-MEDIAL_AM_ABI_1.0 {
+MEDIAL_AM_API_1.0 {
     global: AM*; DATA_API*;
     local: *;
 };

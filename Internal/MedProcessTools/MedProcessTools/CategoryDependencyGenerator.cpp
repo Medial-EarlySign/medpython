@@ -42,7 +42,7 @@ void CategoryDependencyGenerator::init_defaults() {
 	verbose_full_file = "";
 	generate_with_counts = false;
 
-	req_signals = { "BYEAR", "GENDER" };
+	req_signals = { "BDATE", "GENDER" };
 }
 
 static unordered_map<string, int> conv_map_stats = {
@@ -142,7 +142,7 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 
 void CategoryDependencyGenerator::set_signal_ids(MedSignals& sigs) {
 	signalId = sigs.sid(signalName);
-	byear_sid = sigs.sid("BYEAR");
+	bdate_sid = sigs.sid("BDATE");
 	gender_sid = sigs.sid("GENDER");
 }
 
@@ -326,7 +326,7 @@ void print_or_log(ofstream &fw, bool write_to_file, char *fmt, ...) {
 
 int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 
-	if (signalId == -1 || byear_sid == -1 || gender_sid == -1)
+	if (signalId == -1 || bdate_sid == -1 || gender_sid == -1)
 		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
 	names.clear();
 
@@ -379,7 +379,9 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 		int pid = samples.idSamples[i].id;
 		int gend_idx = medial::repository::get_value(rep, pid, gender_sid) - 1;
-		int byear = medial::repository::get_value(rep, pid, byear_sid);
+		int bdate = medial::repository::get_value(rep, pid, bdate_sid);
+		assert(bdate != -1);
+		int byear = int(bdate / 10000);
 
 		idRec[n_th].init_from_rep(std::addressof(rep), pid, all_req_signal_ids_v, nSamples);
 
@@ -682,7 +684,7 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
 				dof[indexes_order[i]]);
 			if (use_file)
-				print_or_log(fw_verbose, use_file, "%s\t%d\t%.12g\t%.3f\t%1.3f\t%d\n", names_ss.str().c_str(),(int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
+				print_or_log(fw_verbose, use_file, "%s\t%d\t%.12g\t%.3f\t%1.3f\t%d\n", names_ss.str().c_str(), (int)codeCnts[indexes_order[i]], pvalues[indexes_order[i]], scores[indexes_order[i]], lift[indexes_order[i]],
 					dof[indexes_order[i]]);
 		}
 	}

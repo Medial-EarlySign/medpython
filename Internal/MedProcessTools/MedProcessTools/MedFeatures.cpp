@@ -1017,11 +1017,11 @@ double medial::process::reweight_by_general(MedFeatures &data_records, const vec
 		return (double)0;
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, bool print_verbose) {
-	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, print_verbose);
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, int min_grp_size, bool print_verbose) {
+	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, min_grp_size, print_verbose);
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, bool print_verbose) {
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, int min_grp_size, bool print_verbose) {
 	if (groups.size() != data_records.samples.size())
 		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
 
@@ -1196,7 +1196,6 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	}
 
 	//For each year_bin - balance to this ratio using price_ratio weight for removing 1's labels:
-	int min_grp_size = 5;
 	seen_pid_0.clear();
 	vector<int> skip_grp_indexs;
 	for (int k = int(all_groups.size() - 1); k >= 0; --k) {
@@ -1850,7 +1849,7 @@ double medial::process::match_to_prior(MedSamples &samples, float target_prior, 
 		medial::process::match_to_prior(fetched_labels, all_in_same, target_prior, sel_idx);
 		medial::process::commit_selection(pointers_to_smps, sel_idx);
 		//sort by pid:
-		sort(pointers_to_smps.begin(), pointers_to_smps.end(), [](MedSample *a, MedSample *b) {
+		sort(pointers_to_smps.begin(), pointers_to_smps.end(), [](const MedSample *a, const MedSample *b) {
 			if (a->id == b->id)
 				return b->time > a->time;
 			return b->id > a->id;
@@ -1860,12 +1859,14 @@ double medial::process::match_to_prior(MedSamples &samples, float target_prior, 
 		{
 			if (to_change.empty() || to_change.back().id != pointers_to_smps[i]->id) {
 				MedIdSamples smp(pointers_to_smps[i]->id);
+				smp.split = pointers_to_smps[i]->split;
 				to_change.push_back(smp);
 			}
 			to_change.back().samples.push_back(*pointers_to_smps[i]);
 		}
 		MLOG("Changing prior: was %2.3f%% and changed to %2.3f%%\n", 100 * pr, 100 * target_prior);
-		samples.idSamples.swap(to_change);
+		samples.idSamples = move(to_change);
+		samples.sort_by_id_date();
 		medial::print::print_samples_stats(samples);
 	}
 	return pr;

@@ -877,6 +877,7 @@ public:
 	unordered_set<string> ignored; ///< features to ignore in selection process
 	bool verbose; ///<print all feature importance
 	string progress_file_path = ""; ///< file path to progress file
+	string grouping_mode = "BY_SIGNAL_CATEG"; ///< get also provide external file with the grouping
 
 	vector<int> rates_vec;
 	vector<string> predictor_params_vec;
@@ -908,7 +909,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(IterativeFeatureSelector)
 		ADD_SERIALIZATION_FUNCS(processor_type, predictor, predictor_params, predictor_params_vec, nfolds, folds, mode, rates_vec, cohort_params, bootstrap_params, msr_params, work_on_sets,
-			required, ignored, numToSelect, selected, report, do_internal_cv)
+			required, ignored, numToSelect, selected, report, do_internal_cv, grouping_mode)
 
 private:
 	// Resolved names of required signals

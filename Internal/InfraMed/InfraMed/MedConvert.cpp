@@ -533,27 +533,42 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 	int time_unit = info.time_unit == MedTime::Undefined ? default_time_unit : info.time_unit;
 
 	int field_i = 2;
+	int value;
 
 	for (int tchan = 0; tchan < cd_sv.n_time; tchan++) {
 		switch (cd_sv.time_channel_types[tchan]) {
 
-		case GenericSigVec::type_enc::UINT8:   //unsigned char
-		case GenericSigVec::type_enc::UINT32:  //unsigned int
-		case GenericSigVec::type_enc::UINT64:  //unsigned long long
 		case GenericSigVec::type_enc::INT8:    //char
 		case GenericSigVec::type_enc::INT16:   //short
-		case GenericSigVec::type_enc::FLOAT32: //float
-		case GenericSigVec::type_enc::FLOAT64: //double
-		case GenericSigVec::type_enc::FLOAT80: //long double
 		case GenericSigVec::type_enc::INT32:   //int
-			cd_sv.setTime(0, tchan, stoi(fields[field_i]));
+			cd_sv.setTime(0, tchan, med_stoi(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::UINT8:   //unsigned char
+			cd_sv.setTime<unsigned short>(0, tchan, med_stoi(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::FLOAT32: //float
+			cd_sv.setTime<float>(0, tchan, stof(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::UINT32:  //unsigned int
+			cd_sv.setTime<unsigned int>(0, tchan, stoul(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::UINT64:  //unsigned long long
+			cd_sv.setTime<unsigned long long>(0, tchan, stoull(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::FLOAT64: //double
+			cd_sv.setTime<double>(0, tchan, stod(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::FLOAT80: //long double
+			cd_sv.setTime<long double>(0, tchan, stold(fields[field_i]));
+			break;
 			//cd_sv.setTime(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode)); break;
 
 		case GenericSigVec::type_enc::INT64:   //long long
+			//TODO: bug convert_datetime_safe returns int and not long - might loss information. keeps it as is since we might use this conversion logic somewhere.
 			cd_sv.setTime<long long>(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));	break;
-
+			break;
 		case GenericSigVec::type_enc::UINT16:  //unsigned short
-			int value = (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode);
+			value = (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode);
 			if (value < 0) {
 				if (!full_error_file.empty() && (err_log_file.good()))
 					err_log_file << "MedConvert: get_next_signal: Detected attempt to assign negative number (" << value << ") into unsigned time channel " << tchan << " :: curr_line is :" << curr_line << "\n";
@@ -561,6 +576,9 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 			}
 			cd_sv.setTime<unsigned short>(0, tchan, value);
 			break;
+		default:
+			MTHROW_AND_ERR("Error - unsupported time type %d (signal_name=%s)\n",
+				(int)cd_sv.time_channel_types[tchan], sigs.name(sid).c_str());
 		}
 		field_i++;
 	}
@@ -570,12 +588,43 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 		switch (cd_sv.val_channel_types[vchan]) {
 
 		case GenericSigVec::type_enc::UINT8:   //unsigned char
+			if (sigs.is_categorical_channel(sid, vchan))
+				cd_sv.setVal<unsigned char>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
+			else
+				cd_sv.setVal<unsigned char>(0, vchan, med_stoi(fields[field_i]));
+			break;
 		case GenericSigVec::type_enc::UINT32:  //unsigned int
-		case GenericSigVec::type_enc::INT8:    //char
-		case GenericSigVec::type_enc::INT32:   //int
+			if (sigs.is_categorical_channel(sid, vchan))
+				MTHROW_AND_ERR("Error - unsupported unsigned int type as categorical value (signal_name=%s)\n",
+					sigs.name(sid).c_str());
+			cd_sv.setVal<unsigned int>(0, vchan, stoul(fields[field_i]));
+			break;
 		case GenericSigVec::type_enc::INT64:   //long long
+			if (sigs.is_categorical_channel(sid, vchan))
+				MTHROW_AND_ERR("Error - unsupported long type as categorical value (signal_name=%s)\n",
+					sigs.name(sid).c_str());
+			cd_sv.setVal<long long>(0, vchan, stoll(fields[field_i]));
+			break;
 		case GenericSigVec::type_enc::FLOAT64: //double
+			if (sigs.is_categorical_channel(sid, vchan))
+				MTHROW_AND_ERR("Error - unsupported double type as categorical value (signal_name=%s)\n",
+					sigs.name(sid).c_str());
+			cd_sv.setVal<double>(0, vchan, stod(fields[field_i]));
+			break;
 		case GenericSigVec::type_enc::FLOAT80: //long double
+			if (sigs.is_categorical_channel(sid, vchan))
+				MTHROW_AND_ERR("Error - unsupported long double type as categorical value (signal_name=%s)\n",
+					sigs.name(sid).c_str());
+			cd_sv.setVal<long double>(0, vchan, stold(fields[field_i]));
+			break;
+		case GenericSigVec::type_enc::INT8:    //char
+		case GenericSigVec::type_enc::INT16: //short
+		case GenericSigVec::type_enc::INT32:   //int
+			if (sigs.is_categorical_channel(sid, vchan))
+				cd_sv.setVal(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
+			else
+				cd_sv.setVal(0, vchan, med_stoi(fields[field_i]));
+			break;
 		case GenericSigVec::type_enc::FLOAT32: //float
 			if (sigs.is_categorical_channel(sid, vchan))
 				cd_sv.setVal(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
@@ -599,15 +648,14 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 
 		case GenericSigVec::type_enc::UINT64:  //unsigned long long
 			if (sigs.is_categorical_channel(sid, vchan))
-				cd_sv.setVal<long long>(0, vchan, (long long)dict.get_id_or_throw(section, fields[field_i]));
-			else cd_sv.setVal<long long>(0, vchan, med_stof(fields[field_i]));
+				MTHROW_AND_ERR("Error - unsupported unsigned long long type as categorical value (signal_name=%s)\n",
+					sigs.name(sid).c_str());
+			cd_sv.setVal<unsigned long long>(0, vchan, stoull(fields[field_i]));
 			break;
+		default:
+			MTHROW_AND_ERR("Error - unsupported value type %d (signal_name=%s)\n",
+				(int)cd_sv.val_channel_types[vchan], sigs.name(sid).c_str());
 
-		case GenericSigVec::type_enc::INT16:   //short
-			if (sigs.is_categorical_channel(sid, vchan))
-				cd_sv.setVal<short>(0, vchan, dict.get_id_or_throw(section, fields[field_i]));
-			else cd_sv.setVal<short>(0, vchan, med_stof(fields[field_i]));
-			break;
 		}
 		field_i++;
 	}
@@ -677,13 +725,15 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 				curr_fstat.n_parsed_lines++;
 			}
 			*/
-		} catch (invalid_argument e) {
+		}
+		catch (invalid_argument e) {
 
 			pair<string, string> my_key = make_pair(sigs.name(sid), string(e.what()));
 			if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {
 #pragma omp critical
 				missing_dict_vals[my_key] = 1;
-			} else {
+			}
+			else {
 #pragma omp atomic
 				++missing_dict_vals[my_key];
 			}
@@ -699,7 +749,8 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 						<< "\n";
 				}
 			}
-		} catch (...) {
+		}
+		catch (...) {
 
 			curr_fstat.n_bad_format_lines++;
 			if (curr_fstat.n_bad_format_lines < 10) {
@@ -1037,7 +1088,7 @@ void MedConvert::test_for_load_error(const map<pair<string, string>, int> &missi
 			MWARN("MedConvert: saw missing entry [%s]:[%s] %d times, total %d missing\n", entry.first.first.c_str(),
 				entry.first.second.c_str(), entry.second, total_missing);
 		if (safe_mode && total_missing > allowed_unknown_catgory_cnt) {
-			MTHROW_AND_ERR("%d > %d missing entries is too much... refusing to create repo!\n", 
+			MTHROW_AND_ERR("%d > %d missing entries is too much... refusing to create repo!\n",
 				total_missing, allowed_unknown_catgory_cnt);
 		}
 	}

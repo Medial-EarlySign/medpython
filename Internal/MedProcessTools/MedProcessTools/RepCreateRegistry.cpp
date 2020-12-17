@@ -59,7 +59,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		//custom
 		else if (field == "registry_custom_type") registry_custom_type = entry.second;
 		else if (field == "registry_custom_args") registry_custom_args = entry.second;
-	
+
 		else if (field == "rp_type") {}
 		else MTHROW_AND_ERR("Error in RepCreateRegistry::init - Unsupported param \"%s\"\n", field.c_str());
 		//! [RepCreateRegistry::init]
@@ -380,7 +380,10 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	vector<int>& final_sizes)
 {
 
-	int byear = usvs[byear_idx].Val(0);
+	int bdate = usvs[bdate_idx].Val(0);
+	int byear = bdate;
+	if (signals[bdate_idx] == "BDATE")
+		byear = int(bdate / 10000);
 	vector<pair<int, int> > data; // 0 = Normal BP ; 1 = High BP ; 20 + X = HT Drug ; 3 = HT Read Code (4/5/6 = CHF/MI/AF Read Codes ; 7 = DM)
 
 	// Blood Pressure
@@ -389,9 +392,9 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		if (time_points.size() != 0 && time > time_points[iver])
 			break;
 
-		int age = 1900 + med_time_converter.convert_times(signal_time_units[byear_idx], MedTime::Years, time) - byear;
+		int age = 1900 + med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Years, time) - byear;
 		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i, 1) > 150) || (age < 60 && usvs[bp_idx].Val(i, 1)  > 140) || usvs[bp_idx].Val(i, 0) > 90) ? 1 : 0;
-		data.push_back({ med_time_converter.convert_times(signal_time_units[byear_idx], MedTime::Days, time) , bpFlag });
+		data.push_back({ med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Days, time) , bpFlag });
 	}
 
 	// Drugs
@@ -564,7 +567,7 @@ void RepCreateRegistry::custom_registry_apply(PidDynamicRec& rec, vector<int>& t
 	vector<int> &out_times = all_v_times[0];
 	//update out_vals, out_times:
 	out_vals.resize(vals.size());
-	out_times.resize(2* vals.size()); //2 time channels
+	out_times.resize(2 * vals.size()); //2 time channels
 	for (size_t i = 0; i < vals.size(); ++i)
 	{
 		out_vals[i] = vals[i].registry_value;

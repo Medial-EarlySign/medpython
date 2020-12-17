@@ -283,7 +283,7 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 	parse_my_json_to_pt(json_contents, pt);
 
 	size_t n = 0;
-	int fp_set = rep_processors.size(); //Add to the end
+	int fp_set = (int)rep_processors.size(); //Add to the end
 	for (auto &p : pt.get_child("pre_processors")) {
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
@@ -309,7 +309,8 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 				for (string c : all_combinations)
 					add_process_to_set(process_set, duplicate, c);
 				num_actions += (int)all_combinations.size();
-				MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+				MLOG("added %zu pre processors to [%d], first of which was [%s]\n", 
+					all_combinations.size(), process_set, all_combinations[0].c_str());
 				n += all_combinations.size();
 			}
 		}
@@ -328,7 +329,7 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 				MLOG("Adding pre_processor: %s\n", c.c_str());
 				insert_rep_processor(c, idx);
 			}
-			MLOG("added %d pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
+			MLOG("added %zu pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
 			n += all_combinations.size();
 		}
 	}

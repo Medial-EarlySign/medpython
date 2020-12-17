@@ -6,6 +6,7 @@
 #include "FeatureProcess.h"
 #include "MedStat/MedStat/MedBootstrap.h"
 #include "MedStat/MedStat/bootstrap.h"
+#include "ExplainWrapper.h"
 #include <fstream>
 
 // Selection top to bottom.
@@ -39,6 +40,31 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 
 	prepare_for_iterations(bootstrapper, features, folds, trainRows, testRows, trainLabels, testSamples, bootstrapFeatures);
 
+	//Commit rew, ignore on slecetedFamilies
+	//skip if all familiy is in required or ignored.
+	set<string> selectedFamilies_filtered;
+	for (const string &family : selectedFamilies) {
+		//check candidate for filters:
+		bool all_in_req = true, all_in_ignore = true;
+		const vector<string> &family_feats = featureFamilies.at(family);
+		for (int i = 0; i < family_feats.size() && all_in_req; ++i)
+			all_in_req = resolved_required.find(family_feats[i]) != resolved_required.end();
+		for (int i = 0; i < family_feats.size() && all_in_ignore; ++i)
+			all_in_ignore = resolved_ignored.find(family_feats[i]) != resolved_ignored.end();
+		if (!all_in_req && !all_in_ignore)
+			selectedFamilies_filtered.insert(family);
+		else {
+			if (all_in_req && all_in_ignore)
+				MWARN("WARN!!! Skip family %s - both in required and in ignored\n", family.c_str());
+			else {
+				if (all_in_req)
+					MLOG("Skip family %s (in required)\n", family.c_str());
+				if (all_in_ignore)
+					MLOG("Skip family %s (in ignored)\n", family.c_str());
+			}
+		}
+	}
+	selectedFamilies = move(selectedFamilies_filtered);
 
 	// Iterative addition of families
 	MedTimer timer;
@@ -51,16 +77,17 @@ void IterativeFeatureSelector::doTop2BottomSelection(MedFeatures& features, map<
 		set<string> families = selectedFamilies;
 		timer.start();
 		int counter = 0;
-		for (string family : families) {
+		for (const string &family : families) {
 			selectedFamilies.erase(family);
-			counter++;
+			++counter;
 
 			// names
 			vector<string> selectedFeatures;
-			for (string ftr : resolved_required)
+			//add required
+			for (const string &ftr : resolved_required)
 				selectedFeatures.push_back(ftr);
-
-			for (string addFamily : selectedFamilies)
+			//add current families (expect family - iteration loop)
+			for (const string &addFamily : selectedFamilies)
 				selectedFeatures.insert(selectedFeatures.end(), featureFamilies[addFamily].begin(), featureFamilies[addFamily].end());
 
 			// Set parameters value:
@@ -560,6 +587,8 @@ void IterativeFeatureSelector::read_params_vec()
 // Get Families of signals
 void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<string, vector<string> >& featureFamilies) {
 
+
+
 	vector<string> names;
 	features.get_feature_names(names);
 	if (!work_on_sets) {
@@ -569,35 +598,17 @@ void IterativeFeatureSelector::get_features_families(MedFeatures& features, map<
 		}
 	}
 	else { // Create sets
-		for (string name : names) {
-			if (resolved_required.find(name) == resolved_required.end() && resolved_ignored.find(name) == resolved_ignored.end()) {
-				vector<string> fields;
-				boost::split(fields, name, boost::is_any_of("."));
 
-				if (fields.size() == 1)
-					featureFamilies[name] = { name };
-				else {
-					if (ungroupd_names.find(fields[0]) == ungroupd_names.end() &&
-						(fields.size() < 2 || ungroupd_names.find(fields[1]) == ungroupd_names.end())) {
-						//no grouping sig
-						featureFamilies[fields[1]].push_back(name);
-					}
-					else {
-						int ind = -1;
-						if (ungroupd_names.find(fields[0]) != ungroupd_names.end())
-							ind = 0;
-						else if (fields.size() > 2 && ungroupd_names.find(fields[1]) != ungroupd_names.end())
-							ind = 1;
-						if (ind == -1)
-							MTHROW_AND_ERR("Error - Bug. invalid state:IterativeFeatureSelector::get_features_families \n");
-
-						if (!group_to_sigs)
-							featureFamilies[fields[ind] + "." + fields[ind + 1]].push_back(name);
-						else
-							featureFamilies[fields[ind]].push_back(name);
-					}
-				}
-			}
+		vector<vector<int>> group_inds;
+		vector<string> group_names;
+		ExplainProcessings::read_feature_grouping(grouping_mode, names, group_inds, group_names);
+		for (size_t i = 0; i < group_names.size(); ++i)
+		{
+			vector<string> &grp_childs = featureFamilies[group_names[i]];
+			const vector<int> &curr_grp_idx = group_inds[i];
+			grp_childs.resize(curr_grp_idx.size());
+			for (size_t j = 0; j < curr_grp_idx.size(); ++j)
+				grp_childs[j] = names[curr_grp_idx[j]];
 		}
 	}
 

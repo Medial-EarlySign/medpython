@@ -145,6 +145,9 @@ int MedRepository::read_config(const string &fname)
 
 	config_fname = fname;
 	inf.close();
+
+	for (const string &dict_path : _addtional_dict_path)
+		dictionary_fnames.push_back(dict_path);
 	return 0;
 }
 
@@ -165,6 +168,15 @@ int MedRepository::read_dictionary()
 int MedRepository::read_dictionary(const string &fname)
 {
 	return(dict.read(fname));
+}
+
+void MedRepository::load_additional_dict(const string &dict_path) {
+	MLOG("Adding new dictionary in runtime %s\n", dict_path.c_str());
+	_addtional_dict_path.push_back(dict_path);
+}
+
+void MedRepository::clear_additional_dict() {
+	_addtional_dict_path.clear();
 }
 
 //-----------------------------------------------------------

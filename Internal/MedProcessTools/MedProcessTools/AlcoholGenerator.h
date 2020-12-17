@@ -29,7 +29,7 @@ public:
 	string future_ind = "1";
 
 	// Constructor/Destructor
-	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.push_back("Alcohol_quantity"); req_signals.push_back("BYEAR");	}
+	AlcoholGenerator() : FeatureGenerator() { generator_type = FTR_GEN_ALCOHOL; req_signals.push_back("Alcohol_quantity"); req_signals.push_back("BDATE");	}
 	~AlcoholGenerator() {};
 
 
@@ -54,7 +54,7 @@ public:
 	void get_p_data(MedFeatures& features, vector<float *> &_p_data);
 
 	// Signal Ids
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BYEAR"));
+	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.push_back(dict.id("Alcohol_quantity")); req_signal_ids.push_back(dict.id("BDATE"));
 	}
 
 	// Serialization

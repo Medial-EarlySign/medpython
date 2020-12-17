@@ -247,12 +247,13 @@ public:
 	vector<matchingParams> matchingStrata; ///< Matching parameters
 
 	float eventToControlPriceRatio = 100.0; ///< Cost of removing case relative to removing control
+	int min_group_size = 5; ///< minimal group size to take - smaller than that, will drop
 	float maxControlToEventRatio = -1.0; ///< maximal allowed control/case ratio
 	int verbose = 0; ///< control level of debug printing
 
 	// helpers
 	int samplesTimeUnit; ///< Time unit of samples
-	int byearId; ///< signal-id for byear
+	int bdateId; ///< signal-id for byear
 
 	/// <summary> Constructor </summary>
 	MatchingSampleFilter() { init_defaults(); };
@@ -297,7 +298,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MatchingSampleFilter)
-	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio)
+	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio, min_group_size)
 };
 
 //.......................................................................................
@@ -457,7 +458,8 @@ public:
 private:
 	int sig_id = -1; ///< signal-id : uninitialized until first usage (0 is kept for the age special case)
 	int section_id = -1; /// uninitialized section_id
-	int byear_id = -1;
+	int bdate_id = -1;
+	bool used_byear = false; ///< If true will use BYEAR when no BDATE
 };
 
 //=======================================

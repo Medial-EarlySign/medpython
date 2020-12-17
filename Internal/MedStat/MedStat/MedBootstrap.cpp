@@ -161,7 +161,7 @@ void init_model(MedModel &mdl, MedPidRepository& rep, const string &json_model,
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER" };
+	vector<string> sigs = { "BDATE", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -876,7 +876,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples, con
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -905,7 +905,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedSamples &samples, Med
 
 	unordered_set<string> req_names;
 	mdl.get_required_signal_names(req_names);
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -990,12 +990,17 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 
 		}
 		if (keep_control_index >= 0) {
-			new_samples.idSamples.push_back(MedIdSamples(samples.idSamples[i].id));
+			MedIdSamples smp_pid(samples.idSamples[i].id);
+			smp_pid.split = samples.idSamples[i].split;
+			new_samples.idSamples.push_back(smp_pid);
 			new_samples.idSamples.back().samples.push_back(samples.idSamples[i].samples[keep_control_index]);
 		}
 		if (keep_case_index >= 0) {
-			if (keep_control_index < 0)
-				new_samples.idSamples.push_back(MedIdSamples(samples.idSamples[i].id));
+			if (keep_control_index < 0) {
+				MedIdSamples smp_pid(samples.idSamples[i].id);
+				smp_pid.split = samples.idSamples[i].split;
+				new_samples.idSamples.push_back(smp_pid);
+			}
 			new_samples.idSamples.back().samples.push_back(samples.idSamples[i].samples[keep_case_index]);
 		}
 	}

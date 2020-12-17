@@ -390,12 +390,12 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
 	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
 	int max_smp_batch;
-	if (start_stage < MED_MDL_APPLY_PREDICTOR)
+	if (start_stage < MED_MDL_APPLY_FTR_PROCESSORS)
 		max_smp_batch = get_apply_batch_count();
 
 	init_model_for_apply(rep, start_stage, end_stage);
 
-	if (start_stage >= MED_MDL_APPLY_PREDICTOR || samples.nSamples() <= max_smp_batch)
+	if (start_stage >= MED_MDL_APPLY_FTR_PROCESSORS || samples.nSamples() <= max_smp_batch)
 		return no_init_apply(rep, samples, start_stage, end_stage);
 	else {
 		//Do in batches:
@@ -1877,7 +1877,7 @@ void medial::repository::prepare_repository(const vector<int> &pids, const strin
 
 	mod.get_required_signal_names(req_names);
 
-	vector<string> sigs = { "BYEAR", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
@@ -2471,8 +2471,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					rep_processors[i] = NULL;
+				}
 			}
-			final_res.push_back(rep_processors[i]);
+			if (rep_processors[i] != NULL)
+				final_res.push_back(rep_processors[i]);
 		}
 	}
 	rep_processors = move(final_res);
@@ -2494,8 +2499,13 @@ void MedModel::clean_model() {
 					if (multi->processors[j] != NULL)
 						final_res_internal.push_back(multi->processors[j]);
 				multi->processors = move(final_res_internal);
+				if (multi->processors.empty()) {
+					delete multi;
+					feature_processors[i] = NULL;
+				}
 			}
-			final_res_fp.push_back(feature_processors[i]);
+			if (feature_processors[i] != NULL)
+				final_res_fp.push_back(feature_processors[i]);
 		}
 	}
 	feature_processors = move(final_res_fp);
@@ -2511,8 +2521,13 @@ void MedModel::clean_model() {
 					if (multi->post_processors[j] != NULL)
 						final_res_internal.push_back(multi->post_processors[j]);
 				multi->post_processors = move(final_res_internal);
+				if (multi->post_processors.empty()) {
+					delete multi;
+					post_processors[i] = NULL;
+				}
 			}
-			final_res_pp.push_back(post_processors[i]);
+			if (post_processors[i] != NULL)
+				final_res_pp.push_back(post_processors[i]);
 		}
 	}
 	post_processors = move(final_res_pp);

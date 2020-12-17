@@ -5,6 +5,8 @@ BUILD_XGBOOST=true
 BUILD_LIGHTGBM=true
 BUILD_ALGOMARKER=true
 
+OVERRIDE_ALL=${1-0}
+
 BOOST_FPIC_DIR=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 BLDDIR="${DIR}/Build"
@@ -27,19 +29,26 @@ mkdir -p "${STATIC_LIBS_TARGET}"
 
 if [ "$BUILD_BOOST" = true ] ; then
 pushd ${BOOST_FPIC_DIR}
-$SUDO ./b2 --clean
-$SUDO ./b2 link=static variant=release linkflags=-static-libstdc++ -j8 cxxflags="-fPIC" --stagedir="${BLDDIR}"
+if [ ! -f ${STATIC_LIBS_TARGET}/libboost_system.a ] || [ $OVERRIDE_ALL -gt 0 ]; then
+	$SUDO ./b2 --clean
+	$SUDO ./b2 link=static variant=release linkflags=-static-libstdc++ -j20 cxxflags="-fPIC" --stagedir="${BLDDIR}"
+else
+	echo "BOOST Already exists"
+fi
 popd
 fi
 
 if [ "$BUILD_XGBOOST" = true ] ; then
 pushd $MR_ROOT/Libs/External/xgboost
+if [ $OVERRIDE_ALL -gt 0 ]; then
 make clean
+
 #The clean doesn't delete .a files
 find . -name '*.a' -exec rm {} \;
-make -j8
+fi
+make -j20
 cp ./lib/libxgboost.a ${STATIC_LIBS_TARGET}
-cp ./rabit/lib/librabit_empty.a ${STATIC_LIBS_TARGET}
+cp ./rabit/lib/librabit.a ${STATIC_LIBS_TARGET}
 cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
 popd
 fi
@@ -49,7 +58,7 @@ mkdir -p ${BLDDIR}/LightGBM/
 cp ${DIR}/Resources/LightGBM/LightGBM_CMakeLists_file ${BLDDIR}/LightGBM/CMakeLists.txt
 pushd ${BLDDIR}/LightGBM/
 cmake .
-make -j8
+make -j20
 popd
 fi
 
@@ -59,12 +68,13 @@ cp ${DIR}/Resources/AlgoMarker/AlgoMarker_CMakeLists ${DIR}/../AlgoMarker/CMakeL
 mkdir -p ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 pushd ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 cmake ${DIR}/..
-make -j8
+make -j20
 cp ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release/AlgoMarker/libdyn_AlgoMarker.so ${DIR}/../Linux/Release/
 strip ${DIR}/../Linux/Release/libdyn_AlgoMarker.so
 nm -CD ${DIR}/../Linux/Release/libdyn_AlgoMarker.so | grep " T " > ${BLDDIR}/AlgoMarker/AlgoMarker.public_symbols
 ldd ${DIR}/../Linux/Release/libdyn_AlgoMarker.so > ${BLDDIR}/AlgoMarker/AlgoMarker.ldd
-echo "AlgoMarker Shared Objecy file written to ${DIR}/../Linux/Release/libdyn_AlgoMarker.so"
+FINAL_PT=$(realpath ${DIR}/../Linux/Release/libdyn_AlgoMarker.so)
+echo "AlgoMarker Shared Objecy file written to ${FINAL_PT}"
 popd
 fi
 
