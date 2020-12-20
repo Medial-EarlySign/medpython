@@ -269,7 +269,8 @@ int MedTime::convert_times(int from_type, int to_type, int in_time)
 	if (from_type == MedTime::Months) return convert_months(to_type, in_time);
 	if (from_type == MedTime::Years) return convert_years(to_type, in_time);
 
-	MTHROW_AND_ERR("Error in MedTime::convert_times - unsupported from_type value %d\n", from_type);
+	MTHROW_AND_ERR("Error in MedTime::convert_times - unsupported from_type value %d to_type %d\n", 
+		from_type, to_type);
 	return -1;
 }
 
