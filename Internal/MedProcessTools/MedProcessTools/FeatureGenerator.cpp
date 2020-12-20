@@ -1743,7 +1743,7 @@ float RangeFeatGenerator::uget_range_time_inside(UniversalSigVec &usv, int updat
 	//get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check, false);
 
 	//convert time back to signal time format
-	time = med_time_converter.convert_times(time_unit_win, usv.time_unit(), time);
+	time = med_time_converter.convert_times(time_unit_win, time_unit_sig, time);
 	
 	int time_inside = 0;
 	for (int i = 0; i < usv.len; i++) {
@@ -1759,7 +1759,7 @@ float RangeFeatGenerator::uget_range_time_inside(UniversalSigVec &usv, int updat
 
 		if ((conditional_channel < 0) || lut[usv.Val<int>(i, conditional_channel)]) {
 			if (time >= fromTime && time <= toTime && time >= firstKnowTime) {
-				time_inside = 1 + med_time_converter.diff_times(time, fromTime, time_unit_range_sig, time_unit_win);
+				time_inside = 1 + med_time_converter.diff_times(time, fromTime, time_unit_sig, time_unit_win);
 				break;
 			}
 		}
