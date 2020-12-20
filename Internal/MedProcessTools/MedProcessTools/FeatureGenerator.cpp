@@ -966,7 +966,7 @@ void RangeFeatGenerator::set_names() {
 	case FTR_RANGE_RECURRENCE_COUNT: name += "recurrence_count"; break;
 	case FTR_RANGE_TIME_COVERED: name += "time_covered" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_LAST_NTH_TIME_LENGTH: name += "last_nth_time_len_" + to_string(N_th) + ((sets.size() > 0) ? "_" + sets[0] : "");; break;
-	case FTR_RANGE_TIME_DIFF_START: name += "time_diff_start" + ((sets.size() > 0) ? sets[0] : ""); break;
+	case FTR_RANGE_TIME_DIFF_START: name += "time_diff_start" + ((sets.size() > 0) ? "_" + sets[0] : ""); break;
 	case FTR_RANGE_TIME_INSIDE: name += "time_inside_" + ((sets.size() > 0) ? sets[0] : ""); break;
 	default: {
 		name += "ERROR";

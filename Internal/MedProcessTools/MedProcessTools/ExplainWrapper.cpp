@@ -674,6 +674,8 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff", "range_width", "sum" };
 	unordered_set<string> time_set = { "last_time", "last_time2", "first_time", "time_since_last_change" };
 
+	string range_names = "^(last_nth_time_len_[0-9]+_|time_inside_|time_diff_start_|time_covered_|time_diff_|ever_|latest_|current_)";
+
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
 		{
@@ -688,7 +690,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 		}
 	}
 	else if (file_name == "BY_SIGNAL_CATEG") {
-		boost::regex last_nth_reg("last_nth_time_len_[0-9]+_");
+		boost::regex last_nth_reg(range_names);
 		for (int i = 0; i < nftrs; ++i)
 		{
 			vector<string> tokens;
@@ -702,7 +704,6 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 
 			if (idx + 1 < tokens.size()) {
 				if (boost::starts_with(tokens[idx + 1], "category_") ||
-					boost::starts_with(tokens[idx + 1], "time_covered_") ||
 					boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
@@ -711,7 +712,6 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
-					boost::replace_all(tokens[idx + 1], "time_covered_", "");
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 				}
@@ -722,7 +722,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 		}
 	}
 	else if (file_name == "BY_SIGNAL_CATEG_TREND") {
-		boost::regex last_nth_reg("last_nth_time_len_[0-9]+_");
+		boost::regex last_nth_reg(range_names);
 		for (int i = 0; i < nftrs; ++i)
 		{
 			vector<string> tokens;
@@ -736,7 +736,6 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 			bool categ = false;
 			if (idx + 1 < tokens.size()) {
 				if (boost::starts_with(tokens[idx + 1], "category_")
-					|| boost::starts_with(tokens[idx + 1], "time_covered_")
 					|| boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
@@ -745,7 +744,6 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
-					boost::replace_all(tokens[idx + 1], "time_covered_", "");
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 					categ = true;
