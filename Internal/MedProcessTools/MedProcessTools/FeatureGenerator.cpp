@@ -1742,6 +1742,9 @@ float RangeFeatGenerator::uget_range_time_inside(UniversalSigVec &usv, int updat
 	//int dummy_time, time_to_check;
 	//get_window_in_sig_time(updated_win_from, updated_win_from, time_unit_win, time_unit_sig, time, dummy_time, time_to_check, false);
 
+	//convert time back to signal time format
+	time = med_time_converter.convert_times(time_unit_win, usv.time_unit(), time);
+	
 	int time_inside = 0;
 	for (int i = 0; i < usv.len; i++) {
 
