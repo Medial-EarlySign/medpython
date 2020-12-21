@@ -41,6 +41,7 @@ public:
 	int binCnt; ///< the bin Count for spliting, if 0 will not use
 	float min_value_cutoff; ///< a minimal value trim cutoff
 	float max_value_cutoff; ///< a maximal value trim cutoff
+	bool weighted; ///< if true in fixed width will average the value in each bin
 
 	BinSplitMethod split_method; /// the split method, please reffer to BinSplitMethod
 
@@ -55,10 +56,12 @@ public:
 		binCnt = 10;
 		min_value_cutoff = (float)INT_MIN;
 		max_value_cutoff = (float)INT_MAX;
+		weighted = false;
 	}
 
 	ADD_CLASS_NAME(BinSettings)
-	ADD_SERIALIZATION_FUNCS(min_bin_count, min_res_value, binCnt, min_value_cutoff, max_value_cutoff, split_method)
+	ADD_SERIALIZATION_FUNCS(min_bin_count, min_res_value, binCnt, min_value_cutoff, max_value_cutoff, 
+		split_method, weighted)
 };
 
 MEDSERIALIZE_SUPPORT(BinSettings)
