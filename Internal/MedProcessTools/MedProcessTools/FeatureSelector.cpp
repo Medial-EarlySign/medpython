@@ -84,8 +84,13 @@ int FeatureSelector::_conditional_apply(MedFeatures& features, unordered_set<int
 	//MLOG("FeatureSelector::Apply %d features\n", features.data.size());
 	unordered_set<string> selectedFeatures;
 	for (string& feature : selected) {
-		if (out_req_features.empty() || (out_req_features.find(feature) != out_req_features.end()))
-			selectedFeatures.insert(feature);
+		if (out_req_features.empty() || (out_req_features.find(feature) != out_req_features.end())) {
+			if (features.data.find(feature) != features.data.end())
+				selectedFeatures.insert(feature);
+			else
+				MWARN("WARN :: FeatureSelector::_apply - feature \"%s\" not presented in matrix. Maybe alreadt filtered?\n",
+					feature.c_str());
+		}
 	}
 
 	return features.filter(selectedFeatures);
@@ -1208,7 +1213,7 @@ int IterativeFeatureSelector::_learn(MedFeatures& features, unordered_set<int>& 
 		for (int i = 0; i < nSamples; i++)
 			features.samples[i].split = orig_folds[i];
 	}
-	
+
 	return 0;
 }
 

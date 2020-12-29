@@ -4104,7 +4104,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			// Roll back last-appearances information
 			if (states.size() > 1) {
-				for (int i = states.size() - 2; i >= 0; i--) {
+				for (int i = (int)states.size() - 2; i >= 0; i--) {
 					for (int j = 0; j < N; j++) {
 						if (states[i].last[j] == -1 && states[i + 1].last[j] != -1)
 							states[i].last[j] = states[i + 1].last[j];
