@@ -443,13 +443,20 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 int MedModel::get_apply_batch_count() {
 	//maximal number of samples to apply together in a batch. takes into account duplicate factor of samples, # of features
 	// the goal is to have a matrix with less than MAX_INT elements. can be changed later to other number.
-	int max_sz = max_data_in_mem;
+	long long max_sz = max_data_in_mem;
 	if (max_sz <= 0) {
 		//TODO: change to use size to suit free memory in the machine
 		max_sz = INT_MAX;
 	}
-	int max_smp_batch = int(((max_sz) / (get_nfeatures()*get_duplicate_factor())) * 0.95) - 1;
-	return max_smp_batch;
+	long long num_of_features = model_feature_count_hint;
+	int max_model_feature_count = get_nfeatures();
+	if (num_of_features <= 0 || max_model_feature_count < model_feature_count_hint)
+		num_of_features = max_model_feature_count;
+
+	long long max_smp_batch = (long long)(((max_sz) / (get_duplicate_factor()*num_of_features)) * 0.95) - 1;
+	if (max_smp_batch > INT_MAX)
+		max_smp_batch = INT_MAX;
+	return (int)max_smp_batch;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------

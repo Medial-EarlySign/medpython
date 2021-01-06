@@ -165,9 +165,13 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 	if (v)
 		this->take_mean_pred = v.get();
 
-	v = pt.get_optional<int>("max_data_in_mem");
+	v = pt.get_optional<long long>("max_data_in_mem");
 	if (v)
 		this->max_data_in_mem = v.get();
+
+	v = pt.get_optional<int>("model_feature_count_hint");
+	if (v)
+		this->model_feature_count_hint = v.get();
 
 	//MLOG("debug=====> :: generate_masks_for_features %d\n", generate_masks_for_features);
 

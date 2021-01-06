@@ -58,7 +58,12 @@ public:
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
 
-	int max_data_in_mem = 0; ///< maximal data size in memory. when <=0 mean auto mode
+	long long max_data_in_mem = 0; ///< maximal data size in memory. when <=0 mean auto mode
+	/// hint for feature counts to consider in batching. The user can specify count for 
+	/// model after feature selection, otherwise it will count all the features from the 
+	/// generators without filtering. The number of features needs to be defined pre ahead
+	/// of batching process of the samples.
+	int model_feature_count_hint = 0; 
 
 	/// Repostiroy-level cleaners; to be applied sequentially 
 	vector<RepProcessor *> rep_processors;
