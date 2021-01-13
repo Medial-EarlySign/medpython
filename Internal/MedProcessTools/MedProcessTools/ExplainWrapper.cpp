@@ -674,7 +674,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff", "range_width", "sum" };
 	unordered_set<string> time_set = { "last_time", "last_time2", "first_time", "time_since_last_change" }; // "time_inside", "time_len", "time_diff", "time_covered"
 
-	string range_names = "^(last_nth_time_len_[0-9]+_|time_inside_|time_diff_start_|time_covered_|time_diff_[0-9]+_|ever_|latest_|current_)";
+	string range_names = "^(last_nth_time_len_[0-9]+_|last_nth_[0-9]+_|time_inside_|time_diff_start_|time_covered_|time_diff_[0-9]+_|ever_|latest_|current_)";
 
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
