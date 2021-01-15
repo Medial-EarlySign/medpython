@@ -1362,7 +1362,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		name2.c_str(), population2.samples.size());
 	MLOG("%s", string(buffer_s).c_str());
 	if (!output_file.empty())
-		fw << string(buffer_s);
+		fw << string(buffer_s);	
 
 	feat_i = 0;
 	int j = 0;
@@ -1378,9 +1378,11 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
 			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
 			100 * abs(means1[feat_i] - means2[feat_i]) / max(ratio_diff_range, (float)1e-10), features_scores[j++]);
-		MLOG("%s", string(buffer_s).c_str());
+		
 		if (!output_file.empty())
 			fw << string(buffer_s);
+		else
+			MLOG("%s", string(buffer_s).c_str());
 
 		++feat_i;
 	}
@@ -1389,9 +1391,10 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),
 			"predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);
+		
 		MLOG("%s", string(buffer_s).c_str());
 		if (!output_file.empty())
-			fw << string(buffer_s);
+			fw << string(buffer_s);			
 	}
 
 	if (!output_file.empty())
