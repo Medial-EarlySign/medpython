@@ -78,7 +78,7 @@ public:
 
 	///Creates the feature groups from the argument file_name and by existing features
 	static void read_feature_grouping(const string &file_name, const vector<string>& features, vector<vector<int>>& group2index,
-		vector<string>& group_names);
+		vector<string>& group_names, bool verbose = true);
 
 	ADD_CLASS_NAME(ExplainProcessings)
 		ADD_SERIALIZATION_FUNCS(group_by_sum, abs_cov_features, normalize_vals, zero_missing, groupNames, group2Inds, keep_b0,

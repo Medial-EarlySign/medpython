@@ -666,7 +666,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
 void ExplainProcessings::read_feature_grouping(const string &file_name, const vector<string>& features,
-	vector<vector<int>>& group2index, vector<string>& group_names) {
+	vector<vector<int>>& group2index, vector<string>& group_names, bool verbose) {
 	// Features
 	int nftrs = (int)features.size();
 	map<string, vector<int>> groups;
@@ -798,8 +798,8 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 			group2index.push_back({ i });
 		}
 	}
-
-	MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
+	if (verbose)
+		MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
 }
 
 void ModelExplainer::Learn(const MedFeatures &train_mat) {
