@@ -52,7 +52,7 @@ public:
 	bool use_mutual_information; ///< if true will use mutual information instead of covariance
 	BinSettings mutual_inf_bin_setting; ///< the bin setting for mutual information
 
-	MedMat<float> abs_cov_features; /// <absolute values of covariance features for matrix.either read from file (and then apply absolute value), or learn if learn_cov_matrix is on , 
+	MedMat<float> abs_cov_features; ///< absolute values of covariance features for matrix.either read from file (and then apply absolute value), or learn if learn_cov_matrix is on , 
 
 	string grouping; ///< grouping file or "BY_SIGNAL" keyword to group by signal or "BY_SIGNAL_CATEG" - for category signal to split by values (aggreagates time windows) or "BY_SIGNAL_CATEG_TREND" - also splitby TRENDS
 	vector<vector<int>> group2Inds;

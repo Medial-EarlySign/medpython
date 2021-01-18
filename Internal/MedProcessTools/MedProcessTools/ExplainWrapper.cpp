@@ -94,8 +94,14 @@ int ExplainProcessings::init(map<string, string> &map) {
 	{
 		if (it->first == "group_by_sum")
 			group_by_sum = med_stoi(it->second) > 0;
-		else if (it->first == "learn_cov_matrix")
+		else if (it->first == "learn_cov_matrix") {
 			learn_cov_matrix = med_stoi(it->second) > 0;
+			if (!learn_cov_matrix) {
+				if (abs_cov_features.nrows > 0)
+					MLOG("INFO :: Clear Covariance Matrix\n");
+				abs_cov_features.clear();
+			}
+		}
 		else if (it->first == "cov_features") {
 			abs_cov_features.read_from_csv_file(it->second, 1);
 			for (int i = 0; i < abs_cov_features.nrows; i++)
