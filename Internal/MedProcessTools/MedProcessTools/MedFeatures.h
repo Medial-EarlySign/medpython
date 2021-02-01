@@ -171,6 +171,8 @@ namespace medial {
 		template<class T> void commit_selection(vector<T> &vec, const vector<int> &idx);
 		/// \brief filtering MedFeatures by selected indexes rows
 		void filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag = false);
+		/// \brief filtering MedFeatures by selected indexes rows (thread safe for selected_indexes) no sort of selected_indexes
+		void filter_row_indexes_safe(MedFeatures &dataMat, const vector<int> &selected_indexes, bool op_flag = false);
 		/// \brief down sampling with ratio
 		void down_sample(MedFeatures &dataMat, double take_ratio, bool with_repeats = false,
 			vector<int> *selected_indexes = NULL);
