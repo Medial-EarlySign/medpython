@@ -1223,7 +1223,113 @@ void MedRepository::print_csv_vec(void *data, int len, int pid, int sid, bool di
 
 }
 
+//-----------------------------------------------------------
+void MedRepository::convert_pid_sigs(const UniversalSigVec &usv, vector<pair<vector<string>, vector<string>>> &pid_result, const string &sig_name, int sig_id, int limit_count) {
+	pid_result.resize(usv.len);
+	char buffer[500];
+	int section_id = dict.section_id(sig_name);
 
+	for (int l = 0; l < usv.len; ++l) {
+		vector<string> &rec_times = pid_result[l].first;
+		vector<string> &rec_vals = pid_result[l].second;
+		rec_times.resize(usv.n_time_channels());
+		rec_vals.resize(usv.n_val_channels());
+
+		for (int time_ch = 0; time_ch < usv.n_time_channels(); ++time_ch) {
+			if (usv.time_channel_types[time_ch] != GenericSigVec::type_enc::INT32) {
+				stringstream str_buff;
+				if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::INT64)
+					str_buff << usv.Time<long long>(l, time_ch);
+				else if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::UINT64)
+					str_buff << usv.Time<unsigned long long>(l, time_ch);
+				else if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::UINT32)
+					str_buff << usv.Time<unsigned int>(l, time_ch);
+				else if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::FLOAT32)
+					str_buff << usv.Time<float>(l, time_ch);
+				else if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::FLOAT64)
+					str_buff << usv.Time<double>(l, time_ch);
+				else if (usv.time_channel_types[time_ch] == GenericSigVec::type_enc::FLOAT80)
+					str_buff << usv.Time<long double>(l, time_ch);
+				else
+					str_buff << usv.Time(l, time_ch);
+				rec_times[time_ch] = str_buff.str();
+			}
+			else {
+				int raw_time = usv.Time(l, time_ch);
+				string format_time = med_time_converter.convert_times_S(
+					sigs.Sid2Info[sig_id].time_unit, MedTime::DateTimeString, raw_time);
+				if (sigs.Sid2Info[sig_id].time_unit != MedTime::Date)
+					snprintf(buffer, sizeof(buffer), "%d|%s", raw_time, format_time.c_str());
+				else
+					snprintf(buffer, sizeof(buffer), "%d", raw_time);
+				format_time = string(buffer);
+
+				rec_times[time_ch] = format_time;
+			}
+		}
+
+		for (int val_ch = 0; val_ch < usv.n_val_channels(); ++val_ch) {
+			bool is_categ = sigs.is_categorical_channel(sig_id, val_ch);
+			if (usv.val_channel_types[val_ch] != GenericSigVec::type_enc::INT32
+				&& usv.val_channel_types[val_ch] != GenericSigVec::type_enc::FLOAT32
+				&& usv.val_channel_types[val_ch] != GenericSigVec::type_enc::INT16
+				&& usv.val_channel_types[val_ch] != GenericSigVec::type_enc::INT8
+				&& usv.val_channel_types[val_ch] != GenericSigVec::type_enc::UINT16
+				&& usv.val_channel_types[val_ch] != GenericSigVec::type_enc::UINT8) {
+
+				stringstream str_buff;
+				if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::FLOAT64)
+					str_buff << usv.Val<double>(l, val_ch);
+				else if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::FLOAT80)
+					str_buff << usv.Val<long double>(l, val_ch);
+				else if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::INT64)
+					str_buff << usv.Val<long long>(l, val_ch);
+				else if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::UINT64)
+					str_buff << usv.Val<unsigned long long>(l, val_ch);
+				else if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::UINT32)
+					str_buff << usv.Val<unsigned int>(l, val_ch);
+				else
+					str_buff << usv.Val(l, val_ch);
+				rec_vals[val_ch] = str_buff.str();
+			}
+			else {
+				int raw_val = usv.Val<int>(l, val_ch);
+				//is_categ |= section_id > 0 && abs(raw_val - usv.Val(l, val_ch)) < 1e-5 && dict.dict(section_id)->Id2Names.find(raw_val) != dict.dict(section_id)->Id2Names.end();
+				if (!is_categ) {
+					stringstream str_buff;
+					str_buff << usv.Val(l, val_ch);
+					rec_vals[val_ch] = str_buff.str();
+				}
+				else {
+					stringstream str_buff;
+					str_buff << raw_val;
+					int printed_cnt = 0;
+					if (dict.dict(section_id)->Id2Names.find(raw_val) != dict.dict(section_id)->Id2Names.end())
+						for (int j = 0; j < dict.dict(section_id)->Id2Names[raw_val].size()
+							&& printed_cnt < limit_count; j++) {
+							string st = dict.dict(section_id)->Id2Names[raw_val][j];
+							str_buff << "|" << st;
+							++printed_cnt;
+						}
+
+					rec_vals[val_ch] = str_buff.str();
+				}
+			}
+		}
+	}
+}
+
+//-----------------------------------------------------------
+void MedRepository::print_pid_sig(int pid, const string &sig_name, const vector<pair<vector<string>, vector<string>>> &usv) {
+	for (int l = 0; l < usv.size(); ++l) {
+		cout << pid << '\t' << sig_name;
+		for (int time_ch = 0; time_ch < usv[l].first.size(); ++time_ch)
+			cout << '\t' << "Time_ch_" << time_ch << '\t' << usv[l].first[time_ch];
+		for (int val_ch = 0; val_ch < usv[l].second.size(); ++val_ch)
+			cout << '\t' << "Val_ch_" << val_ch << '\t' << usv[l].second[val_ch];
+		cout << "\n";
+	}
+}
 
 //----------------------------------------------------------------------------------------------
 int MedRepository::get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates)

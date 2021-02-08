@@ -445,7 +445,8 @@ public:
 	void long_print_data_vec_dict(int pid, int sid);
 	void long_print_data_vec_dict(int pid, int sid, int from, int to);
 	void print_csv_vec(void * data, int len, int pid, int sid, bool dict_val);
-
+	void convert_pid_sigs(const UniversalSigVec &usv, vector<pair<vector<string>, vector<string>>> &pid_result, const string &sig_name, int sig_id, int limit_count);
+	void print_pid_sig(int pid, const string &sig_name, const vector<pair<vector<string>, vector<string>>> &usv);
 
 	// getting all the dates for a pid in which there was at least one of the given signals
 	int get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates);
