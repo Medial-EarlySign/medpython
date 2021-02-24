@@ -1113,26 +1113,30 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 
 	log_with_file(fo, "Samples has %d records. for uniq_pids = [", (int)samples.size());
 	auto iter = histCounts.begin();
-	if (!histCounts.empty()) {
-		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total));
-		++iter;
+	if (histCounts.size() <= 10) {
+		if (!histCounts.empty()) {
+			log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total));
+			++iter;
+		}
+		for (; iter != histCounts.end(); ++iter)
+			log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total));
 	}
-	for (; iter != histCounts.end(); ++iter)
-		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total));
 
 	log_with_file(fo, "] All = [");
 	iter = histCountAll.begin();
-	if (!histCountAll.empty()) {
-		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total_all));
-		++iter;
-	}
+	if (histCounts.size() <= 10) {
+		if (!histCountAll.empty()) {
+			log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total_all));
+			++iter;
+		}
 
-	for (; iter != histCountAll.end(); ++iter)
-		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
-			100.0 * iter->second / float(total_all));
+		for (; iter != histCountAll.end(); ++iter)
+			log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
+				100.0 * iter->second / float(total_all));
+	}
 	log_with_file(fo, "]\n");
 	if (fo.good())
 		fo.close();
