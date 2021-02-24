@@ -445,7 +445,6 @@ void MedSamples::get_attr_values(const string& attr_name, vector<float>& values)
 
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
-			for (int i = 0; i < sample.prediction.size(); i++)
 				if (sample.attributes.find(attr_name) != sample.attributes.end())
 					values.push_back(sample.attributes.at(attr_name));
 
