@@ -41,6 +41,10 @@ void CategoryDependencyGenerator::init_defaults() {
 	feature_prefix = "";
 	verbose_full_file = "";
 	generate_with_counts = false;
+	regression_cntrl_lower = MED_MAT_MISSING_VALUE;
+	regression_cntrl_upper = MED_MAT_MISSING_VALUE;
+	regression_case_lower = MED_MAT_MISSING_VALUE;
+	regression_case_upper = MED_MAT_MISSING_VALUE;
 
 	req_signals = { "BDATE", "GENDER" };
 }
@@ -125,6 +129,14 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			max_parents = med_stoi(it->second);
 		else if (it->first == "generate_with_counts")
 			generate_with_counts = med_stoi(it->second) > 0;
+		else if (it->first == "regression_cntrl_lower")
+			regression_cntrl_lower = med_stoi(it->second);
+		else if (it->first == "regression_cntrl_upper")
+			regression_cntrl_upper = med_stoi(it->second);
+		else if (it->first == "regression_case_lower")
+			regression_case_lower = med_stoi(it->second);
+		else if (it->first == "regression_case_upper")
+			regression_case_upper = med_stoi(it->second);
 		else if (it->first == "fg_type") {}
 		else if (it->first == "tags") { boost::split(tags, it->second, boost::is_any_of(",")); }
 		else
@@ -404,6 +416,18 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 				continue;
 
 			int outcome_idx = samples.idSamples[i].samples[j].outcome > 0;
+			if (regression_cntrl_lower != MED_MAT_MISSING_VALUE && regression_cntrl_upper != MED_MAT_MISSING_VALUE
+				&& regression_case_lower != MED_MAT_MISSING_VALUE && regression_case_upper != MED_MAT_MISSING_VALUE) {
+
+				outcome_idx = -1;
+				if (samples.idSamples[i].samples[j].outcome >= regression_cntrl_lower && samples.idSamples[i].samples[j].outcome <= regression_cntrl_upper)
+					outcome_idx = 0;
+				if (samples.idSamples[i].samples[j].outcome >= regression_case_lower && samples.idSamples[i].samples[j].outcome <= regression_case_upper)
+					outcome_idx = 1;
+			}
+			if (outcome_idx == -1)
+				continue;
+
 			int age_idx = (age - min_age) / age_bin;
 			if (!p_lbl_age[outcome_idx][age_idx]) {
 				p_lbl_age[outcome_idx][age_idx] = true;
