@@ -1388,6 +1388,8 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 void medial::process::down_sample_by_pid(MedSamples &samples, int no_more_than, bool with_repeats) {
 	if (no_more_than <= 0)
 		return;
+	if (samples.nSamples() < no_more_than)
+		return;
 	unordered_map<int, vector<int>> pid_to_inds;
 	vector<int> id_to_pid;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
@@ -1441,6 +1443,8 @@ void medial::process::down_sample(MedSamples &samples, int no_more_than, bool wi
 	if (no_more_than <= 0)
 		return;
 	int tot_samples = samples.nSamples();
+	if (tot_samples < no_more_than)
+		return;
 	//int tot_samples = (int)samples.idSamples.size();
 	vector<int> pids_index;
 	pids_index.reserve(tot_samples);
