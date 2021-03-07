@@ -13,8 +13,7 @@
 
 int MedFeatures::global_serial_id_cnt = 0;
 
-void print_stats(const MedFeatures &features, const vector<int> &sel_idx,
-	const vector<string> &group_values, const unordered_map<string, vector<int>> &val_to_inds) {
+void print_stats(const MedFeatures &features, const vector<int> &sel_idx, const vector<string> &group_values) {
 	unordered_map<string, vector<int>> counts_stat;
 	if (!sel_idx.empty()) {
 		for (size_t i = 0; i < sel_idx.size(); ++i)
@@ -34,8 +33,8 @@ void print_stats(const MedFeatures &features, const vector<int> &sel_idx,
 	}
 	MLOG("Group\tCount_0\tCount_1\tratio\n");
 	vector<string> all_groups;
-	all_groups.reserve(val_to_inds.size());
-	for (const auto &it : val_to_inds)
+	all_groups.reserve(counts_stat.size());
+	for (const auto &it : counts_stat)
 		all_groups.push_back(it.first);
 	sort(all_groups.begin(), all_groups.end());
 
@@ -1345,18 +1344,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 
 	if (print_verbose) {
 		MLOG("After Matching Size=%d:\n", (int)data_records.samples.size());
-		unordered_map<string, vector<int>> counts_stat;
-		for (size_t i = 0; i < filtered_row_ids.size(); ++i)
-		{
-			if (counts_stat[groups[filtered_row_ids[i]]].empty())
-				counts_stat[groups[filtered_row_ids[i]]].resize(2);
-			++counts_stat[groups[filtered_row_ids[i]]][data_records.samples[i].outcome > 0];
-		}
-		MLOG("Group\tCount_0\tCount_1\tratio\n");
-		for (const string &grp : all_groups)
-			MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(),
-				counts_stat[grp][0], counts_stat[grp][1], counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]));
-		//print_by_year(data_records.samples);
+		print_stats(data_records, filtered_row_ids, groups);
 	}
 }
 
@@ -2001,7 +1989,7 @@ void medial::process::match_to_prior(MedFeatures &features,
 
 	if (print_verbose) {
 		MLOG("Before Matching Size=%d:\n", (int)features.samples.size());
-		print_stats(features, sel_idx, group_values, val_to_inds);
+		print_stats(features, sel_idx, group_values);
 	}
 
 	//sub sample each group to match this prior:
@@ -2032,7 +2020,7 @@ void medial::process::match_to_prior(MedFeatures &features,
 
 	if (print_verbose) {
 		MLOG("After Matching Size=%d:\n", (int)features.samples.size());
-		print_stats(features, sel_idx, group_values, val_to_inds);
+		print_stats(features, sel_idx, group_values);
 	}
 }
 
