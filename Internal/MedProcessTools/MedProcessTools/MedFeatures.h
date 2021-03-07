@@ -208,6 +208,14 @@ namespace medial {
 		/// \brief does matching to specific prior for MedFeatures
 		double match_to_prior(MedFeatures &features, float target_prior, vector<int> &sel_idx);
 
+		/// \brief does matching to specific target_prior. 
+		/// @param features the matrix to match. will use outcome in samples
+		/// @param group_values is the groups to split the matching to. it can be year signature or age or unique combination of both
+		/// @param target_prior the target prior
+		/// @param sel_idx the original indecies 
+		void match_to_prior(MedFeatures &features,
+			const vector<string> &group_values, float target_prior, vector<int> &sel_idx, bool print_verbose = true);
+
 		/// \brief Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
 		int nSplits(vector<MedSample>& samples);
 

@@ -13,6 +13,37 @@
 
 int MedFeatures::global_serial_id_cnt = 0;
 
+void print_stats(const MedFeatures &features, const vector<int> &sel_idx,
+	const vector<string> &group_values, const unordered_map<string, vector<int>> &val_to_inds) {
+	unordered_map<string, vector<int>> counts_stat;
+	if (!sel_idx.empty()) {
+		for (size_t i = 0; i < sel_idx.size(); ++i)
+		{
+			if (counts_stat[group_values[sel_idx[i]]].empty())
+				counts_stat[group_values[sel_idx[i]]].resize(2);
+			++counts_stat[group_values[sel_idx[i]]][features.samples[i].outcome > 0];
+		}
+	}
+	else {
+		for (size_t i = 0; i < group_values.size(); ++i)
+		{
+			if (counts_stat[group_values[i]].empty())
+				counts_stat[group_values[i]].resize(2);
+			++counts_stat[group_values[i]][features.samples[i].outcome > 0];
+		}
+	}
+	MLOG("Group\tCount_0\tCount_1\tratio\n");
+	vector<string> all_groups;
+	all_groups.reserve(val_to_inds.size());
+	for (const auto &it : val_to_inds)
+		all_groups.push_back(it.first);
+	sort(all_groups.begin(), all_groups.end());
+
+	for (const string &grp : all_groups)
+		MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(),
+			counts_stat[grp][0], counts_stat[grp][1], counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]));
+}
+
 //=======================================================================================
 // MedFeatures
 //=======================================================================================
@@ -1182,12 +1213,18 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 
 			if (count_label_groups[0][grp] == 0)
 				grp_ratio = 1; //just for correct printing
-			if (factor_needed_up > 0)
-				MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
-					, grp_ratio, factor_needed_down, factor_needed_up);
-			else
+			if (factor_needed_up > 0) {
+				if (factor_needed_up < factor_needed_down)
+					MLOG("%s\t%d\t%d\t%f\t[NOT_AN_OPTION]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+						, grp_ratio);
+				else
+					MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+						, grp_ratio, factor_needed_down, factor_needed_up);
+			}
+			else {
 				MLOG("%s\t%d\t%d\t%f\t[%2.2f-]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
 					, grp_ratio, factor_needed_down);
+			}
 		}
 	}
 
@@ -1948,6 +1985,55 @@ double medial::process::match_to_prior(MedFeatures &features, float target_prior
 		medial::print::print_samples_stats(features.samples);
 	}
 	return pr;
+}
+
+void medial::process::match_to_prior(MedFeatures &features,
+	const vector<string> &group_values, float target_prior, vector<int> &sel_idx, bool print_verbose) {
+	if (target_prior <= 0 || target_prior >= 1)
+		MTHROW_AND_ERR("Error - medial::process::match_to_prior - bad target_prior (%f), shoulf by between 0 -1\n",
+			target_prior);
+	//rewrote it again to accept vector<string> and not vector<float> as group_values
+
+	sel_idx.clear();
+	unordered_map<string, vector<int>> val_to_inds;
+	for (size_t i = 0; i < group_values.size(); ++i)
+		val_to_inds[group_values[i]].push_back((int)i);
+
+	if (print_verbose) {
+		MLOG("Before Matching Size=%d:\n", (int)features.samples.size());
+		print_stats(features, sel_idx, group_values, val_to_inds);
+	}
+
+	//sub sample each group to match this prior:
+	for (auto it = val_to_inds.begin(); it != val_to_inds.end(); ++it)
+	{
+		double grp_prior = 0;
+		vector<vector<int>> grp_inds(2);
+		for (size_t i = 0; i < it->second.size(); ++i)
+			grp_inds[features.samples[it->second[i]].outcome > 0].push_back(it->second[i]);
+		grp_prior = double(grp_inds[1].size()) / it->second.size();
+		int grp_sel = int(grp_prior > target_prior);
+		vector<int> *inds = &grp_inds[grp_sel];
+		int sub_sample_count;
+		if (grp_prior > target_prior)
+			sub_sample_count = target_prior * grp_inds[1 - grp_sel].size() / (1 - target_prior);
+		else
+			sub_sample_count = (1 - target_prior) * grp_inds[1 - grp_sel].size() / target_prior;
+		if (sub_sample_count > inds->size())
+			sub_sample_count = (int)inds->size();
+		random_shuffle(inds->begin(), inds->end());
+		inds->resize(sub_sample_count); //subsample in inds
+
+										//add fully groups
+		sel_idx.insert(sel_idx.end(), grp_inds[0].begin(), grp_inds[0].end());
+		sel_idx.insert(sel_idx.end(), grp_inds[1].begin(), grp_inds[1].end());
+	}
+	filter_row_indexes(features, sel_idx);
+
+	if (print_verbose) {
+		MLOG("After Matching Size=%d:\n", (int)features.samples.size());
+		print_stats(features, sel_idx, group_values, val_to_inds);
+	}
 }
 
 /// Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing

@@ -250,6 +250,7 @@ public:
 	int min_group_size = 5; ///< minimal group size to take - smaller than that, will drop
 	float maxControlToEventRatio = -1.0; ///< maximal allowed control/case ratio
 	int verbose = 0; ///< control level of debug printing
+	float match_to_prior = -1; ///<If given (0-1) will ignore price ratio and will match to this prior
 
 	// helpers
 	int samplesTimeUnit; ///< Time unit of samples
@@ -298,7 +299,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(MatchingSampleFilter)
-	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio, min_group_size)
+	ADD_SERIALIZATION_FUNCS(filter_type, matchingStrata, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, match_to_prior)
 };
 
 //.......................................................................................
