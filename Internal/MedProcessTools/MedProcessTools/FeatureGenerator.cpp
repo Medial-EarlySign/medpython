@@ -511,7 +511,7 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 		p_feat[i] = get_value(rec, i, med_time_converter.convert_times(features.time_unit, time_unit_win, p_samples[i].time),
 			med_time_converter.convert_times(features.time_unit, time_unit_sig, p_samples[i].outcomeTime));
 		if (apply_categ_map && (p_feat[i] != missing_val)) p_feat[i] = categ_map[p_feat[i]];
-		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = 0;
+		if (zero_missing && (p_feat[i] == missing_val)) p_feat[i] = zero_missing_val;
 	}
 	return 0;
 }
@@ -661,6 +661,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "max_value") max_value = stof(entry.second);
 		else if (field == "nth" || field == "Nth") N_th = stoi(entry.second);
 		else if (field == "zero_missing") zero_missing = stoi(entry.second);
+		else if (field == "zero_missing_val") zero_missing_val = med_stof(entry.second);
 		else if (field == "missing_value") missing_val = stof(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
