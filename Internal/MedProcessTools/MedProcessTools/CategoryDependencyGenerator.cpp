@@ -41,10 +41,14 @@ void CategoryDependencyGenerator::init_defaults() {
 	feature_prefix = "";
 	verbose_full_file = "";
 	generate_with_counts = false;
-	regression_cntrl_lower = MED_MAT_MISSING_VALUE;
-	regression_cntrl_upper = MED_MAT_MISSING_VALUE;
-	regression_case_lower = MED_MAT_MISSING_VALUE;
-	regression_case_upper = MED_MAT_MISSING_VALUE;
+	male_regression_cntrl_lower = MED_MAT_MISSING_VALUE;
+	male_regression_cntrl_upper = MED_MAT_MISSING_VALUE;
+	male_regression_case_lower = MED_MAT_MISSING_VALUE;
+	male_regression_case_upper = MED_MAT_MISSING_VALUE;
+	female_regression_cntrl_lower = MED_MAT_MISSING_VALUE;
+	female_regression_cntrl_upper = MED_MAT_MISSING_VALUE;
+	female_regression_case_lower = MED_MAT_MISSING_VALUE;
+	female_regression_case_upper = MED_MAT_MISSING_VALUE;
 
 	req_signals = { "BDATE", "GENDER" };
 }
@@ -129,14 +133,39 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			max_parents = med_stoi(it->second);
 		else if (it->first == "generate_with_counts")
 			generate_with_counts = med_stoi(it->second) > 0;
-		else if (it->first == "regression_cntrl_lower")
-			regression_cntrl_lower = med_stoi(it->second);
-		else if (it->first == "regression_cntrl_upper")
-			regression_cntrl_upper = med_stoi(it->second);
-		else if (it->first == "regression_case_lower")
-			regression_case_lower = med_stoi(it->second);
-		else if (it->first == "regression_case_upper")
-			regression_case_upper = med_stoi(it->second);
+		else if (it->first == "regression_cntrl_lower") {
+			male_regression_cntrl_lower = med_stoi(it->second);
+			female_regression_cntrl_lower = med_stoi(it->second);
+		}
+		else if (it->first == "regression_cntrl_upper") {
+			male_regression_cntrl_upper = med_stoi(it->second);
+			female_regression_cntrl_upper = med_stoi(it->second);
+		}
+		else if (it->first == "regression_case_lower") {
+			male_regression_case_lower = med_stoi(it->second);
+			female_regression_case_lower = med_stoi(it->second);
+		}
+		else if (it->first == "regression_case_upper") {
+			male_regression_case_upper = med_stoi(it->second);
+			female_regression_case_upper = med_stoi(it->second);
+		}
+		else if (it->first == "male_regression_cntrl_lower")
+			male_regression_cntrl_lower = med_stoi(it->second);
+		else if (it->first == "male_regression_cntrl_upper")
+			male_regression_cntrl_upper = med_stoi(it->second);
+		else if (it->first == "male_regression_case_lower")
+			male_regression_case_lower = med_stoi(it->second);
+		else if (it->first == "male_regression_case_upper")
+			male_regression_case_upper = med_stoi(it->second);
+		else if (it->first == "female_regression_cntrl_lower")
+			female_regression_cntrl_lower = med_stoi(it->second);
+		else if (it->first == "female_regression_cntrl_upper")
+			female_regression_cntrl_upper = med_stoi(it->second);
+		else if (it->first == "female_regression_case_lower")
+			female_regression_case_lower = med_stoi(it->second);
+		else if (it->first == "female_regression_case_upper")
+			female_regression_case_upper = med_stoi(it->second);
+
 		else if (it->first == "fg_type") {}
 		else if (it->first == "tags") { boost::split(tags, it->second, boost::is_any_of(",")); }
 		else
@@ -394,6 +423,16 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 		int bdate = medial::repository::get_value(rep, pid, bdate_sid);
 		assert(bdate != -1);
 		int byear = int(bdate / 10000);
+		float regression_cntrl_lower = male_regression_cntrl_lower;
+		float regression_cntrl_upper = male_regression_cntrl_upper;
+		float regression_case_lower = male_regression_case_lower;
+		float regression_case_upper = male_regression_case_upper;
+		if (gend_idx > 0) {
+			regression_cntrl_lower = female_regression_cntrl_lower;
+			regression_cntrl_upper = female_regression_cntrl_upper;
+			regression_case_lower = female_regression_case_lower;
+			regression_case_upper = female_regression_case_upper;
+		}
 
 		idRec[n_th].init_from_rep(std::addressof(rep), pid, all_req_signal_ids_v, nSamples);
 

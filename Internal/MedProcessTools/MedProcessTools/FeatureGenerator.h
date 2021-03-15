@@ -915,10 +915,14 @@ public:
 	string feature_prefix; ///< additional prefix to add to name to describe the feature
 	bool generate_with_counts; ///< If true will generate feature with counts not just as set
 
-	float regression_cntrl_lower; ///< lower limit mask on outcome for controls - important inregression
-	float regression_cntrl_upper; ///< upper limit mask on outcome for controls - important inregression
-	float regression_case_lower; ///< lower limit mask on outcome for cases - important inregression
-	float regression_case_upper; ///< upper limit mask on outcome for cases - important inregression
+	float male_regression_cntrl_lower; ///< lower limit mask on outcome for controls - important inregression
+	float male_regression_cntrl_upper; ///< upper limit mask on outcome for controls - important inregression
+	float male_regression_case_lower; ///< lower limit mask on outcome for cases - important inregression
+	float male_regression_case_upper; ///< upper limit mask on outcome for cases - important inregression
+	float female_regression_cntrl_lower; ///< lower limit mask on outcome for controls - important inregression
+	float female_regression_cntrl_upper; ///< upper limit mask on outcome for controls - important inregression
+	float female_regression_case_lower; ///< lower limit mask on outcome for cases - important inregression
+	float female_regression_case_upper; ///< upper limit mask on outcome for cases - important inregression
 
 	void set_signal_ids(MedSignals& sigs);
 
@@ -946,7 +950,9 @@ public:
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, 
-		feature_prefix, generate_with_counts, tags, regression_cntrl_lower, regression_cntrl_upper, regression_case_lower, regression_case_upper)
+		feature_prefix, generate_with_counts, tags, male_regression_cntrl_lower, male_regression_cntrl_upper, 
+		male_regression_case_lower, male_regression_case_upper, female_regression_cntrl_lower, female_regression_cntrl_upper,
+		female_regression_case_lower, female_regression_case_upper)
 };
 
 //=======================================
