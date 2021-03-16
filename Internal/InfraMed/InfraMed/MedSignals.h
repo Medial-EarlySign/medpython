@@ -1234,6 +1234,8 @@ public:
 
 	static string get_type_generic_spec(SigType t);
 
+	string get_signal_generic_spec() const;
+
 protected:
 	const SigType type = T_Generic; // type of the generic signal
 	int _time_unit = MedTime::Undefined;
@@ -1245,7 +1247,8 @@ protected:
 */
 class GenericSigVec_mem : public GenericSigVec {
 public:
-	bool manage;
+	bool manage; /// if true manages the memory
+	string signal_spec; ///< stores the signal spec
 	GenericSigVec_mem() {
 		manage = false;
 	}
