@@ -895,13 +895,13 @@ string GenericSigVec::get_signal_generic_spec() const {
 	bool has_t = n_time_channels() > 0;
 	if (has_t) {
 		str << "T(";
-		if (time_channel_types[0] & type_enc::SIGNED)
+		if (!type_enc::is_signed(time_channel_types[0]))
 			str << "u";
 		str << type_enc::decode(time_channel_types[0], time_channel_types[0] & type_enc::SIGNED);
 		for (size_t i = 1; i < n_time_channels(); ++i)
 		{
 			str << ",";
-			if (time_channel_types[i] & type_enc::SIGNED)
+			if (!type_enc::is_signed(time_channel_types[i]))
 				str << "u";
 			str << type_enc::decode(time_channel_types[i], time_channel_types[i] & type_enc::SIGNED);
 		}
@@ -912,13 +912,13 @@ string GenericSigVec::get_signal_generic_spec() const {
 			str << ",";
 		str << "V(";
 
-		if (val_channel_types[0] & type_enc::SIGNED)
+		if (!type_enc::is_signed(val_channel_types[0]))
 			str << "u";
 		str << type_enc::decode(val_channel_types[0], val_channel_types[0] & type_enc::SIGNED);
 		for (size_t i = 1; i < n_val_channels(); ++i)
 		{
 			str << ",";
-			if (val_channel_types[i] & type_enc::SIGNED)
+			if (!type_enc::is_signed(val_channel_types[i]))
 				str << "u";
 			str << type_enc::decode(val_channel_types[i], val_channel_types[i] & type_enc::SIGNED);
 		}

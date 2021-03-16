@@ -975,6 +975,9 @@ public:
 			}
 			return 0;
 		}
+		static bool is_signed(unsigned char c) {
+			return c == FLOAT32 || c == FLOAT64 || c == FLOAT80 || c & SIGNED;
+		}
 	};
 	void *data;
 	int len;		// type len (not bytes len)
