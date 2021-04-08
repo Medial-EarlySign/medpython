@@ -2089,7 +2089,7 @@ map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_
 	//Score => the prediction
 
 	map<string, float> res;
-	double tau = 0, cnt = 0;
+	double tau = 0, cnt = 0, case_cnt = 0, cntrl_cnt=0;
 	float y, pred, weight;
 	//vector<float> scores, labels;
 	map<float, vector<float>> cases_to_scores, controls_to_scores;
@@ -2100,6 +2100,8 @@ map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_
 			controls_to_scores[-y].push_back(pred);
 		if (weight != -1)
 			MTHROW_AND_ERR("Error - not implemented with weights\n");
+		case_cnt += int(y > 0);
+		cntrl_cnt += int(y < 0);
 	}
 
 	//sort scores inside
@@ -2154,6 +2156,8 @@ map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_
 	if (cnt > 1) {
 		tau /= cnt;
 		res["Harrell-C-Statistic"] = (float)tau;
+		res["NPOS"] = case_cnt;
+		res["NNEG"] = cntrl_cnt;
 	}
 
 	return res;
