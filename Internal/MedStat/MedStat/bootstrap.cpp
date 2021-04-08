@@ -549,9 +549,9 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 #pragma omp critical
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
+			}
+		}
 	}
-	}
-}
 	else {
 		//old implementition with memory:
 		iterator.sample_all_no_sampling = allow_use_memory_iter;
@@ -641,8 +641,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 			}
 
 			done_cnt.update();
-	}
 		}
+	}
 
 	//now calc - mean, std , CI0.95_lower, CI0.95_upper for each measurement in all exp
 	map<string, float> all_final_measures;
@@ -2077,6 +2077,83 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Meas
 	if (cnt > 1) {
 		tau /= cnt;
 		res["Kendall-Tau"] = (float)tau;
+	}
+
+	return res;
+}
+
+map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	//Encoding:
+	//Case/Control => effect outcome/y sign. positive is case, negative controls. Can't handle event in time zero.
+	//Time to event => abs value of outcome/y
+	//Score => the prediction
+
+	map<string, float> res;
+	double tau = 0, cnt = 0;
+	float y, pred, weight;
+	//vector<float> scores, labels;
+	map<float, vector<float>> cases_to_scores, controls_to_scores;
+	while (iterator->fetch_next(thread_num, y, pred, weight)) {
+		if (y > 0)
+			cases_to_scores[y].push_back(pred);
+		else
+			controls_to_scores[-y].push_back(pred);
+		if (weight != -1)
+			MTHROW_AND_ERR("Error - not implemented with weights\n");
+	}
+
+	//sort scores inside
+	for (auto it = cases_to_scores.begin(); it != cases_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+	for (auto it = controls_to_scores.begin(); it != controls_to_scores.end(); ++it)
+		sort(it->second.begin(), it->second.end());
+
+	for (auto it = cases_to_scores.begin(); it != cases_to_scores.end(); ++it)
+	{
+		auto bg = it;
+		++bg;
+		const vector<float> &preds = it->second;
+		int pred_i_bigger;
+		double pred_i_smaller;
+		//1. compare within cases
+		for (auto jt = bg; jt != cases_to_scores.end(); ++jt)
+		{
+			const vector<float> &preds_comp = jt->second;
+			//preds should get higher scores than preds_comp. preds has lower outcome (shorter time to event) than pred_comp
+			double p_size = (double)preds_comp.size();
+			for (float pred : preds)
+			{
+				pred_i_bigger = binary_search_position(preds_comp.data(), preds_comp.data() + preds_comp.size() - 1, pred);
+				pred_i_smaller = p_size - binary_search_position_last(preds_comp.data(), preds_comp.data() + preds_comp.size() - 1, pred);
+
+				tau += pred_i_bigger; //count only bigger as good
+				cnt += pred_i_bigger + pred_i_smaller; //count total compares - also smaller
+			}
+		}
+
+		//2. Compare case to control with farther time to event(censor)
+		for (auto jt = controls_to_scores.begin(); jt != controls_to_scores.end(); ++jt) {
+			if (jt->first < it->first)
+				continue;
+			const vector<float> &preds_comp = jt->second;
+			double p_size = (double)preds_comp.size();
+			//Here the controls has farther censor time than the cases
+			//pred should have higher scores then preds_comp:
+			for (float pred : preds)
+			{
+				pred_i_bigger = binary_search_position(preds_comp.data(), preds_comp.data() + preds_comp.size() - 1, pred);
+				pred_i_smaller = p_size - binary_search_position_last(preds_comp.data(), preds_comp.data() + preds_comp.size() - 1, pred);
+
+				tau += pred_i_bigger; //count only bigger as good
+				cnt += pred_i_bigger + pred_i_smaller; //count total compares - also smaller
+			}
+		}
+	}
+
+
+	if (cnt > 1) {
+		tau /= cnt;
+		res["Harrell-C-Statistic"] = (float)tau;
 	}
 
 	return res;
