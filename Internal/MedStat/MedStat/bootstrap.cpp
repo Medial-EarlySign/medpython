@@ -528,6 +528,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		//iterator.sample_per_pid = sample_per_pid;
 		//iterator.sample_ratio = sample_ratio;
 
+		MedProgress done_cnt("bootstrap_progress", loopCnt, 30, 1);
 		Lazy_Iterator *iter_for_omp = &iterator;
 #pragma omp parallel for schedule(static)
 		for (int i = 0; i < loopCnt; ++i)
@@ -551,6 +552,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 					all_measures[jt->first].push_back(jt->second);
 			}
 		}
+		done_cnt.update();
 	}
 	else {
 		//old implementition with memory:
