@@ -551,8 +551,8 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 				for (auto jt = batch_measures.begin(); jt != batch_measures.end(); ++jt)
 					all_measures[jt->first].push_back(jt->second);
 			}
+			done_cnt.update();
 		}
-		done_cnt.update();
 	}
 	else {
 		//old implementition with memory:
