@@ -95,6 +95,7 @@ PANEL	name=P_White;title=White_Count;sigs=WBC,Eosinophils#,Monocytes#,Basophils#
 # lines starting with VIEW following a list of sigs and panels to view	
 # demographics and drugs_heatmap are reserved names
 #
+LOAD_DYNAMICALLY	0
 
 VIEW	demographics
 #VIEW	Platelets,K+,Albumin

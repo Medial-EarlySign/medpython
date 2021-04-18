@@ -2,7 +2,8 @@
 
 DIST_NAME=${1-unknown}
 if [ $DIST_NAME == "unknown" ]; then
-	if [[ ${PYTHON_INCLUDE_DIR} == *"/python3.6"* ]]; then DIST_NAME="medial-python36"
+	if [[ ${PYTHON_INCLUDE_DIR} == *"/python36/"* ]]; then DIST_NAME="medial-python36"
+	elif [[ ${PYTHON_INCLUDE_DIR} == *"/python38"* ]]; then DIST_NAME="medial-python38"
 	elif [[ ${PYTHON_INCLUDE_DIR} == "/opt/medial/python27"* ]]; then DIST_NAME="medial-python27"
 	elif [[ ${PYTHON_INCLUDE_DIR} == *"anaconda2"* ]]; then DIST_NAME="anaconda2"
 	elif [[ ${PYTHON_INCLUDE_DIR} == "/usr"* ]]; then DIST_NAME="rh-python27"
@@ -20,7 +21,7 @@ cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
 pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 
 cmake ../../../
-make -j 8;
+make -j 20;
 popd
 
 NEW_RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/Release/${DIST_NAME}

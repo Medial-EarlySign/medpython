@@ -277,6 +277,8 @@ int MatchingSampleFilter::init(map<string, string>& mapper) {
 			boost::split(strata, entry.second, boost::is_any_of(":"));
 			for (string& stratum : strata) addMatchingStrata(stratum);
 		}
+		else if (field == "match_to_prior")
+			match_to_prior = med_stof(entry.second);
 		else
 			MLOG("Unknonw parameter \'%s\' for MatchingSampleFilter\n", field.c_str());
 	}
@@ -384,7 +386,10 @@ int MatchingSampleFilter::_filter(MedRepository& rep, MedSamples& inSamples, Med
 
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
+	if (match_to_prior <= 0 || match_to_prior >= 1)
+		medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
+	else
+		medial::process::match_to_prior(features, signatures, match_to_prior, filtered);
 	outSamples.import_from_sample_vec(features.samples);
 
 	return 0;
@@ -438,7 +443,10 @@ int MatchingSampleFilter::_filter(MedFeatures& features, MedRepository& rep, Med
 
 	// Do the filtering
 	vector<int> filtered;
-	medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
+	if (match_to_prior <= 0 || match_to_prior >= 1)
+		medial::process::match_by_general(features, signatures, filtered, eventToControlPriceRatio, maxControlToEventRatio, min_group_size, (verbose > 0));
+	else
+		medial::process::match_to_prior(features, signatures, match_to_prior, filtered);
 	outSamples.import_from_sample_vec(features.samples);
 
 
@@ -975,7 +983,7 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 #if SANITY_FILTER_DBG
 		MLOG("SanitySimpleFilter::test_filter(2) ==> id %d sig_id %d %s time %d\n", sample.id, sig_id, sig_name.c_str(), sample.time);
 #endif
-	}
+		}
 	if (sig_id < 0)
 		return SanitySimpleFilter::Signal_Not_Valid;
 
@@ -1098,9 +1106,9 @@ int SanitySimpleFilter::test_filter(MedSample &sample, MedRepository &rep, int &
 		if (values_in_dictionary && ((n_not_in_dict > 0) || section_id < 0)) return SanitySimpleFilter::Failed_Dictionary_Test;
 		if ((allowed_values.size() > 0) && (n_not_allowed > 0)) return SanitySimpleFilter::Failed_Allowed_Values;
 		if (min_left >= 0 && n_left < min_left) return SanitySimpleFilter::Failed_Not_Enough_Non_Outliers_Left;
-	}
+			}
 
 	return SanitySimpleFilter::Passed;
 
 	return 0;
-}
+		}

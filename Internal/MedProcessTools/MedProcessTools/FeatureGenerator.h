@@ -299,6 +299,7 @@ public:
 	float min_value = -FLT_MAX, max_value = FLT_MAX; ///< values range for FTR_LAST(2)_DAYS
 	int N_th = 0; ///< used in last_nth and category_set_last_nth 
 	int zero_missing = 0; ///< in some cases of category_set (or others) we may want to get 0 instead of missing_value, turn this on for that
+	float zero_missing_val = 0; ///< when zero_missing is on - whats the value to store in the missing value feature
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -366,7 +367,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing, missing_val, categ_value2id)
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing, missing_val, categ_value2id, zero_missing_val)
 
 };
 
@@ -914,6 +915,15 @@ public:
 	string feature_prefix; ///< additional prefix to add to name to describe the feature
 	bool generate_with_counts; ///< If true will generate feature with counts not just as set
 
+	float male_regression_cntrl_lower; ///< lower limit mask on outcome for controls - important inregression
+	float male_regression_cntrl_upper; ///< upper limit mask on outcome for controls - important inregression
+	float male_regression_case_lower; ///< lower limit mask on outcome for cases - important inregression
+	float male_regression_case_upper; ///< upper limit mask on outcome for cases - important inregression
+	float female_regression_cntrl_lower; ///< lower limit mask on outcome for controls - important inregression
+	float female_regression_cntrl_upper; ///< upper limit mask on outcome for controls - important inregression
+	float female_regression_case_lower; ///< lower limit mask on outcome for cases - important inregression
+	float female_regression_case_upper; ///< upper limit mask on outcome for cases - important inregression
+
 	void set_signal_ids(MedSignals& sigs);
 
 	void init_tables(MedDictionarySections& dict);
@@ -939,7 +949,10 @@ public:
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	ADD_CLASS_NAME(CategoryDependencyGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, feature_prefix, generate_with_counts, tags)
+	ADD_SERIALIZATION_FUNCS(generator_type, req_signals, top_codes, names, signalName, time_channel, val_channel, win_from, win_to, time_unit_win, 
+		feature_prefix, generate_with_counts, tags, male_regression_cntrl_lower, male_regression_cntrl_upper, 
+		male_regression_case_lower, male_regression_case_upper, female_regression_cntrl_lower, female_regression_cntrl_upper,
+		female_regression_case_lower, female_regression_case_upper)
 };
 
 //=======================================

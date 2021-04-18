@@ -93,8 +93,24 @@ namespace medial {
 	namespace io {
 		/// \brief reads file with codes name to vector
 		void read_codes_file(const string &file_path, vector<string> &tokens);
-		template<class T> string get_list(const unordered_map<string, T> &ls, const string &delimeter = ",");
-		template<class T> string get_list_op(const unordered_map<T, string> &ls, const string &delimeter = ",");
+		template<class T> string get_list(const unordered_map<string, T> &ls, const string &delimeter = ",") {
+			string res = "";
+			for (auto it = ls.begin(); it != ls.end(); ++it)
+				if (it == ls.begin())
+					res += it->first;
+				else
+					res += delimeter + it->first;
+			return res;
+		}
+		template<class T> string get_list_op(const unordered_map<T, string> &ls, const string &delimeter = ",") {
+			string res = "";
+			for (auto it = ls.begin(); it != ls.end(); ++it)
+				if (it == ls.begin())
+					res += it->second;
+				else
+					res += delimeter + it->second;
+			return res;
+		}
 		template<class ContainerType> string get_list(const ContainerType &ls, const string &delimeter = ",");
 		/**
 		* A basic class wrapper to parse command args

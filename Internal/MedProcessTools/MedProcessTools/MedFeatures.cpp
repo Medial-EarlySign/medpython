@@ -13,6 +13,36 @@
 
 int MedFeatures::global_serial_id_cnt = 0;
 
+void print_stats(const MedFeatures &features, const vector<int> &sel_idx, const vector<string> &group_values) {
+	unordered_map<string, vector<int>> counts_stat;
+	if (!sel_idx.empty()) {
+		for (size_t i = 0; i < sel_idx.size(); ++i)
+		{
+			if (counts_stat[group_values[sel_idx[i]]].empty())
+				counts_stat[group_values[sel_idx[i]]].resize(2);
+			++counts_stat[group_values[sel_idx[i]]][features.samples[i].outcome > 0];
+		}
+	}
+	else {
+		for (size_t i = 0; i < group_values.size(); ++i)
+		{
+			if (counts_stat[group_values[i]].empty())
+				counts_stat[group_values[i]].resize(2);
+			++counts_stat[group_values[i]][features.samples[i].outcome > 0];
+		}
+	}
+	MLOG("Group\tCount_0\tCount_1\tratio\n");
+	vector<string> all_groups;
+	all_groups.reserve(counts_stat.size());
+	for (const auto &it : counts_stat)
+		all_groups.push_back(it.first);
+	sort(all_groups.begin(), all_groups.end());
+
+	for (const string &grp : all_groups)
+		MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(),
+			counts_stat[grp][0], counts_stat[grp][1], counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]));
+}
+
 //=======================================================================================
 // MedFeatures
 //=======================================================================================
@@ -67,7 +97,7 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 	vector<int> batches;
 	if (datap.size() > 0) {
 		int nelements_in_batch = 250000;
-		int n_batch = 1 + nelements_in_batch/(int)datap.size();
+		int n_batch = 1 + nelements_in_batch / (int)datap.size();
 		if (n_batch > nrows) n_batch = nrows;
 		int curr = 0;
 		while (curr < nrows) {
@@ -92,17 +122,17 @@ void MedFeatures::get_as_matrix(MedMat<float>& mat, vector<string>& names) const
 		}
 	}
 
-/*
-#pragma omp parallel for schedule(dynamic)
-	for (int i = 0; i < (int)datap.size(); i++) {
-		for (int j = 0; j < nrows; j++) {
-			if (!isfinite(datap[i][j])) {
-				MTHROW_AND_ERR("nan in col [%s] in record [%d]", namesToTake[i].c_str(), j);
+	/*
+	#pragma omp parallel for schedule(dynamic)
+		for (int i = 0; i < (int)datap.size(); i++) {
+			for (int j = 0; j < nrows; j++) {
+				if (!isfinite(datap[i][j])) {
+					MTHROW_AND_ERR("nan in col [%s] in record [%d]", namesToTake[i].c_str(), j);
+				}
+				mat(j, i) = datap[i][j];
 			}
-			mat(j, i) = datap[i][j];
 		}
-	}
-*/
+	*/
 	time_me.take_curr_time();
 	MLOG_D("Matrix transpose time is %f sec\n", time_me.diff_sec());
 	//Test:
@@ -308,7 +338,7 @@ void MedFeatures::write_csv_data(ofstream& out_f, bool write_attributes, vector<
 
 	for (int i = 0; i < samples.size(); i++) {
 
-		out_f << to_string(i+start_idx); // serial
+		out_f << to_string(i + start_idx); // serial
 		if (weights.size()) out_f << "," << weights[i]; // Weights
 
 														// sample
@@ -408,7 +438,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 	out_f << "\n";
 
 	// data
-	write_csv_data(out_f, write_attributes, col_names,0);
+	write_csv_data(out_f, write_attributes, col_names, 0);
 
 	out_f.close();
 	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
@@ -552,14 +582,14 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 						string found_pos = curr_fields_order->at(found_idx); //what found in fields position (to switch with)
 						string curr_pos = curr_fields_order->at(idx); //original expected at idx => will move to found_idx, will look for later
 
-curr_fields_order->at(found_idx) = curr_pos;
-curr_pos_fields->at(curr_pos) = found_idx;
+						curr_fields_order->at(found_idx) = curr_pos;
+						curr_pos_fields->at(curr_pos) = found_idx;
 
-curr_fields_order->at(idx) = found_pos; //what fields has currently
-curr_pos_fields->at(found_pos) = idx;
+						curr_fields_order->at(idx) = found_pos; //what fields has currently
+						curr_pos_fields->at(found_pos) = idx;
 
-MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
-	fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
+						MLOG("MedFeatures CSV reader :: found %s(should be found in %d) instead %s(%d, input_idx=%d).\n",
+							fields[idx + skiped_input_columns.size()].c_str(), found_idx, curr_f.c_str(), idx, idx + skiped_input_columns.size());
 					}
 					else {
 						skiped_input_columns.push_back(idx);
@@ -762,6 +792,61 @@ template void medial::process::commit_selection<const MedSample *>(vector<const 
 template void medial::process::commit_selection<float>(vector<float> &vec, const vector<int> &idx);
 template void medial::process::commit_selection<double>(vector<double> &vec, const vector<int> &idx);
 template void medial::process::commit_selection<int>(vector<int> &vec, const vector<int> &idx);
+
+void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector<int> &selected_indexes, bool op_flag) {
+	MedFeatures filtered;
+	filtered.time_unit = dataMat.time_unit;
+	filtered.attributes = dataMat.attributes;
+
+	int curr_ind = 0;
+	if (!op_flag) {
+		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+			filtered.data[iit->first].reserve(selected_indexes.size());
+		if (!dataMat.weights.empty())
+			filtered.weights.reserve(selected_indexes.size());
+		filtered.samples.reserve(selected_indexes.size());
+		for (int i : selected_indexes) //all selected indexes
+		{
+			filtered.samples.push_back(dataMat.samples[i]);
+			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+				filtered.data[iit->first].push_back(iit->second[i]);
+
+			if (!dataMat.weights.empty())
+				filtered.weights.push_back(dataMat.weights[i]);
+		}
+	}
+	else {
+		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+			filtered.data[iit->first].reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		if (!dataMat.weights.empty())
+			filtered.weights.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		filtered.samples.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		for (int i = 0; i < dataMat.samples.size(); ++i)
+		{
+			//remove selected row when matched:
+			if (curr_ind < selected_indexes.size() && i == selected_indexes[curr_ind]) {
+				++curr_ind;
+				continue;
+			}
+			filtered.samples.push_back(dataMat.samples[i]);
+			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
+				filtered.data[iit->first].push_back(iit->second[i]);
+			if (!dataMat.weights.empty())
+				filtered.weights.push_back(dataMat.weights[i]);
+		}
+	}
+	filtered.init_pid_pos_len();
+
+	//dataMat = filtered;
+	dataMat.samples.swap(filtered.samples);
+	dataMat.data.swap(filtered.data);
+	dataMat.weights.swap(filtered.weights);
+	dataMat.pid_pos_len.swap(filtered.pid_pos_len);
+	dataMat.attributes.swap(filtered.attributes);
+	dataMat.tags.swap(filtered.tags);
+	dataMat.time_unit = filtered.time_unit;
+}
+
 
 void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag) {
 	MedFeatures filtered;
@@ -1021,7 +1106,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 	medial::process::match_by_general(data_records, groups, filtered_row_ids, price_ratio, -1.0, min_grp_size, print_verbose);
 }
 
-void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups,vector<int> &filtered_row_ids, float price_ratio, float max_ratio, int min_grp_size, bool print_verbose) {
+void  medial::process::match_by_general(MedFeatures &data_records, const vector<string> &groups, vector<int> &filtered_row_ids, float price_ratio, float max_ratio, int min_grp_size, bool print_verbose) {
 	if (groups.size() != data_records.samples.size())
 		MTHROW_AND_ERR("data_records and groups should hsve same size\n");
 
@@ -1127,12 +1212,18 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 
 			if (count_label_groups[0][grp] == 0)
 				grp_ratio = 1; //just for correct printing
-			if (factor_needed_up > 0)
-				MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
-					, grp_ratio, factor_needed_down, factor_needed_up);
-			else
+			if (factor_needed_up > 0) {
+				if (factor_needed_up < factor_needed_down)
+					MLOG("%s\t%d\t%d\t%f\t[NOT_AN_OPTION]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+						, grp_ratio);
+				else
+					MLOG("%s\t%d\t%d\t%f\t[%2.2f-%2.2f]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
+						, grp_ratio, factor_needed_down, factor_needed_up);
+			}
+			else {
 				MLOG("%s\t%d\t%d\t%f\t[%2.2f-]\n", grp.c_str(), count_label_groups[0][grp], count_label_groups[1][grp]
 					, grp_ratio, factor_needed_down);
+			}
 		}
 	}
 
@@ -1253,18 +1344,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 
 	if (print_verbose) {
 		MLOG("After Matching Size=%d:\n", (int)data_records.samples.size());
-		unordered_map<string, vector<int>> counts_stat;
-		for (size_t i = 0; i < filtered_row_ids.size(); ++i)
-		{
-			if (counts_stat[groups[filtered_row_ids[i]]].empty())
-				counts_stat[groups[filtered_row_ids[i]]].resize(2);
-			++counts_stat[groups[filtered_row_ids[i]]][data_records.samples[i].outcome > 0];
-		}
-		MLOG("Group\tCount_0\tCount_1\tratio\n");
-		for (const string &grp : all_groups)
-			MLOG("%s\t%d\t%d\t%2.5f\n", grp.c_str(),
-				counts_stat[grp][0], counts_stat[grp][1], counts_stat[grp][1] / double(counts_stat[grp][1] + counts_stat[grp][0]));
-		//print_by_year(data_records.samples);
+		print_stats(data_records, filtered_row_ids, groups);
 	}
 }
 
@@ -1314,7 +1394,7 @@ float get_multi_class_matching_loss(vector<float>& targetRatios, vector<vector<f
 }
 
 // Check step size for increasing targetRatios[i] and decrasing targetRatios[j] until minROR is changed.
-float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, vector<float>& minROR, vector<int>& minROR_Idx,  int i, int j) {
+float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, vector<float>& minROR, vector<int>& minROR_Idx, int i, int j) {
 
 
 	float stepSize = 1.0 - MATCHING_EPS - targetRatios[i];
@@ -1330,7 +1410,7 @@ float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, 
 				if (c != i && c != j) {
 					float testStep = (ratios[g][c] * targetRatios[j] - ratios[g][j] * targetRatios[c]) / ratios[g][c];
 					if (testStep < stepSize) {
-						_minROR =  ratios[g][c] / targetRatios[c];
+						_minROR = ratios[g][c] / targetRatios[c];
 						_minROR_Idx = (int)c;
 						stepSize = testStep;
 					}
@@ -1349,7 +1429,7 @@ float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, 
 				minROR_Idx[g] = _minROR_Idx;
 			}
 		}
-		else if (minROR_Idx[g] != i) { 
+		else if (minROR_Idx[g] != i) {
 			// We can increase i until we get ROR[i] = ROR[c]
 			float testStep = ratios[g][i] / minROR[g] - targetRatios[i];
 			if (testStep < stepSize) {
@@ -1362,7 +1442,7 @@ float get_step_size(vector<vector<float>>& ratios, vector<float>& targetRatios, 
 
 	return stepSize;
 }
-float do_greedy_search(vector<float>& targetRatios, vector<vector<float>>& ratios, vector<vector<int>>& counts, vector<float>& price_ratios,  int verbose) {
+float do_greedy_search(vector<float>& targetRatios, vector<vector<float>>& ratios, vector<vector<int>>& counts, vector<float>& price_ratios, int verbose) {
 
 	int nClasses = (int)targetRatios.size();
 	int nGroups = (int)ratios.size();
@@ -1414,7 +1494,7 @@ float do_greedy_search(vector<float>& targetRatios, vector<vector<float>>& ratio
 					vector<float> origMinROR = minROR;
 					vector<int> origMinROR_Idx = minROR_Idx;
 					float stepSize = get_step_size(ratios, targetRatios, minROR, minROR_Idx, i, j);
-				
+
 					if (stepSize > 0.001) {
 						targetRatios[i] += stepSize;
 						targetRatios[j] -= stepSize;
@@ -1446,12 +1526,12 @@ float do_greedy_search(vector<float>& targetRatios, vector<vector<float>>& ratio
 	}
 
 	if (verbose)
-		MLOG("Multi-Class Matching : Number of steps to (local) minimum = %d. Loss = %f\n", nSteps,loss);
+		MLOG("Multi-Class Matching : Number of steps to (local) minimum = %d. Loss = %f\n", nSteps, loss);
 	return loss;
 }
 
 int prepare_for_matching(vector<MedSample>& samples, const vector<string>& groups, vector<int>& class_idx, vector<string>& groups_v, vector<vector<float>>& ratios, vector<vector<int>>& counts, int verbose) {
-	
+
 	// Collect classes
 	set<int> classes_set;
 	for (MedSample& sample : samples)
@@ -1573,7 +1653,7 @@ float get_matching_dist(vector<MedSample>& samples, const vector<string> &groups
 
 
 #pragma omp parallel for
-	for (int i = 0; i < nRand; i++) 
+	for (int i = 0; i < nRand; i++)
 		randLosses[i] = do_greedy_search(randRatios[i], ratios, counts, price_ratios, 0);
 
 	int idx = 0;
@@ -1624,7 +1704,7 @@ void get_filtered_row_ids(vector<MedSample>& samples, const vector<string>& grou
 }
 
 float medial::process::match_multi_class(MedFeatures& data, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float>& price_ratios, int nRand, int verbose) {
- 
+
 	vector<float> targetRatios;
 	vector <vector<float>> ratios;
 	vector<string> groups_v;
@@ -1666,7 +1746,7 @@ void medial::process::match_multi_class_to_dist(MedFeatures& data, const vector<
 	vector<string> groups_v;
 	vector<int> class_idx;
 	vector<vector<int>> counts;
-	
+
 	prepare_for_matching(data.samples, groups, class_idx, groups_v, ratios, counts, 0);
 	get_filtered_row_ids(data.samples, groups, probs, ratios, groups_v, class_idx, filtered_row_ids);
 	filter_row_indexes(data, filtered_row_ids);
@@ -1675,12 +1755,12 @@ void medial::process::match_multi_class_to_dist(MedFeatures& data, const vector<
 }
 
 void medial::process::match_multi_class_to_dist(vector<MedSample>& samples, const vector<string> &groups, vector<int> &filtered_row_ids, vector<float> probs) {
-	
+
 	vector<vector<float>> ratios;
 	vector<string> groups_v;
 	vector<int> class_idx;
-	vector<vector<int>> counts; 
-	
+	vector<vector<int>> counts;
+
 	prepare_for_matching(samples, groups, class_idx, groups_v, ratios, counts, 0);
 	get_filtered_row_ids(samples, groups, probs, ratios, groups_v, class_idx, filtered_row_ids);
 
@@ -1895,6 +1975,55 @@ double medial::process::match_to_prior(MedFeatures &features, float target_prior
 	return pr;
 }
 
+void medial::process::match_to_prior(MedFeatures &features,
+	const vector<string> &group_values, float target_prior, vector<int> &sel_idx, bool print_verbose) {
+	if (target_prior <= 0 || target_prior >= 1)
+		MTHROW_AND_ERR("Error - medial::process::match_to_prior - bad target_prior (%f), shoulf by between 0 -1\n",
+			target_prior);
+	//rewrote it again to accept vector<string> and not vector<float> as group_values
+
+	sel_idx.clear();
+	unordered_map<string, vector<int>> val_to_inds;
+	for (size_t i = 0; i < group_values.size(); ++i)
+		val_to_inds[group_values[i]].push_back((int)i);
+
+	if (print_verbose) {
+		MLOG("Before Matching Size=%d:\n", (int)features.samples.size());
+		print_stats(features, sel_idx, group_values);
+	}
+
+	//sub sample each group to match this prior:
+	for (auto it = val_to_inds.begin(); it != val_to_inds.end(); ++it)
+	{
+		double grp_prior = 0;
+		vector<vector<int>> grp_inds(2);
+		for (size_t i = 0; i < it->second.size(); ++i)
+			grp_inds[features.samples[it->second[i]].outcome > 0].push_back(it->second[i]);
+		grp_prior = double(grp_inds[1].size()) / it->second.size();
+		int grp_sel = int(grp_prior > target_prior);
+		vector<int> *inds = &grp_inds[grp_sel];
+		int sub_sample_count;
+		if (grp_prior > target_prior)
+			sub_sample_count = target_prior * grp_inds[1 - grp_sel].size() / (1 - target_prior);
+		else
+			sub_sample_count = (1 - target_prior) * grp_inds[1 - grp_sel].size() / target_prior;
+		if (sub_sample_count > inds->size())
+			sub_sample_count = (int)inds->size();
+		random_shuffle(inds->begin(), inds->end());
+		inds->resize(sub_sample_count); //subsample in inds
+
+										//add fully groups
+		sel_idx.insert(sel_idx.end(), grp_inds[0].begin(), grp_inds[0].end());
+		sel_idx.insert(sel_idx.end(), grp_inds[1].begin(), grp_inds[1].end());
+	}
+	filter_row_indexes(features, sel_idx);
+
+	if (print_verbose) {
+		MLOG("After Matching Size=%d:\n", (int)features.samples.size());
+		print_stats(features, sel_idx, group_values);
+	}
+}
+
 /// Return number of splits, also check mismatches between idSample and internal MedSamples and set idSamples.split if missing
 int medial::process::nSplits(vector<MedSample>& samples) {
 
@@ -2035,9 +2164,9 @@ void MedFeatures::samples_sort() {
 	}
 
 	sort(sorted_inds.begin(), sorted_inds.end(),
-		[](const pair<int, MedSample> &c1, const pair<int, MedSample> &c2) {return ((c1.second.id < c2.second.id) || (c1.second.id == c2.second.id && c1.second.time < c2.second.time));});
+		[](const pair<int, MedSample> &c1, const pair<int, MedSample> &c2) {return ((c1.second.id < c2.second.id) || (c1.second.id == c2.second.id && c1.second.time < c2.second.time)); });
 
-	vector<MedSample> origSamples =samples;
+	vector<MedSample> origSamples = samples;
 	for (int i = 0; i < nSamples; i++)
 		samples[i] = origSamples[sorted_inds[i].first];
 

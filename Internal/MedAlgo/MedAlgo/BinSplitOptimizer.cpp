@@ -383,7 +383,7 @@ float _min_vec(const vector<float> &vec) {
 }
 
 void SplitToBinsSimple(vector<float> &x, int binCnt, const float *min_val_given = NULL
-	, const float *max_val_given = NULL) {
+	, const float *max_val_given = NULL, bool weighted_score = false) {
 	if (binCnt == 0) {
 		return;
 	}
@@ -399,12 +399,38 @@ void SplitToBinsSimple(vector<float> &x, int binCnt, const float *min_val_given 
 	if (max_val == min_val) {
 		max_val = min_val + 1;
 	}
+	vector<double> sums, tots;
+	if (weighted_score) {
+		sums.resize(binCnt);
+		tots.resize(binCnt);
+	}
 	for (size_t k = 0; k < x.size(); ++k)
 	{
 		if (x[k] != MED_MAT_MISSING_VALUE) {
-			int index = int((binCnt - 1)*(x[k] - min_val) / (max_val - min_val));
-			x[k] = (max_val - min_val) * index / (binCnt - 1) + min_val;
+			int index = int(binCnt*(x[k] - min_val) / (max_val - min_val));
+			if (!weighted_score)
+				x[k] = (max_val - min_val) * index / binCnt + min_val;
+			else {
+				//trimming:
+				if (index >= binCnt)
+					index = binCnt - 1;
+				if (index < 0)
+					index = 0;
+
+				sums[index] += x[k];
+				++tots[index];
+				x[k] = index;
+			}
 		}
+	}
+	if (weighted_score) {
+		for (size_t k = 0; k < binCnt; ++k)
+			if (tots[k] > 0)
+				sums[k] /= tots[k];
+
+		for (size_t k = 0; k < x.size(); ++k)
+			if (x[k] != MED_MAT_MISSING_VALUE) 
+				x[k] = sums[int(x[k])];
 	}
 
 }
@@ -471,7 +497,7 @@ void medial::process::split_feature_to_bins(const BinSettings &setting, vector<f
 	switch (setting.split_method)
 	{
 	case BinSplitMethod::SameValueWidth:
-		SplitToBinsSimple(feature, setting.binCnt, min_val_given, max_val_given);
+		SplitToBinsSimple(feature, setting.binCnt, min_val_given, max_val_given, setting.weighted);
 
 		break;
 	case BinSplitMethod::IterativeMerge:
@@ -518,7 +544,7 @@ int BinSettings::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
 		if (it->first == "min_bin_count")
-			min_bin_count = stoi(it->second);
+			min_bin_count = med_stoi(it->second);
 		else if (it->first == "min_res_value")
 			min_res_value = stod(it->second);
 		else if (it->first == "binCnt")
@@ -529,6 +555,8 @@ int BinSettings::init(map<string, string>& map) {
 			max_value_cutoff = stof(it->second);
 		else if (it->first == "split_method")
 			split_method = bin_method_name_to_type(it->second);
+		else if (it->first == "weighted")
+			weighted = med_stoi(it->second) > 0;
 		else
 			MTHROW_AND_ERR("Unsupported param \"%s\"\n", it->first.c_str());
 	}
@@ -600,7 +628,7 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 		int idx_val = medial::process::binary_search_index(ordValues.data(), ordValues.data() + ordValues.size() - 1, val);
 		if (idx_val < 0)
 			MTHROW_AND_ERR("ERROR in binary_search. i=%d, val=%f, full_size=%d\n",
-				(int)i, val, (int)feature.size());
+			(int)i, val, (int)feature.size());
 		if (min_bin_val[idx_val] > val)
 			min_bin_val[idx_val] = val;
 		if (max_bin_val[idx_val] < val)
@@ -621,7 +649,7 @@ void medial::process::normalize_feature_to_uniform(const BinSettings &setting, v
 			val = float((start_idx + end_idx) / 2);
 		else
 			val = float(start_idx + (val - min_bin_val[idx_val]) /
-				(max_bin_val[idx_val] - min_bin_val[idx_val]) * (end_idx - start_idx));
+			(max_bin_val[idx_val] - min_bin_val[idx_val]) * (end_idx - start_idx));
 
 		feature[i] = val;
 	}

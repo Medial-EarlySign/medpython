@@ -206,7 +206,7 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	for (size_t i = 0; i < mdl.features.samples.size(); ++i)
 		mdl.features.samples[i].prediction.resize(1, 0); //set to 0 that won't throw error in prepare
 
-	vector<int> preds_order ;
+	vector<int> preds_order;
 	single_cohort.prepare_bootstrap(mdl.features, preds, y, pids, data_for_filtering, preds_order);
 	inc_smps.swap(mdl.features.samples);
 }
@@ -705,7 +705,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	if (features.samples.empty() || features.samples[0].prediction.empty())
 		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)features.samples.size(), (int)features.samples[0].prediction.size());
 	num_categories = features.samples[0].prediction.size();
-	
+
 	preds.resize((int)features.samples.size()*num_categories);
 	y.resize((int)features.samples.size());
 	pids.resize((int)features.samples.size());
@@ -721,15 +721,15 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 	MedTime tm;
 	tm.init_time_tables();
 
-	preds_order.assign((int)features.samples.size()*num_categories, 0);	
-	
+	preds_order.assign((int)features.samples.size()*num_categories, 0);
+
 	for (size_t i = 0; i < features.samples.size(); ++i)
 	{
 		pids[i] = features.samples[i].id;
 		y[i] = features.samples[i].outcome;
 		if (features.samples[i].prediction.empty())
 			MTHROW_AND_ERR("MedFeautres Prediciton is empty. need to run on MedFeatures with predictions\n");
-		
+
 		for (size_t j = 0; j < num_categories; j++)
 		{
 			preds[i*num_categories + j] = features.samples[i].prediction[j];
@@ -740,7 +740,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 			sort_index_only(features.samples[i].prediction, preds_order.begin() + i * num_categories, preds_order.begin() + (i + 1) * num_categories);
 
 		}
-		
+
 		if (uses_time_window) {
 			int diff_days = (tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].outcomeTime)
 				- tm.convert_times(features.time_unit, MedTime::Days, features.samples[i].time));
@@ -1007,9 +1007,19 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 	//new_samples.sort_by_id_date(); //not needed
 }
 MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
-	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = { { "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class } };
-	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end())
-		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s \n", measurement_function_name.c_str());
+	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = {
+		{ "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },
+		{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },
+		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
+		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
+		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
+	    { "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic }
+	};
+	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
+		string options = medial::io::get_list(measurement_function_name_map, "\n");
+		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s\nOptions:%s\n",
+			measurement_function_name.c_str(), options.c_str());
+	}
 	return measurement_function_name_map[measurement_function_name];
 }
 

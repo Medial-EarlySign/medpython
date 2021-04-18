@@ -445,7 +445,6 @@ void MedSamples::get_attr_values(const string& attr_name, vector<float>& values)
 
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
-			for (int i = 0; i < sample.prediction.size(); i++)
 				if (sample.attributes.find(attr_name) != sample.attributes.end())
 					values.push_back(sample.attributes.at(attr_name));
 
@@ -507,7 +506,7 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 			string attr_name = field_names[i].substr(5, field_names[i].length() - 5);
 			attr_pos[attr_name] = i;
 		}
-		else if (field_names[i].substr(0, 5) == "str_attr_") {
+		else if (field_names[i].substr(0, 9) == "str_attr_") {
 			string attr_name = field_names[i].substr(9, field_names[i].length() - 9);
 			str_attr_pos[attr_name] = i;
 		}
@@ -1113,26 +1112,30 @@ void medial::print::print_samples_stats(const vector<MedSample> &samples, const 
 
 	log_with_file(fo, "Samples has %d records. for uniq_pids = [", (int)samples.size());
 	auto iter = histCounts.begin();
-	if (!histCounts.empty()) {
-		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total));
-		++iter;
+	if (histCounts.size() <= 10) {
+		if (!histCounts.empty()) {
+			log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total));
+			++iter;
+		}
+		for (; iter != histCounts.end(); ++iter)
+			log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total));
 	}
-	for (; iter != histCounts.end(); ++iter)
-		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total));
 
 	log_with_file(fo, "] All = [");
 	iter = histCountAll.begin();
-	if (!histCountAll.empty()) {
-		log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
-			100.0 * iter->second / float(total_all));
-		++iter;
-	}
+	if (histCounts.size() <= 10) {
+		if (!histCountAll.empty()) {
+			log_with_file(fo, "%d=%d(%2.2f%%)", (int)iter->first, iter->second,
+				100.0 * iter->second / float(total_all));
+			++iter;
+		}
 
-	for (; iter != histCountAll.end(); ++iter)
-		log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
-			100.0 * iter->second / float(total_all));
+		for (; iter != histCountAll.end(); ++iter)
+			log_with_file(fo, ", %d=%d(%2.2f%%)", (int)iter->first, iter->second, iter->second,
+				100.0 * iter->second / float(total_all));
+	}
 	log_with_file(fo, "]\n");
 	if (fo.good())
 		fo.close();
@@ -1385,6 +1388,8 @@ void medial::process::down_sample_by_pid(MedSamples &samples, double take_ratio,
 void medial::process::down_sample_by_pid(MedSamples &samples, int no_more_than, bool with_repeats) {
 	if (no_more_than <= 0)
 		return;
+	if (samples.nSamples() < no_more_than)
+		return;
 	unordered_map<int, vector<int>> pid_to_inds;
 	vector<int> id_to_pid;
 	for (size_t i = 0; i < samples.idSamples.size(); ++i) {
@@ -1438,6 +1443,8 @@ void medial::process::down_sample(MedSamples &samples, int no_more_than, bool wi
 	if (no_more_than <= 0)
 		return;
 	int tot_samples = samples.nSamples();
+	if (tot_samples < no_more_than)
+		return;
 	//int tot_samples = (int)samples.idSamples.size();
 	vector<int> pids_index;
 	pids_index.reserve(tot_samples);

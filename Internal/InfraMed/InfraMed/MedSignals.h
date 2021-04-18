@@ -975,6 +975,9 @@ public:
 			}
 			return 0;
 		}
+		static bool is_signed(unsigned char c) {
+			return c == FLOAT32 || c == FLOAT64 || c == FLOAT80 || c & SIGNED;
+		}
 	};
 	void *data;
 	int len;		// type len (not bytes len)
@@ -1234,6 +1237,8 @@ public:
 
 	static string get_type_generic_spec(SigType t);
 
+	string get_signal_generic_spec() const;
+
 protected:
 	const SigType type = T_Generic; // type of the generic signal
 	int _time_unit = MedTime::Undefined;
@@ -1245,7 +1250,8 @@ protected:
 */
 class GenericSigVec_mem : public GenericSigVec {
 public:
-	bool manage;
+	bool manage; /// if true manages the memory
+	string signal_spec; ///< stores the signal spec
 	GenericSigVec_mem() {
 		manage = false;
 	}

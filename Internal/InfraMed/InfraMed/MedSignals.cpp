@@ -886,4 +886,45 @@ void SignalInfo::set_gsv_spec(const string &gsv_spec_str) {
 	MedRep::get_type_channels(generic_signal_spec, time_unit, n_time_channels, n_val_channels);
 }
 
+//Can handle all signals, but generic signals types will be returned without padding
+string GenericSigVec::get_signal_generic_spec() const {
+	if (get_type() != T_Generic)
+		return GenericSigVec::get_type_generic_spec(get_type());
 
+	stringstream str;
+	bool has_t = n_time_channels() > 0;
+	if (has_t) {
+		str << "T(";
+		if (!type_enc::is_signed(time_channel_types[0]))
+			str << "u";
+		str << type_enc::decode(time_channel_types[0], time_channel_types[0] & type_enc::SIGNED);
+		for (size_t i = 1; i < n_time_channels(); ++i)
+		{
+			str << ",";
+			if (!type_enc::is_signed(time_channel_types[i]))
+				str << "u";
+			str << type_enc::decode(time_channel_types[i], time_channel_types[i] & type_enc::SIGNED);
+		}
+		str << ")";
+	}
+	if (n_val_channels() > 0) {
+		if (has_t)
+			str << ",";
+		str << "V(";
+
+		if (!type_enc::is_signed(val_channel_types[0]))
+			str << "u";
+		str << type_enc::decode(val_channel_types[0], val_channel_types[0] & type_enc::SIGNED);
+		for (size_t i = 1; i < n_val_channels(); ++i)
+		{
+			str << ",";
+			if (!type_enc::is_signed(val_channel_types[i]))
+				str << "u";
+			str << type_enc::decode(val_channel_types[i], val_channel_types[i] & type_enc::SIGNED);
+		}
+
+		str << ")";
+	}
+
+	return str.str();
+}

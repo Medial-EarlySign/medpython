@@ -472,8 +472,10 @@ void MedConvert::collect_lines(vector<string> &lines, vector<int> &f_i, int file
 		catch (...) {
 			MERR("ERROR: bad format in file %s with first token of pid, in line %d:\n%s\n",
 				curr_fstat.fname.c_str(), curr_fstat.n_parsed_lines, curr_line.c_str());
-			if (!full_error_file.empty() && (err_log_file.good()))
+			if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 				err_log_file << "ERROR: bad format in file " << curr_fstat.fname << " with first token of pid, in line " << curr_fstat.n_parsed_lines << " line: " << curr_line << "\n";
+			}
 			continue;
 		}
 
@@ -487,8 +489,10 @@ void MedConvert::collect_lines(vector<string> &lines, vector<int> &f_i, int file
 		}
 		else if (line_pid < fpid) {
 			MWARN("MedConvert: get_next_signal: fpid is %d , but got line: %s\n", fpid, curr_line.c_str());
-			if (!full_error_file.empty() && (err_log_file.good()))
+			if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 				err_log_file << "MedConvert: get_next_signal: fpid is " << fpid << " , but got line: " << curr_line << "\n";
+			}
 
 			if (safe_mode)
 				MERR("MedConvert: ERROR: file %s seems to be not sorted by pid\n", curr_fstat.fname.c_str());
@@ -518,14 +522,18 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 	SignalInfo& info = sigs.Sid2Info[sid];
 	cd_sv.init(info);
 	if (cd_sv.size() > MAX_COLLECTED_DATA_SIZE) {
-		if (!full_error_file.empty() && (err_log_file.good()))
+		if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 			err_log_file << "ERROR: cd_sv.size() (" << (int)cd_sv.size() << ") > MAX_COLLECTED_DATA_SIZE (" << (int)MAX_COLLECTED_DATA_SIZE << "), Please Increase MAX_COLLECTED_DATA_SIZE\n";
+		}
 		MTHROW_AND_ERR("ERROR: cd_sv.size() (%d) > MAX_COLLECTED_DATA_SIZE (%d), Please Increase MAX_COLLECTED_DATA_SIZE\n", (int)cd_sv.size(), (int)MAX_COLLECTED_DATA_SIZE);
 	}
 
 	if ((cd_sv.n_time + cd_sv.n_val) > fields.size() - 2) {
-		if (!full_error_file.empty() && (err_log_file.good()))
+		if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 			err_log_file << "ERROR: in signal " << fields[1] << " expecting " << cd_sv.n_time << " time channels, and " << cd_sv.n_val << " value channels, but only " << fields.size() << " fields in line " << curr_line << "\n";
+		}
 		MTHROW_AND_ERR("ERROR: in signal %s expecting %d time channels, and %d value channels, but only %d fields in line %s\n", fields[1].c_str(), cd_sv.n_time, cd_sv.n_val, (int)fields.size(), curr_line.c_str());
 
 	}
@@ -570,8 +578,10 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 		case GenericSigVec::type_enc::UINT16:  //unsigned short
 			value = (int)med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode);
 			if (value < 0) {
-				if (!full_error_file.empty() && (err_log_file.good()))
+				if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 					err_log_file << "MedConvert: get_next_signal: Detected attempt to assign negative number (" << value << ") into unsigned time channel " << tchan << " :: curr_line is :" << curr_line << "\n";
+				}
 				MTHROW_AND_ERR("MedConvert: get_next_signal: Detected attempt to assign negative number (%d) into unsigned time channel %d :: curr_line is '%s'\n", value, tchan, curr_line.c_str());
 			}
 			cd_sv.setTime<unsigned short>(0, tchan, value);
@@ -638,8 +648,10 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 			else {
 				auto value = med_stoi(fields[field_i]);
 				if (value < 0) {
-					if (!full_error_file.empty() && (err_log_file.good()))
+					if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 						err_log_file << "MedConvert: get_next_signal: Detected attempt to assign negative number (" << value << ") into unsigned value channel " << vchan << "  :: curr_line is " << curr_line << "\n";
+					}
 					MTHROW_AND_ERR("MedConvert: get_next_signal: Detected attempt to assign negative number (%d) into unsigned value channel %d :: curr_line is '%s'\n", value, vchan, curr_line.c_str());
 				}
 				cd_sv.setVal<unsigned short>(0, vchan, (unsigned short)value);
@@ -688,24 +700,30 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 
 		if (fields.size() < 3) {
 			MERR("MedConvert: ERROR: Too few fields in file %s, line : %s\n", curr_fstat.fname.c_str(), curr_line.c_str());
-			if (!full_error_file.empty() && (err_log_file.good()))
+			if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 				err_log_file << "TOO_FEW_FIELDS_IN_LINE" << "\tfile: " << curr_fstat.fname << "\tline: " << curr_line << "\n";
+			}
 			continue;
 		}
 
 		if (codes2names.find(fields[1]) == codes2names.end()) {
 			MERR("MedConvert: ERROR: unrecognized signal name %s (need to add to codes_to_signals file) in file %s :: curr_line is %s\n",
 				fields[1].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
-			if (!full_error_file.empty() && (err_log_file.good()))
+			if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 				err_log_file << "UNRECOGNIZED_SIGNAL" << "\t(" << fields[1] << ")\tfile: " << curr_fstat.fname << "\tline: " << curr_line << "\n";
+			}
 			continue;
 		}
 
 		if ((sid = sigs.sid(codes2names[fields[1]])) < 0) {
 			MERR("MedConvert: ERROR: signal name %s converted to %s is not in dict in file %s :: curr_line is %s\n",
 				fields[1].c_str(), codes2names[fields[1]].c_str(), curr_fstat.fname.c_str(), curr_line.c_str());
-			if (!full_error_file.empty() && (err_log_file.good()))
+			if (!full_error_file.empty() && (err_log_file.good())) {
+#pragma omp critical
 				err_log_file << "NO_SID_FOR_SIGNAL" << "\t(" << fields[1] << ")\tfile: " << curr_fstat.fname << "\tline: " << curr_line << "\n";
+			}
 			continue;
 		}
 		//MLOG("sig %s %s sid %d to_load %d sigs.name %d %d\n", fields[1].c_str(), codes2names[fields[1]].c_str(), sid, sids_to_load[sid], (int)sigs.Name2Sid.size(), sigs.Name2Sid[codes2names[fields[1]]]);
@@ -742,6 +760,7 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 					sigs.name(sid).c_str(), sigs.type(sid), curr_fstat.fname.c_str(), curr_line.c_str());
 			if (!full_error_file.empty()) {
 				if (err_log_file.good()) {
+#pragma omp critical
 					err_log_file << "MISSING_FROM_DICTIONARY"
 						<< "\t" << sigs.name(sid) << " (" << sigs.type(sid) << ")"
 						<< "\t" << curr_fstat.fname
@@ -759,6 +778,7 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 			}
 			if (!full_error_file.empty()) {
 				if (err_log_file.good()) {
+#pragma omp critical
 					err_log_file << "BAD_FILE_FORMAT"
 						<< "\t" << curr_fstat.fname //<< " (" << file_type << ")"
 						<< "\t" << curr_fstat.n_parsed_lines

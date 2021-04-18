@@ -204,7 +204,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 /// A map from measurement name "Kendell-Tau" to it's value
 /// </returns>
 map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
-// <summary>
+/// <summary>
 /// A Function to calculate performance measurements for multicategory
 /// Implements MeasurementFunctions signature function
 /// </summary>
@@ -212,6 +212,19 @@ map<string, float> calc_kandel_tau(Lazy_Iterator *iterator, int thread_num, Meas
 /// A map from measurement name to it's value
 /// </returns>
 map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+
+/// <summary>
+/// A Function to calculate performance measurements for harrell c statistic
+/// Implements MeasurementFunctions signature function
+/// Encoding:
+/// Case/Control => effect outcome/y sign. positive is case, negative controls. Can't handle event in time zero.
+/// Time to event => abs value of outcome/y
+/// Score => the prediction
+/// </summary>
+/// <returns>
+/// A map from measurement name to it's value
+/// </returns>
+map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion

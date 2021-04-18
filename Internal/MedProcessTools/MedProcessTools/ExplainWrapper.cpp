@@ -94,8 +94,14 @@ int ExplainProcessings::init(map<string, string> &map) {
 	{
 		if (it->first == "group_by_sum")
 			group_by_sum = med_stoi(it->second) > 0;
-		else if (it->first == "learn_cov_matrix")
+		else if (it->first == "learn_cov_matrix") {
 			learn_cov_matrix = med_stoi(it->second) > 0;
+			if (!learn_cov_matrix) {
+				if (abs_cov_features.nrows > 0)
+					MLOG("INFO :: Clear Covariance Matrix\n");
+				abs_cov_features.clear();
+			}
+		}
 		else if (it->first == "cov_features") {
 			abs_cov_features.read_from_csv_file(it->second, 1);
 			for (int i = 0; i < abs_cov_features.nrows; i++)
@@ -666,15 +672,15 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 ///format TAB delim, 2 tokens: [Feature_name [TAB] group_name]
 void ExplainProcessings::read_feature_grouping(const string &file_name, const vector<string>& features,
-	vector<vector<int>>& group2index, vector<string>& group_names) {
+	vector<vector<int>>& group2index, vector<string>& group_names, bool verbose) {
 	// Features
 	int nftrs = (int)features.size();
 	map<string, vector<int>> groups;
 	vector<bool> grouped_ftrs(nftrs);
 	unordered_set<string> trends_set = { "slope", "std", "last_delta", "win_delta", "max_diff", "range_width", "sum" };
-	unordered_set<string> time_set = { "last_time", "last_time2", "first_time", "time_since_last_change" };
+	unordered_set<string> time_set = { "last_time", "last_time2", "first_time", "time_since_last_change" }; // "time_inside", "time_len", "time_diff", "time_covered"
 
-	string range_names = "^(last_nth_time_len_[0-9]+_|time_inside_|time_diff_start_|time_covered_|time_diff_|ever_|latest_|current_)";
+	string range_names = "^(last_nth_time_len_[0-9]+_|last_nth_[0-9]+_|time_inside_|time_diff_start_|time_covered_|time_diff_[0-9]+_|ever_|latest_|current_)";
 
 	if (file_name == "BY_SIGNAL") {
 		for (int i = 0; i < nftrs; ++i)
@@ -798,8 +804,8 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 			group2index.push_back({ i });
 		}
 	}
-
-	MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
+	if (verbose)
+		MLOG("Grouping: %d features into %d groups\n", nftrs, (int)group_names.size());
 }
 
 void ModelExplainer::Learn(const MedFeatures &train_mat) {
