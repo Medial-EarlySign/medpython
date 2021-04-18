@@ -7,6 +7,7 @@
 #include <MedProcessTools/MedProcessTools/MedValueCleaner.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <MedUtils/MedUtils/MedUtils.h>
+#include <MedAlgo/MedAlgo/BinSplitOptimizer.h>
 #include <unordered_set>
 
 #define DEFAULT_FEAT_CLNR_NTHREADS 24
@@ -39,6 +40,7 @@ typedef enum {
 	FTR_PROCESS_RESAMPLE_WITH_MISSING, ///<"resample_with_missing" to create ResampleMissingProcessor - adds missing values to learn matrix
 	FTR_PROCESS_DUPLICATE, ///<"duplicate" to create DuplicateProcessor - duplicates samples in order to do multiple imputations.
 	FTR_PROCESS_MISSING_INDICATOR, ///<"missing_indicator" to create MissingIndicatorProcessor - creates a feature that indicates if a feature is missing or not
+	FTR_PROCESS_BINNING, ///< "binning" to create BinningFeatProcessor - binning with one hot on the bins
 	FTR_PROCESS_LAST
 } FeatureProcessorTypes;
 
@@ -1163,6 +1165,75 @@ public:
 };
 
 
+class Binning_Wrapper : public SerializableObject {
+public:
+	vector<double> bin_cutoffs; ///< index i for value (v) := bin_cutoffs[i-1] < v <= bin_cutoffs[i]
+	vector<double> bin_repr_vals; ///< the representative value for each bin. With size := bin_cutoffs.size()+1
+
+	string use_bin_settings; ///< if not empty - will use bin setting to create bins:
+
+							 /// init function for arguments
+	int init(map<string, string>& mapper);
+
+	/// if has use_bin_settings => will update bin_cutoffs, bin_repr_vals
+	void load_bin_settings(const vector<float> &nums);
+
+	/// returns index for each value
+	int get_idx(float v) const;
+
+	/// returns number of bins
+	int num_of_bins() const;
+
+	/// normalize value into bin and represantative
+	float normalize(float v) const;
+
+	ADD_CLASS_NAME(Binning_Wrapper)
+		ADD_SERIALIZATION_FUNCS(bin_cutoffs, bin_repr_vals, use_bin_settings)
+};
+
+
+/**
+* GetProbProcessor:
+*
+* Replace category with probability of outcome in training set
+* To Use this processor specify <b>"get_prob"</b> in the fp_type
+*/
+class BinningFeatProcessor : public FeatureProcessor {
+private: 
+	string get_bin_name(float num) const;
+public:
+
+	float missing_value = MED_MAT_MISSING_VALUE; ///< Missing Value
+	float missing_target_val = MED_MAT_MISSING_VALUE;
+	bool remove_origin = true;
+	bool one_hot = true;
+	string bin_format = "%2.1f";
+	Binning_Wrapper bin_sett;
+								// Constructor
+	BinningFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; }
+	BinningFeatProcessor(const  string& feature_name) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; set_feature_name(feature_name); }
+	BinningFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; init_from_string(init_string);  set_feature_name(feature_name); }
+
+	// Learn probabilities
+	int Learn(MedFeatures& features, unordered_set<int>& ids);
+
+	// Apply transformation
+	int _apply(MedFeatures& features, unordered_set<int>& ids);
+
+	/// The parsed fields from init command.
+	/// @snippet BinningFeatProcessor.cpp BinningFeatProcessor::init
+	int init(map<string, string>& mapper);
+
+	// Copy
+	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<BinningFeatProcessor *>(processor)); }
+
+	// Serialization
+	ADD_CLASS_NAME(BinningFeatProcessor)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val, 
+			remove_origin, bin_sett, bin_format, one_hot);
+
+};
+
 
 //=======================================
 // Joining the MedSerialze wagon
@@ -1189,4 +1260,6 @@ MEDSERIALIZE_SUPPORT(OneHotFeatProcessor)
 MEDSERIALIZE_SUPPORT(univariateSelectionParams)
 MEDSERIALIZE_SUPPORT(MultiplierProcessor)
 MEDSERIALIZE_SUPPORT(MissingIndicatorProcessor)
+MEDSERIALIZE_SUPPORT(Binning_Wrapper)
+MEDSERIALIZE_SUPPORT(BinningFeatProcessor)
 #endif
