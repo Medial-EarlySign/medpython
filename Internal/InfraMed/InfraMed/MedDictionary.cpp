@@ -178,11 +178,11 @@ int MedDictionary::id_list(vector<string> &names, vector<int> &ids)
 	return rc;
 }
 //-----------------------------------------------------------------------------------------------
-int MedDictionary::id(const string &name)
+int MedDictionary::id(const string &name) const
 {
 	if (Name2Id.find(name) == Name2Id.end())
 		return -1;
-	return Name2Id[name];
+	return Name2Id.at(name);
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -468,7 +468,7 @@ int MedDictionary::add_set(const string &fname, const string &member_name, const
 
 
 //-----------------------------------------------------------------------------------------------
-int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut)
+int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut) const
 {
 	// convert names to ids
 	vector<int> sig_ids;
@@ -520,7 +520,7 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 			int s = q.front();
 			q.pop();
 			lut[s] = 1;
-			for (auto elem : Set2Members[s])
+			for (auto elem : Set2Members.at(s))
 				if (lut[elem] == 0)
 					q.push(elem);
 
