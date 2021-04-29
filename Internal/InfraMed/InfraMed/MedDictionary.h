@@ -32,7 +32,7 @@ public:
 	int read(const string &fname);
 	int read(vector<string> &dfnames);
 	int read(string path, vector<string> &dfnames);
-	int id(const string &name);
+	int id(const string &name) const;
 	int id_list(vector<string> &names, vector<int> &ids);
 	string name(int id);
 
@@ -41,7 +41,7 @@ public:
 	int is_in_set(int member_id, const string &set_name);
 	int is_in_set(const string& member, int set_id);
 
-	int prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut);
+	int prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut) const;
 	int prep_sets_indexed_lookup_table(const vector<string> &set_names, vector<unsigned char> &lut);
 
 	void get_set_members(const string &set, vector<int> &members);

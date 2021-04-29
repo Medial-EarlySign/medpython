@@ -168,6 +168,9 @@
     <ClCompile Include="RepCategoryDescenders.cpp">
       <Filter>Source Files\RepProcessors</Filter>
     </ClCompile>
+    <ClCompile Include="BinningFeatProcessor.cpp">
+      <Filter>Source Files\FeatureProcessors</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">

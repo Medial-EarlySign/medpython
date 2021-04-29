@@ -82,6 +82,7 @@
     <ClCompile Include="AlcoholGenerator.cpp" />
     <ClCompile Include="AggregatePredsPostProcessor.cpp" />
     <ClCompile Include="BinnedLmEstimates.cpp" />
+    <ClCompile Include="BinningFeatProcessor.cpp" />
     <ClCompile Include="Calibration.cpp" />
     <ClCompile Include="CategoryDependencyGenerator.cpp" />
     <ClCompile Include="CrossValidation.cpp" />

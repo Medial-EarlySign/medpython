@@ -178,11 +178,11 @@ int MedDictionary::id_list(vector<string> &names, vector<int> &ids)
 	return rc;
 }
 //-----------------------------------------------------------------------------------------------
-int MedDictionary::id(const string &name)
+int MedDictionary::id(const string &name) const
 {
 	if (Name2Id.find(name) == Name2Id.end())
 		return -1;
-	return Name2Id[name];
+	return Name2Id.at(name);
 }
 
 //-----------------------------------------------------------------------------------------------
@@ -468,7 +468,7 @@ int MedDictionary::add_set(const string &fname, const string &member_name, const
 
 
 //-----------------------------------------------------------------------------------------------
-int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut)
+int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vector<char> &lut) const
 {
 	// convert names to ids
 	vector<int> sig_ids;
@@ -520,9 +520,10 @@ int MedDictionary::prep_sets_lookup_table(const vector<string> &set_names, vecto
 			int s = q.front();
 			q.pop();
 			lut[s] = 1;
-			for (auto elem : Set2Members[s])
-				if (lut[elem] == 0)
-					q.push(elem);
+			if (Set2Members.find(s) != Set2Members.end())
+				for (auto elem : Set2Members.at(s))
+					if (lut[elem] == 0)
+						q.push(elem);
 
 		}
 
@@ -764,7 +765,7 @@ int MedDictionarySections::add_json_simple_format(json &js)
 		for (auto &jdef : jsig.value().items()) {
 
 			// if not defined, will add it
-			string def = jdef.key(); 
+			string def = jdef.key();
 
 			if (sdict.Name2Id.find(def) == sdict.Name2Id.end()) {
 				// new def addition
@@ -794,8 +795,8 @@ int MedDictionarySections::add_json_simple_format(json &js)
 //------------------------------------------------------------------------------------------------------
 int MedDictionarySections::add_json(json &js)
 {
-//	if (js.find("dictionary") == js.end())
-//		MTHROW_AND_ERR("MedDictionary: got json with no dictionary tag\n");
+	//	if (js.find("dictionary") == js.end())
+	//		MTHROW_AND_ERR("MedDictionary: got json with no dictionary tag\n");
 
 	if (js.find("dictionary") == js.end())
 		return add_json_simple_format(js);
@@ -835,12 +836,13 @@ int MedDictionarySections::add_json(json &js)
 						string dset = s.get<string>();
 						if (sdict.Name2Id.find(dset) != sdict.Name2Id.end()) {
 							sdict.push_new_set(sdict.Name2Id[dset], member_id);
-						} else
+						}
+						else
 							MTHROW_AND_ERR("MedDictionary: json dict : %s is used but not defined previously\n", dset.c_str());
 					}
 				}
 			}
-		} 
+		}
 	}
 
 	return 0;

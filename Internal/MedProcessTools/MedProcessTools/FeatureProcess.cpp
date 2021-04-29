@@ -58,6 +58,8 @@ FeatureProcessorTypes feature_processor_name_to_type(const string& processor_nam
 		return FTR_PROCESS_DUPLICATE;
 	else if (processor_name == "missing_indicator")
 		return FTR_PROCESS_MISSING_INDICATOR;
+	else if (processor_name == "binning")
+		return FTR_PROCESS_BINNING;
 	else
 		MTHROW_AND_ERR("feature_processor_name_to_type got unknown processor_name [%s]\n", processor_name.c_str());
 }
@@ -100,6 +102,7 @@ void *FeatureProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, ResampleMissingProcessor);
 	CONDITIONAL_NEW_CLASS(dname, DuplicateProcessor);
 	CONDITIONAL_NEW_CLASS(dname, MissingIndicatorProcessor);
+	CONDITIONAL_NEW_CLASS(dname, BinningFeatProcessor);
 
 	MTHROW_AND_ERR("Warning in FeatureProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
@@ -150,7 +153,8 @@ FeatureProcessor * FeatureProcessor::make_processor(FeatureProcessorTypes proces
 		return new DuplicateProcessor;
 	else if (processor_type == FTR_PROCESS_MISSING_INDICATOR)
 		return new MissingIndicatorProcessor;
-
+	else if (processor_type == FTR_PROCESS_BINNING)
+		return new BinningFeatProcessor;
 	else
 		MTHROW_AND_ERR("make_processor got unknown processor type [%d]\n", processor_type);
 
