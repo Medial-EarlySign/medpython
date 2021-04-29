@@ -292,7 +292,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
-		for (size_t isig = 0; isig < sig_ids.size(); isig++)
+		for (size_t isig = 0; isig < sig_ids.size(); isig++) 
 			rec.uget(sig_ids[isig], iver, usvs[isig]);
 
 		if (registry == REP_REGISTRY_HT)
@@ -307,7 +307,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			custom_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
-		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++)
+		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
 			rec.set_version_universal_data(virtual_ids[ivir], iver, &(all_v_times[ivir][0]), &(all_v_vals[ivir][0]), final_sizes[ivir]);
 	}
 
@@ -1077,7 +1077,7 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 			ip++;
 		}
 
-		if (i_time > time) break;
+		if (time>0 &&  i_time > time) break;
 
 		//MLOG("CKD: pid %d %d : ip %d/%d ie %d/%d i_time %d last_e %f last_p %f\n", rec.pid, time, ip, p_usv.len, ie, e_usv.len, i_time, last_e, last_p);
 
