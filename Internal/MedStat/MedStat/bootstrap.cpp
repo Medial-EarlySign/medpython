@@ -665,8 +665,15 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		sort(measures.begin(), measures.end());
 		float meanVal = meanArr(measures);
 		float stdVal = stdArr(measures, meanVal);
-		float lower_ci = measures[(int)round(((1 - ci_bound) / 2) * measures.size())];
-		int max_pos = (int)round((ci_bound + (1 - ci_bound) / 2) * measures.size());
+		int last_idx = 0;
+		if (measures.front() == MED_MAT_MISSING_VALUE)
+			last_idx = binary_search_position_last(measures.data(), measures.data() + (int)measures.size() - 1, (float)MED_MAT_MISSING_VALUE);
+		int lower_ct_idx = last_idx + (int)round(((1 - ci_bound) / 2) * (measures.size() - last_idx));
+		float lower_ci = MED_MAT_MISSING_VALUE;
+		if (lower_ct_idx < measures.size())
+			lower_ci = measures[lower_ct_idx];
+
+		int max_pos = last_idx + (int)round((ci_bound + (1 - ci_bound) / 2) * (measures.size() - last_idx));
 		if (max_pos >= measures.size())
 			max_pos = (int)measures.size() - 1;
 		float upper_ci = measures[max_pos];
@@ -2091,7 +2098,7 @@ map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_
 	//Score => the prediction
 
 	map<string, float> res;
-	double tau = 0, cnt = 0, case_cnt = 0, cntrl_cnt=0;
+	double tau = 0, cnt = 0, case_cnt = 0, cntrl_cnt = 0;
 	float y, pred, weight;
 	//vector<float> scores, labels;
 	map<float, vector<float>> cases_to_scores, controls_to_scores;
