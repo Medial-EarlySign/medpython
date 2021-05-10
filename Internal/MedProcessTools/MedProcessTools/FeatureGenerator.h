@@ -300,6 +300,7 @@ public:
 	int N_th = 0; ///< used in last_nth and category_set_last_nth 
 	int zero_missing = 0; ///< in some cases of category_set (or others) we may want to get 0 instead of missing_value, turn this on for that
 	float zero_missing_val = 0; ///< when zero_missing is on - whats the value to store in the missing value feature
+	int full_name = 0; ///< add time and value channels even if 0
 
 	// helpers
 	vector<char> lut;							///< to be used when generating FTR_CATEGORY_SET_*
@@ -367,7 +368,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BasicFeatGenerator)
 	ADD_SERIALIZATION_FUNCS(generator_type, type, tags, serial_id, win_from, win_to, d_win_from, d_win_to, time_unit_win, time_channel, val_channel, sum_channel, min_value, max_value, signalName, sets,
-			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing, missing_val, categ_value2id, zero_missing_val)
+			names, req_signals, in_set_name, bound_outcomeTime, timeRangeSignalName, timeRangeType, time_unit_sig, N_th, zero_missing, missing_val, categ_value2id, zero_missing_val, full_name)
 
 };
 

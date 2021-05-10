@@ -464,7 +464,7 @@ void BasicFeatGenerator::set_names() {
 	name += ".win_" + std::to_string(win_from) + "_" + std::to_string(win_to);
 	if (type == FTR_WIN_DELTA_VALUE)
 		name += "_" + std::to_string(d_win_from) + "_" + std::to_string(d_win_to);
-	if (time_channel != 0 || val_channel != 0)
+	if (time_channel != 0 || val_channel != 0 || full_name)
 		name += ".t" + std::to_string(time_channel) + "v" + std::to_string(val_channel);
 	if (timeRangeSignalName != "")
 		name += ".time_range_" + timeRangeSignalName + "_" + time_range_type_to_name(timeRangeType);
@@ -663,6 +663,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "zero_missing") zero_missing = stoi(entry.second);
 		else if (field == "zero_missing_val") zero_missing_val = med_stof(entry.second);
 		else if (field == "missing_value") missing_val = stof(entry.second);
+		else if (field == "full_name") full_name = stoi(entry.second);
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]
