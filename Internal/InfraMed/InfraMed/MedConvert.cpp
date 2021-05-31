@@ -542,14 +542,13 @@ void MedConvert::parse_fields_into_gsv(string &curr_line, vector<string> &fields
 
 	int field_i = 2;
 	int value;
-
 	for (int tchan = 0; tchan < cd_sv.n_time; tchan++) {
 		switch (cd_sv.time_channel_types[tchan]) {
 
 		case GenericSigVec::type_enc::INT8:    //char
 		case GenericSigVec::type_enc::INT16:   //short
 		case GenericSigVec::type_enc::INT32:   //int
-			cd_sv.setTime(0, tchan, med_stoi(fields[field_i]));
+			cd_sv.setTime(0, tchan, med_time_converter.convert_datetime_safe(time_unit, fields[field_i], convert_mode));
 			break;
 		case GenericSigVec::type_enc::UINT8:   //unsigned char
 			cd_sv.setTime<unsigned short>(0, tchan, med_stoi(fields[field_i]));
