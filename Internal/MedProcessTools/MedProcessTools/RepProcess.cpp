@@ -3421,7 +3421,7 @@ int RepBasicRangeCleaner::init(map<string, string>& mapper)
 		if (sets.size() > 0)
 		{
 			for (int i = 0; i < sets.size(); i++)
-			output_name += "_" + sets[i];
+				output_name += "_" + sets[i];
 		}
 
 		if (do_on_last_n)
@@ -3534,7 +3534,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 		len = rec.usvs[0].len;
 		vector<int> v_times(len * time_channels); // initialize size to avoid multiple resizings for long signals
 		vector<float> v_vals(len * val_channels);
-		
+
 		float last_value_n;
 		bool found_last_n = false;
 		if (do_on_last_n)
@@ -3552,7 +3552,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			case all:
 				//increase till end or till end_time of signal passed time (sorted so no need to search after)
 				//or if has filter on sets - skip is not in set
-				while ((j < rec.usvs[1].len) && ((time > rec.usvs[1].Time(j, 1)) || !((!lut.empty() &&  
+				while ((j < rec.usvs[1].len) && ((time > rec.usvs[1].Time(j, 1)) || !((!lut.empty() &&
 					lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n)))))
 					++j;
 				if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
@@ -3575,7 +3575,7 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 					//last till time_point:
 					while (j >= 0 && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
 						--j;
-			
+
 					while (j >= 0 && !((!lut.empty() && lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n))))
 						--j;
 				}
@@ -3735,7 +3735,7 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 			categories_sets.clear();
 			for (int i = 0; i < s1.size(); i += 2) {
 				categories_names.push_back(s1[i]);
-				vector<string> s2,s3;
+				vector<string> s2, s3;
 				boost::split(s2, s1[i + 1], boost::is_any_of(","));
 				for (string& s : s2) //remove empty values (can happen due to comma additions when using list file)
 				{
@@ -3779,14 +3779,15 @@ int RepCreateBitSignal::init(map<string, string> &mapper) {
 
 //-------------------------------------------------------------------------------------------------------
 void RepCreateBitSignal::get_min_jitters(string &jitters_s) {
-	
+
 	vector<string> jitters_v;
 	boost::split(jitters_v, jitters_s, boost::is_any_of(","));
 
 	if (jitters_v.size() == min_jitters.size()) {
 		for (size_t i = 0; i < min_jitters.size(); i++)
 			min_jitters[i] = stoi(jitters_v[i]);
-	} else if (jitters_v.size()==1) {
+	}
+	else if (jitters_v.size() == 1) {
 		for (size_t i = 0; i < min_jitters.size(); i++)
 			min_jitters[i] = stoi(jitters_v[0]);
 	}
@@ -3889,7 +3890,7 @@ void RepCreateBitSignal::register_virtual_section_name_id(MedDictionarySections&
 //#define _APPLY_VERBOSE
 int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat) {
 
-	if (time_points.size() != 0  && time_points.size() != rec.get_n_versions()) {
+	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
 		MERR("nversions mismatch: %d time-pints vs %d versions\n", time_points.size(), rec.get_n_versions());
 		return -1;
 	}
@@ -3916,7 +3917,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		//MLOG("working on iver %d , time %d dont_look_back %d\n", iver, time_points[iver], dont_look_back);
 
 		// max_look_at_time : a safety parameter enabling to make sure we are NOT looking at presctiptions from the current (or very near to) days.
-		int max_look_at_time = (time_points.size()>0) ? med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration) : -1;
+		int max_look_at_time = (time_points.size() > 0) ? med_time_converter.add_subtract_time(time_points[iver], time_unit_sig, -dont_look_back, time_unit_duration) : -1;
 		//MLOG("max_look_at_time %d\n", max_look_at_time);
 
 		// Collect durations per category
@@ -3941,7 +3942,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		// calculating a time interval for each category
 		vector<vector<category_time_interval>> time_intervals(N, { category_time_interval() });
 		for (int j = 0; j < N; j++) {
-			for (size_t i=0; i<collected_info[j].size(); i++) {
+			for (size_t i = 0; i < collected_info[j].size(); i++) {
 				int i_time = collected_info[j][i].first;
 				int j_duration = collected_info[j][i].second;
 
@@ -3995,7 +3996,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		for (int j = 0; j < N; j++) {
 			for (auto &e : time_intervals[j]) {
 #ifdef _APPLY_VERBOSE
-				if (e.first_appearance > 0) 
+				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
 #endif
 				if (e.first_appearance > 0) {
@@ -4041,7 +4042,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 		}
-		
+
 #ifdef _APPLY_VERBOSE
 		for (int j = 0; j < N; j++) {
 			for (auto &e : time_intervals[j]) {
@@ -4062,7 +4063,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			states.push_back(combination_state(first_date, 0, N));
 
 			for (auto &e : ev) {
-				if (max_look_at_time!=-1 && e.time > max_look_at_time)
+				if (max_look_at_time != -1 && e.time > max_look_at_time)
 					break;
 
 				if (states.back().start < e.time)
@@ -4084,7 +4085,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				for (int i = 0; i < usv.len; i++)
 				{
 					int i_time = (int)usv.Time(i, t_chan);
-					if (max_look_at_time!=-1 &&  i_time > max_look_at_time)
+					if (max_look_at_time != -1 && i_time > max_look_at_time)
 						break;
 					int i_val = (int)usv.Val(i, c_chan);
 					if (all_cat_lut[i_val] && updated_states.back().start != i_time)
@@ -4162,7 +4163,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 					// the case of AB-A-AC
 					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
-						take_it = false; 
+						take_it = false;
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
@@ -4202,7 +4203,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					int end_time = med_time_converter.add_subtract_time(e.start, time_unit_sig, -1, time_unit_duration);
 					v_times.push_back(end_time);
 				}
-				v_times.push_back(e.start);				
+				v_times.push_back(e.start);
 				v_vals.push_back((float)e.state);
 				//MLOG("Final: state: %d %d\n", e.first, e.second);
 			}
@@ -4403,7 +4404,7 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 {
 	data.clear();
 	len = 0;
-	if (truncate_time_channel < 0) {
+	if (truncate_time_channel < 0 || truncate_time_channel >= usv.n_time_channels()) {
 		char *udata = (char *)usv.data;
 		int element_size = (int)usv.size();
 		for (int i = 0; i < usv.len; i++) {
@@ -4422,7 +4423,7 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 			int i_time = usv.Time(i, time_channel);
 			int tr_time = usv.Time(i, truncate_time_channel);
 			if (i_time > from_time && i_time <= to_time) {
-				if (tr_time > to_time) 
+				if (tr_time > to_time)
 					usv.setTime(i, truncate_time_channel, to_time);
 				for (int j = element_size * i; j < element_size*(i + 1); j++)
 					data.push_back(udata[j]);
