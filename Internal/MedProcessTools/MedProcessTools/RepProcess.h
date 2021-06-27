@@ -1801,6 +1801,7 @@ public:
 	string signalName; 	///< name of signal to clean
 	int signalId;	///< id of signal to clean
 	int time_channel = 0; ///< time channel to consider in cleaning
+	int truncate_time_channel = -1; ///< If given this time channel value will be truncated to "pred_time" - win_to
 	int win_time_unit = global_default_windows_time_unit;
 	int rep_time_unit = global_default_time_unit; // we assume this is also the samples time unit
 	int win_from = 0;
@@ -1832,7 +1833,8 @@ public:
 	void init_lists();
 
 	ADD_CLASS_NAME(RepHistoryLimit)
-		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, win_time_unit, rep_time_unit, win_from, win_to, delete_sig, take_last_events, req_signals, aff_signals)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, time_channel, win_time_unit, rep_time_unit,
+			win_from, win_to, delete_sig, take_last_events, req_signals, aff_signals, truncate_time_channel)
 
 };
 

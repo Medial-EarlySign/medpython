@@ -4381,6 +4381,7 @@ int RepHistoryLimit::init(map<string, string>& mapper)
 		//! [RepHistoryLimit::init]
 		if (field == "signal") { signalName = entry.second; }
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "truncate_time_channel") truncate_time_channel = med_stoi(entry.second);
 		else if (field == "win_from") win_from = med_stoi(entry.second);
 		else if (field == "win_to") win_to = med_stoi(entry.second);
 		else if (field == "delete_sig") delete_sig = med_stoi(entry.second);
@@ -4402,14 +4403,31 @@ int RepHistoryLimit::get_sub_usv_data(UniversalSigVec &usv, int from_time, int t
 {
 	data.clear();
 	len = 0;
-	char *udata = (char *)usv.data;
-	int element_size = (int)usv.size();
-	for (int i = 0; i < usv.len; i++) {
-		int i_time = usv.Time(i, time_channel);
-		if (i_time > from_time && i_time <= to_time) {
-			for (int j = element_size * i; j < element_size*(i + 1); j++)
-				data.push_back(udata[j]);
-			len++;
+	if (truncate_time_channel < 0) {
+		char *udata = (char *)usv.data;
+		int element_size = (int)usv.size();
+		for (int i = 0; i < usv.len; i++) {
+			int i_time = usv.Time(i, time_channel);
+			if (i_time > from_time && i_time <= to_time) {
+				for (int j = element_size * i; j < element_size*(i + 1); j++)
+					data.push_back(udata[j]);
+				len++;
+			}
+		}
+	}
+	else {
+		char *udata = (char *)usv.data;
+		int element_size = (int)usv.size();
+		for (int i = 0; i < usv.len; i++) {
+			int i_time = usv.Time(i, time_channel);
+			int tr_time = usv.Time(i, truncate_time_channel);
+			if (i_time > from_time && i_time <= to_time) {
+				if (tr_time > to_time) 
+					usv.setTime(i, truncate_time_channel, to_time);
+				for (int j = element_size * i; j < element_size*(i + 1); j++)
+					data.push_back(udata[j]);
+				++len;
+			}
 		}
 	}
 	return 0;
