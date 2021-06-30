@@ -668,15 +668,24 @@ int MedFeatures::read_from_csv_mat(const string &csv_fname, bool read_time_raw)
 				MTHROW_AND_ERR("Expected %d fields, got %d fields in line: \'%s\'\n", ncols, (int)fields.size(), curr_line.c_str());
 
 			if (curr_pos_fields->find(weight_field_name) != curr_pos_fields->end())
-				weights.push_back(stof(fields[curr_pos_fields->at(weight_field_name)]));
+				weights.push_back(med_stof(fields[curr_pos_fields->at(weight_field_name)]));
 
 			MedSample newSample;
 			newSample.parse_from_string(fields, *curr_pos_fields, pos_preds, pos_attr, pos_str_attr, time_unit, (int)read_time_raw, ",");
 
 			samples.push_back(newSample);
 
-			for (int i = 0; i < names.size(); i++)
-				data[names[i]].push_back(stof(fields[feature_name_pos[names[i]]]));
+			for (int i = 0; i < names.size(); i++) {
+				try {
+					data[names[i]].push_back(med_stof(fields[feature_name_pos[names[i]]]));
+				}
+				catch (...) {
+					MERR("Error in line %zu, column %d(%s), value was \"%s\"\n",
+						data[names[i]].size() + 2, i, names[i].c_str(),
+						fields[feature_name_pos[names[i]]].c_str());
+					throw;
+				}
+			}
 		}
 	}
 
