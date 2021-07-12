@@ -199,6 +199,8 @@ int fix_path(const string& in, string& out) {
 int write_string(const string &fname, string &data)
 {
 	ofstream out(fname);
+	if (!out.good())
+		MTHROW_AND_ERR("Error can't open %s for write\n", fname.c_str());
 	out << data;
 	out.close();
 	return(0);

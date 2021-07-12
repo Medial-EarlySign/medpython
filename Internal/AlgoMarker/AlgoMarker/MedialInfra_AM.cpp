@@ -184,11 +184,12 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 						val = stof(Values[Values_i++]);
 					}
 					else {
-						if (category_map.find(Values[Values_i++]) == category_map.end()) {
+						if (category_map.find(Values[Values_i]) == category_map.end()) {
 							MERR("Found undefined code for signal \"%s\" and value \"%s\"\n",
-								sig.c_str(), Values[Values_i-1]);
+								sig.c_str(), Values[Values_i]);
 						}
-						val = category_map.at(Values[Values_i++]);
+						val = category_map.at(Values[Values_i]);
+						++Values_i;
 					}
 
 					converted_Values.push_back(val);
