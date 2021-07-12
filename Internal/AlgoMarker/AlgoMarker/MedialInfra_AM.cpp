@@ -100,7 +100,7 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 			return AM_ERROR_LOAD_MISSING_REQ_SIGS;
 		//if (ma.init_model_for_apply() < 0)
 		//	return AM_ERROR_LOAD_READ_MODEL_ERR;
-		
+
 	}
 	catch (...) {
 		return AM_ERROR_LOAD_READ_MODEL_ERR;
@@ -185,10 +185,11 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 					}
 					else {
 						if (category_map.find(Values[Values_i]) == category_map.end()) {
-							MERR("Found undefined code for signal \"%s\" and value \"%s\"\n",
+							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
 								sig.c_str(), Values[Values_i]);
 						}
-						val = category_map.at(Values[Values_i]);
+						else
+							val = category_map.at(Values[Values_i]);
 						++Values_i;
 					}
 
@@ -230,7 +231,7 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 
 
 	json jsdata;
-	
+
 	try {
 		jsdata = json::parse(data);
 	}
@@ -509,7 +510,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 	if (!json_verify_key(jreq, "requests", 0, ""))
 		add_to_json_array(jresp, "errors", "ERROR: missing actual requests in request " + request_id);
-		
+
 	if (json_verify_key(jresp, "errors", 0, "")) { json_to_char_ptr(jresp, response); return AM_FAIL_RC; } // Leave now if there are errors
 
 	// default parameters
@@ -517,24 +518,24 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 	vector<json_req_info> sample_reqs;
 
-//	try {
-		json_parse_request(jreq, defaults, defaults);
+	//	try {
+	json_parse_request(jreq, defaults, defaults);
 
-		for (auto &jreq_i : jreq["requests"]) {
-			json_req_info j_i;
-			json_parse_request(jreq_i, defaults, j_i);
-			sample_reqs.push_back(j_i);
-			if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
-				if (AddJsonData(j_i.sample_pid, jreq_i["data"]) != AM_OK_RC) {
-					add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
-				}
+	for (auto &jreq_i : jreq["requests"]) {
+		json_req_info j_i;
+		json_parse_request(jreq_i, defaults, j_i);
+		sample_reqs.push_back(j_i);
+		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
+			if (AddJsonData(j_i.sample_pid, jreq_i["data"]) != AM_OK_RC) {
+				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
 			}
 		}
-//	}
+	}
+	//	}
 
-//	catch (...) {
-//		add_to_json_array(jresp, "errors", "ERROR: error when parsing requests (or loading)");
-//	}
+	//	catch (...) {
+	//		add_to_json_array(jresp, "errors", "ERROR: error when parsing requests (or loading)");
+	//	}
 	if (json_verify_key(jresp, "errors", 0, "")) { json_to_char_ptr(jresp, response); return AM_FAIL_RC; } // Leave now if there are errors
 
    // We now convert times and do an initial sanity checks
@@ -546,7 +547,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	vector<int> eligible_pids, eligible_timepoints;
 	unordered_map<unsigned long long, vector<int>> sample2ind; // conversion of each sample to all the ts that were mapped to it.
 	int n_failed = 0, n_bad = 0;
-//#pragma omp parallel for if (n_points > 10)
+	//#pragma omp parallel for if (n_points > 10)
 	for (int i = 0; i < n_points; i++) {
 		json_req_info &req_i = sample_reqs[i];
 		req_i.conv_time = AMPoint::auto_time_convert(req_i.sample_time, tu);
@@ -645,7 +646,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				else
 					js.push_back({ e.first, to_string(AM_UNDEFINED_VALUE) });
 				if (req_i.res == NULL)
-					add_to_json_array(js, "messages", "ERROR: did not get result for field " + e.first + " : " + e.second.field );
+					add_to_json_array(js, "messages", "ERROR: did not get result for field " + e.first + " : " + e.second.field);
 				else if (req_i.res->prediction.size() <= e.second.pred_channel || e.second.pred_channel < 0)
 					add_to_json_array(js, "messages", "ERROR: prediction channel " + to_string(e.second.pred_channel) + " is illegal");
 			}
@@ -980,9 +981,9 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 			boost::split(f, field, boost::is_any_of(" "));
 			if (f.size() == 2) {
 				if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
-				else if (f[0] == "json_attr") {	type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
-				else if (f[0] == "pred") {	type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
-				else if (f[0] == "json") {	type = PREDICTION_SOURCE_JSON; field = f[1]; }
+				else if (f[0] == "json_attr") { type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
+				else if (f[0] == "pred") { type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
+				else if (f[0] == "json") { type = PREDICTION_SOURCE_JSON; field = f[1]; }
 			}
 
 			if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
