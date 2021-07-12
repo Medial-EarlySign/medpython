@@ -184,6 +184,10 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 						val = stof(Values[Values_i++]);
 					}
 					else {
+						if (category_map.find(Values[Values_i++]) == category_map.end()) {
+							MERR("Found undefined code for signal \"%s\" and value \"%s\"\n",
+								sig.c_str(), Values[Values_i-1]);
+						}
 						val = category_map.at(Values[Values_i++]);
 					}
 
@@ -193,6 +197,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		}
 	}
 	catch (...) {
+		MERR("Catched Error MedialInfraAlgoMarker::AddDataStr!!\n");
 		return AM_FAIL_RC;
 	}
 

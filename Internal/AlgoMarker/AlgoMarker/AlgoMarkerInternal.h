@@ -31,7 +31,7 @@ private:
 
 public:
 
-	MedPidRepository &get_rep() { return rep; }
+	MedPidRepository & get_rep() { return rep; }
 	//========================================================
 	// Initializations
 	//========================================================
@@ -41,11 +41,11 @@ public:
 	void set_model_end_stage(int _model_end_stage) { model_end_stage = _model_end_stage; };
 
 	// init repository config
-	int init_rep_config(const char *config_fname) { 
-		if (rep.MedRepository::init(string(config_fname)) < 0) return -1; 
+	int init_rep_config(const char *config_fname) {
+		if (rep.MedRepository::init(string(config_fname)) < 0) return -1;
 		rep.switch_to_in_mem_mode();
 
-		return 0; 
+		return 0;
 	}
 
 	// set time_unit env for repositories and models
@@ -61,13 +61,13 @@ public:
 	int init_rep_with_file_data(const char *_rep_fname) {
 		rep.clear();
 		rep_fname = string(_rep_fname);
-		vector<string> sigs ={};
+		vector<string> sigs = {};
 		return (rep.read_all(rep_fname, pids, sigs));
 	}
 
 	// init model
 	int init_model_from_file(const char *_model_fname) { model.clear();	model.verbosity = 0; return (model.read_from_file(string(_model_fname))); }
-	int model_check_required_signals() { 
+	int model_check_required_signals() {
 		int ret = 0;
 		vector<string> req_sigs;
 		model.get_required_signal_names(req_sigs);
@@ -81,6 +81,7 @@ public:
 
 	// init model for apply
 	int init_model_for_apply() {
+		global_logger.log(LOG_APP, LOG_DEF_LEVEL, "Init MedModel for Apply\n");
 		model_init_done = true;
 		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
 	}
@@ -96,18 +97,18 @@ public:
 
 	bool model_initiated() { return model_init_done; }
 
-   //========================================================
-   // Loading data to rep
-   //========================================================
-	
-    // init loading : actions that must be taken BEFORE any loading starts
+	//========================================================
+	// Loading data to rep
+	//========================================================
+
+	 // init loading : actions that must be taken BEFORE any loading starts
 	int data_load_init() { rep.switch_to_in_mem_mode(); return 0; }
 
 	// load n_elems for a pid,sig
 	int data_load_pid_sig(int pid, const char *sig_name, int *times, float *vals, int n_elems) {
 		int sid = rep.sigs.Name2Sid[string(sig_name)];
 		if (sid < 0) return -1; // no such signal
-		int n_times = n_elems * rep.sigs.Sid2Info[sid].n_time_channels, n_vals = n_elems  * rep.sigs.Sid2Info[sid].n_val_channels;
+		int n_times = n_elems * rep.sigs.Sid2Info[sid].n_time_channels, n_vals = n_elems * rep.sigs.Sid2Info[sid].n_val_channels;
 		if (times == NULL) n_times = 0;
 		if (vals == NULL) n_vals = 0;
 		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
@@ -126,13 +127,13 @@ public:
 	// end loading : actions that must be taken AFTER all loading was done, and BEFORE we calculate the predictions
 	int data_load_end() { return rep.in_mem_rep.sortData(); }
 
-	void get_rep_signals(unordered_set<string> &sigs) 
+	void get_rep_signals(unordered_set<string> &sigs)
 	{
 		for (auto &sig : rep.sigs.signals_names)
 		{
 			sigs.insert(sig);
 		}
-	} 
+	}
 	// returns the available signals
 
 	//========================================================
@@ -144,7 +145,7 @@ public:
 
 	// insert prediction points
 	int insert_samples(int *pids, int *times, int n_samples) {
-		for (int i=0; i<n_samples; i++)
+		for (int i = 0; i < n_samples; i++)
 			samples.insertRec(pids[i], times[i]);
 		return 0;
 	}
@@ -235,7 +236,7 @@ public:
 	// Clearing - freeing mem
 	//========================================================
 	void clear() { pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
-	
+
 	// clear_data() : leave model up, leave repository config up, but get rid of data and samples
 	void clear_data() { samples.clear(); rep.in_mem_rep.clear(); }
 
@@ -243,8 +244,8 @@ public:
 	//========================================================
 	// a few more needed APIs
 	//========================================================
-	const char *get_name()	{ return name.c_str();	}
-	
+	const char *get_name() { return name.c_str(); }
+
 	void write_features_mat(const string feat_mat) { model.write_feature_matrix(feat_mat); }
 
 	void get_signal_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ)
