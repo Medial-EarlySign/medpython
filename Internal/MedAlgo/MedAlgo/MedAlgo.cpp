@@ -1387,6 +1387,42 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		++feat_i;
 	}
 
+	//Mann-Whitney analysis on each column:
+	snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\tFEATURE_NAME\tP_VAL\tAUC\tFEATURE_IMPORTANCE\n");
+	if (!output_file.empty())
+		fw << string(buffer_s);
+	else
+		MLOG("%s", string(buffer_s).c_str());
+	for (auto it = population1.data.begin(); it != population1.data.end(); ++it)
+	{
+		vector<float> test_auc, data_vec;
+		const vector<float> &v1 = it->second;
+		const vector<float> &v2 = population2.data.at(it->first);
+		test_auc.reserve(v1.size() + v2.size());
+		data_vec.reserve(v1.size() + v2.size());
+		for (size_t i = 0; i < v1.size(); ++i)
+			if (v1[i] != MED_MAT_MISSING_VALUE) {
+				data_vec.push_back(v1[i]);
+				test_auc.push_back(0);
+			}
+		for (size_t i = 0; i < v2.size(); ++i)
+			if (v2[i] != MED_MAT_MISSING_VALUE) {
+				data_vec.push_back(v2[i]);
+				test_auc.push_back(1);
+			}
+
+		float auc = medial::performance::auc_q(data_vec, test_auc);
+		float p_val= 1 - 2 * abs(auc - 0.5);
+
+		snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%f\n",
+			 it->first.c_str(), p_val, auc, features_scores[j++]);
+
+		if (!output_file.empty())
+			fw << string(buffer_s);
+		else
+			MLOG("%s", string(buffer_s).c_str());
+	}
+
 	if (!predictor_type.empty() && !predictor_init.empty()) {
 		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),
