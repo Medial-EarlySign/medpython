@@ -1360,9 +1360,11 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
 		" Features distributaions:\n", name1.c_str(), population1.samples.size(),
 		name2.c_str(), population2.samples.size());
-	MLOG("%s", string(buffer_s).c_str());
+	
 	if (!output_file.empty())
 		fw << string(buffer_s);	
+	else
+		MLOG("%s", string(buffer_s).c_str());
 
 	feat_i = 0;
 	int j = 0;
@@ -1388,11 +1390,12 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 	}
 
 	//Mann-Whitney analysis on each column:
-	snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\tFEATURE_NAME\tP_VAL\tAUC\tFEATURE_IMPORTANCE\n");
+	snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\tFEATURE_NAME\tP_VAL\tAUC\tMEAN_1\tSTD_1\tMEAN_2\tSTD_2\tFEATURE_IMPORTANCE\n");
 	if (!output_file.empty())
 		fw << string(buffer_s);
 	else
 		MLOG("%s", string(buffer_s).c_str());
+	feat_i = 0;
 	for (auto it = population1.data.begin(); it != population1.data.end(); ++it)
 	{
 		vector<float> test_auc, data_vec;
@@ -1414,13 +1417,14 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		float auc = medial::performance::auc_q(data_vec, test_auc);
 		float p_val= 1 - 2 * abs(auc - 0.5);
 
-		snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%f\n",
-			 it->first.c_str(), p_val, auc, features_scores[j++]);
+		snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+			 it->first.c_str(), p_val, auc, means1[feat_i], std1[feat_i], means2[feat_i], std2[feat_i], features_scores[feat_i]);
 
 		if (!output_file.empty())
 			fw << string(buffer_s);
 		else
 			MLOG("%s", string(buffer_s).c_str());
+		++feat_i;
 	}
 
 	if (!predictor_type.empty() && !predictor_init.empty()) {
