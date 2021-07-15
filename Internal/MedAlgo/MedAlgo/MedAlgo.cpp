@@ -1403,17 +1403,30 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		const vector<float> &v2 = population2.data.at(it->first);
 		test_auc.reserve(v1.size() + v2.size());
 		data_vec.reserve(v1.size() + v2.size());
+		int control_cnt = 0, cases_cnt = 0;
 		for (size_t i = 0; i < v1.size(); ++i)
 			if (v1[i] != MED_MAT_MISSING_VALUE) {
 				data_vec.push_back(v1[i]);
 				test_auc.push_back(0);
+				++control_cnt;
 			}
 		for (size_t i = 0; i < v2.size(); ++i)
 			if (v2[i] != MED_MAT_MISSING_VALUE) {
 				data_vec.push_back(v2[i]);
 				test_auc.push_back(1);
+				++cases_cnt;
 			}
 
+		if (control_cnt < 10 || cases_cnt < 10) {
+			snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\tMISSING\tMISSING\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+				it->first.c_str(), means1[feat_i], std1[feat_i], means2[feat_i], std2[feat_i], features_scores[feat_i]);
+			if (!output_file.empty())
+				fw << string(buffer_s);
+			else
+				MLOG("%s", string(buffer_s).c_str());
+			++feat_i;
+			continue;
+		}
 		float auc = medial::performance::auc_q(data_vec, test_auc);
 		float p_val= 1 - 2 * abs(auc - 0.5);
 
