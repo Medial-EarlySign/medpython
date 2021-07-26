@@ -423,10 +423,12 @@ public:
 class confRecord : public SerializableObject {
 public:
 	double logicalLow, logicalHigh, confirmedLow, confirmedHigh;
+	double trimLow, trimHigh; //<trimming if not above remove borders
 	string distLow, distHigh; //"none" "norm" or "log" 
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
-		ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh, distLow, distHigh)
+		ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh,
+			distLow, distHigh, trimLow, trimHigh)
 };
 MEDSERIALIZE_SUPPORT(confRecord)
 

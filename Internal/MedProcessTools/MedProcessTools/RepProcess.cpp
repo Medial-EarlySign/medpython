@@ -1035,7 +1035,7 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 
 		vector<string> f;
 		boost::split(f, thisLine, boost::is_any_of(","));
-		if (f.size() != 8) {
+		if (f.size() != 8 && f.size() != 10) {
 			infile.close();
 			MTHROW_AND_ERR("Wrong field count in  %s (%s : %zd) \n", confFileName.c_str(), thisLine.c_str(), f.size());
 		}
@@ -1052,6 +1052,12 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		if (thisRecord.val_channel > 0)
 			sigName += "_ch_" + to_string(thisRecord.val_channel);
 		outlierParams[sigName] = thisRecord;
+		thisRecord.trimLow = -1e30F;
+		thisRecord.trimHigh = 1e30F;
+		if (f.size() > 8) {
+			thisRecord.trimLow = atof(f[8].c_str());
+			thisRecord.trimHigh = atof(f[9].c_str());
+		}
 	}
 
 	infile.close();
@@ -1115,8 +1121,8 @@ void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 // Learn bounds
 //.......................................................................................
 int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
-	trimMax = 1e30F;
-	trimMin = -1e+30F;
+	trimMax = outlierParam.trimHigh;
+	trimMin = outlierParam.trimLow;
 
 	if (cleanMethod == "logical") {
 		removeMax = outlierParam.logicalHigh;
