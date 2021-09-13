@@ -2777,10 +2777,10 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	for (size_t i = 0; i < max_bins; ++i)
 	{
 		if (!gender_read[0][i])
-			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for males",
-				i, int(min_age + i * age_bin_years));
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d (%f,%d) for males\n",
+				i, int(min_age + i * age_bin_years),min_age,age_bin_years);
 		if (!gender_read[1][i])
-			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females",
+			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females\n",
 				i, int(min_age + i * age_bin_years));
 	}
 }
