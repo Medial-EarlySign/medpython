@@ -50,7 +50,7 @@ int RepCategoryDescenders::_apply(PidDynamicRec& rec, vector<int>& time_points,
 	vector<vector<float>>& attributes_mat) {
 	// Sanity check
 	if (signalId == -1) {
-		MERR("RepCategoryDescenders::_apply - Uninitialized signalId\n");
+		MERR("RepCategoryDescenders::_apply - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
