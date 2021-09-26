@@ -816,7 +816,7 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("SingletonGenerator::_generate - Uninitialized signalId\n");
 		return -1;
 	}
 

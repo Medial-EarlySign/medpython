@@ -368,7 +368,7 @@ void print_or_log(ofstream &fw, bool write_to_file, char *fmt, ...) {
 int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
 
 	if (signalId == -1 || bdate_sid == -1 || gender_sid == -1)
-		MTHROW_AND_ERR("Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
+		MTHROW_AND_ERR("CategoryDependencyGenerator::_learn - Uninitialized signalId,byear_sid or gender_sid - or not loaded\n");
 	names.clear();
 
 	// Required signals

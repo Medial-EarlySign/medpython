@@ -181,7 +181,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || bdateId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("BinnedLmEstimates::_learn - Uninitialized signalId\n");
 		return -1;
 	}
 
@@ -484,7 +484,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || bdateId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("BinnedLmEstimates::_generate - Uninitialized signalId\n");
 		return -1;
 	}
 
