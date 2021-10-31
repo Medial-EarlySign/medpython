@@ -227,9 +227,9 @@ public:
 
 	/// creates Registry rule. can have "set" for RegistrySignalSet and "range" for RegistrySignalRange.
 	/// /// @snippet MedRegistry.cpp RegistrySignal::make_registry_signal
-	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep);
+	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep, const string &path_to_cfg_file);
 	/// creates Registry rule and uses init_string to initialize the type
-	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep, const string &init_string);
+	static RegistrySignal *make_registry_signal(const string &type, MedRepository &rep, const string &init_string, const string &path_to_cfg_file);
 
 	/// <summary>
 	/// parsing of registry signal rules - each line is new signal rule in this format:\n
@@ -263,8 +263,8 @@ public:
 	vector<string> sets;
 
 	RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-		MedRepository &rep, const vector<string> &sets, float outcome_val = 1, int chan = 0);
-	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val = 1);
+		MedRepository &rep, const vector<string> &sets, const string &path_to_cfg_file, float outcome_val = 1, int chan = 0);
+	RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, const string &path_to_cfg_file, float outcome_val = 1);
 	bool get_outcome(const UniversalSigVec &s, int current_i, float &result);
 
 	/// The parsed fields from init command.\n
@@ -276,6 +276,7 @@ public:
 private:
 	vector<char> Flags;
 	MedRepository *repo;
+	string base_cfg_path;
 };
 
 /**
@@ -317,7 +318,7 @@ class RegistrySignalAny : public RegistrySignal {
 class RegistrySignalDrug : public RegistrySignal {
 public:
 	vector<string> sets;
-	RegistrySignalDrug(MedRepository &rep);
+	RegistrySignalDrug(MedRepository &rep, const string &path_to_cfg_file);
 	/// The parsed fields from init command.\n
 	/// @snippet MedRegistry.cpp RegistrySignalDrug::_init
 	void _init(const map<string, string>& mapper);
@@ -330,6 +331,7 @@ private:
 	vector<char> Flags; ///< first if exists
 	vector<pair<float, float>> Flags_range; ///< range for dosage
 	MedRepository *repo;
+	string base_path;
 };
 
 /**
