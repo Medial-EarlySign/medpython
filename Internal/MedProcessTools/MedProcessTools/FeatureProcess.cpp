@@ -638,14 +638,13 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
 			if (data[i] != missing_value) {
-				data[i] -= mean;
-				if (normalizeSd)
-					data[i] /= sd;
-				if (resolution > 0) {
+				if (!resolution_only) {
+					data[i] -= mean;
+					if (normalizeSd)
+						data[i] /= sd;
+				}	
+				if (resolution > 0) 
 					data[i] = roundf(data[i] * multiplier) / multiplier;
-					if (resolution_only)
-						data[i] = data[i] * sd + mean;
-				}
 				if (resolution_only && resolution_bin > 0) 
 					data[i] = int(data[i] / resolution_bin) * resolution_bin;
 			}
