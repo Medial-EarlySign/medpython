@@ -301,6 +301,9 @@ public:
 	/// resolution : if > 0 , will keep only the given number of digits after the point.
 	int resolution = 0;
 
+	///A factor to divide by - take floor and then multiply by again. Used in resolution_only mode
+	float resolution_bin;
+
 	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 10000;
 
@@ -329,14 +332,14 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp FeatureNormalizer::init
 	int init(map<string, string>& mapper);
-	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; };
+	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; resolution_bin = 0; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureNormalizer *>(processor)); }
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity, resolution_bin)
 
 };
 

@@ -646,6 +646,8 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 					if (resolution_only)
 						data[i] = data[i] * sd + mean;
 				}
+				if (resolution_only && resolution_bin > 0) 
+					data[i] = int(data[i] / resolution_bin) * resolution_bin;
 			}
 			else if (fillMissing)
 				data[i] = 0;
@@ -687,6 +689,7 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "resolution") resolution = med_stoi(entry.second);
+		else if (field == "resolution_bin") resolution_bin = med_stof(entry.second);
 		else if (field == "signal") set_feature_name(entry.second);
 		else if (field == "vorbosity") verbosity = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
