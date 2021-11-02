@@ -1775,7 +1775,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 			right = (float) 1. / ruleUsvs[0].Val(sPointer[0], val_channels[0]);
 			test_1 = test_diff(left, right, tolerance, calc_res);
 		}
-		if (ruleUsvs[0].Val(sPointer[0], val_channels[0]) != 0) {
+		if (ruleUsvs[1].Val(sPointer[1], val_channels[1]) != 0) {
 			left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
 			right = (float) 1. / ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 			test_1 = test_1 && test_diff(left, right, tolerance, calc_res);
