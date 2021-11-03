@@ -114,28 +114,6 @@ MPStringBtResultMap MPBootstrap::bootstrap(const std::vector<float> &preds, cons
 	return MPStringBtResultMap(res);
 }
 
-MPStringBtResultMap MPBootstrap::bootstrap_int(const std::vector<float> &preds, const std::vector<int> &labels) {
-	if (preds.size() != labels.size()) {
-		throw runtime_error(string("vectors are not in the same size: preds.size=") +
-			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
-	}
-	MedSamples samples;
-	samples.idSamples.resize(preds.size());
-	for (int i = 0; i < (int)preds.size(); ++i)
-	{
-		samples.idSamples[i].id = i;
-		samples.idSamples[i].samples.resize(1);
-		MedSample &s = samples.idSamples[i].samples[0];
-		s.id = i;
-		s.outcome = (float)labels[i];
-		s.prediction = { preds[i] };
-		s.outcomeTime = 20000101;
-		s.time = s.outcomeTime;
-	}
-
-	map<string, std::vector<float> > additional_data;
-	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
-	*res = o->bootstrap(samples, additional_data);
-
-	return MPStringBtResultMap(res);
+void MPStringBtResultMap::to_file(const std::string &file_path) {
+	write_pivot_bootstrap_results(file_path, *o);
 }

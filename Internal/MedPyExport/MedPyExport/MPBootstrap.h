@@ -19,6 +19,8 @@ public:
 	void __setitem__(const std::string &key, MPStringFloatMapAdaptor& val);
 	std::vector<std::string> keys();
 	MEDPY_IGNORE(MPStringBtResultMap& operator=(const MPStringBtResultMap& other));
+
+	void to_file(const std::string &file_path);
 };
 
 class MPBootstrap {
@@ -73,8 +75,6 @@ public:
 	MPStringBtResultMap bootstrap(MPSamples *samples, const string &rep_path);
 
 	MPStringBtResultMap bootstrap(const std::vector<float> &preds,const std::vector<float> &labels);
-
-	MPStringBtResultMap bootstrap_int(const std::vector<float> &preds, const std::vector<int> &labels);
 
 };
 
