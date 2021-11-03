@@ -185,7 +185,7 @@ float MPStringFloatMapAdaptor::__getitem__(const std::string& i) { return o->ope
 void MPStringFloatMapAdaptor::__setitem__(const std::string& i, float val) { o->operator[](i) = val; };
 std::vector<std::string> MPStringFloatMapAdaptor::keys()
 {
-	vector<string> ret;
+	std::vector<std::string> ret;
 	ret.reserve(o->size());
 	for (const auto& rec : *o) ret.push_back(rec.first);
 	return ret;

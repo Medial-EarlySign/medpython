@@ -14,7 +14,7 @@ MPStringBtResultMap::MPStringBtResultMap(const MPStringBtResultMap& other)
 		*o = *other.o;
 	}
 };
-MPStringBtResultMap::MPStringBtResultMap(std::map<std::string, std::map<std::string, float> >* ptr) { o_owned = false; o = ptr; };
+MPStringBtResultMap::MPStringBtResultMap(std::map<std::string, std::map<std::string, float> >* ptr) { o_owned = true; o = ptr; };
 MPStringBtResultMap::~MPStringBtResultMap() { if (o_owned) delete o; };
 int MPStringBtResultMap::__len__() { return (int)o->size(); };
 MPStringFloatMapAdaptor MPStringBtResultMap::__getitem__(const std::string& i) { return MPStringFloatMapAdaptor(&o->operator[](i)); };
@@ -82,12 +82,13 @@ void MPBootstrap::parse_cohort_file(const string &cohorts_path) { o->parse_cohor
 void MPBootstrap::init_from_str(const string &str) { o->init_from_string(str); }
 
 MPStringBtResultMap MPBootstrap::bootstrap(MPSamples *samples, const string &rep_path) {
-	map<string, map<string, float> > res = o->bootstrap(*samples->o, rep_path);
+	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
+	*res = o->bootstrap(*samples->o, rep_path);
 
-	return MPStringBtResultMap(&res);
+	return MPStringBtResultMap(res);
 }
 
-MPStringBtResultMap MPBootstrap::bootstrap_vec(const std::vector<float> &preds, const std::vector<float> &labels) {
+MPStringBtResultMap MPBootstrap::bootstrap(const std::vector<float> &preds, const std::vector<float> &labels) {
 	if (preds.size() != labels.size()) {
 		throw runtime_error(string("vectors are not in the same size: preds.size=") + 
 			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
@@ -106,8 +107,35 @@ MPStringBtResultMap MPBootstrap::bootstrap_vec(const std::vector<float> &preds, 
 		s.time = s.outcomeTime;
 	}
 
-	map<string, std::vector<float> > additional_data;
-	map<string, map<string, float> > res = o->bootstrap(samples, additional_data);
+	std::map<std::string, std::vector<float> > additional_data;
+	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
+	*res = o->bootstrap(samples, additional_data);
 
-	return MPStringBtResultMap(&res);
+	return MPStringBtResultMap(res);
+}
+
+MPStringBtResultMap MPBootstrap::bootstrap_int(const std::vector<float> &preds, const std::vector<int> &labels) {
+	if (preds.size() != labels.size()) {
+		throw runtime_error(string("vectors are not in the same size: preds.size=") +
+			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
+	}
+	MedSamples samples;
+	samples.idSamples.resize(preds.size());
+	for (int i = 0; i < (int)preds.size(); ++i)
+	{
+		samples.idSamples[i].id = i;
+		samples.idSamples[i].samples.resize(1);
+		MedSample &s = samples.idSamples[i].samples[0];
+		s.id = i;
+		s.outcome = (float)labels[i];
+		s.prediction = { preds[i] };
+		s.outcomeTime = 20000101;
+		s.time = s.outcomeTime;
+	}
+
+	map<string, std::vector<float> > additional_data;
+	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
+	*res = o->bootstrap(samples, additional_data);
+
+	return MPStringBtResultMap(res);
 }

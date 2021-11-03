@@ -72,7 +72,9 @@ public:
 
 	MPStringBtResultMap bootstrap(MPSamples *samples, const string &rep_path);
 
-	MPStringBtResultMap bootstrap_vec(const std::vector<float> &preds,const std::vector<float> &labels);
+	MPStringBtResultMap bootstrap(const std::vector<float> &preds,const std::vector<float> &labels);
+
+	MPStringBtResultMap bootstrap_int(const std::vector<float> &preds, const std::vector<int> &labels);
 
 };
 
