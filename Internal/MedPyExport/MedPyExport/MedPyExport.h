@@ -23,6 +23,7 @@
 #include "MPSampleFilter.h"
 #include "MPSerializableObject.h"
 #include "MPPredictor.h"
+#include "MPBootstrap.h"
 
 #ifndef SWIG
 #define PUBLIC_OBJECTS "Model", \
@@ -46,7 +47,8 @@
  "CommonLib", \
  "PredictorTypes", \
  "Predictor", \
- "SampleVectorAdaptor"
+ "SampleVectorAdaptor", \
+"Bootstrap"
 
 #endif //SWIG
 

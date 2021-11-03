@@ -66,6 +66,9 @@
     <ClInclude Include="MPPredictor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MPBootstrap.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedPyExport.cpp">
@@ -117,6 +120,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MPPredictor.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MPBootstrap.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

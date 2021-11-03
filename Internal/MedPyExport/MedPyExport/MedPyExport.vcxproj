@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="MedPyCommon.h" />
     <ClInclude Include="MedPyExport.h" />
+    <ClInclude Include="MPBootstrap.h" />
     <ClInclude Include="MPDictionary.h" />
     <ClInclude Include="MPFeatures.h" />
     <ClInclude Include="MPGlobal.h" />
@@ -40,6 +41,7 @@
   <ItemGroup>
     <ClCompile Include="MedPyCommon.cpp" />
     <ClCompile Include="MedPyExport.cpp" />
+    <ClCompile Include="MPBootstrap.cpp" />
     <ClCompile Include="MPDictionary.cpp" />
     <ClCompile Include="MPFeatures.cpp" />
     <ClCompile Include="MPGlobal.cpp" />
@@ -171,7 +173,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalLibraryDirectories>$(MR_SHARED_LIBS)\$(Platform)\$(Configuration);$(BOOST_HOME)\stage\lib;$(MR_LIBS)\$(Platform)\$(Configuration);$(OutDir);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(MR_SHARED_LIBS)\$(Platform)\$(Configuration);$(BOOST_HOME)\stage\lib;$(MR_LIBS)\$(Platform)\$(Configuration);$(OutDir);$(MR_ROOT)\Tools\MedProcessUtils\$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>$(MR_LIBS_NAME);CommonLib.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
