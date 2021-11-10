@@ -210,12 +210,23 @@ def __features__from_df_imp(self, features_df):
     samples.from_df(features_df.loc[:,features_df.columns[ind_sampes]])
     self.append_samples(samples)
 
-
+def __bootstrapResult_to_df(self):
+    import pandas as pd
+    dict_obj={'Cohort' : [], 'Measurement': [], 'Value': []}
+    for cohort in self.keys():
+        cohort_res=self[cohort]
+        for measure in cohort_res.keys():
+            dict_obj['Cohort'].append(cohort)
+            dict_obj['Measurement'].append(measure)
+            dict_obj['Value'].append(cohort_res[measure])
+    df=pd.DataFrame(dict_obj)
+    return df
 
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
+    setattr(globals()['StringBtResultMap'],'to_df', __bootstrapResult_to_df)
 
 __bind_external_methods()
 
