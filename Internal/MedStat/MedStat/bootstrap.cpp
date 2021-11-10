@@ -232,6 +232,12 @@ bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pre
 	return ret_val;
 }
 
+bool Lazy_Iterator::fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight, const int *&preds_order) {
+	const float *pred_ret = &ret_pred;
+	bool ret_val = fetch_next(thread, ret_y, pred_ret, weight, preds_order);
+	return ret_val;
+}
+
 void Lazy_Iterator::restart_iterator(int thread) {
 
 	if (sample_ratio < 1) {
