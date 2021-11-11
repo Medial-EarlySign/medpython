@@ -306,10 +306,11 @@ void MedSample::write_to_string(string &s, int time_unit, bool write_attrib, con
 		std::cout << std::setprecision(orig_precision);
 		std::cout.unsetf(ios_base::floatfield);
 	}
-	map<string, string> str_map;
-	for (const auto &it : attributes)
-		str_map[it.first] = to_string(it.second);
+
 	if (write_attrib) {
+		map<string, string> str_map;
+		for (const auto &it : attributes)
+			str_map[it.first] = to_string(it.second);
 		write_attributes(s_buff, delimeter, str_map);
 		write_attributes(s_buff, delimeter, str_attributes);
 	}
@@ -445,8 +446,8 @@ void MedSamples::get_attr_values(const string& attr_name, vector<float>& values)
 
 	for (auto& idSample : idSamples)
 		for (auto& sample : idSample.samples)
-				if (sample.attributes.find(attr_name) != sample.attributes.end())
-					values.push_back(sample.attributes.at(attr_name));
+			if (sample.attributes.find(attr_name) != sample.attributes.end())
+				values.push_back(sample.attributes.at(attr_name));
 
 	int nValues = (int)values.size();
 	if (nValues != 0 && nValues != nSamples())
@@ -698,25 +699,11 @@ int MedSamples::get_all_attributes(vector<string>& attributes, vector<string>& s
 int MedSamples::write_to_file(const string &fname, int pred_precision, bool print_attributes)
 {
 	ofstream of(fname);
-
-	int nPreds;
-	if (get_predictions_size(nPreds) < 0) {
-		MERR("MedSampels: Predictions vectors sizes inconsistent\n");
-		return -2;
-	}
-	vector<string> attributes, str_attributes;
-	if (get_all_attributes(attributes, str_attributes) < 0) {
-		MERR("MedSamples: Attributes sets inconsistency\n");
-		return -3;
-	}
-	MLOG("attributes size %d\n", attributes.size());
-
 	MLOG("MedSamples: writing to %s\n", fname.c_str());
 	if (!of) {
 		MERR("MedSamples: can't open file %s for writing\n", fname.c_str());
 		return -1;
 	}
-
 	write_to_file(of, pred_precision, print_attributes, true);
 
 	MLOG("wrote [%d] samples for [%d] patient IDs\n", nSamples(), idSamples.size());
@@ -733,8 +720,10 @@ void MedSamples::write_to_file(ofstream& of, int pred_precision, bool print_attr
 		MTHROW_AND_ERR("MedSampels: Predictions vectors sizes inconsistent\n");
 
 	vector<string> attributes, str_attributes;
-	if (get_all_attributes(attributes, str_attributes) < 0)
+	if (print_attributes && get_all_attributes(attributes, str_attributes) < 0)
 		MTHROW_AND_ERR("MedSamples: Attributes sets inconsistency\n");
+	if (print_attributes)
+		MLOG("attributes size %d\n", attributes.size());
 
 	int buffer_write = 0;
 
