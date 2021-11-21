@@ -222,23 +222,31 @@ def __bootstrapResult_to_df(self):
     df=pd.DataFrame(dict_obj)
     return df
 
+def convert_to_bootstrap_input(x):
+    import pandas as pd
+    import numpy as np
+    if type(x) is list:
+        x=np.array(x)
+    if type(x) is np.ndarray:
+        x=x.astype(float)
+    if type(x) is pd.Series:
+        x=x.astype(float).to_numpy()
+    return x
+
 def __bootstrap_wrapper(self, preds, labels):
     import pandas as pd
-    if type(preds) is pd.Series:
-        preds=preds.astype(float).to_numpy()
-    if type(labels) is pd.Series:
-        labels=labels.astype(float).to_numpy()
+    import numpy as np
+    preds=convert_to_bootstrap_input(preds)
+    labels=convert_to_bootstrap_input(labels)
     res = self._bootstrap(preds, labels)
     return res
 
 def __bootstrap_pid_wrapper(self, pids, preds, labels):
     import pandas as pd
-    if type(preds) is pd.Series:
-        preds=preds.astype(float).to_numpy()
-    if type(labels) is pd.Series:
-        labels=labels.astype(float).to_numpy()
-    if type(pids) is pd.Series:
-        pids=pids.astype(float).to_numpy()
+    import numpy as np
+    pids=convert_to_bootstrap_input(pids)
+    preds=convert_to_bootstrap_input(preds)
+    labels=convert_to_bootstrap_input(labels)
     res = self._bootstrap_pid(pids, preds, labels)
     return res
 
