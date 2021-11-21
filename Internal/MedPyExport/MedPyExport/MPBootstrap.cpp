@@ -88,7 +88,7 @@ MPStringBtResultMap MPBootstrap::bootstrap(MPSamples *samples, const string &rep
 	return MPStringBtResultMap(res);
 }
 
-MPStringBtResultMap MPBootstrap::bootstrap(const std::vector<float> &preds, const std::vector<float> &labels) {
+MPStringBtResultMap MPBootstrap::_bootstrap(const std::vector<float> &preds, const std::vector<float> &labels) {
 	if (preds.size() != labels.size()) {
 		throw runtime_error(string("vectors are not in the same size: preds.size=") +
 			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
@@ -158,11 +158,13 @@ map<string, float> calc_auc_per_pid(Lazy_Iterator *iterator, int thread_num,
 		micro_auc /= n_micto;
 		res["MICRO_AUC_PID"] = micro_auc;
 	}
+	res["MACRO_NEXP"] = n;
+	res["MICRO_NEXP"] = n_micto;
 
 	return res;
 }
 
-MPStringBtResultMap MPBootstrap::bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels) {
+MPStringBtResultMap MPBootstrap::_bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels) {
 	if (preds.size() != labels.size()) {
 		throw runtime_error(string("vectors are not in the same size: preds.size=") +
 			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));

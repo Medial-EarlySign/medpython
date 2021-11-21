@@ -222,11 +222,33 @@ def __bootstrapResult_to_df(self):
     df=pd.DataFrame(dict_obj)
     return df
 
+def __bootstrap_wrapper(self, preds, labels):
+    import pandas as pd
+    if type(preds) is pd.Series:
+        preds=preds.astype(float).to_numpy()
+    if type(labels) is pd.Series:
+        labels=labels.astype(float).to_numpy()
+    res = self._bootstrap(preds, labels)
+    return res
+
+def __bootstrap_pid_wrapper(self, pids, preds, labels):
+    import pandas as pd
+    if type(preds) is pd.Series:
+        preds=preds.astype(float).to_numpy()
+    if type(labels) is pd.Series:
+        labels=labels.astype(float).to_numpy()
+    if type(pids) is pd.Series:
+        pids=pids.astype(float).to_numpy()
+    res = self._bootstrap_pid(pids, preds, labels)
+    return res
+
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
     setattr(globals()['StringBtResultMap'],'to_df', __bootstrapResult_to_df)
+    setattr(globals()['Bootstrap'],'bootstrap', __bootstrap_wrapper)
+    setattr(globals()['Bootstrap'],'bootstrap_pid', __bootstrap_pid_wrapper)
 
 __bind_external_methods()
 
