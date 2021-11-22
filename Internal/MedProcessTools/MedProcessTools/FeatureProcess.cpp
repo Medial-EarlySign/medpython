@@ -9,6 +9,7 @@
 #include "ResampleWithMissingProcessor.h"
 #include "DuplicateProcessor.h"
 #include <omp.h>
+#include <algorithm>
 
 //=======================================================================================
 // Feature Processors
@@ -642,10 +643,10 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 					data[i] -= mean;
 					if (normalizeSd)
 						data[i] /= sd;
-				}	
-				if (resolution > 0) 
+				}
+				if (resolution > 0)
 					data[i] = roundf(data[i] * multiplier) / multiplier;
-				if (resolution_only && resolution_bin > 0) 
+				if (resolution_only && resolution_bin > 0)
 					data[i] = int(data[i] / resolution_bin) * resolution_bin;
 			}
 			else if (fillMissing)
@@ -762,6 +763,26 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 	}
 }
 
+float FeatureImputer::round_to_closest(float val) const {
+	int pos = medial::process::binary_search_position(existing_values, val);
+	//pos is in range [0, v.size()] - position in sorted_vals where it's is smaller equals to sorted_vals[pos] but bigger than pos-1 
+	if (pos >= existing_values.size())
+		pos = (int)existing_values.size() - 1;
+
+	if (existing_values[pos] == val)
+		return val;
+	//not equal - means sorted_vals[pos] > val
+	if (pos == 0)
+		return existing_values[0];
+	//pos > 0  - mean val is not lower than lowest value in sorted_vals:
+	float diff_lower = val - existing_values[pos - 1];
+	float diff_upper = existing_values[pos] - val;
+	if (diff_lower < diff_upper)
+		return  existing_values[pos - 1];
+	else
+		return existing_values[pos];
+}
+
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
@@ -771,6 +792,15 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	default_moment_vec = { missing_value, missing_value }; //initialize
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
+
+	if (round_to_existing_value) {
+		unordered_set<float> vals(features.data.at(resolved_feature_name).begin(), features.data.at(resolved_feature_name).end());
+		existing_values.clear();
+		if (vals.find(missing_value) != vals.end())
+			vals.erase(missing_value);
+		existing_values.insert(existing_values.end(), vals.begin(), vals.end());
+		sort(existing_values.begin(), existing_values.end());
+	}
 
 	// Get all values
 	vector<float> values;
@@ -830,8 +860,11 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 					else
 						moments_vec[stage][i] = missing_value;
 				}
-				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN) {
 					moments_vec[stage][i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
+					if (round_to_existing_value)
+						moments_vec[stage][i] = round_to_closest(moments_vec[stage][i]);
+				}
 				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN) {
 					if (stratifiedValues[i].size() > 0)
 						moments_vec[stage][i] = medial::stats::median_without_cleaning(stratifiedValues[i]);
@@ -867,8 +900,11 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 						if (verbose_learn)
 							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
 								min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN) {
 							default_moment_vec[stage] = medial::stats::mean_without_cleaning(all_existing_values);
+							if (round_to_existing_value)
+								default_moment_vec[stage] = round_to_closest(default_moment_vec[stage]);
+						}
 						else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN)
 							default_moment_vec[stage] = medial::stats::median_without_cleaning(all_existing_values);
 						else if (moment_type_vec[stage] == IMPUTE_MMNT_COMMON)
@@ -1000,6 +1036,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			verbose = stoi(entry.second) > 0;
 		else if (field == "verbose_learn")
 			verbose_learn = stoi(entry.second) > 0;
+		else if (field == "round_to_existing_value")
+			round_to_existing_value = stoi(entry.second) > 0;
 		else if (field == "leave_missing_for_small_stratas") leave_missing_for_small_stratas = med_stoi(entry.second);
 		else if (field == "impute_strata_with_missing") impute_strata_with_missing = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")

@@ -438,6 +438,8 @@ public:
 * To Use this selector specify <b>"imputer"</b> in the fp_type
 */
 class FeatureImputer : public FeatureProcessor {
+private:
+	float round_to_closest(float val) const;
 public:
 
 	// Missing Value
@@ -476,6 +478,9 @@ public:
 	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 100000;
 
+	bool round_to_existing_value = true;
+	vector<float> existing_values;
+
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
@@ -510,7 +515,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
 		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram,
-			moment_type_vec, moments_vec, default_moment_vec, leave_missing_for_small_stratas, impute_strata_with_missing)
+			moment_type_vec, moments_vec, default_moment_vec, leave_missing_for_small_stratas, impute_strata_with_missing, round_to_existing_value, existing_values)
 
 		void dprint(const string &pref, int fp_flag);
 	/// debug and print
@@ -1057,7 +1062,7 @@ public:
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	ADD_CLASS_NAME(OneHotFeatProcessor);
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, 
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other,
 		remove_last, allow_other, value2feature, regex_list, regex_list_names, max_values)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -1154,7 +1159,7 @@ public:
 	string name;  ///< feature name postfix (new feautre X is XXX.name)
 	float replace_value; ///< if added, replace value in original matrix
 	string new_feature_name; ///<generated feature name
-	
+
 	MissingIndicatorProcessor() { init_defaults(); }
 
 	void init_defaults() { processor_type = FTR_PROCESS_MISSING_INDICATOR;  missing_value = MED_MAT_MISSING_VALUE; name = "is_missing"; }
@@ -1202,7 +1207,7 @@ public:
 * To Use this processor specify <b>"get_prob"</b> in the fp_type
 */
 class BinningFeatProcessor : public FeatureProcessor {
-private: 
+private:
 	string get_bin_name(float num) const;
 public:
 
@@ -1212,7 +1217,7 @@ public:
 	bool one_hot = true;
 	string bin_format = "%2.1f";
 	Binning_Wrapper bin_sett;
-								// Constructor
+	// Constructor
 	BinningFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; }
 	BinningFeatProcessor(const  string& feature_name) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; set_feature_name(feature_name); }
 	BinningFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; init_from_string(init_string);  set_feature_name(feature_name); }
@@ -1232,7 +1237,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BinningFeatProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val, 
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val,
 			remove_origin, bin_sett, bin_format, one_hot);
 
 };
