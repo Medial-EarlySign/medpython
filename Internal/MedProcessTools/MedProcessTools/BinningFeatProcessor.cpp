@@ -37,7 +37,7 @@ int Binning_Wrapper::init(map<string, string>& mapper) {
 	return 0;
 }
 
-void Binning_Wrapper::load_bin_settings(const vector<float> &nums) {
+void Binning_Wrapper::load_bin_settings(const vector<float> &nums, vector<float> &y) {
 	if (use_bin_settings.empty())
 		return;
 
@@ -45,7 +45,7 @@ void Binning_Wrapper::load_bin_settings(const vector<float> &nums) {
 	bs.init_from_string(use_bin_settings);
 	vector<float> n = nums;
 	vector<int> all;
-	medial::process::split_feature_to_bins(bs, n, all, n);
+	medial::process::split_feature_to_bins(bs, n, all, y);
 
 	set<float> uniq_nums(n.begin(), n.end());
 
@@ -97,7 +97,10 @@ int BinningFeatProcessor::init(map<string, string>& mapper) {
 
 int BinningFeatProcessor::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	resolved_feature_name = resolve_feature_name(features, feature_name);
-	bin_sett.load_bin_settings(features.data.at(resolved_feature_name));
+	vector<float> y(features.samples.size());
+	for (size_t i = 0; i < y.size(); ++i)
+		y[i] = features.samples[i].outcome;
+	bin_sett.load_bin_settings(features.data.at(resolved_feature_name), y);
 	return 0;
 }
 

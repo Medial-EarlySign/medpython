@@ -1184,7 +1184,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	/// if has use_bin_settings => will update bin_cutoffs, bin_repr_vals
-	void load_bin_settings(const vector<float> &nums);
+	void load_bin_settings(const vector<float> &nums, vector<float> &y);
 
 	/// returns index for each value
 	int get_idx(float v) const;
