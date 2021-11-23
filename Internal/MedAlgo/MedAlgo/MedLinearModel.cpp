@@ -629,10 +629,12 @@ int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) co
 			for (size_t k = 0; k < nftrs; ++k) {
 				float val = x[i*nftrs + k];
 				// has normalization in MedMat - but want to use same from train. when calling this function, it's always need normalizations
-				if (val == MED_MAT_MISSING_VALUE)
-					val = 0;
-				else
-					val = (val - _meanShift[k]) / _factor[k];
+				if (normalize) {
+					if (val == MED_MAT_MISSING_VALUE)
+						val = 0;
+					else
+						val = (val - _meanShift[k]) / _factor[k];
+				}
 				p += val * model_params[k + 1];
 			}
 #pragma omp critical
@@ -662,6 +664,13 @@ int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) co
 		}
 	}
 	return 0;
+}
+
+void MedLinearModel::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params, const MedFeatures *features) {
+	features_importance_scores.resize(model_features.size());
+	for (size_t i = 1; i < model_params.size(); ++i)
+		features_importance_scores[i - 1] = abs(model_params[i]);
 }
 
 float _maxDiffVec(const vector<float> &vec) {
@@ -824,8 +833,10 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 			ddata[i] = xData_degree[i].data();
 		generate_data_learn(poly_degree, ddata, nsamples, xData);
 	}
-	_normalizeSignalToAvg(xData, avg_diff, factors);
-	set_normalization(avg_diff, factors);
+	if (normalize) {
+		_normalizeSignalToAvg(xData, avg_diff, factors);
+		set_normalization(avg_diff, factors);
+	}
 	SGD learner(this, loss_function);
 	learner.subGradientI = NULL; //((LinearModel *)mdl)->getSubGradientsSvm();
 	learner.norm_l1 = norm_l1;
@@ -861,6 +872,8 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			block_num = stof(it->second);
 		else if (it->first == "norm_l1")
 			norm_l1 = stoi(it->second) > 0;
+		else if (it->first == "normalize")
+			normalize = stoi(it->second) > 0;
 		else if (it->first == "print_steps")
 			print_steps = stoi(it->second);
 		else if (it->first == "poly_degree")

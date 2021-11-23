@@ -44,13 +44,17 @@ public:
 	int poly_degree; ///< add polynom degree
 	int min_cat; ///< control minimal samples per categ in categories
 	bool print_auc = false; ///< internal var if o print also auc metric
+	bool normalize = true; ///< iof true will do internal method for normalizing
 
 	//MedPredictor Api:
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
+	void calc_feature_importance(vector<float> &features_importance_scores,
+		const string &general_params, const MedFeatures *features);
+
 	ADD_CLASS_NAME(MedLinearModel)
-	ADD_SERIALIZATION_FUNCS(classifier_type, model_params, _meanShift, _factor, model_features, features_count)
+	ADD_SERIALIZATION_FUNCS(classifier_type, model_params, _meanShift, _factor, model_features, features_count, normalize)
 
 private:
 	vector<float> _meanShift;
