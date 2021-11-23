@@ -7,6 +7,7 @@
 #include <random>
 #include <algorithm>
 #include <functional>
+#include "MedStat/MedStat/MedStat.h"
 
 #include <fenv.h>
 #ifndef  __unix__
@@ -385,7 +386,7 @@ vector<int> randomGroup(int grp_size, int max_ind) {
 	return res;
 }
 
-void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps, const vector<float> *weights) {
+void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps, const vector<float> *weights, bool print_auc) {
 	vector<double> Wt;
 	vector<double> W_final(_model->model_params.size());
 	size_t ii = 0;
@@ -470,7 +471,14 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 				avgLoss = (float)loss_function(modelRes, yf, &wf);
 				if (step_loss_function != NULL) {
 					float avg_loss_step = (float)step_loss_function(modelRes, yf, _model->model_params, &wf);
-					cout << "Learned Model \"" << _model->model_name
+					
+					if (print_auc) {
+						float auc_val =  medial::performance::auc_q(modelRes, yf, &wf);
+						cout << "Learned Model \"" << _model->model_name
+							<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << " AUC " << auc_val << endl;
+					}
+					else
+						cout << "Learned Model \"" << _model->model_name
 						<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << endl;
 				}
 				else
@@ -481,6 +489,12 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 				avgLoss = (float)loss_function(modelRes, yData, weights);
 				if (step_loss_function != NULL) {
 					float avg_loss_step = (float)step_loss_function(modelRes, yData, _model->model_params, weights);
+					if (print_auc) {
+						float auc_val = medial::performance::auc_q(modelRes, yData, weights);
+						cout << "Learned Model \"" << _model->model_name
+							<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << " AUC " << auc_val << endl;
+					}
+					else
 					cout << "Learned Model \"" << _model->model_name
 						<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << endl;
 				}

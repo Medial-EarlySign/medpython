@@ -685,7 +685,7 @@ float _maxDiffVec(const vector<float> &vec) {
 }
 
 void _learnModel(SGD &learner, const vector<vector<float>> &xData, const vector<float> &yData, int categoryCnt,
-	int T_Steps, int print_steps, double learnRate, int sampleSize) {
+	int T_Steps, int print_steps, double learnRate, int sampleSize, bool print_auc) {
 	float h_size = (float)0.01;
 	int numSteps = T_Steps;
 	//float learn_rate = (float)0.0000001;
@@ -726,7 +726,7 @@ void _learnModel(SGD &learner, const vector<vector<float>> &xData, const vector<
 		cout << "learning_rate = " << learner.get_learing_rate() << ", eppsilon=" << learner.get_learing_eppsilon(blocking_num, blockDer, T_Steps) << endl;
 	}
 
-	learner.Learn(xData, yData, numSteps);
+	learner.Learn(xData, yData, numSteps, NULL, print_auc);
 }
 
 template<class T> T _avgVec(const vector<T> &vec) {
@@ -834,7 +834,7 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 	learner.set_special_step_func(loss_function_step); //not in use if learner.subGradientI is not NULL
 
 	mark_learn_finish = false;
-	_learnModel(learner, xData, yData, min_cat, tot_steps, print_steps, learning_rate, sample_count);
+	_learnModel(learner, xData, yData, min_cat, tot_steps, print_steps, learning_rate, sample_count, print_auc);
 	mark_learn_finish = true;
 
 	if (print_model) {
@@ -882,10 +882,12 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			else if (it->second == "svm") {
 				loss_function = _linear_loss_target_svm;
 				loss_function_step = _linear_loss_step_svm;
+				print_auc = true;
 			}
 			else if (it->second == "work_point") {
 				loss_function = _linear_loss_target_work_point;
 				loss_function_step = _linear_loss_step_work_point;
+				print_auc = true;
 			}
 			else
 				invalid_argument("MedLinearModel::set_params - Unknown loss_function \"" + it->second + "\"");
