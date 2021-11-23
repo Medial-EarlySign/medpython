@@ -390,7 +390,7 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 	vector<double> Wt;
 	vector<double> W_final(_model->model_params.size());
 	size_t ii = 0;
-	int max_sample_size = 10000;
+	int max_sample_size = 10000000;
 	vector<int> inds_selected;
 	vector<double> modelRes;
 	if (yData.size() >= max_sample_size * 10)
