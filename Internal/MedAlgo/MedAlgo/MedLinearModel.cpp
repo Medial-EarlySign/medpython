@@ -855,6 +855,14 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 		print(names);
 	}
 
+	if (print_auc) {
+		vector<double> preds;
+		predict(xData, preds);
+		cout << "########################" << endl;
+		cout << "AUC AFTER Learn is : " << medial::performance::auc_q(preds, yData) << endl;
+		cout << "########################" << endl;
+	}
+
 	return 0;
 }
 

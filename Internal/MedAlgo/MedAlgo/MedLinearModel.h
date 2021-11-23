@@ -54,7 +54,7 @@ public:
 		const string &general_params, const MedFeatures *features);
 
 	ADD_CLASS_NAME(MedLinearModel)
-	ADD_SERIALIZATION_FUNCS(classifier_type, model_params, _meanShift, _factor, model_features, features_count, normalize)
+	ADD_SERIALIZATION_FUNCS(classifier_type, model_params, _meanShift, _factor, model_features, features_count, normalize, poly_degree)
 
 private:
 	vector<float> _meanShift;
