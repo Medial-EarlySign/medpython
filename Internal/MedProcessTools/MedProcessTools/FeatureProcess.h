@@ -305,13 +305,20 @@ public:
 	float resolution_bin;
 
 	/// Utility : maximum number of samples to take for moments calculations
-	int max_samples = 10000;
+	int max_samples = 0;
 
 	/// if resolution only 
 	bool resolution_only = false;
 
 	/// verbosity
 	int verbosity = 0;
+
+	///If true will convert into linear transform from lower prctile to high prctile and has triming value
+	bool use_linear_transform = false;
+	float max_val_prctile = 1;
+	float max_val_for_triming = 2;
+	float prctile_th = (float)0.001;
+	float min_x, max_x; ///< parmeters of the transformation
 
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
@@ -339,7 +346,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity, resolution_bin)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity, resolution_bin,
+			use_linear_transform, max_val_prctile, max_val_for_triming, prctile_th, min_x, max_x)
 
 };
 

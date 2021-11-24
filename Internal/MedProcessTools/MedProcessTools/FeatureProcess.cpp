@@ -589,6 +589,23 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 
+	if (use_linear_transform) {
+		vector<float> prc_vals;
+		vector<float> prc_points = { 0, prctile_th, 1 - prctile_th, 1 };
+		medial::stats::get_percentiles<float>(values, prc_points, prc_vals);
+		min_x = prc_vals[1]; max_x = prc_vals[2];
+		if (min_x == max_x) {
+			MWARN("WARNING: min_x==max_x==%f for feature %s\n", min_x, resolved_feature_name.c_str());
+			//use min, max
+			min_x = prc_vals[0]; max_x = prc_vals[3];
+			if (min_x == max_x)
+				MWARN("WARNING: feature %s is redandant and all values are equal %f\n", resolved_feature_name.c_str(), min_x);
+			max_x = min_x + 1;
+		}
+
+		return 0;
+	}
+
 	int n;
 	medial::stats::get_mean_and_std(values, missing_value, n, mean, sd);
 
@@ -636,6 +653,26 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Clean
 	bool empty = ids.empty();
 	vector<float>& data = features.data[resolved_feature_name];
+
+	if (use_linear_transform) {
+		double factor_m = 2 * max_val_prctile / (max_x - min_x);
+		for (unsigned int i = 0; i < features.samples.size(); i++) {
+			if ((empty || ids.find(features.samples[i].id) != ids.end())) {
+				if (data[i] != missing_value) {
+					float new_val = -max_val_prctile + (data[i] - min_x) *factor_m;
+					if (new_val > max_val_for_triming)
+						new_val = max_val_for_triming;
+					if (new_val < -max_val_for_triming)
+						new_val = -max_val_for_triming;
+					data[i] = new_val;
+				}
+				else if (fillMissing)
+					data[i] = 0;
+			}
+		}
+		return 0;
+	}
+
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
 			if (data[i] != missing_value) {
@@ -669,6 +706,12 @@ void FeatureNormalizer::reverse_apply(float &feature_value) const {
 		if (resolution > 0 && resolution_only)
 			return; // no norm occoured
 
+		if (use_linear_transform) {
+			double inv_factor_m = (max_x - min_x) / 2 * max_val_prctile;
+			feature_value = (feature_value + max_val_prctile)*inv_factor_m + min_x;
+			return;
+		}
+
 		if (normalizeSd)
 			feature_value *= sd;
 		feature_value += mean;
@@ -692,6 +735,10 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "resolution_bin") resolution_bin = med_stof(entry.second);
 		else if (field == "signal") set_feature_name(entry.second);
 		else if (field == "vorbosity") verbosity = med_stoi(entry.second);
+		else if (field == "use_linear_transform") use_linear_transform = med_stoi(entry.second) > 0;
+		else if (field == "max_val_prctile") max_val_prctile = med_stof(entry.second);
+		else if (field == "prctile_th") prctile_th = med_stof(entry.second);
+		else if (field == "max_val_for_triming") max_val_for_triming = med_stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
@@ -705,7 +752,6 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 //=======================================================================================
 void FeatureImputer::print()
 {
-
 	// Backword-compatability ..
 	if (moment_type_vec.empty()) {
 		moment_type_vec = { moment_type,moment_type };
