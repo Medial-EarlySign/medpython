@@ -126,11 +126,13 @@ int BinningFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 		vector<string> parsed_names(data.size());
 		for (size_t i = 0; i < data.size(); ++i)
 			parsed_names[i] = get_bin_name(data[i]);
-		unordered_set<string> new_features(parsed_names.begin(), parsed_names.end());
+		unordered_set<string> new_features;
+		for (size_t i = 0; i < bin_sett.bin_repr_vals.size(); ++i)
+			new_features.insert(get_bin_name(bin_sett.bin_repr_vals[i]));
 		//Add all features:
 #pragma omp critical 
 		{
-			for (string full_name : new_features)
+			for (const string &full_name : new_features)
 			{
 				features.data[full_name].resize(features.samples.size());
 				features.attributes[full_name].normalized = true;
