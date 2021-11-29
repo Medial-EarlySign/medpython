@@ -150,7 +150,7 @@ int BinningFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 		//calculate feature group for each row
 		vector<string> parsed_names(data_p->size());
 		for (size_t i = 0; i < data_p->size(); ++i)
-			parsed_names[i] = get_bin_name(data_p->at[i]);
+			parsed_names[i] = get_bin_name((*data_p)[i]);
 
 		//Write values in binary bits:
 		for (size_t i = 0; i < data_p->size(); ++i)
