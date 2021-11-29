@@ -1223,6 +1223,7 @@ public:
 	float missing_target_val = MED_MAT_MISSING_VALUE;
 	bool remove_origin = true;
 	bool one_hot = true;
+	bool keep_original_val = false;
 	string bin_format = "%2.1f";
 	Binning_Wrapper bin_sett;
 	// Constructor
@@ -1246,7 +1247,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(BinningFeatProcessor)
 		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val,
-			remove_origin, bin_sett, bin_format, one_hot);
+			remove_origin, bin_sett, bin_format, one_hot, keep_original_val);
 
 };
 

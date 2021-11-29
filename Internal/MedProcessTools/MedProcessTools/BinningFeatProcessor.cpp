@@ -87,11 +87,16 @@ int BinningFeatProcessor::init(map<string, string>& mapper) {
 		else if (e.first == "bin_format") bin_format = e.second;
 		else if (e.first == "one_hot") one_hot = med_stoi(e.second) > 0;
 		else if (e.first == "remove_origin") remove_origin = med_stoi(e.second) > 0;
+		else if (e.first == "keep_original_val") keep_original_val = med_stoi(e.second) > 0;
 		else if (e.first == "bin_sett") bin_sett.init_from_string(e.second);
 		else if (e.first != "names" && e.first != "fp_type" && e.first != "tag")
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for BinningFeatProcessor\n", e.first.c_str());
 		//! [BinningFeatProcessor::init]
 	}
+
+	if (keep_original_val && !one_hot)
+		MTHROW_AND_ERR("ERROR - BinningFeatProcessor::init Error Can't turn on keep_original_val when one_hot mode is off\n");
+
 	return 0;
 }
 
@@ -114,18 +119,21 @@ int BinningFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 	resolved_feature_name = resolve_feature_name(features, feature_name);
 
 	vector<float>& data = features.data[resolved_feature_name];
+	vector<float> *data_p = &data;
+	vector<float> data_cp;
+	if (keep_original_val && one_hot) { //only optional when using one hot
+		data_cp.resize(features.samples.size());
+		data_p = &data_cp;
+	}
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
-		if (data[i] == missing_value)
-			data[i] = missing_target_val;
+		if ((*data_p)[i] == missing_value)
+			(*data_p)[i] = missing_target_val;
 		else
-			data[i] = bin_sett.normalize(data[i]);
+			(*data_p)[i] = bin_sett.normalize(data[i]);
 	}
 
 	//Split to one hot based on data uniq vals:
 	if (one_hot) {
-		vector<string> parsed_names(data.size());
-		for (size_t i = 0; i < data.size(); ++i)
-			parsed_names[i] = get_bin_name(data[i]);
 		unordered_set<string> new_features;
 		for (size_t i = 0; i < bin_sett.bin_repr_vals.size(); ++i)
 			new_features.insert(get_bin_name(bin_sett.bin_repr_vals[i]));
@@ -139,8 +147,13 @@ int BinningFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids)
 			}
 		}
 
+		//calculate feature group for each row
+		vector<string> parsed_names(data_p->size());
+		for (size_t i = 0; i < data_p->size(); ++i)
+			parsed_names[i] = get_bin_name(data_p->at[i]);
+
 		//Write values in binary bits:
-		for (size_t i = 0; i < data.size(); ++i)
+		for (size_t i = 0; i < data_p->size(); ++i)
 			features.data.at(parsed_names[i])[i] = 1;
 	}
 
