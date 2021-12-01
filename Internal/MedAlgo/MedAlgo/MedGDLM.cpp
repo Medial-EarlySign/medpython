@@ -313,8 +313,14 @@ void MedGDLM::print(FILE *fp, const string& prefix, int level) const {
 		fprintf(fp, "%s : GD_Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
 		fprintf(fp, "%s : GD_Linear Model b0 = %f\n", prefix.c_str(), b0);
 
-		for (int i = 0; i < n_ftrs; i++)
-			fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		if (!model_features.empty()) {
+			for (int i = 0; i < n_ftrs; i++)
+				fprintf(fp, "%s : GD_Linear Model b[%d, %s] = %f\n", prefix.c_str(), i, model_features[i].c_str(), b[i]);
+		}
+		else {
+			for (int i = 0; i < n_ftrs; i++)
+				fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		}
 	}
 }
 
