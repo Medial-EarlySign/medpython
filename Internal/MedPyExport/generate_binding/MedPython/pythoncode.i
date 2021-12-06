@@ -222,7 +222,7 @@ def __bootstrapResult_to_df(self):
     df=pd.DataFrame(dict_obj)
     return df
 
-def convert_to_bootstrap_input(x):
+def convert_to_bootstrap_input(x, arg_name=None):
     import pandas as pd
     import numpy as np
     if type(x) is list:
@@ -231,22 +231,27 @@ def convert_to_bootstrap_input(x):
         x=x.astype(float)
     if type(x) is pd.Series:
         x=x.astype(float).to_numpy()
+    if np.isnan(x).sum()>0:
+        if arg_name is None:
+            raise NameError('Error - input array has nan inside')
+        else:
+            raise NameError('Error - input array %s has nan inside'%(arg_name))
     return x
 
 def __bootstrap_wrapper(self, preds, labels):
     import pandas as pd
     import numpy as np
-    preds=convert_to_bootstrap_input(preds)
-    labels=convert_to_bootstrap_input(labels)
+    preds=convert_to_bootstrap_input(preds, 'preds')
+    labels=convert_to_bootstrap_input(labels, 'labels')
     res = self._bootstrap(preds, labels)
     return res
 
 def __bootstrap_pid_wrapper(self, pids, preds, labels):
     import pandas as pd
     import numpy as np
-    pids=convert_to_bootstrap_input(pids)
-    preds=convert_to_bootstrap_input(preds)
-    labels=convert_to_bootstrap_input(labels)
+    pids=convert_to_bootstrap_input(pids, 'pids')
+    preds=convert_to_bootstrap_input(preds, 'preds')
+    labels=convert_to_bootstrap_input(labels, 'labels')
     res = self._bootstrap_pid(pids, preds, labels)
     return res
 
