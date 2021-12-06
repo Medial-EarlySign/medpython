@@ -524,7 +524,12 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 			int type_num = 0;
 
 			float *p_feat = _p_data[ipoint] + index;
-			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
+			int days_diff = last_time - params.estimation_points[ipoint];
+			if (days_diff < 0) {
+				MWARN("WARN :: BinnedLmEstimates::_generate - got date with time window before 1900");
+				days_diff = 0;
+			}
+			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, days_diff);
 
 			for (int j = 0; j < rec.usv.len; j++) {
 				int time = rec.usv.Time(j, time_channel);
