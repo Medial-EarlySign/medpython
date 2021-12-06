@@ -526,7 +526,8 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 			float *p_feat = _p_data[ipoint] + index;
 			int days_diff = last_time - params.estimation_points[ipoint];
 			if (days_diff < 0) {
-				MWARN("WARN :: BinnedLmEstimates::_generate - got date with time window before 1900");
+				MWARN("WARN :: BinnedLmEstimates::_generate - got date for pid %d and signal %s with time window before 1900\n",
+					rec.pid, signalName.c_str());
 				days_diff = 0;
 			}
 			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, days_diff);
