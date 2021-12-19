@@ -47,7 +47,7 @@ int DoCalcFeatProcessor::init(map<string, string>& mapper) {
 		//! [DoCalcFeatProcessor::init]
 	}
 	if (weights.size() > 0 && weights.size() != raw_source_feature_names.size())
-		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names", (int)weights.size(), (int)raw_source_feature_names.size());
+		MTHROW_AND_ERR("DoCalcFeatProcessor got [%d] weights != [%d] source_feature_names\n", (int)weights.size(), (int)raw_source_feature_names.size());
 
 	// Default lists of source features : See examples nin Config_Exacmple
 	if (raw_source_feature_names.empty()) {
