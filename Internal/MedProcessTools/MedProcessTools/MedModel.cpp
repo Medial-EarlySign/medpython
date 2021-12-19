@@ -513,7 +513,7 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
+	if (start_stage <= MED_MDL_APPLY_PREDICTOR && predictor != NULL) {
 		predictor->prepare_predict_single();
 	}
 

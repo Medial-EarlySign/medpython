@@ -52,6 +52,10 @@ public:
 	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
 	/// </summary>
 	bool fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight);
+	/// <summary>
+	/// external function to fetch next pred,label couple in the bootstrap process for external implementitions
+	/// </summary>
+	bool fetch_next_external(int thread, float &ret_y, float &ret_pred, float &weight, const int *&preds_order);
 
 	/// <summary>
 	/// to restart the iterator

@@ -629,10 +629,12 @@ int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) co
 			for (size_t k = 0; k < nftrs; ++k) {
 				float val = x[i*nftrs + k];
 				// has normalization in MedMat - but want to use same from train. when calling this function, it's always need normalizations
-				if (val == MED_MAT_MISSING_VALUE)
-					val = 0;
-				else
-					val = (val - _meanShift[k]) / _factor[k];
+				if (normalize) {
+					if (val == MED_MAT_MISSING_VALUE)
+						val = 0;
+					else
+						val = (val - _meanShift[k]) / _factor[k];
+				}
 				p += val * model_params[k + 1];
 			}
 #pragma omp critical
@@ -664,6 +666,13 @@ int MedLinearModel::Predict(float *x, float *&preds, int nsamples, int nftrs) co
 	return 0;
 }
 
+void MedLinearModel::calc_feature_importance(vector<float> &features_importance_scores,
+	const string &general_params, const MedFeatures *features) {
+	features_importance_scores.resize(model_features.size());
+	for (size_t i = 1; i < model_params.size(); ++i)
+		features_importance_scores[i - 1] = abs(model_params[i]);
+}
+
 float _maxDiffVec(const vector<float> &vec) {
 	if (vec.size() == 0)
 		throw invalid_argument("vector can't  be empty");
@@ -685,7 +694,7 @@ float _maxDiffVec(const vector<float> &vec) {
 }
 
 void _learnModel(SGD &learner, const vector<vector<float>> &xData, const vector<float> &yData, int categoryCnt,
-	int T_Steps, int print_steps, double learnRate, int sampleSize) {
+	int T_Steps, int print_steps, double learnRate, int sampleSize, bool print_auc) {
 	float h_size = (float)0.01;
 	int numSteps = T_Steps;
 	//float learn_rate = (float)0.0000001;
@@ -726,7 +735,7 @@ void _learnModel(SGD &learner, const vector<vector<float>> &xData, const vector<
 		cout << "learning_rate = " << learner.get_learing_rate() << ", eppsilon=" << learner.get_learing_eppsilon(blocking_num, blockDer, T_Steps) << endl;
 	}
 
-	learner.Learn(xData, yData, numSteps);
+	learner.Learn(xData, yData, numSteps, NULL, print_auc);
 }
 
 template<class T> T _avgVec(const vector<T> &vec) {
@@ -824,8 +833,10 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 			ddata[i] = xData_degree[i].data();
 		generate_data_learn(poly_degree, ddata, nsamples, xData);
 	}
-	_normalizeSignalToAvg(xData, avg_diff, factors);
-	set_normalization(avg_diff, factors);
+	if (normalize) {
+		_normalizeSignalToAvg(xData, avg_diff, factors);
+		set_normalization(avg_diff, factors);
+	}
 	SGD learner(this, loss_function);
 	learner.subGradientI = NULL; //((LinearModel *)mdl)->getSubGradientsSvm();
 	learner.norm_l1 = norm_l1;
@@ -834,7 +845,7 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 	learner.set_special_step_func(loss_function_step); //not in use if learner.subGradientI is not NULL
 
 	mark_learn_finish = false;
-	_learnModel(learner, xData, yData, min_cat, tot_steps, print_steps, learning_rate, sample_count);
+	_learnModel(learner, xData, yData, min_cat, tot_steps, print_steps, learning_rate, sample_count, print_auc);
 	mark_learn_finish = true;
 
 	if (print_model) {
@@ -842,6 +853,14 @@ int MedLinearModel::Learn(float *x, float *y, const float *w, int nsamples, int 
 		if (names.empty())
 			names.resize(nftrs);
 		print(names);
+	}
+
+	if (print_auc) {
+		vector<double> preds;
+		predict(xData, preds);
+		cout << "########################" << endl;
+		cout << "AUC AFTER Learn is : " << medial::performance::auc_q(preds, yData) << endl;
+		cout << "########################" << endl;
 	}
 
 	return 0;
@@ -861,6 +880,8 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			block_num = stof(it->second);
 		else if (it->first == "norm_l1")
 			norm_l1 = stoi(it->second) > 0;
+		else if (it->first == "normalize")
+			normalize = stoi(it->second) > 0;
 		else if (it->first == "print_steps")
 			print_steps = stoi(it->second);
 		else if (it->first == "poly_degree")
@@ -882,10 +903,12 @@ int MedLinearModel::set_params(map<string, string>& mapper) {
 			else if (it->second == "svm") {
 				loss_function = _linear_loss_target_svm;
 				loss_function_step = _linear_loss_step_svm;
+				print_auc = true;
 			}
 			else if (it->second == "work_point") {
 				loss_function = _linear_loss_target_work_point;
 				loss_function_step = _linear_loss_step_work_point;
+				print_auc = true;
 			}
 			else
 				invalid_argument("MedLinearModel::set_params - Unknown loss_function \"" + it->second + "\"");

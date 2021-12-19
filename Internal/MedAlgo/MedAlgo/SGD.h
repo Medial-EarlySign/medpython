@@ -11,7 +11,7 @@ class SGD
 {
 public:
 	SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y, const vector<float> *weights));
-	void Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps, const vector<float> *weights = NULL);
+	void Learn(const vector<vector<float>> &xData, const vector<float> &yData, int T_Steps, const vector<float> *weights = NULL, bool print_auc = false);
 	//use one of these techniques to set params for subgradients
 	double(*subGradientI)(int param_number, const vector<double> &param_values, const vector<vector<float>> &x, const vector<float> &y, const vector<float> *weights);
 	void set_gradient_params(int samplePointCnt, float h, int minSampForCat = 0);
@@ -36,7 +36,7 @@ public:
 	size_t output_num; //The number of lines before printing output, 0= no printing
 	bool norm_l1;
 private:
-	PredictiveModel *_model;
+	PredictiveModel * _model;
 	vector<PredictiveModel *> _models_par;
 	double(*loss_function)(const vector<double> &got, const vector<float> &y, const vector<float> *weights);
 	double(*step_loss_function)(const vector<double> &got, const vector<float> &y, const vector<double> &model_params, const vector<float> *weights);

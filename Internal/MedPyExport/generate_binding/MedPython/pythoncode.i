@@ -210,12 +210,58 @@ def __features__from_df_imp(self, features_df):
     samples.from_df(features_df.loc[:,features_df.columns[ind_sampes]])
     self.append_samples(samples)
 
+def __bootstrapResult_to_df(self):
+    import pandas as pd
+    dict_obj={'Cohort' : [], 'Measurement': [], 'Value': []}
+    for cohort in self.keys():
+        cohort_res=self[cohort]
+        for measure in cohort_res.keys():
+            dict_obj['Cohort'].append(cohort)
+            dict_obj['Measurement'].append(measure)
+            dict_obj['Value'].append(cohort_res[measure])
+    df=pd.DataFrame(dict_obj)
+    return df
 
+def convert_to_bootstrap_input(x, arg_name=None):
+    import pandas as pd
+    import numpy as np
+    if type(x) is list:
+        x=np.array(x)
+    if type(x) is np.ndarray:
+        x=x.astype(float)
+    if type(x) is pd.Series:
+        x=x.astype(float).to_numpy()
+    if np.isnan(x).sum()>0:
+        if arg_name is None:
+            raise NameError('Error - input array has nan inside')
+        else:
+            raise NameError('Error - input array %s has nan inside'%(arg_name))
+    return x
+
+def __bootstrap_wrapper(self, preds, labels):
+    import pandas as pd
+    import numpy as np
+    preds=convert_to_bootstrap_input(preds, 'preds')
+    labels=convert_to_bootstrap_input(labels, 'labels')
+    res = self._bootstrap(preds, labels)
+    return res
+
+def __bootstrap_pid_wrapper(self, pids, preds, labels):
+    import pandas as pd
+    import numpy as np
+    pids=convert_to_bootstrap_input(pids, 'pids')
+    preds=convert_to_bootstrap_input(preds, 'preds')
+    labels=convert_to_bootstrap_input(labels, 'labels')
+    res = self._bootstrap_pid(pids, preds, labels)
+    return res
 
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
+    setattr(globals()['StringBtResultMap'],'to_df', __bootstrapResult_to_df)
+    setattr(globals()['Bootstrap'],'bootstrap', __bootstrap_wrapper)
+    setattr(globals()['Bootstrap'],'bootstrap_pid', __bootstrap_pid_wrapper)
 
 __bind_external_methods()
 

@@ -241,6 +241,21 @@ public:
 	MEDPY_IGNORE(MPStringStringMapAdaptor& operator=(const MPStringStringMapAdaptor& other));
 };
 
+class MPStringFloatMapAdaptor {
+	bool o_owned = true;
+public:
+	MEDPY_IGNORE(std::map<std::string, float>* o);
+	MPStringFloatMapAdaptor();
+	MEDPY_IGNORE(MPStringFloatMapAdaptor(const MPStringFloatMapAdaptor& other));
+	MEDPY_IGNORE(MPStringFloatMapAdaptor(std::map<std::string, float>* ptr));
+	~MPStringFloatMapAdaptor();
+	int __len__();
+	float __getitem__(const std::string& i);
+	void __setitem__(const std::string& i, float val);
+	std::vector<std::string> keys();
+	MEDPY_IGNORE(MPStringFloatMapAdaptor& operator=(const MPStringFloatMapAdaptor& other));
+};
+
 
 class MPStringVecFloatMapAdaptor {
 	bool o_owned = true;

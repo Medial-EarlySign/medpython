@@ -118,8 +118,8 @@ int MedGDLM::set_params(map<string, string>& mapper) {
 void MedGDLM::calc_feature_importance(vector<float> &features_importance_scores,
 	const string &general_params, const MedFeatures *features)
 {
-	for (auto coef : b) { features_importance_scores.push_back(-1.0 * coef); }
-	features_importance_scores.push_back(-1.0* b0);
+	for (auto coef : b) { features_importance_scores.push_back(abs(coef)); }
+	features_importance_scores.push_back(abs(b0));
 }
 
 //..............................................................................
@@ -240,8 +240,8 @@ int MedGDLM::Predict(float *x, float *&preds, int nsamples, int nftrs, int trans
 /*
 // keeping some research code here for now.... should be finalized or removed
 //..............................................................................
-int MedGDLM::predict_with_simple_but_why(float *x, float *&preds, int nsamples, int nftrs, vector<unsigned char> &is_imputed, unsigned char imputed_mask, 
-										 SimpleButWhyParams &bw_params, vector<SimpleButWhyRes> &bw_res) 
+int MedGDLM::predict_with_simple_but_why(float *x, float *&preds, int nsamples, int nftrs, vector<unsigned char> &is_imputed, unsigned char imputed_mask,
+										 SimpleButWhyParams &bw_params, vector<SimpleButWhyRes> &bw_res)
 {
 
 	if (preds == NULL)
@@ -313,8 +313,14 @@ void MedGDLM::print(FILE *fp, const string& prefix, int level) const {
 		fprintf(fp, "%s : GD_Linear Model : Nftrs = %d\n", prefix.c_str(), n_ftrs);
 		fprintf(fp, "%s : GD_Linear Model b0 = %f\n", prefix.c_str(), b0);
 
-		for (int i = 0; i < n_ftrs; i++)
-			fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		if (!model_features.empty()) {
+			for (int i = 0; i < n_ftrs; i++)
+				fprintf(fp, "%s : GD_Linear Model b[%d, %s] = %f\n", prefix.c_str(), i, model_features[i].c_str(), b[i]);
+		}
+		else {
+			for (int i = 0; i < n_ftrs; i++)
+				fprintf(fp, "%s : GD_Linear Model b[%d] = %f\n", prefix.c_str(), i, b[i]);
+		}
 	}
 }
 

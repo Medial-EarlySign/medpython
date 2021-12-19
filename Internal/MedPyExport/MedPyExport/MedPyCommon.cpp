@@ -165,7 +165,46 @@ MPStringStringMapAdaptor& MPStringStringMapAdaptor::operator=(const MPStringStri
 	}
 	return *this;
 }
+/******************************************************************************************************************************/
+MPStringFloatMapAdaptor::MPStringFloatMapAdaptor() { o = new std::map<std::string, float>(); }
+MPStringFloatMapAdaptor::MPStringFloatMapAdaptor(const MPStringFloatMapAdaptor& other)
+{
+	o_owned = other.o_owned;
+	if (!other.o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<std::string, float>();
+		*o = *other.o;
+	}
+};
+MPStringFloatMapAdaptor::MPStringFloatMapAdaptor(std::map<std::string, float>* ptr) { o_owned = false; o = ptr; };
+MPStringFloatMapAdaptor::~MPStringFloatMapAdaptor() { if (o_owned) delete o; };
+int MPStringFloatMapAdaptor::__len__() { return (int)o->size(); };
+float MPStringFloatMapAdaptor::__getitem__(const std::string& i) { return o->operator[](i); };
+void MPStringFloatMapAdaptor::__setitem__(const std::string& i, float val) { o->operator[](i) = val; };
+std::vector<std::string> MPStringFloatMapAdaptor::keys()
+{
+	std::vector<std::string> ret;
+	ret.reserve(o->size());
+	for (const auto& rec : *o) ret.push_back(rec.first);
+	return ret;
+};
 
+MPStringFloatMapAdaptor& MPStringFloatMapAdaptor::operator=(const MPStringFloatMapAdaptor& other)
+{
+	if (&other == this)
+		return *this;
+	o_owned = other.o_owned;
+	if (!o_owned) {
+		o = other.o;
+	}
+	else {
+		o = new std::map<std::string, float>();
+		*o = *(other.o);
+	}
+	return *this;
+}
 
 /******************************************************************************************************************************/
 MPStringVecFloatMapAdaptor::MPStringVecFloatMapAdaptor() { o = new std::map<std::string, std::vector<float> >(); };

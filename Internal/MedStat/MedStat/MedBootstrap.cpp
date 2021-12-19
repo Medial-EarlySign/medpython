@@ -1013,7 +1013,7 @@ MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const str
 		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
 		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
 		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
-	    { "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic }
+		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic }
 	};
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
 		string options = medial::io::get_list(measurement_function_name_map, "\n");
@@ -1213,4 +1213,77 @@ void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivo
 		read_pivot_bootstrap_results(path, bootstrap_results);
 	else
 		read_bootstrap_results(path, bootstrap_results);
+}
+
+void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &bt_cohort) {
+	//create bt object with cohort filter
+	MedBootstrap mbr;
+	mbr.filter_cohort.clear();
+	string cohort_format = "bs\t" + bt_cohort;
+	mbr.parse_cohort_line(cohort_format);
+
+	vector<float> preds, labelsOrig;
+	vector<int> pidsOrig;
+	bool has_no_preds = false;
+	// Create Dummy predictions (needed for prepare)
+	for (MedSample &sample : features.samples)
+		if (sample.prediction.empty()) {
+			sample.prediction = { 0.0 };
+			has_no_preds = true;
+		}
+
+	vector<int> preds_order;
+	map<string, vector<float>> bt_data;
+	mbr.prepare_bootstrap(features, preds, labelsOrig, pidsOrig, bt_data, preds_order);
+
+	//commit filter on: test_bt_features and store to curr_samples
+	vector<int> sel;
+	for (int i = 0; i < features.samples.size(); ++i)
+		if (filter_range_params(bt_data, i, &mbr.filter_cohort["bs"]))
+			sel.push_back(i);
+
+	medial::process::filter_row_indexes(features, sel);
+	//clear predictions:
+	if (has_no_preds)
+		for (size_t i = 0; i < features.samples.size(); ++i)
+			features.samples[i].prediction.clear();
+}
+
+void MedBootstrap::filter_bootstrap_cohort(MedPidRepository &bt_repository, MedModel &bt_filters,
+	MedSamples &curr_samples, const string &bt_cohort) {
+
+	if (bt_filters.learn(bt_repository, &curr_samples,
+		MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+		MTHROW_AND_ERR("Error creating bootstrap features for test samples\n");
+	MedFeatures &test_bt_features = bt_filters.features;
+	//create bt object with cohort filter
+	filter_bootstrap_cohort(test_bt_features, bt_cohort);
+	//commit test_bt_features to curr_samples
+	curr_samples.import_from_sample_vec(test_bt_features.samples);
+}
+
+void MedBootstrap::filter_bootstrap_cohort(const string &rep, const string &bt_json,
+	MedSamples &curr_samples, const string &bt_cohort) {
+	MedModel bt_filters;
+	if (!bt_json.empty())
+		bt_filters.init_from_json_file(bt_json);
+	//check if has Age:
+	bool fnd_age = false, fnd_gender = false;
+	for (const FeatureGenerator *f : bt_filters.generators) {
+		if (f->generator_type == FTR_GEN_AGE)
+			fnd_age = true;
+		if (f->generator_type == FTR_GEN_GENDER)
+			fnd_gender = true;
+		if (fnd_age && fnd_gender)
+			break;
+	}
+	if (!fnd_age)
+		bt_filters.add_age();
+	if (!fnd_gender)
+		bt_filters.add_gender();
+
+	MedPidRepository bt_repository;
+	bt_filters.load_repository(rep, bt_repository, true);
+
+	filter_bootstrap_cohort(bt_repository, bt_filters, curr_samples, bt_cohort);
 }

@@ -9,6 +9,7 @@
 #include "ResampleWithMissingProcessor.h"
 #include "DuplicateProcessor.h"
 #include <omp.h>
+#include <algorithm>
 
 //=======================================================================================
 // Feature Processors
@@ -588,6 +589,23 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	vector<float> values;
 	get_all_values(features, resolved_feature_name, ids, values, max_samples);
 
+	if (use_linear_transform) {
+		vector<float> prc_vals;
+		vector<float> prc_points = { 0, prctile_th, 1 - prctile_th, 1 };
+		medial::stats::get_percentiles<float>(values, prc_points, prc_vals);
+		min_x = prc_vals[1]; max_x = prc_vals[2];
+		if (min_x == max_x) {
+			MWARN("WARNING: min_x==max_x==%f for feature %s\n", min_x, resolved_feature_name.c_str());
+			//use min, max
+			min_x = prc_vals[0]; max_x = prc_vals[3];
+			if (min_x == max_x)
+				MWARN("WARNING: feature %s is redandant and all values are equal %f\n", resolved_feature_name.c_str(), min_x);
+			max_x = min_x + 1;
+		}
+
+		return 0;
+	}
+
 	int n;
 	medial::stats::get_mean_and_std(values, missing_value, n, mean, sd);
 
@@ -635,17 +653,38 @@ int FeatureNormalizer::_apply(MedFeatures& features, unordered_set<int>& ids) {
 	// Clean
 	bool empty = ids.empty();
 	vector<float>& data = features.data[resolved_feature_name];
+
+	if (use_linear_transform) {
+		double factor_m = 2 * max_val_prctile / (max_x - min_x);
+		for (unsigned int i = 0; i < features.samples.size(); i++) {
+			if ((empty || ids.find(features.samples[i].id) != ids.end())) {
+				if (data[i] != missing_value) {
+					float new_val = -max_val_prctile + (data[i] - min_x) *factor_m;
+					if (new_val > max_val_for_triming)
+						new_val = max_val_for_triming;
+					if (new_val < -max_val_for_triming)
+						new_val = -max_val_for_triming;
+					data[i] = new_val;
+				}
+				else if (fillMissing)
+					data[i] = 0;
+			}
+		}
+		return 0;
+	}
+
 	for (unsigned int i = 0; i < features.samples.size(); i++) {
 		if ((empty || ids.find(features.samples[i].id) != ids.end())) {
 			if (data[i] != missing_value) {
-				data[i] -= mean;
-				if (normalizeSd)
-					data[i] /= sd;
-				if (resolution > 0) {
-					data[i] = roundf(data[i] * multiplier) / multiplier;
-					if (resolution_only)
-						data[i] = data[i] * sd + mean;
+				if (!resolution_only) {
+					data[i] -= mean;
+					if (normalizeSd)
+						data[i] /= sd;
 				}
+				if (resolution > 0)
+					data[i] = roundf(data[i] * multiplier) / multiplier;
+				if (resolution_only && resolution_bin > 0)
+					data[i] = int(data[i] / resolution_bin) * resolution_bin;
 			}
 			else if (fillMissing)
 				data[i] = 0;
@@ -667,6 +706,12 @@ void FeatureNormalizer::reverse_apply(float &feature_value) const {
 		if (resolution > 0 && resolution_only)
 			return; // no norm occoured
 
+		if (use_linear_transform) {
+			double inv_factor_m = (max_x - min_x) / 2 * max_val_prctile;
+			feature_value = (feature_value + max_val_prctile)*inv_factor_m + min_x;
+			return;
+		}
+
 		if (normalizeSd)
 			feature_value *= sd;
 		feature_value += mean;
@@ -687,8 +732,13 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 		else if (field == "fillMissing") fillMissing = (med_stoi(entry.second) != 0);
 		else if (field == "max_samples") max_samples = med_stoi(entry.second);
 		else if (field == "resolution") resolution = med_stoi(entry.second);
+		else if (field == "resolution_bin") resolution_bin = med_stof(entry.second);
 		else if (field == "signal") set_feature_name(entry.second);
 		else if (field == "vorbosity") verbosity = med_stoi(entry.second);
+		else if (field == "use_linear_transform") use_linear_transform = med_stoi(entry.second) > 0;
+		else if (field == "max_val_prctile") max_val_prctile = med_stof(entry.second);
+		else if (field == "prctile_th") prctile_th = med_stof(entry.second);
+		else if (field == "max_val_for_triming") max_val_for_triming = med_stof(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")
 			MLOG("Unknonw parameter \'%s\' for FeatureNormalizer\n", field.c_str());
 		//! [FeatureNormalizer::init]
@@ -702,7 +752,6 @@ int FeatureNormalizer::init(map<string, string>& mapper) {
 //=======================================================================================
 void FeatureImputer::print()
 {
-
 	// Backword-compatability ..
 	if (moment_type_vec.empty()) {
 		moment_type_vec = { moment_type,moment_type };
@@ -760,6 +809,26 @@ void FeatureImputer::check_stratas_name(MedFeatures& features, map <string, stri
 	}
 }
 
+float FeatureImputer::round_to_closest(float val) const {
+	int pos = medial::process::binary_search_position(existing_values, val);
+	//pos is in range [0, v.size()] - position in sorted_vals where it's is smaller equals to sorted_vals[pos] but bigger than pos-1 
+	if (pos >= existing_values.size())
+		pos = (int)existing_values.size() - 1;
+
+	if (existing_values[pos] == val)
+		return val;
+	//not equal - means sorted_vals[pos] > val
+	if (pos == 0)
+		return existing_values[0];
+	//pos > 0  - mean val is not lower than lowest value in sorted_vals:
+	float diff_lower = val - existing_values[pos - 1];
+	float diff_upper = existing_values[pos] - val;
+	if (diff_lower < diff_upper)
+		return  existing_values[pos - 1];
+	else
+		return existing_values[pos];
+}
+
 // Learn
 //.......................................................................................
 int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
@@ -769,6 +838,15 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	default_moment_vec = { missing_value, missing_value }; //initialize
 	map <string, string> strata_name_conversion;
 	check_stratas_name(features, strata_name_conversion);
+
+	if (round_to_existing_value) {
+		unordered_set<float> vals(features.data.at(resolved_feature_name).begin(), features.data.at(resolved_feature_name).end());
+		existing_values.clear();
+		if (vals.find(missing_value) != vals.end())
+			vals.erase(missing_value);
+		existing_values.insert(existing_values.end(), vals.begin(), vals.end());
+		sort(existing_values.begin(), existing_values.end());
+	}
 
 	// Get all values
 	vector<float> values;
@@ -828,8 +906,11 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 					else
 						moments_vec[stage][i] = missing_value;
 				}
-				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN) {
 					moments_vec[stage][i] = medial::stats::mean_without_cleaning(stratifiedValues[i]);
+					if (round_to_existing_value)
+						moments_vec[stage][i] = round_to_closest(moments_vec[stage][i]);
+				}
 				else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN) {
 					if (stratifiedValues[i].size() > 0)
 						moments_vec[stage][i] = medial::stats::median_without_cleaning(stratifiedValues[i]);
@@ -865,8 +946,11 @@ int FeatureImputer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 						if (verbose_learn)
 							MLOG("WARNING: FeatureImputer::Learn found less than %d samples for %d/%d stratas for [%s], will learn to impute them using all values\n",
 								min_samples, too_small_stratas, stratifiedValues.size(), feature_name.c_str());
-						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN)
+						if (moment_type_vec[stage] == IMPUTE_MMNT_MEAN) {
 							default_moment_vec[stage] = medial::stats::mean_without_cleaning(all_existing_values);
+							if (round_to_existing_value)
+								default_moment_vec[stage] = round_to_closest(default_moment_vec[stage]);
+						}
 						else if (moment_type_vec[stage] == IMPUTE_MMNT_MEDIAN)
 							default_moment_vec[stage] = medial::stats::median_without_cleaning(all_existing_values);
 						else if (moment_type_vec[stage] == IMPUTE_MMNT_COMMON)
@@ -998,6 +1082,8 @@ int FeatureImputer::init(map<string, string>& mapper) {
 			verbose = stoi(entry.second) > 0;
 		else if (field == "verbose_learn")
 			verbose_learn = stoi(entry.second) > 0;
+		else if (field == "round_to_existing_value")
+			round_to_existing_value = stoi(entry.second) > 0;
 		else if (field == "leave_missing_for_small_stratas") leave_missing_for_small_stratas = med_stoi(entry.second);
 		else if (field == "impute_strata_with_missing") impute_strata_with_missing = med_stoi(entry.second);
 		else if (field != "names" && field != "fp_type" && field != "tag")

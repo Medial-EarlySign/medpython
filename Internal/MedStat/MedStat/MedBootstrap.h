@@ -254,6 +254,46 @@ public:
 	/// MeasurmentFunctionType 
 	/// </returns>
 	MeasurmentFunctionType measurement_function_name_to_type(const string& measurement_function_name);
+
+	/// <summary>
+	/// commit bootstrap cohort filter on a given matrix
+	/// @param features - matrix
+	/// @param bt_cohort - a single line cohort (no support for MULTI) without the cohort name. 
+	/// only the filter definition. no tabs in the string.
+	/// </summary>
+	/// <returns>
+	/// filter rows from features by cohort definition
+	/// </returns>
+	static void filter_bootstrap_cohort(MedFeatures &features, const string &bt_cohort);
+	/// <summary>
+	/// commit bootstrap cohort filter on a given samples
+	/// @param bt_repository - repository that was initialized for applying the bt_filters model
+	/// to generate matrix
+	/// @param bt_filters - the model to generate matrix for filtering the bootstrap cohort
+	/// @param curr_samples - the samples to filter
+	/// @param bt_cohort - a single line cohort (no support for MULTI) without the cohort name. 
+	/// only the filter definition. no tabs in the string.
+	/// </summary>
+	/// <returns>
+	/// filter samples from curr_samples by cohort definition
+	/// </returns>
+	static void filter_bootstrap_cohort(MedPidRepository &bt_repository, MedModel &bt_filters,
+		MedSamples &curr_samples, const string &bt_cohort);
+	/// <summary>
+	/// commit bootstrap cohort filter on a given samples
+	/// @param rep - repository path
+	/// @param bt_json - the json model to generate matrix for filtering the bootstrap cohort
+	/// Automatically Age,Gender are added
+	/// @param curr_samples - the samples to filter
+	/// @param bt_cohort - a single line cohort (no support for MULTI) without the cohort name. 
+	/// only the filter definition. no tabs in the string.
+	/// </summary>
+	/// <returns>
+	/// filter samples from curr_samples by cohort definition
+	/// </returns>
+	static void filter_bootstrap_cohort(const string &rep, const string &bt_json,
+		MedSamples &curr_samples, const string &bt_cohort);
+
 	ADD_CLASS_NAME(MedBootstrap)
 	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow, multiclass_params)
 

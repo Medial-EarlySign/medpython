@@ -10,6 +10,7 @@
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <boost/algorithm/string.hpp>
 #include <boost/math/distributions/chi_squared.hpp>
+#include <boost/filesystem.hpp>
 #include <omp.h>
 #include <MedMat/MedMat/MedMat.h>
 
@@ -259,7 +260,8 @@ inline void init_list(const string &reg_path, vector<bool> &list) {
 }
 
 RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int buffer_time, bool take_first,
-	MedRepository &rep, const vector<string> &sets, float outcome_val, int chan) {
+	MedRepository &rep, const vector<string> &sets, const string &path_to_cfg_file,
+	float outcome_val, int chan) {
 	signalName = sigName;
 	buffer_duration = buffer_time;
 	duration_flag = durr_time;
@@ -267,6 +269,8 @@ RegistrySignalSet::RegistrySignalSet(const string &sigName, int durr_time, int b
 	outcome_value = outcome_val;
 	channel = chan;
 	repo = &rep;
+	boost::filesystem::path p(path_to_cfg_file);
+	base_cfg_path = p.parent_path().string();
 	if (!sigName.empty()) {
 		int sid = rep.sigs.sid(sigName);
 		if (sid < 0)
@@ -344,6 +348,13 @@ void RegistrySignalSet::_init(const map<string, string>& mapper) {
 		MTHROW_AND_ERR("Error in RegistrySignalSet::init - channel %d not exists in signal \"%s\"\n",
 			channel, signalName.c_str());
 	//save to end
+	if (boost::starts_with(sets_path, "path_rel:") && !base_cfg_path.empty()) {
+		//use relative path to the current config file
+		sets_path = sets_path.substr(9);
+		//use base_paht as fix to relative path:
+		if (!((sets_path.size() > 2 && (sets_path[0] == '/' || sets_path[1] == ':')))) 
+			sets_path = base_cfg_path + path_sep() + sets_path;
+	}
 	if (!sets_path.empty()) {
 		medial::io::read_codes_file(sets_path, sets);
 		if (!sets.empty()) {
@@ -362,10 +373,13 @@ void RegistrySignalSet::_init(const map<string, string>& mapper) {
 	}
 }
 
-RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep, const vector<string> &sets, float outcome_val) {
+RegistrySignalSet::RegistrySignalSet(const string &init_string, MedRepository &rep,
+	const vector<string> &sets, const string &path_to_cfg_file, float outcome_val) {
 	repo = &rep;
 	init_from_string(init_string);
 	outcome_value = outcome_val;
+	boost::filesystem::path p(path_to_cfg_file);
+	base_cfg_path = p.parent_path().string();
 	if (!sets.empty()) {
 		int section_id = rep.dict.section_id(signalName);
 		rep.dict.curr_section = section_id;
@@ -436,13 +450,15 @@ void RegistrySignalRange::_init(const map<string, string>& mapper) {
 	}
 }
 
-RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep) {
+RegistrySignalDrug::RegistrySignalDrug(MedRepository &rep, const string &path_to_cfg_file) {
 	repo = &rep;
 	signalName = "";
 	duration_flag = 0;
 	buffer_duration = 0;
 	take_only_first = false;
 	outcome_value = 1;
+	boost::filesystem::path p(path_to_cfg_file);
+	base_path = p.parent_path().string();
 }
 
 void RegistrySignalDrug::_init(const map<string, string>& mapper) {
@@ -459,6 +475,13 @@ void RegistrySignalDrug::_init(const map<string, string>& mapper) {
 		//! [RegistrySignalDrug::_init]
 	}
 	//save to end
+	if (boost::starts_with(sets_path, "path_rel:") && !base_path.empty()) {
+		//use relative path to the current config file
+		sets_path = sets_path.substr(9);
+		//use base_paht as fix to relative path:
+		if (!((sets_path.size() > 2 && (sets_path[0] == '/' || sets_path[1] == ':'))))
+			sets_path = base_path + path_sep() + sets_path;
+	}
 	if (!sets_path.empty()) {
 		medial::io::read_codes_file(sets_path, sets);
 		vector<int> matched_ids(sets.size());
@@ -1381,16 +1404,17 @@ void medial::print::print_reg_stats(const vector<MedRegistryRecord> &regRecords,
 		fo.close();
 }
 
-RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep) {
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep,
+	const string &path_to_cfg_file) {
 	vector<string> empty_arr;
 	string empty_str = "";
 	//! [RegistrySignal::make_registry_signal]
 	if (type == "set")
-		return new RegistrySignalSet(empty_str, 0, 0, false, rep, empty_arr);
+		return new RegistrySignalSet(empty_str, 0, 0, false, rep, empty_arr, path_to_cfg_file);
 	else if (type == "range")
 		return new RegistrySignalRange(empty_str, 0, 0, false, 0, 0);
 	else if (type == "drug")
-		return new RegistrySignalDrug(rep);
+		return new RegistrySignalDrug(rep, path_to_cfg_file);
 	else if (type == "and")
 		return new RegistrySignalAnd(rep);
 	else if (type == "any")
@@ -1400,8 +1424,9 @@ RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepo
 	//! [RegistrySignal::make_registry_signal]
 }
 
-RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep, const string &init_string) {
-	RegistrySignal *reg = make_registry_signal(type, rep);
+RegistrySignal *RegistrySignal::make_registry_signal(const string &type, MedRepository &rep,
+	const string &init_string, const string &path_to_cfg_file) {
+	RegistrySignal *reg = make_registry_signal(type, rep, path_to_cfg_file);
 	reg->init_from_string(init_string);
 	return reg;
 }
@@ -1425,7 +1450,7 @@ void RegistrySignal::parse_registry_rules(const string &reg_cfg, MedRepository &
 		string type = tokens[0];
 		string ini = tokens[1];
 		boost::replace_all(ini, "$REP", rep.config_fname);
-		RegistrySignal *reg = RegistrySignal::make_registry_signal(type, rep, ini);
+		RegistrySignal *reg = RegistrySignal::make_registry_signal(type, rep, ini, reg_cfg);
 		result.push_back(reg);
 	}
 	fr.close();

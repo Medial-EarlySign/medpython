@@ -203,7 +203,7 @@ typedef enum {
 	FTR_STD_VALUE = 6, ///<"std" - Standart Dev. value in Window
 	FTR_LAST_DELTA_VALUE = 7, ///<"last_delta" - Last delta. last-previous_last value
 	FTR_LAST_DAYS = 8, ///<"last_time" - time diffrence from prediction time to last time has signal in range of values
-	FTR_LAST2_DAYS = 9,///<"last_time2" - time diffrence from prediction time to one previous last time has signal in range of values
+	FTR_LAST2_DAYS = 9,///<"last2_time" - time diffrence from prediction time to one previous last time has signal in range of values
 	FTR_SLOPE_VALUE = 10, ///<"slope" - calculating the slope over the points in the window
 	FTR_WIN_DELTA_VALUE = 11, ///<"win_delta" - diffrence in value in two time windows (only if both exists, otherwise missing_value). value in [win_from,win_to] minus value in [d_win_from, d_win_to]
 	FTR_CATEGORY_SET = 12, ///<"category_set" - boolean 0/1 if the signal has the value in the given lut (which initialized by the "sets" that can be specific single definition or name of set definition. the lookup is hierarchical)

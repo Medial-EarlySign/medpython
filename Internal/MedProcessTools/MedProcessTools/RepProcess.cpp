@@ -806,7 +806,7 @@ int RepBasicOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& sa
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepBasicOutlierCleaner::iterativeLearn - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -827,7 +827,7 @@ int RepBasicOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& sam
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepBasicOutlierCleaner::quantileLearn - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -852,7 +852,7 @@ int  RepBasicOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepBasicOutlierCleaner::_apply - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -1775,7 +1775,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 			right = (float) 1. / ruleUsvs[0].Val(sPointer[0], val_channels[0]);
 			test_1 = test_diff(left, right, tolerance, calc_res);
 		}
-		if (ruleUsvs[0].Val(sPointer[0], val_channels[0]) != 0) {
+		if (ruleUsvs[1].Val(sPointer[1], val_channels[1]) != 0) {
 			left = ruleUsvs[0].Val(sPointer[0], val_channels[0]);
 			right = (float) 1. / ruleUsvs[1].Val(sPointer[1], val_channels[1]);
 			test_1 = test_1 && test_diff(left, right, tolerance, calc_res);
@@ -1851,7 +1851,7 @@ int RepNbrsOutlierCleaner::iterativeLearn(MedPidRepository& rep, MedSamples& sam
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepNbrsOutlierCleaner::iterativeLearn - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -1868,7 +1868,7 @@ int RepNbrsOutlierCleaner::quantileLearn(MedPidRepository& rep, MedSamples& samp
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepNbrsOutlierCleaner::quantileLearn - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -1885,7 +1885,7 @@ int  RepNbrsOutlierCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points,
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepNbrsOutlierCleaner::_apply - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -2102,15 +2102,17 @@ int RepCheckReq::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vec
 
 	// Sanity checks
 	if (signalIds.size() != signalNames.size()) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepCheckReq::_apply - Uninitialized signalId(bad size)\n");
 		return -1;
 	}
 
+	int id_i = 0;
 	for (int signalId : signalIds) {
 		if (signalId == -1) {
-			MERR("Uninitialized signalId\n");
+			MERR("RepCheckReq::_apply - Uninitialized signalId(%s)\n", signalNames[id_i].c_str());
 			return -1;
 		}
+		++id_i;
 	}
 
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
@@ -2254,13 +2256,13 @@ int  RepSimValHandler::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	// Sanity check
 	if (signalId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("RepSimValHandler::_apply - Uninitialized signalId(%s)\n", signalName.c_str());
 		return -1;
 	}
 
 	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
-		MERR("nversions mismatch\n");
+		MERR("RepSimValHandler::_apply - nversions mismatch\n");
 		return -1;
 	}
 

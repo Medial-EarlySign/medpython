@@ -181,7 +181,7 @@ int BinnedLmEstimates::_learn(MedPidRepository& rep, const MedSamples& samples, 
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || bdateId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("BinnedLmEstimates::_learn - Uninitialized signalId (%s)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -484,7 +484,7 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 
 	// Sanity check
 	if (signalId == -1 || genderId == -1 || bdateId == -1) {
-		MERR("Uninitialized signalId\n");
+		MERR("BinnedLmEstimates::_generate - Uninitialized signalId(%)\n", signalName.c_str());
 		return -1;
 	}
 
@@ -524,7 +524,13 @@ int BinnedLmEstimates::_generate(PidDynamicRec& rec, MedFeatures& features, int 
 			int type_num = 0;
 
 			float *p_feat = _p_data[ipoint] + index;
-			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, last_time - params.estimation_points[ipoint]);
+			int days_diff = last_time - params.estimation_points[ipoint];
+			if (days_diff < 0) {
+				MWARN("WARN :: BinnedLmEstimates::_generate - got date for pid %d and signal %s with time window before 1900\n",
+					rec.pid, signalName.c_str());
+				days_diff = 0;
+			}
+			int target_time = med_time_converter.convert_times(time_unit_periods, time_unit_sig, days_diff);
 
 			for (int j = 0; j < rec.usv.len; j++) {
 				int time = rec.usv.Time(j, time_channel);

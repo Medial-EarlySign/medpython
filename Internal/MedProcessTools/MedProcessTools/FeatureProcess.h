@@ -301,14 +301,24 @@ public:
 	/// resolution : if > 0 , will keep only the given number of digits after the point.
 	int resolution = 0;
 
+	///A factor to divide by - take floor and then multiply by again. Used in resolution_only mode
+	float resolution_bin;
+
 	/// Utility : maximum number of samples to take for moments calculations
-	int max_samples = 10000;
+	int max_samples = 0;
 
 	/// if resolution only 
 	bool resolution_only = false;
 
 	/// verbosity
 	int verbosity = 0;
+
+	///If true will convert into linear transform from lower prctile to high prctile and has triming value
+	bool use_linear_transform = false;
+	float max_val_prctile = 1;
+	float max_val_for_triming = 2;
+	float prctile_th = (float)0.001;
+	float min_x, max_x; ///< parmeters of the transformation
 
 	// Constructor
 	FeatureNormalizer() : FeatureProcessor() { init_defaults(); }
@@ -329,14 +339,15 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet FeatureProcess.cpp FeatureNormalizer::init
 	int init(map<string, string>& mapper);
-	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; };
+	void init_defaults() { missing_value = MED_MAT_MISSING_VALUE; normalizeSd = true; fillMissing = false; processor_type = FTR_PROCESS_NORMALIZER; resolution_bin = 0; };
 
 	// Copy
 	virtual void copy(FeatureProcessor *processor) { *this = *(dynamic_cast<FeatureNormalizer *>(processor)); }
 
 	// Serialization
 	ADD_CLASS_NAME(FeatureNormalizer)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity)
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, mean, sd, resolution, normalizeSd, fillMissing, resolution_only, verbosity, resolution_bin,
+			use_linear_transform, max_val_prctile, max_val_for_triming, prctile_th, min_x, max_x)
 
 };
 
@@ -435,6 +446,8 @@ public:
 * To Use this selector specify <b>"imputer"</b> in the fp_type
 */
 class FeatureImputer : public FeatureProcessor {
+private:
+	float round_to_closest(float val) const;
 public:
 
 	// Missing Value
@@ -473,6 +486,9 @@ public:
 	/// Utility : maximum number of samples to take for moments calculations
 	int max_samples = 100000;
 
+	bool round_to_existing_value = true;
+	vector<float> existing_values;
+
 	// Constructor
 	FeatureImputer() : FeatureProcessor() { init_defaults(); }
 	FeatureImputer(const  string& feature_name) : FeatureProcessor() { init_defaults(); set_feature_name(feature_name); }
@@ -507,7 +523,7 @@ public:
 	// Serialization
 	ADD_CLASS_NAME(FeatureImputer)
 		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, imputerStrata, moment_type, moments, histograms, strata_sizes, default_moment, default_histogram,
-			moment_type_vec, moments_vec, default_moment_vec, leave_missing_for_small_stratas, impute_strata_with_missing)
+			moment_type_vec, moments_vec, default_moment_vec, leave_missing_for_small_stratas, impute_strata_with_missing, round_to_existing_value, existing_values)
 
 		void dprint(const string &pref, int fp_flag);
 	/// debug and print
@@ -1054,7 +1070,7 @@ public:
 	void update_req_features_vec(unordered_set<string>& out_req_features, unordered_set<string>& in_req_features);
 
 	ADD_CLASS_NAME(OneHotFeatProcessor);
-	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other, 
+	ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, index_feature_prefix, other_feature_name, removed_feature_name, rem_origin, add_other,
 		remove_last, allow_other, value2feature, regex_list, regex_list_names, max_values)
 private:
 	int Learn(MedFeatures& features, unordered_set<int>& ids);
@@ -1151,7 +1167,7 @@ public:
 	string name;  ///< feature name postfix (new feautre X is XXX.name)
 	float replace_value; ///< if added, replace value in original matrix
 	string new_feature_name; ///<generated feature name
-	
+
 	MissingIndicatorProcessor() { init_defaults(); }
 
 	void init_defaults() { processor_type = FTR_PROCESS_MISSING_INDICATOR;  missing_value = MED_MAT_MISSING_VALUE; name = "is_missing"; }
@@ -1176,7 +1192,7 @@ public:
 	int init(map<string, string>& mapper);
 
 	/// if has use_bin_settings => will update bin_cutoffs, bin_repr_vals
-	void load_bin_settings(const vector<float> &nums);
+	void load_bin_settings(const vector<float> &nums, vector<float> &y);
 
 	/// returns index for each value
 	int get_idx(float v) const;
@@ -1199,7 +1215,7 @@ public:
 * To Use this processor specify <b>"get_prob"</b> in the fp_type
 */
 class BinningFeatProcessor : public FeatureProcessor {
-private: 
+private:
 	string get_bin_name(float num) const;
 public:
 
@@ -1207,9 +1223,10 @@ public:
 	float missing_target_val = MED_MAT_MISSING_VALUE;
 	bool remove_origin = true;
 	bool one_hot = true;
+	bool keep_original_val = false;
 	string bin_format = "%2.1f";
 	Binning_Wrapper bin_sett;
-								// Constructor
+	// Constructor
 	BinningFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; }
 	BinningFeatProcessor(const  string& feature_name) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; set_feature_name(feature_name); }
 	BinningFeatProcessor(const  string& feature_name, string init_string) : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; init_from_string(init_string);  set_feature_name(feature_name); }
@@ -1229,8 +1246,8 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(BinningFeatProcessor)
-		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val, 
-			remove_origin, bin_sett, bin_format, one_hot);
+		ADD_SERIALIZATION_FUNCS(processor_type, feature_name, resolved_feature_name, missing_value, missing_target_val,
+			remove_origin, bin_sett, bin_format, one_hot, keep_original_val);
 
 };
 
