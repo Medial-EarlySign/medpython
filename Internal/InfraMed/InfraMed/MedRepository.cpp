@@ -1335,27 +1335,13 @@ void MedRepository::print_pid_sig(int pid, const string &sig_name, const vector<
 int MedRepository::get_dates_with_signal(int pid, vector<string> &sig_names, vector<int> &dates)
 {
 	int i, j;
-	int len;
 
 	dates.clear();
+	vector<UniversalSigVec> usvs(sig_names.size());
 	for (i = 0; i < sig_names.size(); i++) {
-		int st = sigs.type(sig_names[i]);
-		if (st == T_DateVal) {
-			SDateVal *v = (SDateVal *)get(pid, sig_names[i], len);
-			for (j = 0; j < len; j++)
-				dates.push_back(v[j].date);
-		}
-		else if (st == T_DateVal2) {
-			SDateVal2 *v = (SDateVal2 *)get(pid, sig_names[i], len);
-			for (j = 0; j < len; j++)
-				dates.push_back(v[j].date);
-		}
-		else if (st == T_DateShort2) {
-			SDateShort2 *v = (SDateShort2 *)get(pid, sig_names[i], len);
-			for (j = 0; j < len; j++)
-				dates.push_back(v[j].date);
-		}
-
+		uget(pid, sig_names[i], usvs[i]);
+		for (j = 0; j < usvs[i].len; j++)
+			dates.push_back(usvs[i].Time(j));
 	}
 
 	sort(dates.begin(), dates.end());
