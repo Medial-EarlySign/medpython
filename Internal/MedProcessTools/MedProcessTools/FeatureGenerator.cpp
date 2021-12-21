@@ -423,6 +423,8 @@ void BasicFeatGenerator::set_names() {
 
 	names.clear();
 	string name = signalName + ".";
+	if (!rename_signal.empty())
+		name = rename_signal + ".";
 	//string name = signalName + ".";
 	string set_names = in_set_name;
 	if (set_names == "" && this->sets.size() > 0)
@@ -664,6 +666,7 @@ int BasicFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "zero_missing_val") zero_missing_val = med_stof(entry.second);
 		else if (field == "missing_value") missing_val = stof(entry.second);
 		else if (field == "full_name") full_name = stoi(entry.second);
+		else if (field == "rename_signal") rename_signal = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for BasicFeatGenerator\n", field.c_str());
 		//! [BasicFeatGenerator::init]

@@ -58,6 +58,10 @@ bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_
 	int censor_end_date = sig_end_date;
 	int censor_reffer_date = censor_start_date, censor_op_reffer = censor_end_date;
 	bool censor_reverse = censor_time_from < 0;
+	if (censor_reverse) {
+		censor_reffer_date = censor_end_date;
+		censor_op_reffer = censor_start_date;
+	}
 	if (!r_censor.empty()) {
 		censor_start_date = medial::repository::DateAdd(pred_date, censor_time_from);
 		censor_end_date = medial::repository::DateAdd(pred_date, censor_time_to);
