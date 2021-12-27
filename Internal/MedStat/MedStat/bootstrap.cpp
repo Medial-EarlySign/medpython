@@ -1282,6 +1282,24 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
+	// Partial aucs, if required
+	vector<float> part_aucs(params->working_point_auc.size());
+	if (params->working_point_auc.size()) {
+		part_aucs[0] = false_rate[0] * true_rate[0] / 2;
+		size_t working_point = 0;
+		for (size_t i = 1; i < true_rate.size(); ++i) {
+			if (false_rate[i] > params->working_point_auc[working_point]) {
+				// Move to next partial auc
+				working_point++;
+				if (working_point == params->working_point_auc.size())
+					break;
+				part_aucs[working_point] = part_aucs[working_point - 1];
+			}
+			part_aucs[working_point] += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
+		}
+	}
+
+
 	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
 	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0;
 	int i = 0;
@@ -1970,6 +1988,12 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 
 	res["AUC"] = float(auc);
+	if (!part_aucs.empty()) {
+		for (unsigned int i = 0; i < part_aucs.size(); i++) {
+			float fpr = params->working_point_auc[i];
+			res[format_working_point("PART_AUC",fpr,false)] = part_aucs[i] / fpr;
+		}
+	}
 
 	if (abs(t_cnt - t_sum) > 0.01) {
 		res["NEG_SUM"] = float(f_sum);
