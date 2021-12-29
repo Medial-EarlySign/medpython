@@ -267,7 +267,7 @@ void collect_preds_labels(const vector<MedSample>& orig_samples,
 
 inline float apply_binned_prob(float pred, const vector<float> &min_range, const vector<float> &max_range,
 	const vector<float> &map_prob) {
-	int pos = medial::process::binary_search_position_last(min_range.data(), min_range.data() + min_range.size() - 1, pred, true);
+	int pos = medial::process::binary_search_position(min_range.data(), min_range.data() + min_range.size() - 1, pred, true);
 
 	if (pos >= map_prob.size())
 		pos = (int)map_prob.size() - 1;
