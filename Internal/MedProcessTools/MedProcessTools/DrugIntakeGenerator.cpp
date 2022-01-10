@@ -13,7 +13,7 @@ void DrugIntakeGenerator::set_names() {
 	names.clear();
 
 	if (names.empty()) {
-		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".";
+		string name = "FTR_" + int_to_string_digits(serial_id, 6) + "." + signalName + ".category_intake_";
 		string set_names = in_set_name;
 		if (set_names == "" && this->sets.size() > 0)
 			set_names = boost::algorithm::join(this->sets, "_");

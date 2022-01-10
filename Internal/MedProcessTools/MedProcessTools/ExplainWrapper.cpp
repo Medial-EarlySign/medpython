@@ -713,11 +713,12 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
-					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_intake_", "");
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 				}
@@ -745,11 +746,12 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					|| boost::regex_search(tokens[idx + 1], last_nth_reg)) {
 					boost::replace_all(tokens[idx + 1], "category_set_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_sum_", "");
-					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_first_time_", "");
+					boost::replace_all(tokens[idx + 1], "category_set_first_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_set_", "");
 					boost::replace_all(tokens[idx + 1], "category_dep_count_", "");
 					boost::replace_all(tokens[idx + 1], "category_set_", "");
+					boost::replace_all(tokens[idx + 1], "category_intake_", "");
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 					categ = true;
