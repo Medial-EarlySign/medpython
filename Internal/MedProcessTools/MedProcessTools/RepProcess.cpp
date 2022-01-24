@@ -1051,13 +1051,13 @@ int readConfFile(string confFileName, map<string, confRecord>& outlierParams)
 		string sigName = f[0];
 		if (thisRecord.val_channel > 0)
 			sigName += "_ch_" + to_string(thisRecord.val_channel);
-		outlierParams[sigName] = thisRecord;
 		thisRecord.trimLow = -1e30F;
 		thisRecord.trimHigh = 1e30F;
 		if (f.size() > 8) {
 			thisRecord.trimLow = atof(f[8].c_str());
 			thisRecord.trimHigh = atof(f[9].c_str());
 		}
+		outlierParams[sigName] = thisRecord;
 	}
 
 	infile.close();
