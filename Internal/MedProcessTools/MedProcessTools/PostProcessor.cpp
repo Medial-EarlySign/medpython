@@ -4,6 +4,7 @@
 #include "ExplainWrapper.h"
 #include "AggregatePredsPostProcessor.h"
 #include "ProbAdjustPostProcessor.h"
+#include "FairnessPostProcessor.h"
 
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL LOG_DEF_LEVEL
@@ -32,6 +33,8 @@ PostProcessorTypes post_processor_name_to_type(const string& post_processor) {
 		return FTR_POSTPROCESS_AGGREGATE_PREDS;
 	else if (lower_p == "adjust_probs")
 		return FTR_POSTPROCESS_ADJUST;
+	else if (lower_p == "fairness_adjust")
+		return FTR_POSTPROCESS_FAIRNESS;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %s\n", post_processor.c_str());
 }
@@ -68,6 +71,8 @@ PostProcessor *PostProcessor::make_processor(PostProcessorTypes type, const stri
 		prc = new AggregatePredsPostProcessor;
 	else if (type == FTR_POSTPROCESS_ADJUST)
 		prc = new ProbAdjustPostProcessor;
+	else if (type == FTR_POSTPROCESS_FAIRNESS)
+		prc = new FairnessPostProcessor;
 	else
 		MTHROW_AND_ERR("Unsupported PostProcessor %d\n", type);
 
@@ -106,6 +111,7 @@ void *PostProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, IterativeSetExplainer);
 	CONDITIONAL_NEW_CLASS(dname, AggregatePredsPostProcessor);
 	CONDITIONAL_NEW_CLASS(dname, ProbAdjustPostProcessor);
+	CONDITIONAL_NEW_CLASS(dname, FairnessPostProcessor);
 	MWARN("Warning in PostProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }

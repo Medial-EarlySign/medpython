@@ -22,6 +22,7 @@ typedef enum {
 	FTR_POSTPROCESS_ITERATIVE_SET, ///< "iterative_set" to create IterativeSetExplainer - model agnostic iterative explainer for model. sample masks using gibbs or GAN
 	FTR_POSTPROCESS_AGGREGATE_PREDS, ///< "aggregate_preds" to create AggregatePredsPostProcessor - averaging model predictions after resampling
 	FTR_POSTPROCESS_ADJUST, ///< "adjust_probs" to adjust model calibrated predictions according to priors. Creates ProbAdjustPostProcessor
+	FTR_POSTPROCESS_FAIRNESS, ///< "fairness_adjust" to adjust model calibrated predictions according to priors. Creates ProbAdjustPostProcessor
 	FTR_POSTPROCESS_LAST
 } PostProcessorTypes;
 

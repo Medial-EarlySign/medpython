@@ -171,6 +171,9 @@
     <ClCompile Include="BinningFeatProcessor.cpp">
       <Filter>Source Files\FeatureProcessors</Filter>
     </ClCompile>
+    <ClCompile Include="FairnessPostProcessor.cpp">
+      <Filter>Source Files\PostProcessors</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -274,6 +277,9 @@
     </ClInclude>
     <ClInclude Include="RepCategoryDescenders.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FairnessPostProcessor.h">
+      <Filter>Header Files\PostProcessors</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
