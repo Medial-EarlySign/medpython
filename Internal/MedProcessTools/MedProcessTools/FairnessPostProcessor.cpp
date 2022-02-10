@@ -65,8 +65,17 @@ int FairnessPostProcessor::init(map<string, string> &mapper) {
 		else if (it.first == "constraints") {
 			parse_constrains(it.second);
 		}
-		else if (it.first == "optimization_target")
-			optimization_target = it.second;
+		else if (it.first == "allow_distance_score")
+			allow_distance_score = stod(it.second);
+		else if (it.first == "allow_distance_target")
+			allow_distance_target = stod(it.second);
+		else if (it.first == "allow_distance_cutoff_constraint")
+			allow_distance_cutoff_constraint = stod(it.second);
+		else if (it.first == "score_bin_count")
+			score_bin_count = med_stoi(it.second);
+		else if (it.first == "score_resulotion")
+			score_resulotion = med_stof(it.second);
+		else if (it.first == "pp_type") {} //ignore
 		else
 			MTHROW_AND_ERR("Error - FairnessPostProcessor::init - unknown param %s\n", it.first.c_str());
 	}
@@ -194,7 +203,8 @@ int get_closet_idx(const vector<float> &search_vec, float search, float max_diff
 	if (idx < 0)
 		MTHROW_AND_ERR("Error Can't find value - empty\n");
 	if (min_diff > max_diff)
-		MTHROW_AND_ERR("Error value is too far - %f\n", min_diff);
+		idx = -1;
+		//MTHROW_AND_ERR("Error value is too far - %f\n", min_diff);
 
 	return idx;
 }
@@ -202,6 +212,8 @@ int get_closet_idx(const vector<float> &search_vec, float search, float max_diff
 float get_closet(const vector<float> &search_vec, const vector<float> &val_vec,
 	float search, float max_diff = 1) {
 	int idx = get_closet_idx(search_vec, search, max_diff);
+	if (idx < 0)
+		return MED_MAT_MISSING_VALUE;
 	return val_vec[idx];
 }
 
@@ -249,7 +261,8 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 	//calc target for each group and score by Bootstrap
 	MedBootstrap bt;
 	bt.roc_Params.use_score_working_points = true;
-	bt.roc_Params.score_bins = 5000;
+	bt.roc_Params.score_bins = score_bin_count;
+	bt.roc_Params.score_resolution = score_resulotion;
 	map<string, vector<float>> empty_info;
 	unordered_map<float, map<string, float>> group_to_bootstrap;
 	//map<string, float> global_bt;
@@ -303,10 +316,10 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 		switch (c.type)
 		{
 		case Cutoff_Type::PR:
-			cutoff_search = fetch_bt_num(ref_bt, "PR", c.value);
+			cutoff_search = fetch_bt_num(ref_bt, "PR", c.value, allow_distance_cutoff_constraint);
 			break;
 		case Cutoff_Type::Sens:
-			cutoff_search = fetch_bt_num(ref_bt, "SENS", c.value);
+			cutoff_search = fetch_bt_num(ref_bt, "SENS", c.value, allow_distance_cutoff_constraint);
 			break;
 		case Cutoff_Type::Score:
 			cutoff_search = c.value;
@@ -316,15 +329,21 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 		}
 
 		//print fairness for all groups vs reference:
-		float reference_target = get_closet(ref_scores, ref_targets, cutoff_search);
+		float reference_target = get_closet(ref_scores, ref_targets, cutoff_search, allow_distance_score);
+		if (reference_target == MED_MAT_MISSING_VALUE)
+			MTHROW_AND_ERR("Error - can't find cutoff. score resulotion is too low for ref?\n");
 		for (const auto &it : group_to_scores)
 		{
 			if (it.first == reference_group_val)
 				continue;
-			float other_target = get_closet(it.second, group_to_targets.at(it.first), cutoff_search);
-			MLOG("Compare %s in group_value=%f to reference val=%f :: [%f <=> %f]\n",
+			int closet_idx= get_closet_idx(it.second, cutoff_search, allow_distance_score);
+			if (closet_idx < 0)
+				MTHROW_AND_ERR("Error - can't find cutoff. score resulotion is too low for other group?\n");
+			float other_target = group_to_targets.at(it.first)[closet_idx];
+			float other_score_cutoff = it.second[closet_idx];
+			MLOG("Compare %s in group_value=%f to reference val=%f :: [%f <=> %f]. cutoffs [%f <=> %f]\n",
 				search_pre.c_str(), it.first, reference_group_val,
-				other_target, reference_target);
+				other_target, reference_target, other_score_cutoff,cutoff_search);
 		}
 
 		bool first_time = true;
@@ -336,7 +355,9 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 			for (int i = 0; i < ref_targets.size(); ++i)
 			{
 				//TODO: iterate together - same order and faster
-				int other_idx = get_closet_idx(other_group_targets, ref_targets[i]);// other_group_targets[other_idx] ~= ref_targets[i]
+				int other_idx = get_closet_idx(other_group_targets, ref_targets[i], allow_distance_target);// other_group_targets[other_idx] ~= ref_targets[i]
+				if (other_idx < 0)
+					continue; //can't reach this target
 				//calculate all options for constraint: SENS, PR, score (and also target):
 				float sens_ref_i = ref_sens[i];
 				float score_ref_i = ref_scores[i];
@@ -372,7 +393,9 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 			}
 
 			//idx is the "best" match for constraint:
-			int other_idx = get_closet_idx(other_group_targets, ref_targets[idx]);// other_group_targets[other_idx] ~= ref_targets[idx]
+			int other_idx = get_closet_idx(other_group_targets, ref_targets[idx], allow_distance_target);// other_group_targets[other_idx] ~= ref_targets[idx]
+			if (other_idx < 0)
+				MTHROW_AND_ERR("Error - can't find optimal target.\n");
 			float score_other_i = group_to_scores.at(it.first)[other_idx];
 			float score_ref_i = ref_scores[idx];
 			//need to transform score_other_i into score_ref_i for this constraint
@@ -410,26 +433,14 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 	//TODO: improve and select better trasformation to optimize something 
 	// in the middle and not just fix bias by "factor" or addition
 
-}
-
-void FairnessPostProcessor::Apply(MedFeatures &matrix) {
-	//Calc groups for matrix:
-	MedSamples samples;
-	samples.import_from_sample_vec(matrix.samples);
-	medial::medmodel::apply(group_feature_gen_model, samples, p_rep->config_fname,
-		MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
-	vector<float> &group_vec = group_feature_gen_model.features.data.at(resolved_name);
-
 	//manipulate scores for each group by reference. use group_to_score_cutoffs_ranges and reference_group_val:
 	const vector<float> &reference_cutoffs = group_to_score_cutoffs_ranges.at(reference_group_val);
 
-	unordered_map<float, vector<float>> grp_to_factors;
-	unordered_map<float, vector<float>> grp_to_bias;
 	//calc factors:
 	for (auto &it : group_to_score_cutoffs_ranges)
 	{
-		vector<float> &factor = grp_to_factors[it.first];
-		vector<float> &bias = grp_to_bias[it.first];
+		vector<float> &factor = group_to_factors[it.first];
+		vector<float> &bias = group_to_bias[it.first];
 		const vector<float> &grp_cutoffs = it.second;
 		factor.resize(grp_cutoffs.size(), 1);
 		bias.resize(grp_cutoffs.size());
@@ -453,6 +464,16 @@ void FairnessPostProcessor::Apply(MedFeatures &matrix) {
 		}
 	}
 
+}
+
+void FairnessPostProcessor::Apply(MedFeatures &matrix) {
+	//Calc groups for matrix:
+	MedSamples samples;
+	samples.import_from_sample_vec(matrix.samples);
+	medial::medmodel::apply(group_feature_gen_model, samples, p_rep->config_fname,
+		MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	vector<float> &group_vec = group_feature_gen_model.features.data.at(resolved_name);
+
 #pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < matrix.samples.size(); ++i)
 	{
@@ -469,8 +490,29 @@ void FairnessPostProcessor::Apply(MedFeatures &matrix) {
 		int pos = medial::process::binary_search_position(grp_cutoffs, score);
 		if (pos >= grp_cutoffs.size())
 			pos = (int)grp_cutoffs.size() - 1;
-		float factor = grp_to_factors.at(group_vec[i])[pos];
-		float bias = grp_to_bias.at(group_vec[i])[pos];
+		float factor = group_to_factors.at(group_vec[i])[pos];
+		float bias = group_to_bias.at(group_vec[i])[pos];
 		score = score * factor + bias;
 	}
+}
+
+void FairnessPostProcessor::dprint(const string &pref) const {
+	MLOG("%s :: %s :: on group %s, reference group val=%f\n",
+		pref.c_str(), my_class_name().c_str(), feature_name.c_str(), reference_group_val);
+	for (const auto &it : group_to_score_cutoffs_ranges)
+	{
+		const vector<float> &cutoff = it.second;
+		const vector<float> &factors = group_to_factors.at(it.first);
+		const vector<float> &bias = group_to_bias.at(it.first);
+		float group_val = it.first;
+		string reference = "";
+		if (group_val == reference_group_val)
+			reference = "[Reference group]";
+		for (size_t i = 0; i < cutoff.size(); ++i)
+			MLOG("Group_val:=%f%s :: %zu :: cutoff %f :: factor %f :: bias %f\n",
+				group_val, reference.c_str(), i, cutoff[i], factors[i], bias[i]);
+
+
+	}
+
 }
