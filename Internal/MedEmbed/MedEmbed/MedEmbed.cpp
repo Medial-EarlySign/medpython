@@ -307,7 +307,16 @@ int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shr
 
 	if (type == ECTYPE_AGE) {
 		// in this case usv must be "BDATE"
-		int bdate = (int)usv.Val(0);
+		int bdate = 0;
+		if (usv.len > 0) {
+			if (usv.n_val_channels() > 0)
+				bdate = (int)usv.Val(0);
+			else if (usv.n_time_channels() > 0)
+				bdate = usv.Time(0);
+		}
+		else
+			MTHROW_AND_ERR("Error unknown bdate for %d\n", pid);
+
 		float age = (float)med_time_converter.get_age(time, sig_time_unit, int(bdate / 10000));
 		codes.push_back(get_continuous_codes(age, use_shrink));
 	}
