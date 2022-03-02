@@ -84,22 +84,22 @@ public:
 	// simple API's
 
 	// appends the orig values to the given codes vector , returns number of elements added
-	int get_categ_orig(int val, vector<int> &codes);
+	int get_categ_orig(int val, vector<int> &codes) const;
 	
 	// appends the codes to the given codes vector , returns number of elements added
-	int get_categ_codes(int val, vector<int> &codes, int use_shrink = 1);
+	int get_categ_codes(int val, vector<int> &codes, int use_shrink = 1) const;
 
 	// appends the shrunk codes to the given codes vector , returns number of elements added
-	int get_categ_shrunk_codes(int val, vector<int> &codes);
+	int get_categ_shrunk_codes(int val, vector<int> &codes) const;
 
 	// appends the orig values to the given codes vector , returns number of elements added
-	int get_continuous_orig(float val);
+	int get_continuous_orig(float val) const;
 
 	// appends the codes to the given codes vector , returns number of elements added
-	int get_continuous_codes(float val, int use_shrink = 1);
+	int get_continuous_codes(float val, int use_shrink = 1) const;
 
 	// appends the shrunk codes to the given codes vector , returns number of elements added
-	int get_continuous_shrunk_codes(float val);
+	int get_continuous_shrunk_codes(float val) const;
 
 	// helper and not needed to serialize params
 	int sid = -1;
@@ -127,10 +127,10 @@ public:
 
 
 	// actually collecting matrix lines
-	int add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines);
-	int get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes);
-	int add_codes_to_line(vector<int> &codes, map<int, float> &out_line);
-	int add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line);
+	int add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines) const;
+	int get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes) const;
+	int add_codes_to_line(vector<int> &codes, map<int, float> &out_line) const;
+	int add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line) const;
 
 	// preparing a batch of model results (will also initialize the feat_ptr vector, and the pidtime2idx map)
 	int prep_model_batch(MedPidRepository &rep, MedSamples &samples);

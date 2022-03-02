@@ -85,15 +85,18 @@ int EmbeddingSig::init(map<string, string>& _map)
 
 	}
 
+	if (type == ECTYPE_AGE)
+		sig = "BDATE"; //not important - to avoid confusion later
+
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------
 // given a categorial val : return the sets it is contained in that are in the list of requested categories (= "in range")
-int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
+int EmbeddingSig::get_categ_orig(int val, vector<int> &members) const
 {
 	if (sig_members2sets_in_range.find(val) == sig_members2sets_in_range.end()) return 0;
-	for (auto j : sig_members2sets_in_range[val]) {
+	for (auto j : sig_members2sets_in_range.at(val)) {
 		members.push_back(categ_convert[j]);
 	}
 	return 0;
@@ -101,29 +104,29 @@ int EmbeddingSig::get_categ_orig(int val, vector<int> &members)
 
 //-------------------------------------------------------------------------------------
 // given a categorial val : return all the codes it adds before shrinkage
-int EmbeddingSig::get_categ_codes(int val, vector<int> &codes, int use_shrink)
+int EmbeddingSig::get_categ_codes(int val, vector<int> &codes, int use_shrink) const
 {
 	if (use_shrink || Orig2Code.size() == 0) return get_categ_shrunk_codes(val, codes);
 	vector<int> members;
 	get_categ_orig(val, members);
-	for (auto i : members)	if (Orig2Code.find(i) != Orig2Code.end()) codes.push_back(Orig2Code[i]);
+	for (auto i : members)	if (Orig2Code.find(i) != Orig2Code.end()) codes.push_back(Orig2Code.at(i));
 	return 0;
 }
 
 
 //-------------------------------------------------------------------------------------
 // given a categorial val : return all the codes it adds after shrinkage
-int EmbeddingSig::get_categ_shrunk_codes(int val, vector<int> &codes)
+int EmbeddingSig::get_categ_shrunk_codes(int val, vector<int> &codes) const
 {
 	vector<int> members;
 	get_categ_orig(val, members);
-	for (auto i : members)	if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end())	codes.push_back(Orig2ShrunkCode[i]);
+	for (auto i : members)	if (Orig2ShrunkCode.find(i) != Orig2ShrunkCode.end())	codes.push_back(Orig2ShrunkCode.at(i));
 	return 0;
 }
 
 //-------------------------------------------------------------------------------------
 // given a val : get the serial range number it is contained in.
-int EmbeddingSig::get_continuous_orig(float val)
+int EmbeddingSig::get_continuous_orig(float val) const
 {
 	for (int i = 0; i < ranges.size(); i++) {
 		if (val >= ranges[i][0] && val < ranges[i][1])
@@ -135,20 +138,20 @@ int EmbeddingSig::get_continuous_orig(float val)
 
 //-------------------------------------------------------------------------------------
 // given a val : get the orig (pre shrinking) code for its serial range
-int EmbeddingSig::get_continuous_codes(float val, int use_shrink)
+int EmbeddingSig::get_continuous_codes(float val, int use_shrink) const
 {
 	if (use_shrink) return get_continuous_shrunk_codes(val);
 	int j = get_continuous_orig(val);
 	if (j < 0 || (Orig2Code.find(j) == Orig2Code.end())) return -1;
-	return Orig2Code[j];
+	return Orig2Code.at(j);
 }
 
 //-------------------------------------------------------------------------------------
-int EmbeddingSig::get_continuous_shrunk_codes(float val)
+int EmbeddingSig::get_continuous_shrunk_codes(float val) const
 {
 	int j = get_continuous_orig(val);
 	if (j < 0 || (Orig2ShrunkCode.find(j) == Orig2ShrunkCode.end())) return -1;
-	return Orig2ShrunkCode[j];
+	return Orig2ShrunkCode.at(j);
 }
 
 //-------------------------------------------------------------------------------------
@@ -295,7 +298,7 @@ int EmbeddingSig::init_categorial(MedDictionarySections &dict, int &curr_code)
 
 
 //----------------------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes)
+int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shrink, vector<int> &codes) const
 {
 	int from_time = med_time_converter.diff_times(time, sig_time_unit, win_to, win_time_unit, sig_time_unit);
 	int to_time = med_time_converter.diff_times(time, sig_time_unit, win_from, win_time_unit, sig_time_unit);
@@ -357,7 +360,7 @@ int EmbeddingSig::get_codes(UniversalSigVec &usv, int pid, int time, int use_shr
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::add_codes_to_line(vector<int> &codes, map<int, float> &out_line)
+int EmbeddingSig::add_codes_to_line(vector<int> &codes, map<int, float> &out_line) const
 {
 	for (auto &c : codes)
 		if (c >= 0) {
@@ -372,7 +375,7 @@ int EmbeddingSig::add_codes_to_line(vector<int> &codes, map<int, float> &out_lin
 }
 
 //----------------------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines)
+int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, map<int, float>> &out_lines) const
 {
 	if (out_lines.find(time) == out_lines.end())
 		out_lines[time] = map<int, float>();
@@ -384,16 +387,16 @@ int EmbeddingSig::add_sig_to_lines(UniversalSigVec &usv, int pid, int time, int 
 
 #define MODEL_EPSILON (float)0.01
 //----------------------------------------------------------------------------------------------------------------------------------------
-int EmbeddingSig::add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line)
+int EmbeddingSig::add_to_line(UniversalSigVec &usv, int pid, int time, int use_shrink, map<int, float> &out_line) const
 {
 	if (type == ECTYPE_DUMMY) { out_line[0] = 1.0f;	return 0; }
 
 	if (type == ECTYPE_MODEL) {
-		int j = pidtime2idx[pair<int, int>(pid, time)];
+		int j = pidtime2idx.at(pair<int, int>(pid, time));
 		for (int i = 0; i < feat_ptrs.size(); i++) {
 			//MLOG("====> i %d j %d feat %f OrigShrunk %d\n", i, j, feat_ptrs[i][j], Orig2ShrunkCode[i]);
 			if (abs(feat_ptrs[i][j]) >= MODEL_EPSILON)
-				out_line[Orig2ShrunkCode[i]] = feat_ptrs[i][j];
+				out_line[Orig2ShrunkCode.at(i)] = feat_ptrs[i][j];
 		}
 		return 0;
 	}
