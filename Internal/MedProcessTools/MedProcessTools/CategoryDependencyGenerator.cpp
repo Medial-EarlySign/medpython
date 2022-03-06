@@ -58,7 +58,7 @@ static unordered_map<string, int> conv_map_stats = {
 	{ "mcnemar", (int)category_stat_test::mcnemar }
 };
 int CategoryDependencyGenerator::init(map<string, string>& mapper) {
-
+	string prefix_str = "filter_set_by_val_channel_";
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		//! [CategoryDependencyGenerator::init]
@@ -165,7 +165,13 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			female_regression_case_lower = med_stoi(it->second);
 		else if (it->first == "female_regression_case_upper")
 			female_regression_case_upper = med_stoi(it->second);
-
+		else if (boost::starts_with(it->first, "filter_set_by_val_channel_")) {
+			int val_channel_f = med_stoi(it->first.substr(prefix_str.length()));
+			if (filter_set_by_val_channel.size() < val_channel_f)
+				filter_set_by_val_channel.resize(val_channel_f + 1);
+			vector<string> &f_v_sets = filter_set_by_val_channel[val_channel_f];
+			boost::split(f_v_sets, it->second, boost::is_any_of(","));
+		}
 		else if (it->first == "fg_type") {}
 		else if (it->first == "tags") { boost::split(tags, it->second, boost::is_any_of(",")); }
 		else
@@ -185,6 +191,10 @@ void CategoryDependencyGenerator::set_signal_ids(MedSignals& sigs) {
 	signalId = sigs.sid(signalName);
 	bdate_sid = sigs.sid("BDATE");
 	gender_sid = sigs.sid("GENDER");
+
+	if (signalId < 0)
+		MTHROW_AND_ERR("Error CategoryDependencyGenerator::set_signal_ids Unknown signal %s\n", signalName.c_str());
+	input_sig_num_val_ch = sigs.Sid2Info.at(signalId).n_val_channels;
 }
 
 void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
@@ -198,6 +208,23 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 		vector<string> s_names = { top_codes[i] };
 		dict.prep_sets_lookup_table(section_id, s_names, luts[i]);
 	}
+	filter_luts.resize(filter_set_by_val_channel.size());
+	for (size_t i = 0; i < filter_set_by_val_channel.size(); ++i)
+	{
+		const vector<string> &s_names = filter_set_by_val_channel[i];
+		dict.prep_sets_lookup_table(section_id, s_names, filter_luts[i]);
+	}
+	if (!filter_set_by_val_channel.empty()) {
+		for (int i = 0; i < filter_set_by_val_channel.size(); ++i) 
+			if (!filter_set_by_val_channel[i].empty()) {
+				filter_vals_idx.push_back(i);
+				if (i >= input_sig_num_val_ch)
+					MTHROW_AND_ERR("Error CategoryDependencyGenerator::init_tables - filter_set_by_val_channel contains reference to channel that doesn't exists: %d\n",
+						i);
+			}
+		
+	}
+
 }
 
 void CategoryDependencyGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
@@ -481,6 +508,19 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 
 			for (int k = 0; k < usv.len; ++k)
 				if (usv.Time(k, time_channel) >= start_time_win && usv.Time(k, time_channel) <= end_time_win) { //get values in time window:
+					bool filter_skip = false;
+					if (!filter_set_by_val_channel.empty()) {
+						for (int f_idx : filter_vals_idx)
+						{
+							const vector<char> &f_lut = filter_luts[f_idx];
+							int sig_val_f = usv.Val<int>(k, f_idx);
+							filter_skip = !f_lut[sig_val_f]; //The filter is whitelist. if not inside - skip
+							if (filter_skip)
+								break;
+						}
+					}
+					if (filter_skip)
+						continue;
 					//get filter regex codes:
 					int base_code = (int)usv.Val(k, val_channel);
 
@@ -802,6 +842,19 @@ int CategoryDependencyGenerator::_generate(PidDynamicRec& rec, MedFeatures& feat
 			for (int j = 0; j < rec.usv.len; ++j) {
 				int itime = rec.usv.Time(j, time_channel);
 				if (itime > max_time) break;
+				bool filter_skip = false;
+				if (!filter_set_by_val_channel.empty()) {
+					for (int f_idx : filter_vals_idx)
+					{
+						const vector<char> &f_lut = filter_luts[f_idx];
+						int sig_val_f = rec.usv.Val<int>(j, f_idx);
+						filter_skip = !f_lut[sig_val_f]; //The filter is whitelist. if not inside - skip
+						if (filter_skip)
+							break;
+					}
+				}
+				if (filter_skip)
+					continue;
 				if (itime >= min_time && lut[(int)rec.usv.Val(j, val_channel)])
 					++val;
 			}
