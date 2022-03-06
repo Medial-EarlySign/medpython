@@ -59,6 +59,7 @@ static unordered_map<string, int> conv_map_stats = {
 };
 int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 	string prefix_str = "filter_set_by_val_channel_";
+	string prefix_str_names = "filter_set_by_val_channel_names";
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		//! [CategoryDependencyGenerator::init]
@@ -172,6 +173,12 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			vector<string> &f_v_sets = filter_set_by_val_channel[val_channel_f];
 			boost::split(f_v_sets, it->second, boost::is_any_of(","));
 		}
+		else if (boost::starts_with(it->first, "filter_set_by_val_channel_names_")) {
+			int val_channel_f = med_stoi(it->first.substr(prefix_str_names.length()));
+			if (filter_set_by_val_channel_names.size() < val_channel_f)
+				filter_set_by_val_channel_names.resize(val_channel_f + 1);
+			filter_set_by_val_channel_names[val_channel_f] = it->second;
+		}
 		else if (it->first == "fg_type") {}
 		else if (it->first == "tags") { boost::split(tags, it->second, boost::is_any_of(",")); }
 		else
@@ -215,20 +222,28 @@ void CategoryDependencyGenerator::init_tables(MedDictionarySections& dict) {
 		dict.prep_sets_lookup_table(section_id, s_names, filter_luts[i]);
 	}
 	if (!filter_set_by_val_channel.empty()) {
-		for (int i = 0; i < filter_set_by_val_channel.size(); ++i) 
+		for (int i = 0; i < filter_set_by_val_channel.size(); ++i)
 			if (!filter_set_by_val_channel[i].empty()) {
 				filter_vals_idx.push_back(i);
 				if (i >= input_sig_num_val_ch)
 					MTHROW_AND_ERR("Error CategoryDependencyGenerator::init_tables - filter_set_by_val_channel contains reference to channel that doesn't exists: %d\n",
 						i);
 			}
-		
+
 	}
 
 }
 
 void CategoryDependencyGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
 	signal_categories_in_use[signalName] = top_codes;
+	if (!filter_set_by_val_channel.empty()) {
+		unordered_set<string> full_codes(top_codes.begin(), top_codes.end());
+		for (size_t i = 0; i < filter_set_by_val_channel.size(); ++i)
+			if (!filter_set_by_val_channel[i].empty())
+				full_codes.insert(filter_set_by_val_channel[i].begin(), filter_set_by_val_channel[i].end());
+		vector<string> flat_list(full_codes.begin(), full_codes.end());
+		signal_categories_in_use[signalName] = flat_list;
+	}
 }
 
 template<class T> void apply_filter(vector<int> &indexes, const vector<T> &vecCnts
@@ -802,14 +817,31 @@ void CategoryDependencyGenerator::set_names() {
 	string op_name = "set";
 	if (generate_with_counts)
 		op_name = "count";
+	string add_f = "";
+	if (!feature_prefix.empty())
+		add_f = "." + feature_prefix;
+	string filter_str = "";
+	stringstream filter_ss;
+	bool has_f = false;
+	for (size_t i = 0; i < filter_set_by_val_channel.size(); ++i)
+		if (!filter_set_by_val_channel[i].empty()) {
+			has_f = true;
+			filter_ss << ".filter_ch_" << i;
+			if (i < filter_set_by_val_channel_names.size() && !filter_set_by_val_channel_names[i].empty())
+				filter_ss << "_" << filter_set_by_val_channel_names[i];
+			else {
+				for (size_t j = 0; j < filter_set_by_val_channel[i].size(); ++j)
+					filter_ss << "_" << filter_set_by_val_channel[i][j];
+			}
+		}
+	if (has_f)
+		filter_str = filter_ss.str();
+
 	for (size_t i = 0; i < top_codes.size(); ++i) {
 		char buff[5000];
-		if (!feature_prefix.empty())
-			snprintf(buff, sizeof(buff), "%s.category_dep_%s_%s.%s.win_%d_%d",
-				signalName.c_str(), op_name.c_str(), top_codes[i].c_str(), feature_prefix.c_str(), win_from, win_to);
-		else
-			snprintf(buff, sizeof(buff), "%s.category_dep_%s_%s.win_%d_%d",
-				signalName.c_str(), op_name.c_str(), top_codes[i].c_str(), win_from, win_to);
+		snprintf(buff, sizeof(buff), "%s.category_dep_%s_%s%s%s.win_%d_%d",
+			signalName.c_str(), op_name.c_str(), top_codes[i].c_str(),
+			add_f.c_str(), filter_str.c_str(), win_from, win_to);
 		names[i] = string(buff);
 	}
 }
@@ -878,15 +910,15 @@ int CategoryDependencyGenerator::filter_features(unordered_set<string>& validFea
 	}
 
 	vector<string> filterd_codes(selected.size());
-	vector<vector<char>> filter_luts(selected.size());
+	vector<vector<char>> filter_luts_s(selected.size());
 	for (int i = 0; i < selected.size(); i++) {
 		filterd_codes[i] = top_codes[selected[i]];
 		if (!luts.empty())
-			filter_luts[i] = luts[selected[i]];
+			filter_luts_s[i] = luts[selected[i]];
 	}
 	top_codes = move(filterd_codes);
 	if (!luts.empty())
-		luts = move(filter_luts);
+		luts = move(filter_luts_s);
 	set_names();
 
 	return ((int)names.size());
