@@ -261,7 +261,7 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	for (auto i = 0; i < m.size(); ++i)
 	{
 		int ind = 0;
-		bool all_good = true;
+		bool all_good = !m[i].empty();
 		while (all_good && ind < m[i].size()) {
 			all_good = m[i][ind] >= minimal_balls;
 			++ind;
