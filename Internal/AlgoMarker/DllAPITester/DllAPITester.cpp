@@ -160,8 +160,12 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 //				for (int j = 0; j < usv.n_val_channels(); j++) {
 				for (int j = 0; j < n_val_channels; j++) {
 					if (str_values != NULL) {
-						if (is_categ[j])
-							sv = rep.dict.dicts[rep.dict.section_id(sig)].Id2Names[usv.Val(i, j)][0];
+						if (is_categ[j]) {
+							int sec_id = rep.dict.section_id(sig);
+							if (sec_id < 0)
+								MTHROW_AND_ERR("Unknown section for sig %s\n", sig.c_str());
+							sv = rep.dict.dicts[sec_id].Id2Names[usv.Val(i, j)][0];
+						}
 						else
 							sv = to_string(usv.Val(i, j));
 
