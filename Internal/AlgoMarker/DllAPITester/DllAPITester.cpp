@@ -1076,7 +1076,6 @@ int main(int argc, char *argv[])
 	MedPidRepository rep;
 	model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
 
-	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
 	if (ignore_sig.size() > 0) {
 		string ppjson = "{\"pre_processors\":[{\"action_type\":\"rep_processor\",\"rp_type\":\"history_limit\",\"signal\":[";
 		ppjson += string("\"") + ignore_sig[0] + "\"";
