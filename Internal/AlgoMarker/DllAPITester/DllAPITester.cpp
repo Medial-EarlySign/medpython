@@ -42,6 +42,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("help", "produce help message")
 			("rep", po::value<string>()->default_value("/home/Repositories/THIN/thin_mar2017/thin.repository"), "repository file name")
 			("samples", po::value<string>()->default_value(""), "medsamples file to use")
+			("allow_rep_adjustment", po::value<bool>()->default_value(false), "If true will allow fit into repository before applying model")
 			("am_res_file", po::value<string>()->default_value(""), "File name to save AlgoMarker API results to")
 			("model", po::value<string>()->default_value(""), "model file to use")
 			("amconfig", po::value<string>()->default_value(""), "algo marker configuration file")
@@ -1073,6 +1074,7 @@ int main(int argc, char *argv[])
 
 	// read rep
 	MedPidRepository rep;
+	model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
 
 	if (rep.read_all(vm["rep"].as<string>(), pids, sigs) < 0) return -1;
 	if (ignore_sig.size() > 0) {
