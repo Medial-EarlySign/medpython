@@ -426,7 +426,6 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 	json_out["body"] = {
 		{ "accountId", vm["accountId"].as<string>().c_str() },
 	{ "requestId", reqId.c_str() },
-	{ "customerId", "Earlysign" },
 	{ "calculator" , vm["calculator"].as<string>().c_str() },
 	{ "signals",json::array() },
 	{ "patient_id" , pid}

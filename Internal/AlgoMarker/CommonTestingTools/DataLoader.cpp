@@ -107,7 +107,6 @@ void CommonTestingTools::DataLoader::am_add_data(AlgoMarker *am, int pid, int ma
 	json_out["body"] = {
 		{ "accountId", "A" },
 	{ "requestId", reqId.c_str() },
-	{ "customerId", "Earlysign" },
 	{ "calculator" , "COVID19" },
 	{ "signals",json::array() }
 	};
