@@ -833,8 +833,12 @@ int SingletonGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 			// Normal Singleton
 			if (id2Value.empty()) // Values as is
 				value = (float)((int)(rec.usv.Val(0)));
-			else // dictionaries
-				value = id2Value[(int)(rec.usv.Val(0))];
+			else {// dictionaries
+				int idx_lut = (int)(rec.usv.Val(0));
+				if (idx_lut < 0 || idx_lut >= id2Value.size())
+					MTHROW_AND_ERR("Error SingletonGenerator::_generate - invalid value %d\n", idx_lut);
+				value = id2Value[idx_lut];
+			}
 		}
 		else
 		{
