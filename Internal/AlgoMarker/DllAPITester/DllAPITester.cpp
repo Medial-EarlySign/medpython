@@ -146,7 +146,7 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 			for (int i = 0; i < stop_at; i++) {
 				//for (int j = 0; j < usv.n_time_channels(); j++) {
 				for (int j = 0; j < n_time_channels; j++) {
-						//MLOG("%s i=%d,j=%d,i_time=%d,stop_at=%d\n", sig.c_str(), i, j, i_time, stop_at);
+					//MLOG("%s i=%d,j=%d,i_time=%d,stop_at=%d\n", sig.c_str(), i, j, i_time, stop_at);
 					p_times[i_time] = min((long long)usv.Time(i, j), (long long)time);
 					++i_time;
 				}
@@ -158,7 +158,7 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 		if (usv.n_val_channels() > 0) {
 			if (p_times != NULL) nelem = nelem_before;
 			for (int i = 0; i < nelem; i++)
-//				for (int j = 0; j < usv.n_val_channels(); j++) {
+				//				for (int j = 0; j < usv.n_val_channels(); j++) {
 				for (int j = 0; j < n_val_channels; j++) {
 					if (str_values != NULL) {
 						if (is_categ[j]) {
@@ -172,7 +172,8 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 
 						sv.copy(str_values[i_val], sv.length());
 						str_values[i_val][sv.length()] = 0;
-					} else
+					}
+					else
 						p_vals[i_val] = usv.Val(i, j);
 					++i_val;
 				}
@@ -316,7 +317,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	// calculate scores
 	MLOG("Before Calculate\n");
-	
+
 	DYN(AM_API_CreateResponses(&resp));
 	int calc_rc = DYN(AM_API_Calculate(am, req, resp));
 	MLOG("After Calculate: rc = %d\n", calc_rc);
@@ -520,7 +521,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			_t_calculate.take_curr_time(); t_calculate += _t_calculate.diff_sec();
 
 			int n_resp = DYN(AM_API_GetResponsesNum(resp));
-			
+
 			//MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
 
 			// get scores
@@ -530,7 +531,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 				MedSample rs;
 				get_response_score_into_sample(response, resp_rc, rs);
 				res.push_back(rs);
-			 }
+			}
 			else {
 				MedSample rs = s;
 				rs.prediction.clear();
@@ -585,7 +586,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 #endif
 
 //========================================================================================
-void save_sample_vec(vector<MedSample> sample_vec, const string& fname) 
+void save_sample_vec(vector<MedSample> sample_vec, const string& fname)
 {
 	MedSamples s;
 	s.import_from_sample_vec(sample_vec);
@@ -624,13 +625,13 @@ int split_file_to_jsons(string fin_name, vector<string> &jsons)
 	}
 
 	MLOG("Read %d jsons from %s into strings (debug info: counter = %d)\n", jsons.size(), fin_name.c_str(), counter);
-//	MLOG("debug info: counter = %d nch %d len %d curr_s %s \n", counter , nch, curr_s.length(), curr_s.c_str());
+	//	MLOG("debug info: counter = %d nch %d len %d curr_s %s \n", counter , nch, curr_s.length(), curr_s.c_str());
 	fin.close();
 	return 0;
 }
 
 //========================================================================================
-void add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str, char **str_values, long long *p_times, int &pid, long long &score_time)
+int add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str, char **str_values, long long *p_times, int &pid, long long &score_time)
 {
 	json &js = js_in;
 	if (js_in.find("body") != js_in.end())
@@ -651,8 +652,7 @@ void add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str,
 	if (js.find("scoreOnDate") != js.end())
 		score_time = js["scoreOnDate"].get<long long>();
 
-	DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
-	return;
+	return DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
 	for (auto &s : js["signals"]) {
@@ -720,7 +720,7 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 	for (int j = 0; j < jsons.size(); j++) {
 		//for (auto &js : all_jsons) {
 		json &js = all_jsons[j];
-		add_data_to_am_from_json(am, js, jsons[j].c_str(), &str_vals[0], &times[0], pid, _timestamp);
+		int add_data_rc = add_data_to_am_from_json(am, js, jsons[j].c_str(), &str_vals[0], &times[0], pid, _timestamp);
 
 		AMRequest *req;
 		int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &pid, &_timestamp, 1, &req));
@@ -729,6 +729,12 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 		// create a response
 		AMResponses *resp;
 		DYN(AM_API_CreateResponses(&resp));
+
+		if (add_data_rc > 0) {
+			//add error message to mark error when adding data
+			AMMessages *msgs = resp->get_shared_messages();
+			msgs->insert_message(add_data_rc, "AddData Failed");
+		}
 
 		// Calculate
 		DYN(AM_API_Calculate(am, req, resp));
@@ -773,7 +779,7 @@ void get_json_examples_preds(po::variables_map vm, AlgoMarker *am)
 		samples.import_from_sample_vec(res);
 		samples.write_to_file(vm["preds_jsons"].as<string>());
 	}
-	
+
 }
 
 
@@ -785,9 +791,12 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 		string in_jsons;
 		read_file_into_string(vm["in_jsons"].as<string>(), in_jsons);
 		MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), vm["in_jsons"].as<string>().c_str());
-		DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
+		int load_status = DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
 		MLOG("Added data from %s\n", vm["in_jsons"].as<string>().c_str());
+		if (load_status != AM_OK_RC)
+			MERR("Error in calling AddDataByType\n");
 	}
+	
 
 	// direct call to CalculateByType
 	string sjreq;
@@ -813,7 +822,7 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 //========================================================================================
 void prep_dicts(po::variables_map &vm)
 {
-	
+
 	ofstream out_json_f;
 	out_json_f.open(vm["out_json_dict"].as<string>());
 	if (!out_json_f.is_open())
@@ -839,7 +848,7 @@ void prep_dicts(po::variables_map &vm)
 
 	json dj = json({});
 
-	if (vm.count("simple_dict") == 0) dj += { "dictionary" , json::array() };
+	if (vm.count("simple_dict") == 0) dj += { "dictionary", json::array() };
 
 	for (auto &sig : in_vals) {
 		MLOG("Working on sig %s\n", sig.first.c_str());

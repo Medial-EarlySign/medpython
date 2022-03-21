@@ -150,6 +150,11 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 		// currently assuming we only work with dates ... will have to change this when we'll move to other units
 		for (int i = 0; i < TimeStamps_len; i++) {
 			times_int[i] = AMPoint::auto_time_convert(TimeStamps[i], tu);
+			if (times_int[i] < 0) {
+				MERR("Error in AddData :: patient %d, signals %s, timestamp %lld is ilegal\n",
+					patient_id, signalName, TimeStamps[i]);
+				return AM_ERROR_ADD_DATA_FAILED;
+			}
 			//MLOG("time convert %ld to %d\n", TimeStamps[i], times_int[i]);
 		}
 		i_times = &times_int[0];

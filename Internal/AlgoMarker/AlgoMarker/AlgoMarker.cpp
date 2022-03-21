@@ -13,20 +13,20 @@ int AMPoint::auto_time_convert(long long ts, int to_type)
 
 	//MLOG("auto time convert: Date is %d , ts %lld , to_type %d\n", MedTime::Date, ts, to_type);
 
-	if ((ts/(long long)1000000000) == 0) {
+	if ((ts / (long long)1000000000) == 0) {
 		date_t = ts; // yyyymmdd
 		hhmm = 0;
 	}
-	else if (((ts/(long long)100000000000) == 0)) {
-		date_t = ts/100; // yyyymmddhh
-		hhmm = 60*(ts % 100);
+	else if (((ts / (long long)100000000000) == 0)) {
+		date_t = ts / 100; // yyyymmddhh
+		hhmm = 60 * (ts % 100);
 	}
-	else if (((ts/(long long)10000000000000) == 0)) {
-		date_t = ts/10000; // yyyymmddhhmm
+	else if (((ts / (long long)10000000000000) == 0)) {
+		date_t = ts / 10000; // yyyymmddhhmm
 		hhmm = 60 * ((ts % 10000) / 100) + (ts % 100);
 	}
 	else {
-		date_t = ts/1000000; // yyyymmddhhmmss
+		date_t = ts / 1000000; // yyyymmddhhmmss
 		hhmm = 60 * ((ts % 1000000) / 10000) + ((ts % 10000) / 100);
 	}
 
@@ -34,10 +34,21 @@ int AMPoint::auto_time_convert(long long ts, int to_type)
 
 	if (to_type == MedTime::Date) {
 		//MLOG("auto time convert: date_t %d\n", date_t);
+		//Ensure valid date:
+		int year = int(date_t / 10000);
+		if (year < 1900 || year > 3000) {
+			//MTHROW_AND_ERR("Error invalid date %lld\n", ts);
+			return -1;
+		}
 		return (int)date_t;
 	}
 
 	if (to_type == MedTime::Minutes) {
+		int year = int(date_t / 10000);
+		if (year < 1900 || year >2100) {
+			//MTHROW_AND_ERR("Error invalid timestamp %lld\n", ts);
+			return -1;
+		}
 		int minutes = med_time_converter.convert_date(MedTime::Minutes, (int)date_t);
 		return minutes + (int)hhmm;
 	}
@@ -46,7 +57,7 @@ int AMPoint::auto_time_convert(long long ts, int to_type)
 }
 
 //-----------------------------------------------------------------------------------
-void AMMessages::get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args) 
+void AMMessages::get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args)
 {
 	if (need_to_update_args) {
 		args.clear();
@@ -70,8 +81,8 @@ void AMMessages::get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args)
 void AMMessages::insert_message(int code, const char *arg_ch)
 {
 	string arg = string(arg_ch);
-	codes.push_back(code); 
-	args_strs.push_back(arg); 
+	codes.push_back(code);
+	args_strs.push_back(arg);
 	need_to_update_args = 1;
 	//args.push_back((char *)args_strs.back().c_str()); 
 }
@@ -84,7 +95,7 @@ int AMResponses::get_response_index_by_point(int _pid, long long _timestamp)
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return -1;
-	
+
 	return point2response_idx[p];
 
 }
@@ -93,7 +104,7 @@ int AMResponses::get_response_index_by_point(int _pid, long long _timestamp)
 // if does not exist returns NULL
 AMResponse *AMResponses::get_response_by_point(int _pid, long long _timestamp)
 {
-	pair<int,long long> p(_pid,_timestamp);
+	pair<int, long long> p(_pid, _timestamp);
 
 	if (point2response_idx.find(p) == point2response_idx.end())
 		return NULL;
@@ -102,13 +113,13 @@ AMResponse *AMResponses::get_response_by_point(int _pid, long long _timestamp)
 }
 
 //-----------------------------------------------------------------------------------
-void AMResponses::get_score_types(int *n_score_types, char ***_score_types) 
+void AMResponses::get_score_types(int *n_score_types, char ***_score_types)
 {
-	*n_score_types = (int)score_types.size(); 
-	if (n_score_types == 0) 
-		*_score_types = NULL; 
-	else 
-		*_score_types = &score_types[0]; 
+	*n_score_types = (int)score_types.size();
+	if (n_score_types == 0)
+		*_score_types = NULL;
+	else
+		*_score_types = &score_types[0];
 }
 
 //-----------------------------------------------------------------------------------
@@ -140,13 +151,13 @@ int AMResponses::get_score_by_type(int index, char *_score_type, float *out_scor
 
 //-----------------------------------------------------------------------------------
 void AMResponses::insert_score_types(char **_score_type, int n_score_types) {
-	for (int i=0; i<n_score_types; i++) {
+	for (int i = 0; i < n_score_types; i++) {
 		string s = string(_score_type[i]);
 		score_types_str.push_back(s);
 		stype2idx[s] = (int)score_types.size() - 1;
 	}
 
-	for (int i=0; i<n_score_types; i++)
+	for (int i = 0; i < n_score_types; i++)
 		score_types.push_back((char *)score_types_str[i].c_str());
 
 }
@@ -163,7 +174,7 @@ AMResponse *AMResponses::create_point_response(int _pid, long long _timestamp)
 	response.init_scores((int)score_types.size());
 
 	responses.push_back(response);
-	
+
 	point2response_idx[p] = (int)responses.size() - 1;
 
 	return &responses.back();
@@ -338,7 +349,7 @@ int AM_API_CreateRequest(char *requestId, char **_score_types, int n_score_types
 
 		(*new_req)->set_request_id(requestId);
 		(*new_req)->insert_score_types(_score_types, n_score_types);
-		for (int i=0; i<n_points; i++)
+		for (int i = 0; i < n_points; i++)
 			(*new_req)->insert_point(patient_ids[i], time_stamps[i]);
 
 		return AM_OK_RC;
@@ -398,7 +409,7 @@ int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request,
 		if (pAlgoMarker == NULL)
 			return AM_FAIL_RC;
 
-		return pAlgoMarker->CalculateByType(CalcType , request, responses);
+		return pAlgoMarker->CalculateByType(CalcType, request, responses);
 	}
 	catch (...) {
 		return AM_FAIL_RC;
@@ -420,7 +431,7 @@ void AM_API_DisposeAlgoMarker(AlgoMarker *pAlgoMarker)
 		delete pAlgoMarker;
 	}
 	catch (...) {
-		
+
 	}
 }
 //-----------------------------------------------------------------------------------------------------------
@@ -436,7 +447,7 @@ void AM_API_DisposeRequest(AMRequest *pRequest)
 		delete pRequest;
 	}
 	catch (...) {
-		
+
 	}
 }
 //-----------------------------------------------------------------------------------------------------------
@@ -452,7 +463,7 @@ void AM_API_DisposeResponses(AMResponses *responses)
 		delete responses;
 	}
 	catch (...) {
-	
+
 	}
 }
 //-----------------------------------------------------------------------------------------------------------
@@ -580,7 +591,7 @@ int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float 
 
 		if (response->get_score(score_index, _score, _score_type) != AM_OK_RC)
 			return AM_FAIL_RC;
-		
+
 		return AM_OK_RC;
 	}
 	catch (...) {
@@ -740,13 +751,13 @@ int AM_API_GetName(AlgoMarker *pAlgoMarker, char **name)
 int DATA_API_RepositoryHandle_Create(RepositoryHandle **new_rep, char *fname, int *pids, int n_pids, char **sigs, int n_sigs)
 {
 	(*new_rep) = new RepositoryHandle;
-	
+
 	if ((*new_rep) == NULL) return -1;
 
-	for (int i=0; i<n_pids; i++)
+	for (int i = 0; i < n_pids; i++)
 		(*new_rep)->pids.push_back(pids[i]);
 
-	for (int i=0; i<n_sigs; i++)
+	for (int i = 0; i < n_sigs; i++)
 		(*new_rep)->signals.push_back(string(sigs[i]));
 
 	(*new_rep)->fname = string(fname);
