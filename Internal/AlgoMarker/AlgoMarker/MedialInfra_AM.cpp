@@ -221,7 +221,7 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 	if (DataType != DATA_JSON_FORMAT && DataType != DATA_BATCH_JSON_FORMAT)
 		return AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE;
 
-
+	int ret_code = 0;
 	if (DataType == DATA_BATCH_JSON_FORMAT) {
 		vector<size_t> j_start, j_len;
 		vector<char> cdata;
@@ -230,8 +230,11 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
 			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
 			cdata[j_len[j]] = 0;
-			AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
+			int rc = AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
+			if (rc != 0)
+				ret_code = rc;
 		}
+		return ret_code;
 	}
 
 
@@ -244,7 +247,10 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 		return AM_ERROR_DATA_JSON_PARSE;
 	}
 
-	return AddJsonData(patient_id, jsdata);
+	int rc = AddJsonData(patient_id, jsdata);
+	if (rc != 0)
+		ret_code = rc;
+	return ret_code;
 }
 
 //------------------------------------------------------------------------------------------
