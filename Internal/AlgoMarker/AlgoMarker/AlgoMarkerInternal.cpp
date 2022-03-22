@@ -120,7 +120,8 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 		{
 			MedSamples samples;
 			//samples can be empty - can't use components that needs data and training
-			feature_generator.learn(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
+			if (!is_binary_model)
+				feature_generator.learn(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
 			feature_generator.init_model_for_apply(rep,
 				MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
 
@@ -154,13 +155,15 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 		if (it.first == "feature_name")
 			feature_name = it.second;
 		else if (it.first == "base_path")
-			base_path =it.second;
+			base_path = it.second;
 		else if (it.first == "feat_min_val")
 			feat_min_val = med_stof(it.second);
 		else if (it.first == "feat_max_val")
 			feat_max_val = med_stof(it.second);
 		else if (it.first == "json_model_path")
 			json_model_path = it.second;
+		else if (it.first == "is_binary_model")
+			is_binary_model = med_stoi(it.second) > 0;
 		else
 			MTHROW_AND_ERR("Error - unknown arg %s\n", it.first.c_str());
 	}
@@ -172,7 +175,10 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 	//init MedModel from json:
 	if (!file_exists(json_model_path))
 		json_model_path = base_path + path_sep() + json_model_path;
-	feature_generator.init_from_json_file(json_model_path);
+	if (!is_binary_model)
+		feature_generator.init_from_json_file(json_model_path);
+	else
+		feature_generator.read_from_file(json_model_path);
 
 	return 0;
 }

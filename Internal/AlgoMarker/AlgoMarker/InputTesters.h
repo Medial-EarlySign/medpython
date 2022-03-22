@@ -131,6 +131,7 @@ private:
 	bool _learned = false;
 	string resolved_feat_name = "";
 public:
+	bool is_binary_model = false; ///< if true it is trained model
 	string json_model_path = ""; ///< realative path to am config, in same folder
 	string feature_name = ""; ///< feature name to look for
 	float feat_min_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
