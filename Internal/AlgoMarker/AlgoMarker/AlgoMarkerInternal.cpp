@@ -125,6 +125,9 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 			feature_generator.init_model_for_apply(rep,
 				MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
 
+			if (is_binary_model)  //need to generate matrix
+				feature_generator.no_init_apply(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+			
 			vector<string> all_names;
 			feature_generator.features.get_feature_names(all_names);
 			resolved_feat_name = all_names[find_in_feature_names(all_names, feature_name, true)];
