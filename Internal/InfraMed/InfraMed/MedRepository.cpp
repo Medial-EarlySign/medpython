@@ -402,7 +402,7 @@ int MedRepository::init(const string &conf_fname)
 	vector<int> pids_sort_uniq = { -1 }, sids;
 	if (read_index_tables(pids_sort_uniq, sids) < 0)
 		return -1;
-	if (read_pid_list() < 0)
+	if (!in_mem_mode_active() && read_pid_list() < 0)
 		return -1;
 
 	t.take_curr_time(); MLOG("Read data time %f seconds\n", t.diff_sec());

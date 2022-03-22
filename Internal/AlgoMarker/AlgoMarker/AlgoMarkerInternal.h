@@ -42,8 +42,9 @@ public:
 
 	// init repository config
 	int init_rep_config(const char *config_fname) {
-		if (rep.MedRepository::init(string(config_fname)) < 0) return -1;
 		rep.switch_to_in_mem_mode();
+		if (rep.MedRepository::init(string(config_fname)) < 0) return -1;
+		
 
 		return 0;
 	}
