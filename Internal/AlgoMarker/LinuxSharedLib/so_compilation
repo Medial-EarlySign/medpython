@@ -67,7 +67,7 @@ cp ${DIR}/Resources/AlgoMarker/AlgoMarker_TopLeveL_CMakeLists ${DIR}/../CMakeLis
 cp ${DIR}/Resources/AlgoMarker/AlgoMarker_CMakeLists ${DIR}/../AlgoMarker/CMakeLists.txt
 mkdir -p ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 pushd ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
-cmake ${DIR}/..
+cmake -D SO_COMPILATION=TRUE ${DIR}/..
 make -j20
 cp ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release/AlgoMarker/libdyn_AlgoMarker.so ${DIR}/../Linux/Release/
 strip ${DIR}/../Linux/Release/libdyn_AlgoMarker.so

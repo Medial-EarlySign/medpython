@@ -794,7 +794,7 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 		int load_status = DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
 		MLOG("Added data from %s\n", vm["in_jsons"].as<string>().c_str());
 		if (load_status != AM_OK_RC)
-			MERR("Error in calling AddDataByType\n");
+			MERR("Error code returned from calling AddDataByType: %d\n", load_status);
 	}
 	
 

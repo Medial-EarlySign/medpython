@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <MedProcessTools/MedProcessTools/SampleFilter.h>
+#include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 
 using namespace std;
@@ -8,9 +9,15 @@ using namespace std;
 typedef enum {
 	INPUT_TESTER_TYPE_UNDEFINED = 0,
 	INPUT_TESTER_TYPE_SIMPLE = 1,
-	INPUT_TESTER_TYPE_ATTR = 2
+	INPUT_TESTER_TYPE_ATTR = 2,
+	INPUT_TESTER_TYPE_FEATURE_JSON = 2
 } InputTesterType;
 
+typedef enum {
+	TESTER_STAGE_UNDEFINED = 0,
+	TESTER_STAGE_BEFORE_MODEL = 1,
+	TESTER_STAGE_AFTER_MODEL = 2
+} TesterStage;
 
 //==============================================================================================================
 // InputTester : holds a single tester - this is the base class
@@ -20,6 +27,8 @@ class InputTester : public SerializableObject {
 public:
 	// the type of the tester
 	int type = (int)INPUT_TESTER_TYPE_UNDEFINED;
+
+	int stage = (int)TESTER_STAGE_UNDEFINED;
 
 	// the tester can be defined as a warning only
 	int is_warning = 0;
@@ -40,13 +49,13 @@ public:
 	// returns: 1: passes the test , 0: did not pass , -1: could not test
 	// also returns: nvals (if relevant): number of tests in the window time defined in the test
 	//               noutliers (if relevant) : number of outliers found
-	virtual int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { return -1; }
+	virtual int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { return -1; }
 
 	virtual int test_if_ok(MedSample &sample) { return -1; };				// 1: good to go 0: did not pass -1: could not test
 
 
 	// 1: good to go 0: did not pass -1: could not test
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp) {
+	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp) {
 		int nvals, noutliers;
 		return test_if_ok(rep, pid, timestamp, nvals, noutliers);
 	}
@@ -76,10 +85,13 @@ class InputTesterSimple : public InputTester {
 public:
 	SanitySimpleFilter sf;
 
-	InputTesterSimple() { type = (int)INPUT_TESTER_TYPE_SIMPLE; }
+	InputTesterSimple() {
+		type = (int)INPUT_TESTER_TYPE_SIMPLE;
+		stage = (int)TESTER_STAGE_BEFORE_MODEL;
+	}
 
 	void input_from_string(const string &in_str);
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // 1: good to go 0: did not pass -1: could not test
+	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // 1: good to go 0: did not pass -1: could not test
 
 };
 //==============================================================================================================
@@ -95,11 +107,44 @@ public:
 	string attr_name;
 	float attr_max_val;
 
-	InputTesterAttr() { type = (int)INPUT_TESTER_TYPE_ATTR; }
+	InputTesterAttr() {
+		type = (int)INPUT_TESTER_TYPE_ATTR;
+		stage = (int)TESTER_STAGE_AFTER_MODEL;
+	}
 
 	void input_from_string(const string &in_str);
 	int init(map<string, string>& mapper);
 	int test_if_ok(MedSample &sample);						// 1: good to go 0: did not pass -1: could not test
+
+};
+
+///==============================================================================================================
+/// InputTesterJsonFeature : an implementation that is able to test feature created by MedModel json
+/// (1) Calculate a feature
+/// (2) test its value is below some bound (<=)
+///
+/// Does this by directly testing the given sample
+///==============================================================================================================
+class InputTesterJsonFeature : public InputTester {
+private:
+	MedModel feature_generator;
+	bool _learned = false;
+	string resolved_feat_name = "";
+public:
+	string json_model_path = ""; ///< realative path to am config, in same folder
+	string feature_name = ""; ///< feature name to look for
+	float feat_min_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
+	float feat_max_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
+
+	InputTesterJsonFeature() { 
+		type = (int)INPUT_TESTER_TYPE_FEATURE_JSON; 
+		stage = (int)TESTER_STAGE_BEFORE_MODEL;
+	}
+
+	void input_from_string(const string &in_str);
+	int init(map<string, string>& mapper);
+	/// 1: good to go 0: did not pass -1: could not test
+	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers);
 
 };
 //==============================================================================================================
@@ -133,16 +178,16 @@ public:
 
 	int read_config(const string &f_conf);
 
-	// tests all simple testers
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &res); // tests and stops at first cardinal failed test
+	// tests all simple testers (Before running model)
+	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &res); // tests and stops at first cardinal failed test
 
 	 // tests and stops at first cardinal failed test 
-	int test_if_ok(MedRepository &rep, int pid, long long timestamp, vector<InputSanityTesterResult> &res) {
+	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, vector<InputSanityTesterResult> &res) {
 		int nvals, noutliers;
 		return test_if_ok(rep, pid, timestamp, nvals, noutliers, res);
 	}
 
-	// tests all attr testers for a single given sample
+	// tests all attr testers for a single given sample (After running model)
 	int test_if_ok(MedSample &sample, vector<InputSanityTesterResult> &res);
 
 	void clear() {

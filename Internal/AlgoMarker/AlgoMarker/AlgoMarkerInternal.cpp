@@ -12,6 +12,8 @@ InputTester *InputTester::make_input_tester(int it_type)
 		return new InputTesterSimple;
 	if (it_type == (int)INPUT_TESTER_TYPE_ATTR)
 		return new InputTesterAttr;
+	if (it_type == (int)INPUT_TESTER_TYPE_FEATURE_JSON)
+		return new InputTesterJsonFeature;
 
 	return NULL;
 }
@@ -23,6 +25,8 @@ int InputTester::name_to_input_tester_type(const string &name)
 		return (int)INPUT_TESTER_TYPE_SIMPLE;
 	if ((name == "attr") || (name == "ATTR") || (name == "Attr"))
 		return (int)INPUT_TESTER_TYPE_ATTR;
+	if ((name == "feature") || (name == "feature_json"))
+		return (int)INPUT_TESTER_TYPE_FEATURE_JSON;
 
 	return (int)INPUT_TESTER_TYPE_UNDEFINED;
 }
@@ -45,7 +49,11 @@ void InputTesterAttr::input_from_string(const string &in_str)
 {
 	this->init_from_string(in_str);
 }
-
+//-------------------------------------------------------------------------------------------------------------------------
+void InputTesterJsonFeature::input_from_string(const string &in_str)
+{
+	this->init_from_string(in_str);
+}
 
 //-------------------------------------------------------------------------------------------------------------------------
 int InputTesterAttr::init(map<string, string>& mapper)
@@ -62,7 +70,7 @@ int InputTesterAttr::init(map<string, string>& mapper)
 
 //-------------------------------------------------------------------------------------------------------------------------
 // 1: good to go 0: did not pass -1: could not test
-int InputTesterSimple::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
+int InputTesterSimple::test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
 {
 	MedSample s;
 
@@ -92,7 +100,74 @@ int InputTesterAttr::test_if_ok(MedSample &sample)
 
 	if (sample.attributes[attr_name] <= attr_max_val)
 		return 1;
-	
+
+	return 0;
+}
+
+int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
+{
+	MedSample s;
+	s.id = pid;
+	s.time = (int)timestamp;
+	int rc = -1;
+	//Assume MedModel was initialized once by init 
+	//=> in first test we will learn the mode if not learned, and prepare for apply - to increase speed.
+	//So first test is slower and rest are faster. "Cold start"
+	//Not thread safe - except using OMP
+	if (!_learned) {
+#pragma omp critical 
+		{
+			MedSamples samples;
+			//samples can be empty - can't use components that needs data and training
+			feature_generator.learn(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
+			feature_generator.init_model_for_apply(rep,
+				MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+
+			vector<string> all_names;
+			feature_generator.features.get_feature_names(all_names);
+			resolved_feat_name = all_names[find_in_feature_names(all_names, feature_name, true)];
+
+			_learned = true;
+		}
+	}
+
+	//Model is prepared for apply and generation of feature and stores exact name in resolved_feat_name
+	MedSamples smps;
+	smps.import_from_sample_vec({ s });
+	feature_generator.no_init_apply(rep, smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	const vector<float> &vals = feature_generator.features.data.at(resolved_feat_name);
+	float f_res = vals[0];
+
+	rc = int(
+		((feat_min_val == MED_MAT_MISSING_VALUE) || (f_res >= feat_min_val)) &&
+		((feat_max_val == MED_MAT_MISSING_VALUE) || (f_res <= feat_max_val))
+		);
+
+	return rc;
+}
+
+int InputTesterJsonFeature::init(map<string, string>& mapper) {
+	for (auto &it : mapper)
+	{
+		if (it.first == "feature_name")
+			feature_name = it.second;
+		else if (it.first == "feat_min_val")
+			feat_min_val = med_stof(it.second);
+		else if (it.first == "feat_max_val")
+			feat_max_val = med_stof(it.second);
+		else if (it.first == "json_model_path")
+			json_model_path = it.second;
+		else
+			MTHROW_AND_ERR("Error - unknown arg %s\n", it.first.c_str());
+	}
+
+	if (feature_name.empty())
+		MTHROW_AND_ERR("Error - InputTesterJsonFeature::init - must specify feature_name\n");
+	if (json_model_path.empty())
+		MTHROW_AND_ERR("Error - InputTesterJsonFeature::init - must specify json_model_path\n");
+	//init MedModel from json:
+	feature_generator.init_from_json_file(json_model_path);
+
 	return 0;
 }
 
@@ -109,8 +184,8 @@ int InputSanityTester::read_config(const string &f_conf)
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 
-			if (curr_line[curr_line.size()-1] == '\r')
-				curr_line.erase(curr_line.size()-1);
+			if (curr_line[curr_line.size() - 1] == '\r')
+				curr_line.erase(curr_line.size() - 1);
 
 			vector<string> fields;
 			split(fields, curr_line, boost::is_any_of("|\t"));
@@ -185,14 +260,14 @@ int InputSanityTester::read_config(const string &f_conf)
 //-------------------------------------------------------------------------------------------------------------------------
 // tests all simple testers
 //-------------------------------------------------------------------------------------------------------------------------
-int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &Results)
+int InputSanityTester::test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &Results)
 {
 	int outliers_count = 0;
 	int n_warnings = 0;
 	int n_errors = 0;
 	for (auto &test : testers) {
 
-		if (test->type == INPUT_TESTER_TYPE_ATTR) continue; // these are tested elsewhere
+		if (test->stage != TESTER_STAGE_BEFORE_MODEL) continue; // these are tested elsewhere
 
 		InputSanityTesterResult res;
 		res.external_rc = 0;
@@ -245,7 +320,7 @@ int InputSanityTester::test_if_ok(MedRepository &rep, int pid, long long timesta
 	}
 
 
-	 //MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
+	//MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
 	if (n_errors > 0)
 		return 0;
 
@@ -263,7 +338,7 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 
 	for (auto &test : testers) {
 
-		if (test->type != INPUT_TESTER_TYPE_ATTR) continue; // only these tested here
+		if (test->stage != TESTER_STAGE_AFTER_MODEL) continue; // only these tested here
 
 		InputSanityTesterResult res;
 		res.external_rc = 0;

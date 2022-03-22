@@ -317,7 +317,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	// And then score all the eligible ones in a single batch.
 	vector<int> eligible_pids, eligible_timepoints;
 	vector<long long> eligible_ts;
-	MedRepository &rep = ma.get_rep();
+	MedPidRepository &rep = ma.get_rep();
 	unordered_map<unsigned long long, vector<long long>> sample2ts; // conversion of each sample to all the ts that were mapped to it.
 
 	int n_bad_scores = 0;
@@ -548,7 +548,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
    // we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
 	int n_points = (int)sample_reqs.size();
 	int tu = get_time_unit();
-	MedRepository &rep = ma.get_rep();
+	MedPidRepository &rep = ma.get_rep();
 	vector<int> eligible_pids, eligible_timepoints;
 	unordered_map<unsigned long long, vector<int>> sample2ind; // conversion of each sample to all the ts that were mapped to it.
 	int n_failed = 0, n_bad = 0;
