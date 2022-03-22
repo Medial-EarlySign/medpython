@@ -2,6 +2,7 @@
 #include "AlgoMarkerErr.h"
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
+#include <boost/filesystem.hpp>
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
@@ -115,7 +116,7 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	//So first test is slower and rest are faster. "Cold start"
 	//Not thread safe - except using OMP
 	if (!_learned) {
-#pragma omp critical 
+#pragma omp critical(InputTesterJsonFeature)
 		{
 			MedSamples samples;
 			//samples can be empty - can't use components that needs data and training
@@ -147,10 +148,13 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 }
 
 int InputTesterJsonFeature::init(map<string, string>& mapper) {
+	string base_path;
 	for (auto &it : mapper)
 	{
 		if (it.first == "feature_name")
 			feature_name = it.second;
+		else if (it.first == "base_path")
+			base_path =it.second;
 		else if (it.first == "feat_min_val")
 			feat_min_val = med_stof(it.second);
 		else if (it.first == "feat_max_val")
@@ -166,6 +170,8 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 	if (json_model_path.empty())
 		MTHROW_AND_ERR("Error - InputTesterJsonFeature::init - must specify json_model_path\n");
 	//init MedModel from json:
+	if (!file_exists(json_model_path))
+		json_model_path = base_path + path_sep() + json_model_path;
 	feature_generator.init_from_json_file(json_model_path);
 
 	return 0;
@@ -178,6 +184,7 @@ int InputSanityTester::read_config(const string &f_conf)
 
 	if (!inf)
 		return -1;
+	string base_path = boost::filesystem::path(f_conf.c_str()).parent_path().string();
 
 	//MLOG("initializing sanity tester from file %s\n", f_conf.c_str());
 	string curr_line;
@@ -235,7 +242,7 @@ int InputSanityTester::read_config(const string &f_conf)
 					if (fields.size() >= 7) i_test->internal_rc = stoi(fields[6]);
 					if (fields.size() >= 8) i_test->err_msg = fields[7];
 
-					i_test->input_from_string(i_test->tester_params);
+					i_test->input_from_string("base_path=" + base_path + ";" + i_test->tester_params);
 
 					//i_test->print();
 					//MLOG("testers size is: %d\n", testers.size());

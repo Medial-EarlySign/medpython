@@ -45,7 +45,6 @@ public:
 		rep.switch_to_in_mem_mode();
 		if (rep.MedRepository::init(string(config_fname)) < 0) return -1;
 		
-
 		return 0;
 	}
 

@@ -221,7 +221,7 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 }
 
 void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, int n_samples) {
-	MLOG("DoCalcFeatProcessor::do_threshold start\n");
+	//MLOG("DoCalcFeatProcessor::do_threshold start\n");
 	if (p_sources.size() != 1)
 		MTHROW_AND_ERR("do_threshold expects 1 source_feature_names, got [%d]\n", (int)p_sources.size());
 	float *p = p_sources[0];
@@ -253,12 +253,12 @@ void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, i
 		else MTHROW_AND_ERR("do_threshold expects the first parameter to be one of [>,<,>=,<=], got [%s]\n", parameters[0].c_str());
 		p_out[i] = res;
 	}
-	MLOG("DoCalcFeatProcessor::do_threshold end\n");
+	//MLOG("DoCalcFeatProcessor::do_threshold end\n");
 	return;
 }
 
 void DoCalcFeatProcessor::do_boolean_condition(vector<float*> p_sources, float *p_out, int n_samples) {
-	MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
+	//MLOG("DoCalcFeatProcessor::do_boolean_condition start\n");
 	if (p_sources.size() < 1)
 		MTHROW_AND_ERR("[%s] expects at least 1 source_feature_names, got [%d]\n", calc_type.c_str(), (int)p_sources.size());
 
