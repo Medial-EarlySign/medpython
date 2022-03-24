@@ -1860,6 +1860,15 @@ void iterative_tree_shap(const TreeEnsemble& trees, const ExplanationDataset &da
 				}
 			}
 
+			if (max_cont == 0) {
+				//All the remaining variables has 0 contribution - stop iterations:
+				if (iteration_cnt > 0)
+					last_instance_contribs = fixed_contrib;
+				else
+					last_bias = bias;
+				break;
+			}
+
 			instance_out_contribs[max_idx] = fixed_contrib(max_idx, 0);
 			mask[max_idx] = 1;
 
