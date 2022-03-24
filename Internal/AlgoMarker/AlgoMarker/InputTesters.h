@@ -136,6 +136,8 @@ public:
 	string feature_name = ""; ///< feature name to look for
 	float feat_min_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
 	float feat_max_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
+	bool verbose_learn = true; ///< can control output to screen in first time
+	bool verbose_apply = false; ///< can control output to screen on apply
 
 	InputTesterJsonFeature() { 
 		type = (int)INPUT_TESTER_TYPE_FEATURE_JSON; 

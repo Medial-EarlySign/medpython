@@ -105,6 +105,23 @@ int InputTesterAttr::test_if_ok(MedSample &sample)
 	return 0;
 }
 
+void medmodel_logging(bool turn_on) {
+	if (!turn_on) {
+		global_logger.levels[LOG_MED_MODEL] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FEATCLEANER] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FEAT_SELECTOR] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FTRGNRTR] = MAX_LOG_LEVEL;
+	}
+	else {
+		global_logger.levels[LOG_MED_MODEL] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FEATCLEANER] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FEAT_SELECTOR] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FTRGNRTR] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_REPCLEANER] = LOG_DEF_LEVEL;
+	}
+}
+
 int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
 {
 	MedSample s;
@@ -120,6 +137,8 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 		{
 			MedSamples samples;
 			//samples can be empty - can't use components that needs data and training
+			if (!verbose_learn)
+				medmodel_logging(false);
 			if (!is_binary_model)
 				feature_generator.learn(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
 			feature_generator.init_model_for_apply(rep,
@@ -127,7 +146,10 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 
 			if (is_binary_model)  //need to generate matrix
 				feature_generator.no_init_apply(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
-			
+
+			if (!verbose_learn)
+				medmodel_logging(true);
+
 			vector<string> all_names;
 			feature_generator.features.get_feature_names(all_names);
 			resolved_feat_name = all_names[find_in_feature_names(all_names, feature_name, true)];
@@ -139,7 +161,11 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	//Model is prepared for apply and generation of feature and stores exact name in resolved_feat_name
 	MedSamples smps;
 	smps.import_from_sample_vec({ s });
+	if (!verbose_apply)
+		medmodel_logging(false);
 	feature_generator.no_init_apply(rep, smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	if (!verbose_apply)
+		medmodel_logging(true);
 	const vector<float> &vals = feature_generator.features.data.at(resolved_feat_name);
 	float f_res = vals[0];
 
@@ -167,6 +193,10 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 			json_model_path = it.second;
 		else if (it.first == "is_binary_model")
 			is_binary_model = med_stoi(it.second) > 0;
+		else if (it.first == "verbose_learn")
+			verbose_learn = med_stoi(it.second) > 0;
+		else if (it.first == "verbose_apply")
+			verbose_apply = med_stoi(it.second) > 0;
 		else
 			MTHROW_AND_ERR("Error - unknown arg %s\n", it.first.c_str());
 	}
