@@ -358,6 +358,10 @@ namespace medial {
 		void apply(MedModel &model, string rep_fname, string f_samples, MedModelStage to_stage = MED_MDL_INSERT_PREDS); // returns just the model : model.features is updated
 
 	}
+
+	namespace print {
+		void medmodel_logging(bool turn_on);
+	}
 }
 
 #endif

@@ -2845,4 +2845,21 @@ void MedModel::copy_from_model(MedModel &in) {
 	deserialize_vec(blob);
 }
 
+void medial::print::medmodel_logging(bool turn_on) {
+	if (!turn_on) {
+		global_logger.levels[LOG_MED_MODEL] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FEATCLEANER] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_REPCLEANER] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FEAT_SELECTOR] = MAX_LOG_LEVEL;
+		global_logger.levels[LOG_FTRGNRTR] = MAX_LOG_LEVEL;
+	}
+	else {
+		global_logger.levels[LOG_MED_MODEL] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FEATCLEANER] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FEAT_SELECTOR] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_FTRGNRTR] = LOG_DEF_LEVEL;
+		global_logger.levels[LOG_REPCLEANER] = LOG_DEF_LEVEL;
+	}
+}
+
 #endif

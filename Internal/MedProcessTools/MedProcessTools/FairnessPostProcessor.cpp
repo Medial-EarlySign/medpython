@@ -473,7 +473,9 @@ void FairnessPostProcessor::Apply(MedFeatures &matrix) {
 	//TODO: in order for it to run smoothly in AlgoMarker - the need signals needs to be updated as required for model to run
 	//medial::medmodel::apply(group_feature_gen_model, samples, p_rep->config_fname,
 	//	MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	medial::print::medmodel_logging(false);
 	group_feature_gen_model.apply(*p_rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	medial::print::medmodel_logging(true);
 	vector<float> &group_vec = group_feature_gen_model.features.data.at(resolved_name);
 
 #pragma omp parallel for schedule(dynamic)
