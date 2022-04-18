@@ -44,7 +44,7 @@ public:
 	int init_rep_config(const char *config_fname) {
 		rep.switch_to_in_mem_mode();
 		if (rep.MedRepository::init(string(config_fname)) < 0) return -1;
-		
+
 		return 0;
 	}
 
@@ -177,10 +177,11 @@ public:
 
 			try {
 				// run model to calculate predictions
-				if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
-					fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
-					return -1;
-				}
+				if (!samples.idSamples.empty())
+					if (model.no_init_apply(rep, samples, (MedModelStage)0, (MedModelStage)model_end_stage) < 0) {
+						fprintf(stderr, "ERROR: MedAlgoMarkerInternal::get_preds FAILED.");
+						return -1;
+					}
 			}
 			catch (...) {
 				fprintf(stderr, "Caught an exception in no_init_apply\n");

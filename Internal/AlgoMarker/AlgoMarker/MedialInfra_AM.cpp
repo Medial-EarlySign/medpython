@@ -14,6 +14,7 @@
 #define PREDICTION_SOURCE_ATTRIBUTE_AS_JSON	2
 #define PREDICTION_SOURCE_JSON	3
 #define PREDICTION_SOURCE_PREDICTIONS	4
+//#define AM_TIMING_LOGS
 
 class json_req_export {
 public:
@@ -258,20 +259,42 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 //------------------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
+#ifdef AM_TIMING_LOGS
+	MedTimer timer;
+	timer.start();
+#endif
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
 	}
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
+#endif
 
 	if (!ma.model_initiated()) {
+#ifdef AM_TIMING_LOGS
+		timer.start();
+#endif
 		if (ma.init_model_for_apply() < 0)
 			return AM_FAIL_RC;
+#ifdef AM_TIMING_LOGS
+		timer.take_curr_time();
+		MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: init_model_for_apply %2.1f milisecond\n", timer.diff_milisec());
+#endif
 	}
 
 	if (responses == NULL)
 		return AM_FAIL_RC;
-
+	
+#ifdef AM_TIMING_LOGS
+	timer.start();
+#endif
 	AMMessages *shared_msgs = responses->get_shared_messages();
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: get_shared_messages %2.1f milisecond\n", timer.diff_milisec());
+#endif
 
 	if (request == NULL) {
 		string msg = "Error :: (" + to_string(AM_MSG_NULL_REQUEST) + " ) NULL request in Calculate()";
@@ -283,14 +306,23 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	string msg_prefix = ""; // asked not to put reqId in messages.... (not sure it's a good idea, prev code above in comment)
 	responses->set_request_id(request->get_request_id());
 
+#ifdef AM_TIMING_LOGS
+	timer.start();
+#endif
 	for (int i = 0; i < request->get_n_score_types(); i++) {
 		char *stype = request->get_score_type(i);
 		responses->insert_score_types(&stype, 1);
 	}
-
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: get_score_type %2.1f milisecond\n", timer.diff_milisec());
+#endif
 
 	// We now have to prepare samples for the requested points
 	// again - we only deal with int times in this class, so we convert the long long stamps to int
+#ifdef AM_TIMING_LOGS
+	timer.start();
+#endif
 	ma.clear_samples();
 	int n_points = request->get_n_points();
 	int tu = get_time_unit();
@@ -306,7 +338,12 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	ma.normalize_samples();
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: prepared_samples %2.1f milisecond\n", timer.diff_milisec());
 
+	timer.start();
+#endif
 	// Checking score types and verify they are supported
 	int n_score_types = request->get_n_score_types();
 	for (int i = 0; i < n_score_types; i++) {
@@ -368,6 +405,12 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	int _n_points = (int)eligible_pids.size();
 
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: tested_eligibility %2.1f milisecond. Has %d samples\n", timer.diff_milisec(), _n_points);
+
+	timer.start();
+#endif
 	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
 	int get_preds_rc = -1;
@@ -387,6 +430,11 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (am_matrix != "")
 		ma.write_features_mat(am_matrix); // debug only
 
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: get_preds %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
 	// going over scores, and adding them to the right responses
 	char **_score_types;
 	int _n_score_types;
@@ -462,6 +510,11 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			}
 		}
 	}
+
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: finished_response %2.1f milisecond\n", timer.diff_milisec());
+#endif
 
 	if (n_bad_scores > 0) {
 		string msg = msg_prefix + "Failed input tests for " + to_string(n_bad_scores) + " out of " + to_string(n_points) + " scores";
