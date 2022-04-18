@@ -183,6 +183,7 @@ void aggregate_samples(MedFeatures &features, bool take_mean, bool get_attr = fa
 int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, vector<MedSamples>& post_processors_learning_sets_orig, MedModelStage start_stage, MedModelStage end_stage) {
 	p_rep = &rep;
 	MedTimer timer;
+	applied_generators_to_use.clear();
 
 	// preparing learning sets for model and for post processors (mainly making sure we do the use_p correctly)
 	vector<MedSamples> post_processors_learning_sets;
@@ -276,6 +277,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 			MERR("MedModel learn() : ERROR: Failed generate_all_features()\n");
 			return -1;
 		}
+		applied_generators_to_use.clear(); //make empty - ion apply will calc again
 		timer.take_curr_time();
 		if (CHECK_CRC)
 			MLOG("MedModel::learn() : generating learn matrix time %g ms :: features crc %08x\n", timer.diff_milisec(), features.get_crc());
@@ -683,6 +685,9 @@ void MedModel::get_applied_generators(unordered_set<string>& req_feature_generat
 
 //.......................................................................................
 int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features, unordered_set<string>& req_feature_generators) {
+	if (applied_generators_to_use.empty()) //In learn it's empty
+		get_applied_generators(req_feature_generators, applied_generators_to_use);
+
 	int res = generate_features(rep, samples, applied_generators_to_use, features);
 	//print rep_processors_summary:
 
