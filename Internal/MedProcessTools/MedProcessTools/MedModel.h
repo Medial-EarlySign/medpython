@@ -316,6 +316,8 @@ private:
 
 
 	template <class T> void apply_change(const ChangeModelInfo &change_request, void *obj);
+
+	vector<FeatureGenerator *> applied_generators_to_use;
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

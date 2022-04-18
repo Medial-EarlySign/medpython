@@ -18,6 +18,7 @@
 #define LOCAL_SECTION LOG_MED_MODEL
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+//#define VERBOSE_LOGGING_PREF
 #define CHECK_CRC 0
 
 using namespace boost::property_tree;
@@ -507,6 +508,7 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 					signalId, rep.dict.name(signalId).c_str());;
 		}
 
+		get_applied_generators(required_feature_generators, applied_generators_to_use);
 		//dprint_process("==> In Apply (2) <==", 2, 0, 0);
 	}
 
@@ -681,12 +683,12 @@ void MedModel::get_applied_generators(unordered_set<string>& req_feature_generat
 
 //.......................................................................................
 int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, MedFeatures &features, unordered_set<string>& req_feature_generators) {
-
-	vector<FeatureGenerator *> _generators;
-	get_applied_generators(req_feature_generators, _generators);
-
-	int res = generate_features(rep, samples, _generators, features);
+	int res = generate_features(rep, samples, applied_generators_to_use, features);
 	//print rep_processors_summary:
+
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: make_summary rep_processors\n");
+#endif
 	for (unsigned int i = 0; i < rep_processors.size(); i++)
 		rep_processors[i]->make_summary();
 
@@ -696,6 +698,9 @@ int MedModel::generate_all_features(MedPidRepository &rep, MedSamples *samples, 
 //.......................................................................................
 int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vector<FeatureGenerator *>& _generators, MedFeatures &features)
 {
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: Collect required signals\n");
+#endif
 	vector<int> req_signals;
 	for (int signalId : required_signal_ids)
 		req_signals.push_back(signalId);
@@ -710,12 +715,18 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	}
 
 	// prepare for generation
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: Starting generators prepare\n");
+#endif
 	for (auto& generator : _generators)
 		generator->prepare(features, rep, *samples);
 
 	// preparing records and features for threading
 	int N_tot_threads = omp_get_max_threads();
 	//	MLOG("MedModel::learn/apply() : feature generation with %d threads\n", N_tot_threads);
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: Init samples\n");
+#endif
 	vector<PidDynamicRec> idRec(N_tot_threads);
 	features.init_all_samples(samples->idSamples);
 
@@ -728,6 +739,9 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		}
 	}
 
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: get_p_data\n");
+#endif
 	// Resize data vectors and collect pointers
 	int samples_size = (int)features.samples.size();
 	for (auto &generator : _generators) {
@@ -745,6 +759,9 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		}
 	}
 
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: get_all_required_signal_ids\n");
+#endif
 	// Get Required signals per processor (set)
 	vector<unordered_set<int> > current_req_signal_ids(rep_processors.size());
 	for (unsigned int i = 0; i < rep_processors.size(); i++)
@@ -754,6 +771,9 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 	int RC = 0;
 	int thrown = 0;
 
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: apply\n");
+#endif
 	try {
 #pragma omp parallel for schedule(dynamic) if (samples->idSamples.size() > 1)
 		for (int j = 0; j < samples->idSamples.size(); j++) {
@@ -791,6 +811,9 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 		MERR("Caught An error in generate_feature()\n");
 		throw;
 	}
+#ifdef VERBOSE_LOGGING_PREF
+	if (verbosity > 0) MLOG("generate_features :: make_summary\n");
+#endif
 	// call summary for generation
 	for (auto& generator : _generators)
 		generator->make_summary();
