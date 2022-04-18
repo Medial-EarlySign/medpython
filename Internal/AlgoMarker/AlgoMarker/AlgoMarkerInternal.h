@@ -7,6 +7,9 @@
 #include "InputTesters.h"
 #include "AlgoMarkerErr.h"
 
+#define LOCAL_SECTION LOG_APP
+#define LOCAL_LEVEL	LOG_DEF_LEVEL
+
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
 // implementation that are specific to the base classes (MedRepository, MedSamples, MedModel)
@@ -260,6 +263,19 @@ public:
 			n_time_channels = this->rep.sigs.Sid2Info[sid].n_time_channels;
 			n_val_channels = this->rep.sigs.Sid2Info[sid].n_val_channels;
 			is_categ = &(this->rep.sigs.Sid2Info[sid].is_categorical_per_val_channel[0]);
+		}
+	}
+
+	void model_apply_verbose(bool flag) {
+		if ((model.verbosity > 0) ^ flag) {
+			model.verbosity = int(flag);
+
+			string full_log_format = "$timestamp\t$level\t$section\t%s";
+			global_logger.init_format(LOG_APP, full_log_format);
+			global_logger.init_format(LOG_DEF, full_log_format);
+			global_logger.init_format(LOG_MED_MODEL, full_log_format);
+			global_logger.init_format(LOG_MEDALGO, full_log_format);
+			MLOG("Activated logging, Version Info:\n%s\n", medial::get_git_version().c_str());
 		}
 	}
 

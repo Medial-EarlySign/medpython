@@ -9,8 +9,26 @@
 #include <cctype>
 #include <thread>
 #include <ctime>
+#include <time.h>
 #include "Logger.h"
 #include <unordered_set>
+
+#if defined(_WIN32)
+#include <chrono>
+#include <Windows.h>
+
+int gettimeofday(struct timeval* tp, struct timezone* tzp) {
+	namespace sc = std::chrono;
+	sc::system_clock::duration d = sc::system_clock::now().time_since_epoch();
+	sc::seconds s = sc::duration_cast<sc::seconds>(d);
+	tp->tv_sec = (long)s.count();
+	tp->tv_usec = (long)sc::duration_cast<sc::microseconds>(d - s).count();
+
+	return 0;
+}
+#else
+#include <sys/time.h>
+#endif // _WIN32
 
 MedLogger global_logger;
 
@@ -181,7 +199,27 @@ void init_vars(string &str, int section, int print_level) {
 		}
 		buff[var_idx] = '\0';
 		string var_name = string(buff);
-		if (var_name == "time") {
+		if (var_name == "timestamp") {
+			struct tm *now;
+
+			struct timeval now_ms;
+			gettimeofday(&now_ms, NULL);
+#if defined(__unix__)
+			now = localtime(&now_ms.tv_sec);
+#else
+			//allocate local mem
+			struct tm now_m;
+			now = &now_m;
+			time_t timeT = now_ms.tv_sec;
+			localtime_s(now, &timeT);
+#endif
+
+			snprintf(buff, sizeof(buff), "[%d-%02d-%02d %02d:%02d:%02d.%03ld]",
+				now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec,
+				now_ms.tv_usec);
+
+		}
+		else if (var_name == "time") {
 			time_t theTime = time(NULL);
 			struct tm *now;
 #if defined(__unix__)

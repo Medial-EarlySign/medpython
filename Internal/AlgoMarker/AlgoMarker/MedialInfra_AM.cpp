@@ -409,8 +409,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: tested_eligibility %2.1f milisecond. Has %d samples\n", timer.diff_milisec(), _n_points);
 
+	ma.model_apply_verbose(true);
 	timer.start();
 #endif
+	
 	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
 	int get_preds_rc = -1;
