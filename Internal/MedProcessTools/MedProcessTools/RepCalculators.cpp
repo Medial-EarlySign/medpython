@@ -18,10 +18,21 @@ void *SimpleCalculator::new_polymorphic(string derived_class_name) {
 	CONDITIONAL_NEW_CLASS(derived_class_name, MultiplyCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, SetCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, ExistsCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, EmptyCalculator);
 
 	MTHROW_AND_ERR("Warning in SimpleCalculator::new_polymorphic - Unsupported class %s\n", derived_class_name.c_str());
 }
 
+//....................................Empty Calculator..................................
+void EmptyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	
+	_virtual_signals.push_back(pair<string, string>("EMPTY_DEFAULT", output_type));
+}
+
+bool EmptyCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = missing_value;
+	return false;
+}
 //....................................Ratio Calculator..................................
 int RatioCalculator::init(map<string, string>& mapper) {
 

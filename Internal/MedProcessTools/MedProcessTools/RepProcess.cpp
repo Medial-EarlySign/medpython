@@ -2533,6 +2533,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new SetCalculator();
 	else if (calc_type == "exists" || calc_type == "calc_exists")
 		return new ExistsCalculator();
+	else if (calc_type == "empty")
+		return new EmptyCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());

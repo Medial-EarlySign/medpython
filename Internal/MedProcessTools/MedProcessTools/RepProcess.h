@@ -1059,6 +1059,20 @@ public:
 };
 
 /**
+* Dummy top create empty virtual signal
+*/
+class EmptyCalculator : public SimpleCalculator {
+public:
+	EmptyCalculator() { calculator_name = "empty"; keep_only_in_range = false; };
+
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
+	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(EmptyCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range)
+};
+
+/**
 * Calcs ratio between 2 inputs signals. has ability to power each signal before dividing and multiply by factor
 * Calc is when we have V = { V1, V2 } as inputs. res := factor * V1^power_mone / V2^power_base
 */
@@ -1883,4 +1897,5 @@ MEDSERIALIZE_SUPPORT(eGFRCalculator)
 MEDSERIALIZE_SUPPORT(SumCalculator)
 MEDSERIALIZE_SUPPORT(RangeCalculator)
 MEDSERIALIZE_SUPPORT(ExistsCalculator)
+MEDSERIALIZE_SUPPORT(EmptyCalculator)
 #endif
