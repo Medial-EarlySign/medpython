@@ -78,6 +78,12 @@ float get_KFRE_Model_2( float age,	int gender,	float eGFR)
 	double baseline = (double)0.916;
 	float risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
 
+	//printf("risk %f, age %f, gender %d, eGFR %f\n",
+	//	risk,
+	//	age,
+	//	gender,
+	//	eGFR);
+
 	return risk;
 }
 
@@ -93,14 +99,16 @@ float get_KFRE_Model_3(
 
 	vector <double> X(4);
 
-	if (gender > 0)
+	if (gender == 1)
 		X[0] = 1.;
 	else
 		X[0] = 0.;
 
 	X[1] = age / 10;
 	X[2] = eGFR / 5;
-	X[3] = log(UACR);
+
+	// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
+	X[3] = log(UACR*8.84);
 
 #ifdef KFRE_DEBUG
 	for (int i = 0; i<X.size(); i++)
@@ -156,6 +164,13 @@ float get_KFRE_Model_3(
 	double baseline = (double)0.924;
 	float risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
 
+	//printf("risk %f, age %f, gender %d, eGFR %f, UACR %f\n",
+	//	risk,
+	//	age,
+	//	gender,
+	//	eGFR,
+	//	UACR);
+
 	return risk;
 
 }
@@ -178,14 +193,15 @@ bool get_KFRE_Model_6(
 
 	vector <double> X(8);
 
-	if (gender > 0)
+	if (gender == 1)
 		X[0] = 1.;
 	else
 		X[0] = 0.;
 
 	X[1] = age / 10;
 	X[2] = eGFR / 5;
-	X[3] = log(UACR);
+	// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
+	X[3] = log(UACR*8.84);
 	X[4] = Calcium;
 	X[5] = Phosphorus;
 	X[6] = Albumin;
@@ -270,6 +286,18 @@ bool get_KFRE_Model_6(
 		//	Bicarbonate);
 		
 		return false;
+	}
+	else {
+		//printf("risk %f, age %f, gender %d, eGFR %f, UACR %f, Calcium %f , Phosphorus %f, Albumin %f, Bicarbonate %f\n",  
+		//	risk,
+		//	age, 
+		//	gender, 
+		//	eGFR, 
+		//	UACR, 
+		//	Calcium, 
+		//	Phosphorus, 
+		//	Albumin, 
+		//	Bicarbonate);
 	}
 
 	return true;
