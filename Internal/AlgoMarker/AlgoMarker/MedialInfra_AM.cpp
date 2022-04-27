@@ -541,15 +541,29 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (CalculateType != JSON_REQ_JSON_RESP)
 		return AM_FAIL_RC;
 
+#ifdef AM_TIMING_LOGS
+	MedTimer timer;
+	timer.start();
+#endif
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
 	}
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
 
 	if (!ma.model_initiated()) {
 		if (ma.init_model_for_apply() < 0)
 			return AM_FAIL_RC;
 	}
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: init_model_for_apply %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
 
 	json jreq, jresp;
 
@@ -587,6 +601,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	//	try {
 	json_parse_request(jreq, defaults, defaults);
 
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: json_parse_request %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
+
 	for (auto &jreq_i : jreq["requests"]) {
 		json_req_info j_i;
 		json_parse_request(jreq_i, defaults, j_i);
@@ -603,6 +623,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	//		add_to_json_array(jresp, "errors", "ERROR: error when parsing requests (or loading)");
 	//	}
 	if (json_verify_key(jresp, "errors", 0, "")) { json_to_char_ptr(jresp, response); return AM_FAIL_RC; } // Leave now if there are errors
+
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: end load_data %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
 
    // We now convert times and do an initial sanity checks
    // again - we only deal with int times in this class, so we convert the long long stamps to int
@@ -653,6 +679,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
 
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: end calc_eligiblilty %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
+
 	// at this point in time we are ready to score eligible_pids,eligible_timepoints. We will do that, and later wrap it all up into a single json back.
 	int _n_points = (int)eligible_pids.size();
 	int get_preds_rc = -1;
@@ -668,6 +700,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
 	}
+
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: end get_preds %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
 
 	// now we are ready ... we have the results, and we need to put it all into the response json one by one.
 
@@ -745,6 +783,13 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	json_to_char_ptr(jresp, response);
+
+#ifdef AM_TIMING_LOGS
+	timer.take_curr_time();
+	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: end create_response %2.1f milisecond\n", timer.diff_milisec());
+	timer.start();
+#endif
+
 	return AM_OK_RC;
 }
 
