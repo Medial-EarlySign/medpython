@@ -12,6 +12,7 @@
 void *SimpleCalculator::new_polymorphic(string derived_class_name) {
 	CONDITIONAL_NEW_CLASS(derived_class_name, RatioCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, eGFRCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, KfreCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, logCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, SumCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, RangeCalculator);
@@ -82,6 +83,136 @@ bool RatioCalculator::do_calc(const vector<float> &vals, float &res) const {
 		res = pow(vals[0], power_mone) / pow(vals[1], power_base) * factor;
 	return true;
 }
+//.......................................KFRE Calculator................................
+int KfreCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "model_id")
+			model_id = stoi(it->second);
+	}
+	return 0;
+}
+
+void KfreCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+
+	if (!(output_signals.size() == 1))
+		MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires exactly 1 output signal\n");
+
+	switch (model_id)
+	{
+	case 2:
+		//Signals order: "BDATE", "GENDER", "eGFR"
+		if (!(input_signals.size() == 3))
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 3 input signals -  got \"%d\"\n", (int)input_signals.size());
+		break;
+	case 3:
+		if (!(input_signals.size() == 4))
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 4 input signals -  got \"%d\"\n", (int)input_signals.size());
+		break;
+	case 6:
+		if (!(input_signals.size() == 8))
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 8 input signals -  got \"%d\"\n", (int)input_signals.size());
+		break;
+	}
+
+	if (model_id >= 2)
+	{
+		// NOTE: "break" statements are missing on purpose
+		if (input_signals[0] != "BDATE")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - First signal should be BDATE - got \"%s\"\n", input_signals[0].c_str());
+		if (input_signals[1] != "GENDER")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Second signal should be GENDER- got \"%s\"\n", input_signals[1].c_str());
+		if (input_signals[2] != "eGFR_CKD_EPI")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Third signal should be eGFR_CKD_EPI- got \"%s\"\n", input_signals[2].c_str());
+	}
+	if (model_id >= 3)
+	{
+		if (input_signals[3] != "UrineAlbumin_over_Creatinine")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Fourth signal should be UrineAlbumin_over_Creatinine- got \"%s\"\n", input_signals[3].c_str());
+	}
+
+	if (model_id >= 6)
+	{
+		if (input_signals[4] != "Ca")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Fifth signal should be Ca - got \"%s\"\n", input_signals[4].c_str());
+		if (input_signals[5] != "Phosphore")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Sixth signal should be Phosphore - got \"%s\"\n", input_signals[5].c_str());
+		if (input_signals[6] != "Albumin")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Seventh signal should be Albumin - got \"%s\"\n", input_signals[6].c_str());
+		if (input_signals[7] != "Bicarbonate")
+			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Eighth signal should be Bicarbonate - got \"%s\"\n", input_signals[7].c_str());
+	}
+}
+
+void KfreCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	//ignores output_type
+	if (work_channel == 0)
+		_virtual_signals.push_back(pair<string, string>("calc_KFRE", "T(i),V(f)"));
+	else
+		MTHROW_AND_ERR("ERROR in KfreCalculator::list_output_signals - Unsupported work_channel=%d\n", work_channel);
+}
+
+bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
+	int bdate, year, time;
+	float age;
+	
+	res = missing_value;
+
+	// Validate model_id
+	if (model_id != 2 && model_id != 3 && model_id != 6)
+		MTHROW_AND_ERR("Error KfreCalculator::do_calc - model_id should be either 2,3 or 6\n");
+
+	// Validate input arguments
+	if (vals[0] <= 0)
+		return !keep_only_in_range;
+
+	//age, creatinine, gender, ethnicity
+	switch (model_id)
+	{
+	case 2:
+		if (vals.size() != 4)
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
+				vals.size());
+		break;
+	case 3:
+		if (vals.size() != 5)
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
+				vals.size());
+		break;
+	case 6:
+		if (vals.size() != 9)
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 8, got %zu\n",
+				vals.size());
+		break;
+	default:
+		MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong model_id. expected 2,3, or 6, got %d\n", model_id)
+	}
+
+	bdate = (int)vals[0]; //BDATE
+	year = int(bdate / 10000);
+
+	switch (model_id)
+	{
+	case 2:
+		time = (int)vals[3]; //TIME
+		age = med_time_converter.get_age(time, MedTime::Date, year);
+		res = get_KFRE_Model_2(age, vals[1], vals[2]);
+		break;
+	case 3:
+		time = (int)vals[4]; //TIME
+		age = med_time_converter.get_age(time, MedTime::Date, year);
+		res = get_KFRE_Model_3(age, vals[1], vals[2], vals[3]);
+		break;
+	case 6:
+		time = (int)vals[8]; //TIME
+		age = med_time_converter.get_age(time, MedTime::Date, year);
+		res = get_KFRE_Model_6(age, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7]);
+		break;
+	}
+
+	return true;
+}
+
 //.......................................eGFR Calculator................................
 int eGFRCalculator::init(map<string, string>& mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)

@@ -13,6 +13,274 @@ extern MedLogger global_logger;
 //
 
 //---------------------------------------------------------------------------------------------------------------------------
+float get_KFRE_Model_2( float age,	int gender,	float eGFR)
+{
+	vector <float> X(3);
+	
+	// unless otherwise stated gender is 1 for males and 2 for females
+	if (gender == 1)
+		X[0] = 1.;
+	else
+		X[0] = 0.;
+
+	X[1] = age / 10;
+	X[2] = eGFR / 5;
+
+#ifdef KFRE_DEBUG
+	for (int i = 0; i<X.size(); i++)
+		cout << "X[" << i << "] = " << X[i] << endl;
+#endif
+
+	vector <float> Coeff = {
+		(float)0.37548,
+		(float)-0.29351,
+		(float)-0.61217,
+	};
+
+	vector <float> Xbar = {
+		(float)0.5642,
+		(float)7.0355,
+		(float)7.2216,
+	};
+
+	vector <float> betaXbar;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaXbar.push_back(Coeff[i] * Xbar[i]);
+	}
+
+	vector <float> betaX;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaX.push_back(Coeff[i] * X[i]);
+	}
+
+#ifdef KFRE_DEBUG
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "betaXbar[" << i << "] = " << betaXbar[i] << endl;
+	}
+
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "BetaX[" << i << "] = " << betaX[i] << endl;
+	}
+#endif
+
+	float betaXbar_sum = std::accumulate(
+		betaXbar.begin(),
+		betaXbar.end(),
+		decltype(betaXbar)::value_type(0)
+	);
+
+	float betaX_sum = std::accumulate(
+		betaX.begin(),
+		betaX.end(),
+		decltype(betaX)::value_type(0)
+	);
+
+	float baseline = (float)0.916;
+	float risk = 1 - pow(baseline, exp(betaX_sum - betaXbar_sum));
+
+	return risk;
+}
+
+float get_KFRE_Model_3(
+	float age,
+	int gender,
+	float eGFR,
+	float UACR)
+{
+	//	Validate ranges, e.g. UACR>0
+	if (UACR <= 0)
+		return false;
+
+	vector <float> X(4);
+
+	if (gender > 0)
+		X[0] = 1.;
+	else
+		X[0] = 0.;
+
+	X[1] = age / 10;
+	X[2] = eGFR / 5;
+	X[3] = log(UACR);
+
+#ifdef KFRE_DEBUG
+	for (int i = 0; i<X.size(); i++)
+		cout << "X[" << i << "] = " << X[i] << endl;
+#endif
+
+	vector <float> Coeff = {
+		(float)0.26940,
+		(float)-0.21670,
+		(float)-0.55418,
+		(float)0.45608,
+	};
+
+	vector <float> Xbar = {
+		(float)0.5642,
+		(float)7.0355,
+		(float)7.2216,
+		(float)5.2774,
+	};
+
+	vector <float> betaXbar;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaXbar.push_back(Coeff[i] * Xbar[i]);
+	}
+
+	vector <float> betaX;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaX.push_back(Coeff[i] * X[i]);
+	}
+
+#ifdef KFRE_DEBUG
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "betaXbar[" << i << "] = " << betaXbar[i] << endl;
+	}
+
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "BetaX[" << i << "] = " << betaX[i] << endl;
+	}
+#endif
+
+	float betaXbar_sum = std::accumulate(
+		betaXbar.begin(),
+		betaXbar.end(),
+		decltype(betaXbar)::value_type(0)
+	);
+
+	float betaX_sum = std::accumulate(
+		betaX.begin(),
+		betaX.end(),
+		decltype(betaX)::value_type(0)
+	);
+
+	float baseline = (float)0.924;
+	float risk = 1 - pow(baseline, exp(betaX_sum - betaXbar_sum));
+
+	return risk;
+
+}
+
+float get_KFRE_Model_6(
+	float age,
+	int gender,
+	float eGFR,
+	float UACR,
+	float Calcium,
+	float Phosphorus,
+	float Albumin,
+	float Bicarbonate)
+{
+	//	Validate ranges, e.g. UACR>0
+	if (UACR <= 0)
+		return false;
+
+	vector <float> X(8);
+
+	if (gender > 0)
+		X[0] = 1.;
+	else
+		X[0] = 0.;
+
+	X[1] = age / 10;
+	X[2] = eGFR / 5;
+	X[3] = log(UACR);
+	X[4] = Calcium;
+	X[5] = Phosphorus;
+	X[6] = Albumin;
+	X[7] = Bicarbonate;
+
+#ifdef KFRE_DEBUG
+	for (int i = 0; i<X.size(); i++)
+		cout << "X[" << i << "] = " << X[i] << endl;
+#endif
+
+	vector <float> Coeff = {
+		(float)0.16117,
+		(float)-0.19883,
+		(float)-0.49360,
+		(float)0.35066,
+		(float)-0.22129,
+		(float)0.24197,
+		(float)-0.33867,
+		(float)-0.07429,
+	};
+
+	vector <float> Xbar = {
+		(float)0.5642,
+		(float)7.0355,
+		(float)7.2216,
+		(float)5.2774,
+		(float)9.3510,
+		(float)3.9221,
+		(float)3.9925,
+		(float)25.5441,
+	};
+
+	vector <float> betaXbar;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaXbar.push_back(Coeff[i] * Xbar[i]);
+	}
+
+	vector <float> betaX;
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		betaX.push_back(Coeff[i] * X[i]);
+	}
+
+#ifdef KFRE_DEBUG
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "betaXbar[" << i << "] = " << betaXbar[i] << endl;
+	}
+
+	for (unsigned int i = 0; i < Coeff.size(); i++) {
+		cout << "BetaX[" << i << "] = " << betaX[i] << endl;
+	}
+#endif
+
+	float betaXbar_sum = std::accumulate(
+		betaXbar.begin(),
+		betaXbar.end(),
+		decltype(betaXbar)::value_type(0)
+	);
+
+	float betaX_sum = std::accumulate(
+		betaX.begin(),
+		betaX.end(),
+		decltype(betaX)::value_type(0)
+	);
+
+	float baseline = (float)0.929;
+	float delta = betaX_sum - betaXbar_sum;
+	
+	errno = 0;
+	float risk = 1 - pow(baseline, exp(delta));
+
+	if (errno == ERANGE) {
+		printf("exp(%f) overflows\n", delta);
+
+		cout << "age " << age << endl;
+		cout << "age " << age << endl;
+		cout << "age " << age << endl;
+		cout << "age " << age << endl;
+		cout << "age " << age << endl;
+		cout << "age " << age << endl;2w
+
+			int gender,
+			float eGFR,
+			float UACR,
+			float Calcium,
+			float Phosphorus,
+			float Albumin,
+			float Bicarbonate
+
+		return -1.;
+	}
+	return risk;
+
+}
+
+
+
+//---------------------------------------------------------------------------------------------------------------------------
 float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity)
 {
 	double eGFR_CKD_EPI = pow(0.993, (double)age);

@@ -1095,6 +1095,25 @@ public:
 };
 
 /**
+* KFRE calculator based on Age, Gender and eGFR (in that order)
+*/
+class KfreCalculator : public SimpleCalculator {
+public:
+
+	// Valid values are 2,3 or 6
+	int model_id = 2;
+
+	KfreCalculator() { calculator_name = "KFRE"; need_time = true; keep_only_in_range = true; };
+	int init(map<string, string>& mapper);
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
+	bool do_calc(const vector<float> &vals, float &res) const;
+
+	ADD_CLASS_NAME(KfreCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, model_id)
+};
+
+/**
 * eGFR calculator based on Creatinine, Gender and Age.
 * the signals input order is: Creatinine, Gender, Age
 */

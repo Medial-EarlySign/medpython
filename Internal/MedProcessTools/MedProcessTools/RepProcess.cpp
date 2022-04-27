@@ -2535,6 +2535,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new ExistsCalculator();
 	else if (calc_type == "empty")
 		return new EmptyCalculator();
+	else if (calc_type == "kfre" || calc_type == "calc_kfre")
+		return new KfreCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());

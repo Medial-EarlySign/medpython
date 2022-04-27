@@ -14,6 +14,9 @@
 //=================================================================================
 // unless otherwise stated gender is 1 for males and 2 for females
 //
+float get_KFRE_Model_2(float age, int gender, float eGFR);
+float get_KFRE_Model_3(float age, int gender, float eGFR, float UACR);
+float get_KFRE_Model_6(float age, int gender, float eGFR, float UACR, float Calcium, float Phosphorus, float Albumin, float Bicarbonate);
 float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity=0);
 float get_eGFR_MDRD(float age, float creatinine, int gender, int ethnicity=0);
 float get_Framingham(float age, float total_cholesterol, float hdl, float bp_systolic, int smoking, int gender);
