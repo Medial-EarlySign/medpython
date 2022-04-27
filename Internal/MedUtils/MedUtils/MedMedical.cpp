@@ -76,7 +76,7 @@ float get_KFRE_Model_2( float age,	int gender,	float eGFR)
 	);
 
 	double baseline = (double)0.916;
-	double risk = 1 - (double)pow(baseline, exp(betaX_sum - betaXbar_sum));
+	float risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
 
 	return risk;
 }
@@ -154,13 +154,14 @@ float get_KFRE_Model_3(
 	);
 
 	double baseline = (double)0.924;
-	double risk = 1 - (double)pow(baseline, exp(betaX_sum - betaXbar_sum));
+	float risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
 
 	return risk;
 
 }
 
-float get_KFRE_Model_6(
+bool get_KFRE_Model_6(
+	float &risk,
 	float age,
 	int gender,
 	float eGFR,
@@ -169,7 +170,8 @@ float get_KFRE_Model_6(
 	float Phosphorus,
 	float Albumin,
 	float Bicarbonate)
-{
+{		
+
 	//	Validate ranges, e.g. UACR>0
 	if (UACR <= 0)
 		return false;
@@ -236,13 +238,13 @@ float get_KFRE_Model_6(
 	}
 #endif
 
-	float betaXbar_sum = std::accumulate(
+	double betaXbar_sum = std::accumulate(
 		betaXbar.begin(),
 		betaXbar.end(),
 		decltype(betaXbar)::value_type(0)
 	);
 
-	float betaX_sum = std::accumulate(
+	double betaX_sum = std::accumulate(
 		betaX.begin(),
 		betaX.end(),
 		decltype(betaX)::value_type(0)
@@ -252,24 +254,25 @@ float get_KFRE_Model_6(
 	double delta = betaX_sum - betaXbar_sum;
 	
 	errno = 0;
-	float risk = 1 - (float)pow(baseline, exp(delta));
+	risk = 1 - (float)pow(baseline, exp(delta));
 
 	if (errno == ERANGE) {
-		printf("exp(%f) overflows\n", delta);
 
-		cout << "age " << age << endl;
-		cout << "gender " << gender << endl;
-		cout << "eGFR " << eGFR << endl;
-		cout << "UACR " << UACR << endl;
-		cout << "Calcium " << Calcium << endl;
-		cout << "Phosphorus " << Phosphorus << endl;
-		cout << "Albumin " << Albumin << endl;
-		cout << "Bicarbonate " << Bicarbonate << endl;
-
-		return -1.;
+		//printf("exp(%f) overflows: age %f, gender %d, eGFR %f, UACR %f, Calcium %f , Phosphorus %f, Albumin %f, Bicarbonate %f\n", 
+		//	delta, 
+		//	age, 
+		//	gender, 
+		//	eGFR, 
+		//	UACR, 
+		//	Calcium, 
+		//	Phosphorus, 
+		//	Albumin, 
+		//	Bicarbonate);
+		
+		return false;
 	}
-	return risk;
 
+	return true;
 }
 
 

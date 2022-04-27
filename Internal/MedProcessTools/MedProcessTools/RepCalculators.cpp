@@ -206,7 +206,9 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	case 6:
 		time = (int)vals[8]; //TIME
 		age = med_time_converter.get_age(time, MedTime::Date, year);
-		res = get_KFRE_Model_6(age, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7]);
+		bool valid = get_KFRE_Model_6(res, age, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7]);
+		if (!valid)
+			return false;
 		break;
 	}
 
