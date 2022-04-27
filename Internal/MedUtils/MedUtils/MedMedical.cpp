@@ -17,12 +17,7 @@ float get_KFRE_Model_2( float age,	int gender,	float eGFR)
 {
 	vector <double> X(3);
 	
-	// unless otherwise stated gender is 1 for males and 2 for females
-	if (gender == 1)
-		X[0] = 1.;
-	else
-		X[0] = 0.;
-
+	X[0] = gender;
 	X[1] = age / 10;
 	X[2] = eGFR / 5;
 
@@ -106,9 +101,7 @@ float get_KFRE_Model_3(
 
 	X[1] = age / 10;
 	X[2] = eGFR / 5;
-
-	// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
-	X[3] = log(UACR*8.84);
+	X[3] = log(UACR);
 
 #ifdef KFRE_DEBUG
 	for (int i = 0; i<X.size(); i++)
@@ -200,8 +193,7 @@ bool get_KFRE_Model_6(
 
 	X[1] = age / 10;
 	X[2] = eGFR / 5;
-	// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
-	X[3] = log(UACR*8.84);
+	X[3] = log(UACR);
 	X[4] = Calcium;
 	X[5] = Phosphorus;
 	X[6] = Albumin;

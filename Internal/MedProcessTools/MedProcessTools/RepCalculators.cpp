@@ -154,19 +154,22 @@ void KfreCalculator::list_output_signals(const vector<string> &input_signals, ve
 
 bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	int bdate, year, time;
-	float age;
-	
+	float age = 0;
+	int   gender = 0;
+	float eGFR = 0;
+	float UACR = 0;
+	float Calcium = 0;
+	float Phosphorus = 0;
+	float Albumin = 0;
+	float Bicarbonate = 0;
+
 	res = missing_value;
 
-	// Validate model_id
+	// Verify that the model id is valid
 	if (model_id != 2 && model_id != 3 && model_id != 6)
 		MTHROW_AND_ERR("Error KfreCalculator::do_calc - model_id should be either 2,3 or 6\n");
 
-	// Validate input arguments
-	if (vals[0] <= 0)
-		return !keep_only_in_range;
-
-	//age, creatinine, gender, ethnicity
+	// Verify that the number of arguments is correct
 	switch (model_id)
 	{
 	case 2:
@@ -188,27 +191,98 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 		MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong model_id. expected 2,3, or 6, got %d\n", model_id)
 	}
 
+	// Prepare and validate input arguments
+
+	// age
+	if (vals[0] <= 0)
+		return !keep_only_in_range;
+
 	bdate = (int)vals[0]; //BDATE
 	year = int(bdate / 10000);
+
+	if (model_id >= 2)
+	{
+		// age
+		time = (int)vals[3]; //TIME
+		age = med_time_converter.get_age(time, MedTime::Date, year);
+
+		if (age<18 || age>90)
+			return !keep_only_in_range;
+
+		// gender [unless otherwise stated gender is 1 for males and 2 for females]
+		if (vals[1] == 1)
+			gender = 1.;
+		else
+			gender = 0.;
+
+		eGFR = vals[2];
+		if (eGFR<10 || eGFR>60)
+			return !keep_only_in_range;
+	}
+
+	if (model_id >= 3)
+	{
+		UACR = vals[3];
+
+		// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
+		UACR *= 8.84;
+
+		if (UACR<10 || UACR>3000)
+			return !keep_only_in_range;
+	}
+
+	if (model_id >= 6)
+	{
+		Calcium		= vals[4];
+		if (Calcium<7.5 || Calcium>10.5)
+			return !keep_only_in_range;
+
+		Phosphorus	= vals[5];
+		if (Phosphorus<3 || Phosphorus>6.5)
+			return !keep_only_in_range;
+
+		Albumin		= vals[6];
+		if (Albumin<1 || Albumin>4)
+			return !keep_only_in_range;
+
+		Bicarbonate = vals[7];
+		if (Bicarbonate<15 || Bicarbonate>28)
+			return !keep_only_in_range;
+	}
 
 	switch (model_id)
 	{
 	case 2:
-		time = (int)vals[3]; //TIME
-		age = med_time_converter.get_age(time, MedTime::Date, year);
-		res = get_KFRE_Model_2(age, vals[1], vals[2]);
+		res = get_KFRE_Model_2(age, gender, eGFR);
 		break;
 	case 3:
 		time = (int)vals[4]; //TIME
 		age = med_time_converter.get_age(time, MedTime::Date, year);
-		res = get_KFRE_Model_3(age, vals[1], vals[2], vals[3]);
+		res = get_KFRE_Model_3(age, gender, eGFR, UACR);
 		break;
 	case 6:
 		time = (int)vals[8]; //TIME
 		age = med_time_converter.get_age(time, MedTime::Date, year);
-		bool valid = get_KFRE_Model_6(res, age, vals[1], vals[2], vals[3], vals[4], vals[5], vals[6], vals[7]);
+		bool valid = get_KFRE_Model_6(
+			res, 
+			age,
+			gender,
+			eGFR,
+			UACR,
+			Calcium,
+			Phosphorus,
+			Albumin,
+			Bicarbonate);
+
+
 		if (!valid)
-			return false;
+		{
+			// we get here when intermediate computation overflows
+			// should we return !keep_only_in_range OR false ?
+			res = missing_value;
+			return !keep_only_in_range;
+		}
+
 		break;
 	}
 
