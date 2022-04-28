@@ -58,6 +58,7 @@ MedModelStage MedModel::get_med_model_stage(const string& stage) {
 //.......................................................................................
 int MedModel::learn(MedPidRepository& rep, MedSamples* _samples, MedModelStage start_stage, MedModelStage end_stage) {
 	p_rep = &rep;
+	version_info = medial::get_git_version();
 	MLOG("MedModel() : starting learn process on %d samples, stages %d - %d \n", _samples->nSamples(), start_stage, end_stage);
 	// Stage Sanity
 	if (start_stage > end_stage) {

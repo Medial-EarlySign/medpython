@@ -54,7 +54,7 @@ public:
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel final : public SerializableObject {
 public:
-	string version_info; ///< a string that represents version info - filled in compile time from git info
+	string version_info = ""; ///< a string that represents version info - filled in compile time from git info
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
@@ -98,7 +98,7 @@ public:
 	map<string, string> virtual_signals_generic;
 
 	// Constructor/Destructor
-	MedModel() { serialize_learning_set = 0; version_info = medial::get_git_version(); };
+	MedModel() { serialize_learning_set = 0; };
 	~MedModel() { clear(); };
 
 	void clear();
