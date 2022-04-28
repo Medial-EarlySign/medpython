@@ -542,6 +542,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		return AM_FAIL_RC;
 
 #ifdef AM_TIMING_LOGS
+	ma.model_apply_verbose(true);
 	MedTimer timer;
 	timer.start();
 #endif
