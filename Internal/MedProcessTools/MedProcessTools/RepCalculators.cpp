@@ -89,11 +89,21 @@ int KfreCalculator::init(map<string, string>& mapper) {
 	{
 		if (it->first == "model_id")
 			model_id = stoi(it->second);
+		
+		// discard_range_check=1 in JSOON gets translated into discard_range_check=true
+		if (it->first == "discard_range_check")
+			if (stoi(it->second) > 0)
+				discard_range_check = true;
 	}
 	return 0;
 }
 
 void KfreCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+
+	/*
+	Verify that the number of the input and output parameters is correct 
+	and that names of the input parameters are correct.
+	*/
 
 	if (!(output_signals.size() == 1))
 		MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires exactly 1 output signal\n");
@@ -193,6 +203,8 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 
 	// Prepare and validate input arguments
 
+	bool range_check_failed = false;
+
 	// age
 	if (vals[0] <= 0)
 		return !keep_only_in_range;
@@ -206,8 +218,8 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 		time = (int)vals[3]; //TIME
 		age = med_time_converter.get_age(time, MedTime::Date, year);
 
-		if (age<18 || age>90)
-			return !keep_only_in_range;
+		if (age < 18 || age > 90)
+			range_check_failed = true;
 
 		// gender [unless otherwise stated gender is 1 for males and 2 for females]
 		if (vals[1] == 1)
@@ -216,8 +228,8 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			gender = 0.;
 
 		eGFR = vals[2];
-		if (eGFR<10 || eGFR>60)
-			return !keep_only_in_range;
+		if (eGFR < 10 || eGFR > 60)
+			range_check_failed = true;
 	}
 
 	if (model_id >= 3)
@@ -227,28 +239,32 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 		// Convert UACR from mg/mmol to mg/g by multiplying by 8.84
 		UACR *= 8.84;
 
-		if (UACR<10 || UACR>3000)
-			return !keep_only_in_range;
+		if (UACR < 10 || UACR > 3000)
+			range_check_failed = true;
 	}
 
 	if (model_id >= 6)
 	{
 		Calcium		= vals[4];
-		if (Calcium<7.5 || Calcium>10.5)
-			return !keep_only_in_range;
+		if (Calcium < 7.5 || Calcium > 10.5)
+			range_check_failed = true;
 
 		Phosphorus	= vals[5];
-		if (Phosphorus<3 || Phosphorus>6.5)
-			return !keep_only_in_range;
+		if (Phosphorus < 3 || Phosphorus > 6.5)
+			range_check_failed = true;
 
 		Albumin		= vals[6];
-		if (Albumin<1 || Albumin>4)
-			return !keep_only_in_range;
+		if (Albumin < 1 || Albumin > 4)
+			range_check_failed = true;
 
 		Bicarbonate = vals[7];
-		if (Bicarbonate<15 || Bicarbonate>28)
-			return !keep_only_in_range;
+		if (Bicarbonate < 15 || Bicarbonate > 28)
+			range_check_failed = true;
 	}
+
+	if(!discard_range_check)
+		if (range_check_failed)
+			return !keep_only_in_range;
 
 	switch (model_id)
 	{
@@ -256,13 +272,9 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 		res = get_KFRE_Model_2(age, gender, eGFR);
 		break;
 	case 3:
-		time = (int)vals[4]; //TIME
-		age = med_time_converter.get_age(time, MedTime::Date, year);
 		res = get_KFRE_Model_3(age, gender, eGFR, UACR);
 		break;
 	case 6:
-		time = (int)vals[8]; //TIME
-		age = med_time_converter.get_age(time, MedTime::Date, year);
 		bool valid = get_KFRE_Model_6(
 			res, 
 			age,
@@ -273,14 +285,11 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			Phosphorus,
 			Albumin,
 			Bicarbonate);
-
-
 		if (!valid)
 		{
 			// we get here when intermediate computation overflows
-			// should we return !keep_only_in_range OR false ?
 			res = missing_value;
-			return !keep_only_in_range;
+			return false;
 		}
 
 		break;

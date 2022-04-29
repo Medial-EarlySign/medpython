@@ -1102,6 +1102,7 @@ public:
 
 	// Valid values are 2,3 or 6
 	int model_id = 2;
+	bool discard_range_check = false; // when true, allow conputation for input parameters out of valid range
 
 	KfreCalculator() { calculator_name = "KFRE"; need_time = true; keep_only_in_range = true; };
 	int init(map<string, string>& mapper);
@@ -1110,7 +1111,7 @@ public:
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(KfreCalculator)
-		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, model_id)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, model_id, discard_range_check)
 };
 
 /**
