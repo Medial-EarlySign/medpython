@@ -279,5 +279,8 @@ public:
 		}
 	}
 
+	string model_version_info() const {
+		return model.version_info;
+	}
 };
 

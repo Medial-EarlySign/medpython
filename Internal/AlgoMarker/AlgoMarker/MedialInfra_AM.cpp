@@ -111,6 +111,12 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	ma.data_load_init();
 	// That's it. All is ready for data insert and prediction cycles
 	is_loaded = true;
+	string vers_info = ma.model_version_info();
+	if (vers_info.empty())
+		vers_info = "Old model without documented version!";
+	MLOG("################ LOADED MODEL VERSION INFO: ##############################\n");
+	MLOG("%s\n", vers_info.c_str());
+	MLOG("##########################################################################\n");
 	return AM_OK_RC;
 }
 
