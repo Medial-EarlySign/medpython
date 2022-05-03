@@ -250,7 +250,8 @@ public:
 	//========================================================
 	const char *get_name() { return name.c_str(); }
 
-	void write_features_mat(const string feat_mat) { model.write_feature_matrix(feat_mat); }
+	void write_features_mat(const string &feat_mat) { model.write_feature_matrix(feat_mat); }
+	void add_features_mat(const string &feat_mat) { model.write_feature_matrix(feat_mat, false, true); }
 
 	void get_signal_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ)
 	{

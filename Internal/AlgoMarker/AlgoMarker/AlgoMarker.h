@@ -340,6 +340,7 @@ private:
 
 	int sort_needed = 1; // in some debug cases we ommit the sort od data at the end of loading to do that this needs to be 0
 	string am_matrix = ""; // for debugging : if not empty will write matrix to given file name
+	bool first_write = true; ///< in debug mode - mark first write flag
 	int model_end_stage = MED_MDL_END;
 	vector<string> extended_result_fields;
 	bool is_loaded = false;

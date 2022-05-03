@@ -292,7 +292,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	if (responses == NULL)
 		return AM_FAIL_RC;
-	
+
 #ifdef AM_TIMING_LOGS
 	timer.start();
 #endif
@@ -418,7 +418,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	ma.model_apply_verbose(true);
 	timer.start();
 #endif
-	
+
 	// Calculating raw scores for eligble points
 	vector<float> raw_scores(_n_points, (float)AM_UNDEFINED_VALUE);
 	int get_preds_rc = -1;
@@ -435,8 +435,13 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		return AM_FAIL_RC;
 	}
 
-	if (am_matrix != "")
-		ma.write_features_mat(am_matrix); // debug only
+	if (am_matrix != "" && _n_points > 0) { // debug only
+		if (first_write)
+			ma.write_features_mat(am_matrix); 
+		else
+			ma.add_features_mat(am_matrix); 
+		first_write = false;
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -536,7 +541,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -637,9 +642,9 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
-   // We now convert times and do an initial sanity checks
-   // again - we only deal with int times in this class, so we convert the long long stamps to int
-   // we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
+	// We now convert times and do an initial sanity checks
+	// again - we only deal with int times in this class, so we convert the long long stamps to int
+	// we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
 	int n_points = (int)sample_reqs.size();
 	int tu = get_time_unit();
 	MedPidRepository &rep = ma.get_rep();
@@ -797,8 +802,16 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
+	if (am_matrix != "" && _n_points > 0) { // debug only
+		if (first_write)
+			ma.write_features_mat(am_matrix);
+		else
+			ma.add_features_mat(am_matrix);
+		first_write = false;
+	}
+
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -868,6 +881,7 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				else if (fields[0] == "TIME_UNIT") {
 					set_time_unit(med_time_converter.string_to_type(fields[1].c_str()));
 				}
+				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 			}
 		}
 	}
