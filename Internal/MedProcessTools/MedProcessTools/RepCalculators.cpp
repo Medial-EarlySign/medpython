@@ -89,11 +89,14 @@ int KfreCalculator::init(map<string, string>& mapper) {
 	{
 		if (it->first == "model_id")
 			model_id = stoi(it->second);
-		
-		// discard_range_check=1 in JSOON gets translated into discard_range_check=true
-		if (it->first == "discard_range_check")
-			if (stoi(it->second) > 0)
-				discard_range_check = true;
+		else if (it->first == "discard_range_check")
+			discard_range_check = stoi(it->second) > 0;
+		else if (it->first == "keep_only_in_range") {
+			keep_only_in_range = stoi(it->second) > 0;
+			MLOG_V("Set keep_only_in_range=%d\n", keep_only_in_range);
+		}
+		else 
+			MTHROW_AND_ERR("Error in KfreCalculator::init - Unsupported argument \"%s\"\n",it->first.c_str());
 	}
 	return 0;
 }
@@ -205,7 +208,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 
 	bool range_check_failed = false;
 
-	// age
+	// BDATE
 	if (vals[0] <= 0)
 		return !keep_only_in_range;
 
@@ -215,7 +218,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	if (model_id >= 2)
 	{
 		// age
-		time = (int)vals[3]; //TIME
+		time = (int)vals.back(); //TIME
 		age = med_time_converter.get_age(time, MedTime::Date, year);
 
 		if (age < 18 || age > 90)
@@ -262,9 +265,17 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			range_check_failed = true;
 	}
 
+	// when we perform range check AND it fails
+    // there are TWO options: do NOT return a value (keep_only_in_range=TRUE) or return a MISSING value (keep_only_in_range=FALSE[default]) 
 	if(!discard_range_check)
 		if (range_check_failed)
+		{
+			//MLOG_V("Observed keep_only_in_range=%d\n", keep_only_in_range);
+			res = -1.;
 			return !keep_only_in_range;
+		}
+			
+
 
 	switch (model_id)
 	{

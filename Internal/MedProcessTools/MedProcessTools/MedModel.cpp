@@ -1998,13 +1998,12 @@ vector<int> medial::repository::prepare_repository(MedPidRepository &rep, const 
 }
 
 //.......................................................................................
-int MedModel::write_feature_matrix(const string mat_fname)
+int MedModel::write_feature_matrix(const string mat_fname, bool write_attributes, bool append)
 {
-	MedMat<float> x;
-
-	features.get_as_matrix(x);
-
-	return x.write_to_csv_file(mat_fname);
+	if (!append)
+		return features.write_as_csv_mat(mat_fname, write_attributes);
+	else
+		return features.add_to_csv_mat(mat_fname, write_attributes, 0);
 }
 
 #if 1

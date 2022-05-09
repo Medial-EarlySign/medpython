@@ -275,7 +275,7 @@ public:
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);
 
 	/// following is for debugging : writing the feature to a csv file as a matrix.
-	int write_feature_matrix(const string mat_fname);
+	int write_feature_matrix(const string mat_fname, bool write_attributes = false, bool append = false);
 
 	/// loading a repository (optionally allowing for adjustment to model according to available signals)
 	void load_repository(const string& configFile, MedPidRepository& rep, bool allow_adjustment = false);

@@ -468,7 +468,7 @@ int MedFeatures::add_to_csv_mat(const string &csv_fname, bool write_attributes, 
 	write_csv_data(out_f, write_attributes, col_names, start_idx);
 
 	out_f.close();
-	MLOG("Wrote [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
+	MLOG("Added [%zu] rows with %zu features in %s\n", samples.size(), data.size(), csv_fname.c_str());
 
 
 	return 0;
