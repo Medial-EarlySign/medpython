@@ -54,6 +54,7 @@ public:
 /// A model = repCleaner + featureGenerator + featureProcessor + MedPredictor
 class MedModel final : public SerializableObject {
 public:
+	string version_info = ""; ///< a string that represents version info - filled in compile time from git info
 	/// remember learning set
 	int serialize_learning_set = 0;
 	int model_json_version = 1; ///< the json version
@@ -255,7 +256,7 @@ public:
 	// De(Serialize)
 	virtual void pre_serialization() { if (!serialize_learning_set && LearningSet != NULL) LearningSet = NULL; /*no need to clear(), as this was given by the user*/ }
 	ADD_CLASS_NAME(MedModel)
-		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet, take_mean_pred)
+		ADD_SERIALIZATION_FUNCS(rep_processors, generators, feature_processors, predictor, post_processors, generate_masks_for_features, serialize_learning_set, LearningSet, take_mean_pred, version_info)
 
 		int quick_learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
 	int learn_rep_processors(MedPidRepository& rep, MedSamples& samples);
