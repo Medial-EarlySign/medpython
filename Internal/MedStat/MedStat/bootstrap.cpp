@@ -480,10 +480,13 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 
 	for (size_t i = 0; i < function_params.size(); ++i)
 		if (process_measurments_params != NULL && function_params[i] != NULL) {
-			ROC_And_Filter_Params* prm = dynamic_cast<ROC_And_Filter_Params*> (function_params[i]);
-			if (prm == NULL)
+			ROC_And_Filter_Params static_mem;
+			ROC_And_Filter_Params* prm = &static_mem;
+			ROC_Params *only_roc = dynamic_cast<ROC_Params*> (function_params[i]);
+			if (only_roc == NULL)
 				continue;
-			prm->roc_params = (ROC_Params *)function_params[i];
+
+			prm->roc_params = only_roc;
 			prm->filter = (vector<Filter_Param> *)cohort_params;
 			process_measurments_params(additional_info, y, pids, prm,
 				filter_indexes, y_full, pids_full);
@@ -1991,7 +1994,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	if (!part_aucs.empty()) {
 		for (unsigned int i = 0; i < part_aucs.size(); i++) {
 			float fpr = params->working_point_auc[i];
-			res[format_working_point("PART_AUC",fpr,false)] = part_aucs[i] / fpr;
+			res[format_working_point("PART_AUC", fpr, false)] = part_aucs[i] / fpr;
 		}
 	}
 
@@ -2808,7 +2811,7 @@ void Incident_Stats::read_from_text_file(const string &text_file) {
 	{
 		if (!gender_read[0][i])
 			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d (%f,%d) for males\n",
-				i, int(min_age + i * age_bin_years),min_age,age_bin_years);
+				i, int(min_age + i * age_bin_years), min_age, age_bin_years);
 		if (!gender_read[1][i])
 			MTHROW_AND_ERR("Error in reading inc stats file. missing bin num %zu of age %d for females\n",
 				i, int(min_age + i * age_bin_years));
