@@ -2079,7 +2079,7 @@ int TimeFeatGenerator::init(map<string, string>& mapper) {
 	string time_bins_string = "";
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [RangeFeatGenerator::init]
+		//! [TimeFeatGenerator::init]
 		if (field == "time_unit") {
 			if (get_time_unit(entry.second) < 0) {
 				MERR("Cannot parse time unit \'%s\'\n", entry.second.c_str());
@@ -2090,7 +2090,7 @@ int TimeFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "time_bins") time_bins_string = entry.second;
 		else if (field != "fg_type")
 			MLOG("Unknown parameter \'%s\' for TimeFeatGenerator\n", field.c_str());
-		//! [RangeFeatGenerator::init]
+		//! [TimeFeatGenerator::init]
 	}
 
 	// Parse time_bins_string
