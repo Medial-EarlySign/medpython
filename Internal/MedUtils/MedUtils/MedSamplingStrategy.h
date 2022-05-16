@@ -164,6 +164,7 @@ public:
 	vector<string> signal_list; ///< list of signals to take times for sampling on each patient
 	int delta_time = 0; ///< delta time before the sticked signals. a date before should be negative
 	int delta_time_unit = MedTime::Days;
+	int minimal_time_between_samples = 0; ///< minimal time restriction between samples - starts from most recent and takes most recent in each time window
 
 	/// Initialize samples_list_pid_dates by reading signals from repository
 	void init_sampler(MedRepository &rep);

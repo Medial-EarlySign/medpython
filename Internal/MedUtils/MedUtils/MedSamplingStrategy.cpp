@@ -2,6 +2,7 @@
 #include <fstream>
 #include <string>
 #include <iostream>
+#include <algorithm>
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
 #include "MedSamplingHelper.h"
@@ -533,6 +534,8 @@ int MedSamplingStick::init(map<string, string>& map) {
 			sample_with_filters = med_stoi(it->second) > 0;
 		else if (it->first == "delta_time")
 			delta_time = med_stoi(it->second);
+		else if (it->first == "minimal_time_between_samples")
+			minimal_time_between_samples = med_stoi(it->second);
 		else if (it->first == "delta_time_unit") delta_time_unit = med_time_converter.string_to_type(it->second);
 
 		else
@@ -570,7 +573,7 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 	for (size_t i = 0; i < p_rep->pids.size(); ++i)
 	{
 		int pid = p_rep->pids[i];
-		set<int> possible_dates;
+		unordered_set<int> possible_dates;
 		for (size_t k = 0; k < sig_ids.size(); ++k)
 		{
 			UniversalSigVec usv;
@@ -583,13 +586,28 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 
 				possible_dates.insert(time);
 			}
-				
-		}
 
+		}
 		if (!possible_dates.empty())
 			samples_list_pid_dates.push_back(vector<pair<int, int>>());
-		for (int candidate_date : possible_dates)
-			samples_list_pid_dates.back().push_back(pair<int, int>(pid, candidate_date));
+
+		vector<pair<int, int>> &p_arr = samples_list_pid_dates.back();
+		vector<int> sorted_possible_dates(possible_dates.begin(), possible_dates.end());
+		sort(sorted_possible_dates.begin(), sorted_possible_dates.end());
+		int last_selected = -1;
+		for (int j = (int)sorted_possible_dates.size() - 1; j >= 0; --j) {
+			if (minimal_time_between_samples <= 0 || last_selected < 0 || sorted_possible_dates[j] < med_time_converter.add_subtruct_days(last_selected, -minimal_time_between_samples)) {
+				p_arr.push_back(pair<int, int>(pid, sorted_possible_dates[j]));
+				last_selected = sorted_possible_dates[j];
+			}
+		}
+
+		sort(p_arr.begin(), p_arr.end(), [](const pair<int, int> &a, const pair<int, int> &b) {
+			if (a.first == b.first)
+				return a.second < b.second;
+			return a.first < b.first;
+		}
+		);
 	}
 
 }
