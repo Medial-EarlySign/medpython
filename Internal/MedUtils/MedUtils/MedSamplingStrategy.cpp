@@ -244,21 +244,22 @@ int MedSamplingDates::init(map<string, string>& map) {
 	return 0;
 }
 
-void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+void MedSamplingDates::get_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+	const vector<vector<pair<int, int>>> &samples_list_pid_opts,
 	unordered_map<int, vector<int>> &pid_options) const {
 	random_device rd;
 	mt19937 gen(rd());
 	//keep only "legal" dates by pid_time_ranges:
 	vector<vector<pair<int, int>>> filtered_opts;
-	filtered_opts.reserve(samples_list_pid_dates.size());
+	filtered_opts.reserve(samples_list_pid_opts.size());
 	if (sample_with_filters)
-		for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
+		for (size_t i = 0; i < samples_list_pid_opts.size(); ++i)
 		{
 			vector<pair<int, int>> filtered_grp_opts;
-			for (size_t k = 0; k < samples_list_pid_dates[i].size(); ++k)
+			for (size_t k = 0; k < samples_list_pid_opts[i].size(); ++k)
 			{
-				int pid = samples_list_pid_dates[i][k].first;
-				int time = samples_list_pid_dates[i][k].second;
+				int pid = samples_list_pid_opts[i][k].first;
+				int time = samples_list_pid_opts[i][k].second;
 
 				bool is_legal = false;
 
@@ -273,14 +274,14 @@ void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pai
 						++pid_range_iter;
 					}
 					if (is_legal)
-						filtered_grp_opts.push_back(samples_list_pid_dates[i][k]);
+						filtered_grp_opts.push_back(samples_list_pid_opts[i][k]);
 				}
 			}
 
 			filtered_opts.push_back(filtered_grp_opts);
 		}
 	else
-		filtered_opts = samples_list_pid_dates;
+		filtered_opts = samples_list_pid_opts;
 
 	for (size_t i = 0; i < filtered_opts.size(); ++i)
 	{
@@ -308,6 +309,11 @@ void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pai
 				pid_options[all_sample_options[k].first].push_back(all_sample_options[k].second);
 		}
 	}
+}
+
+void MedSamplingDates::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges,
+	unordered_map<int, vector<int>> &pid_options) const {
+	get_options(pid_time_ranges, samples_list_pid_dates, pid_options);
 }
 
 MedSamplingStrategy *MedSamplingStrategy::make_sampler(const string &sampler_name) {
@@ -592,15 +598,8 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 			samples_list_pid_dates.push_back(vector<pair<int, int>>());
 
 		vector<pair<int, int>> &p_arr = samples_list_pid_dates.back();
-		vector<int> sorted_possible_dates(possible_dates.begin(), possible_dates.end());
-		sort(sorted_possible_dates.begin(), sorted_possible_dates.end());
-		int last_selected = -1;
-		for (int j = (int)sorted_possible_dates.size() - 1; j >= 0; --j) {
-			if (minimal_time_between_samples <= 0 || last_selected < 0 || sorted_possible_dates[j] < med_time_converter.add_subtruct_days(last_selected, -minimal_time_between_samples)) {
-				p_arr.push_back(pair<int, int>(pid, sorted_possible_dates[j]));
-				last_selected = sorted_possible_dates[j];
-			}
-		}
+		for (int candidate_date : possible_dates)
+			p_arr.push_back(pair<int, int>(pid, candidate_date));
 
 		sort(p_arr.begin(), p_arr.end(), [](const pair<int, int> &a, const pair<int, int> &b) {
 			if (a.first == b.first)
@@ -614,4 +613,66 @@ void MedSamplingStick::init_sampler(MedRepository &rep) {
 
 MedSamplingStick::MedSamplingStick() {
 	take_count = 0; //default of stick to signal
+}
+
+void MedSamplingStick::_get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const {
+	//First manipualte and use minimal_time_between_samples if given - samples_list_pid_dates:
+
+	if (minimal_time_between_samples > 0) {
+		MLOG("Info: enforcing %d time gap between samples\n", minimal_time_between_samples);
+		vector<vector<pair<int, int>>> sample_new_ops;
+		unordered_map<int, vector<int>> pid_to_opts;
+		for (size_t i = 0; i < samples_list_pid_dates.size(); ++i)
+			for (size_t j = 0; j < samples_list_pid_dates[i].size(); ++j)
+				pid_to_opts[samples_list_pid_dates[i][j].first].push_back(samples_list_pid_dates[i][j].second);
+
+		//enforce minimal_time_between_samples between samples for pid_time_ranges - for most recent record - try end and if beyond year 3000 take start:
+		for (auto it = pid_time_ranges.begin(); it != pid_time_ranges.end(); ++it) {
+			int pid = it->first;
+			int max_limit = -1;
+			for (const pair<int, int> &p : it->second)
+			{
+				int usage = p.first;
+				if (p.second < 30000000)
+					usage = p.second;
+				if (max_limit < usage)
+					max_limit = usage;
+			}
+
+			if (pid_to_opts.find(pid) == pid_to_opts.end())
+				continue; //pid not found
+			vector<int> &curr_pid_opts = pid_to_opts.at(pid);
+			sort(curr_pid_opts.begin(), curr_pid_opts.end());
+			vector<int> new_pid_opts;
+			//start time window backward from max_limit (takes closet option as start) - filter curr_pid_opts:
+			for (int i = (int)curr_pid_opts.size() - 1; i >= 0; --i)
+			{
+				if (curr_pid_opts[i] > max_limit)
+					continue; //beyond
+				new_pid_opts.push_back(curr_pid_opts[i]);
+				//move limit to next window
+				while (max_limit >= curr_pid_opts[i])
+					max_limit = med_time_converter.add_subtruct_days(max_limit, -minimal_time_between_samples);
+			}
+
+			curr_pid_opts.clear();
+			for (size_t i = 0; i < new_pid_opts.size(); ++i)
+				curr_pid_opts.push_back(new_pid_opts[i]);
+		}
+
+		//write to sample_new_ops:
+		for (auto &it : pid_to_opts)
+		{
+			vector<pair<int, int>> pid_options; //all opts for same pid
+			for (int i = 0; i < it.second.size(); ++i)
+				pid_options.push_back(pair<int, int>(it.first, it.second[i]));
+
+			//push as option to rand from:
+			sample_new_ops.push_back(pid_options);
+		}
+
+		MedSamplingDates::get_options(pid_time_ranges, sample_new_ops, pid_options);
+	}
+	else
+		MedSamplingDates::get_options(pid_time_ranges, samples_list_pid_dates, pid_options);
 }

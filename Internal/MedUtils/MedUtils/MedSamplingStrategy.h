@@ -100,6 +100,10 @@ public:
 	vector<vector<pair<int, int>>> samples_list_pid_dates; ///< All sample options for pid,date to sample from. row is sample with all options to sample from 
 	bool sample_with_filters; ///< If True will do sampling after time range filtering of years,age,censoring. otherwise total randomally choose times
 
+	void get_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, 
+		const vector<vector<pair<int, int>>> &samples_list_pid_opts,
+		unordered_map<int, vector<int>> &pid_options) const;
+
 	///sample Take_Count samples for each record in samples_list_pid_dates.
 	///each record is vector<pair<int, int>> which is list of all options to choose from
 	/// each record in the options is (pid, prediction_time)				
@@ -170,6 +174,8 @@ public:
 	void init_sampler(MedRepository &rep);
 
 	int init(map<string, string>& map);
+
+	void _get_sampling_options(const unordered_map<int, vector<pair<int, int>>> &pid_time_ranges, unordered_map<int, vector<int>> &pid_options) const;
 
 	MedSamplingStick();
 };
