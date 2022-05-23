@@ -1193,7 +1193,7 @@ public:
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(KfreCalculator)
-		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, n_variables, n_variables, prediction_years, publication_year, region, discard_range_check)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, n_variables, n_variables, prediction_years, kfre_version, region, discard_range_check)
 };
 
 /**

@@ -90,11 +90,11 @@ int KfreCalculator::init(map<string, string>& mapper) {
 	{
 		if (it->first == "n_variables")
 			n_variables = stoi(it->second);
-		if (it->first == "prediction_years")
+		else if (it->first == "prediction_years")
 			prediction_years = stoi(it->second);
-		if (it->first == "publication_year")
-			publication_year = stoi(it->second);
-		if (it->first == "region")
+		else if (it->first == "kfre_version")
+			kfre_version = stoi(it->second);
+		else if (it->first == "region")
 			region = it->second;
 		else if (it->first == "discard_range_check")
 			discard_range_check = stoi(it->second) > 0;
