@@ -270,20 +270,20 @@ float get_KFRE_Model_3(
 	}
 #endif
 
-	float betaXbar_sum = std::accumulate(
+	double betaXbar_sum = std::accumulate(
 		betaXbar.begin(),
 		betaXbar.end(),
 		decltype(betaXbar)::value_type(0)
 	);
 
-	float betaX_sum = std::accumulate(
+	double betaX_sum = std::accumulate(
 		betaX.begin(),
 		betaX.end(),
 		decltype(betaX)::value_type(0)
 	);
 
 	double baseline = (double)0.924;
-	float risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
+	double risk = 1 - (float)pow(baseline, exp(betaX_sum - betaXbar_sum));
 
 	//printf("risk %f, age %f, gender %d, eGFR %f, UACR %f\n",
 	//	risk,
