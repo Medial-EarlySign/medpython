@@ -94,8 +94,11 @@ int KfreCalculator::init(map<string, string>& mapper) {
 			prediction_years = stoi(it->second);
 		else if (it->first == "kfre_version")
 			kfre_version = stoi(it->second);
-		else if (it->first == "region")
+		else if (it->first == "region") {
 			region = it->second;
+			region_id = region2id[region];
+		}
+
 		else if (it->first == "discard_range_check")
 			discard_range_check = stoi(it->second) > 0;
 		else if (it->first == "keep_only_in_range") {
@@ -163,6 +166,7 @@ void KfreCalculator::list_output_signals(const vector<string> &input_signals, ve
 }
 
 bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
+
 	int bdate, year, time;
 	float age = 0;
 	int   gender = 0;
@@ -255,38 +259,200 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			res = -1.;
 			return !keep_only_in_range;
 		}
-			
-	switch (n_variables)
-	{
-	case 3:
-		res = get_KFRE_Model_2(age, gender, eGFR);
-		break;
-	case 4:
-		res = get_KFRE_Model_3(age, gender, eGFR, UACR);
-		break;
-	case 8:
-		bool valid = get_KFRE_Model_6(
-			res, 
-			age,
-			gender,
-			eGFR,
-			UACR,
-			Calcium,
-			Phosphorus,
-			Albumin,
-			Bicarbonate);
-		if (!valid)
+		
+
+	bool valid = true;
+
+	if (kfre_version == 1) {
+
+		// Compute KFRE.v1 based on 2011 article
+		switch (n_variables)
 		{
-			// we get here when intermediate computation overflows
-			res = missing_value;
-			return false;
+		case 3:
+			res = get_KFRE_Model_2(age, gender, eGFR);
+			break;
+		case 4:
+			res = get_KFRE_Model_3(age, gender, eGFR, UACR);
+			break;
+		case 8:
+			valid = get_KFRE_Model_6(
+				res,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		}
+	}
+	else if (kfre_version == 2) {
+		// Compute KFRE.v2, based on article published in 2016
+
+		//======================================================
+		// Prepare coefficients
+		//======================================================
+
+		double baseline;
+		vector<double> Coeff;
+		vector<double> Xbar;
+		// ??? uncommenting gives compilation error, while in init() it compiles allright, why ?
+		//int region_id = region2id[region];
+		FetchCoefficients(
+			n_variables,
+			prediction_years,
+			region_id,
+			baseline,
+			Coeff,
+			Xbar
+		);
+
+		//======================================================
+		// Calculate KFRE score
+		//======================================================
+
+		switch (n_variables)
+		{
+		case 4:
+			valid = get_KFRE4(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 8:
+			valid = get_KFRE8(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		default:
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc - KFRE.v2 only implemented for 4 and 8 variables\n");
+		}
+	}
+	else {
+
+		// TEMPORARY: Test the alternative implementation of v1
+		//======================================================
+		// Calculate KFRE score
+		//======================================================
+
+		double baseline;
+		vector<double> Coeff;
+		vector<double> Xbar;
+
+		FetchCoefficients_v1(
+			n_variables,
+			baseline,
+			Coeff,
+			Xbar
+		);
+
+		switch (n_variables)
+		{
+		case 3:
+			valid = get_KFRE3(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 4:
+			valid = get_KFRE4(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 8:
+			valid = get_KFRE8(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		default:
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc - KFRE.v2 only implemented for 4 and 8 variables\n");
 		}
 
-		break;
 	}
+
 
 	return true;
 }
+
+
 
 //.......................................eGFR Calculator................................
 int eGFRCalculator::init(map<string, string>& mapper) {
