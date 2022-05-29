@@ -384,8 +384,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 		double baseline;
 		vector<double> Coeff;
 		vector<double> Xbar;
-		// ??? uncommenting gives compilation error, while in init() it compiles allright, why ?
-		//int region_id = region2id[region];
+
 		FetchCoefficients(
 			n_variables,
 			prediction_years,
