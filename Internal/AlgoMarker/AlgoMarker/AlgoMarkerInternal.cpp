@@ -115,6 +115,31 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	//=> in first test we will learn the mode if not learned, and prepare for apply - to increase speed.
 	//So first test is slower and rest are faster. "Cold start"
 	//Not thread safe - except using OMP
+
+	//Check all signals exists in repository:
+	bool fail_signals = false;
+	for (const string &req_s : req_signals) {
+		int sid = rep.sigs.sid(req_s);
+		if (sid < 0) {
+			fail_signals = true;
+			MLOG("Missing signal %s model eligibility testing\n", req_s.c_str());
+		}
+		//only when not allowed - not in allowed list:
+		if (allow_missing_signals.find(req_s) == allow_missing_signals.end())
+			
+			if ((!rep.in_mem_mode_active() && !rep.index.index_table[sid].full_load) ||
+				(rep.in_mem_mode_active() && rep.in_mem_rep.data.find(pair<int,int>(pid, sid)) == rep.in_mem_rep.data.end())) {
+				fail_signals = true;
+				MLOG("Signal %s not loaded for model eligibility testing\n", req_s.c_str());
+			}
+
+		if (fail_signals)
+			break;
+	}
+
+	if (fail_signals)
+		return -1;
+
 	if (!_learned) {
 #pragma omp critical(InputTesterJsonFeature)
 		{
@@ -180,6 +205,8 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 			verbose_learn = med_stoi(it.second) > 0;
 		else if (it.first == "verbose_apply")
 			verbose_apply = med_stoi(it.second) > 0;
+		else if (it.first == "allow_missing_signals")
+			boost::split(allow_missing_signals, it.second, boost::is_any_of(","));
 		else
 			MTHROW_AND_ERR("Error - unknown arg %s\n", it.first.c_str());
 	}
@@ -196,6 +223,7 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 	else
 		feature_generator.read_from_file(json_model_path);
 
+	feature_generator.get_required_signal_names(req_signals);
 	return 0;
 }
 
