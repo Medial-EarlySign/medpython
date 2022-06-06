@@ -37,6 +37,7 @@ public:
 	int externl_rc = 0;	 // rcs -1 and 0 are reserved 
 	int internal_rc = 0; // rcs -1 and 0 are reserved 
 	string err_msg = "";
+	string cant_evel_msg = ""; ///< message when can't evalute test. result < 0
 
 	int max_outliers_flag = 0; // use or not use the tester to accumulate outliers counts
 
