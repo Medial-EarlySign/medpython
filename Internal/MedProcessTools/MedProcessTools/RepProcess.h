@@ -1101,8 +1101,21 @@ class KfreCalculator : public SimpleCalculator {
 public:
 
 	// Valid values are 2,3 or 6
-	int model_id = 2;
-	bool discard_range_check = false; // when true, allow conputation for input parameters out of valid range
+	//int model_id = 2;
+	int n_variables = 4;
+
+	int kfre_version = 2;
+	int prediction_years = 5;
+	std::string region = "original";		// original,north_american,non_noth_american,pooled
+	int region_id;
+	bool discard_range_check = false;		// when true, allow computation for input parameters out of valid range
+
+	std::map<std::string, int> region2id = {
+		{ "original",			0 },
+		{ "north_american",		1 },
+		{ "non_north_american",	2 },
+		{ "pooled",				3 },
+	};
 
 	KfreCalculator() { calculator_name = "KFRE"; need_time = true; keep_only_in_range = true; };
 	int init(map<string, string>& mapper);
@@ -1111,7 +1124,7 @@ public:
 	bool do_calc(const vector<float> &vals, float &res) const;
 
 	ADD_CLASS_NAME(KfreCalculator)
-		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, model_id, discard_range_check)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, n_variables, n_variables, prediction_years, kfre_version, region, discard_range_check)
 };
 
 /**

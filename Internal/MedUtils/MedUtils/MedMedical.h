@@ -17,9 +17,61 @@
 float get_KFRE_Model_2(float age, int gender, float eGFR);
 float get_KFRE_Model_3(float age, int gender, float eGFR, float UACR);
 bool get_KFRE_Model_6(float &risk, float age, int gender, float eGFR, float UACR, float Calcium, float Phosphorus, float Albumin, float Bicarbonate);
+
+bool FetchCoefficients_v1(
+	int n_variables,
+	double& baseline,
+	vector<double>& Coeff,
+	vector<double>& Xbar
+);
+bool FetchCoefficients(
+	int n_variables,
+	int prediction_years,
+	int region_id,
+	double& baseline,
+	vector<double>& Coeff,
+	vector<double>& Xbar
+);
+bool get_KFRE3(
+	float &risk,
+	double baseline,
+	vector <double> Coeff,
+	vector <double> Xbar,
+	float age,
+	int gender,
+	float eGFR
+);
+bool get_KFRE4(
+	float &risk,
+	double baseline,
+	vector <double> Coeff,
+	vector <double> Xbar,
+	float age,
+	int gender,
+	float eGFR,
+	float UACR
+);
+bool get_KFRE8(
+	float &risk,
+	double baseline,
+	vector <double> Coeff,
+	vector <double> Xbar,
+	float age,
+	int gender,
+	float eGFR,
+	float UACR,
+	float Calcium,
+	float Phosphorus,
+	float Albumin,
+	float Bicarbonate
+);
+
+
 float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity=0);
 float get_eGFR_MDRD(float age, float creatinine, int gender, int ethnicity=0);
 float get_Framingham(float age, float total_cholesterol, float hdl, float bp_systolic, int smoking, int gender);
+
+
 
 
 //=================================================================================

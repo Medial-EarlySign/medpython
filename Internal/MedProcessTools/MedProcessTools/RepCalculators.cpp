@@ -85,10 +85,20 @@ bool RatioCalculator::do_calc(const vector<float> &vals, float &res) const {
 }
 //.......................................KFRE Calculator................................
 int KfreCalculator::init(map<string, string>& mapper) {
+	
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
-		if (it->first == "model_id")
-			model_id = stoi(it->second);
+		if (it->first == "n_variables")
+			n_variables = stoi(it->second);
+		else if (it->first == "prediction_years")
+			prediction_years = stoi(it->second);
+		else if (it->first == "kfre_version")
+			kfre_version = stoi(it->second);
+		else if (it->first == "region") {
+			region = it->second;
+			region_id = region2id[region];
+		}
+
 		else if (it->first == "discard_range_check")
 			discard_range_check = stoi(it->second) > 0;
 		else if (it->first == "keep_only_in_range") {
@@ -98,6 +108,7 @@ int KfreCalculator::init(map<string, string>& mapper) {
 		else 
 			MTHROW_AND_ERR("Error in KfreCalculator::init - Unsupported argument \"%s\"\n",it->first.c_str());
 	}
+
 	return 0;
 }
 
@@ -108,27 +119,16 @@ void KfreCalculator::validate_arguments(const vector<string> &input_signals, con
 	and that names of the input parameters are correct.
 	*/
 
+	// Validate the number of output variables
 	if (!(output_signals.size() == 1))
 		MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires exactly 1 output signal\n");
 
-	switch (model_id)
-	{
-	case 2:
-		//Signals order: "BDATE", "GENDER", "eGFR"
-		if (!(input_signals.size() == 3))
-			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 3 input signals -  got \"%d\"\n", (int)input_signals.size());
-		break;
-	case 3:
-		if (!(input_signals.size() == 4))
-			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 4 input signals -  got \"%d\"\n", (int)input_signals.size());
-		break;
-	case 6:
-		if (!(input_signals.size() == 8))
-			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires 8 input signals -  got \"%d\"\n", (int)input_signals.size());
-		break;
-	}
+	// Validate the number of input variables
+	if (!(input_signals.size() == n_variables))
+		MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Requires %d input signals -  got \"%d\"\n", n_variables, (int)input_signals.size());
 
-	if (model_id >= 2)
+	// Verify that variable names are as expected
+	if (n_variables >= 3)
 	{
 		// NOTE: "break" statements are missing on purpose
 		if (input_signals[0] != "BDATE")
@@ -138,13 +138,13 @@ void KfreCalculator::validate_arguments(const vector<string> &input_signals, con
 		if (input_signals[2] != "eGFR_CKD_EPI")
 			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Third signal should be eGFR_CKD_EPI- got \"%s\"\n", input_signals[2].c_str());
 	}
-	if (model_id >= 3)
+	if (n_variables >= 4)
 	{
 		if (input_signals[3] != "UrineAlbumin_over_Creatinine")
 			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Fourth signal should be UrineAlbumin_over_Creatinine- got \"%s\"\n", input_signals[3].c_str());
 	}
 
-	if (model_id >= 6)
+	if (n_variables >= 8)
 	{
 		if (input_signals[4] != "Ca")
 			MTHROW_AND_ERR("Error KfreCalculator::validate_arguments - Fifth signal should be Ca - got \"%s\"\n", input_signals[4].c_str());
@@ -166,6 +166,7 @@ void KfreCalculator::list_output_signals(const vector<string> &input_signals, ve
 }
 
 bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
+
 	int bdate, year, time;
 	float age = 0;
 	int   gender = 0;
@@ -179,30 +180,14 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	res = missing_value;
 
 	// Verify that the model id is valid
-	if (model_id != 2 && model_id != 3 && model_id != 6)
-		MTHROW_AND_ERR("Error KfreCalculator::do_calc - model_id should be either 2,3 or 6\n");
+	if (n_variables != 3 && n_variables != 4 && n_variables != 8)
+		MTHROW_AND_ERR("Error KfreCalculator::do_calc - n_variables should be either 3,4 or 8\n");
 
 	// Verify that the number of arguments is correct
-	switch (model_id)
-	{
-	case 2:
-		if (vals.size() != 4)
-			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
-				vals.size());
-		break;
-	case 3:
-		if (vals.size() != 5)
-			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 4, got %zu\n",
-				vals.size());
-		break;
-	case 6:
-		if (vals.size() != 9)
-			MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected 8, got %zu\n",
-				vals.size());
-		break;
-	default:
-		MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong model_id. expected 2,3, or 6, got %d\n", model_id)
-	}
+	// (one more than n_variables, due to the "time"
+	if (vals.size() != n_variables+1)
+		MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected %d, got %zu\n",
+			n_variables+1,vals.size());
 
 	// Prepare and validate input arguments
 
@@ -215,7 +200,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	bdate = (int)vals[0]; //BDATE
 	year = int(bdate / 10000);
 
-	if (model_id >= 2)
+	if (n_variables >= 3)
 	{
 		// age
 		time = (int)vals.back(); //TIME
@@ -235,7 +220,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			range_check_failed = true;
 	}
 
-	if (model_id >= 3)
+	if (n_variables >= 4)
 	{
 		UACR = vals[3];
 
@@ -246,7 +231,7 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			range_check_failed = true;
 	}
 
-	if (model_id >= 6)
+	if (n_variables >= 8)
 	{
 		Calcium		= vals[4];
 		if (Calcium < 7.5 || Calcium > 10.5)
@@ -274,40 +259,197 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 			res = -1.;
 			return !keep_only_in_range;
 		}
-			
+		
+	bool valid = true;
 
+	if (kfre_version == 0) {
 
-	switch (model_id)
-	{
-	case 2:
-		res = get_KFRE_Model_2(age, gender, eGFR);
-		break;
-	case 3:
-		res = get_KFRE_Model_3(age, gender, eGFR, UACR);
-		break;
-	case 6:
-		bool valid = get_KFRE_Model_6(
-			res, 
-			age,
-			gender,
-			eGFR,
-			UACR,
-			Calcium,
-			Phosphorus,
-			Albumin,
-			Bicarbonate);
-		if (!valid)
+		// Legacy implementation of KFRE.v1 based on 2011 article
+		// The code is kept for testing purposes, but can be later removed
+		// along with functions get_KFRE_Model_2(), get_KFRE_Model_3, get_KFRE_Model_6
+
+		switch (n_variables)
 		{
-			// we get here when intermediate computation overflows
-			res = missing_value;
-			return false;
+		case 3:
+			res = get_KFRE_Model_2(age, gender, eGFR);
+			break;
+		case 4:
+			res = get_KFRE_Model_3(age, gender, eGFR, UACR);
+			break;
+		case 8:
+			valid = get_KFRE_Model_6(
+				res,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
 		}
+	}
+	else if (kfre_version == 1) {
 
-		break;
+		// Compute KFRE.v1 based on 2011 article
+
+		double baseline;
+		vector<double> Coeff;
+		vector<double> Xbar;
+
+		FetchCoefficients_v1(
+			n_variables,
+			baseline,
+			Coeff,
+			Xbar
+		);
+
+		switch (n_variables)
+		{
+		case 3:
+			valid = get_KFRE3(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 4:
+			valid = get_KFRE4(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 8:
+			valid = get_KFRE8(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		default:
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc - KFRE.v1 only supports 3, 4 and 8 variables\n");
+		}
+	}
+	else if (kfre_version == 2) {
+		// Compute KFRE.v2, based on article published in 2016
+
+		//======================================================
+		// Prepare coefficients
+		//======================================================
+
+		double baseline;
+		vector<double> Coeff;
+		vector<double> Xbar;
+		// ??? uncommenting gives compilation error, while in init() it compiles allright, why ?
+		//int region_id = region2id[region];
+		FetchCoefficients(
+			n_variables,
+			prediction_years,
+			region_id,
+			baseline,
+			Coeff,
+			Xbar
+		);
+
+		//======================================================
+		// Calculate KFRE score
+		//======================================================
+
+		switch (n_variables)
+		{
+		case 4:
+			valid = get_KFRE4(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		case 8:
+			valid = get_KFRE8(
+				res,
+				baseline,
+				Coeff,
+				Xbar,
+				age,
+				gender,
+				eGFR,
+				UACR,
+				Calcium,
+				Phosphorus,
+				Albumin,
+				Bicarbonate
+			);
+			if (!valid)
+			{
+				// we get here when intermediate computation overflows
+				res = missing_value;
+				return false;
+			}
+			break;
+		default:
+			MTHROW_AND_ERR("Error KfreCalculator::do_calc - KFRE.v2 only implemented for 4 and 8 variables\n");
+		}
 	}
 
 	return true;
 }
+
+
 
 //.......................................eGFR Calculator................................
 int eGFRCalculator::init(map<string, string>& mapper) {
