@@ -1781,7 +1781,8 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 			test_1 = test_1 && test_diff(left, right, tolerance, calc_res);
 		}
 		return test_1; //filter of both tests(when available failed)
-
+	case 23: //Check BP 2nd channel is bigger
+		return ruleUsvs[0].Val(sPointer[0], val_channels[0]) >= ruleUsvs[0].Val(sPointer[0], val_channels[0] + 1);
 	default: assert(0); return false; // return is never executed but eliminates warning
 	}
 }
@@ -4020,8 +4021,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
-			}
 		}
+	}
 
 		// sorting the pairs, by date, and within each date: first the ends , then the starts
 		sort(ev.begin(), ev.end());
@@ -4061,7 +4062,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
 			}
-		}
+}
 #endif
 
 		// sorting again as we may have touched times

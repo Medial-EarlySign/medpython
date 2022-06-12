@@ -552,7 +552,8 @@ public:
 	{19,{"Albumin","Protein_Total"}},
 	{20,{"FreeT4","T4"}},
 	{21,{"NRBC","RBC"}},
-	{22,{"CHADS2","CHADS2_VASC"}}
+	{22,{"CHADS2","CHADS2_VASC"}},
+	{23, {"BP"}}
 	};
 
 	map<int, string> rules2RemoveSignal; ///< which signal to remove if contradiction found. If not exists default to remove all
