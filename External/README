@@ -1,0 +1,9 @@
+Those Are used:
+1. Eigen - https://gitlab.com/libeigen/eigen/tree/master
+2. nlohmann/json (https://github.com/nlohmann/json) - JSON for Modern C++
+3. XGBoost - v0.82 (2019.03.03)
+4. LightGBM - 2.2.3
+
+Only when used in predictor:
+1. R Earth (Multivariate Adaptive Regression Splines) - https://cran.r-project.org/web/packages/earth/index.html (Used only when predictor is mars - MedMars): 
+2. GBM - https://cran.r-project.org/web/packages/gbm/index.html (Used only when predictor is gbm - MedGBM)

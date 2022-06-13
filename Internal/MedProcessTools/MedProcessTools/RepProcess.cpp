@@ -1782,7 +1782,7 @@ bool  RepRuleBasedOutlierCleaner::applyRule(int rule, const  vector<UniversalSig
 		}
 		return test_1; //filter of both tests(when available failed)
 	case 23: //Check BP 2nd channel is bigger
-		return ruleUsvs[0].Val(sPointer[0], val_channels[0]) >= ruleUsvs[0].Val(sPointer[0], val_channels[0] + 1);
+		return ruleUsvs[0].Val(sPointer[0], val_channels[0]) < ruleUsvs[0].Val(sPointer[0], val_channels[0] + 1);
 	default: assert(0); return false; // return is never executed but eliminates warning
 	}
 }
