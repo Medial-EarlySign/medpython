@@ -1,6 +1,6 @@
 Those Are used:
-1. Eigen - https://gitlab.com/libeigen/eigen/tree/master
-2. nlohmann/json (https://github.com/nlohmann/json) - JSON for Modern C++
+1. Eigen - https://gitlab.com/libeigen/eigen/tree/master - 3.2.92 (EIGEN_WORLD_VERSION Macros.h)
+2. nlohmann/json (https://github.com/nlohmann/json) - JSON for Modern C++ - 3.7.3
 3. XGBoost - v0.82 (2019.03.03)
 4. LightGBM - 2.2.3
 
