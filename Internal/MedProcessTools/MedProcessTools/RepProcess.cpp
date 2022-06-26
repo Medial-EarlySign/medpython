@@ -54,6 +54,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CREATE_BIT_SIGNAL;
 	else if (processor_name == "category_descenders")
 		return REP_PROCESS_CATEGORY_DESCENDERS;
+	else if (processor_name == "reorder_channels")
+		return REP_PROCESS_REODER_CHANNELS;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -81,6 +83,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepCreateRegistry);
 	CONDITIONAL_NEW_CLASS(dname, RepCreateBitSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepCategoryDescenders);
+	CONDITIONAL_NEW_CLASS(dname, RepReoderChannels);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -150,6 +153,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCreateBitSignal;
 	else if (processor_type == REP_PROCESS_CATEGORY_DESCENDERS)
 		return new RepCategoryDescenders;
+	else if (processor_type == REP_PROCESS_REODER_CHANNELS)
+		return new RepReoderChannels;
 	else
 		return NULL;
 

@@ -118,6 +118,7 @@
     <ClCompile Include="RepCategoryDescenders.cpp" />
     <ClCompile Include="RepCreateRegistry.cpp" />
     <ClCompile Include="RepProcess.cpp" />
+    <ClCompile Include="RepReoderChannels.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
     <ClCompile Include="SmokingGenerator.cpp" />
     <ClCompile Include="StripComments.cpp" />

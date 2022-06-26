@@ -36,6 +36,7 @@ typedef enum {
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
 	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
+	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1888,6 +1889,33 @@ public:
 
 };
 
+class RepReoderChannels : public RepProcessor {
+private:
+	int sid = -1;
+public:
+	vector<int> new_order;
+	string signal_name = "";
+
+	RepReoderChannels()	 {
+		processor_type = REP_PROCESS_REODER_CHANNELS;
+	}
+
+	void set_signal_ids(MedSignals& sigs);
+	void set_signal(const string& _signalName) { sid = -1; signal_name = _signalName;  }
+
+	/// @snippet RepReoderChannels.cpp RepReoderChannels::init
+	int init(map<string, string>& mapper);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void print();
+
+	ADD_CLASS_NAME(RepAggregationPeriod)
+		ADD_SERIALIZATION_FUNCS(processor_type,  req_signals, aff_signals, virtual_signals, virtual_signals_generic, new_order)
+};
+
 //.......................................................................................
 //.......................................................................................
 // Utility Functions
@@ -1921,6 +1949,7 @@ MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
+MEDSERIALIZE_SUPPORT(RepReoderChannels)
 
 MEDSERIALIZE_SUPPORT(SimpleCalculator)
 MEDSERIALIZE_SUPPORT(SetCalculator)
