@@ -6,7 +6,7 @@
 void RepReoderChannels::set_signal_ids(MedSignals& sigs) {
 	sid = sigs.sid(signal_name);
 	if (sid < 0)
-		MTHROW_AND_ERR("Error RepCategoryDescenders - can't find siganl %s\n", signal_name.c_str());
+		MTHROW_AND_ERR("Error RepReoderChannels - can't find signal %s\n", signal_name.c_str());
 }
 
 int RepReoderChannels::init(map<string, string>& mapper) {
@@ -25,7 +25,7 @@ int RepReoderChannels::init(map<string, string>& mapper) {
 		}
 		else if (it.first == "rp_type") {}
 		else
-			MTHROW_AND_ERR("Error in RepCategoryDescenders::init - Unsupported param \"%s\"\n",
+			MTHROW_AND_ERR("Error in RepReoderChannels::init - Unsupported param \"%s\"\n",
 				it.first.c_str());
 		//! [RepReoderChannels::init]
 	}
@@ -45,7 +45,7 @@ int RepReoderChannels::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 	// Check that we have the correct number of dynamic-versions : one per time-point (if given)
 	if (time_points.size() != 0 && time_points.size() != rec.get_n_versions()) {
-		MERR("RepSimValHandler::_apply - nversions mismatch\n");
+		MERR("RepReoderChannels::_apply - nversions mismatch\n");
 		return -1;
 	}
 	//check that it can do it:
