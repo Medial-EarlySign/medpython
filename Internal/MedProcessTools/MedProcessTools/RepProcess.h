@@ -1913,7 +1913,7 @@ public:
 	void print();
 
 	ADD_CLASS_NAME(RepReoderChannels)
-		ADD_SERIALIZATION_FUNCS(processor_type,  req_signals, aff_signals, virtual_signals, virtual_signals_generic, new_order)
+		ADD_SERIALIZATION_FUNCS(processor_type,  req_signals, aff_signals, virtual_signals, virtual_signals_generic, signal_name, new_order)
 };
 
 //.......................................................................................
