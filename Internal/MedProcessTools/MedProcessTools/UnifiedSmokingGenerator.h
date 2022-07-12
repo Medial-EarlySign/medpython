@@ -76,6 +76,8 @@ public:
 	/// @snippet UnifiedSmokingGenerator.cpp UnifiedSmokingGenerator::init
 	virtual int init(map<string, string>& mapper);
 
+	virtual int update(map<string, string>& mapper);
+
 	// Name
 	void set_names();
 

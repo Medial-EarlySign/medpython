@@ -139,6 +139,35 @@ int SerializableObject::init_from_string(string init_string) {
 
 	return 0;
 }
+int SerializableObject::update_from_string(string init_string) {
+
+	map<string, string> mapper;
+	if (MedSerialize::init_map_from_string(init_string, mapper) < 0)
+		MTHROW_AND_ERR("Error Init from String %s\n", init_string.c_str());
+
+	if (mapper.size() == 1 && mapper.begin()->first == "pFile") {
+		int rc = init_params_from_file(mapper.begin()->second);
+		if (rc < 0)
+			MTHROW_AND_ERR("Error Init params from file %s\n", mapper.begin()->second.c_str());
+	}
+
+	for (auto &e : mapper) {
+		string val = e.second;
+		boost::to_upper(val);
+		if (val.compare(0, 5, "FILE:") == 0 || val.compare(0, 5, "LIST:") == 0 ||
+			val.compare(0, 9, "LIST_REL:") == 0) {
+			string param;
+			if (init_param_from_file(e.second, param) < 0)
+				MTHROW_AND_ERR("Error Init params from file %s\n", e.second.c_str());
+			e.second = param;
+		}
+	}
+
+	if (update(mapper) < 0)
+		MTHROW_AND_ERR("Error Init from string after convertion to map %s\n", init_string.c_str());
+
+	return 0;
+}
 
 // Init from file
 int SerializableObject::init_params_from_file(string fname)

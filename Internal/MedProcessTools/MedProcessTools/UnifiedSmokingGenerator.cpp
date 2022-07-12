@@ -84,6 +84,51 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+int UnifiedSmokingGenerator::update(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "smoking_features")
+			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
+		else if (field == "tags")
+			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (entry.first == "min_age") {
+			nlstMinAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "max_age") {
+			nlstMaxAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "pack_years") {
+			nlstPackYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "quit_time_years") {
+			nlstQuitTimeYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (field == "weights_generator")
+			iGenerateWeights = stoi(entry.second);
+		else if (field == "debug_file")
+			debug_file = entry.second;
+		else if (field != "fg_type")
+			MTHROW_AND_ERR("Unknown parameter \'%s\' for UnifiedSmokingGenerator\n", field.c_str());
+	}
+
+	set_names();
+	//char *filename = "W:/Users/Ron/Projects/LungCancer/results/unified_smoking/tmp_output4.tsv";
+	if (debug_file != "")
+	{
+		fp = fopen(debug_file.c_str(), "w");
+		if (fp == NULL)
+			MTHROW_AND_ERR("Unable to open file: %s \n", debug_file.c_str());
+	}
+
+	return 0;
+}
+
+
 void UnifiedSmokingGenerator::init_tables(MedDictionarySections& dict) {
 	//init luts:
 	smoke_status_sec_id = dict.section_id("Smoking_Status");
