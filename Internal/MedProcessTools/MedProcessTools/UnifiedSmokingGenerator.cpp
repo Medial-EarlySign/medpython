@@ -24,14 +24,6 @@ void UnifiedSmokingGenerator::set_names() {
 }
 
 int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
-
-	// Set NLST default values:
-	nlstMinAge = 55;
-	nlstMaxAge = 80;
-	nlstPackYears = 30;
-	nlstQuitTimeYears = 15;
-	nonDefaultNlstCriterion = false;
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [SmokingGenerator::init]

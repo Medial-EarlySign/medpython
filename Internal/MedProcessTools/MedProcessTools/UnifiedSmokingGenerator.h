@@ -53,7 +53,15 @@ public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
 	// Constructor/Destructor
-	UnifiedSmokingGenerator() : FeatureGenerator() { missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_UNIFIED_SMOKING; }
+	UnifiedSmokingGenerator() : FeatureGenerator() { 
+		missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_UNIFIED_SMOKING;
+		// Set NLST default values:
+		nlstMinAge = 55;
+		nlstMaxAge = 80;
+		nlstPackYears = 30;
+		nlstQuitTimeYears = 15;
+		nonDefaultNlstCriterion = false;
+	}
 
 	~UnifiedSmokingGenerator() {
 		if (fp != stderr)
