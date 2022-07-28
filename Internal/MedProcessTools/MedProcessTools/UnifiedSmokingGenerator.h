@@ -43,7 +43,7 @@ struct RangeStatus
 class UnifiedSmokingGenerator : public FeatureGenerator {
 public:
 	float nlstPackYears, nlstQuitTimeYears, nlstMinAge, nlstMaxAge;
-	bool nonDefaultNlstCriterion;
+	bool nonDefaultNlstCriterion, useDataComplition;
 	FILE *fp = stderr;
 	string debug_file = "";
 	set<vector<SMOKING_STATUS>> possibleCombinations;
@@ -91,11 +91,15 @@ public:
 
 	void calcPackYears(UniversalSigVec & SmokingPackYearsUsv, int testDate, int & neverSmoker, int & currentSmoker, int & formerSmoker, int & lastPackYearsDate, float & lastPackYears, float & maxPackYears);
 
+	void calcQuitTimeOriginalData(PidDynamicRec& rec, UniversalSigVec & smokingStatusUsv, UniversalSigVec & quitTimeUsv, int testDate, int formerSmoker, int neverSmoker, int currentSmoker, float & daysSinceQuittingOriginal);
+	
+	void calcPackYearsOriginalData(int testDate, int lastPackYearsDate, float lastPackYears, float & lastPackYearsOriginal, UniversalSigVec SmokingIntensityUsv, UniversalSigVec SmokingDurationUsv);
+	
 	void fixPackYearsSmokingIntensity(float smokingDurationSinceLastPackYears, float & smokingIntensity, float smokingDuration, float & lastPackYears, float & maxPackYears);
 
 	void printDebug(vector<RangeStatus>& smokeRanges, int qa_print, UniversalSigVec & smokingStatusUsv, UniversalSigVec & SmokingIntensityUsv, int birthDate, int testDate, vector<pair<SMOKING_STATUS, int>>& smokingStatusVec, PidDynamicRec & rec, UniversalSigVec & quitTimeUsv, UniversalSigVec & SmokingPackYearsUsv, float smokingIntensity, float smokingDuration, float yearsSinceQuitting, float maxPackYears);
 
-	void addDataToMat(vector<float*>& _p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float maxPackYears, float lastPackYears, int neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration);
+	void addDataToMat(vector<float*>& _p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float daysSinceQuittingOriginal, float maxPackYears, float lastPackYears, float lastPackYearsOriginal, int neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration);
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
