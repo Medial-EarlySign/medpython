@@ -84,9 +84,7 @@ int UnifiedSmokingGenerator::update(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		if (field == "smoking_features")
-			boost::split(raw_feature_names, entry.second, boost::is_any_of(","));
-		else if (field == "tags")
+		if (field == "tags")
 			boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (entry.first == "min_age") {
 			nlstMinAge = stof(entry.second);
@@ -112,7 +110,6 @@ int UnifiedSmokingGenerator::update(map<string, string>& mapper) {
 			MTHROW_AND_ERR("Unknown parameter \'%s\' for UnifiedSmokingGenerator\n", field.c_str());
 	}
 
-	set_names();
 	//char *filename = "W:/Users/Ron/Projects/LungCancer/results/unified_smoking/tmp_output4.tsv";
 	if (debug_file != "")
 	{
