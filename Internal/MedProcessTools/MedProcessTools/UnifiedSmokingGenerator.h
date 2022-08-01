@@ -61,6 +61,7 @@ public:
 		nlstPackYears = 30;
 		nlstQuitTimeYears = 15;
 		nonDefaultNlstCriterion = false;
+		useDataComplition = false;
 	}
 
 	~UnifiedSmokingGenerator() {
