@@ -610,6 +610,8 @@ public:
 
 	void make_summary();
 
+	void dprint(const string &pref, int rp_flag);
+
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
 		ADD_SERIALIZATION_FUNCS(processor_type, time_window, calc_res, rules2Signals, rulesToApply, rules2RemoveSignal, signal_channels, consideredRules, tolerance, req_signals, aff_signals, nRem_attr,

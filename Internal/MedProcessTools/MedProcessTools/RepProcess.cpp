@@ -1656,6 +1656,21 @@ void RepRuleBasedOutlierCleaner::make_summary() {
 	_rmv_stats.clear(); //prepare for next apply
 }
 
+void RepRuleBasedOutlierCleaner::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP type %d(%s) : required(%d): ", pref.c_str(), processor_type, my_class_name().c_str(), req_signals.size());
+		if (rp_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG(" affected(%d): ", aff_signals.size());
+		if (rp_flag > 1) for (auto &asig : aff_signals) MLOG("%s, ", asig.c_str());
+		if (!rulesToApply.empty())
+			MLOG(" Rules: [%d", rulesToApply[0]);
+		for (size_t i = 1; i < rulesToApply.size(); ++i)
+			MLOG(", %d", rulesToApply[i]);
+		MLOG("]\n");
+	}
+}
+
 // Utility
 bool test_diff(float origianl, float calculated, float tolerance, float resulotion) {
 	float df = abs(origianl - calculated);
@@ -4026,8 +4041,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
-		}
 	}
+}
 
 		// sorting the pairs, by date, and within each date: first the ends , then the starts
 		sort(ev.begin(), ev.end());
@@ -4054,11 +4069,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 								MLOG("ID=%d\tClipping period %d of category %d to %d\n", rec.pid, i, ev[i].categ, ev[i].time);
 #endif
-							}
 						}
 					}
 				}
 			}
+		}
 		}
 
 #ifdef _APPLY_VERBOSE
@@ -4066,8 +4081,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : time_intervals[j]) {
 				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+				}
 			}
-}
 #endif
 
 		// sorting again as we may have touched times
@@ -4169,7 +4184,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+				}
 
 					// the case of ABC-AB-A
 					if ((len < min_jitters[1]) && ((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
@@ -4177,7 +4192,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+			}
 
 					// the case of AB-A-AC
 					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
@@ -4185,9 +4200,9 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+		}
 
-				}
+		}
 
 			}
 
@@ -4231,11 +4246,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-	}
+				}
 
 
 	return 0;
-}
+			}
 
 
 //-------------------------------------------------------------------------------------------------------
