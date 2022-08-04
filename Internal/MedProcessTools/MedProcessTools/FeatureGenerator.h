@@ -730,6 +730,8 @@ public:
 	string modelFile = ""; ///<  File for serialized model
 	MedModel *model = NULL; ///< model
 	string modelName = ""; ///< name of final feature
+	string model_json = ""; ///< path load json and train model for this.
+	string model_train_samples = ""; ///< path train model samples.
 	int n_preds = 1;  ///< how many features to create
 	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
 	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
@@ -743,7 +745,7 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet FeatureGenerator.cpp ModelFeatGenerator::init
 	int init(map<string, string>& mapper);
-	int init_from_model(MedModel *_model);
+	int init_from_model();
 
 	/// Use a given vector of predictions instead of applying model
 	void override_predictions(MedSamples& inSamples, MedSamples& modelSamples);
@@ -751,6 +753,8 @@ public:
 	/// Do the actual prediction prior to feature generation ...
 	void prepare(MedFeatures & features, MedPidRepository& rep, MedSamples& samples);
 
+	///learn method
+	int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors);
 	/// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
 
