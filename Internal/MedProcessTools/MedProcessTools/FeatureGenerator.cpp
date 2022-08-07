@@ -2324,6 +2324,7 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
 		else if (field == "model_json") model_json = entry.second;
 		else if (field == "model_train_samples") model_train_samples = entry.second;
+		else if (field == "ensure_patient_ids") ensure_patient_ids = med_stoi(entry.second) > 0;
 		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
@@ -2383,8 +2384,20 @@ int ModelFeatGenerator::_learn(MedPidRepository& rep, const MedSamples& samples,
 	MedSamples train_sample_cp;
 	train_sample_cp.read_from_file(model_train_samples);
 	MedPidRepository rep_feat;
-	vector<int> train_pids;
+	vector<int> train_pids, intersection_ids;
 	train_sample_cp.get_ids(train_pids);
+	if (ensure_patient_ids) {
+		samples.get_ids(intersection_ids);
+		unordered_set<int> accepted_ids(intersection_ids.begin(), intersection_ids.end());
+		vector<int> final_ids;
+		final_ids.reserve(min(train_pids.size(), accepted_ids.size()));
+		//Do Intersection
+		for (size_t i = 0; i < train_pids.size(); ++i)
+			if (accepted_ids.find(train_pids[i]) != accepted_ids.end())
+				final_ids.push_back(train_pids[i]);
+		train_pids = move(final_ids);
+	}
+
 	model->load_repository(rep.config_fname, train_pids, rep_feat, true);
 
 	//Need to set outcome - use other samples

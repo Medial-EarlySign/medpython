@@ -732,6 +732,7 @@ public:
 	string modelName = ""; ///< name of final feature
 	string model_json = ""; ///< path load json and train model for this.
 	string model_train_samples = ""; ///< path train model samples.
+	bool ensure_patient_ids = true; ///< if true will ensure the ids are the same as curretn training samples
 	int n_preds = 1;  ///< how many features to create
 	int impute_existing_feature = 0; ///< If true will use model to impute an existing feature (determined by model name. Otherwise - generate new feature(s)
 	int use_overriden_predictions = 0; ///< Use a given vector of predictions instead of applying model
