@@ -230,6 +230,16 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 /// </returns>
 map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
 
+/// <summary>
+/// A Function to calculate performance measurements for regression problems
+/// Implements MeasurementFunctions signature function
+/// Accepted Regresion_Params
+/// </summary>
+/// <returns>
+/// A map from measurement name to it's value
+/// </returns>
+map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params);
+
 //For example we can put here statistical measures for regression problem or more measurements for classification..
 #pragma endregion
 
