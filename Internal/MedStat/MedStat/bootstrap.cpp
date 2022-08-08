@@ -2205,6 +2205,175 @@ map<string, float> calc_harrell_c_statistic(Lazy_Iterator *iterator, int thread_
 	return res;
 }
 
+inline void update_vec_idx(vector<bool> &idx_status,
+	double &total_on, const vector<float> &weights, const vector<int> &to_check) {
+	//update idx_status by to_check idx - turn off whats needed and update total_on:
+	for (int i : to_check)
+	{
+		if (idx_status[i]) {
+			idx_status[i] = false;
+			if (!weights.empty())
+				total_on -= weights[i];
+			else
+				--total_on;
+		}
+	}
+}
+
+map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
+	map<string, float> res;
+
+	Regression_Params* params = (Regression_Params *)function_params;
+
+	float y, w, pred;
+	bool has_weights = false;
+	double tot_loss = 0, sum_outcome = 0, tot_count = 0, second_moment = 0;
+	map<float, float> per_score;
+	unordered_map<float, float> per_score_sec;
+	unordered_map<float, double> per_score_size;
+	map<float, double> outcome_counts;
+	unordered_map<float, vector<int>> outcome_idx, pred_idx;
+	vector<float> weights;
+	int idx = 0;
+	double logloss = 0, logloss_sz = 0;
+	while (iterator->fetch_next(thread_num, y, pred, w))
+	{
+		has_weights = has_weights || w >= 0;
+
+		double diff = abs(pred - y);
+		if (has_weights) {
+			tot_loss += diff * diff * w;
+			sum_outcome += y * w;
+			tot_count += w;
+			second_moment += y * y * w;
+
+			per_score[pred] += y * w;
+			per_score_sec[pred] += y * y * w;
+			per_score_size[pred] += w;
+			outcome_counts[y] += w;
+			weights.push_back(w);
+			if (params->do_logloss && y >= 0 && y <= 1) {
+				logloss += w * (y*log(min(params->epsilon, (double)pred)) + (1 - y)*log(min(params->epsilon, 1 - (double)pred)));
+				logloss_sz += w;
+			}
+		}
+		else {
+			tot_loss += diff * diff;
+			sum_outcome += y;
+			++tot_count;
+			second_moment += y * y;
+
+			per_score[pred] += y;
+			per_score_sec[pred] += y * y;
+			++per_score_size[pred];
+			++outcome_counts[y];
+
+			if (params->do_logloss && y >= 0 && y <= 1) {
+				logloss += y * log(min(params->epsilon, (double)pred)) + (1 - y)*log(min(params->epsilon, 1 - (double)pred));
+				++logloss_sz;
+			}
+		}
+
+		outcome_idx[y].push_back(idx);
+		pred_idx[pred].push_back(idx);
+		++idx;
+	}
+	if (tot_count <= 0)
+		MTHROW_AND_ERR("Error - empty test\n");
+	tot_loss /= tot_count;
+	tot_loss = sqrt(tot_loss);
+
+	//cum sum - will count falses:
+	/*double tot_sum_y = 0;
+	for (auto &it : outcome_counts)
+	{
+	double curr_w = it.second;
+	it.second = tot_sum_y;
+	tot_sum_y += curr_w;
+	}*/
+
+	map<float, double>::iterator it_outcome = outcome_counts.begin();
+	double total_y_below_th = 0; ///< can be called False
+	double total_pred_below_th = 0; ///< can be called Negative
+	vector<bool> true_positive(idx, true);
+	//float lowest_score = per_score.begin()->first;
+	double tot_true_positive = tot_count;
+	//first update - unmark true_positive that thier outcome is lower than lowest score:
+	//double max_tot_count = tot_true_positive;
+
+	for (const auto &it : per_score)
+	{
+		if (per_score_size.find(it.first) == per_score_size.end()
+			|| per_score_size.at(it.first) <= 0)
+			continue;
+
+		while (it_outcome != outcome_counts.end() && it_outcome->first < it.first) {
+			total_y_below_th += it_outcome->second;
+			//update true_positive with outcomes that are not true now
+			const vector<int> &to_check = outcome_idx.at(it_outcome->first);
+			update_vec_idx(true_positive, tot_true_positive, weights, to_check);
+			++it_outcome;
+		}
+		//Update true positive init (by outcome with lower than cutoff):
+
+		double total_y_equal_above_th = tot_count - total_y_below_th; ///< can be called True
+		double total_pred_equal_above_th = tot_count - total_pred_below_th; ///< can be called Positive
+
+																			//Update False & Positive: False & Positive := Positive - True&Positive (disjoint groups)
+		double tot_false_positive = total_pred_equal_above_th - tot_true_positive;
+		//double tot_true_negative = total_y_equal_above_th - tot_true_positive;
+		//double tot_false_negative = total_y_below_th - tot_false_positive;
+
+		double real_prob = it.second / per_score_size.at(it.first);
+		double diff = abs(it.first - real_prob);
+		double real_obs_std = sqrt(per_score_sec.at(it.first) / per_score_size.at(it.first) - real_prob * real_prob);
+
+		res[format_working_point("MEAN_OBSERVED_VALUE@PREDICTED_VALUE", it.first, false)] = real_prob;
+		res[format_working_point("MEAN_DIFF@PREDICTED_VALUE", it.first, false)] = diff;
+		res[format_working_point("MEAN_POPULATION_SIZE@PREDICTED_VALUE", it.first, false)] = per_score_size.at(it.first);
+		res[format_working_point("STD_OBSERVED_VALUE@PREDICTED_VALUE", it.first, false)] = real_obs_std;
+
+		res[format_working_point("SENS@PREDICTED_VALUE", it.first, false)] = MED_MAT_MISSING_VALUE;
+		res[format_working_point("FPR@PREDICTED_VALUE", it.first, false)] = MED_MAT_MISSING_VALUE;
+		res[format_working_point("PPV@PREDICTED_VALUE", it.first, false)] = MED_MAT_MISSING_VALUE;
+		if (total_y_equal_above_th > 0)
+			res[format_working_point("SENS@PREDICTED_VALUE", it.first, false)] = 100 * tot_true_positive / total_y_equal_above_th;
+		if (total_pred_equal_above_th > 0)
+			res[format_working_point("PPV@PREDICTED_VALUE", it.first, false)] = 100 * tot_true_positive / total_pred_equal_above_th;
+		if (total_y_below_th > 0)
+			res[format_working_point("FPR@PREDICTED_VALUE", it.first, false)] = 100 * tot_false_positive / total_y_below_th;
+
+		//Update True & Positive: based on outcome_idx.at(it.first) if exists, pred_idx.at(it.first) indexes that are now "excluded"
+		if (outcome_idx.find(it.first) != outcome_idx.end()) {
+			const vector<int> &to_check = outcome_idx.at(it.first);
+			update_vec_idx(true_positive, tot_true_positive, weights, to_check);
+		}
+		const vector<int> &to_check = pred_idx.at(it.first);
+		update_vec_idx(true_positive, tot_true_positive, weights, to_check);
+		//update total_pred_below_th
+		total_pred_below_th += per_score_size.at(it.first);
+	}
+
+	double prior = sum_outcome / tot_count;
+	double loss_prior = second_moment - 2 * prior * sum_outcome + prior * prior * tot_count;
+	loss_prior /= tot_count;
+	loss_prior = sqrt(loss_prior);
+	float R2 = 1 - (tot_loss / loss_prior);
+
+	//calc calibration index
+	res["RMSE"] = tot_loss;
+	res["R2"] = R2;
+	if (params->do_logloss) {
+		res["LOGLOSS"] = MED_MAT_MISSING_VALUE;
+		res["LOGLOSS_SIZE"] = logloss_sz;
+		res["TOTAL_SIZE"] = tot_count;
+		if (logloss_sz > 0)
+			res["LOGLOSS"] = logloss;
+	}
+
+	return res;
+}
+
 #pragma endregion
 
 #pragma region Cohort Fucntions
@@ -2957,5 +3126,18 @@ int Multiclass_Params::init(map<string, string>& map) {
 
 Multiclass_Params::Multiclass_Params(const string &init_string) : Multiclass_Params() {
 	init_from_string(init_string);
+}
+
+int Regression_Params::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "do_logloss")
+			do_logloss = med_stoi(it->second) > 0;
+		else if (it->first == "epsilon")
+			epsilon = stod(it->second);
+		else
+			MTHROW_AND_ERR("Error in Regression_Params::init - unknown param %s\n", it->first.c_str());
+	}
+	return 0;
 }
 #pragma endregion

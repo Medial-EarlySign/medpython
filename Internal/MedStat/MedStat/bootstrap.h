@@ -344,6 +344,19 @@ public:
 	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name, do_class_auc)
 };
 
+/**
+* Parameter object for Regression measure functions
+*/
+class Regression_Params : public Measurement_Params, public SerializableObject {
+public:
+	bool do_logloss = false;
+	double epsilon = 1e-5;
+
+	int init(map<string, string>& mapper);
+
+	ADD_SERIALIZATION_FUNCS(do_logloss)
+};
+
 #pragma region Cohort Fucntions
 /// <summary>
 /// A function to filter samples based on single Filter_Param object. it's a FilterCohortFunc signature
