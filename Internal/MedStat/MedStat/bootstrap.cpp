@@ -2324,9 +2324,15 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 		//double tot_true_negative = total_y_equal_above_th - tot_true_positive;
 		//double tot_false_negative = total_y_below_th - tot_false_positive;
 
-		double real_prob = it.second / per_score_size.at(it.first);
-		double diff = abs(it.first - real_prob);
-		double real_obs_std = sqrt(per_score_sec.at(it.first) / per_score_size.at(it.first) - real_prob * real_prob);
+		double real_prob = MED_MAT_MISSING_VALUE;
+		double diff = MED_MAT_MISSING_VALUE;
+		double real_obs_std = MED_MAT_MISSING_VALUE;
+		if (per_score_size.at(it.first) > 0) {
+			real_prob = it.second / per_score_size.at(it.first);
+			diff = abs(it.first - real_prob);
+			if (per_score_sec.at(it.first) / per_score_size.at(it.first) > real_prob * real_prob)
+				real_obs_std = sqrt(per_score_sec.at(it.first) / per_score_size.at(it.first) - real_prob * real_prob);
+		}
 
 		res[format_working_point("MEAN_OBSERVED_VALUE@PREDICTED_VALUE", it.first, false)] = real_prob;
 		res[format_working_point("MEAN_DIFF@PREDICTED_VALUE", it.first, false)] = diff;
