@@ -50,6 +50,7 @@ public:
 class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params; ///< Controling the roc parameters: sensitivity, specificity...
+	Regression_Params regression_params; ///< params for regerssion
 	Multiclass_Params multiclass_params; ///< Controling the multi class parameters: top n...
 	map<string, vector<Filter_Param>> filter_cohort; ///< the cohorts definitions. name to parameters range to intersect
 	map<string, FilterCohortFunc> additional_cohorts; ///< not Serializable! additional cohorts given by function
