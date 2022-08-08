@@ -489,9 +489,9 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 \n
 Rules:\n
 Rule1: BMI = Weight / Height ^ 2 * 1e4\n
-Rule2:MCH = Hemoglobin / RBC\n
-Rule3:MCV = Hematocrit / RBC\n
-Rule4:MCHC - M = MCH / MCV\n
+Rule2:MCH = (Hemoglobin / RBC) * 10(units) \n
+Rule3:MCV = (Hematocrit / RBC) * 10(units)\n
+Rule4:MCHC - M = (MCH / MCV) * 100 (units)\n
 Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC\n
 Rule6:MPV = Platelets_Hematocrit / Platelets\n
 Rule7:UrineAlbumin <= UrineTotalProtein\n
