@@ -22,7 +22,8 @@ enum class MeasurmentFunctionType {
 	calc_roc_measures_with_inc = 2, 
 	calc_multi_class = 3,
 	calc_kandel_tau = 4,
-	calc_harrell_c_statistic = 5
+	calc_harrell_c_statistic = 5,
+	calc_regression = 6
 };
 class with_registry_args {
 public:

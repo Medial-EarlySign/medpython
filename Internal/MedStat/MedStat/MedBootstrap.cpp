@@ -1013,7 +1013,8 @@ MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const str
 		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
 		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
 		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
-		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic }
+		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
+	    { "calc_regression", MeasurmentFunctionType::calc_regression }
 	};
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
 		string options = medial::io::get_list(measurement_function_name_map, "\n");
