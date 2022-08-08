@@ -14,6 +14,7 @@
     <ProjectGuid>{E1E36407-C2EF-4537-9453-02ECCD410038}</ProjectGuid>
     <RootNamespace>MedUtils</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+	<PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">

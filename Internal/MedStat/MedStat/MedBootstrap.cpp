@@ -144,6 +144,7 @@ int MedBootstrap::init(map<string, string>& map) {
 					func = calc_multi_class;
 					pr_m = &multiclass_params;
 					multiclass_params.init_from_string(init_m_params);
+					is_binary_outcome = false;
 					break;
 				case MeasurmentFunctionType::calc_kandel_tau:
 					func = calc_kandel_tau;
@@ -155,6 +156,7 @@ int MedBootstrap::init(map<string, string>& map) {
 					func = calc_regression;
 					pr_m = &regression_params;
 					regression_params.init_from_string(init_m_params);
+					is_binary_outcome = false;
 					break;
 				default:
 					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", measure_type);

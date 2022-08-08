@@ -14,6 +14,7 @@
     <ProjectGuid>{63C8E9BA-1513-4C2F-AEE6-BBD97A253413}</ProjectGuid>
     <RootNamespace>InfraMed</RootNamespace>
     <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
+	<PreferredToolArchitecture>x64</PreferredToolArchitecture>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
