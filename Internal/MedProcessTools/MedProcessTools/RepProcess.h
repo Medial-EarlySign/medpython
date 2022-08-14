@@ -510,6 +510,7 @@ Rule19:Albumin <= Protein_Total\n
 Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
 Rule22:CHADS2_VASC >= CHADS2\n
+Rule23: BP.Systolic(channel 0) >= BP.Diastoilic(channel 1)
 */
 class RepRuleBasedOutlierCleaner : public RepProcessor {
 	// get multiple signals and clean them according to consistency  with other signals from same date
