@@ -155,21 +155,24 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 
 				if (is_binary_model)  //need to generate matrix
 					feature_generator.no_init_apply(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+
+				if (!verbose_learn)
+					medial::print::medmodel_logging(true);
+
+				vector<string> all_names;
+				feature_generator.features.get_feature_names(all_names);
+				resolved_feat_name = all_names[find_in_feature_names(all_names, feature_name, true)];
+
+				_learned = true;
 			}
 			catch (...) {
 				MERR("Error failed in Learn\n");
-				return -2;
 			}
-			if (!verbose_learn)
-				medial::print::medmodel_logging(true);
-
-			vector<string> all_names;
-			feature_generator.features.get_feature_names(all_names);
-			resolved_feat_name = all_names[find_in_feature_names(all_names, feature_name, true)];
-
-			_learned = true;
 		}
 	}
+
+	if (!_learned)
+		return -2;
 
 	//Model is prepared for apply and generation of feature and stores exact name in resolved_feat_name
 	MedSamples smps;
