@@ -149,12 +149,17 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 				medial::print::medmodel_logging(false);
 			if (!is_binary_model)
 				feature_generator.learn(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
-			feature_generator.init_model_for_apply(rep,
-				MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+			try {
+				feature_generator.init_model_for_apply(rep,
+					MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
 
-			if (is_binary_model)  //need to generate matrix
-				feature_generator.no_init_apply(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
-
+				if (is_binary_model)  //need to generate matrix
+					feature_generator.no_init_apply(rep, samples, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+			}
+			catch (...) {
+				MERR("Error failed in Learn\n");
+				return -2;
+			}
 			if (!verbose_learn)
 				medial::print::medmodel_logging(true);
 
@@ -171,7 +176,12 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	smps.import_from_sample_vec({ s });
 	if (!verbose_apply)
 		medial::print::medmodel_logging(false);
-	feature_generator.no_init_apply(rep, smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	try {
+		feature_generator.no_init_apply(rep, smps, MedModelStage::MED_MDL_LEARN_REP_PROCESSORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	}
+	catch (...) {
+		return -2;
+	}
 	if (!verbose_apply)
 		medial::print::medmodel_logging(true);
 	const vector<float> &vals = feature_generator.features.data.at(resolved_feat_name);
