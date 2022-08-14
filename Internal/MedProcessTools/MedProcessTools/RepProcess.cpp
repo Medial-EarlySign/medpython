@@ -2455,6 +2455,12 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 				remove[nRemove++] = j;
 			nTimes++;
 		}
+		else {
+			//remove all but keep only one copy (last for example)
+			for (int j = start; j < end; j++)
+				remove[nRemove++] = j;
+			nTimes++;
+		}
 	}
 }
 
