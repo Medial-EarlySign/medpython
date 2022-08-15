@@ -25,13 +25,6 @@ void UnifiedSmokingGenerator::set_names() {
 
 int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 
-	// Set NLST default values:
-	nlstMinAge = 55;
-	nlstMaxAge = 80;
-	nlstPackYears = 30;
-	nlstQuitTimeYears = 15;
-	nonDefaultNlstCriterion = false;
-
 	for (auto entry : mapper) {
 		string field = entry.first;
 		//! [SmokingGenerator::init]
@@ -54,6 +47,10 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 		else if (entry.first == "quit_time_years") {
 			nlstQuitTimeYears = stof(entry.second);
 			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "use_data_complition") {
+			useDataComplition = stof(entry.second)>0 ;
+			cout << endl << "######################### useDataComplition was changed to " << useDataComplition << endl << endl;
 		}
 		else if (field == "weights_generator")
 			iGenerateWeights = stoi(entry.second);
@@ -80,9 +77,53 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 		if (fp == NULL)
 			MTHROW_AND_ERR("Unable to open file: %s \n", debug_file.c_str());
 	}
+	return 0;
+}
+
+int UnifiedSmokingGenerator::update(map<string, string>& mapper) {
+
+	for (auto entry : mapper) {
+		string field = entry.first;
+		if (field == "tags")
+			boost::split(tags, entry.second, boost::is_any_of(","));
+		else if (entry.first == "min_age") {
+			nlstMinAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "max_age") {
+			nlstMaxAge = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "pack_years") {
+			nlstPackYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "quit_time_years") {
+			nlstQuitTimeYears = stof(entry.second);
+			nonDefaultNlstCriterion = true;
+		}
+		else if (entry.first == "use_data_complition") {
+			useDataComplition = stof(entry.second)>0;
+			cout << endl << "#########################(u) useDataComplition was changed to " << useDataComplition << endl << endl;
+		}
+		else if (field == "weights_generator")
+			iGenerateWeights = stoi(entry.second);
+		else if (field == "debug_file")
+			debug_file = entry.second;
+		else if (field != "fg_type")
+			MTHROW_AND_ERR("Unknown parameter \'%s\' for UnifiedSmokingGenerator\n", field.c_str());
+	}
+
+	if (debug_file != "")
+	{
+		fp = fopen(debug_file.c_str(), "w");
+		if (fp == NULL)
+			MTHROW_AND_ERR("Unable to open file: %s \n", debug_file.c_str());
+	}
 
 	return 0;
 }
+
 
 void UnifiedSmokingGenerator::init_tables(MedDictionarySections& dict) {
 	//init luts:
@@ -107,14 +148,16 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 {
 	int unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
 	float lastPackYears = missing_val, daysSinceQuitting = missing_val, smokingDuration = missing_val, smokingIntensity = missing_val, yearsSinceQuitting = missing_val;
+	float daysSinceQuittingOriginal = missing_val;
 	UniversalSigVec smokingStatusUsv, quitTimeUsv, SmokingPackYearsUsv, bdateUsv, SmokingIntensityUsv, SmokingDurationUsv;
-
+	//cout << endl << "NUM " << num << endl << endl;
 	int birthDate, qa_print = 1;
 
 	for (int i = 0; i < num; i++) {
 		qa_print = 1;
 		unknownSmoker = 1, neverSmoker = 0, passiveSmoker = 0, formerSmoker = 0, currentSmoker = 0;
 		lastPackYears = daysSinceQuitting = yearsSinceQuitting = smokingIntensity = missing_val;
+		daysSinceQuittingOriginal = missing_val;
 
 		// get signals:
 		rec.uget("Smoking_Status", i, smokingStatusUsv);
@@ -140,7 +183,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
 		vector<int> dates = {};
 		genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, testDate, smokingStatusDates, dates);
-
+		
 		// Determine Smoking Status per date
 		vector<pair<SMOKING_STATUS, int>> smokingStatusVec = { { UNKNOWN_SMOKER,  (int)bdateUsv.Val(0) } };
 
@@ -155,21 +198,26 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		genLastStatus(smokeRanges, unknownSmoker, neverSmoker, formerSmoker, currentSmoker, passiveSmoker);
 
 		calcQuitTime(smokeRanges, formerSmoker, neverSmoker, currentSmoker, testDate, birthDate, daysSinceQuitting, yearsSinceQuitting);
+		// years since quitting just from original data 
+		calcQuitTimeOriginalData(rec, smokingStatusUsv, quitTimeUsv, testDate, formerSmoker, neverSmoker, currentSmoker, daysSinceQuittingOriginal);
 
 		calcSmokingIntensity(SmokingIntensityUsv, testDate, neverSmoker, smokingIntensity);
 
 		int lastPackYearsDate = missing_val;
 		float maxPackYears = missing_val;
 		calcPackYears(SmokingPackYearsUsv, testDate, neverSmoker, currentSmoker, formerSmoker, lastPackYearsDate, lastPackYears, maxPackYears);
-
+		// pack years just from original data
+		float lastPackYearsOriginal = lastPackYears;
+		calcPackYearsOriginalData(testDate, lastPackYearsDate, lastPackYears, lastPackYearsOriginal, SmokingIntensityUsv, SmokingDurationUsv);
+		
+		//cout << i << " age " << age << endl;
 		float smokingDurationBeforePackYears = missing_val;
 		calcSmokingDuration(neverSmoker, unknownSmoker, smokeRanges, birthDate, lastPackYearsDate, SmokingDurationUsv, testDate, smokingDurationBeforePackYears, smokingDuration);
 
 		fixPackYearsSmokingIntensity(smokingDurationBeforePackYears, smokingIntensity, smokingDuration, lastPackYears, maxPackYears);
-
 		printDebug(smokeRanges, qa_print, smokingStatusUsv, SmokingIntensityUsv, birthDate, testDate, smokingStatusVec, rec, quitTimeUsv, SmokingPackYearsUsv, smokingIntensity, smokingDuration, yearsSinceQuitting, maxPackYears);
 
-		addDataToMat(_p_data, index, i, age, currentSmoker, formerSmoker, daysSinceQuitting, maxPackYears, lastPackYears, neverSmoker, unknownSmoker, passiveSmoker, yearsSinceQuitting, smokingIntensity, smokingDuration);
+		addDataToMat(_p_data, index, i, age, currentSmoker, formerSmoker, daysSinceQuitting, daysSinceQuittingOriginal, maxPackYears, lastPackYears, lastPackYearsOriginal, neverSmoker, unknownSmoker, passiveSmoker, yearsSinceQuitting, smokingIntensity, smokingDuration);
 
 	}
 	return 0;
@@ -177,10 +225,98 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 
 int UnifiedSmokingGenerator::calcNlst(int age, int unknownSmoker, int daysSinceQuitting, float lastPackYears)
 {
+	//cout << "nlstMinAge " << nlstMinAge << " nlstMaxAge " << nlstMaxAge << " age " << age << endl;
+	//cout << "lastPackYears " << lastPackYears << endl << endl;
 	if ((unknownSmoker == 1) || (daysSinceQuitting == (int)missing_val) || (lastPackYears == missing_val)) {
 		return missing_val;
 	}
+
 	return ((age >= nlstMinAge) && (age <= nlstMaxAge) && (lastPackYears >= nlstPackYears) && (daysSinceQuitting <= nlstQuitTimeYears * 365.0));
+}
+
+void UnifiedSmokingGenerator::calcQuitTimeOriginalData(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, UniversalSigVec &quitTimeUsv, int testDate, int formerSmoker, int neverSmoker, int currentSmoker, float &daysSinceQuittingOriginal)
+// this function calculates daysSinceQuittingOriginal - daysSinceQuitting based only on original data without any model
+// we use it in nlst elgibility check, when we do not allow complition by model
+// 0 for current_smoker, large numeber for never_smoker
+// for former_smoker, take the max between last reported quitDate and last report currentSmoker+1 
+{
+	int lastQuitTimeDate = missing_val;
+	int lastCurrentDate = missing_val;
+	int dateQuittingOriginal;
+	string sigVal, inVal;
+	
+	daysSinceQuittingOriginal = - missing_val; // large number, default for any smokingstatus but formerSmoker
+	
+	if (currentSmoker == 1) { daysSinceQuittingOriginal = 0; }
+	
+	if (formerSmoker == 1) {
+		// get last quit_time reported (might be missing)
+		for (int timeInd = 0; timeInd < quitTimeUsv.len; timeInd++)
+		{
+			if (quitTimeUsv.Time(timeInd) > testDate) { break; }
+			if (quitTimeUsv.Val(timeInd) > 0)
+			{
+				lastQuitTimeDate = quitTimeUsv.Val(timeInd);
+			}
+		}
+		// get Last time current was reported
+		for (int timeInd = 0; timeInd < smokingStatusUsv.len; timeInd++)
+		{
+			if (smokingStatusUsv.Time(timeInd) > testDate) { break; }
+			if (smokingStatusUsv.Val(timeInd) > 0)
+			{
+				int sigVal_num = (int)smokingStatusUsv.Val(timeInd);
+				string smoking_status = rec.my_base_rep->dict.name(smoke_status_sec_id, sigVal_num);
+				if (smoking_status == "Current") {
+					lastCurrentDate = smokingStatusUsv.Time(timeInd);
+				}
+				// cout << "lastQuitTimeDate " << lastQuitTimeDate << " timeInd " << smokingStatusUsv.Time(timeInd) << " lastCurrentDate " << lastCurrentDate << endl;
+			}
+		}
+		dateQuittingOriginal = max(lastCurrentDate + 1, lastQuitTimeDate);
+		// cout << "CALCULATING lastQuitTimeDate " << lastQuitTimeDate << " lastCurrentDate " << lastCurrentDate << " dateQuittingOriginal " << dateQuittingOriginal << endl;
+		if (dateQuittingOriginal > 0) {
+			daysSinceQuittingOriginal = (float)med_time_converter.diff_times(testDate, dateQuittingOriginal, MedTime::Date, MedTime::Days);
+		}
+	}
+}
+
+void UnifiedSmokingGenerator::calcPackYearsOriginalData(int testDate, int lastPackYearsDate, float lastPackYears, float &lastPackYearsOriginal, UniversalSigVec SmokingIntensityUsv, UniversalSigVec SmokingDurationUsv)
+// this function calculates lastPackYearsOriginal - lastPackYears based only on original data without any model
+// we use it in nlst elgibility check, when we do not allow complition by model
+// lastPackYears is the last packYears signal
+// we replace it with lastIntensity * lastDuration / PACK_SIZE when we have both signals and thay are more updated 
+{
+	int lastDuration = missing_val;
+	int lastDurationDate = missing_val;
+	int lastIntensity = missing_val;
+	int lastIntensityDate = missing_val;
+
+	for (int timeInd = 0; timeInd < SmokingDurationUsv.len; timeInd++)
+	{
+		if (SmokingDurationUsv.Time(timeInd) > testDate) { break; }
+		if (SmokingDurationUsv.Val(timeInd) > 0)
+		{
+			lastDuration = SmokingDurationUsv.Val(timeInd);
+			lastDurationDate = SmokingDurationUsv.Time(timeInd);
+		}
+	}
+
+	for (int timeInd = 0; timeInd < SmokingIntensityUsv.len; timeInd++)
+	{
+		if (SmokingIntensityUsv.Time(timeInd) > testDate) { break; }
+		if (SmokingIntensityUsv.Val(timeInd) > 0)
+		{
+			lastIntensity = SmokingIntensityUsv.Val(timeInd);
+			lastIntensityDate = SmokingIntensityUsv.Time(timeInd);
+		}
+	}
+	
+	if ((lastDuration != missing_val) && (lastIntensity != missing_val)) {
+		if ((lastPackYears == missing_val) || ((lastIntensityDate>lastPackYearsDate) && (lastDurationDate>lastPackYearsDate))) {
+			lastPackYearsOriginal = lastIntensity * lastDuration / PACK_SIZE;
+		}
+	}
 }
 
 void UnifiedSmokingGenerator::get_p_data(MedFeatures& features, vector<float *> &_p_data) {
@@ -322,6 +458,7 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 		if (smokingStatusDates[inVal].first == NA_SMOKING_DATE)
 			smokingStatusDates[inVal].first = smokingStatusUsv.Time(timeInd);
 		smokingStatusDates[inVal].second = smokingStatusUsv.Time(timeInd);
+
 	}
 
 	// Add values according to quittime - Assume that a day before quittime, the patient was current smoker, and after that he was Former.
@@ -541,7 +678,7 @@ void UnifiedSmokingGenerator::calcQuitTime(vector<RangeStatus> &smokeRanges, int
 {
 	////////////////////////////////////////
 	// Determine Quittime
-	// find the last current -> ex transition, pick the middle of it. 
+	// find the last current -> ex transition, pick the middle of it - see genSmokingRanges 
 	int quitTime = (int)missing_val;
 	if (formerSmoker)
 	{
@@ -910,7 +1047,7 @@ void UnifiedSmokingGenerator::printDebug(vector<RangeStatus> &smokeRanges, int q
 	}
 }
 
-void UnifiedSmokingGenerator::addDataToMat(vector<float *> &_p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float maxPackYears, float lastPackYears, int  neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration)
+void UnifiedSmokingGenerator::addDataToMat(vector<float *> &_p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float daysSinceQuittingOriginal, float maxPackYears, float lastPackYears, float lastPackYearsOriginal, int neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration)
 {
 	// Add data to matrix:
 	// Current_Smoker
@@ -930,6 +1067,11 @@ void UnifiedSmokingGenerator::addDataToMat(vector<float *> &_p_data, int index, 
 	// Passive_Smoker
 	if (_p_data[SMX_UNIFIED_PASSIVE_SMOKER] != NULL) _p_data[SMX_UNIFIED_PASSIVE_SMOKER][index + i] = (float)passiveSmoker;
 	//NLST_Criterion (only after everything was calculated, we can calc. the NLST criterion)
+	// cout << "WRITING useDataComplition " << useDataComplition << " daysSinceQuitting " << daysSinceQuitting << " daysSinceQuittingOriginal " << daysSinceQuittingOriginal << endl;
+	if (useDataComplition == false) {
+		lastPackYears = lastPackYearsOriginal;
+		daysSinceQuitting = daysSinceQuittingOriginal;
+	}
 	if (_p_data[UNIFIED_NLST_CRITERION] != NULL) _p_data[UNIFIED_NLST_CRITERION][index + i] = (float)calcNlst(age, unknownSmoker, daysSinceQuitting, lastPackYears);
 	// Smoke_Years_Since_Quitting
 	if (_p_data[SMX_UNIFIED_YEARS_SINCE_QUITTING] != NULL) _p_data[SMX_UNIFIED_YEARS_SINCE_QUITTING][index + i] = (float)yearsSinceQuitting;

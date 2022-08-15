@@ -80,6 +80,9 @@ public:
 	int init_param_from_file(string file_str, string &param);
 	virtual int init(map<string, string>& map) { return 0; } ///<Virtual to init object from parsed fields
 
+	int update_from_string(string init_string);
+	virtual int update(map<string, string>& map) { return init(map); } ///<Virtual to update object from parsed fields
+
 	virtual string object_json() const;
 private:
 	void _read_from_file(const string &fname, bool throw_on_version_error);

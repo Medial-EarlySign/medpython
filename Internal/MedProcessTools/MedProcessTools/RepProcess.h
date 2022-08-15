@@ -36,6 +36,7 @@ typedef enum {
 	REP_PROCESS_CREATE_REGISTRY, ///<"create_registry" creates a registry signal (TimeRange to values). creates RepCreateRegistry
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
 	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
+	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -488,9 +489,9 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 \n
 Rules:\n
 Rule1: BMI = Weight / Height ^ 2 * 1e4\n
-Rule2:MCH = Hemoglobin / RBC\n
-Rule3:MCV = Hematocrit / RBC\n
-Rule4:MCHC - M = MCH / MCV\n
+Rule2:MCH = (Hemoglobin / RBC) * 10(units) \n
+Rule3:MCV = (Hematocrit / RBC) * 10(units)\n
+Rule4:MCHC - M = (MCH / MCV) * 100 (units)\n
 Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC\n
 Rule6:MPV = Platelets_Hematocrit / Platelets\n
 Rule7:UrineAlbumin <= UrineTotalProtein\n
@@ -509,6 +510,7 @@ Rule19:Albumin <= Protein_Total\n
 Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
 Rule22:CHADS2_VASC >= CHADS2\n
+Rule23: BP.Systolic(channel 0) >= BP.Diastoilic(channel 1)
 */
 class RepRuleBasedOutlierCleaner : public RepProcessor {
 	// get multiple signals and clean them according to consistency  with other signals from same date
@@ -552,7 +554,8 @@ public:
 	{19,{"Albumin","Protein_Total"}},
 	{20,{"FreeT4","T4"}},
 	{21,{"NRBC","RBC"}},
-	{22,{"CHADS2","CHADS2_VASC"}}
+	{22,{"CHADS2","CHADS2_VASC"}},
+	{23, {"BP"}}
 	};
 
 	map<int, string> rules2RemoveSignal; ///< which signal to remove if contradiction found. If not exists default to remove all
@@ -607,6 +610,8 @@ public:
 	void init_lists();
 
 	void make_summary();
+
+	void dprint(const string &pref, int rp_flag);
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)
@@ -1887,6 +1892,33 @@ public:
 
 };
 
+class RepReoderChannels : public RepProcessor {
+private:
+	int sid = -1;
+public:
+	vector<int> new_order;
+	string signal_name = "";
+
+	RepReoderChannels()	 {
+		processor_type = REP_PROCESS_REODER_CHANNELS;
+	}
+
+	void set_signal_ids(MedSignals& sigs);
+	void set_signal(const string& _signalName) { sid = -1; signal_name = _signalName;  }
+
+	/// @snippet RepReoderChannels.cpp RepReoderChannels::init
+	int init(map<string, string>& mapper);
+
+	// Applying
+	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void print();
+
+	ADD_CLASS_NAME(RepReoderChannels)
+		ADD_SERIALIZATION_FUNCS(processor_type,  req_signals, aff_signals, virtual_signals, virtual_signals_generic, signal_name, new_order)
+};
+
 //.......................................................................................
 //.......................................................................................
 // Utility Functions
@@ -1920,6 +1952,7 @@ MEDSERIALIZE_SUPPORT(RepAggregateSignal)
 MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
+MEDSERIALIZE_SUPPORT(RepReoderChannels)
 
 MEDSERIALIZE_SUPPORT(SimpleCalculator)
 MEDSERIALIZE_SUPPORT(SetCalculator)

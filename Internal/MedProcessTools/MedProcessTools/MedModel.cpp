@@ -2703,7 +2703,7 @@ template <class T> void MedModel::apply_change(const ChangeModelInfo &change_req
 			}
 			else {
 				try {
-					found_res[i]->init_from_string(change_request.change_command);
+					found_res[i]->update_from_string(change_request.change_command);
 					++succ_cnt;
 				}
 				catch (exception &exp) {

@@ -43,7 +43,7 @@ struct RangeStatus
 class UnifiedSmokingGenerator : public FeatureGenerator {
 public:
 	float nlstPackYears, nlstQuitTimeYears, nlstMinAge, nlstMaxAge;
-	bool nonDefaultNlstCriterion;
+	bool nonDefaultNlstCriterion, useDataComplition;
 	FILE *fp = stderr;
 	string debug_file = "";
 	set<vector<SMOKING_STATUS>> possibleCombinations;
@@ -53,7 +53,16 @@ public:
 	// source_feature_names as specified by the user, will be resolved to decorated names
 	vector<string> raw_feature_names;
 	// Constructor/Destructor
-	UnifiedSmokingGenerator() : FeatureGenerator() { missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_UNIFIED_SMOKING; }
+	UnifiedSmokingGenerator() : FeatureGenerator() { 
+		missing_val = MED_MAT_MISSING_VALUE, generator_type = FTR_GEN_UNIFIED_SMOKING;
+		// Set NLST default values:
+		nlstMinAge = 55;
+		nlstMaxAge = 80;
+		nlstPackYears = 30;
+		nlstQuitTimeYears = 15;
+		nonDefaultNlstCriterion = false;
+		useDataComplition = false;
+	}
 
 	~UnifiedSmokingGenerator() {
 		if (fp != stderr)
@@ -76,6 +85,8 @@ public:
 	/// @snippet UnifiedSmokingGenerator.cpp UnifiedSmokingGenerator::init
 	virtual int init(map<string, string>& mapper);
 
+	virtual int update(map<string, string>& mapper);
+
 	// Name
 	void set_names();
 
@@ -91,11 +102,15 @@ public:
 
 	void calcPackYears(UniversalSigVec & SmokingPackYearsUsv, int testDate, int & neverSmoker, int & currentSmoker, int & formerSmoker, int & lastPackYearsDate, float & lastPackYears, float & maxPackYears);
 
+	void calcQuitTimeOriginalData(PidDynamicRec& rec, UniversalSigVec & smokingStatusUsv, UniversalSigVec & quitTimeUsv, int testDate, int formerSmoker, int neverSmoker, int currentSmoker, float & daysSinceQuittingOriginal);
+	
+	void calcPackYearsOriginalData(int testDate, int lastPackYearsDate, float lastPackYears, float & lastPackYearsOriginal, UniversalSigVec SmokingIntensityUsv, UniversalSigVec SmokingDurationUsv);
+	
 	void fixPackYearsSmokingIntensity(float smokingDurationSinceLastPackYears, float & smokingIntensity, float smokingDuration, float & lastPackYears, float & maxPackYears);
 
 	void printDebug(vector<RangeStatus>& smokeRanges, int qa_print, UniversalSigVec & smokingStatusUsv, UniversalSigVec & SmokingIntensityUsv, int birthDate, int testDate, vector<pair<SMOKING_STATUS, int>>& smokingStatusVec, PidDynamicRec & rec, UniversalSigVec & quitTimeUsv, UniversalSigVec & SmokingPackYearsUsv, float smokingIntensity, float smokingDuration, float yearsSinceQuitting, float maxPackYears);
 
-	void addDataToMat(vector<float*>& _p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float maxPackYears, float lastPackYears, int neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration);
+	void addDataToMat(vector<float*>& _p_data, int index, int i, int age, int currentSmoker, int formerSmoker, float daysSinceQuitting, float daysSinceQuittingOriginal, float maxPackYears, float lastPackYears, float lastPackYearsOriginal, int neverSmoker, int unknownSmoker, int passiveSmoker, float yearsSinceQuitting, float smokingIntensity, float smokingDuration);
 
 	// generate a new feature
 	int _generate(PidDynamicRec& rec, MedFeatures& features, int index, int num, vector<float *> &_p_data);
@@ -126,7 +141,7 @@ public:
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 	// Serialization
 	ADD_CLASS_NAME(UnifiedSmokingGenerator)
-	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, req_signals, timeSinceQuittingModelSlope, timeSinceQuittingModelConst)
+	ADD_SERIALIZATION_FUNCS(generator_type, raw_feature_names, names, tags, iGenerateWeights, req_signals, timeSinceQuittingModelSlope, timeSinceQuittingModelConst, useDataComplition)
 private:
 	vector<vector<char>> smoke_status_luts;
 	int smoke_status_sec_id;
