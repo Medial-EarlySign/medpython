@@ -273,6 +273,8 @@ extern "C" class DLL_WORK_MODE AlgoMarker {
 private:
 	AlgoMarkerType type;
 	string name = "";
+	string am_udi_di = "";
+	string am_version = "";
 	string config_fname = "";
 	vector<string> supported_score_types;
 	int time_unit = MedTime::Date; // typically Date (for outpatient) or Minutes (for in patients)
@@ -303,6 +305,8 @@ public:
 	char *get_name() { return  (char *)name.c_str(); }
 	char *get_config() { return (char *)config_fname.c_str(); }
 	int get_time_unit() { return time_unit; }
+	char *get_am_udi_di() { return  (char *)am_udi_di.c_str(); }
+	char *get_am_version() { return  (char *)am_version.c_str(); }
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
@@ -310,6 +314,8 @@ public:
 	void set_config(const char *_config_f) { config_fname = string(_config_f); }
 	void add_supported_stype(const char *stype) { supported_score_types.push_back(string(stype)); }
 	void set_time_unit(int tu) { time_unit = tu; }
+	void set_am_udi_di(const char *_am_udi_di) { am_udi_di = string(_am_udi_di); }
+	void set_am_version(const char *_am_version) { am_version = string(_am_version); }
 
 	// get a new AlgoMarker
 	static AlgoMarker *make_algomarker(AlgoMarkerType am_type);

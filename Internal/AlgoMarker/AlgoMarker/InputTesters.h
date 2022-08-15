@@ -37,6 +37,7 @@ public:
 	int externl_rc = 0;	 // rcs -1 and 0 are reserved 
 	int internal_rc = 0; // rcs -1 and 0 are reserved 
 	string err_msg = "";
+	string cant_evel_msg = ""; ///< message when can't evalute test. result < 0
 
 	int max_outliers_flag = 0; // use or not use the tester to accumulate outliers counts
 
@@ -130,6 +131,7 @@ private:
 	MedModel feature_generator;
 	bool _learned = false;
 	string resolved_feat_name = "";
+	vector<string> req_signals;
 public:
 	bool is_binary_model = false; ///< if true it is trained model
 	string json_model_path = ""; ///< realative path to am config, in same folder
@@ -138,6 +140,7 @@ public:
 	float feat_max_val = MED_MAT_MISSING_VALUE; ///< when missing value, no limit
 	bool verbose_learn = true; ///< can control output to screen in first time
 	bool verbose_apply = false; ///< can control output to screen on apply
+	unordered_set<string> allow_missing_signals; ///< list of allowed signal to miss
 
 	InputTesterJsonFeature() { 
 		type = (int)INPUT_TESTER_TYPE_FEATURE_JSON; 

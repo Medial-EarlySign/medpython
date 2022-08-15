@@ -882,6 +882,8 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 					set_time_unit(med_time_converter.string_to_type(fields[1].c_str()));
 				}
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
+				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
+				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
 			}
 		}
 	}

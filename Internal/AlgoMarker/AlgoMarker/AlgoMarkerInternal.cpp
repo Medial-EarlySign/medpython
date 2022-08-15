@@ -115,6 +115,31 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	//=> in first test we will learn the mode if not learned, and prepare for apply - to increase speed.
 	//So first test is slower and rest are faster. "Cold start"
 	//Not thread safe - except using OMP
+
+	//Check all signals exists in repository:
+	bool fail_signals = false;
+	for (const string &req_s : req_signals) {
+		int sid = rep.sigs.sid(req_s);
+		if (sid < 0) {
+			fail_signals = true;
+			MLOG("Missing signal %s model eligibility testing\n", req_s.c_str());
+		}
+		//only when not allowed - not in allowed list:
+		if (allow_missing_signals.find(req_s) == allow_missing_signals.end())
+
+			if ((!rep.in_mem_mode_active() && !rep.index.index_table[sid].full_load) ||
+				(rep.in_mem_mode_active() && rep.in_mem_rep.data.find(pair<int, int>(pid, sid)) == rep.in_mem_rep.data.end())) {
+				fail_signals = true;
+				MLOG("Signal %s not loaded for model eligibility testing\n", req_s.c_str());
+			}
+
+		if (fail_signals)
+			break;
+	}
+
+	if (fail_signals)
+		return -1;
+
 	if (!_learned) {
 #pragma omp critical(InputTesterJsonFeature)
 		{
@@ -180,6 +205,8 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 			verbose_learn = med_stoi(it.second) > 0;
 		else if (it.first == "verbose_apply")
 			verbose_apply = med_stoi(it.second) > 0;
+		else if (it.first == "allow_missing_signals")
+			boost::split(allow_missing_signals, it.second, boost::is_any_of(","));
 		else
 			MTHROW_AND_ERR("Error - unknown arg %s\n", it.first.c_str());
 	}
@@ -196,6 +223,7 @@ int InputTesterJsonFeature::init(map<string, string>& mapper) {
 	else
 		feature_generator.read_from_file(json_model_path);
 
+	feature_generator.get_required_signal_names(req_signals);
 	return 0;
 }
 
@@ -263,6 +291,7 @@ int InputSanityTester::read_config(const string &f_conf)
 					if (fields.size() >= 6) i_test->externl_rc = stoi(fields[5]);
 					if (fields.size() >= 7) i_test->internal_rc = stoi(fields[6]);
 					if (fields.size() >= 8) i_test->err_msg = fields[7];
+					if (fields.size() >= 9) i_test->cant_evel_msg = fields[8];
 
 					i_test->input_from_string("base_path=" + base_path + ";" + i_test->tester_params);
 
@@ -311,7 +340,10 @@ int InputSanityTester::test_if_ok(MedPidRepository &rep, int pid, long long time
 			res.external_rc = AM_ELIGIBILITY_ERROR;
 			res.internal_rc = -2;
 			//res.err_msg = "Could not run filter on sample. ["+name+"]";
-			res.err_msg = "Could not run filter on sample."; // no name in err message (a request...)
+			if (!test->cant_evel_msg.empty())
+				res.err_msg = test->cant_evel_msg;
+			else
+				res.err_msg = "Could not run filter on sample."; // no name in err message (a request...)
 
 			Results.push_back(res);
 			n_errors++;
@@ -378,7 +410,10 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 		if (rc < 0) {
 			res.external_rc = AM_ELIGIBILITY_ERROR;
 			res.internal_rc = -2;
-			res.err_msg = "Could not find attribute " + ((InputTesterAttr *)test)->attr_name + ". Are you sure you're using a model that generates it?";
+			if (!test->cant_evel_msg.empty())
+				res.err_msg = test->cant_evel_msg;
+			else
+				res.err_msg = "Could not find attribute " + ((InputTesterAttr *)test)->attr_name + ". Are you sure you're using a model that generates it?";
 
 			Results.push_back(res);
 			n_errors++;
