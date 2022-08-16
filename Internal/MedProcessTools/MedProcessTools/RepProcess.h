@@ -429,7 +429,7 @@ public:
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
 		ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh,
-			distLow, distHigh, trimLow, trimHigh)
+			distLow, distHigh, trimLow, trimHigh, val_channel)
 };
 MEDSERIALIZE_SUPPORT(confRecord)
 

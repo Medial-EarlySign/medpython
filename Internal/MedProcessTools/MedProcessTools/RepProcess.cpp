@@ -1119,8 +1119,6 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	RepBasicOutlierCleaner::set_signal_ids(sigs); //call base class init
-	//fetch val_channel from file
-	val_channel = outlierParam.val_channel;
 }
 
 // Learn bounds
@@ -1128,6 +1126,8 @@ void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 	trimMax = outlierParam.trimHigh;
 	trimMin = outlierParam.trimLow;
+	//fetch val_channel from file
+	val_channel = outlierParam.val_channel;
 
 	if (cleanMethod == "logical") {
 		removeMax = outlierParam.logicalHigh;
