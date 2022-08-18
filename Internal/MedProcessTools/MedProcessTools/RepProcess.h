@@ -37,6 +37,7 @@ typedef enum {
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
 	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
 	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
+	REP_PROCESS_FILTER_BY_CHANNELS, ///< "filter_channels" reorder signal channels. Creates RepFilterByChannel
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 

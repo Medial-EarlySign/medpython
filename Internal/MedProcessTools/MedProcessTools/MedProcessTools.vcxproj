@@ -117,6 +117,7 @@
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepCategoryDescenders.cpp" />
     <ClCompile Include="RepCreateRegistry.cpp" />
+    <ClCompile Include="RepFilterByChannels.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="RepReoderChannels.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="ProbAdjustPostProcessor.h" />
     <ClInclude Include="RepCreateRegistry.h" />
     <ClInclude Include="RepCategoryDescenders.h" />
+    <ClInclude Include="RepFilterByChannels.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />

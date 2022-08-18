@@ -7,6 +7,7 @@
 #include <MedUtils/MedUtils/MedUtils.h>
 #include "RepCreateRegistry.h"
 #include "RepCategoryDescenders.h"
+#include "RepFilterByChannels.h"
 #include <cmath>
 #include <iomanip>
 
@@ -56,6 +57,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CATEGORY_DESCENDERS;
 	else if (processor_name == "reorder_channels")
 		return REP_PROCESS_REODER_CHANNELS;
+	else if (processor_name == "filter_channels")
+		return REP_PROCESS_FILTER_BY_CHANNELS;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -84,6 +87,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepCreateBitSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepCategoryDescenders);
 	CONDITIONAL_NEW_CLASS(dname, RepReoderChannels);
+	CONDITIONAL_NEW_CLASS(dname, RepFilterByChannel);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
