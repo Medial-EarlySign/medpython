@@ -18,9 +18,9 @@ int RepFilterByChannel::init(map<string, string>& mapper) {
 			output_name = it->second;
 		else if (it->first == "signal_type")
 			signal_type = it->second;
-		else if (boost::starts_with(it->first, "filter_set_by_val_channel_")) {
+		else if (boost::starts_with(it->first, prefix_str)) {
 			int val_channel_f = med_stoi(it->first.substr(prefix_str.length()));
-			if (filter_set_by_val_channel.size() < val_channel_f)
+			if (filter_set_by_val_channel.size() <= val_channel_f)
 				filter_set_by_val_channel.resize(val_channel_f + 1);
 			vector<string> &f_v_sets = filter_set_by_val_channel[val_channel_f];
 			boost::split(f_v_sets, it->second, boost::is_any_of(","));
@@ -92,7 +92,6 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 	if (sig_id < 0)
 		MTHROW_AND_ERR("Error in RepFilterByChannel::_apply - sig_id is not initialized - bad call\n");
 	
-	
 	//const SignalInfo &out_info = rec.my_base_rep->sigs.Sid2Info.at(sig_id);
 	
 	//first lets fetch "static" signals without Time field:
@@ -123,6 +122,7 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				//Add vals:
 				for (size_t j = 0; j < usv.n_val_channels(); ++j)
 					v_vals.push_back(usv.Val(i, j));
+				++final_size;
 			}
 		}
 		

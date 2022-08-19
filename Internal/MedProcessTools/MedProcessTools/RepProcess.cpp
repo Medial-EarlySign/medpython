@@ -159,6 +159,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCategoryDescenders;
 	else if (processor_type == REP_PROCESS_REODER_CHANNELS)
 		return new RepReoderChannels;
+	else if (processor_type == REP_PROCESS_FILTER_BY_CHANNELS)
+		return new RepFilterByChannel;
 	else
 		return NULL;
 
