@@ -33,9 +33,7 @@ int RepFilterByChannel::init(map<string, string>& mapper) {
 
 	if (signal_name.empty())
 		MTHROW_AND_ERR("Erorr in RepFilterByChannel - Must provide signal\n");
-	if (filter_set_by_val_channel.empty())
-		MTHROW_AND_ERR("Erorr in RepFilterByChannel - Must provide filter_set_by_val_channel_X at least one\n");
-
+	
 	req_signals.clear();
 	req_signals.insert(signal_name);
 	aff_signals.clear();
