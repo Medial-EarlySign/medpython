@@ -104,6 +104,9 @@ public:
 	// Init required tables
 	virtual void init_tables(MedDictionarySections& dict) { return; }
 
+	/// Prepartion and adjustment for model based on repository
+	virtual void fit_for_repository(MedPidRepository &rep) { return; }
+
 	// Learn a generator
 	virtual int _learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { return 0; }
 	int learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) { set_names(); return _learn(rep, samples, processors); }

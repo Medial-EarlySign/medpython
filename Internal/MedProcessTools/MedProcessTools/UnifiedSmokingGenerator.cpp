@@ -49,7 +49,7 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 			nonDefaultNlstCriterion = true;
 		}
 		else if (entry.first == "use_data_complition") {
-			useDataComplition = stof(entry.second)>0 ;
+			useDataComplition = stof(entry.second) > 0;
 			cout << endl << "######################### useDataComplition was changed to " << useDataComplition << endl << endl;
 		}
 		else if (field == "weights_generator")
@@ -63,9 +63,10 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 
 	set_names();
 	req_signals.clear();
-	req_signals.push_back("Smoking_Status");
-	req_signals.push_back("Smoking_Quit_Date");
 	req_signals.push_back("BDATE");
+	req_signals.push_back("Smoking_Status");
+
+	req_signals.push_back("Smoking_Quit_Date");
 	req_signals.push_back("Pack_Years");
 	req_signals.push_back("Smoking_Intensity");
 	req_signals.push_back("Smoking_Duration");
@@ -103,7 +104,7 @@ int UnifiedSmokingGenerator::update(map<string, string>& mapper) {
 			nonDefaultNlstCriterion = true;
 		}
 		else if (entry.first == "use_data_complition") {
-			useDataComplition = stof(entry.second)>0;
+			useDataComplition = stof(entry.second) > 0;
 			cout << endl << "#########################(u) useDataComplition was changed to " << useDataComplition << endl << endl;
 		}
 		else if (field == "weights_generator")
@@ -160,13 +161,17 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		daysSinceQuittingOriginal = missing_val;
 
 		// get signals:
-		rec.uget("Smoking_Status", i, smokingStatusUsv);
-		rec.uget("Smoking_Quit_Date", i, quitTimeUsv);
-		rec.uget("Pack_Years", i, SmokingPackYearsUsv);
-		rec.uget("Smoking_Intensity", i, SmokingIntensityUsv);
-		rec.uget("Smoking_Duration", i, SmokingDurationUsv);
+		rec.uget(smoking_status_id, i, smokingStatusUsv);
+		if (smoking_quit_date_id > 0)
+			rec.uget(smoking_quit_date_id, i, quitTimeUsv);
+		if (smoking_pack_years_id > 0)
+			rec.uget(smoking_pack_years_id, i, SmokingPackYearsUsv);
+		if (smoking_intensity_id > 0)
+			rec.uget(smoking_intensity_id, i, SmokingIntensityUsv);
+		if (smoking_duration_id > 0)
+			rec.uget(smoking_duration_id, i, SmokingDurationUsv);
 
-		rec.uget("BDATE", i, bdateUsv);
+		rec.uget(bdate_sid, i, bdateUsv);
 
 		if (bdateUsv.n_val_channels() > 0)
 			birthDate = bdateUsv.Val(0);
@@ -183,7 +188,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
 		vector<int> dates = {};
 		genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, testDate, smokingStatusDates, dates);
-		
+
 		// Determine Smoking Status per date
 		vector<pair<SMOKING_STATUS, int>> smokingStatusVec = { { UNKNOWN_SMOKER,  (int)bdateUsv.Val(0) } };
 
@@ -209,7 +214,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		// pack years just from original data
 		float lastPackYearsOriginal = lastPackYears;
 		calcPackYearsOriginalData(testDate, lastPackYearsDate, lastPackYears, lastPackYearsOriginal, SmokingIntensityUsv, SmokingDurationUsv);
-		
+
 		//cout << i << " age " << age << endl;
 		float smokingDurationBeforePackYears = missing_val;
 		calcSmokingDuration(neverSmoker, unknownSmoker, smokeRanges, birthDate, lastPackYearsDate, SmokingDurationUsv, testDate, smokingDurationBeforePackYears, smokingDuration);
@@ -244,11 +249,11 @@ void UnifiedSmokingGenerator::calcQuitTimeOriginalData(PidDynamicRec& rec, Unive
 	int lastCurrentDate = missing_val;
 	int dateQuittingOriginal;
 	string sigVal, inVal;
-	
-	daysSinceQuittingOriginal = - missing_val; // large number, default for any smokingstatus but formerSmoker
-	
+
+	daysSinceQuittingOriginal = -missing_val; // large number, default for any smokingstatus but formerSmoker
+
 	if (currentSmoker == 1) { daysSinceQuittingOriginal = 0; }
-	
+
 	if (formerSmoker == 1) {
 		// get last quit_time reported (might be missing)
 		for (int timeInd = 0; timeInd < quitTimeUsv.len; timeInd++)
@@ -311,9 +316,9 @@ void UnifiedSmokingGenerator::calcPackYearsOriginalData(int testDate, int lastPa
 			lastIntensityDate = SmokingIntensityUsv.Time(timeInd);
 		}
 	}
-	
+
 	if ((lastDuration != missing_val) && (lastIntensity != missing_val)) {
-		if ((lastPackYears == missing_val) || ((lastIntensityDate>lastPackYearsDate) && (lastDurationDate>lastPackYearsDate))) {
+		if ((lastPackYears == missing_val) || ((lastIntensityDate > lastPackYearsDate) && (lastDurationDate > lastPackYearsDate))) {
 			lastPackYearsOriginal = lastIntensity * lastDuration / PACK_SIZE;
 		}
 	}
@@ -370,7 +375,7 @@ SMOKING_STATUS UnifiedSmokingGenerator::val2SmokingStatus(int sigVal, int smokin
 				return NEVER_SMOKER;
 			return SMOKING_STATUS(i);
 		}
-			
+
 
 	string sigVal_name = rec.my_base_rep->dict.name(smokingStatusSid, sigVal);
 	MTHROW_AND_ERR("unknown smoking status name [%s]", sigVal_name.c_str());
@@ -451,7 +456,7 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 
 		dates.push_back(currTime);
 		SMOKING_STATUS inVal = val2SmokingStatus((int)smokingStatusUsv.Val(timeInd), smoke_status_sec_id, rec);
-		
+
 		// convert Passive to Never Smoker  
 
 
@@ -732,9 +737,10 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 	UniversalSigVec smokingStatusUsv, quitTimeUsv, bdateUsv;
 
 	// get signals:
-	rec.uget("Smoking_Status", 0, smokingStatusUsv);
-	rec.uget("Smoking_Quit_Date", 0, quitTimeUsv);
-	rec.uget("BDATE", 0, bdateUsv);
+	rec.uget(smoking_status_id, 0, smokingStatusUsv);
+	if (smoking_quit_date_id > 0)
+		rec.uget(smoking_quit_date_id, 0, quitTimeUsv);
+	rec.uget(bdate_sid, 0, bdateUsv);
 	int birthDate = bdateUsv.Val(0);
 
 	// Generate First and Last Dates and dates vector
@@ -782,6 +788,48 @@ void UnifiedSmokingGenerator::get_required_signal_categories(unordered_map<strin
 	//IMPORTANT - FETCH the names in the same order as SMOKING_STATUS enum - will use it to map values
 	vector<string> status = { "Unknown" ,"Never", "Passive", "Former", "Current", "Never_or_Former" };
 	in_use.insert(in_use.end(), status.begin(), status.end());
+}
+
+void UnifiedSmokingGenerator::set_signal_ids(MedSignals& sigs) {
+	smoking_quit_date_id = sigs.sid("Smoking_Quit_Date");
+	smoking_status_id = sigs.sid("Smoking_Status");
+	if (smoking_status_id < 0)
+		MTHROW_AND_ERR("Error in UnifiedSmokingGenerator::set_signal_ids - repository must have Smoking_Status\n");
+	smoking_intensity_id = sigs.sid("Smoking_Intensity");
+	smoking_duration_id = sigs.sid("Smoking_Duration");
+	smoking_pack_years_id = sigs.sid("Pack_Years");
+	bdate_sid = sigs.sid("BDATE");
+	if (bdate_sid < 0)
+		MTHROW_AND_ERR("Error in UnifiedSmokingGenerator::set_signal_ids - repository must have BDATE\n");
+
+}
+
+void UnifiedSmokingGenerator::fit_for_repository(MedPidRepository &rep) {
+	vector<bool> exists_sigs(4); //Smoking_Quit_Date, Smoking_Intensity, Smoking_Duration, Pack_Years
+	exists_sigs[0] = rep.sigs.sid("Smoking_Quit_Date") > 0;
+	exists_sigs[1] = rep.sigs.sid("Smoking_Intensity") > 0;
+	exists_sigs[2] = rep.sigs.sid("Smoking_Duration") > 0;
+	exists_sigs[3] = rep.sigs.sid("Pack_Years") > 0;
+
+	req_signals.clear();
+	req_signals.push_back("BDATE");
+	req_signals.push_back("Smoking_Status");
+	if (exists_sigs[0])
+		req_signals.push_back("Smoking_Quit_Date");
+	else
+		MWARN("WARN:: UnifiedSmokingGenerator - repository doesn't have Smoking_Quit_Date\n");
+	if (exists_sigs[1])
+		req_signals.push_back("Smoking_Intensity");
+	else
+		MWARN("WARN:: UnifiedSmokingGenerator - repository doesn't have Smoking_Intensity\n");
+	if (exists_sigs[2])
+		req_signals.push_back("Smoking_Duration");
+	else
+		MWARN("WARN:: UnifiedSmokingGenerator - repository doesn't have Smoking_Duration\n");
+	if (exists_sigs[3])
+		req_signals.push_back("Pack_Years");
+	else
+		MWARN("WARN:: UnifiedSmokingGenerator - repository doesn't have Pack_Years\n");
 }
 
 int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {

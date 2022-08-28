@@ -90,6 +90,10 @@ public:
 	// Name
 	void set_names();
 
+	void set_signal_ids(MedSignals& sigs);
+
+	void fit_for_repository(MedPidRepository &rep);
+
 	// Copy
 	virtual void copy(FeatureGenerator *generator) { *this = *(dynamic_cast<UnifiedSmokingGenerator *>(generator)); }
 
@@ -145,6 +149,9 @@ public:
 private:
 	vector<vector<char>> smoke_status_luts;
 	int smoke_status_sec_id;
+
+	int smoking_quit_date_id, smoking_status_id, smoking_intensity_id, smoking_duration_id, smoking_pack_years_id;
+	int bdate_sid;
 };
 
 MEDSERIALIZE_SUPPORT(UnifiedSmokingGenerator)

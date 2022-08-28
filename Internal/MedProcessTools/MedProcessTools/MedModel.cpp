@@ -2416,6 +2416,8 @@ void MedModel::fit_for_repository(MedPidRepository& rep) {
 	// Currently - only RepProcessors are adjustable
 	for (RepProcessor *processor : rep_processors)
 		processor->fit_for_repository(rep);
+	for (FeatureGenerator *gen : generators)
+		gen->fit_for_repository(rep);
 }
 
 // loading a repository (optionally allowing for adjustment to model according to available signals)
