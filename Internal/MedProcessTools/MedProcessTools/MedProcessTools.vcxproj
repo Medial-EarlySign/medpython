@@ -67,7 +67,7 @@
       <AdditionalIncludeDirectories>$(BOOST_HOME);$(MR_LIBS_INC);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
       <AdditionalOptions>-D_SCL_SECURE_NO_WARNINGS %(AdditionalOptions)</AdditionalOptions>
-      <MultiProcessorCompilation>true</MultiProcessorCompilation>
+      <MultiProcessorCompilation>false</MultiProcessorCompilation>
       <SuppressStartupBanner>true</SuppressStartupBanner>
     </ClCompile>
     <Link>
@@ -117,6 +117,7 @@
     <ClCompile Include="RepCalculators.cpp" />
     <ClCompile Include="RepCategoryDescenders.cpp" />
     <ClCompile Include="RepCreateRegistry.cpp" />
+    <ClCompile Include="RepFilterByChannels.cpp" />
     <ClCompile Include="RepProcess.cpp" />
     <ClCompile Include="RepReoderChannels.cpp" />
     <ClCompile Include="SampleFilter.cpp" />
@@ -155,6 +156,7 @@
     <ClInclude Include="ProbAdjustPostProcessor.h" />
     <ClInclude Include="RepCreateRegistry.h" />
     <ClInclude Include="RepCategoryDescenders.h" />
+    <ClInclude Include="RepFilterByChannels.h" />
     <ClInclude Include="RepProcess.h" />
     <ClInclude Include="SampleFilter.h" />
     <ClInclude Include="SmokingGenerator.h" />

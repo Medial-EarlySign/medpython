@@ -2322,6 +2322,9 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 		else if (field == "file") modelFile = entry.second;
 		else if (field == "impute_existing_feature") impute_existing_feature = med_stoi(entry.second);
 		else if (field == "n_preds") n_preds = med_stoi(entry.second);
+		else if (field == "model_json") model_json = entry.second;
+		else if (field == "model_train_samples") model_train_samples = entry.second;
+		else if (field == "ensure_patient_ids") ensure_patient_ids = med_stoi(entry.second) > 0;
 		else if (field == "tags") { boost::split(tags, entry.second, boost::is_any_of(",")); }
 		else if (field == "time_unit_win") time_unit_win = med_time_converter.string_to_type(entry.second);
 		else if (field == "time_unit_sig") time_unit_sig = med_time_converter.string_to_type(entry.second);
@@ -2342,10 +2345,19 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 	// {name} is magical
 	boost::replace_all(modelFile, "{name}", modelName);
 	// Read Model and get required signal
-	MedModel *_model = new MedModel;
-	if (_model->read_from_file(modelFile) != 0)
-		MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
-	init_from_model(_model);
+	model = new MedModel;
+	if (!modelFile.empty()) {
+		if (model->read_from_file(modelFile) != 0)
+			MTHROW_AND_ERR("Cannot read model from binary file %s\n", modelFile.c_str());
+		init_from_model();
+	}
+	else {
+		if (model_json.empty() || model_train_samples.empty())
+			MTHROW_AND_ERR("Error must supply trained modelFile or model_json+model_train_samples\n");
+		model->init_from_json_file(model_json);
+		init_from_model();
+	}
+
 
 	generator_type = FTR_GEN_MODEL;
 
@@ -2354,10 +2366,9 @@ int ModelFeatGenerator::init(map<string, string>& mapper) {
 
 // Copy Model and get required signals
 //.......................................................................................
-int ModelFeatGenerator::init_from_model(MedModel *_model) {
+int ModelFeatGenerator::init_from_model() {
 	MLOG("In ModelFeatGenerator::init_from_model()\n");
 	generator_type = FTR_GEN_MODEL;
-	model = _model;
 
 	unordered_set<string> required;
 	model->get_required_signal_names(required);
@@ -2365,6 +2376,33 @@ int ModelFeatGenerator::init_from_model(MedModel *_model) {
 		req_signals.push_back(signal);
 
 	return 0;
+}
+
+int ModelFeatGenerator::_learn(MedPidRepository& rep, const MedSamples& samples, vector<RepProcessor *> processors) {
+	if (model_json.empty() || model_train_samples.empty() || !modelFile.empty())
+		return 0; //no need for learn
+	MedSamples train_sample_cp;
+	train_sample_cp.read_from_file(model_train_samples);
+	MedPidRepository rep_feat;
+	vector<int> train_pids, intersection_ids;
+	train_sample_cp.get_ids(train_pids);
+	if (ensure_patient_ids) {
+		samples.get_ids(intersection_ids);
+		unordered_set<int> accepted_ids(intersection_ids.begin(), intersection_ids.end());
+		vector<int> final_ids;
+		final_ids.reserve(min(train_pids.size(), accepted_ids.size()));
+		//Do Intersection
+		for (size_t i = 0; i < train_pids.size(); ++i)
+			if (accepted_ids.find(train_pids[i]) != accepted_ids.end())
+				final_ids.push_back(train_pids[i]);
+		train_pids = move(final_ids);
+	}
+
+	model->load_repository(rep.config_fname, train_pids, rep_feat, true);
+
+	//Need to set outcome - use other samples
+	int rc = model->learn(rep, &train_sample_cp);
+	return rc;
 }
 
 /// Load predictions from a MedSamples object. Compare to the models MedSamples (unless empty)
@@ -2479,7 +2517,6 @@ ModelFeatGenerator::~ModelFeatGenerator() {
 	if (model != NULL) delete model;
 	model = NULL;
 }
-
 ADD_SERIALIZATION_FUNCS_CPP(ModelFeatGenerator, generator_type, tags, modelFile, model, modelName, n_preds, names, req_signals, impute_existing_feature, use_overriden_predictions, time_unit_win, time_unit_sig, times)
 //................................................................................................................
 // Helper function for time conversion

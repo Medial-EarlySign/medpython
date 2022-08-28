@@ -37,6 +37,7 @@ typedef enum {
 	REP_PROCESS_CREATE_BIT_SIGNAL, ///<"bit_signal" creates a state of categories (typically drugs) encoded in bits. creates RepCreateBitSignal
 	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
 	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
+	REP_PROCESS_FILTER_BY_CHANNELS, ///< "filter_channels" reorder signal channels. Creates RepFilterByChannel
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -429,7 +430,7 @@ public:
 	int val_channel = 0;
 	ADD_CLASS_NAME(confRecord)
 		ADD_SERIALIZATION_FUNCS(logicalLow, logicalHigh, confirmedLow, confirmedHigh,
-			distLow, distHigh, trimLow, trimHigh)
+			distLow, distHigh, trimLow, trimHigh, val_channel)
 };
 MEDSERIALIZE_SUPPORT(confRecord)
 
@@ -489,9 +490,9 @@ void learnDistributionBorders(float& borderHi, float& borderLo, vector<float> fi
 \n
 Rules:\n
 Rule1: BMI = Weight / Height ^ 2 * 1e4\n
-Rule2:MCH = Hemoglobin / RBC\n
-Rule3:MCV = Hematocrit / RBC\n
-Rule4:MCHC - M = MCH / MCV\n
+Rule2:MCH = (Hemoglobin / RBC) * 10(units) \n
+Rule3:MCV = (Hematocrit / RBC) * 10(units)\n
+Rule4:MCHC - M = (MCH / MCV) * 100 (units)\n
 Rule5:Eosinophils# + Monocytes# + Basophils# + Lymphocytes# + Neutrophils# <= WBC\n
 Rule6:MPV = Platelets_Hematocrit / Platelets\n
 Rule7:UrineAlbumin <= UrineTotalProtein\n
@@ -510,6 +511,7 @@ Rule19:Albumin <= Protein_Total\n
 Rule20:FreeT4 <= T4\n
 Rule21:NRBC <= RBC\n
 Rule22:CHADS2_VASC >= CHADS2\n
+Rule23: BP.Systolic(channel 0) >= BP.Diastoilic(channel 1)
 */
 class RepRuleBasedOutlierCleaner : public RepProcessor {
 	// get multiple signals and clean them according to consistency  with other signals from same date
@@ -609,6 +611,8 @@ public:
 	void init_lists();
 
 	void make_summary();
+
+	void dprint(const string &pref, int rp_flag);
 
 	/// Serialization
 	ADD_CLASS_NAME(RepRuleBasedOutlierCleaner)

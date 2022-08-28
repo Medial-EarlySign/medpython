@@ -166,16 +166,16 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 			female_regression_case_lower = med_stoi(it->second);
 		else if (it->first == "female_regression_case_upper")
 			female_regression_case_upper = med_stoi(it->second);
-		else if (boost::starts_with(it->first, "filter_set_by_val_channel_")) {
+		else if (boost::starts_with(it->first, prefix_str)) {
 			int val_channel_f = med_stoi(it->first.substr(prefix_str.length()));
-			if (filter_set_by_val_channel.size() < val_channel_f)
+			if (filter_set_by_val_channel.size() <= val_channel_f)
 				filter_set_by_val_channel.resize(val_channel_f + 1);
 			vector<string> &f_v_sets = filter_set_by_val_channel[val_channel_f];
 			boost::split(f_v_sets, it->second, boost::is_any_of(","));
 		}
-		else if (boost::starts_with(it->first, "filter_set_by_val_channel_names_")) {
+		else if (boost::starts_with(it->first, prefix_str_names)) {
 			int val_channel_f = med_stoi(it->first.substr(prefix_str_names.length()));
-			if (filter_set_by_val_channel_names.size() < val_channel_f)
+			if (filter_set_by_val_channel_names.size() <= val_channel_f)
 				filter_set_by_val_channel_names.resize(val_channel_f + 1);
 			filter_set_by_val_channel_names[val_channel_f] = it->second;
 		}

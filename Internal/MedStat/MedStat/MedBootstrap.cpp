@@ -113,7 +113,59 @@ int MedBootstrap::init(map<string, string>& map) {
 			use_time_control_as_case = stoi(param_value) > 0;
 		else if (param_name == "sort_preds_in_multicategory")
 			sort_preds_in_multicategory = stoi(param_value) > 0;
+		else if (param_name == "measurement") {
+			measurements_with_params.clear();
+			//parse and create this object tuples need to pass in {}: format measure_name|param_init_string;...
+			vector<string> tokens;
+			boost::split(tokens, param_value, boost::is_any_of(";"));
+			for (size_t i = 0; i < tokens.size(); ++i)
+			{
+				vector<string> parts;
+				boost::split(parts, tokens[i], boost::is_any_of("|"));
+				if (parts.size() != 2)
+					MTHROW_AND_ERR("Error MedBootstrap::init - expecting 2 tokens by | delimeter\n");
+				MeasurmentFunctionType measure_type = measurement_function_name_to_type(parts[0]);
+				MeasurementFunctions func = NULL;
+				Measurement_Params *pr_m = NULL;
+				string init_m_params = parts[1];
+				switch (measure_type)
+				{
+				case MeasurmentFunctionType::calc_npos_nneg:
+					func = calc_npos_nneg;
+					break;
+				case MeasurmentFunctionType::calc_only_auc:
+					func = calc_only_auc;
+					break;
+				case MeasurmentFunctionType::calc_roc_measures_with_inc:
+					func = calc_roc_measures_with_inc;
+					pr_m = &roc_Params;
+					break;
+				case MeasurmentFunctionType::calc_multi_class:
+					func = calc_multi_class;
+					pr_m = &multiclass_params;
+					multiclass_params.init_from_string(init_m_params);
+					is_binary_outcome = false;
+					break;
+				case MeasurmentFunctionType::calc_kandel_tau:
+					func = calc_kandel_tau;
+					break;
+				case MeasurmentFunctionType::calc_harrell_c_statistic:
+					func = calc_harrell_c_statistic;
+					break;
+				case MeasurmentFunctionType::calc_regression:
+					func = calc_regression;
+					pr_m = &regression_params;
+					regression_params.init_from_string(init_m_params);
+					is_binary_outcome = false;
+					break;
+				default:
+					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", measure_type);
+				}
 
+				measurements_with_params.push_back(pair<MeasurementFunctions, Measurement_Params*>(func, pr_m));
+			}
+			
+		}
 		//! [MedBootstrap::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for MedBootstrap::init\n", param_name.c_str());
@@ -1013,7 +1065,8 @@ MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const str
 		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
 		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
 		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
-		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic }
+		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
+		{ "calc_regression", MeasurmentFunctionType::calc_regression }
 	};
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
 		string options = medial::io::get_list(measurement_function_name_map, "\n");

@@ -101,7 +101,7 @@ int RepReoderChannels::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 				memcpy(dest_ptr, src_ptr, GenericSigVec::type_enc::bytes_len(usv_single.val_channel_types[j]));
 				//usv_single.setVal(0, j, rec.usv.Val(i, new_order[j])); //can't do - since it's not always float
 			}
-			for (size_t j = 0; j < time_vec.size(); ++j)
+			for (int j = 0; j < time_vec.size(); ++j)
 				usv_single.setTime(0, j, rec.usv.Time(i, j));
 
 			//Change this item to the contructed object

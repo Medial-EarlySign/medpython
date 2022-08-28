@@ -7,6 +7,7 @@
 #include <MedUtils/MedUtils/MedUtils.h>
 #include "RepCreateRegistry.h"
 #include "RepCategoryDescenders.h"
+#include "RepFilterByChannels.h"
 #include <cmath>
 #include <iomanip>
 
@@ -56,6 +57,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_CATEGORY_DESCENDERS;
 	else if (processor_name == "reorder_channels")
 		return REP_PROCESS_REODER_CHANNELS;
+	else if (processor_name == "filter_channels")
+		return REP_PROCESS_FILTER_BY_CHANNELS;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -84,6 +87,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepCreateBitSignal);
 	CONDITIONAL_NEW_CLASS(dname, RepCategoryDescenders);
 	CONDITIONAL_NEW_CLASS(dname, RepReoderChannels);
+	CONDITIONAL_NEW_CLASS(dname, RepFilterByChannel);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -155,6 +159,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepCategoryDescenders;
 	else if (processor_type == REP_PROCESS_REODER_CHANNELS)
 		return new RepReoderChannels;
+	else if (processor_type == REP_PROCESS_FILTER_BY_CHANNELS)
+		return new RepFilterByChannel;
 	else
 		return NULL;
 
@@ -1119,8 +1125,6 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 
 void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 	RepBasicOutlierCleaner::set_signal_ids(sigs); //call base class init
-	//fetch val_channel from file
-	val_channel = outlierParam.val_channel;
 }
 
 // Learn bounds
@@ -1128,6 +1132,8 @@ void RepConfiguredOutlierCleaner::set_signal_ids(MedSignals& sigs) {
 int RepConfiguredOutlierCleaner::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
 	trimMax = outlierParam.trimHigh;
 	trimMin = outlierParam.trimLow;
+	//fetch val_channel from file
+	val_channel = outlierParam.val_channel;
 
 	if (cleanMethod == "logical") {
 		removeMax = outlierParam.logicalHigh;
@@ -1654,6 +1660,21 @@ void RepRuleBasedOutlierCleaner::make_summary() {
 			, 100, print_summary_critical_cleaned, print_summary);
 
 	_rmv_stats.clear(); //prepare for next apply
+}
+
+void RepRuleBasedOutlierCleaner::dprint(const string &pref, int rp_flag)
+{
+	if (rp_flag > 0) {
+		MLOG("%s :: RP type %d(%s) : required(%d): ", pref.c_str(), processor_type, my_class_name().c_str(), req_signals.size());
+		if (rp_flag > 1) for (auto &rsig : req_signals) MLOG("%s,", rsig.c_str());
+		MLOG(" affected(%d): ", aff_signals.size());
+		if (rp_flag > 1) for (auto &asig : aff_signals) MLOG("%s, ", asig.c_str());
+		if (!rulesToApply.empty())
+			MLOG(" Rules: [%d", rulesToApply[0]);
+		for (size_t i = 1; i < rulesToApply.size(); ++i)
+			MLOG(", %d", rulesToApply[i]);
+		MLOG("]\n");
+	}
 }
 
 // Utility
@@ -2437,6 +2458,12 @@ void RepSimValHandler::handle_block(int start, int end, UniversalSigVec& usv, ve
 
 		if (rem) {
 			for (int j = start; j <= end; j++)
+				remove[nRemove++] = j;
+			nTimes++;
+		}
+		else {
+			//remove all but keep only one copy (last for example)
+			for (int j = start; j < end; j++)
 				remove[nRemove++] = j;
 			nTimes++;
 		}
@@ -4026,8 +4053,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
-		}
 	}
+}
 
 		// sorting the pairs, by date, and within each date: first the ends , then the starts
 		sort(ev.begin(), ev.end());
@@ -4054,11 +4081,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 								MLOG("ID=%d\tClipping period %d of category %d to %d\n", rec.pid, i, ev[i].categ, ev[i].time);
 #endif
-							}
 						}
 					}
 				}
 			}
+		}
 		}
 
 #ifdef _APPLY_VERBOSE
@@ -4066,8 +4093,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : time_intervals[j]) {
 				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
+				}
 			}
-}
 #endif
 
 		// sorting again as we may have touched times
@@ -4169,7 +4196,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+				}
 
 					// the case of ABC-AB-A
 					if ((len < min_jitters[1]) && ((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
@@ -4177,7 +4204,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+			}
 
 					// the case of AB-A-AC
 					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
@@ -4185,9 +4212,9 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+		}
 
-				}
+		}
 
 			}
 
@@ -4231,11 +4258,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-	}
+				}
 
 
 	return 0;
-}
+			}
 
 
 //-------------------------------------------------------------------------------------------------------

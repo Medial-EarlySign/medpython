@@ -22,7 +22,8 @@ enum class MeasurmentFunctionType {
 	calc_roc_measures_with_inc = 2, 
 	calc_multi_class = 3,
 	calc_kandel_tau = 4,
-	calc_harrell_c_statistic = 5
+	calc_harrell_c_statistic = 5,
+	calc_regression = 6
 };
 class with_registry_args {
 public:
@@ -49,6 +50,7 @@ public:
 class MedBootstrap : public SerializableObject {
 public:
 	ROC_Params roc_Params; ///< Controling the roc parameters: sensitivity, specificity...
+	Regression_Params regression_params; ///< params for regerssion
 	Multiclass_Params multiclass_params; ///< Controling the multi class parameters: top n...
 	map<string, vector<Filter_Param>> filter_cohort; ///< the cohorts definitions. name to parameters range to intersect
 	map<string, FilterCohortFunc> additional_cohorts; ///< not Serializable! additional cohorts given by function

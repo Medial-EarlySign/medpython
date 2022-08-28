@@ -177,6 +177,9 @@
     <ClCompile Include="RepReoderChannels.cpp">
       <Filter>Source Files\RepProcessors</Filter>
     </ClCompile>
+    <ClCompile Include="RepFilterByChannels.cpp">
+      <Filter>Source Files\RepProcessors</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="MedFeatures.h">
@@ -278,11 +281,14 @@
     <ClInclude Include="ExplainWrapper.h">
       <Filter>Header Files\PostProcessors</Filter>
     </ClInclude>
-    <ClInclude Include="RepCategoryDescenders.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="FairnessPostProcessor.h">
       <Filter>Header Files\PostProcessors</Filter>
+    </ClInclude>
+    <ClInclude Include="RepFilterByChannels.h">
+      <Filter>Header Files\RepProcessors</Filter>
+    </ClInclude>
+    <ClInclude Include="RepCategoryDescenders.h">
+      <Filter>Header Files\RepProcessors</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

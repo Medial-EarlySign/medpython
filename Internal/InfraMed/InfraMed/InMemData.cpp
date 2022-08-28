@@ -37,7 +37,8 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	    (n_time_ch > 0 && n_time == 0) || (n_val_ch > 0 && n_val == 0) || 
 		(n_time_ch > 0 && n_val_ch > 0 && n_elem_by_time != n_elem_by_val))
 	{
-		MERR("ERROR: InMemRepData: non matching time/value numbers : needed (%d,%d) per element , got (%d,%d) ...\n", n_time_ch, n_val_ch, n_time, n_val);
+		MERR("ERROR: InMemRepData: non matching time/value numbers for pid %d, sid %d : needed (%d,%d) per element , got (%d,%d) ...\n",
+			pid, sid, n_time_ch, n_val_ch, n_time, n_val);
 		return -1;
 	}
 	int n_elem = max(n_elem_by_time, n_elem_by_val);
