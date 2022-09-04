@@ -375,8 +375,8 @@ int MedSamplingFixedTime::init(map<string, string>& map) {
 int MedSamplingFixedTime::add_time(int time, int add) const {
 	//otherwise will lose month ad day in convertion
 	if (time_range_unit == MedTime::Date && time_jump_unit == MedTime::Months) {
-		int tm_month = (time % 10000) / 100 + add;
-		return 10000 * (int(time / 10000) + int((tm_month - 1) / 12)) + 100 * (1 + (tm_month % 12)) + (time % 100);
+		int tm_month = int((time % 10000) / 100) + add - 1;
+		return 10000 * (int(time / 10000) + int(tm_month / 12)) + 100 * (1 + (tm_month % 12)) + (time % 100);
 	}
 	if (time_range_unit == MedTime::Date && time_jump_unit == MedTime::Years)
 		return time + add * 10000;
