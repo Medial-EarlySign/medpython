@@ -458,7 +458,8 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 		SMOKING_STATUS inVal = val2SmokingStatus((int)smokingStatusUsv.Val(timeInd), smoke_status_sec_id, rec);
 
 		// convert Passive to Never Smoker  
-
+		if (inVal == UNKNOWN_SMOKER)
+			continue; //skip unknown smoker - later assume it's only current,ex or never and it can cause problems when patient has only unknown status
 
 		if (smokingStatusDates[inVal].first == NA_SMOKING_DATE)
 			smokingStatusDates[inVal].first = smokingStatusUsv.Time(timeInd);
