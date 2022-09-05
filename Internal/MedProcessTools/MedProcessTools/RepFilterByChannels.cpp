@@ -72,6 +72,16 @@ void RepFilterByChannel::init_tables(MedDictionarySections& dict, MedSignals& si
 	aff_signal_ids.insert(v_out_sid);
 	req_signal_ids.clear();
 	req_signal_ids.insert(sig_id);
+
+	//don't store more channels than out signals defines
+	const SignalInfo &out_info = sigs.Sid2Info.at(v_out_sid);
+	v_out_n_times = out_info.n_time_channels;
+	v_out_n_vals = out_info.n_val_channels;
+	const SignalInfo &in_info = sigs.Sid2Info.at(sig_id);
+	if (in_info.n_time_channels < v_out_n_times)
+		MTHROW_AND_ERR("Error RepFilterByChannel::init_tables - output signal can't have more time channels then input\n");
+	if (in_info.n_val_channels < v_out_n_vals)
+		MTHROW_AND_ERR("Error RepFilterByChannel::init_tables - output signal can't have more val channels then input\n");
 }
 
 void RepFilterByChannel::print() {
@@ -89,8 +99,6 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		MTHROW_AND_ERR("Error in RepFilterByChannel::_apply - v_out_sid is not initialized - bad call\n");
 	if (sig_id < 0)
 		MTHROW_AND_ERR("Error in RepFilterByChannel::_apply - sig_id is not initialized - bad call\n");
-	
-	//const SignalInfo &out_info = rec.my_base_rep->sigs.Sid2Info.at(sig_id);
 	
 	//first lets fetch "static" signals without Time field:
 	allVersionsIterator vit(rec, sig_id);
@@ -115,10 +123,10 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 			if (passed) {
 				//Add val channels:
-				for (size_t j = 0; j < usv.n_time_channels(); ++j)
+				for (size_t j = 0; j < usv.n_time_channels() && j < v_out_n_times; ++j)
 					v_times.push_back(usv.Time(i, j));
 				//Add vals:
-				for (size_t j = 0; j < usv.n_val_channels(); ++j)
+				for (size_t j = 0; j < usv.n_val_channels() && j < v_out_n_vals; ++j)
 					v_vals.push_back(usv.Val(i, j));
 				++final_size;
 			}

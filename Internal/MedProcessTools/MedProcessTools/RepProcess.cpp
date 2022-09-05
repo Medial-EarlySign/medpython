@@ -3347,44 +3347,48 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 	set_ids.insert(in_sid);
 	allVersionsIterator vit(rec, set_ids);
 	rec.usvs.resize(1);
-	int sig_period = med_time_converter.convert_times(time_unit_win, time_unit_sig, period);
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(in_sid, iver, rec.usvs[0]);
 
 		vector<int> v_times;
 		vector<float> v_vals;
-		if (rec.usvs[0].len < 1) { //in case this version of the signal is empty
+		if (rec.usvs[0].len < 1)  //in case this version of the signal is empty
 			continue;
-		}
-		int start_time = 0, end_time = 0;
+
+		int start_time_u=0, end_time_u = 0;
 		bool first = true;
 		for (int i = 0; i < rec.usvs[0].len; ++i) { // find remaining valid values
-			if (lut[rec.usvs[0].Val(i)] == 0) { // value not in set
+			if (lut[rec.usvs[0].Val(i)] == 0)  // value not in set
 				continue;
-			}
-			int time = rec.usvs[0].Time(i);
+
+			int time = med_time_converter.convert_times(time_unit_sig, time_unit_win, rec.usvs[0].Time(i));
 			if (first) {
-				start_time = time;
-				end_time = start_time + sig_period;
+				start_time_u = time;
+				end_time_u = start_time_u + period;
+				
 				first = false;
 			}
 			else {
-				if (med_time_converter.diff_times(time, end_time, time_unit_sig, time_unit_sig) <= 0) {
-					end_time = max(end_time, time + sig_period);
+				if (time <= end_time_u) { //extend end period, Not reach end, no hole.
+					end_time_u= max(end_time_u, time + period);
 				}
 				else { // found a signal that is not included in the current period, close old period and open new one
+					int start_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, start_time_u);
+					int end_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, end_time_u);
 					v_times.push_back(start_time);
 					v_times.push_back(end_time);
 
-					start_time = time;
-					end_time = time + sig_period;
+					start_time_u = time;
+					end_time_u = time + period;
 				}
 			}
 
 
 		}
 		if (!first) { // else - no valid set values were found
+			int start_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, start_time_u);
+			int end_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, end_time_u);
 			v_times.push_back(start_time);
 			v_times.push_back(end_time);
 			// pushing virtual data into rec (into orig version)
@@ -3516,6 +3520,15 @@ void RepBasicRangeCleaner::init_tables(MedDictionarySections& dict, MedSignals& 
 
 		dict.prep_sets_lookup_table(sec_id, sets, lut);
 	}
+
+	const SignalInfo &in_s = sigs.Sid2Info.at(signal_id);
+	const SignalInfo &out_s = sigs.Sid2Info.at(output_id);
+
+	if (in_s.n_time_channels != out_s.n_time_channels)
+		MTHROW_AND_ERR("Error RepBasicRangeCleaner::init_tables - output signal can't have less/more time channels than input signal\n");
+	if (in_s.n_val_channels != out_s.n_val_channels)
+		MTHROW_AND_ERR("Error RepBasicRangeCleaner::init_tables - output signal can't have less/more val channels than input signal\n");
+
 }
 
 void RepBasicRangeCleaner::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -4053,8 +4066,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
-	}
-}
+			}
+		}
 
 		// sorting the pairs, by date, and within each date: first the ends , then the starts
 		sort(ev.begin(), ev.end());
@@ -4081,11 +4094,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 								MLOG("ID=%d\tClipping period %d of category %d to %d\n", rec.pid, i, ev[i].categ, ev[i].time);
 #endif
+							}
 						}
 					}
 				}
 			}
-		}
 		}
 
 #ifdef _APPLY_VERBOSE
@@ -4093,8 +4106,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : time_intervals[j]) {
 				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
-				}
 			}
+		}
 #endif
 
 		// sorting again as we may have touched times
@@ -4196,7 +4209,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-				}
+					}
 
 					// the case of ABC-AB-A
 					if ((len < min_jitters[1]) && ((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
@@ -4204,7 +4217,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-			}
+					}
 
 					// the case of AB-A-AC
 					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
@@ -4212,9 +4225,9 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-		}
+					}
 
-		}
+				}
 
 			}
 
@@ -4258,11 +4271,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-				}
+	}
 
 
 	return 0;
-			}
+}
 
 
 //-------------------------------------------------------------------------------------------------------

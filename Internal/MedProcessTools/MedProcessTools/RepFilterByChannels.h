@@ -45,6 +45,7 @@ public:
 private:
 	int v_out_sid = -1;
 	int sig_id = -1;
+	int v_out_n_vals, v_out_n_times;
 };
 
 MEDSERIALIZE_SUPPORT(RepFilterByChannel)
