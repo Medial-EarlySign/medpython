@@ -2984,6 +2984,11 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 
 }
 
+void RepCombineSignals::fit_for_repository(MedPidRepository& rep) {
+	if (rep.sigs.sid(output_name) > 0)
+		virtual_signals_generic.clear(); //not virtual signal
+}
+
 void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
 	dict.connect_to_section(output_name, dict.section_id(signals.front()));
 
@@ -3667,6 +3672,10 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 	return 0;
 }
 
+void RepBasicRangeCleaner::fit_for_repository(MedPidRepository& rep) {
+	if (rep.sigs.sid(output_name) > 0)
+		virtual_signals_generic.clear(); //not virtual signal
+}
 
 void RepBasicRangeCleaner::print()
 {

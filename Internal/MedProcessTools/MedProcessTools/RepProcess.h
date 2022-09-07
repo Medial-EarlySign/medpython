@@ -1410,6 +1410,7 @@ public:
 	void set_required_signal_ids(MedDictionarySections& dict) {};
 	void set_affected_signal_ids(MedDictionarySections& dict) {};
 
+	void fit_for_repository(MedPidRepository& rep);
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
@@ -1566,6 +1567,8 @@ public:
 
 	/// <summary> Apply cleaning model </summary>
 	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	void fit_for_repository(MedPidRepository& rep);
 
 	/// Serialization
 	ADD_CLASS_NAME(RepBasicRangeCleaner)

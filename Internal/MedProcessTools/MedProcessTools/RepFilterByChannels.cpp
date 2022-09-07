@@ -84,6 +84,11 @@ void RepFilterByChannel::init_tables(MedDictionarySections& dict, MedSignals& si
 		MTHROW_AND_ERR("Error RepFilterByChannel::init_tables - output signal can't have more val channels then input\n");
 }
 
+void RepFilterByChannel::fit_for_repository(MedPidRepository& rep) {
+	if (rep.sigs.sid(output_name) > 0)
+		virtual_signals_generic.clear(); //not virtual signal
+}
+
 void RepFilterByChannel::print() {
 	MLOG("RepFilterByChannel:: output_name: %s : signal %s : req_signals %s aff_signals %s\n",
 		output_name.c_str(), signal_name.c_str(), medial::io::get_list(req_signals).c_str(), 
