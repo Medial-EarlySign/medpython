@@ -1534,16 +1534,16 @@ public:
 	int signal_id;	///< id of signal to clean
 	int ranges_id; ///< id of signal the defines ranges
 	int output_id; ///< id of output signal
-	int time_channel; ///< time channel to consider in cleaning
-	int range_time_channel; ///< range time channel to consider in cleaning. this time channel will be used to check we're not using the future
+	int time_channel; ///< time channel to consider in cleaning in the original signal
+	int range_time_channel; ///< range time channel to consider in cleaning. this time channel will be used to check we're not using the future in the range signal
 	int output_type; ///< output signal type - should be identical to input signal type default to range + val type. Or string for generic type
-	int get_values_in_range = 1; ///< if 1 (default) : stay with the values in range, if 0 : stay with the values out of range
+	int get_values_in_range = 1; ///< if 1 (default) : keep only records time in range, if 0 : stay with the values out of range
 	range_op_type range_operator = range_op_type::all; ///< options are all(default), first, last - which range to use in the reference signal
-	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 will not filter
-	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel
+	int range_val_channel = -1; ///< the val channel in range signal to filter range signal. If < 0 or empty sets will not filter
+	vector<string> sets; ///< sets use to filter ranges_name signal on range_val_channel. If empty or range_val_channel, no filters
 	bool regex_on_sets = 0;  ///< Whether to use aggregation of .*sets[i].* regex to create new sets vector (override original sets)
 	int last_n = 0;  ///< instead of looking on sets, take last value from range. 0 means current state, 1 one before, etc.j
-	bool do_on_last_n = false;
+	bool do_on_last_n = false; ///< if true, will use only last nth (using time channel 0) range signal backward from sample time and use this value to filter range. uses last_n value
 
 	/// <summary> default constructor </summary>
 	RepBasicRangeCleaner() :

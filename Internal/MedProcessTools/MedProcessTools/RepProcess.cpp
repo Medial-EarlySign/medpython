@@ -3361,7 +3361,7 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 		if (rec.usvs[0].len < 1)  //in case this version of the signal is empty
 			continue;
 
-		int start_time_u=0, end_time_u = 0;
+		int start_time_u = 0, end_time_u = 0;
 		bool first = true;
 		for (int i = 0; i < rec.usvs[0].len; ++i) { // find remaining valid values
 			if (lut[rec.usvs[0].Val(i)] == 0)  // value not in set
@@ -3371,12 +3371,12 @@ int RepAggregationPeriod::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 			if (first) {
 				start_time_u = time;
 				end_time_u = start_time_u + period;
-				
+
 				first = false;
 			}
 			else {
 				if (time <= end_time_u) { //extend end period, Not reach end, no hole.
-					end_time_u= max(end_time_u, time + period);
+					end_time_u = max(end_time_u, time + period);
 				}
 				else { // found a signal that is not included in the current period, close old period and open new one
 					int start_time = med_time_converter.convert_times(time_unit_win, time_unit_sig, start_time_u);
@@ -3562,7 +3562,7 @@ bool RepBasicRangeCleaner::get_last_n_value(int time, const UniversalSigVec& ran
 	return found_flag;
 }
 
-int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
+int RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float> >& attributes_mat) {
 
 	if (signal_id == -1) {
 		MERR("Uninitialized signal_id\n");
@@ -3615,9 +3615,11 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 			case all:
 				//increase till end or till end_time of signal passed time (sorted so no need to search after)
 				//or if has filter on sets - skip is not in set
-				while ((j < rec.usvs[1].len) && ((time > rec.usvs[1].Time(j, 1)) || !((!lut.empty() &&
-					lut[(int)rec.usvs[1].Val(j, range_val_channel)]) || (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n)))))
+				while ((j < rec.usvs[1].len) && ((time > rec.usvs[1].Time(j, 1)) ||
+					((!lut.empty() && lut[(int)rec.usvs[1].Val(j, range_val_channel)])
+						|| (found_last_n && (rec.usvs[1].Val(j, range_val_channel) == last_value_n))))) {
 					++j;
+				}
 				if (j < rec.usvs[1].len && rec.usvs[1].Time(j, range_time_channel) > time_points[tp_idx])
 					j = -1;//mark as no match, passed prediction time
 				break;
@@ -3647,8 +3649,8 @@ int  RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, 
 				MTHROW_AND_ERR("Not Supported\n");
 			}
 
-			if (j < rec.usvs[1].len && time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1))
-				doRemove = false;
+			if (j >= 0 && j < rec.usvs[1].len && time >= rec.usvs[1].Time(j, 0) && time <= rec.usvs[1].Time(j, 1))
+				doRemove = false; //if signal time in range - keep item. doRemove=false
 
 			if ((doRemove && get_values_in_range) || ((!doRemove) && (!get_values_in_range)))
 				doRemove = true;
