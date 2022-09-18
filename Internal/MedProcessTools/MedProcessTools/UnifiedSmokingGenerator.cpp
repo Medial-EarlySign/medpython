@@ -964,12 +964,13 @@ void UnifiedSmokingGenerator::calcPackYears(UniversalSigVec &SmokingPackYearsUsv
 			{
 				maxPackYears = SmokingPackYearsUsv.Val(timeInd);
 			}
+
+			neverSmoker = 0;
+			if (currentSmoker == 0) {
+				formerSmoker = 1;
+			}
+			lastPackYearsDate = SmokingPackYearsUsv.Time(timeInd);
 		}
-		neverSmoker = 0;
-		if (currentSmoker == 0) {
-			formerSmoker = 1;
-		}
-		lastPackYearsDate = SmokingPackYearsUsv.Time(timeInd);
 	}
 	// This means that there wasn't any value.
 	if (lastPackYears == missing_val) { maxPackYears = missing_val; }
