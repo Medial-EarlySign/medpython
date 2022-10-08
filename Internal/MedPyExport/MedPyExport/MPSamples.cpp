@@ -1,5 +1,6 @@
 #include "MPSamples.h"
 #include "MPFeatures.h"
+#include <algorithm>
 
 #include "InfraMed/InfraMed/MedConvert.h"
 #include "InfraMed/InfraMed/InfraMed.h"
@@ -64,6 +65,36 @@ MPSample MPSample::__copy__() {
 
 MPSerializableObject MPSample::asSerializable() { return MPSerializableObject(o); }
 
+void MPSamples::set_samples(MEDPY_NP_INPUT(int * patients, unsigned long long patient_size),
+	int _time) {
+	if (_time < 0) {
+		time_t theTime = time(NULL);
+		struct tm *now;
+#if defined(__unix__)
+		now = localtime(&theTime);
+#else
+		struct tm now_m;
+		now = &now_m;
+		localtime_s(now, &theTime);
+#endif
+
+		_time = (now->tm_year + 1900) * 10000 + (now->tm_mon + 1) * 100 + now->tm_mday; //set to current time
+	}
+
+	o->clear();
+	for (size_t i = 0; i < patient_size; ++i)
+	{
+		MedIdSamples smp_id(patients[i]);
+		MedSample s;
+		s.id = patients[i];
+		s.time = _time;
+		smp_id.samples.push_back(s);
+
+		o->idSamples.push_back(smp_id);
+	}
+	o->sort_by_id_date();
+}
+
 /************ MPIdSamples ************/
 
 
@@ -89,7 +120,7 @@ MPSerializableObject MPIdSamples::asSerializable() { return MPSerializableObject
 
 MPSampleVectorAdaptor::MPSampleVectorAdaptor() { o = new vector<MedSample>(); };
 MPSampleVectorAdaptor::MPSampleVectorAdaptor(vector<MedSample>* ptr) { o_owned = false; o = ptr; };
-MPSampleVectorAdaptor::MPSampleVectorAdaptor(const MPSampleVectorAdaptor& other) { 
+MPSampleVectorAdaptor::MPSampleVectorAdaptor(const MPSampleVectorAdaptor& other) {
 	o_owned = other.o_owned;
 	if (!other.o_owned) {
 		o = other.o;
@@ -130,7 +161,7 @@ void MPSampleVectorAdaptor::append_vec(MPSampleVectorAdaptor& other) {
 /************ MPSamples ************/
 
 MPSamples::MPSamples() { o = new MedSamples(); };
-MPSamples::MPSamples(MedSamples* ptr) { o_owned = false; o = ptr;};
+MPSamples::MPSamples(MedSamples* ptr) { o_owned = false; o = ptr; };
 MPSamples::MPSamples(const MPSamples& other) {
 	o_owned = other.o_owned;
 	if (!other.o_owned) {
@@ -141,17 +172,17 @@ MPSamples::MPSamples(const MPSamples& other) {
 		*o = *other.o;
 	}
 };
-MPSamples::~MPSamples() { if(o_owned) delete o; o = nullptr; };
+MPSamples::~MPSamples() { if (o_owned) delete o; o = nullptr; };
 
 void MPSamples::append(MPSamples& newSamples) { o->idSamples.insert(o->idSamples.end(), newSamples.o->idSamples.begin(), newSamples.o->idSamples.end()); }
 void MPSamples::subtract(MPSamples& _dont_use) { o->subtract(*(_dont_use.o)); }
 void MPSamples::split_train_test(MPSamples& train, MPSamples& test, float p_test) { o->split_train_test((*(train.o)), (*(test.o)), p_test); }
 
-int MPSamples::read_from_bin_file(const string& file_name) { return val_or_exception(o->read_from_bin_file(file_name), "Cannot read Samples from bin file "+file_name); }
+int MPSamples::read_from_bin_file(const string& file_name) { return val_or_exception(o->read_from_bin_file(file_name), "Cannot read Samples from bin file " + file_name); }
 int MPSamples::write_to_bin_file(const string& file_name) { return val_or_exception(o->write_to_bin_file(file_name), "Cannot write Samples to bin file " + file_name); }
 
-int MPSamples::read_from_file(const string& file_name) { return val_or_exception(o->read_from_file(file_name),"Cannot read Samples from file "+file_name); };
-int MPSamples::write_to_file(const string& file_name) { return val_or_exception(o->write_to_file(file_name),"Cannot write Samples to file " + file_name); };
+int MPSamples::read_from_file(const string& file_name) { return val_or_exception(o->read_from_file(file_name), "Cannot read Samples from file " + file_name); };
+int MPSamples::write_to_file(const string& file_name) { return val_or_exception(o->write_to_file(file_name), "Cannot write Samples to file " + file_name); };
 
 void MPSamples::get_preds(MEDPY_NP_OUTPUT(float** preds_buf, unsigned long long* preds_buf_len)) {
 	vector<float> ret;
@@ -203,7 +234,8 @@ void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
 			vms.resize(max(vms.size(), vec.size()));
 			for (int i = 0; i < vec.size(); ++i)
 				vms[i].id = vec[i];
-		}else if (col_name == "outcome") {
+		}
+		else if (col_name == "outcome") {
 			vector<float> vec;
 			pandas_df.pull_col_as_vector(col_name, vec);
 			vms.resize(max(vms.size(), vec.size()));
@@ -237,8 +269,8 @@ void MPSamples::MEDPY__from_df(MPPandasAdaptor& pandas_df) {
 			pandas_df.pull_col_as_vector(col_name, vec);
 			vms.resize(max(vms.size(), vec.size()));
 			int pred_i = stoi(col_name.substr(pred_.length()));
-			int max_size = max((int)vms[0].prediction.size(), pred_i+1);
-			if(max_size > vms[0].prediction.size())
+			int max_size = max((int)vms[0].prediction.size(), pred_i + 1);
+			if (max_size > vms[0].prediction.size())
 				for (int i = 0; i < vec.size(); ++i) {
 					vms[i].prediction.resize(max_size);
 					vms[i].prediction[pred_i] = vec[i];
@@ -296,7 +328,7 @@ MPPandasAdaptor MPSamples::MEDPY__to_df() {
 		pred_vecs.push_back((float*)malloc(sizeof(float)*record_count));
 		//data_keys.push_back((string)"pred_" + to_string(i));
 	}
-	map<string,float*> attr_vecs;
+	map<string, float*> attr_vecs;
 	for (const auto& s : attribute_names) {
 		attr_vecs[s] = (float*)malloc(sizeof(float)*record_count);
 		//data_keys.push_back((string)"attr_" + attribute_names[i]);
@@ -332,7 +364,7 @@ MPPandasAdaptor MPSamples::MEDPY__to_df() {
 	}
 
 	for (const auto& s : attr_vecs) {
-		ret.push_column(string("attr_") +s.first, s.second, record_count, "float", false);
+		ret.push_column(string("attr_") + s.first, s.second, record_count, "float", false);
 	}
 
 	return ret;
@@ -347,7 +379,7 @@ int MPSamples::get_predictions_size() {
 }
 
 //int get_all_attributes(vector<string>& attributes, vector<string>& str_attributes);
-std::vector<string> MPSamples::get_attributes() 
+std::vector<string> MPSamples::get_attributes()
 {
 	std::vector<string> attr, str_attr;
 	o->get_all_attributes(attr, str_attr);
@@ -401,7 +433,7 @@ void MPSamples::override_splits(int nfolds) {
 
 MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor() { o = new vector<MedIdSamples>(); };
 MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor(vector<MedIdSamples>* ptr) { o_owned = false; o = ptr; };
-MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor(const MPIdSamplesVectorAdaptor& other) 
+MPIdSamplesVectorAdaptor::MPIdSamplesVectorAdaptor(const MPIdSamplesVectorAdaptor& other)
 {
 	o_owned = other.o_owned;
 	if (!other.o_owned) {

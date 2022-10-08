@@ -190,34 +190,36 @@ int MedPidRepository::init(const string &conf_fname)
 
 	// reading pid_idx file and openning all pid_data files
 
-	string idx_fname = path + "/" + rep_files_prefix + "__pids__all.pid_idx";
-	unsigned char *serialized;
-	unsigned long long size;
-	if (read_bin_file_IM_parallel(idx_fname, serialized, size) < 0) {
-		MERR("MedPidRepository::init() ERROR failed reading file %s\n", idx_fname.c_str());
-		return -1;
-	}
-	pids_idx.deserialize(serialized);
-	delete[] serialized;
-	MLOG_D("Read and deserialized %s\n", idx_fname.c_str());
-
-	for (int i = 0; ; i++) {
-
-		string data_fname = path + "/" + rep_files_prefix + "__pids__" + to_string(i) + ".pid_data";
-		if (file_exists_IM(data_fname)) {
-			MedBufferedFile mbf;
-			in_files.push_back(mbf);
-			if (in_files.back().open(data_fname) < 0) {
-				MERR("MedPidRepository::init() ERROR failed openning file %s\n", data_fname.c_str());
-				return -1;
-			}
-			MLOG_D("Read %s\n", data_fname.c_str());
+	if (!in_mem_mode_active()) {
+		string idx_fname = path + "/" + rep_files_prefix + "__pids__all.pid_idx";
+		unsigned char *serialized;
+		unsigned long long size;
+		if (read_bin_file_IM_parallel(idx_fname, serialized, size) < 0) {
+			MERR("MedPidRepository::init() ERROR failed reading file %s\n", idx_fname.c_str());
+			return -1;
 		}
-		else
-			break;
 
+		pids_idx.deserialize(serialized);
+		delete[] serialized;
+		MLOG_D("Read and deserialized %s\n", idx_fname.c_str());
+
+		for (int i = 0; ; i++) {
+
+			string data_fname = path + "/" + rep_files_prefix + "__pids__" + to_string(i) + ".pid_data";
+			if (file_exists_IM(data_fname)) {
+				MedBufferedFile mbf;
+				in_files.push_back(mbf);
+				if (in_files.back().open(data_fname) < 0) {
+					MERR("MedPidRepository::init() ERROR failed openning file %s\n", data_fname.c_str());
+					return -1;
+				}
+				MLOG_D("Read %s\n", data_fname.c_str());
+			}
+			else
+				break;
+
+		}
 	}
-
 	// calling the base class init to allow for load() operations to work well
 	if (MedRepository::init(conf_fname) < 0) {
 		MERR("MedPidRepository: init: failed init of MedRepository side\n");

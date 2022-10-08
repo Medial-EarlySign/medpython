@@ -12,6 +12,10 @@ class MPSigExporter;
 
 
 class MPPidRepository {
+private:
+	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ);
+	void AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
+	void AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 public:
 	MEDPY_IGNORE(MedPidRepository* o);
 	MPDictionary dict;
@@ -77,6 +81,8 @@ public:
 		"  Free the signal data specified by signame");
 	int free(string signame);
 
+	void switch_to_in_mem();
+	void load_from_json(const std::string &json_file_path);
 };
 
 

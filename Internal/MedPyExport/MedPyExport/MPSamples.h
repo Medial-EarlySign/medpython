@@ -175,6 +175,9 @@ public:
 	MPSerializableObject asSerializable();
 
 	void override_splits(int nfolds);
+
+	/// sets sample for all the patient in specific time
+	void set_samples(MEDPY_NP_INPUT(int * patients, unsigned long long patient_size), int _time = -1);
 };
 
 

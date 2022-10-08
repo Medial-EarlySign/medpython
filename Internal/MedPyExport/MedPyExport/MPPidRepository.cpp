@@ -12,12 +12,16 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
+#include <json/json.hpp>
 
-MPPidRepository::MPPidRepository() : o(new MedPidRepository()),dict(this) {};
+#define LOCAL_SECTION LOG_APP
+#define LOCAL_LEVEL LOG_DEF_LEVEL
+
+MPPidRepository::MPPidRepository() : o(new MedPidRepository()), dict(this) {};
 MPPidRepository::~MPPidRepository() { delete o; o = nullptr; };
 int MPPidRepository::dict_section_id(const std::string &secName) { return o->dict.section_id(secName); };
 std::string MPPidRepository::dict_name(int section_id, int id) { return o->dict.name(section_id, id); };
-int MPPidRepository::read_all(const std::string &conf_fname) { return val_or_exception(o->read_all(conf_fname),string("Error: read_all() failed")); };
+int MPPidRepository::read_all(const std::string &conf_fname) { return val_or_exception(o->read_all(conf_fname), string("Error: read_all() failed")); };
 
 int MPPidRepository::read_all_i(const std::string &conf_fname, const std::vector<int> &pids_to_take, const std::vector<int> &signals_to_take)
 {
@@ -56,8 +60,8 @@ std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, c
 
 std::vector<bool> MPPidRepository::get_lut_from_regex(int section_id, const std::string & regex_s) {
 	vector<std::string> names;
-	o->dict.dicts[section_id].get_regex_names(regex_s, names); 
-	return dict_prep_sets_lookup_table(section_id, names); 
+	o->dict.dicts[section_id].get_regex_names(regex_s, names);
+	return dict_prep_sets_lookup_table(section_id, names);
 }
 
 MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig) {
@@ -66,6 +70,260 @@ MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(in
 
 int MPPidRepository::free(string signame) {
 	return o->free(signame);
+}
+
+void MPPidRepository::get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ)
+{
+	int sid = o->sigs.sid(sig);
+	if (sid <= 0) {
+		n_time_channels = 0;
+		n_val_channels = 0;
+	}
+	else {
+		n_time_channels = o->sigs.Sid2Info[sid].n_time_channels;
+		n_val_channels = o->sigs.Sid2Info[sid].n_val_channels;
+		is_categ = &(o->sigs.Sid2Info[sid].is_categorical_per_val_channel[0]);
+	}
+}
+
+int auto_time_convert(long long ts, int to_type)
+{
+	long long date_t = 0;
+	long long hhmm = 0;
+
+	//MLOG("auto time convert: Date is %d , ts %lld , to_type %d\n", MedTime::Date, ts, to_type);
+
+	if ((ts / (long long)1000000000) == 0) {
+		date_t = ts; // yyyymmdd
+		hhmm = 0;
+	}
+	else if (((ts / (long long)100000000000) == 0)) {
+		date_t = ts / 100; // yyyymmddhh
+		hhmm = 60 * (ts % 100);
+	}
+	else if (((ts / (long long)10000000000000) == 0)) {
+		date_t = ts / 10000; // yyyymmddhhmm
+		hhmm = 60 * ((ts % 10000) / 100) + (ts % 100);
+	}
+	else {
+		date_t = ts / 1000000; // yyyymmddhhmmss
+		hhmm = 60 * ((ts % 1000000) / 10000) + ((ts % 10000) / 100);
+	}
+
+	//MLOG("auto_time_converter: ts %lld to_type %d data_t %lld hhmm %lld\n", ts, to_type, date_t, hhmm);
+
+	if (to_type == MedTime::Date) {
+		//MLOG("auto time convert: date_t %d\n", date_t);
+		//Ensure valid date:
+		int year = int(date_t / 10000);
+		if (year < 1900 || year > 3000) {
+			//MTHROW_AND_ERR("Error invalid date %lld\n", ts);
+			return -1;
+		}
+		return (int)date_t;
+	}
+
+	if (to_type == MedTime::Minutes) {
+		int year = int(date_t / 10000);
+		if (year < 1900 || year >2100) {
+			//MTHROW_AND_ERR("Error invalid timestamp %lld\n", ts);
+			return -1;
+		}
+		int minutes = med_time_converter.convert_date(MedTime::Minutes, (int)date_t);
+		return minutes + (int)hhmm;
+	}
+
+	return 0;
+}
+
+void MPPidRepository::AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values)
+{
+	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
+	// This may change in the future as needed.
+	int *i_times = NULL;
+	vector<int> times_int;
+
+	int tu = o->time_unit;
+	if (TimeStamps_len > 0) {
+		times_int.resize(TimeStamps_len);
+
+		// currently assuming we only work with dates ... will have to change this when we'll move to other units
+		for (int i = 0; i < TimeStamps_len; i++) {
+			times_int[i] = auto_time_convert(TimeStamps[i], tu);
+			if (times_int[i] < 0) {
+				MERR("Error in AddData :: patient %d, signals %s, timestamp %lld is ilegal\n",
+					patient_id, signalName, TimeStamps[i]);
+				return;
+			}
+			//MLOG("time convert %ld to %d\n", TimeStamps[i], times_int[i]);
+		}
+		i_times = &times_int[0];
+	}
+
+
+	int sid = o->sigs.Name2Sid[string(signalName)];
+	if (sid < 0)
+		MTHROW_AND_ERR("No signal %s\n", signalName); // no such signal
+	if (o->in_mem_rep.insertData(patient_id, sid, i_times, Values, TimeStamps_len, Values_len) < 0)
+		MTHROW_AND_ERR("Failed load data %s\n", signalName);
+}
+
+void MPPidRepository::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
+{
+	vector<float> converted_Values;
+	MedRepository &rep = *o;
+
+	try {
+		string sig = signalName;
+		int section_id = rep.dict.section_id(sig);
+		int sid = rep.sigs.Name2Sid[sig];
+		if (rep.sigs.Sid2Info[sid].n_val_channels > 0) {
+			int Values_i = 0;
+			const auto& category_map = rep.dict.dict(section_id)->Name2Id;
+			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+			for (int i = 0; i < n_elem; i++) {
+				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+					float val = -1;
+					if (!rep.sigs.is_categorical_channel(sid, j)) {
+						val = stof(Values[Values_i++]);
+					}
+					else {
+						if (category_map.find(Values[Values_i]) == category_map.end()) {
+							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
+								sig.c_str(), Values[Values_i]);
+						}
+						else
+							val = category_map.at(Values[Values_i]);
+						++Values_i;
+					}
+
+					converted_Values.push_back(val);
+				}
+			}
+		}
+	}
+	catch (...) {
+		MERR("Catched Error MedialInfraAlgoMarker::AddDataStr!!\n");
+		return;
+	}
+
+	AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, converted_Values.data());
+
+}
+
+void MPPidRepository::switch_to_in_mem() {
+	if (!o->in_mem_mode_active()) {
+		MLOG("Switch to in mem repository\n");
+		o->switch_to_in_mem_mode();
+	}
+}
+
+void MPPidRepository::load_from_json(const std::string &json_file_path) {
+	switch_to_in_mem();
+	if (o->sigs.Sid2Info.empty())
+		MTHROW_AND_ERR("Error - please call init with repository config before\n");
+
+	ifstream inf(json_file_path);
+	if (!inf)
+		MTHROW_AND_ERR("can't open json file [%s] for read\n", json_file_path.c_str());
+	stringstream sstr;
+	sstr << inf.rdbuf();
+	inf.close();
+
+
+	json j_data;
+	try {
+		j_data = json::parse(sstr);
+	}
+	catch (json::parse_error &err) {
+		MTHROW_AND_ERR("Parsing error:\n%s", err.what());
+	}
+	catch (...) {
+		MTHROW_AND_ERR("Error bad json format\n");
+	}
+	json &js = j_data;
+
+	if (j_data.find("body") != j_data.end())
+		js = j_data["body"];
+
+	int patient_id = -1;
+	if (js.find("patient_id") != js.end())
+		patient_id = js["patient_id"].get<long long>();
+	else if (js.find("pid") != js.end())
+		patient_id = js["pid"].get<long long>();
+
+
+	//MLOG("Loading pid %d\n", patient_id);
+
+	vector<long long> times;
+	int s_data_size = 100000;
+	vector<char> sdata(s_data_size);
+	vector<int> sinds;
+	int curr_s = 0;
+	//char str_values[MAX_VALS][MAX_VAL_LEN];
+	for (auto &s : js["signals"]) {
+		times.clear();
+		sinds.clear();
+		curr_s = 0;
+		string sig = s["code"].get<string>();
+		int n_time_channels, n_val_channels, *is_categ;
+		get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+		//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
+		int n_data = 0;
+		for (auto &d : s["data"]) {
+			//MLOG("time ");
+			int nt = 0;
+			for (auto &t : d["timestamp"]) {
+				times.push_back(t.get<long long>());
+				nt++;
+				//MLOG("%d ", itime);
+			}
+			//MLOG("val ");
+			int nv = 0;
+			for (auto &v : d["value"]) {
+				string sv = v.get<string>().c_str();
+				int slen = (int)sv.length();
+				//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
+				if (curr_s + 1 + slen > s_data_size) {
+					s_data_size *= 2;
+					sdata.resize(s_data_size);
+				}
+				if (nv < n_val_channels) {
+					sv.copy(&sdata[curr_s], slen);
+					sdata[curr_s + slen] = 0;
+					sinds.push_back(curr_s);
+					curr_s += slen + 1;
+					nv++;
+				}
+				//char *sp = &sdata[sinds.back()];
+				//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
+				//MLOG("%s ", v.get<string>().c_str());
+			}
+			//MLOG("\n");
+			n_data++;
+		}
+		vector<char *> p_str;
+		for (auto j : sinds)
+			p_str.push_back(&sdata[j]);
+		long long *p_times = &times[0];
+		int n_times = (int)times.size();
+		char **str_values = &p_str[0];
+		int n_vals = (int)p_str.size();
+
+		//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
+		//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
+		//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
+
+		AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values);
+	}
+
+	//Add to patient list
+	unordered_set<int> s_pids(o->all_pids_list.begin(), o->all_pids_list.end());
+	if (s_pids.find(patient_id) == s_pids.end()) {
+		o->all_pids_list.push_back(patient_id);
+		o->pids.push_back(patient_id);
+		o->index.pids.push_back(patient_id);
+	}
 }
 
 // ****************************** MPSig      *********************************
