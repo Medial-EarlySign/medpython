@@ -81,8 +81,15 @@ public:
 		"  Free the signal data specified by signame");
 	int free(string signame);
 
+	MEDPY_DOC(switch_to_in_mem, "switch_to_in_mem()\n"
+		"  Switch to in mem repository mode");
 	void switch_to_in_mem();
+	MEDPY_DOC(load_from_json, "load_from_json(json_file_path)\n"
+		"  Loads patient data into in-mem repository. If patient exists, adds more data");
 	void load_from_json(const std::string &json_file_path);
+	MEDPY_DOC(clear, "load_from_json()\n"
+		"  Clear repository memory. erase in-memory patient data");
+	void clear();
 };
 
 

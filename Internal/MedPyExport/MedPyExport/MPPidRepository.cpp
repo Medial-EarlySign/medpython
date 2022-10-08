@@ -326,6 +326,18 @@ void MPPidRepository::load_from_json(const std::string &json_file_path) {
 	}
 }
 
+void MPPidRepository::clear() {
+	if (!o->in_mem_mode_active())
+		o->clear();
+	else {
+		//keep "init" and in_mem, just clear loaded data:
+		o->in_mem_rep.clear();
+		o->all_pids_list.clear();
+		o->pids.clear();
+		o->index.pids.clear();
+	}
+}
+
 // ****************************** MPSig      *********************************
 MPSig::MPSig(void* _o, int index) : o(_o), idx(index) {  };
 MPSig::MPSig(const MPSig& other) { o = other.o; idx = other.idx; };
