@@ -11,7 +11,7 @@
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
-
+#ifndef AM_API_FOR_CLIENT
 MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag) 
 	: o(rep.o), sig_name(signame_str), translate(translate_flag!=0), free_sig(free_sig_flag!=0) {
 	if (rep.loadsig(signame_str) != 0)
@@ -833,3 +833,5 @@ void MPSigExporter::transfer_column(const std::string& key,
 }
 
 MPSigExporter_iter MPSigExporter::__iter__() { return MPSigExporter_iter(*this, this->data_keys); };
+
+#endif

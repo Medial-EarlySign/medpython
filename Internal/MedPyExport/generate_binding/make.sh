@@ -1,6 +1,7 @@
 #!/bin/bash
 
 DIST_NAME=${1-unknown}
+FOR_AM=${2-0}
 if [ $DIST_NAME == "unknown" ]; then
 	if [[ ${PYTHON_INCLUDE_DIR} == *"/python36/"* ]]; then DIST_NAME="medial-python36"
 	elif [[ ${PYTHON_INCLUDE_DIR} == *"/python38"* ]]; then DIST_NAME="medial-python38"
@@ -13,15 +14,31 @@ fi
 echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
 echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
+echo "(II) AlgoMarker for client model: '${FOR_AM}'"
 
 read -p "Press [Enter] to approve"
 
-cp SWIG.CMakeLists.txt CMakeLists.txt
-cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
+
+if [ $FOR_AM -gt 0 ]; then
+	cp SWIG.CMakeLists.AM.txt CMakeLists.txt
+	cp MedPython/SWIG.CMakeLists.AM.txt MedPython/CMakeLists.txt
+else
+	cp SWIG.CMakeLists.txt CMakeLists.txt
+	cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
+fi
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
 pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 
 cmake ../../../
-make -j 20;
+
+version_txt=`get_git_status_text.py`
+echo -e "Git version info:\n${version_txt}"
+touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
+if [ $FOR_AM -gt 0 ]; then
+	touch ${MR_ROOT}/Libs/Internal/MedPyExport/MedPyExport/MPPidRepository.h
+	make -j 20 -e GIT_HEAD_VERSION="AM_API_$version_txt";
+else
+	make -j 20 -e GIT_HEAD_VERSION="$version_txt";
+fi
 popd
 
 NEW_RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/Release/${DIST_NAME}

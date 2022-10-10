@@ -12,15 +12,19 @@
 #include "InfraMed/InfraMed/MedPidRepository.h"
 #include "MedProcessTools/MedProcessTools/MedModel.h"
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
-#include <json/json.hpp>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
-MPPidRepository::MPPidRepository() : o(new MedPidRepository()), dict(this) {};
+MPPidRepository::MPPidRepository() : o(new MedPidRepository()), dict(this) {
+#ifdef AM_API_FOR_CLIENT
+	switch_to_in_mem();
+#endif
+};
 MPPidRepository::~MPPidRepository() { delete o; o = nullptr; };
 int MPPidRepository::dict_section_id(const std::string &secName) { return o->dict.section_id(secName); };
 std::string MPPidRepository::dict_name(int section_id, int id) { return o->dict.name(section_id, id); };
+#ifndef AM_API_FOR_CLIENT
 int MPPidRepository::read_all(const std::string &conf_fname) { return val_or_exception(o->read_all(conf_fname), string("Error: read_all() failed")); };
 
 int MPPidRepository::read_all_i(const std::string &conf_fname, const std::vector<int> &pids_to_take, const std::vector<int> &signals_to_take)
@@ -41,6 +45,8 @@ int MPPidRepository::read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int*
 }
 
 int MPPidRepository::loadsig(const std::string& signame) { return o->load(signame); };
+#endif 
+
 int MPPidRepository::init(const std::string &conf_fname) { return o->init(conf_fname); };
 const std::vector<int>& MPPidRepository::MEDPY_GET_pids() { return o->index.pids; };
 int MPPidRepository::sig_id(const std::string& signame) { return o->dict.id(signame); };
@@ -64,6 +70,7 @@ std::vector<bool> MPPidRepository::get_lut_from_regex(int section_id, const std:
 	return dict_prep_sets_lookup_table(section_id, names);
 }
 
+#ifndef AM_API_FOR_CLIENT
 MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig) {
 	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids, translate_flag, free_sig);
 }
@@ -71,6 +78,7 @@ MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(in
 int MPPidRepository::free(string signame) {
 	return o->free(signame);
 }
+#endif
 
 void MPPidRepository::get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ)
 {
@@ -213,45 +221,23 @@ void MPPidRepository::AddDataStr(int patient_id, const char *signalName, int Tim
 
 void MPPidRepository::switch_to_in_mem() {
 	if (!o->in_mem_mode_active()) {
+#ifndef AM_API_FOR_CLIENT
 		MLOG("Switch to in mem repository\n");
+#endif
 		o->switch_to_in_mem_mode();
 	}
 }
 
-void MPPidRepository::load_from_json(const std::string &json_file_path) {
-	switch_to_in_mem();
-	if (o->sigs.Sid2Info.empty())
-		MTHROW_AND_ERR("Error - please call init with repository config before\n");
-
-	ifstream inf(json_file_path);
-	if (!inf)
-		MTHROW_AND_ERR("can't open json file [%s] for read\n", json_file_path.c_str());
-	stringstream sstr;
-	sstr << inf.rdbuf();
-	inf.close();
-
-
-	json j_data;
-	try {
-		j_data = json::parse(sstr);
-	}
-	catch (json::parse_error &err) {
-		MTHROW_AND_ERR("Parsing error:\n%s", err.what());
-	}
-	catch (...) {
-		MTHROW_AND_ERR("Error bad json format\n");
-	}
-	json &js = j_data;
-
-	if (j_data.find("body") != j_data.end())
-		js = j_data["body"];
-
+int MPPidRepository::_load_single_json(void *_js) {
+	json &js = *(json *)_js;
 	int patient_id = -1;
 	if (js.find("patient_id") != js.end())
 		patient_id = js["patient_id"].get<long long>();
 	else if (js.find("pid") != js.end())
 		patient_id = js["pid"].get<long long>();
 
+	if (patient_id < 0)
+		MTHROW_AND_ERR("Error patient_id wasn't provided, should be provided with number bugger than zero.\n");
 
 	//MLOG("Loading pid %d\n", patient_id);
 
@@ -323,6 +309,50 @@ void MPPidRepository::load_from_json(const std::string &json_file_path) {
 		o->all_pids_list.push_back(patient_id);
 		o->pids.push_back(patient_id);
 		o->index.pids.push_back(patient_id);
+	}
+
+	return patient_id;
+}
+
+void MPPidRepository::load_from_json(const std::string &json_file_path) {
+	switch_to_in_mem();
+	if (o->sigs.Sid2Info.empty())
+		MTHROW_AND_ERR("Error - please call init with repository config before\n");
+
+	ifstream inf(json_file_path);
+	if (!inf)
+		MTHROW_AND_ERR("can't open json file [%s] for read\n", json_file_path.c_str());
+	stringstream sstr;
+	sstr << inf.rdbuf();
+	inf.close();
+
+
+	json j_data;
+	try {
+		j_data = json::parse(sstr);
+	}
+	catch (json::parse_error &err) {
+		MTHROW_AND_ERR("Parsing error:\n%s", err.what());
+	}
+	catch (...) {
+		MTHROW_AND_ERR("Error bad json format\n");
+	}
+	json *js = &j_data;
+
+	if (j_data.find("multiple") != j_data.end()) {
+		for (auto &p_js : j_data["multiple"])
+		{
+			js = &p_js;
+			if (p_js.find("body") != p_js.end())
+				js = &p_js["body"];
+			_load_single_json(js);
+		}
+	}
+	else { //single load
+		if (j_data.find("body") != j_data.end())
+			js = &j_data["body"];
+
+		_load_single_json(js);
 	}
 }
 

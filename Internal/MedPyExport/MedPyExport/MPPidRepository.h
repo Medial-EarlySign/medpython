@@ -4,18 +4,20 @@
 #include "MedPyCommon.h"
 #include "MPDictionary.h"
 
+//#define AM_API_FOR_CLIENT
+
 class MPSigVectorAdaptor;
 class MPSig;
 class MedPidRepository;
 //class UniversalSigVec;
 class MPSigExporter;
 
-
 class MPPidRepository {
 private:
 	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ);
 	void AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	void AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
+	int _load_single_json(void *_js);
 public:
 	MEDPY_IGNORE(MedPidRepository* o);
 	MPDictionary dict;
@@ -23,6 +25,7 @@ public:
 	MPPidRepository();
 	~MPPidRepository();
 
+#ifndef AM_API_FOR_CLIENT
 	MEDPY_DOC(read_all, "read_all(conf_file_fname, [pids_to_take_array], [list_str_signals_to_take]) -> int\n"
 	"returns -1 if fails\n"
 	"reading a repository for a group of pids and signals.Empty group means all of it.");
@@ -30,17 +33,19 @@ public:
 	int read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), const std::vector<std::string> &signals_to_take);
 
 	int read_all_i(const std::string &conf_fname, const std::vector<int> &pids_to_take, const std::vector<int> &signals_to_take);
-
+#endif
 
 	
 	MEDPY_DOC(init, "init(conf_file_name) -> int\n"
 	"returns -1 if fails");
 	int init(const std::string &conf_fname);
 	
+#ifndef AM_API_FOR_CLIENT
 	MEDPY_DOC(loadsig, "loadsig(str_signame) -> int\n" 
 	"  load a signal");
 	int loadsig(const std::string& signame);
-	
+#endif
+
 	MEDPY_DOC(sig_id, "sig_id(str_signame) -> int\n"
 	"  returns signal id number for a given signal name");
 	int sig_id(const std::string& signame);
@@ -49,7 +54,7 @@ public:
 	"  returns signal type id for a given signal name");
 	int sig_type(const std::string& signame);
 	
-	MEDPY_DOC(sig_id, "pids ; property(read) -> list_Int\n"
+	MEDPY_DOC(pids, "pids ; property(read) -> list_Int\n"
 	"  returns array of pids");
 	const std::vector<int>& MEDPY_GET_pids();
 	
@@ -73,6 +78,7 @@ public:
 		"  returns a lut  - boolean vector");
 	std::vector<bool> get_lut_from_regex(int section_id, const std::string & regex_s);
 
+#ifndef AM_API_FOR_CLIENT
 	MEDPY_DOC(export_to_numpy, "export_to_numpy(str_signame) -> SigExporter\n"
 	"  Returns the signal data represented as a list of numpy arrays, one for each field");
 	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig);
@@ -80,6 +86,7 @@ public:
 	MEDPY_DOC(free, "free(signame) -> int\n"
 		"  Free the signal data specified by signame");
 	int free(string signame);
+#endif
 
 	MEDPY_DOC(switch_to_in_mem, "switch_to_in_mem()\n"
 		"  Switch to in mem repository mode");

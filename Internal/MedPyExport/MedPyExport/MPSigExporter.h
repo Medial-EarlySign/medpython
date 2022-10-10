@@ -3,7 +3,7 @@
 
 #include "MedPyCommon.h"
 #include "MPPidRepository.h"
-
+#ifndef AM_API_FOR_CLIENT
 class MPSigExporter_iter;
 
 
@@ -105,7 +105,7 @@ public:
 	}
 };
 
-
+#endif
 
 
 #endif //__MP_SigExporter_H
