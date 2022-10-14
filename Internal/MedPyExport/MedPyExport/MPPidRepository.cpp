@@ -51,7 +51,17 @@ int MPPidRepository::init(const std::string &conf_fname) { return o->init(conf_f
 const std::vector<int>& MPPidRepository::MEDPY_GET_pids() { return o->index.pids; };
 int MPPidRepository::sig_id(const std::string& signame) { return o->dict.id(signame); };
 int MPPidRepository::sig_type(const std::string& signame) { return o->sigs.type(signame); };
-MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) { MPSigVectorAdaptor ret; o->uget(pid, sid, *((UniversalSigVec*)(ret.o))); return ret; };
+MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) {
+	MPSigVectorAdaptor ret;
+	o->uget(pid, sid, *((UniversalSigVec*)(ret.o)));
+	return ret;
+};
+
+void MPPidRepository::finish_load_data() {
+	if (!data_load_sorted)
+		o->in_mem_rep.sortData();
+	data_load_sorted = true;
+}
 
 std::vector<bool> MPPidRepository::dict_prep_sets_lookup_table(int section_id, const std::vector<std::string> &set_names) {
 	vector<char> lut_cvec;
@@ -338,6 +348,7 @@ void MPPidRepository::load_from_json(const std::string &json_file_path) {
 		MTHROW_AND_ERR("Error bad json format\n");
 	}
 	json *js = &j_data;
+	data_load_sorted = false;
 
 	if (j_data.find("multiple") != j_data.end()) {
 		for (auto &p_js : j_data["multiple"])

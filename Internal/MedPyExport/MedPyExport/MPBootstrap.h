@@ -74,9 +74,9 @@ public:
 
 	MPStringBtResultMap bootstrap(MPSamples *samples, const string &rep_path);
 
-	MPStringBtResultMap _bootstrap(const std::vector<float> &preds,const std::vector<float> &labels);
+	MPStringFloatMapAdaptor _bootstrap(const std::vector<float> &preds,const std::vector<float> &labels);
 
-	MPStringBtResultMap _bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels);
+	MPStringFloatMapAdaptor _bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels);
 };
 
 #endif // !__MED__MPSPLIT__H__

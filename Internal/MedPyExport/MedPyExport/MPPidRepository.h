@@ -18,6 +18,7 @@ private:
 	void AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	void AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	int _load_single_json(void *_js);
+	bool data_load_sorted = false;
 public:
 	MEDPY_IGNORE(MedPidRepository* o);
 	MPDictionary dict;
@@ -97,6 +98,10 @@ public:
 	MEDPY_DOC(clear, "load_from_json()\n"
 		"  Clear repository memory. erase in-memory patient data");
 	void clear();
+
+	MEDPY_DOC(finish_load_data, "finish_load_data()\n"
+		"  prepare for model apply. not need to call it specifically.");
+	void finish_load_data();
 };
 
 

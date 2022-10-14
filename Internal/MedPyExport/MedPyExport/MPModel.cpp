@@ -29,12 +29,28 @@ void MPModel::init_from_json_file(const string& fname) { o->init_from_json_file(
 std::vector<std::string> MPModel::init_from_json_file_with_alterations(const std::string& fname, std::vector<std::string> json_alt) { o->init_from_json_file_with_alterations(fname, json_alt); return json_alt; };
 void MPModel::add_pre_processors_json_string_to_model(string in_json, string fname) { o->add_pre_processors_json_string_to_model(in_json, fname); }
 std::vector<std::string> MPModel::get_required_signal_names() { vector<string> ret; o->get_required_signal_names(ret); return ret; };
-int MPModel::learn(MPPidRepository* rep, MPSamples* samples) { return o->learn(*((MedPidRepository*)(rep->o)), (MedSamples*)(samples->o)); };
-int MPModel::apply(MPPidRepository* rep, MPSamples* samples) { return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o))); };
+int MPModel::learn(MPPidRepository* rep, MPSamples* samples) { 
+#ifdef AM_API_FOR_CLIENT
+	rep->finish_load_data();
+#endif
+	return o->learn(*((MedPidRepository*)(rep->o)), (MedSamples*)(samples->o)); 
+};
+int MPModel::apply(MPPidRepository* rep, MPSamples* samples) { 
+#ifdef AM_API_FOR_CLIENT
+	rep->finish_load_data();
+#endif
+	return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o))); 
+};
 int MPModel::learn(MPPidRepository* rep, MPSamples* samples, int start_stage, int end_stage) { 
+#ifdef AM_API_FOR_CLIENT
+	rep->finish_load_data();
+#endif
 	return o->learn(*((MedPidRepository*)(rep->o)), (MedSamples*)(samples->o),(MedModelStage)start_stage, (MedModelStage)end_stage);
 };
 int MPModel::apply(MPPidRepository* rep, MPSamples* samples, int start_stage, int end_stage) { 
+#ifdef AM_API_FOR_CLIENT
+	rep->finish_load_data();
+#endif
 	return o->apply(*((MedPidRepository*)(rep->o)), *((MedSamples*)(samples->o)), (MedModelStage)start_stage, (MedModelStage)end_stage);
 };
 

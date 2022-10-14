@@ -88,7 +88,7 @@ MPStringBtResultMap MPBootstrap::bootstrap(MPSamples *samples, const string &rep
 	return MPStringBtResultMap(res);
 }
 
-MPStringBtResultMap MPBootstrap::_bootstrap(const std::vector<float> &preds, const std::vector<float> &labels) {
+MPStringFloatMapAdaptor MPBootstrap::_bootstrap(const std::vector<float> &preds, const std::vector<float> &labels) {
 	if (preds.size() != labels.size()) {
 		throw runtime_error(string("vectors are not in the same size: preds.size=") +
 			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
@@ -108,10 +108,11 @@ MPStringBtResultMap MPBootstrap::_bootstrap(const std::vector<float> &preds, con
 	}
 
 	std::map<std::string, std::vector<float> > additional_data;
-	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
-	*res = o->bootstrap(samples, additional_data);
+	std::map<std::string, float>  *res = new std::map<std::string, float>();
 
-	return MPStringBtResultMap(res);
+	*res = o->bootstrap(samples, additional_data)["All"];
+
+	return MPStringFloatMapAdaptor(res);
 }
 
 map<string, float> calc_auc_per_pid(Lazy_Iterator *iterator, int thread_num,
@@ -164,7 +165,7 @@ map<string, float> calc_auc_per_pid(Lazy_Iterator *iterator, int thread_num,
 	return res;
 }
 
-MPStringBtResultMap MPBootstrap::_bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels) {
+MPStringFloatMapAdaptor MPBootstrap::_bootstrap_pid(const std::vector<float> &pids, const std::vector<float> &preds, const std::vector<float> &labels) {
 	if (preds.size() != labels.size()) {
 		throw runtime_error(string("vectors are not in the same size: preds.size=") +
 			std::to_string(preds.size()) + string(" labels.size=") + std::to_string(labels.size()));
@@ -187,9 +188,9 @@ MPStringBtResultMap MPBootstrap::_bootstrap_pid(const std::vector<float> &pids, 
 	}
 	bt_features.init_pid_pos_len();
 
-	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
+	std::map<std::string, float> *res = new std::map<std::string, float>();
 
-	*res = o->bootstrap(bt_features);
+	*res = o->bootstrap(bt_features)["All"];
 
 	//Calc AUC Macro, Micro:
 	vector<pair<MeasurementFunctions, Measurement_Params *>> backup_m = o->measurements_with_params;
@@ -202,18 +203,14 @@ MPStringBtResultMap MPBootstrap::_bootstrap_pid(const std::vector<float> &pids, 
 
 	int before = o->sample_per_pid;
 	o->sample_per_pid = 0;//take all
-	std::map<std::string, std::map<std::string, float> > extra_res = o->bootstrap(bt_features);
+	std::map<std::string, float> extra_res = o->bootstrap(bt_features)["All"];
 	o->sample_per_pid = before;
 	o->measurements_with_params = backup_m;
 	//Populate res:
-	for (const auto &it : extra_res)
-	{
-		std::map<std::string, float> &cohort_res = res->operator[](it.first);
-		for (const auto &jt : it.second)
-			cohort_res[jt.first] = jt.second;
-	}
+	for (const auto &jt : extra_res)
+		res->operator[](jt.first) = jt.second;
 
-	return MPStringBtResultMap(res);
+	return MPStringFloatMapAdaptor(res);
 }
 
 

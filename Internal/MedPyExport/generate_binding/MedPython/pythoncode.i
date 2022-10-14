@@ -255,11 +255,21 @@ def __bootstrap_pid_wrapper(self, pids, preds, labels):
     res = self._bootstrap_pid(pids, preds, labels)
     return res
 
+def __btsimple_to_df(self):
+    import pandas as pd
+    dict_obj={'Measurement': [], 'Value': []}
+    for measure in self.keys():
+        dict_obj['Measurement'].append(measure)
+        dict_obj['Value'].append(self[measure])
+    df=pd.DataFrame(dict_obj)
+    return df
+
 def __bind_external_methods():
     setattr(globals()['PidRepository'],'get_sig', __export_to_pandas)
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
     setattr(globals()['StringBtResultMap'],'to_df', __bootstrapResult_to_df)
+    setattr(globals()['MPStringFloatMapAdaptor'],'to_df', __btsimple_to_df)
     setattr(globals()['Bootstrap'],'bootstrap', __bootstrap_wrapper)
     setattr(globals()['Bootstrap'],'bootstrap_pid', __bootstrap_pid_wrapper)
 

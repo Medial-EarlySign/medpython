@@ -743,6 +743,7 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	if (weights != NULL && !weights->empty())
 		weights_c.reserve(weights->size());
 	size_t num_categories = preds.size() / y.size();
+	MedProgress progress_bt("Full_bootstrap", (int)filter_cohort.size(), 60, 1);
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
@@ -805,6 +806,8 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, warn_cnt, cohort_name, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
+
+		progress_bt.update();
 	}
 	MLOG_D("Finished Bootstarp Analysis. took %2.1f seconds\n", difftime(time(NULL), start));
 	return all_cohorts_measurments;
