@@ -58,6 +58,10 @@ MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) {
 };
 
 void MPPidRepository::finish_load_data() {
+	if (!o->in_mem_mode_active()) {
+		MWARN("WARN: not in mem_mode - doing nothing\n");
+		return;
+	}
 	if (!data_load_sorted)
 		o->in_mem_rep.sortData();
 	data_load_sorted = true;
