@@ -223,7 +223,7 @@ def __bind_external_methods():
     setattr(globals()['Features'],'to_df', __features__to_df_imp)
     setattr(globals()['Features'],'from_df', __features__from_df_imp)
     setattr(globals()['StringBtResultMap'],'to_df', __bootstrapResult_to_df)
-    setattr(globals()['MPStringFloatMapAdaptor'],'to_df', __btsimple_to_df)
+    setattr(globals()['StringFloatMapAdaptor'],'to_df', __btsimple_to_df)
     setattr(globals()['Bootstrap'],'bootstrap', __bootstrap_wrapper)
     setattr(globals()['Bootstrap'],'bootstrap_pid', __bootstrap_pid_wrapper)
     setattr(globals()['Global'],'get_repository', __get_repository)
