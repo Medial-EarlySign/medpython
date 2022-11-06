@@ -2230,7 +2230,8 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 
 	float y, w, pred;
 	bool has_weights = false;
-	double tot_loss = 0, sum_outcome = 0, tot_count = 0, second_moment = 0;
+	double tot_loss = 0, sum_outcome = 0, tot_count = 0, second_moment = 0,
+		tot_mse = 0;
 	map<float, float> per_score;
 	unordered_map<float, float> per_score_sec;
 	unordered_map<float, double> per_score_size;
@@ -2284,6 +2285,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 	if (tot_count <= 0)
 		MTHROW_AND_ERR("Error - empty test\n");
 	tot_loss /= tot_count;
+	tot_mse = tot_loss;
 	tot_loss = sqrt(tot_loss);
 
 	//cum sum - will count falses:
@@ -2366,8 +2368,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 	double prior = sum_outcome / tot_count;
 	double loss_prior = second_moment - 2 * prior * sum_outcome + prior * prior * tot_count;
 	loss_prior /= tot_count;
-	loss_prior = sqrt(loss_prior);
-	float R2 = 1 - (tot_loss / loss_prior);
+	float R2 = 1 - (tot_mse / loss_prior);
 
 	//calc calibration index
 	res["RMSE"] = tot_loss;
