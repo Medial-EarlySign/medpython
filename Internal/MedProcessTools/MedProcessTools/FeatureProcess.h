@@ -1220,11 +1220,18 @@ private:
 public:
 
 	float missing_value = MED_MAT_MISSING_VALUE; ///< Missing Value
-	float missing_target_val = MED_MAT_MISSING_VALUE;
+	/// missing value target mapping. converts missing value to this value
+	float missing_target_val = MED_MAT_MISSING_VALUE; 
+	/// If true will remove the original/source feature
 	bool remove_origin = true;
+	/// If true will split each bin value to one hot of 0/1
 	bool one_hot = true;
+	/// only relevant in one hot mode.
 	bool keep_original_val = false;
+	/// formating of feature name after binning
 	string bin_format = "%2.1f";
+	/// "bin_sett" parameter - controls how to bin the feature. params must be supplied inside barckets {} in the json
+	/// for example: "bin_sett" : "{bin_cutoffs=1,2,3}"
 	Binning_Wrapper bin_sett;
 	// Constructor
 	BinningFeatProcessor() : FeatureProcessor() { init_defaults(); processor_type = FTR_PROCESS_BINNING; }
