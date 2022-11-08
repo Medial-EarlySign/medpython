@@ -1188,7 +1188,7 @@ public:
 
 	string use_bin_settings; ///< if not empty - will use bin setting to create bins:
 
-							 /// init function for arguments
+	/// @snippet BinningFeatProcessor.cpp Binning_Wrapper::init
 	int init(map<string, string>& mapper);
 
 	/// if has use_bin_settings => will update bin_cutoffs, bin_repr_vals

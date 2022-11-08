@@ -7,6 +7,7 @@
 int Binning_Wrapper::init(map<string, string>& mapper) {
 	for (const auto &it : mapper)
 	{
+		//! [Binning_Wrapper::init]
 		if (it.first == "bin_cutoffs") {
 			vector<string> num_str;
 			boost::split(num_str, it.second, boost::is_any_of(","));
@@ -23,6 +24,7 @@ int Binning_Wrapper::init(map<string, string>& mapper) {
 		}
 		else if (it.first == "use_bin_settings")
 			use_bin_settings = it.second;
+		//! [Binning_Wrapper::init]
 		else
 			MTHROW_AND_ERR("Error Binning::init - unknown arg \"%s\"\n", it.first.c_str());
 	}
