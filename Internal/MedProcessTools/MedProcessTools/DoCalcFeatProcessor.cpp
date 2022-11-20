@@ -133,6 +133,10 @@ int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 	// Do your stuff
 	if (calc_type == "sum")
 		sum(p_sources, p_out, samples_size);
+	else if (calc_type == "max")
+		max(p_sources, p_out, samples_size);
+	else if (calc_type == "min")
+		min(p_sources, p_out, samples_size);
 	else if (calc_type == "framingham_chd")
 		framingham_chd(p_sources, p_out, samples_size);
 	else if (calc_type == "min_chads2")
@@ -219,6 +223,27 @@ void DoCalcFeatProcessor::sum(vector<float*> p_sources, float *p_out, int n_samp
 
 	return;
 }
+
+void DoCalcFeatProcessor::min(vector<float*> p_sources, float *p_out, int n_samples) const {
+	for (int i = 0; i < n_samples; i++) {
+		float res = missing_value;
+		for (float* p : p_sources)
+			if (p[i] != missing_value && (res == missing_value || p[i] < res))
+				res = p[i];
+		p_out[i] = res;
+	}
+}
+
+void DoCalcFeatProcessor::max(vector<float*> p_sources, float *p_out, int n_samples) const {
+	for (int i = 0; i < n_samples; i++) {
+		float res = missing_value;
+		for (float* p : p_sources)
+			if (p[i] != missing_value && (res == missing_value || p[i] > res))
+				res = p[i];
+		p_out[i] = res;
+	}
+}
+
 
 void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, int n_samples) {
 	//MLOG("DoCalcFeatProcessor::do_threshold start\n");

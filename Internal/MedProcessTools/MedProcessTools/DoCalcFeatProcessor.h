@@ -73,6 +73,9 @@ public:
 private:
 	virtual void resolve_feature_names(MedFeatures &features);
 	void prepare_feature(MedFeatures& features, int samples_size) const;
+
+	void max(vector<float*> p_sources, float *p_out, int n_samples) const;
+	void min(vector<float*> p_sources, float *p_out, int n_samples) const;
 };
 
 MEDSERIALIZE_SUPPORT(DoCalcFeatProcessor);
