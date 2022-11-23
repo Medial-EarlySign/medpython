@@ -373,3 +373,16 @@ void MedProgress::skip_update() {
 #pragma omp atomic
 		--max_loop;
 }
+
+void MedProgress::update_no_check() {
+#pragma omp atomic
+	++progress;
+
+	if (progress == max_loop) {
+		double time_elapsed = (chrono::duration_cast<chrono::microseconds>(chrono::high_resolution_clock::now()
+			- tm_start).count()) / 1000000.0;
+		if (alway_print_total || time_elapsed > print_interval)
+			global_logger.log(print_section, print_level, "#%s# :: Done processed all %d. Took %2.1f Seconds in total\n",
+				print_title.c_str(), max_loop, time_elapsed);
+	}
+}

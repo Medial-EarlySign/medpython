@@ -218,6 +218,9 @@ public:
 
 	/// update action when skiping action - update job counter
 	void skip_update();
+
+	/// update action when without checking if needs to print, faster
+	void update_no_check();
 };
 
 #endif
