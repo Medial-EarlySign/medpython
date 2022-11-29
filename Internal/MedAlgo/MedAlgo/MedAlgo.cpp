@@ -1001,7 +1001,7 @@ string medial::models::getParamsInfraModel(void *model) {
 		break;
 	case MODEL_GD_LINEAR:
 		gdlm = (MedGDLM*)model;
-		snprintf(buff, 2000, "%s: method=%s; batch-size=%d; l_lasso=%2.3f; l_ridge=%2.3f; rate=%2.3f; rate_decay=%2.3f; momentum=%2.3f; stop_at_err=%2.3f; max_iters=%d",
+		snprintf(buff, 2000, "%s: method=%s; batch_size=%d; l_lasso=%2.3f; l_ridge=%2.3f; rate=%2.3f; rate_decay=%2.3f; momentum=%2.3f; stop_at_err=%2.3f; max_iter=%d",
 			predictor_type_to_name[m->classifier_type].c_str(), gdlm->params.method.c_str(), gdlm->params.batch_size,
 			gdlm->params.l_lasso, gdlm->params.l_ridge, gdlm->params.rate, gdlm->params.rate_decay,
 			gdlm->params.momentum, gdlm->params.stop_at_err, gdlm->params.max_iter);
