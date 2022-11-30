@@ -947,6 +947,7 @@ string medial::models::getParamsInfraModel(void *model) {
 	MedSvm *svm;
 	MedLinearModel *lm;
 	MedGDLM *gdlm;
+	MedLM *linear_m;
 	char buff[2000];
 	string l1_str, n_categ = "";
 
@@ -1005,6 +1006,13 @@ string medial::models::getParamsInfraModel(void *model) {
 			predictor_type_to_name[m->classifier_type].c_str(), gdlm->params.method.c_str(), gdlm->params.batch_size,
 			gdlm->params.l_lasso, gdlm->params.l_ridge, gdlm->params.rate, gdlm->params.rate_decay,
 			gdlm->params.momentum, gdlm->params.stop_at_err, gdlm->params.max_iter);
+		break;
+	case MODEL_LINEAR_MODEL:
+		linear_m = (MedLM*)model;
+		snprintf(buff, 2000, "%s: niter=%d; eiter=%f; rfactor=%f",
+			predictor_type_to_name[m->classifier_type].c_str(), linear_m->params.niter,
+			linear_m->params.eiter, linear_m->params.rfactor);
+
 		break;
 	default:
 		MTHROW_AND_ERR("Unsupported Type init for model %s:%d (getParams)\n", m->my_class_name().c_str(), m->classifier_type);
