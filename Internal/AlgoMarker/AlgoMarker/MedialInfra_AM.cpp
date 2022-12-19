@@ -66,9 +66,9 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
-
-	if (strlen(get_name()) == 0) {
-		MERR("ERROR: Name is %s\n", get_name());
+	
+	if (strcmp(get_name(), "")) {
+		MERR("ERROR: Name is missing\n");
 		return AM_ERROR_LOAD_BAD_NAME;
 	}
 
@@ -235,8 +235,8 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 		get_jsons_locations(data, j_start, j_len);
 		for (int j = 0; j < j_start.size(); j++) {
 			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
-			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
 			cdata[j_len[j]] = 0;
+			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
 			int rc = AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
 			if (rc != 0)
 				ret_code = rc;
@@ -1058,8 +1058,8 @@ void json_to_char_ptr(json &js, char **jarr)
 	*jarr = new char[sj.length() + 1];
 
 	if (*jarr != NULL) {
-		strncpy(*jarr, sj.c_str(), sj.length());
 		(*jarr)[sj.length()] = 0;
+		strncpy(*jarr, sj.c_str(), sj.length());
 	}
 }
 

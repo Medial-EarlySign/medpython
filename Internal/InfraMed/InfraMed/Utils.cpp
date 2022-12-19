@@ -135,8 +135,10 @@ int read_bin_file_IM(string &fname, unsigned char* &data, unsigned long long &si
 	inf.close();
 
 	inf_read = fopen(fname.c_str(), "rb");
-	if (fread(data, 1, size, inf_read) != size)
+	if (fread(data, 1, size, inf_read) != size) {
+		fclose(inf_read);
 		return -1;
+	}
 
 	fclose(inf_read);
 
