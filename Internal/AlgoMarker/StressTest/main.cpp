@@ -160,10 +160,15 @@ int main(int argc, char *argv[]) {
 	if (!args.jreq.empty() && read_file_into_string(args.jreq, sjreq) < 0)
 		MTHROW_AND_ERR("Error can't read jreq %s\n", args.jreq.c_str());
 
+	if (sjreq.empty()) {
+		sjreq = "{ \"type\" : \"request\", \"request_id\" : \"my test\", \"export\" : {\"prediction\" : \"pred_0\"}, \"requests\" : [{ \"patient_id\": \"" + to_string(args.pid_id) +
+			"\", \"time\" : \"" + to_string(args.prediction_time) +"\" }] }";
+	}
+
 	init_and_load_data(args.in_jsons, test_am);
 
 	//Check it works:
-	get_preds_from_algomarker_single(test_am, sjreq, false, args.pid_id, args.prediction_time, true);
+	get_preds_from_algomarker_single(test_am, sjreq, args.calc_by_type, args.pid_id, args.prediction_time, true);
 
 	//loop on req:
 	int i = 0;
@@ -171,7 +176,7 @@ int main(int argc, char *argv[]) {
 	while (true) {
 		MedTimer timer;
 		timer.start();
-		get_preds_from_algomarker_single(test_am, sjreq, false, args.pid_id, args.prediction_time);
+		get_preds_from_algomarker_single(test_am, sjreq, args.calc_by_type, args.pid_id, args.prediction_time);
 		timer.take_curr_time();
 		++i;
 		tot_time += timer.diff_milisec();
