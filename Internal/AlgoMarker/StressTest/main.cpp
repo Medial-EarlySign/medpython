@@ -40,7 +40,8 @@ void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
 	DYN(AM_API_ClearData(am));
 
 	string in_jsons;
-	read_file_into_string(input_json_path, in_jsons);
+	if (read_file_into_string(input_json_path, in_jsons) < 0)
+		MTHROW_AND_ERR("Error on loading file %s\n", in_jsons.c_str());
 	MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), input_json_path.c_str());
 	int load_status = DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
 	MLOG("Added data from %s\n", input_json_path.c_str());
@@ -91,7 +92,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am,
 			string s = string(jresp);
 			MLOG("%s\n", s.c_str());
 		}
-		
+		DYN(AM_API_Dispose(jresp));
 	}
 	else {
 		AMResponses *resp;
@@ -99,18 +100,20 @@ int get_preds_from_algomarker_single(AlgoMarker *am,
 
 		AMRequest *req;
 		int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &pid_id, &_timestamp, 1, &req));
+		if (req_create_rc > 0)
+			MTHROW_AND_ERR("Faield to create req\n");
 
 		DYN(AM_API_Calculate(am, req, resp)); // calculate
 
-		int n_resp = DYN(AM_API_GetResponsesNum(resp));
+		DYN(AM_API_GetResponsesNum(resp));
 
 		AMResponse *response;
 		int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, 0, &response));
 		get_response_score_into_sample(response, resp_rc);
 
 		if (print_resp) {
-			string s = string(jresp);
-			MLOG("%s\n", s.c_str());
+			//string s = string(response);
+			//MLOG("%s\n", s.c_str());
 		}
 
 		DYN(AM_API_DisposeRequest(req));
@@ -121,7 +124,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am,
 	//((MedialInfraAlgoMarker *)am)->CalculateByType(JSON_REQ_JSON_RESP, jreq, &jresp);	
 	//MLOG("After Calculate jresp len %d\n", strlen(jresp));
 
-	DYN(AM_API_Dispose(jresp));
+	
 	timer.take_curr_time();
 	
 	return 0;
@@ -153,8 +156,9 @@ int main(int argc, char *argv[]) {
 	initialize_algomarker(args, test_am);
 
 	//create request:
-	string sjreq;
-	read_file_into_string(args.jreq, sjreq);
+	string sjreq = "";
+	if (!args.jreq.empty() && read_file_into_string(args.jreq, sjreq) < 0)
+		MTHROW_AND_ERR("Error can't read jreq %s\n", args.jreq.c_str());
 
 	init_and_load_data(args.in_jsons, test_am);
 

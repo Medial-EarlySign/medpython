@@ -28,6 +28,7 @@ public:
 			("amconfig", po::value<string>(&amconfig)->required(), "ampath")
 			("amlib", po::value<string>(&amlib)->default_value(""), "amlib")
 			("in_jsons", po::value<string>(&in_jsons)->required(), "in_jsons")
+			("jreq", po::value<string>(&jreq)->default_value(""), "jreq")
 			("pid_id", po::value<int>(&pid_id)->default_value(1), "pid id")
 			("prediction_time", po::value<int>(&prediction_time)->default_value(20210101), "prediction_time")
 			("log_path", po::value<string>(&log_path)->required(), "log_path")

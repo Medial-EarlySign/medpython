@@ -67,7 +67,7 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
 	
-	if (strcmp(get_name(), "")) {
+	if (get_name() == "") {
 		MERR("ERROR: Name is missing\n");
 		return AM_ERROR_LOAD_BAD_NAME;
 	}
