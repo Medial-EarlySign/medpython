@@ -28,12 +28,12 @@ void initialize_algomarker(ProgramArgs &args, AlgoMarker *&test_am)
 	if (DYN(AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am)) != AM_OK_RC)
 		MTHROW_AND_ERR("ERROR: Failed creating test algomarker\n");
 
-	MLOG("Name is %s\n", test_am->get_name());
-
 	// Load
 	MLOG("Loading AM\n");
 	int rc = DYN(AM_API_Load(test_am, args.amconfig.c_str()));
 	if (rc != AM_OK_RC) MTHROW_AND_ERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), args.amconfig.c_str(), rc);
+
+	MLOG("Name is %s\n", test_am->get_name());
 }
 
 void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
