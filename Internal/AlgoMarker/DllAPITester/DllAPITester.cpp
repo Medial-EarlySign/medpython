@@ -1134,6 +1134,8 @@ int main(int argc, char *argv[])
 		MLOG("#Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 	}
 
+	AM_API_DisposeAlgoMarker(test_am);
+
 	// test results
 	int nbad = 0, n_miss = 0, n_similar = 0;
 	if (res1.size() != res2.size()) {

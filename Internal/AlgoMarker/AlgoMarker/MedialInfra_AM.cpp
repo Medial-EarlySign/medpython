@@ -66,8 +66,8 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
-	
-	if (get_name() == "") {
+
+	if (strlen(get_name()) == 0) {
 		MERR("ERROR: Name is missing\n");
 		return AM_ERROR_LOAD_BAD_NAME;
 	}
@@ -437,9 +437,9 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	if (am_matrix != "" && _n_points > 0) { // debug only
 		if (first_write)
-			ma.write_features_mat(am_matrix); 
+			ma.write_features_mat(am_matrix);
 		else
-			ma.add_features_mat(am_matrix); 
+			ma.add_features_mat(am_matrix);
 		first_write = false;
 	}
 
@@ -541,7 +541,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -811,7 +811,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
