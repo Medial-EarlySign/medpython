@@ -36,6 +36,7 @@ private:
 	unordered_map<float, vector<float>> group_to_score_cutoffs_ranges;
 	unordered_map<float, vector<float>> group_to_factors;
 	unordered_map<float, vector<float>> group_to_bias;
+	bool feature_gen_init = false;
 public:
 	string feature_name; ///< feautre name to search in matrix created by model_json to generate group for fairness
 	string model_json; ///< model json path - important for learn

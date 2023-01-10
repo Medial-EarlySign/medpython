@@ -204,7 +204,7 @@ int get_closet_idx(const vector<float> &search_vec, float search, float max_diff
 		MTHROW_AND_ERR("Error Can't find value - empty\n");
 	if (min_diff > max_diff)
 		idx = -1;
-		//MTHROW_AND_ERR("Error value is too far - %f\n", min_diff);
+	//MTHROW_AND_ERR("Error value is too far - %f\n", min_diff);
 
 	return idx;
 }
@@ -336,14 +336,14 @@ void FairnessPostProcessor::Learn(const MedFeatures &matrix) {
 		{
 			if (it.first == reference_group_val)
 				continue;
-			int closet_idx= get_closet_idx(it.second, cutoff_search, allow_distance_score);
+			int closet_idx = get_closet_idx(it.second, cutoff_search, allow_distance_score);
 			if (closet_idx < 0)
 				MTHROW_AND_ERR("Error - can't find cutoff. score resulotion is too low for other group?\n");
 			float other_target = group_to_targets.at(it.first)[closet_idx];
 			float other_score_cutoff = it.second[closet_idx];
 			MLOG("Compare %s in group_value=%f to reference val=%f :: [%f <=> %f]. cutoffs [%f <=> %f]\n",
 				search_pre.c_str(), it.first, reference_group_val,
-				other_target, reference_target, other_score_cutoff,cutoff_search);
+				other_target, reference_target, other_score_cutoff, cutoff_search);
 		}
 
 		bool first_time = true;
@@ -474,7 +474,13 @@ void FairnessPostProcessor::Apply(MedFeatures &matrix) {
 	//medial::medmodel::apply(group_feature_gen_model, samples, p_rep->config_fname,
 	//	MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
 	medial::print::medmodel_logging(false);
-	group_feature_gen_model.apply(*p_rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
+	if (!feature_gen_init) {
+		group_feature_gen_model.init_model_for_apply(*p_rep,
+			MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+		feature_gen_init = true;
+
+	}
+	group_feature_gen_model.no_init_apply(*p_rep, samples, MedModelStage::MED_MDL_APPLY_FTR_GENERATORS, MedModelStage::MED_MDL_APPLY_FTR_PROCESSORS);
 	medial::print::medmodel_logging(true);
 	vector<float> &group_vec = group_feature_gen_model.features.data.at(resolved_name);
 
