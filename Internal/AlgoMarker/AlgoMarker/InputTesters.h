@@ -41,6 +41,8 @@ public:
 
 	int max_outliers_flag = 0; // use or not use the tester to accumulate outliers counts
 
+	bool stop_processing_more_errors = false; ///< if true will stop process more errors
+
 	string tester_params; // params for the internal tester
 
 	// initialize from string 
