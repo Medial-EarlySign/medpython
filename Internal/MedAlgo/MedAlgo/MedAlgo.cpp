@@ -949,6 +949,7 @@ string medial::models::getParamsInfraModel(void *model) {
 	MedGDLM *gdlm;
 	char buff[2000];
 	string l1_str, n_categ = "";
+	string mono_str = "";
 
 	switch (m->classifier_type) {
 	case MODEL_QRF:
@@ -975,9 +976,11 @@ string medial::models::getParamsInfraModel(void *model) {
 		break;
 	case MODEL_XGB:
 		pr_xgb = ((MedXGB *)model)->params;
-		snprintf(buff, 2000, "%s: tree_method=%s; booster=%s; objective=%s; eta=%2.3f; alpha=%2.3f; lambda=%2.3f; gamma=%2.3f; max_depth=%d; colsample_bytree=%2.3f; colsample_bylevel=%2.3f; min_child_weight=%d; num_round=%d; subsample=%2.3f",
+		if (!pr_xgb.monotone_constraints.empty())
+			mono_str = "monotone_constraints=" + pr_xgb.monotone_constraints;
+		snprintf(buff, 2000, "%s: tree_method=%s; booster=%s; objective=%s; eta=%2.3f; alpha=%2.3f; lambda=%2.3f; gamma=%2.3f; max_depth=%d; colsample_bytree=%2.3f; colsample_bylevel=%2.3f; min_child_weight=%d; num_round=%d; subsample=%2.3f; %s",
 			predictor_type_to_name[m->classifier_type].c_str(), pr_xgb.tree_method.c_str(), pr_xgb.booster.c_str(), pr_xgb.objective.c_str(), pr_xgb.eta,
-			pr_xgb.alpha, pr_xgb.lambda, pr_xgb.gamma, pr_xgb.max_depth, pr_xgb.colsample_bytree, pr_xgb.colsample_bylevel, pr_xgb.min_child_weight, pr_xgb.num_round, pr_xgb.subsample);
+			pr_xgb.alpha, pr_xgb.lambda, pr_xgb.gamma, pr_xgb.max_depth, pr_xgb.colsample_bytree, pr_xgb.colsample_bylevel, pr_xgb.min_child_weight, pr_xgb.num_round, pr_xgb.subsample, mono_str.c_str());
 		break;
 	case MODEL_SPECIFIC_GROUPS_MODELS:
 		model_specific = ((MedSpecificGroupModels *)model);

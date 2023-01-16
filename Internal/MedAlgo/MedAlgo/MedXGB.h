@@ -33,6 +33,7 @@ struct MedXGBParams : public SerializableObject {
 	int verbose_eval;
 	float validate_frac; // how much of the training set is used as validation  for evaluation. should be between 0 and 1.
 	string split_penalties; // feature-dependent splitting penalty. string format is "number:value,number:value,..."
+	string monotone_constraints; // feature-dependent monotonic constraint. string format is "part_of_feature_name:part_of_feature_name,number:value,..."
 
 
 	MedXGBParams() {
@@ -47,7 +48,7 @@ struct MedXGBParams : public SerializableObject {
 
 	ADD_CLASS_NAME(MedXGBParams)
 		ADD_SERIALIZATION_FUNCS(booster, objective, eta, gamma, min_child_weight, max_depth, num_round, eval_metric, silent, missing_value, num_class,
-			colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties)
+			colsample_bytree, colsample_bylevel, subsample, scale_pos_weight, tree_method, lambda, alpha, seed, verbose_eval, validate_frac, split_penalties, monotone_constraints)
 };
 
 class XGBBooster {
@@ -190,6 +191,7 @@ private:
 	vector<BoosterHandle> learner_per_thread;
 
 	void translate_split_penalties(string& split_penalties_s);
+	void translate_monotone_constraints(string& monotone_constraints_s);
 	void calc_feature_importance_local(vector<float> &features_importance_scores, string &importance_type);
 	vector<char> serial_xgb;
 };
