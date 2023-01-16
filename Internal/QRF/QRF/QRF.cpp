@@ -1984,8 +1984,8 @@ int QRF_Forest::get_forest(double *x, double *y, int nfeat, int nsamples, int *s
 
 	int rc = get_forest(xf, yi, nfeat, nsamples, sampsize, ntry, ntrees, maxq);
 
-	delete xf;
-	delete yi;
+	delete []xf;
+	delete []yi;
 
 	return (rc);
 }
@@ -2508,8 +2508,8 @@ int QRF_Forest::score_samples_t(double *x, int nfeat, int nsamples, double *&res
 	// Prediction is second column
 	for (int i = 0; i < nsamples; i++)
 		res[i] = (double)rf[2 * i + 1];
-	delete rf;
-	delete xf;
+	delete[] rf;
+	delete[] xf;
 
 	return rc;
 }

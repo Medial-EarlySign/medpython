@@ -305,6 +305,7 @@ int InputSanityTester::read_config(const string &f_conf)
 					if (fields.size() >= 7) i_test->internal_rc = stoi(fields[6]);
 					if (fields.size() >= 8) i_test->err_msg = fields[7];
 					if (fields.size() >= 9) i_test->cant_evel_msg = fields[8];
+					if (fields.size() >= 10) i_test->stop_processing_more_errors = stoi(fields[9]) > 0;
 
 					i_test->input_from_string("base_path=" + base_path + ";" + i_test->tester_params);
 
@@ -360,6 +361,8 @@ int InputSanityTester::test_if_ok(MedPidRepository &rep, int pid, long long time
 
 			Results.push_back(res);
 			n_errors++;
+			if (test->stop_processing_more_errors)
+				break;
 		}
 
 		if (rc == 0) {
@@ -378,6 +381,9 @@ int InputSanityTester::test_if_ok(MedPidRepository &rep, int pid, long long time
 				n_warnings++;
 			else
 				n_errors++;
+
+			if (test->stop_processing_more_errors)
+				break;
 		}
 
 		// rc == 1 : nothing to do - passed the test
@@ -430,6 +436,8 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 
 			Results.push_back(res);
 			n_errors++;
+			if (test->stop_processing_more_errors)
+				break;
 		}
 
 		if (rc == 0) {
@@ -446,6 +454,8 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 				n_warnings++;
 			else
 				n_errors++;
+			if (test->stop_processing_more_errors)
+				break;
 		}
 
 		// rc == 1 : nothing to do - passed the test

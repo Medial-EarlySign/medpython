@@ -282,6 +282,17 @@ void AggregatePredsPostProcessor::Apply(MedFeatures &matrix) {
 			fp->apply(apply_batch, false);
 		//apply batch with MedPredictor:
 		model_predictor->predict(apply_batch);
+		//apply calibrator if has?
+		vector<bool> apply_pp_mask(PostProcessorTypes::FTR_POSTPROCESS_LAST);
+		apply_pp_mask[FTR_POSTPROCESS_CALIBRATOR] = true;
+		apply_pp_mask[FTR_POSTPROCESS_ADJUST] = true;
+		apply_pp_mask[FTR_POSTPROCESS_FAIRNESS] = true;
+		for (PostProcessor *pp : p_model->post_processors)
+		{
+			if (!apply_pp_mask[pp->processor_type])
+				continue;
+			pp->Apply(apply_batch);
+		}
 		//collect preds from samples: each row was duplicated resample_cnt times
 		vector<vector<float>> collected_preds(curr_sz); //for each sample
 		for (size_t j = 0; j < curr_sz; ++j)

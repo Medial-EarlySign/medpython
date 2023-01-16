@@ -248,8 +248,8 @@ string MedTime::convert_times_S(int from_type, int to_type, int in_time)
 		int d = convert_times(from_type, MedTime::Date, in_time);
 		if (from_type == MedTime::Minutes || from_type == MedTime::Hours) {
 			int total_m = convert_times(from_type, MedTime::Minutes, in_time);
-			char buff[14];
-			sprintf(buff, "%d-%02d:%02d", d, (total_m / 60) % 24, total_m % 60);
+			char buff[20];
+			snprintf(buff, sizeof(buff), "%d-%02d:%02d", d, (total_m / 60) % 24, total_m % 60);
 			return buff;
 		}
 		else return to_string(d);

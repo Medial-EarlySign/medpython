@@ -938,14 +938,14 @@ void initialize_algomarker(po::variables_map &vm, AlgoMarker *&test_am)
 	if (DYN(AM_API_Create((int)AM_TYPE_MEDIAL_INFRA, &test_am)) != AM_OK_RC)
 		MTHROW_AND_ERR("ERROR: Failed creating test algomarker\n");
 
-	MLOG("Name is %s\n", test_am->get_name());
-
 	if (vm["am_csv"].as<string>() != "")	((MedialInfraAlgoMarker *)test_am)->set_am_matrix(vm["am_csv"].as<string>());
 
 	// Load
 	MLOG("Loading AM\n");
 	int rc = DYN(AM_API_Load(test_am, vm["amconfig"].as<string>().c_str()));
 	if (rc != AM_OK_RC) MTHROW_AND_ERR("ERROR: Failed loading algomarker %s with config file %s ERR_CODE: %d\n", test_am->get_name(), vm["amconfig"].as<string>().c_str(), rc);
+
+	MLOG("Name is %s\n", test_am->get_name());
 
 	// Additional load of dictionaries (if provided)
 	if (vm["json_dict"].as<string>() != "") {
@@ -1133,6 +1133,8 @@ int main(int argc, char *argv[])
 	for (int i = 0; i < min(50, (int)res1.size()); i++) {
 		MLOG("#Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 	}
+
+	AM_API_DisposeAlgoMarker(test_am);
 
 	// test results
 	int nbad = 0, n_miss = 0, n_similar = 0;
