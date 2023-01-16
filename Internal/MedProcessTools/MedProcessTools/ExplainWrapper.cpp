@@ -722,6 +722,13 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 				}
+				++idx;
+				++idx;
+				//Add more tokens till last one - last one in ".win_X_Y"
+				while (idx + 1 < tokens.size()) {
+					word += "." + tokens[idx];
+					++idx;
+				}
 			}
 
 			groups[word].push_back(i);
@@ -755,6 +762,15 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 					categ = true;
+				}
+				if (categ) {
+					++idx;
+					++idx;
+					//Add more tokens till last one - last one in ".win_X_Y"
+					while (idx + 1 < tokens.size()) {
+						word += "." + tokens[idx];
+						++idx;
+					}
 				}
 			}
 			//check if TREND: slope, std, last_delta, win_delta, max_diff
