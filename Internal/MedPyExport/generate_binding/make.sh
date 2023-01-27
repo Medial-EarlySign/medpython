@@ -1,7 +1,8 @@
 #!/bin/bash
 
 DIST_NAME=${1-unknown}
-FOR_AM=${2-0}
+SKIP_PROMPT=${2-0}
+FOR_AM=${3-0}
 if [ $DIST_NAME == "unknown" ]; then
 	if [[ ${PYTHON_INCLUDE_DIR} == *"/python36/"* ]]; then DIST_NAME="medial-python36"
 	elif [[ ${PYTHON_INCLUDE_DIR} == *"/python38"* ]]; then DIST_NAME="medial-python38"
@@ -16,7 +17,9 @@ echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
 echo "(II) AlgoMarker for client model: '${FOR_AM}'"
 
-read -p "Press [Enter] to approve"
+if [ $SKIP_PROMPT -lt 1 ]; then
+	read -p "Press [Enter] to approve"
+fi
 
 
 if [ $FOR_AM -gt 0 ]; then
