@@ -51,6 +51,19 @@ int MPPidRepository::init(const std::string &conf_fname) { return o->init(conf_f
 const std::vector<int>& MPPidRepository::MEDPY_GET_pids() { return o->index.pids; };
 int MPPidRepository::sig_id(const std::string& signame) { return o->dict.id(signame); };
 int MPPidRepository::sig_type(const std::string& signame) { return o->sigs.type(signame); };
+std::string MPPidRepository::sig_description(const std::string& signame) { 
+	int id = o->sigs.sid(signame);
+	if (id < 0)
+		MTHROW_AND_ERR("Error signal %s wasn't found\n", signame.c_str());
+	const SignalInfo &si = o->sigs.Sid2Info[id];
+	UniversalSigVec usv;
+	usv.init(si);
+	string res = usv.get_signal_generic_spec();
+	return res;
+};
+bool MPPidRepository::is_categorical(const std::string& signame, int val_channel) {
+	return o->sigs.is_categorical_channel(signame, val_channel);
+}
 MPSigVectorAdaptor MPPidRepository::uget(int pid, int sid) {
 	MPSigVectorAdaptor ret;
 	o->uget(pid, sid, *((UniversalSigVec*)(ret.o)));
@@ -387,6 +400,13 @@ void MPPidRepository::clear() {
 MPSig::MPSig(void* _o, int index) : o(_o), idx(index) {  };
 MPSig::MPSig(const MPSig& other) { o = other.o; idx = other.idx; };
 
+std::vector<std::string> MPPidRepository::list_signals() {
+	std::vector<std::string> res;
+	res.reserve(o->sigs.Name2Sid.size());
+	for (const auto & it : o->sigs.Name2Sid) 
+		res.push_back(it.first);
+	return res;
+}
 
 int MPSig::time(int chan) { return ((UniversalSigVec*)o)->Time(idx, chan); }
 float MPSig::val(int chan) { return ((UniversalSigVec*)o)->Val(idx, chan); }
