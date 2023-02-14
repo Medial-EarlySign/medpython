@@ -129,7 +129,7 @@ public:
 	/// if splits_inds is provided (and not NULL) it will fill a mapping from split_index to the 
 	/// indexes in the samples vector correspond to each split value
 	/// </returns>
-	void prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
+	void prepare_bootstrap(const MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
 		map<string, vector<float>> &final_additional_info, vector<int> &preds_order, unordered_map<int, vector<int>> *splits_inds = NULL);
 	/// <summary>
 	///prepares the required vectors for bootstrap from samples, additional_info
@@ -153,7 +153,7 @@ public:
 	/// indexes in the samples are provided - it will return also results for each split
 	/// the higest level in the map is the split value
 	/// </returns>
-	map<string, map<string, float>> bootstrap(MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
+	map<string, map<string, float>> bootstrap(const MedFeatures &features, map<int, map<string, map<string, float>>> *results_per_split = NULL, with_registry_args *registry_args = NULL);
 	/// <summary>
 	/// Will run the bootstraping process on all cohorts and measurements.
 	/// the input is samples, additional_info. additional_info is provided for filtering 
@@ -302,7 +302,7 @@ public:
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<int> &preds_order,  const vector<float> &y, const vector<int> &pids,
 		const vector<float> *weights, const map<string, vector<float>> &additional_info);
-	map<string, map<string, float>> bootstrap_using_registry(MedFeatures &features_mat,
+	map<string, map<string, float>> bootstrap_using_registry(const MedFeatures &features_mat,
 		const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split = NULL);
 	void add_splits_results(const vector<float> &preds, vector<int> &preds_order, const vector<float> &y,
 		const vector<int> &pids, const vector<float> *weights, const map<string, vector<float>> &data,
