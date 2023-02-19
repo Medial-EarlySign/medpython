@@ -1347,6 +1347,8 @@ namespace MedSerialize {
 
 }
 
+void mes_trim(string &s);
+
 // A few IO helpers copied here in order to make SerializableObject a PURE h file implementation
 namespace MedSerialize {
 
@@ -1499,8 +1501,8 @@ namespace MedSerialize {
 				SRL_ERR("Cannot parse \'%s\' from \'%s\'\n", field.c_str(), text.c_str());
 				return -1;
 			}
-			boost::trim(sub_fields[0]);
-			boost::trim(sub_fields[1]);
+			mes_trim(sub_fields[0]);
+			mes_trim(sub_fields[1]);
 			init_map[sub_fields[0]] = sub_fields[1];
 		}
 

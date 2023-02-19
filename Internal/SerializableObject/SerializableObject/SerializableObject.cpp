@@ -226,3 +226,23 @@ string SerializableObject::object_json() const {
 
 	return str.str();
 }
+
+bool mes_is_space(char c) {
+	return c == ' ' || c == '\t' || c == '\n' || c == '\r';
+}
+
+void mes_trim(string &s) {
+	//trim_begin:
+	int start_ind = 0;
+	while (start_ind < s.length() && mes_is_space(s[start_ind]))
+		++start_ind;
+	string rep_str = s.substr(start_ind);
+
+	//trim end:
+	int end_idx = (int)rep_str.length();
+	while (end_idx > 0 && mes_is_space(rep_str[end_idx - 1]))
+		--end_idx;
+	rep_str = rep_str.substr(0, end_idx);
+
+	s.swap(rep_str);
+}

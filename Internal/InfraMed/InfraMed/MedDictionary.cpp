@@ -64,7 +64,8 @@ int MedDictionary::read(const string &fname)
 	fnames.push_back(fname); // TD : check that we didn't already load this file
 	string curr_line;
 	while (getline(inf, curr_line)) {
-		trim(curr_line);
+		mes_trim(curr_line); //Alpine has problem with boost::trim 
+		//trim(curr_line);
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 
 			vector<string> fields;
