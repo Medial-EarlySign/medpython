@@ -111,6 +111,8 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	s.id = pid;
 	s.time = (int)timestamp;
 	int rc = -1;
+	nvals = 0;
+	noutliers = 0;
 	//Assume MedModel was initialized once by init 
 	//=> in first test we will learn the mode if not learned, and prepare for apply - to increase speed.
 	//So first test is slower and rest are faster. "Cold start"
