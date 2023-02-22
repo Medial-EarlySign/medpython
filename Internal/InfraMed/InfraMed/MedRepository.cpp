@@ -1649,7 +1649,7 @@ int MedRepository::unlock(const vector<int> &sids)
 //--------------------------------------------------------------------------------------
 int MedRepository::free_all_sigs()
 {
-	return free(sigs.signals_ids);
+	return this->free(sigs.signals_ids);
 }
 
 //--------------------------------------------------------------------------------------

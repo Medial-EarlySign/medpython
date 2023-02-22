@@ -1,7 +1,8 @@
 //
 // templated code for MedUtils class, included after class definition
 //
-
+#ifndef __MED_UTILS_IMP__H_
+#define __MED_UTILS_IMP__H_
 #include <math.h>
 
 // Discretization of values
@@ -19,7 +20,7 @@ template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbin
 
 template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbins, int max_bins, float missing_value, MedBinningType binning) {
 	if (max_bins <= 0)
-		MTHROW_AND_ERR("Error max_bins should be > 0\n");
+		HMTHROW_AND_ERR("Error max_bins should be > 0\n");
 
 	binned_x.clear();
 	binned_x.reserve(x.size());
@@ -79,3 +80,4 @@ template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbin
 
 	return 0;
 }
+#endif

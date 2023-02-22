@@ -678,7 +678,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 }
 
 //.......................................................................................
-void MedModel::get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators) {
+void MedModel::get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators) const {
 
 	for (auto& generator : generators) {
 		if (req_feature_generators.empty() || generator->filter_features(req_feature_generators) != 0)
@@ -914,7 +914,7 @@ int MedModel::apply_feature_processors(MedFeatures &features, vector<unordered_s
 }
 
 //.......................................................................................
-void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_features_vec) {
+void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_features_vec) const {
 
 	req_features_vec.resize(feature_processors.size() + 1);
 	req_features_vec[0] = {};
@@ -1504,7 +1504,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 // the feature generators, and then find add signals required by the rep_porcessors that
 // are required ....
 //.......................................................................................
-void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+void MedModel::get_required_signal_names(unordered_set<string>& signalNames) const {
 
 	// Identify required generators
 	vector<unordered_set<string> > req_features_vec;
@@ -1518,23 +1518,25 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	get_all_required_signal_names(signalNames, rep_processors, -1, applied_generators);
 
 	// collect virtuals
+	map<string, int> p_virtual_signals;
+	map<string, string> p_virtual_signals_generic;
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
-		processor->add_virtual_signals(virtual_signals, virtual_signals_generic);
+		processor->add_virtual_signals(p_virtual_signals, p_virtual_signals_generic);
 	}
 
 	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
 
 
 	// Erasing virtual signals !
-	for (auto &vsig : virtual_signals) {
+	for (auto &vsig : p_virtual_signals) {
 		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
 
 	// Erasing virtual signals !
-	for (auto &vsig : virtual_signals_generic) {
+	for (auto &vsig : p_virtual_signals_generic) {
 		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
@@ -1546,7 +1548,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 // Get required names as a vector
 //.......................................................................................
-void MedModel::get_required_signal_names(vector<string>& signalNames) {
+void MedModel::get_required_signal_names(vector<string>& signalNames) const{
 	unordered_set<string> sigs;
 	get_required_signal_names(sigs);
 	signalNames.clear();

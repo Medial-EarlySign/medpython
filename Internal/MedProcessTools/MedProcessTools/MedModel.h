@@ -205,8 +205,8 @@ public:
 	void set_affected_signal_ids(MedDictionarySections& dict);
 
 	// Required signals back-propogation
-	void get_required_signal_names(unordered_set<string>& signalNames);
-	void get_required_signal_names(vector<string>& signalNames); // same, but get as vector
+	void get_required_signal_names(unordered_set<string>& signalNames) const;
+	void get_required_signal_names(vector<string>& signalNames) const; // same, but get as vector
 	/// Required signals to generate processed values of target-signals
 	void get_required_signal_names_for_processed_values(unordered_set<string>& targetSignalNames, unordered_set<string>& signalNames);
 	void get_required_signal_names_for_processed_values(unordered_set<string>& targetSignalNames, vector<string>& signalNames);
@@ -269,8 +269,8 @@ public:
 	int learn_feature_processors(MedFeatures &features);
 	int apply_feature_processors(MedFeatures &features, bool learning);
 	int apply_feature_processors(MedFeatures &features, vector<unordered_set<string>>& req_features_vec, bool learning);
-	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec);
-	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators);
+	void build_req_features_vec(vector<unordered_set<string>>& req_features_vec) const;
+	void get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators) const;
 
 	/// following is for debugging, it gets a prefix, and prints it along with information on rep_processors, feature_generators, or feature_processors
 	void dprint_process(const string &pref, int rp_flag, int fg_flag, int fp_flag, int predictor_flag, int pp_flag);

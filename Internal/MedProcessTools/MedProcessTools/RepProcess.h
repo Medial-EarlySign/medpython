@@ -111,7 +111,7 @@ public:
 	virtual void set_required_signal_ids(MedDictionarySections& dict);
 
 	/// <summary> rep processors CREATING virtual signals need to implement this: adding their signals to the pile </summary>
-	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) {
+	virtual void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) const {
 		for (auto &v : virtual_signals) _virtual_signals[v.first] = v.second;
 		for (auto &v : virtual_signals_generic) _virtual_signals_generic[v.first] = v.second;
 	};
@@ -255,7 +255,7 @@ public:
 	/// <summary> Required Signals ids : Fill the member vector - req_signal_ids </summary>
 	void set_required_signal_ids(MedDictionarySections& dict);
 	/// <summary> Reporting back virtual signals if there are any </summary>
-	void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic);
+	void add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) const;
 
 	/// <summary> Required Signals names : Fill the unordered set signalNames </summary>
 	void get_required_signal_names(unordered_set<string>& signalNames);
