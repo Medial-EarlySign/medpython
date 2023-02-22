@@ -283,5 +283,11 @@ public:
 	string model_version_info() const {
 		return model.version_info;
 	}
+
+	void get_model_signals_info(vector<string> &sigs,
+		unordered_map<string, vector<string>> &res_categ) const {
+		model.get_required_signal_names(sigs);
+		model.get_required_signal_categories(res_categ);
+	}
 };
 

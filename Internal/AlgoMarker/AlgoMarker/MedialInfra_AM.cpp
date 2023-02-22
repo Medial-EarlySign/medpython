@@ -2,6 +2,7 @@
 
 #include <Logger/Logger/Logger.h>
 #include <MedTime/MedTime/MedTime.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <json/json.hpp>
 #include "AlgoMarkerErr.h"
 
@@ -1042,6 +1043,83 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 }
 
 //-----------------------------------------------------------------------------------
+string MedialInfraAlgoMarker::get_lib_code_version() {
+	return medial::get_git_version();
+}
+
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::Discovery(char **response) {
+	nlohmann::ordered_json jresp;
+	jresp = nlohmann::ordered_json(
+		{
+		{ "name", get_name() },
+		{ "version", get_am_version() },
+		{ "udi_di", get_am_udi_di() },
+		{ "model_code_version", ma.model_version_info() },
+		{ "lib_code_version", get_lib_code_version() },
+		{ "signals", nlohmann::ordered_json::array() }
+		}
+	);
+
+	nlohmann::ordered_json &json_signals = jresp["signals"];
+
+	//Add signals to json_signals
+
+	unordered_set<string> sigs;
+	get_am_rep_signals(sigs);
+	vector<string> req_sigs;
+	unordered_map<string, vector<string>> sig_categ;
+	ma.get_model_signals_info(req_sigs, sig_categ);
+
+	for (const string &sig_name : req_sigs)
+	{
+		string sig_nm = sig_name;
+		string sig_unit = "";
+		string sig_type = "";
+		vector<int> categorical_ch;
+		vector<string> categorical_vals;
+		if (sigs.find(sig_name) != sigs.end()) {
+			int sid = ma.get_rep().sigs.sid(sig_name);
+			const SignalInfo &si = ma.get_rep().sigs.Sid2Info[sid];
+			for (int i = 0; i < si.n_val_channels; ++i) {
+				if (i > 0)
+					sig_unit += ",";
+				sig_unit += si.unit_of_measurement_per_val_channel[i];
+			}
+			UniversalSigVec usv;
+			usv.init(si);
+			sig_type = usv.get_signal_generic_spec();
+			categorical_ch.resize(si.n_val_channels);
+			for (size_t i = 0; i < si.n_val_channels; ++i)
+				if (si.is_categorical_per_val_channel[i])
+					categorical_ch[i] = 1;
+
+		}
+		else {
+			sig_nm = sig_nm + "(virtual)";
+		}
+		if (sig_categ.find(sig_name) != sig_categ.end())
+			categorical_vals = std::move(sig_categ.at(sig_name));
+
+		nlohmann::ordered_json sig_js;
+		sig_js = {
+			{ "code", sig_nm },
+			{ "unit", sig_unit },
+			{ "type", sig_type },
+			{ "categorical_channels", categorical_ch },
+			{ "categorical_values", categorical_vals }
+		};
+
+		json_signals += sig_js;
+	}
+
+	//ma.get_rep().sigs.Sid2Info[1].
+
+	json_to_char_ptr(jresp, response);
+	return 0;
+}
+
+//-----------------------------------------------------------------------------------
 void add_to_json_array(json &js, const string &key, const string &s_add)
 {
 	if (js.find(key) == js.end())
@@ -1051,6 +1129,19 @@ void add_to_json_array(json &js, const string &key, const string &s_add)
 
 //-----------------------------------------------------------------------------------
 void json_to_char_ptr(json &js, char **jarr)
+{
+	*jarr = NULL;
+	string sj = js.dump(1, '\t');
+
+	*jarr = new char[sj.length() + 1];
+
+	if (*jarr != NULL) {
+		(*jarr)[sj.length()] = 0;
+		strncpy(*jarr, sj.c_str(), sj.length());
+	}
+}
+
+void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr)
 {
 	*jarr = NULL;
 	string sj = js.dump(1, '\t');

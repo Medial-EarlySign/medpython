@@ -484,7 +484,17 @@ void AM_API_Dispose(char *data)
 }
 //-----------------------------------------------------------------------------------------------------------
 
-
+void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **resp) {
+	*resp = NULL;
+	try {
+		if (pAlgoMarker == NULL)
+			return;
+		pAlgoMarker->Discovery(resp);
+	}
+	catch (...) {
+	}
+}
+//-----------------------------------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------------------------------
 // get number of responses (= no. of pid,time result points)

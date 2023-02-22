@@ -895,6 +895,10 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 void SingletonGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
 	if (sets.size() > 0)
 		signal_categories_in_use[signalName] = sets;
+	else {
+		for (auto &it : name2Value)
+			signal_categories_in_use[signalName].push_back(it.first);
+	}
 }
 //.......................................................................................
 void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {

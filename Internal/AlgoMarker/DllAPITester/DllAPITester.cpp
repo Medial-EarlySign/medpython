@@ -62,6 +62,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("ignore_sig", po::value<string>()->default_value(""), "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
+			("discovery", po::value<string>()->default_value(""), "path to output discovery")
 
 			("direct_csv", po::value<string>()->default_value(""), "output matrix of the direct run (not via AM)")
 			("am_csv", po::value<string>()->default_value(""), "output matrix of the run via AM")
@@ -796,7 +797,7 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 		if (load_status != AM_OK_RC)
 			MERR("Error code returned from calling AddDataByType: %d\n", load_status);
 	}
-	
+
 
 	// direct call to CalculateByType
 	string sjreq;
@@ -960,6 +961,22 @@ void initialize_algomarker(po::variables_map &vm, AlgoMarker *&test_am)
 			else
 				MLOG("Loaded dictionary %s\n", fdict.c_str());
 		}
+	}
+
+	if (vm["discovery"].as<string>() != "") {
+		ofstream fw(vm["discovery"].as<string>());
+		if (!fw.good())
+			MTHROW_AND_ERR("Error can't write to %s\n", vm["discovery"].as<string>().c_str());
+
+		char *res;
+		DYN(AM_API_Discovery(test_am, &res));
+
+		
+		if (res != NULL) {
+			fw << res << endl;
+			delete[] res;
+		}
+		fw.close();
 	}
 }
 

@@ -296,6 +296,8 @@ public:
 	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
 	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
 	
+	//Discovery api
+	virtual int Discovery(char **response) { *response = NULL; return 0; }
 
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);
@@ -366,11 +368,14 @@ public:
 	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
 	int AddDataByType(int DataType, int patient_id, const char *data); // options for DataType : DATA_JSON_FORMAT
 	int CalculateByType(int CalculateType, char *request, char **response); // options: JSON_REQ_JSON_RESP
+	int Discovery(char **response);
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
 	void set_am_matrix(string s) { am_matrix = s;  }
 	void get_am_rep_signals(unordered_set<string> &am_sigs) { ma.get_rep_signals(am_sigs); } // returns the available 
 	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ) { ma.get_signal_structure(sig, n_time_channels, n_val_channels, is_categ); }
+
+	string get_lib_code_version();
 };
 
 //===============================================================================
@@ -488,6 +493,7 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeRequest(AMRequest *pRequest);
 // Dispose of responses - free all memory
 extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 
+extern "C" DLL_WORK_MODE void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **resp);
 
 // Dispose of allocated memory
 extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);

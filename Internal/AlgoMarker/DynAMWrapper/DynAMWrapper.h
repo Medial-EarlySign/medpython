@@ -38,6 +38,7 @@ public:
 	typedef void(*t_AM_API_DisposeAlgoMarker)(AlgoMarker*);
 	typedef void(*t_AM_API_DisposeResponses)(AMResponses*);
 	typedef void(*t_AM_API_DisposeRequest)(AMRequest*);
+	typedef void(*t_AM_API_Discovery)(AlgoMarker*, char **);
 	typedef void(*t_AM_API_Dispose)(char *);
 	void *addr_AM_API_Create = nullptr;
 	void *addr_AM_API_Load = nullptr;
@@ -66,6 +67,7 @@ public:
 	void *addr_AM_API_DisposeAlgoMarker = nullptr;
 	void *addr_AM_API_DisposeResponses = nullptr;
 	void *addr_AM_API_DisposeRequest = nullptr;
+	void *addr_AM_API_Discovery = nullptr;
 	void *addr_AM_API_Dispose = nullptr;
 	// returns index in sos
 	static int load(const char * am_fname);
@@ -77,6 +79,7 @@ public:
 	static void AM_API_DisposeAlgoMarker(AlgoMarker * pAlgoMarker);
 	static void AM_API_DisposeRequest(AMRequest *pRequest);
 	static void AM_API_Dispose(char *data);
+	static void AM_API_Discovery(AlgoMarker * pAlgoMarker, char **resp);
 	static void AM_API_DisposeResponses(AMResponses *responses);
 	static int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 	static int AM_API_GetName(AlgoMarker * pAlgoMArker, char **name);
