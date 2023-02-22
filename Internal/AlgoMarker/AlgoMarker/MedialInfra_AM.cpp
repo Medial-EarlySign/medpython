@@ -41,6 +41,7 @@ public:
 // local helper functions (these are CalculateByType helpers)
 void add_to_json_array(json &js, const string &key, const string &s_add);
 void json_to_char_ptr(json &js, char **jarr);
+void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
 
