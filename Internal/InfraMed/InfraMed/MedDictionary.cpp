@@ -749,6 +749,7 @@ void MedDictionarySections::connect_to_section(string new_section_name, int sect
 {
 	lock_guard<mutex> guard(lock_dict_changes);
 	SectionName2Id[new_section_name] = section_id;
+	dicts[section_id].section_name.insert(new_section_name);
 }
 
 //------------------------------------------------------------------------------------------------------

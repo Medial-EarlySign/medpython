@@ -31,7 +31,7 @@ private:
 	vector<int> pids;
 	int model_end_stage = MED_MDL_END;
 	bool model_init_done = false;
-
+	bool model_rep_done = false;
 public:
 
 	MedPidRepository & get_rep() { return rep; }
@@ -88,6 +88,16 @@ public:
 		model_init_done = true;
 		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
 	}
+
+	int init_model_for_rep() {
+		//global_logger.log(LOG_APP, LOG_DEF_LEVEL, "Init MedModel for Rep\n");
+		if (!model_rep_done) {
+			model_rep_done = true;
+			return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
+		}
+		return 0;
+	}
+
 
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }

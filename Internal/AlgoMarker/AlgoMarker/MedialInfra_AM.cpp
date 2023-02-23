@@ -1065,12 +1065,49 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	nlohmann::ordered_json &json_signals = jresp["signals"];
 
 	//Add signals to json_signals
+	if (!ma.model_initiated()) 
+		ma.init_model_for_rep();
 
 	unordered_set<string> sigs;
 	get_am_rep_signals(sigs);
 	vector<string> req_sigs;
-	unordered_map<string, vector<string>> sig_categ;
+	unordered_map<string, vector<string>> sig_categ, sig_categ_final;
 	ma.get_model_signals_info(req_sigs, sig_categ);
+	unordered_set<string> req_set(req_sigs.begin(), req_sigs.end());
+	//rename sig_categ if needed in some cases!
+	for (const auto &it : sig_categ)
+	{
+		if (req_set.find(it.first) != req_set.end())
+			sig_categ_final[it.first] = it.second;
+		else {
+			//test by section name!
+			int sig_section = ma.get_rep().dict.section_id(it.first);
+			//retrieve name that exists in SECTION:
+			const unordered_set<string> &sec_names = ma.get_rep().dict.dict(sig_section)->section_name;
+			vector<string> candidates;
+			for (const string &cand : sec_names)
+			{
+				if (req_set.find(cand) == req_set.end())
+					continue;
+				candidates.push_back(cand);
+			}
+
+			//Add to all:
+			if (candidates.empty())
+				MWARN("Warn - has used categorical signal %s without mapping\n",
+					it.first.c_str());
+			else if (candidates.size() > 1)
+				MWARN("Warn - has used categorical signal %s with multiple mapping\n",
+					it.first.c_str());
+			else {
+				unordered_set<string> sig_list_c(sig_categ_final[candidates[0]].begin(), sig_categ_final[candidates[0]].end());
+				sig_list_c.insert(it.second.begin(), it.second.end());
+				vector<string> final_list(sig_list_c.begin(), sig_list_c.end());
+				sort(final_list.begin(), final_list.end());
+				sig_categ_final[candidates[0]] = move(final_list);
+			}
+		}
+	}
 
 	for (const string &sig_name : req_sigs)
 	{
@@ -1099,8 +1136,8 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 		else {
 			sig_nm = sig_nm + "(virtual)";
 		}
-		if (sig_categ.find(sig_name) != sig_categ.end())
-			categorical_vals = std::move(sig_categ.at(sig_name));
+		if (sig_categ_final.find(sig_name) != sig_categ_final.end())
+			categorical_vals = std::move(sig_categ_final.at(sig_name));
 
 		nlohmann::ordered_json sig_js;
 		sig_js = {
