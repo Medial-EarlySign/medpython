@@ -231,5 +231,5 @@ void DynAM::AM_API_Discovery(AlgoMarker *pAlgoMarker, char **resp) {
 		(*((DynAM::t_AM_API_Discovery)DynAM::so->addr_AM_API_Discovery))
 		(pAlgoMarker, resp);
 	else
-		resp = NULL;
+		*resp = NULL;
 }

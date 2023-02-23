@@ -502,6 +502,8 @@ public:
 	void set_signal_ids(MedSignals& sigs) { genderId = sigs.sid("GENDER"); }
 	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
 
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
+
 	// Serialization
 	ADD_CLASS_NAME(GenderGenerator)
 		ADD_SERIALIZATION_FUNCS(generator_type, names, tags, iGenerateWeights)

@@ -790,6 +790,10 @@ int GenderGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void GenderGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	signal_categories_in_use["GENDER"].push_back("Male");
+	signal_categories_in_use["GENDER"].push_back("Female");
+}
 
 //=======================================================================================
 // Singleton
