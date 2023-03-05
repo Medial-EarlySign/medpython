@@ -197,27 +197,17 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
 			for (int i = 0; i < n_elem; i++) {
 				bool skip_val = false;
+				int val_start = Values_i;
 				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
-					float val = -1;
-					if (!rep.sigs.is_categorical_channel(sid, j)) {
-						val = stof(Values[Values_i++]);
-					}
-					else {
+					if (rep.sigs.is_categorical_channel(sid, j)) {
 						if (category_map.find(Values[Values_i]) == category_map.end()) {
 							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
 								sig.c_str(), Values[Values_i]);
 							(*ma.get_unknown_codes())[sig].insert(Values[Values_i]);
 							skip_val = true;
-							break;
 						}
-						else {
-							val = category_map.at(Values[Values_i]);
-							++Values_i;
-						}
+						++Values_i;
 					}
-
-					if (!skip_val)
-						converted_Values.push_back(val);
 				}
 				if (skip_val) {
 					//remove element!
@@ -225,9 +215,18 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 					TimeStamps_len -= rep.sigs.Sid2Info[sid].n_time_channels;
 				}
 				else {
+					//All done 
 					for (int j = 0; j < rep.sigs.Sid2Info[sid].n_time_channels; j++) {
 						final_tm.push_back(TimeStamps[Time_i]);
 						++Time_i;
+					}
+					for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+						float val;
+						if (!rep.sigs.is_categorical_channel(sid, j))
+							val = stof(Values[Values_i++]);
+						else
+							val = category_map.at(Values[val_start + j]);
+						converted_Values.push_back(val);
 					}
 				}
 			}
@@ -298,7 +297,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-	}
+}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -366,7 +365,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_PREDICTION_POINT) + ") Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
 			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
-	}
+		}
 	}
 
 	ma.normalize_samples();
@@ -470,7 +469,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		else
 			ma.add_features_mat(am_matrix);
 		first_write = false;
-		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -548,10 +547,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						}
 					}
 
-						}
-					}
 				}
 			}
+		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -589,7 +588,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-	}
+}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -719,7 +718,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		}
 		else
 			n_bad++;
-			}
+	}
 
 	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
 
@@ -743,7 +742,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
-		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -824,7 +823,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		}
 		jresp["responses"].push_back(js);
-				}
+	}
 
 	json_to_char_ptr(jresp, response);
 
@@ -843,7 +842,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-			}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
