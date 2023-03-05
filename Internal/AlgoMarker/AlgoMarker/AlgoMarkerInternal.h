@@ -23,6 +23,7 @@ private:
 	MedPidRepository rep;
 	MedModel model;
 	MedSamples samples;
+	unordered_map<string, unordered_set<string>> unknown_codes;
 	//InputSanityTester ist;
 
 	string name;
@@ -98,7 +99,7 @@ public:
 		return 0;
 	}
 
-
+	unordered_map<string, unordered_set<string>> *get_unknown_codes() { return &unknown_codes; }
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
 	int init_samples(int pid, int time) { return init_samples(&pid, &time, 1); }  // single prediction point initiation 
@@ -115,7 +116,7 @@ public:
 	//========================================================
 
 	 // init loading : actions that must be taken BEFORE any loading starts
-	int data_load_init() { rep.switch_to_in_mem_mode(); return 0; }
+	int data_load_init() { unknown_codes.clear(); rep.switch_to_in_mem_mode(); return 0; }
 
 	// load n_elems for a pid,sig
 	int data_load_pid_sig(int pid, const char *sig_name, int *times, float *vals, int n_elems) {
@@ -249,10 +250,12 @@ public:
 	//========================================================
 	// Clearing - freeing mem
 	//========================================================
-	void clear() { pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
+	void clear() { unknown_codes.clear(); pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
 
 	// clear_data() : leave model up, leave repository config up, but get rid of data and samples
-	void clear_data() { samples.clear(); rep.in_mem_rep.clear(); }
+	void clear_data() {
+		samples.clear(); rep.in_mem_rep.clear(); unknown_codes.clear();
+	}
 
 
 	//========================================================

@@ -68,7 +68,12 @@ cp ${DIR}/Resources/AlgoMarker/AlgoMarker_CMakeLists ${DIR}/../AlgoMarker/CMakeL
 mkdir -p ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 pushd ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 cmake -D SO_COMPILATION=TRUE ${DIR}/..
-make -j20
+
+version_txt=`get_git_status_text.py | sed 's|"||g' | awk -F"\t" '{print "\"" $1 "\""}'`
+echo -e "Git version info:\n${version_txt}"
+touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
+
+make -j20 -e GIT_HEAD_VERSION="$version_txt"
 cp ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release/AlgoMarker/libdyn_AlgoMarker.so ${DIR}/../Linux/Release/
 strip ${DIR}/../Linux/Release/libdyn_AlgoMarker.so
 nm -CD ${DIR}/../Linux/Release/libdyn_AlgoMarker.so | grep " T " > ${BLDDIR}/AlgoMarker/AlgoMarker.public_symbols

@@ -43,6 +43,7 @@ void InputTester::print()
 void InputTesterSimple::input_from_string(const string &in_str)
 {
 	sf.init_from_string(in_str);
+	err_message_template = err_msg;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -73,6 +74,7 @@ int InputTesterAttr::init(map<string, string>& mapper)
 // 1: good to go 0: did not pass -1: could not test
 int InputTesterSimple::test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers)
 {
+	err_msg = err_message_template;
 	MedSample s;
 
 	s.id = pid;
@@ -86,6 +88,38 @@ int InputTesterSimple::test_if_ok(MedPidRepository &rep, int pid, long long time
 	// if we are here the test could not be performed for some reason and we fail making the test, returning -1 in this case
 
 	return -1;
+}
+
+int InputTesterSimple::test_if_ok(int pid, long long timestamp, const unordered_map<string, unordered_set<string>> &dict_unknown) {
+	if (sf.values_in_dictionary) {
+		//Will be actually tested in here:
+		if (dict_unknown.find(sf.sig_name) == dict_unknown.end())
+			return 1;
+		else {
+			//Has bad codes:
+			//change err_msg based on err_message_template: replace $SIGNAL with signal and $VALUE with missing value:
+			string base_msg = boost::replace_all_copy(err_message_template, "$SIGNAL", sf.sig_name);
+			
+			bool start = true;
+			if (base_msg.find("$VALUE") != string::npos) {
+				stringstream ss;
+				ss << "\"";
+				for (const string &val : dict_unknown.at(sf.sig_name)) {
+					if (!start)
+						ss << ",";
+					ss << val;
+					start = false;
+				}
+				ss << "\"";
+				err_msg = boost::replace_all_copy(base_msg, "$VALUE", ss.str());
+			}
+			else
+				err_msg = base_msg;
+			
+			return 0;
+		}
+	}
+	return 1;
 }
 
 //-------------------------------------------------------------------------------------------------------------------------
@@ -463,6 +497,68 @@ int InputSanityTester::test_if_ok(MedSample &sample, vector<InputSanityTesterRes
 		// rc == 1 : nothing to do - passed the test
 	}
 
+	if (n_errors > 0)
+		return 0;
+
+	return 1;
+}
+
+int InputSanityTester::test_if_ok(int pid, long long timestamp,
+	const unordered_map<string, unordered_set<string>> &dict_unknown,
+	vector<InputSanityTesterResult> &Results) {
+	int n_warnings = 0;
+	int n_errors = 0;
+	for (auto &test : testers) {
+
+		if (test->stage != TESTER_STAGE_BEFORE_MODEL) continue; // these are tested elsewhere
+
+		InputSanityTesterResult res;
+		res.external_rc = 0;
+		res.internal_rc = 0;
+		res.err_msg = "";
+
+		int rc = test->test_if_ok(pid, timestamp, dict_unknown);
+		//MLOG("###>>> pid %d time %d test %s : nvals %d nout %d rc %d\n", pid, timestamp, test->tester_params.c_str(), t_nvals, t_noutliers, rc);
+		if (rc < 0) {
+			res.external_rc = AM_ELIGIBILITY_ERROR;
+			res.internal_rc = -2;
+			//res.err_msg = "Could not run filter on sample. ["+name+"]";
+			if (!test->cant_evel_msg.empty())
+				res.err_msg = test->cant_evel_msg;
+			else
+				res.err_msg = "Could not run filter on sample."; // no name in err message (a request...)
+
+			Results.push_back(res);
+			n_errors++;
+			if (test->stop_processing_more_errors)
+				break;
+		}
+
+		if (rc == 0) {
+
+			// we failed the test for a good reason and get out
+			res.external_rc = test->externl_rc;
+			res.internal_rc = test->internal_rc;
+			//res.err_msg = test->err_msg + "["+name+"]";
+			res.err_msg = test->err_msg; // no name in err message (a request...)
+
+										 //MLOG("###>>>>>> found an error: %d %d %s\n", res.external_rc, res.internal_rc, res.err_msg.c_str());
+
+			Results.push_back(res);
+
+			if (test->is_warning)
+				n_warnings++;
+			else
+				n_errors++;
+
+			if (test->stop_processing_more_errors)
+				break;
+		}
+
+		// rc == 1 : nothing to do - passed the test
+	}
+
+	//MLOG("###>>> pid %d n_errors %d n_warnings %d\n", pid, n_errors, n_warnings);
 	if (n_errors > 0)
 		return 0;
 

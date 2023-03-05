@@ -181,6 +181,9 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
 {
 	vector<float> converted_Values;
+	vector<long long> final_tm;
+	final_tm.reserve(TimeStamps_len);
+	converted_Values.reserve(Values_len);
 	MedRepository &rep = ma.get_rep();
 
 	try {
@@ -189,9 +192,11 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		int sid = rep.sigs.Name2Sid[sig];
 		if (rep.sigs.Sid2Info[sid].n_val_channels > 0) {
 			int Values_i = 0;
+			int Time_i = 0;
 			const auto& category_map = rep.dict.dict(section_id)->Name2Id;
 			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
 			for (int i = 0; i < n_elem; i++) {
+				bool skip_val = false;
 				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
 					float val = -1;
 					if (!rep.sigs.is_categorical_channel(sid, j)) {
@@ -201,13 +206,29 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 						if (category_map.find(Values[Values_i]) == category_map.end()) {
 							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
 								sig.c_str(), Values[Values_i]);
+							(*ma.get_unknown_codes())[sig].insert(Values[Values_i]);
+							skip_val = true;
+							break;
 						}
-						else
+						else {
 							val = category_map.at(Values[Values_i]);
-						++Values_i;
+							++Values_i;
+						}
 					}
 
-					converted_Values.push_back(val);
+					if (!skip_val)
+						converted_Values.push_back(val);
+				}
+				if (skip_val) {
+					//remove element!
+					Values_len -= rep.sigs.Sid2Info[sid].n_val_channels;
+					TimeStamps_len -= rep.sigs.Sid2Info[sid].n_time_channels;
+				}
+				else {
+					for (int j = 0; j < rep.sigs.Sid2Info[sid].n_time_channels; j++) {
+						final_tm.push_back(TimeStamps[Time_i]);
+						++Time_i;
+					}
 				}
 			}
 		}
@@ -217,7 +238,9 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		return AM_FAIL_RC;
 	}
 
-	return AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, converted_Values.data());
+	if (TimeStamps_len > 0 || Values_len > 0)
+		return AddData(patient_id, signalName, TimeStamps_len, final_tm.data(), Values_len, converted_Values.data());
+	return AM_OK_RC;
 
 }
 
@@ -267,6 +290,7 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 //------------------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
+	MWARN("Warning : Calculate is deprecated and will not be supported in the future, please use CalculateByType\n");
 #ifdef AM_TIMING_LOGS
 	MedTimer timer;
 	timer.start();
@@ -342,7 +366,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			string msg = msg_prefix + "(" + to_string(AM_MSG_BAD_PREDICTION_POINT) + ") Failed insert prediction point " + to_string(i) + " pid: " + to_string(request->get_pid(i)) + " ts: " + to_string(request->get_timestamp(i));
 			shared_msgs->insert_message(AM_GENERAL_FATAL, msg.c_str());
 			return AM_FAIL_RC;
-		}
+	}
 	}
 
 	ma.normalize_samples();
@@ -385,7 +409,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 		// test this point for eligibility and add errors if needed
 		vector<InputSanityTesterResult> test_res;
-		int test_rc = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
+		int test_rc = ist.test_if_ok(_pid, (long long)conv_times[i], *ma.get_unknown_codes(), test_res);
+		int test_rc2 = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
+		if (test_rc2 < 1)
+			test_rc = test_rc2;
 
 		// push messages if there are any
 		AMMessages *msgs = res->get_msgs();
@@ -443,7 +470,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		else
 			ma.add_features_mat(am_matrix);
 		first_write = false;
-	}
+		}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -521,10 +548,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						}
 					}
 
+						}
+					}
 				}
 			}
-		}
-	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -543,7 +570,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -670,7 +697,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 		else {
 			try {
-				req_i.sanity_test_rc = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+				req_i.sanity_test_rc = ist.test_if_ok(req_i.sample_pid, (long long)req_i.conv_time, *ma.get_unknown_codes(), req_i.sanity_res);
+				int rc_res = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+				if (rc_res < 1)
+					req_i.sanity_test_rc = rc_res;
 			}
 			catch (...) {
 				req_i.sanity_caught_err = 1;
@@ -689,7 +719,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		}
 		else
 			n_bad++;
-	}
+			}
 
 	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
 
@@ -713,7 +743,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
-	}
+		}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -794,7 +824,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		}
 		jresp["responses"].push_back(js);
-	}
+				}
 
 	json_to_char_ptr(jresp, response);
 
@@ -813,7 +843,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+			}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1065,7 +1095,7 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	nlohmann::ordered_json &json_signals = jresp["signals"];
 
 	//Add signals to json_signals
-	if (!ma.model_initiated()) 
+	if (!ma.model_initiated())
 		ma.init_model_for_rep();
 
 	unordered_set<string> sigs;
