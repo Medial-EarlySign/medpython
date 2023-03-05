@@ -121,7 +121,8 @@ int read_bin_file_IM(string &fname, unsigned char* &data, unsigned long long &si
 	inf.open(fname, ios::in | ios::binary | ios::ate);
 
 	if (!inf) {
-		MERR("read_binary_data_alloc(): can't open file %s for read\n", fname.c_str());
+		MERR("read_binary_data_alloc(): can't open file %s for read\n%s\n", 
+			fname.c_str(), strerror(errno));
 		return -1;
 	}
 
@@ -155,7 +156,8 @@ int read_bin_file_IM_parallel(string &fname, unsigned char* &data, unsigned long
 	inf.open(fname, ios::in | ios::binary | ios::ate);
 
 	if (!inf) {
-		MERR("read_binary_data_alloc(): can't open file %s for read\n", fname.c_str());
+		MERR("read_binary_data_alloc(): can't open file %s for read\n%s\n", fname.c_str(),
+			strerror(errno));
 		return -1;
 	}
 
@@ -214,7 +216,8 @@ int write_bin_file_IM(string &fname, unsigned char* data, unsigned long long siz
 	of.open(fname, ios::out | ios::binary);
 
 	if (!of) {
-		MERR("InfraMed Utils:: write_bin_file(): can't open file %s for write\n", fname.c_str());
+		MERR("InfraMed Utils:: write_bin_file(): can't open file %s for write\n%s\n", 
+			fname.c_str(), strerror(errno));
 		return -1;
 	}
 

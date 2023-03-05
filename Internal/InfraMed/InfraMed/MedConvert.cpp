@@ -899,6 +899,7 @@ int MedConvert::create_indexes()
 	if (registry_fname != "") {
 		infs[n_open_in_files].open(registry_fname, ios::in | ios::binary);
 		if (!infs[n_open_in_files]) {
+			MERR("%s\n", strerror(errno));
 			MERR("MedConvert: create_indexes: can't open registry file %s\n", registry_fname.c_str());
 			return -1;
 		}
@@ -913,7 +914,11 @@ int MedConvert::create_indexes()
 		if (in_data_fnames[i] != "") {
 			infs[n_open_in_files].open(in_data_fnames[i], ios::in | ios::binary);
 			if (!infs[n_open_in_files]) {
-				MERR("MedConvert: create_indexes: can't open input data file %s\n", in_data_fnames[i].c_str());
+				MERR("%s\n", strerror(errno));
+				if (i > 1000) 
+					MWARN("More than 1000 files are opened. please increase system limits using ulimit -n\n");
+				MERR("MedConvert: create_indexes: can't open input data file (%d) %s\n", 
+					i, in_data_fnames[i].c_str());
 				return -1;
 			}
 		}
@@ -929,6 +934,9 @@ int MedConvert::create_indexes()
 		if (in_strings_data_fnames[i] != "") {
 			infs[n_open_in_files].open(in_strings_data_fnames[i], ios::in | ios::binary);
 			if (!infs[n_open_in_files]) {
+				MERR("%s\n", strerror(errno));
+				if (i > 1000)
+					MWARN("More than 1000 files are opened. please increase system limits using ulimit -n\n");
 				MERR("MedConvert: create_indexes: can't open input data file %s\n", in_strings_data_fnames[i].c_str());
 				return -1;
 			}
@@ -983,7 +991,7 @@ int MedConvert::create_indexes()
 	if (!full_error_file.empty()) {
 		err_log_file.open(full_error_file);
 		if (!err_log_file.good())
-			MTHROW_AND_ERR("Error - unable to open error log file %s in write mode\n", full_error_file.c_str());
+			MTHROW_AND_ERR("Error \"%s\" - unable to open error log file %s in write mode\n", strerror(errno), full_error_file.c_str());
 	}
 
 	MedProgress load_progress("MedConvert::create_indexes", 0, 30);
@@ -1187,7 +1195,7 @@ int MedConvert::open_indexes()
 			data_f[i] = (ofstream *)new ofstream;
 			data_f[i]->open(data_fnames[i], ios::out | ios::binary);
 			if (!data_f[i]->is_open()) {
-				MERR("MedConvert:: open_indexes:: can't open output file %s\n", data_fnames[i].c_str());
+				MERR("MedConvert:: open_indexes:: can't open output file %s\n%s\n", data_fnames[i].c_str(), strerror(errno));
 				return -1;
 			}
 			if (verbose_open_files)
