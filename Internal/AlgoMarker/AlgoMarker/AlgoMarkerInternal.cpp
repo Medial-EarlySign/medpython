@@ -103,14 +103,12 @@ int InputTesterSimple::test_if_ok(int pid, long long timestamp, const unordered_
 			bool start = true;
 			if (base_msg.find("$VALUE") != string::npos) {
 				stringstream ss;
-				ss << "\"";
 				for (const string &val : dict_unknown.at(sf.sig_name)) {
 					if (!start)
 						ss << ",";
 					ss << val;
 					start = false;
 				}
-				ss << "\"";
 				err_msg = boost::replace_all_copy(base_msg, "$VALUE", ss.str());
 			}
 			else
