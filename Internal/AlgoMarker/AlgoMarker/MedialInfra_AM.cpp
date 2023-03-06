@@ -203,7 +203,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 						if (category_map.find(Values[Values_i]) == category_map.end()) {
 							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
 								sig.c_str(), Values[Values_i]);
-							(*ma.get_unknown_codes())[sig].insert(Values[Values_i]);
+							(*ma.get_unknown_codes(patient_id))[sig].insert(Values[Values_i]);
 							skip_val = true;
 						}
 						++Values_i;
@@ -408,7 +408,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 		// test this point for eligibility and add errors if needed
 		vector<InputSanityTesterResult> test_res;
-		int test_rc = ist.test_if_ok(_pid, (long long)conv_times[i], *ma.get_unknown_codes(), test_res);
+		int test_rc = ist.test_if_ok(_pid, (long long)conv_times[i], *ma.get_unknown_codes(_pid), test_res);
 		int test_rc2 = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
 		if (test_rc2 < 1)
 			test_rc = test_rc2;
@@ -696,7 +696,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 		else {
 			try {
-				req_i.sanity_test_rc = ist.test_if_ok(req_i.sample_pid, (long long)req_i.conv_time, *ma.get_unknown_codes(), req_i.sanity_res);
+				req_i.sanity_test_rc = ist.test_if_ok(req_i.sample_pid, (long long)req_i.conv_time, *ma.get_unknown_codes(req_i.sample_pid), req_i.sanity_res);
 				int rc_res = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
 				if (rc_res < 1)
 					req_i.sanity_test_rc = rc_res;

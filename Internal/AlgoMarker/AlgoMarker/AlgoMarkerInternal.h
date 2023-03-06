@@ -23,7 +23,7 @@ private:
 	MedPidRepository rep;
 	MedModel model;
 	MedSamples samples;
-	unordered_map<string, unordered_set<string>> unknown_codes;
+	unordered_map<int, unordered_map<string, unordered_set<string>>> unknown_codes;
 	//InputSanityTester ist;
 
 	string name;
@@ -99,7 +99,9 @@ public:
 		return 0;
 	}
 
-	unordered_map<string, unordered_set<string>> *get_unknown_codes() { return &unknown_codes; }
+	unordered_map<string, unordered_set<string>> *get_unknown_codes(int pid) {
+		return &unknown_codes[pid];
+	}
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
 	int init_samples(int pid, int time) { return init_samples(&pid, &time, 1); }  // single prediction point initiation 
