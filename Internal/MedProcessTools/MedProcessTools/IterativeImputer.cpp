@@ -186,7 +186,7 @@ int IterativeImputer::init_feature_info(MedFeatures &mfd, string feat_name)
 	int n_best = -1;
 	float epsilon = (float)1e-4;
 	double res_above = 10000;
-	for (double res = 1000; res >= (float) 0.001; res = res/10.0) {
+	for (double res = 1000; res >= 0.001; res = res/10.0) {
 		int n_in_res = 0;
 		for (auto &vc : val_cnt) {
 			if (vc.first != 0) { // 0 never helps us to detect resolutions

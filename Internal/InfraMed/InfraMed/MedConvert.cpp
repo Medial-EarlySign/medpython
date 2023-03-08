@@ -743,7 +743,7 @@ void MedConvert::get_next_signal_all_lines(vector<string> &lines, vector<int> &f
 			}
 			*/
 		}
-		catch (invalid_argument e) {
+		catch (invalid_argument &e) {
 
 			pair<string, string> my_key = make_pair(sigs.name(sid), string(e.what()));
 			if (missing_dict_vals.find(my_key) == missing_dict_vals.end()) {

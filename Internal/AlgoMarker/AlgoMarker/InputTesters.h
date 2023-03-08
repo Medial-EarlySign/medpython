@@ -52,7 +52,7 @@ public:
 	// returns: 1: passes the test , 0: did not pass , -1: could not test
 	// also returns: nvals (if relevant): number of tests in the window time defined in the test
 	//               noutliers (if relevant) : number of outliers found
-	virtual int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { return -1; }
+	virtual int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { nvals = 0; noutliers = 0; return -1; }
 
 	virtual int test_if_ok(MedSample &sample) { return -1; };				// 1: good to go 0: did not pass -1: could not test
 

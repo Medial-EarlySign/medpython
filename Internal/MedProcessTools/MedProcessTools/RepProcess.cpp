@@ -1085,7 +1085,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
-		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "conf_file") readConfFile(entry.second, outlierParams_dict);
@@ -1834,7 +1834,7 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
-		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		//! [RepNbrsOutlierCleaner::init]

@@ -523,39 +523,38 @@ void DoCalcFeatProcessor::framingham_chd(vector<float*> p_sources, float *p_out,
 			MTHROW_AND_ERR("CalcFeatGenerator framingham_chd found missing value need to use imputer");
 		//Men
 
-		if (1 == 1) {
-			double sum_beta = 0.0;
-			if (gender == 1) {
-				sum_beta += log(Age)*3.06117F;
-				sum_beta += log(chol)*1.12370F;
-				sum_beta += log(hdl)*-0.93263F;
+		double sum_beta = 0.0;
+		if (gender == 1) {
+			sum_beta += log(Age)*3.06117F;
+			sum_beta += log(chol)*1.12370F;
+			sum_beta += log(hdl)*-0.93263F;
 
-				if (BP_drug == 0)
-					sum_beta += log(BP_sys)*1.93303F;
-				else
-					sum_beta += log(BP_sys)*1.99881F;
+			if (BP_drug == 0)
+				sum_beta += log(BP_sys)*1.93303F;
+			else
+				sum_beta += log(BP_sys)*1.99881F;
 
-				sum_beta += Current_Smoker * 0.65451F;
-				sum_beta += DM_Registry * 0.57367F;
-				res = 1 - pow(0.88936F, exp(sum_beta - 23.9802F));
+			sum_beta += Current_Smoker * 0.65451F;
+			sum_beta += DM_Registry * 0.57367F;
+			res = 1 - pow(0.88936F, exp(sum_beta - 23.9802F));
 
-			}
-			//Women
-			else {
-				sum_beta += log(Age)*2.32888F;
-				sum_beta += log(chol)*1.20904F;
-				sum_beta += log(hdl)*-0.70833F;
-
-				if (BP_drug == 0)
-					sum_beta += log(BP_sys)*2.76157F;
-				else
-					sum_beta += log(BP_sys)*2.82263F;
-
-				sum_beta += Current_Smoker * 0.52873F;
-				sum_beta += DM_Registry * 0.69154F;
-				res = 1 - pow(0.95012F, exp(sum_beta - 26.1931F));
-			}
 		}
+		//Women
+		else {
+			sum_beta += log(Age)*2.32888F;
+			sum_beta += log(chol)*1.20904F;
+			sum_beta += log(hdl)*-0.70833F;
+
+			if (BP_drug == 0)
+				sum_beta += log(BP_sys)*2.76157F;
+			else
+				sum_beta += log(BP_sys)*2.82263F;
+
+			sum_beta += Current_Smoker * 0.52873F;
+			sum_beta += DM_Registry * 0.69154F;
+			res = 1 - pow(0.95012F, exp(sum_beta - 26.1931F));
+		}
+
 
 
 		p_out[i] = (float)res;

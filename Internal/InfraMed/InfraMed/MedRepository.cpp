@@ -1915,7 +1915,12 @@ void IndexTable::clear()
 	}
 	work_area = NULL;
 	init();
-	sv.clear();
+	try {
+		sv.clear();
+	}
+	catch (...) {
+		MERR("Error IndexTable::clear - not enough memory\n");
+	}
 
 }
 
