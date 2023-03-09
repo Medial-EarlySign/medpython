@@ -60,10 +60,12 @@ template <class S> int discretize(vector<S>& x, vector<int>& binned_x, int& nbin
 				tot += it->second;
 			int bin_size = tot / max_bins;
 
-			tot = 0;
-			for (auto it = x_values.begin(); it != x_values.end(); it++) {
-				x_index[it->first] = tot / bin_size;
-				tot += it->second;
+			if (bin_size > 0) {
+				tot = 0;
+				for (auto it = x_values.begin(); it != x_values.end(); it++) {
+					x_index[it->first] = tot / bin_size;
+					tot += it->second;
+				}
 			}
 		}
 
