@@ -351,6 +351,7 @@ public:
 	int init(map<string, string>& map);
 	void read_dist_matrix_from_file(const string& fileName);
 
+	ADD_CLASS_NAME(Multiclass_Params)
 	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name, do_class_auc)
 };
 
@@ -364,6 +365,7 @@ public:
 
 	int init(map<string, string>& mapper);
 
+	ADD_CLASS_NAME(Regression_Params)
 	ADD_SERIALIZATION_FUNCS(do_logloss)
 };
 
@@ -564,6 +566,8 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 MEDSERIALIZE_SUPPORT(Incident_Stats)
 MEDSERIALIZE_SUPPORT(ROC_Params)
 MEDSERIALIZE_SUPPORT(Filter_Param)
+MEDSERIALIZE_SUPPORT(Regression_Params)
+MEDSERIALIZE_SUPPORT(Multiclass_Params)
 
 #endif // !__BOOTSTRAP_ANALYSIS_H__
 
