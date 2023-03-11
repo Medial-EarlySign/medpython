@@ -579,9 +579,9 @@ double trainBatch(netStruct *myNet, double **inputs, double **outputs, int numSa
 	free(tempOutputs);
 	free(rperm);
 
-	delete[] outputs;
+	free(outputs);
 	outputs = NULL;
-	delete[] inputs;
+	free(inputs);
 	inputs = NULL;
 
 	return(sumError / numSamples);

@@ -344,7 +344,7 @@ int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order) {
 		order[i] = i;
 
 
-	float *avg, *std;
+	float *avg = NULL, *std = NULL;
 	if ((avg = (float *)malloc(nftrs * sizeof(float))) == NULL || (std = (float *)malloc(nftrs * sizeof(float))) == NULL) {
 		fprintf(stderr, "Stats allocation failed\n");
 		clear_mem<float>(avg);
@@ -615,7 +615,7 @@ int nbrs_ls(float *testx, int ind, int *nbrs, double *dists, float *x, float *y,
 	}
 
 	// Normalize
-	double yavg, *xavg, *xstd;
+	double yavg, *xavg = NULL, *xstd = NULL;
 	if (tcalc_stats(localx, localy, localw, nrows, nftrs, &xavg, &xstd, &yavg) == -1)
 		return -1;
 
