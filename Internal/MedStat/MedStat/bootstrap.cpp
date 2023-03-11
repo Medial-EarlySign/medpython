@@ -165,6 +165,8 @@ bool Lazy_Iterator::fetch_next(int thread, float &ret_y, float &ret_pred, float 
 	bool res = this->fetch_next(thread, ret_y, ret_pred_pointer, weight, preds_order);
 	if (ret_pred_pointer != NULL)
 		ret_pred = *ret_pred_pointer;
+	else
+		ret_pred = MED_MAT_MISSING_VALUE;
 	return res;
 }
 
