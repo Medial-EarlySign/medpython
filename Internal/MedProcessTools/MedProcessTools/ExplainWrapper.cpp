@@ -622,10 +622,12 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 			full_res[global_explainer_section] = nlohmann::ordered_json::array();
 			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
 			int idx = 0;
+			double tot_val = 0;
 			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it) {
 				sorted_exp[idx].first = it->first;
 				sorted_exp[idx].second = it->second;
 				++idx;
+				tot_val += abs(it->second);
 			}
 			sort(sorted_exp.begin(), sorted_exp.end(), [](const pair<string, float> &a, const pair<string, float> &b)
 			{ return abs(a.second) > abs(b.second); });
@@ -653,6 +655,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 				group_json["contributer_name"] = pt.first;
 				group_json["contributer_level"] = pt.second;
+				group_json["contributer_percentage"] = 100 * abs(pt.second) / tot_val;
 				group_json["contributer_elements"] = child_elements;
 
 				full_res[global_explainer_section].push_back(group_json);
