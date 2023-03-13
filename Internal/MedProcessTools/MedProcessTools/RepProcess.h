@@ -1215,7 +1215,7 @@ public:
 
 /**
 * A multiply operation with power on both arguments. V = { V1, V2 }
-* res := V1^power_a * V2^power_b
+* res := b0 * pie_multiply(i=1..N) {input[i]^powers[i]}
 */
 class MultiplyCalculator : public SimpleCalculator {
 public:

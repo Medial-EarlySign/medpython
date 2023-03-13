@@ -617,9 +617,9 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 #pragma omp parallel for if (explain_reasons.size() > 2)
 		for (int i = 0; i < explain_reasons.size(); ++i) {
-			json full_res;
+			nlohmann::ordered_json full_res;
 			string global_explainer_section = "explainer_output";
-			full_res[global_explainer_section] = json::array();
+			full_res[global_explainer_section] = nlohmann::ordered_json::array();
 			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
 			int idx = 0;
 			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it) {
@@ -630,8 +630,8 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 			sort(sorted_exp.begin(), sorted_exp.end(), [](const pair<string, float> &a, const pair<string, float> &b)
 			{ return abs(a.second) > abs(b.second); });
 			for (const auto &pt : sorted_exp) {
-				json group_json;
-				json child_elements = json::array();
+				nlohmann::ordered_json group_json;
+				nlohmann::ordered_json child_elements = nlohmann::ordered_json::array();
 				//Fill with group features: Feature_Name, Feature_Value
 				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
 				// TODO: sort by importance
@@ -645,7 +645,7 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 						const FeatureNormalizer *normalizer = feats_to_norm.at(feat_name);
 						normalizer->reverse_apply(feat_value);
 					}
-					json child_e;
+					nlohmann::ordered_json child_e;
 					child_e["feature_name"] = feat_name;
 					child_e["feature_value"] = feat_value;
 					child_elements.push_back(child_e);
