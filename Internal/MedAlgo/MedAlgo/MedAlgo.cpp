@@ -239,7 +239,7 @@ int MedPredictor::init(map<string, string>& mapper) {
 }
 
 void MedPredictor::prepare_predict_single() {
-	MWARN("WARN: Not impelemnted in %s\n", my_class_name().c_str()); 
+	MWARN("WARN: Not impelemnted in %s\n", my_class_name().c_str());
 }
 
 //.......................................................................................
@@ -1272,6 +1272,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 	vector<float> std1(population1.data.size()), std2(population1.data.size());
 	vector<float> lower1(population1.data.size()), lower2(population1.data.size());
 	vector<float> upper1(population1.data.size()), upper2(population1.data.size());
+	vector<double> miss_cnt1(population1.data.size()), miss_cnt2(population1.data.size());
 
 	vector<double> prc_vals = { 0.05, 0.95 };
 	int feat_i = 0;
@@ -1282,7 +1283,9 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			MTHROW_AND_ERR("population %s is missing feature %s\n",
 				it->first.c_str(), name2.c_str());
 		means1[feat_i] = medial::stats::mean(it->second, (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
+		miss_cnt1[feat_i] = 100.0*((int)it->second.size() - n_clean) / ((double)it->second.size());
 		means2[feat_i] = medial::stats::mean(population2.data.at(it->first), (float)MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
+		miss_cnt2[feat_i] = 100.0*((int)population2.data.at(it->first).size() - n_clean) / ((double)population2.data.at(it->first).size());
 		std1[feat_i] = medial::stats::std(it->second, means1[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population1.weights);
 		std2[feat_i] = medial::stats::std(population2.data.at(it->first), means2[feat_i], (float)MED_MAT_MISSING_VALUE, n_clean, &population2.weights);
 
@@ -1371,9 +1374,9 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 	snprintf(buffer_s, sizeof(buffer_s), "Comparing populations - %s population has %zu sampels, %s has %zu samples."
 		" Features distributaions:\n", name1.c_str(), population1.samples.size(),
 		name2.c_str(), population2.samples.size());
-	
+
 	if (!output_file.empty())
-		fw << string(buffer_s);	
+		fw << string(buffer_s);
 	else
 		MLOG("%s", string(buffer_s).c_str());
 
@@ -1386,12 +1389,12 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		float ratio_diff_range = abs(means1[feat_i]);
 		if (ratio_diff_range < std1[feat_i]) //if mean is closed to zero - take mean diff in std's ratio
 			ratio_diff_range = std1[feat_i];
-		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | "
-			"%s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f | mean_diff_ratio=%2.3f%% | IMP %f\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
-			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], name2.c_str(),
-			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i],
+		snprintf(buffer_s, sizeof(buffer_s), "%s feature %s :: %s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f, miss_cnt=%2.3f%% | "
+			"%s mean= %2.3f [ %2.3f - %2.3f ],std= %2.3f, miss_cnt=%2.3f%% | mean_diff_ratio=%2.3f%% | IMP %f\n", desc_str.c_str(), it->first.c_str(), name1.c_str(),
+			means1[feat_i], lower1[feat_i], upper1[feat_i], std1[feat_i], miss_cnt1[feat_i], name2.c_str(),
+			means2[feat_i], lower2[feat_i], upper2[feat_i], std2[feat_i], miss_cnt2[feat_i],
 			100 * abs(means1[feat_i] - means2[feat_i]) / max(ratio_diff_range, (float)1e-10), features_scores[j++]);
-		
+
 		if (!output_file.empty())
 			fw << string(buffer_s);
 		else
@@ -1401,7 +1404,7 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 	}
 
 	//Mann-Whitney analysis on each column:
-	snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\tFEATURE_NAME\tP_VAL\tAUC\tMEAN_1\tSTD_1\tMEAN_2\tSTD_2\tFEATURE_IMPORTANCE\n");
+	snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\tFEATURE_NAME\tMEAN_1\tSTD_1\tMISS_CNT_1\tMEAN_2\tSTD_2\tMISS_CNT_2\tP_VAL\tAUC\tFEATURE_IMPORTANCE\n");
 	if (!output_file.empty())
 		fw << string(buffer_s);
 	else
@@ -1429,8 +1432,9 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			}
 
 		if (control_cnt < 10 || cases_cnt < 10) {
-			snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\tMISSING\tMISSING\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
-				it->first.c_str(), means1[feat_i], std1[feat_i], means2[feat_i], std2[feat_i], features_scores[feat_i]);
+			snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\tMISSING\tMISSING\n",
+				it->first.c_str(), means1[feat_i], std1[feat_i], miss_cnt1[feat_i], 
+				means2[feat_i], std2[feat_i], miss_cnt2[feat_i], features_scores[feat_i]);
 			if (!output_file.empty())
 				fw << string(buffer_s);
 			else
@@ -1439,10 +1443,10 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 			continue;
 		}
 		float auc = medial::performance::auc_q(data_vec, test_auc);
-		float p_val= 1 - 2 * abs(auc - 0.5);
+		float p_val = 1 - 2 * abs(auc - 0.5);
 
-		snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
-			 it->first.c_str(), p_val, auc, means1[feat_i], std1[feat_i], means2[feat_i], std2[feat_i], features_scores[feat_i]);
+		snprintf(buffer_s, sizeof(buffer_s), "MANN_WHITNEY\t%s\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\t%2.3f\n",
+			it->first.c_str(), means1[feat_i], std1[feat_i], miss_cnt1[feat_i], means2[feat_i], std2[feat_i], miss_cnt2[feat_i], p_val, auc, features_scores[feat_i]);
 
 		if (!output_file.empty())
 			fw << string(buffer_s);
@@ -1455,10 +1459,10 @@ void medial::process::compare_populations(const MedFeatures &population1, const 
 		float auc = medial::performance::auc_q(preds, labels, &new_data.weights);
 		snprintf(buffer_s, sizeof(buffer_s),
 			"predictor AUC with CV to diffrentiate between populations is %2.3f\n", auc);
-		
+
 		MLOG("%s", string(buffer_s).c_str());
 		if (!output_file.empty())
-			fw << string(buffer_s);			
+			fw << string(buffer_s);
 	}
 
 	if (!output_file.empty())
