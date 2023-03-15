@@ -445,12 +445,13 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 		if (sunit.empty()) {
 			bool has_units_in_rep = false;
 			if (n_val_channels > 0) {
-				sunit = rep.sigs.unit_of_measurement(sid, 0);
+				sunit = ((MedialInfraAlgoMarker *)am)->get_sig_unit(sig, 0);
 				has_units_in_rep = !sunit.empty();
 			}
 			for (int j = 1; j < n_val_channels; j++) {
-				sunit += "," + rep.sigs.unit_of_measurement(sid, j);
-				has_units_in_rep = !rep.sigs.unit_of_measurement(sid, j).empty();
+				sunit += "," + ((MedialInfraAlgoMarker *)am)->get_sig_unit(sig, j);
+				if (!has_units_in_rep)
+					has_units_in_rep = !((MedialInfraAlgoMarker *)am)->get_sig_unit(sig, j).empty();
 			}
 			if (!has_units_in_rep)
 				sunit = "";
