@@ -13,7 +13,7 @@
 #include <string>
 #include <iostream>
 #include <boost/program_options.hpp>
-
+#include <boost/regex.hpp>
 
 #include <Logger/Logger/Logger.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
@@ -62,6 +62,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("ignore_sig", po::value<string>()->default_value(""), "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
+			("signal_categ_regex", po::value<string>()->default_value(""), "path file with tab delimeted of 2 columns: signal + regex")
 			("discovery", po::value<string>()->default_value(""), "path to output discovery")
 
 			("direct_csv", po::value<string>()->default_value(""), "output matrix of the direct run (not via AM)")
@@ -356,7 +357,58 @@ string float_to_string(float val) {
 }
 
 //=================================================================================================================
-void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, unordered_map<string, string> &units, json &json_out, int values_flag = 0)
+
+bool any_regex_matcher(const boost::regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = boost::regex_match(nms[i], reg_pat);
+	return res;
+}
+
+void get_parents(int codeGroup, vector<int> &parents, int max_depth, const boost::regex &reg_pat,
+	const map<int, vector<int>> &member2Sets, const map<int, vector<string>> &id_to_names) {
+	vector<int> last_parents = { codeGroup };
+	if (last_parents.front() < 0)
+		return; //no parents
+	parents = {};
+
+	vector<int> filtered_p;
+	for (size_t k = 0; k < max_depth; ++k) {
+		vector<int> new_layer;
+		for (int par : last_parents)
+			if (member2Sets.find(par) != member2Sets.end()) {
+				new_layer.insert(new_layer.end(), member2Sets.at(par).begin(), member2Sets.at(par).end());
+			}
+		new_layer.swap(last_parents);
+		if (last_parents.empty())
+			break; //no more parents to loop up
+
+		//test if current layer has legal parents:
+		for (int code : last_parents)
+		{
+			if (id_to_names.find(code) == id_to_names.end())
+				MTHROW_AND_ERR("get_parents - code %d wasn't found in dict\n", code);
+			const vector<string> &names_ = id_to_names.at(code);
+			bool pass_regex_filter = any_regex_matcher(reg_pat, names_);
+			if (pass_regex_filter)
+				filtered_p.push_back(code);
+		}
+		if (!filtered_p.empty()) //found
+			break;
+	}
+
+	parents.swap(filtered_p);
+
+	//uniq:
+	unordered_set<int> uniq(parents.begin(), parents.end());
+	vector<int> fnal(uniq.begin(), uniq.end());
+	parents.swap(fnal);
+}
+
+//=================================================================================================================
+void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig,
+	int pid, int time, string &sig, unordered_map<string, string> &units, json &json_out,
+	const map<string, boost::regex> &signal_to_regex, int values_flag = 0)
 {
 	if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 		return;
@@ -378,6 +430,9 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 
 	int sid = rep.sigs.sid(sig);
 	int section_id = rep.dict.section_id(sig);
+
+	const map<int, vector<int>> &member_to_sets = rep.dict.dict(section_id)->Member2Sets;
+	const map<int, vector<string>> &id_to_names = rep.dict.dict(section_id)->Id2Names;
 
 	if (nelem > 0) {
 
@@ -419,16 +474,46 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 			}
 
 			// vals
+			bool no_need_to_add_data = false;
 			for (int j = 0; j < n_val_channels; j++) {
 				if (values_flag || rep.sigs.is_categorical_channel(sid, j) == 0)
 					json_sig_data_item["value"].push_back(float_to_string(usv.Val<float>(i, j)));
 				else {
 					// using the first name in the dictionary
-					json_sig_data_item["value"].push_back(rep.dict.dicts[section_id].Id2Names[usv.Val<int>(i, j)][0]);
+					int signal_id_val = usv.Val<int>(i, j);
+					if (signal_to_regex.find(sig) == signal_to_regex.end() || n_val_channels > 1) {
+						string code_txt = rep.dict.dicts[section_id].Id2Names[signal_id_val][0];
+						json_sig_data_item["value"].push_back(code_txt);
+						if (signal_to_regex.find(sig) != signal_to_regex.end())
+							MWARN("No support for signal_to_regex on multipl signals\n");
+					}
+					else {
+						//Currentlly supports only 1 val cahnnel
+						//go up in parent till regex:
+						const boost::regex &reg_filter = signal_to_regex.at(sig);
+						vector<int> codes;
+						get_parents(signal_id_val, codes, 1000, reg_filter, member_to_sets, id_to_names);
+						//Break into all "codes":
+						for (int cd_ : codes)
+						{
+							json json_sig_data_item_ = json({ { "timestamp" , json::array() },{ "value" , json::array() } });
+
+							for (int j = 0; j < n_time_channels; j++) {
+								long long t = min((long long)time, (long long)usv.Time(i, j)); // chopping future time channels to the current time
+								json_sig_data_item_["timestamp"].push_back(t);
+							}
+
+							string code_txt = rep.dict.dicts[section_id].Id2Names[cd_][0];
+							json_sig_data_item_["value"].push_back(code_txt);
+
+							json_sig["data"].push_back(json_sig_data_item_);
+						}
+						no_need_to_add_data = true; // the data was added in this loop - skip the push_back of data in the end on vlaue loop
+					}
 				}
 			}
-
-			json_sig["data"].push_back(json_sig_data_item);
+			if (!no_need_to_add_data)
+				json_sig["data"].push_back(json_sig_data_item);
 		}
 
 		json_out["body"]["signals"].push_back(json_sig);
@@ -469,6 +554,29 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	int print_msgs = (int)vm.count("print_msgs");
 	int write_jsons = (vm["out_jsons"].as<string>() != "");
 	unordered_map<string, string> units;
+	map<string, boost::regex> signal_categ_regex;
+	//Read for vm syntax:
+	if (!vm["signal_categ_regex"].as<string>().empty()) {
+		//read and prase file:
+		ifstream file_reader(vm["signal_categ_regex"].as<string>());
+		if (!file_reader.good())
+			MTHROW_AND_ERR("Error can't read file %s\n", vm["signal_categ_regex"].as<string>().c_str());
+		MLOG("Reading file %s for regex filter\n", vm["signal_categ_regex"].as<string>().c_str());
+		string line;
+		while (getline(file_reader, line)) {
+			boost::trim(line);
+			if (line.empty() || line[0] == '#')
+				continue;
+			vector<string> tokens;
+			boost::split(tokens, line, boost::is_any_of("\t"));
+			if (tokens.size() != 2)
+				MTHROW_AND_ERR("Error bad file format %s. expecting 2 tokens\n",
+					vm["signal_categ_regex"].as<string>().c_str());
+			signal_categ_regex[tokens[0]] = boost::regex(tokens[1]);
+		}
+		file_reader.close();
+	}
+
 	int MAX_VALS = 100000, MAX_VAL_LEN = 200;
 	vector<char *>str_vals(MAX_VALS);
 	vector<char> buf(MAX_VALS*MAX_VAL_LEN);
@@ -513,7 +621,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			MedTimer _t_add_data; _t_add_data.start();
 			for (auto &sig : sigs) {
 				t_add_data_api += add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, &str_vals[0]);
-				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, (int)vm.count("vals_json"));
+				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, signal_categ_regex, (int)vm.count("vals_json"));
 			}
 			_t_add_data.take_curr_time(); t_add_data += _t_add_data.diff_sec();
 
