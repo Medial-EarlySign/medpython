@@ -1172,6 +1172,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
 
+	vector<int> topN_points = params->working_point_TOPN; //Working Top N points:
+	sort(topN_points.begin(), topN_points.end());
 	vector<float> fpr_points = params->working_point_FPR; //Working FPR points:
 	sort(fpr_points.begin(), fpr_points.end());
 	for (size_t i = 0; i < fpr_points.size(); ++i)
@@ -1309,7 +1311,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 
 	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
-	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0;
+	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0, curr_wp_topn_ind=0;
 	int i = 0;
 
 	float ppv_c, pr_prev, ppv_prev, pr_c, score_c, score_prev, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
@@ -1909,6 +1911,164 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				}
 
 				++curr_wp_score_ind;
+				continue;
+			}
+			++i;
+		}
+
+		//top N points:
+		i = 1;
+		int current_N_prev = 0;
+		int current_N = (true_rate[0] * float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[0] * f_sum);
+		while (i < true_rate.size() && curr_wp_topn_ind < topN_points.size())
+		{
+			current_N_prev = current_N;
+			current_N = (true_rate[i]* float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[i]* f_sum);
+			if (curr_wp_topn_ind < topN_points.size() &&
+				current_N >= topN_points[curr_wp_topn_ind]) { //passed top N point
+
+				float prev_diff = topN_points[curr_wp_topn_ind] - current_N_prev;
+				float curr_diff = current_N - topN_points[curr_wp_topn_ind];
+				float tot_diff = prev_diff + curr_diff;
+				if (tot_diff <= 0) {
+					curr_diff = 1;
+					tot_diff = 1; //take prev - first apeareance
+				}
+				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+					res[format_working_point_topn("SCORE@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("FPR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("SENS@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("POS@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("PR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("PPV@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("NPV@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("OR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("LIFT@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+					res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+#ifdef  WARN_SKIP_WP
+					MWARN("SKIP WORKING POINT FPR=%f, prev_FPR=%f, next_FPR=%f, prev_score=%f, next_score=%f\n",
+						topN_points[curr_wp_topn_ind], false_rate[i - 1], false_rate[i],
+						pred_threshold[st_size - (i - 1)], pred_threshold[st_size - i]);
+#endif
+					++curr_wp_topn_ind;
+					continue; //skip working point - diff is too big
+				}
+				res[format_working_point_topn("SCORE@TOPN", topN_points[curr_wp_topn_ind])] = unique_scores[st_size - i] * (prev_diff / tot_diff) +
+					unique_scores[st_size - (i - 1)] * (curr_diff / tot_diff);
+				res[format_working_point_topn("SENS@TOPN", topN_points[curr_wp_topn_ind])] = 100 * (true_rate[i] * (prev_diff / tot_diff) +
+					true_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point_topn("POS@TOPN", topN_points[curr_wp_topn_ind])] = t_sum * (true_rate[i] * (prev_diff / tot_diff) +
+					true_rate[i - 1] * (curr_diff / tot_diff));
+				res[format_working_point_topn("FPR@TOPN", topN_points[curr_wp_topn_ind])] = 100 * (false_rate[i] * (prev_diff / tot_diff) +
+					false_rate[i - 1] * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					ppv_c = float(params->incidence_fix*true_rate[i] / (params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float(params->incidence_fix*true_rate[i - 1] / (params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]));
+					else
+						ppv_prev = ppv_c;
+				}
+				else {
+					ppv_c = float((true_rate[i] * t_sum) /
+						((true_rate[i] * t_sum) + (false_rate[i] * f_sum)));
+					if (true_rate[i - 1] > 0 || false_rate[i - 1] > 0)
+						ppv_prev = float((true_rate[i - 1] * t_sum) /
+						((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)));
+					else
+						ppv_prev = ppv_c;
+				}
+				float ppv = ppv_c * (prev_diff / tot_diff) + ppv_prev * (curr_diff / tot_diff);
+				res[format_working_point_topn("PPV@TOPN", topN_points[curr_wp_topn_ind])] = 100 * ppv;
+				if (params->incidence_fix > 0) {
+					pr_c = float(params->incidence_fix*true_rate[i] + (1 - params->incidence_fix)*false_rate[i]);
+					pr_prev = float(params->incidence_fix*true_rate[i - 1] + (1 - params->incidence_fix)*false_rate[i - 1]);
+				}
+				else {
+					pr_c = float(((true_rate[i] * t_sum) + (false_rate[i] * f_sum)) /
+						(t_sum + f_sum));
+					pr_prev = float(((true_rate[i - 1] * t_sum) + (false_rate[i - 1] * f_sum)) /
+						(t_sum + f_sum));
+				}
+				res[format_working_point_topn("PR@TOPN", topN_points[curr_wp_topn_ind])] = 100 * (pr_c* (prev_diff / tot_diff) + pr_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0) {
+					npv_prev = float(((1 - false_rate[i - 1]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i - 1]) *  params->incidence_fix) + ((1 - false_rate[i - 1]) *  (1 - params->incidence_fix))));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) *  (1 - params->incidence_fix)) /
+						(((1 - true_rate[i]) *  params->incidence_fix) + ((1 - false_rate[i]) *  (1 - params->incidence_fix))));
+					else
+						npv_c = npv_prev;
+				}
+				else {
+					npv_prev = float(((1 - false_rate[i - 1]) * f_sum) /
+						(((1 - true_rate[i - 1]) * t_sum) + ((1 - false_rate[i - 1]) * f_sum)));
+					if (true_rate[i] < 1 || false_rate[i] < 1)
+						npv_c = float(((1 - false_rate[i]) * f_sum) /
+						(((1 - true_rate[i]) * t_sum) + ((1 - false_rate[i]) * f_sum)));
+					else
+						npv_c = npv_prev;
+				}
+				res[format_working_point_topn("NPV@TOPN", topN_points[curr_wp_topn_ind])] = 100 * (npv_c * (prev_diff / tot_diff) + npv_prev * (curr_diff / tot_diff));
+				if (params->incidence_fix > 0)
+					res[format_working_point_topn("LIFT@TOPN", topN_points[curr_wp_topn_ind])] = float(ppv / params->incidence_fix);
+				else
+					res[format_working_point_topn("LIFT@TOPN", topN_points[curr_wp_topn_ind])] = float(ppv /
+					(t_sum / (t_sum + f_sum))); //lift of prevalance when there is no inc
+
+				if (false_rate[i] > 0 && false_rate[i] < 1 && true_rate[i] < 1)
+					or_c = float(
+					(true_rate[i] / false_rate[i]) / ((1 - true_rate[i]) / (1 - false_rate[i])));
+				else
+					or_c = MED_MAT_MISSING_VALUE;
+				if (false_rate[i - 1] > 0 && false_rate[i - 1] < 1 && true_rate[i - 1] < 1)
+					or_prev = float(
+					(true_rate[i - 1] / false_rate[i - 1]) / ((1 - true_rate[i - 1]) / (1 - false_rate[i - 1])));
+				else
+					or_prev = MED_MAT_MISSING_VALUE;
+				if (or_c != MED_MAT_MISSING_VALUE && or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point_topn("OR@TOPN", topN_points[curr_wp_topn_ind])] = (or_c * (prev_diff / tot_diff) +
+						or_prev * (curr_diff / tot_diff));
+				else if (or_c != MED_MAT_MISSING_VALUE)
+					res[format_working_point_topn("OR@TOPN", topN_points[curr_wp_topn_ind])] = or_c;
+				else if (or_prev != MED_MAT_MISSING_VALUE)
+					res[format_working_point_topn("OR@TOPN", topN_points[curr_wp_topn_ind])] = or_prev;
+				else
+					res[format_working_point_topn("OR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+
+				if (params->incidence_fix > 0) {
+					if (true_rate[i - 1] < 1)
+						rr_prev = float(ppv_prev + ppv_prev * (1 - params->incidence_fix)* (1 - false_rate[i - 1]) /
+						(params->incidence_fix * (1 - true_rate[i - 1])));
+					else
+						rr_prev = MED_MAT_MISSING_VALUE;
+
+					if (true_rate[i] < 1)
+						rr_c = float(ppv_c + ppv_c * (1 - params->incidence_fix)* (1 - false_rate[i]) /
+						(params->incidence_fix * (1 - true_rate[i])));
+					else
+						rr_c = MED_MAT_MISSING_VALUE;
+					if (rr_c != MED_MAT_MISSING_VALUE && rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = (rr_c * (prev_diff / tot_diff) +
+							rr_prev * (curr_diff / tot_diff));
+					else if (rr_c != MED_MAT_MISSING_VALUE)
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = rr_c;
+					else if (rr_prev != MED_MAT_MISSING_VALUE)
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = rr_prev;
+					else
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+				}
+				else {
+					if (true_rate[i] < 1 || ppv == MED_MAT_MISSING_VALUE) {
+						float FOR = float(((1.0 - true_rate[i]) * t_sum) /
+							((1 - true_rate[i]) * t_sum + (1 - false_rate[i]) * f_sum));
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] =
+							float(ppv / FOR);
+					}
+					else
+						res[format_working_point_topn("RR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
+				}
+
+				++curr_wp_topn_ind;
 				continue;
 			}
 			++i;
@@ -3005,6 +3165,13 @@ void parse_vector(const string &value, vector<float> &output_vec) {
 	for (size_t i = 0; i < vec.size(); ++i)
 		output_vec[i] = stof(vec[i]);
 }
+void parse_vector(const string &value, vector<int> &output_vec) {
+	vector<string> vec;
+	boost::split(vec, value, boost::is_any_of(","));
+	output_vec.resize((int)vec.size());
+	for (size_t i = 0; i < vec.size(); ++i)
+		output_vec[i] = stoi(vec[i]);
+}
 int ROC_Params::init(map<string, string>& map) {
 	for (auto it = map.begin(); it != map.end(); ++it)
 	{
@@ -3030,6 +3197,8 @@ int ROC_Params::init(map<string, string>& map) {
 			inc_stats.read_from_file(param_value);
 		else if (param_name == "working_point_fpr")
 			parse_vector(param_value, working_point_FPR);
+		else if (param_name == "working_point_topn")
+			parse_vector(param_value, working_point_TOPN);
 		else if (param_name == "working_point_pr")
 			parse_vector(param_value, working_point_PR);
 		else if (param_name == "working_point_score")

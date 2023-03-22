@@ -289,6 +289,7 @@ public:
 class ROC_Params : public Measurement_Params, public SerializableObject {
 public:
 	vector<float> working_point_FPR; ///< The False Positive rate working point definition
+	vector<int> working_point_TOPN; ///< The Top N working points
 	vector<float> working_point_SENS; ///< The True Positive rate working point definition
 	vector<float> working_point_PR; ///< The Positive rate working point definition
 	vector<float> working_point_auc; ///< The partial auc working points definition
@@ -328,7 +329,7 @@ public:
 	int init(map<string, string>& map);
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
-	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score, working_point_auc, use_score_working_points,
+	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_TOPN, working_point_Score, working_point_auc, use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
 };
 
@@ -473,6 +474,12 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	if (perc)
 		wp *= 100;
 	snprintf(res, sizeof(res), "%s_%06.3f", init_str.c_str(), wp);
+	return string(res);
+}
+
+inline string format_working_point_topn(const string &init_str, int wp, bool perc = true) {
+	char res[100];
+	snprintf(res, sizeof(res), "%s_%d", init_str.c_str(), wp);
 	return string(res);
 }
 
