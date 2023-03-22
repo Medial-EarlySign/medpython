@@ -375,6 +375,8 @@ public:
 	void get_am_rep_signals(unordered_set<string> &am_sigs) { ma.get_rep_signals(am_sigs); } // returns the available 
 	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ) { ma.get_signal_structure(sig, n_time_channels, n_val_channels, is_categ); }
 
+	string get_sig_unit(const string &sig, int val_channel) { return ma.get_rep().sigs.unit_of_measurement(sig, val_channel); }
+
 	string get_lib_code_version();
 };
 
