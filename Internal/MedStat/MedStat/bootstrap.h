@@ -363,11 +363,17 @@ class Regression_Params : public Measurement_Params, public SerializableObject {
 public:
 	bool do_logloss = false;
 	double epsilon = 1e-5;
+	vector<float> coverage_quantile_percentages;
 
+	/// <summary>
+	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
+	/// for vectors values use "," between numbers
+	/// @snippet bootstrap.cpp Regression_Params::init
+	/// </summary>
 	int init(map<string, string>& mapper);
 
 	ADD_CLASS_NAME(Regression_Params)
-	ADD_SERIALIZATION_FUNCS(do_logloss)
+	ADD_SERIALIZATION_FUNCS(do_logloss, coverage_quantile_percentages, epsilon)
 };
 
 #pragma region Cohort Fucntions

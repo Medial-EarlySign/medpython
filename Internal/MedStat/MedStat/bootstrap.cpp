@@ -1311,7 +1311,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 
 	bool use_wp = unique_scores.size() > max_qunt_vals && !params->use_score_working_points; //change all working points
-	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0, curr_wp_topn_ind=0;
+	int curr_wp_fpr_ind = 0, curr_wp_sens_ind = 0, curr_wp_pr_ind = 0, curr_wp_score_ind = 0, curr_wp_topn_ind = 0;
 	int i = 0;
 
 	float ppv_c, pr_prev, ppv_prev, pr_c, score_c, score_prev, npv_c, npv_prev, or_prev, or_c, rr_prev, rr_c;
@@ -1926,7 +1926,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		int current_N = (true_rate[0] * float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[0] * f_sum);
 		while (i < true_rate.size() && curr_wp_topn_ind < topN_points.size())
 		{
-			current_N = (true_rate[i]* float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[i]* f_sum);
+			current_N = (true_rate[i] * float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[i] * f_sum);
 			if (curr_wp_topn_ind < topN_points.size() &&
 				current_N >= topN_points[curr_wp_topn_ind]) { //passed top N point
 
@@ -2400,6 +2400,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 	double tot_loss = 0, sum_outcome = 0, tot_count = 0, second_moment = 0,
 		tot_mse = 0;
 	map<float, float> per_score;
+	map<float, double> per_diff;
 	unordered_map<float, float> per_score_sec;
 	unordered_map<float, double> per_score_size;
 	map<float, double> outcome_counts;
@@ -2422,6 +2423,8 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 			per_score_sec[pred] += y * y * w;
 			per_score_size[pred] += w;
 			outcome_counts[y] += w;
+			per_diff[diff] += w;
+
 			weights.push_back(w);
 			if (params->do_logloss && y >= 0 && y <= 1) {
 				logloss += w * (y*log(min(params->epsilon, (double)pred)) + (1 - y)*log(min(params->epsilon, 1 - (double)pred)));
@@ -2438,6 +2441,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 			per_score_sec[pred] += y * y;
 			++per_score_size[pred];
 			++outcome_counts[y];
+			++per_diff[diff];
 
 			if (params->do_logloss && y >= 0 && y <= 1) {
 				logloss += y * log(min(params->epsilon, (double)pred)) + (1 - y)*log(min(params->epsilon, 1 - (double)pred));
@@ -2455,6 +2459,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 	tot_mse = tot_loss;
 	tot_loss = sqrt(tot_loss);
 
+	double prior = sum_outcome / tot_count;
 	//cum sum - will count falses:
 	/*double tot_sum_y = 0;
 	for (auto &it : outcome_counts)
@@ -2532,7 +2537,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 		total_pred_below_th += per_score_size.at(it.first);
 	}
 
-	double prior = sum_outcome / tot_count;
+
 	double loss_prior = second_moment - 2 * prior * sum_outcome + prior * prior * tot_count;
 	loss_prior /= tot_count;
 	float R2 = 1 - (tot_mse / loss_prior);
@@ -2546,6 +2551,34 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 		res["TOTAL_SIZE"] = tot_count;
 		if (logloss_sz > 0)
 			res["LOGLOSS"] = logloss;
+	}
+
+	//Add mesaurements of cutoffs: use per_diff, prior, tot_count
+	sort(params->coverage_quantile_percentages.begin(), params->coverage_quantile_percentages.end());
+	auto it_diff = per_diff.begin();
+	double coverage_weight = 0;
+	for (float cutoff : params->coverage_quantile_percentages)
+	{
+		double score_threshold = cutoff / 100 * abs(prior);
+		//stop at diff > score_threshold. Advance till that
+		while (it_diff != per_diff.end()) {
+			float curr_diff = it_diff->first;
+			double curr_count_w = it_diff->second;
+			if (curr_diff > score_threshold)
+				break;
+			//below threshold - count this and advance
+			coverage_weight += curr_count_w;
+			++it_diff;
+		}
+
+		//now we are passed the threshold. let's calc coverage:
+		float coverage_res = 100 * coverage_weight / tot_count;
+
+		/**
+		Counts how much in percentage [0-100] in the data points are "covered" (the L1 error is within threshold)
+		The threshold is determined by percentages for mean outcome (the prior)
+		*/
+		res[format_working_point("COVERAGE@DIFF_THRESHOLD", cutoff, true)] = coverage_res;
 	}
 
 	return res;
@@ -3317,10 +3350,14 @@ Multiclass_Params::Multiclass_Params(const string &init_string) : Multiclass_Par
 int Regression_Params::init(map<string, string>& mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
+		//! [Regression_Params::init]
 		if (it->first == "do_logloss")
 			do_logloss = med_stoi(it->second) > 0;
 		else if (it->first == "epsilon")
 			epsilon = stod(it->second);
+		else if (it->first == "coverage_quantile_percentages")
+			parse_vector(it->second, coverage_quantile_percentages);
+		//! [Regression_Params::init]
 		else
 			MTHROW_AND_ERR("Error in Regression_Params::init - unknown param %s\n", it->first.c_str());
 	}
