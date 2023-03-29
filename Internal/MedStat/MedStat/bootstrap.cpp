@@ -1328,7 +1328,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				float tot_diff = prev_diff + curr_diff;
 				if (tot_diff <= 0) {
 					curr_diff = 1;
-					tot_diff = 1; //take prev - first apeareance
+					tot_diff = 2; //take prev - first apeareance
+					prev_diff = 1;
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("SCORE@FPR", fpr_points[curr_wp_fpr_ind])] = MED_MAT_MISSING_VALUE;
@@ -1476,7 +1477,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				float tot_diff = prev_diff + curr_diff;
 				if (tot_diff <= 0) {
 					curr_diff = 1;
-					tot_diff = 1; //take prev - first apeareance
+					tot_diff = 2; //take prev - first apeareance
+					prev_diff = 1;
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("SCORE@SENS", sens_points[curr_wp_sens_ind])] = MED_MAT_MISSING_VALUE;
@@ -1637,7 +1639,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				float tot_diff = prev_diff + curr_diff;
 				if (tot_diff <= 0) {
 					curr_diff = 1;
-					tot_diff = 1; //take prev - first apeareance
+					tot_diff = 2; //take prev - first apeareance
+					prev_diff = 1;
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("SCORE@PR", pr_points[curr_wp_pr_ind])] = MED_MAT_MISSING_VALUE;
@@ -1779,7 +1782,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				float tot_diff = prev_diff + curr_diff;
 				if (tot_diff <= 0) {
 					curr_diff = 1;
-					tot_diff = 1; //take prev - first apeareance
+					tot_diff = 2; //take prev - first apeareance
+					prev_diff = 1;
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point("PR@SCORE", score_points[curr_wp_score_ind], false)] = MED_MAT_MISSING_VALUE;
@@ -1922,7 +1926,6 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 		int current_N = (true_rate[0] * float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[0] * f_sum);
 		while (i < true_rate.size() && curr_wp_topn_ind < topN_points.size())
 		{
-			current_N_prev = current_N;
 			current_N = (true_rate[i]* float(!trunc_max ? t_sum : tt_cnt)) + (false_rate[i]* f_sum);
 			if (curr_wp_topn_ind < topN_points.size() &&
 				current_N >= topN_points[curr_wp_topn_ind]) { //passed top N point
@@ -1932,7 +1935,8 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				float tot_diff = prev_diff + curr_diff;
 				if (tot_diff <= 0) {
 					curr_diff = 1;
-					tot_diff = 1; //take prev - first apeareance
+					tot_diff = 2; //take prev - first apeareance
+					prev_diff = 1;
 				}
 				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
 					res[format_working_point_topn("SCORE@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
@@ -2072,6 +2076,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 				continue;
 			}
 			++i;
+			current_N_prev = current_N;
 		}
 
 	}
