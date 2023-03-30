@@ -2578,7 +2578,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 		Counts how much in percentage [0-100] in the data points are "covered" (the L1 error is within threshold)
 		The threshold is determined by percentages for mean outcome (the prior)
 		*/
-		res[format_working_point("COVERAGE@DIFF_THRESHOLD", cutoff, true)] = coverage_res;
+		res[format_working_point("COVERAGE@DIFF_THRESHOLD", cutoff, false)] = coverage_res;
 	}
 
 	return res;
