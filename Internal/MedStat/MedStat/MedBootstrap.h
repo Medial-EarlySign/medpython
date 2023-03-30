@@ -257,6 +257,8 @@ public:
 	/// </returns>
 	MeasurmentFunctionType measurement_function_name_to_type(const string& measurement_function_name);
 
+	static unordered_map<string, MeasurmentFunctionType> measurement_function_name_map;
+
 	/// <summary>
 	/// commit bootstrap cohort filter on a given matrix
 	/// @param features - matrix

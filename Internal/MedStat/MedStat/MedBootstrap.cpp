@@ -164,7 +164,7 @@ int MedBootstrap::init(map<string, string>& map) {
 
 				measurements_with_params.push_back(pair<MeasurementFunctions, Measurement_Params*>(func, pr_m));
 			}
-			
+
 		}
 		//! [MedBootstrap::init]
 		else
@@ -1060,16 +1060,18 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 	}
 	//new_samples.sort_by_id_date(); //not needed
 }
+
+unordered_map<string, MeasurmentFunctionType> MedBootstrap::measurement_function_name_map = {
+	{ "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },
+{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },
+{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
+{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
+{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
+{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
+{ "calc_regression", MeasurmentFunctionType::calc_regression }
+};
+
 MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
-	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = {
-		{ "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },
-		{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },
-		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
-		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
-		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
-		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
-		{ "calc_regression", MeasurmentFunctionType::calc_regression }
-	};
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
 		string options = medial::io::get_list(measurement_function_name_map, "\n");
 		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s\nOptions:%s\n",
