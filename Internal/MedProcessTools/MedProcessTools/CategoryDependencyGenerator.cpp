@@ -194,6 +194,21 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+int CategoryDependencyGenerator::update(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//Update top_codes
+		if (it->first == "top_codes_prefix") {
+			for (size_t i = 0; i < top_codes.size(); ++i)
+				if (!boost::starts_with(top_codes[i], it->second))
+					top_codes[i] = it->second + top_codes[i];
+		}
+		else
+			MWARN("Unknown arg %s\n", it->first.c_str());
+	}
+	return 0;
+}
+
 void CategoryDependencyGenerator::set_signal_ids(MedSignals& sigs) {
 	signalId = sigs.sid(signalName);
 	bdate_sid = sigs.sid("BDATE");
