@@ -605,9 +605,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
-	json jreq, jresp;
+	json jreq;
+	nlohmann::ordered_json jresp;
 
-	jresp = json({ { "type", "response" } });
+	jresp = nlohmann::ordered_json({ { "type", "response" } });
 	try {
 		jreq = json::parse(request);
 	}
@@ -776,7 +777,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		}
 		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
-		json js = json({});
+		nlohmann::ordered_json js = nlohmann::ordered_json({});
 
 		js.push_back({ "patient_id" , to_string(req_i.sample_pid) });
 		js.push_back({ "time" , to_string(req_i.sample_time) });
@@ -805,9 +806,9 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL) {
 				if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end()) {
-					json jattr;
+					nlohmann::ordered_json jattr;
 					try {
-						jattr = json::parse(req_i.res->str_attributes[e.second.field]);
+						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
 						js.push_back({ e.first, jattr });
 					}
 					catch (...) {
@@ -1193,6 +1194,13 @@ void add_to_json_array(json &js, const string &key, const string &s_add)
 		js.push_back({ key, json::array() });
 	js[key] += s_add;
 }
+void add_to_json_array(nlohmann::ordered_json &js, const string &key, const string &s_add)
+{
+	if (js.find(key) == js.end())
+		js.push_back({ key, json::array() });
+	js[key] += s_add;
+}
+
 
 //-----------------------------------------------------------------------------------
 void json_to_char_ptr(json &js, char **jarr)
@@ -1234,6 +1242,19 @@ bool json_verify_key(json &js, const string &key, int verify_val_flag, const str
 
 	return is_in;
 }
+bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val)
+{
+	bool is_in = false;
+	if (js.find(key) != js.end()) is_in = true;
+
+	if (is_in && verify_val_flag) {
+		if (js[key].get<string>() != val)
+			is_in = false;
+	}
+
+	return is_in;
+}
+
 
 //------------------------------------------------------------------------------------------
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i)
