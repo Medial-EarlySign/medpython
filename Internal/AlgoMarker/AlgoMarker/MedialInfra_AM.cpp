@@ -951,6 +951,8 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
 				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1]);
+				else if (fields[0] == "TESTER_NAME") {}
+				else if (fields[0] == "FILTER") {}
 				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
 			}
 		}
