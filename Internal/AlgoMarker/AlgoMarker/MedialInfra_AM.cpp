@@ -300,9 +300,12 @@ void process_explainability(nlohmann::ordered_json &jattr, const Explainer_param
 				if (level_bin > 1)
 					level_bin = 1;
 				level_bin *= 100;
-				level_bin = round(level_bin / (100 / ex_params.num_groups));
+				level_bin = level_bin / (100 / ex_params.num_groups);
 				if (level_bin > 0)
-					level_bin += 1;
+					level_bin = (int)(level_bin)+1;
+				else
+					level_bin = int(level_bin);
+
 				if (level_bin > ex_params.num_groups)
 					level_bin = ex_params.num_groups;
 				level_bin *= (100 / ex_params.num_groups);
@@ -602,7 +605,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-	}
+		}
 
 
 //------------------------------------------------------------------------------------------
