@@ -300,7 +300,10 @@ void process_explainability(nlohmann::ordered_json &jattr, const Explainer_param
 				if (level_bin > 1)
 					level_bin = 1;
 				level_bin *= 100;
-				level_bin = (100 / ex_params.num_groups) * round(level_bin / (100 / ex_params.num_groups));
+				level_bin = (1 + round(level_bin / (100 / ex_params.num_groups)));
+				if (level_bin > 100)
+					level_bin = 100;
+				level_bin *= (100 / ex_params.num_groups);
 
 				e["contributor_level_group"] = (int)level_bin;
 			}
@@ -597,7 +600,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -874,7 +877,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
