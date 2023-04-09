@@ -300,7 +300,7 @@ void process_explainability(nlohmann::ordered_json &jattr, const Explainer_param
 				if (level_bin > 1)
 					level_bin = 1;
 				level_bin *= 100;
-				level_bin = round(level_bin / ex_params.num_groups);
+				level_bin = ex_params.num_groups * round(level_bin / ex_params.num_groups);
 
 				e["contributor_level_group"] = (int)level_bin;
 			}
