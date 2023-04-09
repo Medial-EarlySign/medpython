@@ -286,6 +286,27 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 	return ret_code;
 }
 
+void process_explainability(nlohmann::ordered_json &jattr, const Explainer_parameters &ex_params) {
+	if (jattr.find("explainer_output") != jattr.end())
+		for (auto &e : jattr["explainer_output"]) {
+			e["contributor_description"] = "Hi";
+			if (e.find("contributor_level") != e.end() && ex_params.max_threshold > 0
+				&& ex_params.num_groups > 0) {
+				float level_bin;
+				if (ex_params.use_perc)
+					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
+				else
+					level_bin = (abs(e["contributor_level"].get<float>()) / ex_params.max_threshold);
+				if (level_bin > 1)
+					level_bin = 1;
+				level_bin *= 100;
+				level_bin = round(level_bin / ex_params.num_groups);
+
+				e["contributor_level_group"] = (int)level_bin;
+			}
+		}
+}
+
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------
@@ -299,7 +320,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -484,6 +505,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	responses->get_score_types(&_n_score_types, &_score_types);
 
 	MedSamples *meds = ma.get_samples_ptr();
+	Explainer_parameters ex_params;
+	ma.get_explainer_params(ex_params);
 
 	for (auto &id_s : meds->idSamples) {
 		for (auto &s : id_s.samples) {
@@ -494,10 +517,13 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			float c_scr = s.prediction.size() > 0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
 			string c_ext_scr = "";
 			if (s.str_attributes.size() > 0) {
-				json c_ext_scr_json({});
+				nlohmann::ordered_json c_ext_scr_json({});
+
 				for (auto &ex_res_field_name : extended_result_fields) {
-					if (s.str_attributes.count(ex_res_field_name))
-						c_ext_scr_json[ex_res_field_name] = json::parse(s.str_attributes[ex_res_field_name]);
+					if (s.str_attributes.count(ex_res_field_name)) {
+						c_ext_scr_json[ex_res_field_name] = nlohmann::ordered_json::parse(s.str_attributes[ex_res_field_name]);
+						process_explainability(c_ext_scr_json[ex_res_field_name], ex_params);
+					}
 				}
 				c_ext_scr = c_ext_scr_json.dump();
 			}
@@ -571,7 +597,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -590,7 +616,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -778,6 +804,8 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				req_i.sanity_caught_err = 1;
 			}
 		}
+		Explainer_parameters ex_params;
+		ma.get_explainer_params(ex_params);
 		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
 		nlohmann::ordered_json js = nlohmann::ordered_json({});
 
@@ -811,6 +839,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					nlohmann::ordered_json jattr;
 					try {
 						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
+						process_explainability(jattr, ex_params);
 						js.push_back({ e.first, jattr });
 					}
 					catch (...) {
@@ -845,7 +874,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -884,7 +913,7 @@ int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
 //-----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::read_config(string conf_f)
+int MedialInfraAlgoMarker::read_config(const string &conf_f)
 {
 	set_config(conf_f.c_str());
 
@@ -918,6 +947,8 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
+				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1]);
+				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
 			}
 		}
 	}

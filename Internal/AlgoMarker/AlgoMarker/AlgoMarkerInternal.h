@@ -10,6 +10,35 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+class Explainer_parameters : public SerializableObject {
+public:
+	float max_threshold = 0;
+	int num_groups = 3;
+	bool use_perc = false;
+
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "max_threshold")
+				max_threshold = med_stof(it.second);
+			else if (it.first == "num_groups")
+				num_groups = med_stoi(it.second);
+			else if (it.first == "use_perc")
+				use_perc = med_stoi(it.second) > 0;
+			else
+				HMTHROW_AND_ERR("Error in Explainer_parameters::init - unknown parameter \"%s\"",
+					it.first.c_str());
+		}
+		if (max_threshold < 0)
+			HMTHROW_AND_ERR("Error in Explainer_parameters::init - max_threshold should be positive\n");
+
+		return 0;
+	}
+
+	ADD_CLASS_NAME(Explainer_parameters)
+		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups)
+};
+
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
 // implementation that are specific to the base classes (MedRepository, MedSamples, MedModel)
@@ -24,6 +53,7 @@ private:
 	MedModel model;
 	MedSamples samples;
 	unordered_map<int, unordered_map<string, unordered_set<string>>> unknown_codes;
+	Explainer_parameters explainer_params;
 	//InputSanityTester ist;
 
 	string name;
@@ -304,5 +334,14 @@ public:
 		model.get_required_signal_names(sigs);
 		model.get_required_signal_categories(res_categ);
 	}
+
+	void get_explainer_params(Explainer_parameters &out) const {
+		out = explainer_params;
+	}
+
+	void set_explainer_params(const string &params) {
+		explainer_params.init_from_string(params);
+	}
 };
 
+MEDSERIALIZE_SUPPORT(Explainer_parameters)
