@@ -222,8 +222,7 @@ int CategoryDependencyGenerator::update(map<string, string>& mapper) {
 					boost::regex regex_find = boost::regex(tokens[k]);
 					string &regex_replace = tokens[k + 1];
 
-					if (boost::regex_match(top_codes[i], regex_find))
-						top_codes[i] = boost::regex_replace(top_codes[i], regex_find, regex_replace);
+					top_codes[i] = boost::regex_replace(top_codes[i], regex_find, regex_replace);
 				}
 			}
 		}
