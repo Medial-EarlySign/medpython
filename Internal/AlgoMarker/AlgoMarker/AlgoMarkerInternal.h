@@ -10,11 +10,84 @@
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+class Explainer_record_config : public SerializableObject {
+public:
+	string contributer_group_name = ""; ///< name of explainer group
+	string signal_name = ""; ///< name of signal to fetch
+	int max_count = 1; ///< limit of maximal last values
+	int max_time_window = 0; ///< limit on maximal time before prediction
+	int time_channel = 0; ///< time channel to filter
+	int time_unit = MedTime::Days; ///< time unit for max_time_window
+	int val_channel = 0; ///< val channel to filter sets
+	vector<string> sets; ///< sets to filter categorical signal
+
+	// Not to be initialized:
+	vector<char> lut;
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "contributer_group_name")
+				contributer_group_name = it.second;
+			else if (it.first == "signal_name")
+				signal_name = it.second;
+			else if (it.first == "max_count")
+				max_count = med_stoi(it.second);
+			else if (it.first == "max_time_window")
+				max_time_window = med_stoi(it.second);
+			else if (it.first == "time_channel")
+				time_channel = med_stoi(it.second);
+			else if (it.first == "val_channel")
+				val_channel = med_stoi(it.second);
+			else if (it.first == "time_unit")
+				time_unit = med_time_converter.string_to_type(it.second);
+			else if (it.first == "sets")
+				boost::split(sets, it.second, boost::is_any_of(","));
+			else
+				HMTHROW_AND_ERR("Error in Explainer_record_config::init - unknown parameter \"%s\"",
+					it.first.c_str());
+		}
+		if (contributer_group_name.empty())
+			HMTHROW_AND_ERR("Error in Explainer_record_config::init - contributer_group_name must be given\n");
+		if (signal_name.empty())
+			HMTHROW_AND_ERR("Error in Explainer_record_config::init - signal_name must be given\n");
+		return  0;
+	}
+
+	ADD_CLASS_NAME(Explainer_record_config)
+		ADD_SERIALIZATION_FUNCS(contributer_group_name, signal_name, max_count, max_time_window, time_channel, time_unit, val_channel, sets)
+};
+
+class Explainer_description_config : public SerializableObject {
+public:
+	map<string, Explainer_record_config> records;
+
+	void read_cfg_file(const string &file);
+
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "records")
+				read_cfg_file(it.second);
+			else
+				HMTHROW_AND_ERR("Error in Explainer_description_config::init - unknown parameter \"%s\"",
+					it.first.c_str());
+		}
+		return  0;
+	}
+
+	ADD_CLASS_NAME(Explainer_description_config)
+		ADD_SERIALIZATION_FUNCS(records)
+};
+
 class Explainer_parameters : public SerializableObject {
 public:
-	float max_threshold = 0;
-	int num_groups = 3;
-	bool use_perc = false;
+	float max_threshold = 0; ///< control max threshold
+	int num_groups = 3; ///< control how much binning to present
+	bool use_perc = false; ///< control if binning on absolute value or on percentage
+	Explainer_description_config cfg; ///< file to configure fetching signal to present
+
+	// to be init before:
+	string base_dir = "";
 
 	int init(map<string, string>& mapper) {
 		for (auto &it : mapper)
@@ -25,6 +98,12 @@ public:
 				num_groups = med_stoi(it.second);
 			else if (it.first == "use_perc")
 				use_perc = med_stoi(it.second) > 0;
+			else if (it.first == "cfg") {
+				if (it.second != "" && it.second[0] != '/' && it.second[0] != '\\' && !base_dir.empty())
+					cfg.read_cfg_file(base_dir + "/" + it.second);
+				else
+					cfg.read_cfg_file(it.second);
+			}
 			else
 				HMTHROW_AND_ERR("Error in Explainer_parameters::init - unknown parameter \"%s\"",
 					it.first.c_str());
@@ -36,7 +115,7 @@ public:
 	}
 
 	ADD_CLASS_NAME(Explainer_parameters)
-		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups)
+		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups, cfg)
 };
 
 //===============================================================================
@@ -339,9 +418,12 @@ public:
 		out = explainer_params;
 	}
 
-	void set_explainer_params(const string &params) {
+	void set_explainer_params(const string &params, const string &base_dir) {
+		explainer_params.base_dir = base_dir;
 		explainer_params.init_from_string(params);
 	}
 };
 
+MEDSERIALIZE_SUPPORT(Explainer_record_config)
+MEDSERIALIZE_SUPPORT(Explainer_description_config)
 MEDSERIALIZE_SUPPORT(Explainer_parameters)

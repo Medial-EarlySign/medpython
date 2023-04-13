@@ -286,10 +286,94 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 	return ret_code;
 }
 
-void process_explainability(nlohmann::ordered_json &jattr, const Explainer_parameters &ex_params) {
+void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
+	int pid, int time, nlohmann::ordered_json &jres) {
+	UniversalSigVec usv;
+	int sid = rep.sigs.sid(e_cfg.signal_name);
+	if (sid < 0)
+		MTHROW_AND_ERR("Error unknown signal %s\n", e_cfg.signal_name.c_str());
+	rep.uget(pid, sid, usv);
+
+	bool test_sets = false;
+	int section_id = rep.dict.section_id(e_cfg.signal_name);
+	if (rep.sigs.is_categorical_channel(sid, e_cfg.val_channel) && !e_cfg.sets.empty())
+	{
+		//init lut if needed in first time
+		if (e_cfg.lut.empty())
+			rep.dict.prep_sets_lookup_table(section_id, e_cfg.sets, e_cfg.lut);
+		test_sets = true;
+	}
+
+	jres["records"] = nlohmann::ordered_json::array();
+
+	int min_time = med_time_converter.add_subtract_time(time, usv.time_unit(),
+		-e_cfg.max_time_window, e_cfg.time_unit);
+	int cnt = 0;
+	for (int i = usv.len - 1; i >= 0; --i)
+	{
+		if (usv.Time(i, e_cfg.time_channel) > time)
+			continue;
+		if (usv.Time(i, e_cfg.time_channel) < min_time)
+			break;
+		//test categorical values if needed
+		if (test_sets && !e_cfg.lut[usv.Val(i, e_cfg.val_channel)])
+			continue;
+
+		//In time window - take at most e_cfg.max_count records, most recent.
+		nlohmann::ordered_json ele;
+		ele["signal"] = e_cfg.signal_name;
+		ele["timestamp"] = nlohmann::ordered_json::array();
+		ele["value"] = nlohmann::ordered_json::array();
+		//Print time values:
+		for (int j = 0; j < usv.n_time_channels(); ++j)
+			ele["timestamp"].push_back(usv.Time(i, j));
+		for (int j = 0; j < usv.n_val_channels(); ++j) {
+
+			if (!rep.sigs.is_categorical_channel(sid, j))
+				ele["value"].push_back(usv.Val(i, j));
+			else
+			{
+				int code_val = usv.Val<int>(i, j);
+				string code_str = rep.dict.name(section_id, code_val);
+				ele["value"].push_back(code_str);
+			}
+		}
+
+		jres["records"].push_back(ele);
+		++cnt;
+		if (cnt >= e_cfg.max_count)
+			break;
+	}
+
+}
+
+void process_explainability(nlohmann::ordered_json &jattr,
+	Explainer_parameters &ex_params, MedPidRepository &rep,
+	int pid, int time) {
 	if (jattr.find("explainer_output") != jattr.end())
 		for (auto &e : jattr["explainer_output"]) {
-			e["contributor_description"] = "Hi";
+
+			if (e.find("contributor_name") == e.end())
+				MTHROW_AND_ERR("Error - expecting to see contributor_name\n");
+			string contrib_name = e["contributor_name"].get<string>();
+
+			string contib_info = "";
+			nlohmann::ordered_json jres_desc;
+			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
+				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
+				process_signal_json(rep, e_cfg, pid, time, jres_desc);
+			}
+			else {
+				//check if Age, or if has 1 feature, so present it:
+				if (e.find("contributor_elements") != e.end() && e["contributor_elements"].size() == 1) {
+					string fname = e["contributor_elements"].begin()->at("feature_name").get<string>();
+					float fval = e["contributor_elements"].begin()->at("feature_value").get<float>();
+					jres_desc["name"] = fname;
+					jres_desc["value"] = fval;
+				}
+			}
+			e["contributor_description"] = jres_desc;
+
 			if (e.find("contributor_level") != e.end() && ex_params.max_threshold > 0
 				&& ex_params.num_groups > 0) {
 				float level_bin;
@@ -530,7 +614,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 				for (auto &ex_res_field_name : extended_result_fields) {
 					if (s.str_attributes.count(ex_res_field_name)) {
 						c_ext_scr_json[ex_res_field_name] = nlohmann::ordered_json::parse(s.str_attributes[ex_res_field_name]);
-						process_explainability(c_ext_scr_json[ex_res_field_name], ex_params);
+						process_explainability(c_ext_scr_json[ex_res_field_name], ex_params,
+							rep, c_pid, c_ts);
 					}
 				}
 				c_ext_scr = c_ext_scr_json.dump();
@@ -605,7 +690,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -847,7 +932,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					nlohmann::ordered_json jattr;
 					try {
 						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
-						process_explainability(jattr, ex_params);
+						process_explainability(jattr, ex_params, rep, req_i.sample_pid, req_i.sample_time);
 						js.push_back({ e.first, jattr });
 					}
 					catch (...) {
@@ -882,7 +967,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -930,6 +1015,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 	if (!inf)
 		return AM_ERROR_LOAD_NO_CONFIG_FILE;
 
+	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	string curr_line;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -955,7 +1041,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
-				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1]);
+				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
 				else if (fields[0] == "TESTER_NAME") {}
 				else if (fields[0] == "FILTER") {}
 				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
@@ -963,7 +1049,6 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 		}
 	}
 
-	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	if (rep_fname != "" && rep_fname[0] != '/' && rep_fname[0] != '\\') {
 		// relative path
 		rep_fname = dir + "/" + rep_fname;
@@ -1362,4 +1447,48 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 	}
 
 	return 0;
+}
+
+void Explainer_description_config::read_cfg_file(const string &file) {
+	ifstream file_reader(file);
+	if (!file_reader.good())
+		MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - file %s wasn't found\n",
+			file.c_str());
+	records.clear();
+	unordered_set<string> contrib_seen;
+
+	string line;
+	while (getline(file_reader, line)) {
+		mes_trim(line);
+		if (line.empty() || line[0] == '#')
+			continue;
+		vector<string> tokens; //by the order of Explainer_record_config
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() < 2)
+			MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - in file %s. Expected to have at least 2 tokens.\nGot line: \"%s\"\n",
+				file.c_str(), line.c_str());
+		Explainer_record_config r;
+		r.contributer_group_name = tokens[0];
+		r.signal_name = tokens[1];
+		if (tokens.size() > 2)
+			r.max_count = med_stoi(tokens[2]);
+		if (tokens.size() > 3)
+			r.max_time_window = med_stoi(tokens[3]);
+		if (tokens.size() > 4)
+			r.time_channel = med_stoi(tokens[4]);
+		if (tokens.size() > 5)
+			r.time_unit = med_time_converter.string_to_type(tokens[5]);
+		if (tokens.size() > 6)
+			r.val_channel = med_stoi(tokens[6]);
+		if (tokens.size() > 7)
+			boost::split(r.sets, tokens[7], boost::is_any_of(","));
+
+		if (contrib_seen.find(r.contributer_group_name) != contrib_seen.end())
+			MTHROW_AND_ERR("Error, already defined rule for %s\n", r.contributer_group_name.c_str());
+		contrib_seen.insert(r.contributer_group_name);
+
+		records[r.contributer_group_name] = r;
+	}
+
+	file_reader.close();
 }
