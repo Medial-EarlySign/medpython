@@ -304,8 +304,6 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 		test_sets = true;
 	}
 
-	jres["records"] = nlohmann::ordered_json::array();
-
 	int min_time = med_time_converter.add_subtract_time(time, usv.time_unit(),
 		-e_cfg.max_time_window, e_cfg.time_unit);
 	int cnt = 0;
@@ -339,7 +337,7 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 			}
 		}
 
-		jres["records"].push_back(ele);
+		jres.push_back(ele);
 		++cnt;
 		if (cnt >= e_cfg.max_count)
 			break;
@@ -358,21 +356,25 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			string contrib_name = e["contributor_name"].get<string>();
 
 			string contib_info = "";
-			nlohmann::ordered_json jres_desc;
+			e["contributor_records"] = nlohmann::ordered_json::array();
 			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
 				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
-				process_signal_json(rep, e_cfg, pid, time, jres_desc);
+				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
 			}
 			else {
 				//check if Age, or if has 1 feature, so present it:
 				if (e.find("contributor_elements") != e.end() && e["contributor_elements"].size() == 1) {
 					string fname = e["contributor_elements"].begin()->at("feature_name").get<string>();
 					float fval = e["contributor_elements"].begin()->at("feature_value").get<float>();
-					jres_desc["name"] = fname;
-					jres_desc["value"] = fval;
+
+					nlohmann::ordered_json element_single;
+					element_single["signal"] = fname;
+					element_single["timestamp"] = nlohmann::ordered_json::array();
+					element_single["value"] = nlohmann::ordered_json::array();
+					element_single["value"].push_back(fval);
+					e["contributor_records"].push_back(element_single);
 				}
 			}
-			e["contributor_description"] = jres_desc;
 
 			if (e.find("contributor_level") != e.end() && ex_params.max_threshold > 0
 				&& ex_params.num_groups > 0) {
@@ -690,7 +692,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -967,7 +969,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
