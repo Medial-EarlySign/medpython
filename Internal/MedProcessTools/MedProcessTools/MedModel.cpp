@@ -398,7 +398,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage < MED_MDL_APPLY_FTR_PROCESSORS)
 		max_smp_batch = get_apply_batch_count();
 
-	init_model_for_apply(rep, start_stage, end_stage);
+	if (init_model_for_apply(rep, start_stage, end_stage) < 0) {
+		MERR("Init model for apply failed\n");
+		return -1;
+	}
+
 
 	if (start_stage >= MED_MDL_APPLY_FTR_PROCESSORS || samples.nSamples() <= max_smp_batch)
 		return no_init_apply(rep, samples, start_stage, end_stage);

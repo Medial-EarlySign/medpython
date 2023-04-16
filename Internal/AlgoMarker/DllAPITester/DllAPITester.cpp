@@ -179,6 +179,15 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 										break;
 									}
 							}
+							if (all_code_names.empty()) {
+								if (sig != "GENDER")
+									MTHROW_AND_ERR("Error in signal %s and value %d is not in dictionary\n",
+										sig.c_str(), usv.Val<int>(i, j));
+								if (usv.Val<int>(i, j) == GENDER_MALE)
+									sv = "Male";
+								else
+									sv = "Female";
+							}
 							if (sv.empty())
 								sv = all_code_names[0];
 						}
@@ -1261,14 +1270,35 @@ int main(int argc, char *argv[])
 	vector<string> sigs;
 	model.get_required_signal_names(sigs);
 
-
+	map<string, string> rename_signal;
+	//Read for vm syntax:
+	if (!vm["rename_signal"].as<string>().empty()) {
+		//read and prase file:
+		ifstream file_reader(vm["rename_signal"].as<string>());
+		if (!file_reader.good())
+			MTHROW_AND_ERR("Error can't read file %s\n", vm["rename_signal"].as<string>().c_str());
+		MLOG("Reading file %s for regex filter\n", vm["rename_signal"].as<string>().c_str());
+		string line;
+		while (getline(file_reader, line)) {
+			boost::trim(line);
+			if (line.empty() || line[0] == '#')
+				continue;
+			vector<string> tokens;
+			boost::split(tokens, line, boost::is_any_of("\t"));
+			if (tokens.size() != 2)
+				MTHROW_AND_ERR("Error bad file format %s. expecting 2 tokens\n",
+					vm["rename_signal"].as<string>().c_str());
+			rename_signal[tokens[1]] = tokens[0];
+		}
+		file_reader.close();
+	}
 
 	// test that AM repo. contains all the required signal
 	unordered_set<string> am_signals;
 	((MedialInfraAlgoMarker *)test_am)->get_am_rep_signals(am_signals);
 	for (auto &sig : sigs)
 	{
-		if (am_signals.count(sig) == 0)
+		if (am_signals.count(sig) == 0 && rename_signal.find(sig) == rename_signal.end())
 		{
 			MTHROW_AND_ERR("AlgoMarker's repository doesn't contain sig [%s]", sig.c_str());
 		}
@@ -1296,28 +1326,7 @@ int main(int argc, char *argv[])
 
 	// read rep
 	MedPidRepository rep;
-	map<string, string> rename_signal;
-	//Read for vm syntax:
-	if (!vm["rename_signal"].as<string>().empty()) {
-		//read and prase file:
-		ifstream file_reader(vm["rename_signal"].as<string>());
-		if (!file_reader.good())
-			MTHROW_AND_ERR("Error can't read file %s\n", vm["rename_signal"].as<string>().c_str());
-		MLOG("Reading file %s for regex filter\n", vm["rename_signal"].as<string>().c_str());
-		string line;
-		while (getline(file_reader, line)) {
-			boost::trim(line);
-			if (line.empty() || line[0] == '#')
-				continue;
-			vector<string> tokens;
-			boost::split(tokens, line, boost::is_any_of("\t"));
-			if (tokens.size() != 2)
-				MTHROW_AND_ERR("Error bad file format %s. expecting 2 tokens\n",
-					vm["rename_signal"].as<string>().c_str());
-			rename_signal[tokens[1]] = tokens[0];
-		}
-		file_reader.close();
-	}
+
 
 	//To support rename:
 	//model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
@@ -1335,9 +1344,17 @@ int main(int argc, char *argv[])
 			rep.sigs.Name2Sid[it.first] = source_sid;
 			rep.sigs.Sid2Name[source_sid] = it.first;
 			rep.sigs.signals_names.push_back(it.first);
+			rep.sigs.Name2Sid.erase(it.second);
 
 			if (currect_section > 0)
 				rep.dict.connect_to_section(it.first, currect_section);
+
+			int add_section = rep.dict.section_id(it.first);
+			rep.dict.dicts[add_section].Name2Id[it.first] = source_sid;
+			rep.dict.dicts[0].Name2Id[it.first] = source_sid;
+			rep.dict.dicts[add_section].Id2Name[source_sid] = it.first;
+			rep.dict.dicts[add_section].Id2Names[source_sid] = { it.first };
+			rep.sigs.Sid2Info[source_sid].time_unit = rep.sigs.my_repo->time_unit;
 		}
 	}
 
@@ -1351,8 +1368,24 @@ int main(int argc, char *argv[])
 		model.add_pre_processors_json_string_to_model(ppjson, "");
 	}
 
+	if (!rename_signal.empty()) {
+		model.fit_for_repository(rep);
+		for (const auto &it : rename_signal) {
+			//add as virtual signals:
+			MLOG("Add virtual %s\n", it.second.c_str());
+			int vsig_id = rep.sigs.insert_virtual_signal(it.second, "T(i),V(f)");
+			int add_section = rep.dict.section_id(it.second);
+			rep.dict.dicts[add_section].Name2Id[it.second] = vsig_id;
+			rep.dict.dicts[0].Name2Id[it.second] = vsig_id;
+			rep.dict.dicts[add_section].Id2Name[vsig_id] = it.second;
+			rep.dict.dicts[add_section].Id2Names[vsig_id] = { it.second };
+			rep.sigs.Sid2Info[vsig_id].time_unit = rep.sigs.my_repo->time_unit;
+		}
+	}
+
 	// apply model (+ print top 50 scores)
-	model.apply(rep, samples);
+	if (model.apply(rep, samples) < 0)
+		MTHROW_AND_ERR("Error apply model failed\n");
 
 	if (vm["direct_csv"].as<string>() != "")
 		model.write_feature_matrix(vm["direct_csv"].as<string>());
