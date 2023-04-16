@@ -503,8 +503,14 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 		required_signal_ids.clear();
 
 		get_required_signal_names(required_signal_names);
-		for (string signal : required_signal_names)
-			required_signal_ids.insert(rep.dict.id(signal));
+		for (string signal : required_signal_names) {
+			int signalId = rep.dict.id(signal);
+			if (signalId < 0) {
+				MERR("Unknown signal %s in repository, can't apply model\n", signal.c_str());
+				return -1;
+			}
+			required_signal_ids.insert(signalId);
+		}
 
 		for (int signalId : required_signal_ids) {
 			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
