@@ -396,7 +396,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					level_bin = ex_params.num_groups;
 				level_bin *= (100 / ex_params.num_groups);
 
-				e["contributor_level_group"] = (int)level_bin;
+				e["contributor_importance"] = (int)level_bin;
 			}
 		}
 }

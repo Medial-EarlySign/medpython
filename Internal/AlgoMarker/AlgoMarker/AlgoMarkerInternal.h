@@ -43,7 +43,7 @@ public:
 			else if (it.first == "sets")
 				boost::split(sets, it.second, boost::is_any_of(","));
 			else
-				HMTHROW_AND_ERR("Error in Explainer_record_config::init - unknown parameter \"%s\"",
+				HMTHROW_AND_ERR("Error in Explainer_record_config::init - unknown parameter \"%s\"\n",
 					it.first.c_str());
 		}
 		if (contributer_group_name.empty())
@@ -69,7 +69,7 @@ public:
 			if (it.first == "records")
 				read_cfg_file(it.second);
 			else
-				HMTHROW_AND_ERR("Error in Explainer_description_config::init - unknown parameter \"%s\"",
+				HMTHROW_AND_ERR("Error in Explainer_description_config::init - unknown parameter \"%s\"\n",
 					it.first.c_str());
 		}
 		return  0;
@@ -105,7 +105,7 @@ public:
 					cfg.read_cfg_file(it.second);
 			}
 			else
-				HMTHROW_AND_ERR("Error in Explainer_parameters::init - unknown parameter \"%s\"",
+				HMTHROW_AND_ERR("Error in Explainer_parameters::init - unknown parameter \"%s\"\n",
 					it.first.c_str());
 		}
 		if (max_threshold < 0)
