@@ -443,8 +443,7 @@ void get_parents(int codeGroup, vector<int> &parents, int max_depth, const boost
 //=================================================================================================================
 void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig,
 	int pid, int time, string &sig, unordered_map<string, string> &units, json &json_out,
-	const map<string, boost::regex> &signal_to_regex,
-	const map<string, string> &rename_signal, int values_flag = 0)
+	const map<string, boost::regex> &signal_to_regex, int values_flag = 0)
 {
 	if (std::find(ignore_sig.begin(), ignore_sig.end(), sig) != ignore_sig.end())
 		return;
@@ -455,8 +454,6 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 
 	string physical_signal = sig;
-	if (rename_signal.find(sig) != rename_signal.end())
-		physical_signal = rename_signal.at(sig);
 
 	int sid = rep.sigs.sid(physical_signal);
 	if (sid < 0) {
@@ -681,7 +678,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			MedTimer _t_add_data; _t_add_data.start();
 			for (auto &sig : sigs) {
 				t_add_data_api += add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, &str_vals[0], signal_categ_regex);
-				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, signal_categ_regex, rename_signal, (int)vm.count("vals_json"));
+				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, signal_categ_regex, (int)vm.count("vals_json"));
 			}
 			_t_add_data.take_curr_time(); t_add_data += _t_add_data.diff_sec();
 
