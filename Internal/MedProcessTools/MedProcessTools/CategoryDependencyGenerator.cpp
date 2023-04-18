@@ -6,6 +6,13 @@
 #define LOCAL_SECTION LOG_FTRGNRTR
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 
+bool any_regex_match(const boost::regex &reg_pat, const vector<string> &nms) {
+	bool res = false;
+	for (size_t i = 0; i < nms.size() && !res; ++i)
+		res = boost::regex_match(nms[i], reg_pat);
+	return res;
+}
+
 void CategoryDependencyGenerator::init_defaults() {
 	generator_type = FTR_GEN_CATEGORY_DEPEND;
 	signalName = "";
@@ -194,6 +201,37 @@ int CategoryDependencyGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+int CategoryDependencyGenerator::update(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//Update top_codes
+		if (it->first == "top_codes_prefix") {
+			for (size_t i = 0; i < top_codes.size(); ++i)
+				if (!boost::starts_with(top_codes[i], it->second))
+					top_codes[i] = it->second + top_codes[i];
+		}
+		else if (it->first == "top_codes_regex_replace") {
+			vector<string> tokens;
+			boost::split(tokens, it->second, boost::is_any_of("/"));
+			if (tokens.size() % 2 != 0)
+				MTHROW_AND_ERR("Error expecting even tokens\n");
+
+			for (size_t i = 0; i < top_codes.size(); ++i) {
+				for (size_t k = 0; k < tokens.size(); k += 2)
+				{
+					boost::regex regex_find = boost::regex(tokens[k]);
+					string &regex_replace = tokens[k + 1];
+
+					top_codes[i] = boost::regex_replace(top_codes[i], regex_find, regex_replace);
+				}
+			}
+		}
+		else
+			MWARN("Unknown arg %s\n", it->first.c_str());
+	}
+	return 0;
+}
+
 void CategoryDependencyGenerator::set_signal_ids(MedSignals& sigs) {
 	signalId = sigs.sid(signalName);
 	bdate_sid = sigs.sid("BDATE");
@@ -271,12 +309,7 @@ int _count_legal_rows(const  vector<vector<int>> &m, int minimal_balls) {
 	return res;
 }
 
-bool any_regex_match(const boost::regex &reg_pat, const vector<string> &nms) {
-	bool res = false;
-	for (size_t i = 0; i < nms.size() && !res; ++i)
-		res = boost::regex_match(nms[i], reg_pat);
-	return res;
-}
+
 
 void CategoryDependencyGenerator::get_parents(int codeGroup, vector<int> &parents, const boost::regex &reg_pat, const boost::regex &remove_reg_pat) {
 

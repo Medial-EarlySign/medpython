@@ -63,6 +63,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("test_data", po::value<string>()->default_value(""), "test data for --direct_test option")
 			("json_data", po::value<string>()->default_value(""), "test json data for --direct_test option")
 			("signal_categ_regex", po::value<string>()->default_value(""), "path file with tab delimeted of 2 columns: signal + regex")
+			("rename_signal", po::value<string>()->default_value(""), "path file with tab delimeted of 2 columns: signal name in rep + target name in model")
 			("discovery", po::value<string>()->default_value(""), "path to output discovery")
 
 			("direct_csv", po::value<string>()->default_value(""), "output matrix of the direct run (not via AM)")
@@ -114,7 +115,8 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 
 
 //=================================================================================================================
-double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, vector<long long>& times, vector<float> &vals, char **str_values)
+double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &ignore_sig, int pid, int time, string &sig, vector<long long>& times, vector<float> &vals, char **str_values,
+	const map<string, boost::regex> &signal_categ_regex)
 {
 	// a small technicality
 	((MedialInfraAlgoMarker *)am)->set_sort(0); // getting rid of cases in which multiple data sets on the same day cause differences and fake failed tests.
@@ -167,7 +169,27 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 							int sec_id = rep.dict.section_id(sig);
 							if (sec_id < 0)
 								MTHROW_AND_ERR("Unknown section for sig %s\n", sig.c_str());
-							sv = rep.dict.dicts[sec_id].Id2Names[usv.Val(i, j)][0];
+
+							const vector<string> &all_code_names = rep.dict.dicts[sec_id].Id2Names[usv.Val(i, j)];
+							sv = "";
+							if (signal_categ_regex.find(sig) != signal_categ_regex.end()) {
+								for (size_t iii = 0; iii < all_code_names.size(); ++iii)
+									if (boost::regex_match(all_code_names[iii], signal_categ_regex.at(sig))) {
+										sv = all_code_names[iii];
+										break;
+									}
+							}
+							if (all_code_names.empty()) {
+								if (sig != "GENDER")
+									MTHROW_AND_ERR("Error in signal %s and value %d is not in dictionary\n",
+										sig.c_str(), usv.Val<int>(i, j));
+								if (usv.Val<int>(i, j) == GENDER_MALE)
+									sv = "Male";
+								else
+									sv = "Female";
+							}
+							if (sv.empty())
+								sv = all_code_names[0];
 						}
 						else
 							sv = to_string(usv.Val(i, j));
@@ -284,6 +306,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	vector<char> buf(MAX_VALS*MAX_VAL_LEN);
 	for (int i = 0; i < MAX_VALS; i++) { str_vals[i] = &buf[i*MAX_VAL_LEN]; }
 
+	map<string, boost::regex> signal_categ_regex;
 
 	DYN(AM_API_ClearData(am));
 
@@ -291,7 +314,7 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 	MLOG("Going over %d pids\n", pids.size());
 	int pid_cnt = 0;
 	for (auto pid : pids) {
-		for (auto &sig : sigs)	add_pid_to_am(am, rep, ignore_sig, pid, 20300101, sig, times, vals, &str_vals[0]);
+		for (auto &sig : sigs)	add_pid_to_am(am, rep, ignore_sig, pid, 20300101, sig, times, vals, &str_vals[0], signal_categ_regex);
 
 		pid_cnt++;
 		if (pid_cnt % 1000 == 0)
@@ -367,12 +390,24 @@ bool any_regex_matcher(const boost::regex &reg_pat, const vector<string> &nms) {
 
 void get_parents(int codeGroup, vector<int> &parents, int max_depth, const boost::regex &reg_pat,
 	const map<int, vector<int>> &member2Sets, const map<int, vector<string>> &id_to_names) {
+	vector<int> filtered_p;
+	//First test codeGroup:
+	if (id_to_names.find(codeGroup) == id_to_names.end())
+		MTHROW_AND_ERR("get_parents - code %d wasn't found in dict\n", codeGroup);
+	const vector<string> &names_cg = id_to_names.at(codeGroup);
+	bool pass_regex_filter = any_regex_matcher(reg_pat, names_cg);
+	if (pass_regex_filter) {
+		filtered_p.push_back(codeGroup);
+		parents.swap(filtered_p);
+		return;
+	}
+
 	vector<int> last_parents = { codeGroup };
 	if (last_parents.front() < 0)
 		return; //no parents
 	parents = {};
 
-	vector<int> filtered_p;
+
 	for (size_t k = 0; k < max_depth; ++k) {
 		vector<int> new_layer;
 		for (int par : last_parents)
@@ -418,7 +453,14 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 	int n_time_channels, n_val_channels, *is_categ;
 	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 
-	rep.uget(pid, sig, usv);
+	string physical_signal = sig;
+
+	int sid = rep.sigs.sid(physical_signal);
+	if (sid < 0) {
+		MWARN("Signal %s doesn't exists in repository - skipping\n", physical_signal.c_str());
+		return;
+	}
+	rep.uget(pid, sid, usv);
 
 	// find the number of relevant elements to add to json (all those below time)
 	int nelem = usv.len;
@@ -428,8 +470,8 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 		while (nelem < usv.len && usv.Time(nelem, tm_ch_check) <= time) nelem++;
 	}
 
-	int sid = rep.sigs.sid(sig);
-	int section_id = rep.dict.section_id(sig);
+
+	int section_id = rep.dict.section_id(physical_signal);
 
 	const map<int, vector<int>> &member_to_sets = rep.dict.dict(section_id)->Member2Sets;
 	const map<int, vector<string>> &id_to_names = rep.dict.dict(section_id)->Id2Names;
@@ -486,7 +528,7 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 						string code_txt = rep.dict.dicts[section_id].Id2Names[signal_id_val][0];
 						json_sig_data_item["value"].push_back(code_txt);
 						if (signal_to_regex.find(sig) != signal_to_regex.end())
-							MWARN("No support for signal_to_regex on multipl signals\n");
+							MWARN("No support for signal_to_regex on multiple channels\n");
 					}
 					else {
 						//Currentlly supports only 1 val cahnnel
@@ -504,7 +546,15 @@ void add_sig_to_json(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 								json_sig_data_item_["timestamp"].push_back(t);
 							}
 
-							string code_txt = rep.dict.dicts[section_id].Id2Names[cd_][0];
+							const vector<string> &all_code_names = rep.dict.dicts[section_id].Id2Names[cd_];
+							string code_txt = "";
+							for (size_t iii = 0; iii < all_code_names.size(); ++iii)
+								if (boost::regex_match(all_code_names[iii], reg_filter)) {
+									code_txt = all_code_names[iii];
+									break;
+								}
+							if (code_txt.empty())
+								code_txt = all_code_names[0];
 							json_sig_data_item_["value"].push_back(code_txt);
 
 							json_sig["data"].push_back(json_sig_data_item_);
@@ -545,7 +595,10 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
-int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, ofstream& msgs_stream, vector<string> ignore_sig)
+int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, string rep_conf,
+	MedPidRepository &rep, MedModel &model, MedSamples &samples,
+	vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, ofstream& msgs_stream,
+	vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
 
@@ -556,6 +609,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	int write_jsons = (vm["out_jsons"].as<string>() != "");
 	unordered_map<string, string> units;
 	map<string, boost::regex> signal_categ_regex;
+
 	//Read for vm syntax:
 	if (!vm["signal_categ_regex"].as<string>().empty()) {
 		//read and prase file:
@@ -613,6 +667,8 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	MedTimer timer;	timer.start();
 	MedTimer _t_all; _t_all.start();
 
+	int smp_counts = samples.nSamples();
+	MedProgress progress("get_preds_from_algomarker_single", smp_counts);
 	for (auto &id : samples.idSamples)
 		for (auto &s : id.samples) {
 
@@ -621,7 +677,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			// adding all data for this sample
 			MedTimer _t_add_data; _t_add_data.start();
 			for (auto &sig : sigs) {
-				t_add_data_api += add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, &str_vals[0]);
+				t_add_data_api += add_pid_to_am(am, rep, ignore_sig, s.id, s.time, sig, times, vals, &str_vals[0], signal_categ_regex);
 				if (write_jsons) add_sig_to_json(am, rep, ignore_sig, s.id, s.time, sig, units, js, signal_categ_regex, (int)vm.count("vals_json"));
 			}
 			_t_add_data.take_curr_time(); t_add_data += _t_add_data.diff_sec();
@@ -693,6 +749,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 				first = false;
 				out_json_f << js.dump(1) << endl;
 			}
+			progress.update();
 		}
 
 	_t_all.take_curr_time(); t_all += _t_all.diff_sec();
@@ -1031,7 +1088,7 @@ void prep_dicts(po::variables_map &vm)
 
 	out_json_f << dj.dump(1) << endl;
 	out_json_f.close();
-	MLOG("Wrote jsons output file %s\n", vm["out_jsons"].as<string>().c_str());
+	MLOG("Wrote jsons output file %s\n", vm["out_json_dict"].as<string>().c_str());
 
 }
 
@@ -1137,6 +1194,29 @@ void create_jreq(po::variables_map &vm)
 // MAIN
 //========================================================================================
 
+void load_repo(MedPidRepository &rep, MedModel &model, const vector<int> pids,
+	const string &rep_path, bool allow_adjustment, map<string, string> &rename_signal) {
+	if (allow_adjustment) {
+		if (rep.init(rep_path) < 0)
+			MTHROW_AND_ERR("Cannot initialize repository from %s\n", rep_path.c_str());
+		model.fit_for_repository(rep);
+	}
+
+	// Get Required signals
+	vector<string> req_signals;
+	model.get_required_signal_names(req_signals);
+
+	//Transform model required input signal into "rep" signal before reading from repo:
+	for (size_t i = 0; i < req_signals.size(); ++i)
+		if (rename_signal.find(req_signals[i]) != rename_signal.end())
+			req_signals[i] = rename_signal.at(req_signals[i]);
+
+	// Read Repository
+	MLOG("Reading Repository from %s\n", rep_path.c_str());
+	if (rep.read_all(rep_path, pids, req_signals) != 0)
+		MTHROW_AND_ERR("Read repository from %s failed\n", rep_path.c_str());
+}
+
 int main(int argc, char *argv[])
 {
 	int rc = 0;
@@ -1188,14 +1268,35 @@ int main(int argc, char *argv[])
 	vector<string> sigs;
 	model.get_required_signal_names(sigs);
 
-
+	map<string, string> rename_signal; //contains target signal as a key into rep signal name (as value)
+	//Read for vm syntax:
+	if (!vm["rename_signal"].as<string>().empty()) {
+		//read and prase file:
+		ifstream file_reader(vm["rename_signal"].as<string>());
+		if (!file_reader.good())
+			MTHROW_AND_ERR("Error can't read file %s\n", vm["rename_signal"].as<string>().c_str());
+		MLOG("Reading file %s for regex filter\n", vm["rename_signal"].as<string>().c_str());
+		string line;
+		while (getline(file_reader, line)) {
+			boost::trim(line);
+			if (line.empty() || line[0] == '#')
+				continue;
+			vector<string> tokens;
+			boost::split(tokens, line, boost::is_any_of("\t"));
+			if (tokens.size() != 2)
+				MTHROW_AND_ERR("Error bad file format %s. expecting 2 tokens\n",
+					vm["rename_signal"].as<string>().c_str());
+			rename_signal[tokens[1]] = tokens[0];
+		}
+		file_reader.close();
+	}
 
 	// test that AM repo. contains all the required signal
 	unordered_set<string> am_signals;
 	((MedialInfraAlgoMarker *)test_am)->get_am_rep_signals(am_signals);
 	for (auto &sig : sigs)
 	{
-		if (am_signals.count(sig) == 0)
+		if (am_signals.count(sig) == 0 && rename_signal.find(sig) == rename_signal.end())
 		{
 			MTHROW_AND_ERR("AlgoMarker's repository doesn't contain sig [%s]", sig.c_str());
 		}
@@ -1223,7 +1324,37 @@ int main(int argc, char *argv[])
 
 	// read rep
 	MedPidRepository rep;
-	model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
+
+
+	//To support rename:
+	//model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
+	load_repo(rep, model, pids, vm["rep"].as<string>(), vm["allow_rep_adjustment"].as<bool>(), rename_signal);
+
+	//commit rename after reading repo: change repo signal name to "model" signal name
+	for (const auto &it : rename_signal)
+	{
+		if (rep.sigs.sid(it.first) < 0) {
+			int source_sid = rep.sigs.sid(it.second);
+			int currect_section = rep.dict.section_id(it.second);
+			if (source_sid < 0)
+				MTHROW_AND_ERR("Unknown signal %s\n", it.second.c_str());
+			MWARN("Adding signal %s\n", it.first.c_str());
+			rep.sigs.Name2Sid[it.first] = source_sid;
+			rep.sigs.Sid2Name[source_sid] = it.first;
+			rep.sigs.signals_names.push_back(it.first);
+			rep.sigs.Name2Sid.erase(it.second);
+
+			if (currect_section > 0)
+				rep.dict.connect_to_section(it.first, currect_section);
+
+			int add_section = rep.dict.section_id(it.first);
+			rep.dict.dicts[add_section].Name2Id[it.first] = source_sid;
+			rep.dict.dicts[0].Name2Id[it.first] = source_sid;
+			rep.dict.dicts[add_section].Id2Name[source_sid] = it.first;
+			rep.dict.dicts[add_section].Id2Names[source_sid] = { it.first };
+			rep.sigs.Sid2Info[source_sid].time_unit = rep.sigs.my_repo->time_unit;
+		}
+	}
 
 	if (ignore_sig.size() > 0) {
 		string ppjson = "{\"pre_processors\":[{\"action_type\":\"rep_processor\",\"rp_type\":\"history_limit\",\"signal\":[";
@@ -1235,8 +1366,25 @@ int main(int argc, char *argv[])
 		model.add_pre_processors_json_string_to_model(ppjson, "");
 	}
 
+	//Now update model signals with the "rep" after rename + add the old signal as a virtual. The model might still check for this signal existeness (if was part of the model)
+	if (!rename_signal.empty()) {
+		model.fit_for_repository(rep);
+		for (const auto &it : rename_signal) {
+			//add as virtual signals:
+			MLOG("Add virtual %s\n", it.second.c_str());
+			int vsig_id = rep.sigs.insert_virtual_signal(it.second, "T(i),V(f)");
+			int add_section = rep.dict.section_id(it.second);
+			rep.dict.dicts[add_section].Name2Id[it.second] = vsig_id;
+			rep.dict.dicts[0].Name2Id[it.second] = vsig_id;
+			rep.dict.dicts[add_section].Id2Name[vsig_id] = it.second;
+			rep.dict.dicts[add_section].Id2Names[vsig_id] = { it.second };
+			rep.sigs.Sid2Info[vsig_id].time_unit = rep.sigs.my_repo->time_unit;
+		}
+	}
+
 	// apply model (+ print top 50 scores)
-	model.apply(rep, samples);
+	if (model.apply(rep, samples) < 0)
+		MTHROW_AND_ERR("Error apply model failed\n");
 
 	if (vm["direct_csv"].as<string>() != "")
 		model.write_feature_matrix(vm["direct_csv"].as<string>());

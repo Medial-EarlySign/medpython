@@ -167,7 +167,7 @@ private:
 /**
 * A base class for measurements parameter
 */
-class Measurement_Params {
+class Measurement_Params : public SerializableObject {
 public:
 	bool show_warns; ///< If True will show warnnings
 	Measurement_Params();
@@ -286,7 +286,7 @@ public:
 * stores the working point, and other parameters for the roc measurments
 * bootstrap calculations.
 */
-class ROC_Params : public Measurement_Params, public SerializableObject {
+class ROC_Params : public Measurement_Params {
 public:
 	vector<float> working_point_FPR; ///< The False Positive rate working point definition
 	vector<int> working_point_TOPN; ///< The Top N working points
@@ -336,7 +336,7 @@ public:
 /**
 * Parameter object for Multiclass measure functions
 */
-class Multiclass_Params : public Measurement_Params, public SerializableObject {
+class Multiclass_Params : public Measurement_Params {
 public:
 	vector<int> top_n; ///< when looking on top predictions, this is the maximal index
 	int n_categ; ///< Number of categories
@@ -359,15 +359,21 @@ public:
 /**
 * Parameter object for Regression measure functions
 */
-class Regression_Params : public Measurement_Params, public SerializableObject {
+class Regression_Params : public Measurement_Params {
 public:
 	bool do_logloss = false;
 	double epsilon = 1e-5;
+	vector<float> coverage_quantile_percentages;
 
+	/// <summary>
+	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
+	/// for vectors values use "," between numbers
+	/// @snippet bootstrap.cpp Regression_Params::init
+	/// </summary>
 	int init(map<string, string>& mapper);
 
 	ADD_CLASS_NAME(Regression_Params)
-	ADD_SERIALIZATION_FUNCS(do_logloss)
+	ADD_SERIALIZATION_FUNCS(do_logloss, coverage_quantile_percentages, epsilon)
 };
 
 #pragma region Cohort Fucntions

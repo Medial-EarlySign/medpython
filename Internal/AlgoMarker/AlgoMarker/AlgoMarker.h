@@ -342,7 +342,7 @@ private:
 	string model_fname = "";
 	string input_tester_config_file = "";
 
-	int read_config(string conf_f);
+	int read_config(const string &conf_f);
 
 	//vector<string> supported_score_types ={ "Raw" };
 

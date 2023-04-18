@@ -919,8 +919,22 @@ void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
 		id2Value.resize(max_id + 1, (float)0);
 
 		for (auto& rec : dict.dicts[section_id].Id2Name) {
-			if (name2Value.find(rec.second) == name2Value.end())
-				id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			if (name2Value.find(rec.second) == name2Value.end()) {
+				//Test if We can recognize other name:
+				int found_id = -1;
+				for (const string &other_nm : dict.dicts[section_id].Id2Names[rec.first])
+				{
+					if (name2Value.find(other_nm) != name2Value.end())
+					{
+						found_id = name2Value.at(other_nm);
+						break;
+					}
+				}
+				if ((found_id) >= 0)
+					id2Value[rec.first] = found_id;
+				else
+					id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			}
 			else
 				id2Value[rec.first] = name2Value[rec.second];
 		}

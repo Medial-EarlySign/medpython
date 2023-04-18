@@ -653,10 +653,10 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 					child_elements.push_back(child_e);
 				}
 
-				group_json["contributer_name"] = pt.first;
-				group_json["contributer_level"] = pt.second;
-				group_json["contributer_percentage"] = 100 * abs(pt.second) / tot_val;
-				group_json["contributer_elements"] = child_elements;
+				group_json["contributor_name"] = pt.first;
+				group_json["contributor_level"] = pt.second;
+				group_json["contributor_percentage"] = 100 * abs(pt.second) / tot_val;
+				group_json["contributor_elements"] = child_elements;
 
 				full_res[global_explainer_section].push_back(group_json);
 			}

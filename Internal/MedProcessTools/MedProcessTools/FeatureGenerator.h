@@ -955,6 +955,8 @@ public:
 	/// @snippet CategoryDependencyGenerator.cpp CategoryDependencyGenerator::init
 	int init(map<string, string>& mapper);
 
+	int update(map<string, string>& mapper);
+
 	void set_names();
 	int filter_features(unordered_set<string>& validFeatures);
 

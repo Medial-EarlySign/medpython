@@ -40,9 +40,11 @@ public:
 
 // local helper functions (these are CalculateByType helpers)
 void add_to_json_array(json &js, const string &key, const string &s_add);
+void add_to_json_array(nlohmann::ordered_json &js, const string &key, const string &s_add);
 void json_to_char_ptr(json &js, char **jarr);
 void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
+bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
 
 //===========================================================================================================
@@ -284,6 +286,121 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 	return ret_code;
 }
 
+void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
+	int pid, int time, nlohmann::ordered_json &jres) {
+	UniversalSigVec usv;
+	int sid = rep.sigs.sid(e_cfg.signal_name);
+	if (sid < 0)
+		MTHROW_AND_ERR("Error unknown signal %s\n", e_cfg.signal_name.c_str());
+	rep.uget(pid, sid, usv);
+
+	bool test_sets = false;
+	int section_id = rep.dict.section_id(e_cfg.signal_name);
+	if (rep.sigs.is_categorical_channel(sid, e_cfg.val_channel) && !e_cfg.sets.empty())
+	{
+		//init lut if needed in first time
+		if (e_cfg.lut.empty())
+			rep.dict.prep_sets_lookup_table(section_id, e_cfg.sets, e_cfg.lut);
+		test_sets = true;
+	}
+
+	int min_time = med_time_converter.add_subtract_time(time, usv.time_unit(),
+		-e_cfg.max_time_window, e_cfg.time_unit);
+	int cnt = 0;
+	for (int i = usv.len - 1; i >= 0; --i)
+	{
+		if (usv.Time(i, e_cfg.time_channel) > time)
+			continue;
+		if (usv.Time(i, e_cfg.time_channel) < min_time)
+			break;
+		//test categorical values if needed
+		if (test_sets && !e_cfg.lut[usv.Val(i, e_cfg.val_channel)])
+			continue;
+
+		//In time window - take at most e_cfg.max_count records, most recent.
+		nlohmann::ordered_json ele;
+		ele["signal"] = e_cfg.signal_name;
+		ele["timestamp"] = nlohmann::ordered_json::array();
+		ele["value"] = nlohmann::ordered_json::array();
+		//Print time values:
+		for (int j = 0; j < usv.n_time_channels(); ++j)
+			ele["timestamp"].push_back(usv.Time(i, j));
+		for (int j = 0; j < usv.n_val_channels(); ++j) {
+
+			if (!rep.sigs.is_categorical_channel(sid, j))
+				ele["value"].push_back(usv.Val(i, j));
+			else
+			{
+				int code_val = usv.Val<int>(i, j);
+				string code_str = rep.dict.name(section_id, code_val);
+				ele["value"].push_back(code_str);
+			}
+		}
+
+		jres.push_back(ele);
+		++cnt;
+		if (cnt >= e_cfg.max_count)
+			break;
+	}
+
+}
+
+void process_explainability(nlohmann::ordered_json &jattr,
+	Explainer_parameters &ex_params, MedPidRepository &rep,
+	int pid, int time) {
+	if (jattr.find("explainer_output") != jattr.end())
+		for (auto &e : jattr["explainer_output"]) {
+
+			if (e.find("contributor_name") == e.end())
+				MTHROW_AND_ERR("Error - expecting to see contributor_name\n");
+			string contrib_name = e["contributor_name"].get<string>();
+
+			string contib_info = "";
+			e["contributor_records"] = nlohmann::ordered_json::array();
+			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
+				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
+				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
+			}
+			else {
+				//check if Age, or if has 1 feature, so present it:
+				if (e.find("contributor_elements") != e.end() && e["contributor_elements"].size() == 1) {
+					string fname = e["contributor_elements"].begin()->at("feature_name").get<string>();
+					float fval = e["contributor_elements"].begin()->at("feature_value").get<float>();
+
+					nlohmann::ordered_json element_single;
+					element_single["signal"] = fname;
+					element_single["timestamp"] = nlohmann::ordered_json::array();
+					element_single["value"] = nlohmann::ordered_json::array();
+					element_single["value"].push_back(fval);
+					e["contributor_records"].push_back(element_single);
+				}
+			}
+
+			if (e.find("contributor_level") != e.end() && ex_params.max_threshold > 0
+				&& ex_params.num_groups > 0) {
+				float level_bin;
+				if (ex_params.use_perc)
+					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
+				else
+					level_bin = (abs(e["contributor_level"].get<float>()) / ex_params.max_threshold);
+				if (level_bin > 1)
+					level_bin = 1;
+				level_bin *= 100;
+				level_bin = level_bin / (100 / ex_params.num_groups);
+				if (level_bin > 0)
+					level_bin = (int)(level_bin)+1;
+				else
+					level_bin = int(level_bin);
+
+				if (level_bin > ex_params.num_groups)
+					level_bin = ex_params.num_groups;
+				level_bin *= (100 / ex_params.num_groups);
+
+				e["contributor_importance"] = (int)level_bin;
+			}
+		}
+}
+
 //------------------------------------------------------------------------------------------
 // Calculate() - after data loading : get a request, get predictions, and pack as responses
 //------------------------------------------------------------------------------------------
@@ -297,7 +414,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -482,6 +599,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	responses->get_score_types(&_n_score_types, &_score_types);
 
 	MedSamples *meds = ma.get_samples_ptr();
+	Explainer_parameters ex_params;
+	ma.get_explainer_params(ex_params);
 
 	for (auto &id_s : meds->idSamples) {
 		for (auto &s : id_s.samples) {
@@ -492,10 +611,14 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			float c_scr = s.prediction.size() > 0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
 			string c_ext_scr = "";
 			if (s.str_attributes.size() > 0) {
-				json c_ext_scr_json({});
+				nlohmann::ordered_json c_ext_scr_json({});
+
 				for (auto &ex_res_field_name : extended_result_fields) {
-					if (s.str_attributes.count(ex_res_field_name))
-						c_ext_scr_json[ex_res_field_name] = json::parse(s.str_attributes[ex_res_field_name]);
+					if (s.str_attributes.count(ex_res_field_name)) {
+						c_ext_scr_json[ex_res_field_name] = nlohmann::ordered_json::parse(s.str_attributes[ex_res_field_name]);
+						process_explainability(c_ext_scr_json[ex_res_field_name], ex_params,
+							rep, c_pid, c_ts);
+					}
 				}
 				c_ext_scr = c_ext_scr_json.dump();
 			}
@@ -588,7 +711,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -605,9 +728,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
-	json jreq, jresp;
+	json jreq;
+	nlohmann::ordered_json jresp;
 
-	jresp = json({ { "type", "response" } });
+	jresp = nlohmann::ordered_json({ { "type", "response" } });
 	try {
 		jreq = json::parse(request);
 	}
@@ -775,8 +899,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				req_i.sanity_caught_err = 1;
 			}
 		}
+		Explainer_parameters ex_params;
+		ma.get_explainer_params(ex_params);
 		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
-		json js = json({});
+		nlohmann::ordered_json js = nlohmann::ordered_json({});
 
 		js.push_back({ "patient_id" , to_string(req_i.sample_pid) });
 		js.push_back({ "time" , to_string(req_i.sample_time) });
@@ -805,9 +931,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL) {
 				if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end()) {
-					json jattr;
+					nlohmann::ordered_json jattr;
 					try {
-						jattr = json::parse(req_i.res->str_attributes[e.second.field]);
+						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
+						process_explainability(jattr, ex_params, rep, req_i.sample_pid, req_i.sample_time);
 						js.push_back({ e.first, jattr });
 					}
 					catch (...) {
@@ -881,7 +1008,7 @@ int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
 //-----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::read_config(string conf_f)
+int MedialInfraAlgoMarker::read_config(const string &conf_f)
 {
 	set_config(conf_f.c_str());
 
@@ -890,6 +1017,7 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 	if (!inf)
 		return AM_ERROR_LOAD_NO_CONFIG_FILE;
 
+	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	string curr_line;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -915,11 +1043,14 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
+				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
+				else if (fields[0] == "TESTER_NAME") {}
+				else if (fields[0] == "FILTER") {}
+				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
 			}
 		}
 	}
 
-	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	if (rep_fname != "" && rep_fname[0] != '/' && rep_fname[0] != '\\') {
 		// relative path
 		rep_fname = dir + "/" + rep_fname;
@@ -1193,6 +1324,13 @@ void add_to_json_array(json &js, const string &key, const string &s_add)
 		js.push_back({ key, json::array() });
 	js[key] += s_add;
 }
+void add_to_json_array(nlohmann::ordered_json &js, const string &key, const string &s_add)
+{
+	if (js.find(key) == js.end())
+		js.push_back({ key, json::array() });
+	js[key] += s_add;
+}
+
 
 //-----------------------------------------------------------------------------------
 void json_to_char_ptr(json &js, char **jarr)
@@ -1234,6 +1372,19 @@ bool json_verify_key(json &js, const string &key, int verify_val_flag, const str
 
 	return is_in;
 }
+bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val)
+{
+	bool is_in = false;
+	if (js.find(key) != js.end()) is_in = true;
+
+	if (is_in && verify_val_flag) {
+		if (js[key].get<string>() != val)
+			is_in = false;
+	}
+
+	return is_in;
+}
+
 
 //------------------------------------------------------------------------------------------
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i)
@@ -1298,4 +1449,48 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 	}
 
 	return 0;
+}
+
+void Explainer_description_config::read_cfg_file(const string &file) {
+	ifstream file_reader(file);
+	if (!file_reader.good())
+		MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - file %s wasn't found\n",
+			file.c_str());
+	records.clear();
+	unordered_set<string> contrib_seen;
+
+	string line;
+	while (getline(file_reader, line)) {
+		mes_trim(line);
+		if (line.empty() || line[0] == '#')
+			continue;
+		vector<string> tokens; //by the order of Explainer_record_config
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() < 2)
+			MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - in file %s. Expected to have at least 2 tokens.\nGot line: \"%s\"\n",
+				file.c_str(), line.c_str());
+		Explainer_record_config r;
+		r.contributer_group_name = tokens[0];
+		r.signal_name = tokens[1];
+		if (tokens.size() > 2)
+			r.max_count = med_stoi(tokens[2]);
+		if (tokens.size() > 3)
+			r.max_time_window = med_stoi(tokens[3]);
+		if (tokens.size() > 4)
+			r.time_channel = med_stoi(tokens[4]);
+		if (tokens.size() > 5)
+			r.time_unit = med_time_converter.string_to_type(tokens[5]);
+		if (tokens.size() > 6)
+			r.val_channel = med_stoi(tokens[6]);
+		if (tokens.size() > 7)
+			boost::split(r.sets, tokens[7], boost::is_any_of(","));
+
+		if (contrib_seen.find(r.contributer_group_name) != contrib_seen.end())
+			MTHROW_AND_ERR("Error, already defined rule for %s\n", r.contributer_group_name.c_str());
+		contrib_seen.insert(r.contributer_group_name);
+
+		records[r.contributer_group_name] = r;
+	}
+
+	file_reader.close();
 }
