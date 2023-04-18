@@ -1917,7 +1917,7 @@ void medial::repository::prepare_repository(const vector<int> &pids, const strin
 
 	mod.get_required_signal_names(req_names);
 
-	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());
