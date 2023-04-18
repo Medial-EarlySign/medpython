@@ -2985,8 +2985,19 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 }
 
 void RepCombineSignals::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, signal_type));
 }
 
 void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -3675,8 +3686,19 @@ int RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 }
 
 void RepBasicRangeCleaner::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty()) 
+		virtual_signals_generic.push_back(pair<string, string>(output_name, GenericSigVec::get_type_generic_spec(SigType(output_type))));
 }
 
 void RepBasicRangeCleaner::print()
@@ -4110,7 +4132,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					}
 				}
 			}
-		}
+							}
 
 #ifdef _APPLY_VERBOSE
 		for (int j = 0; j < N; j++) {
@@ -4178,10 +4200,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					for (int j = 0; j < N; j++) {
 						if (states[i].last[j] == -1 && states[i + 1].last[j] != -1)
 							states[i].last[j] = states[i + 1].last[j];
-					}
-				}
 			}
 		}
+				}
+			}
 
 #ifdef _APPLY_VERBOSE
 		for (size_t j = 0; j < states.size(); j++)
@@ -4238,9 +4260,9 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #endif
 					}
 
-				}
+					}
 
-			}
+				}
 
 
 			if (max_k >= 0) {
@@ -4260,7 +4282,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 			j++;
-		}
+			}
 
 		// packing and pushing new virtual signal
 		vector<int> v_times;
@@ -4282,11 +4304,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-	}
+		}
 
 
 	return 0;
-}
+		}
 
 
 //-------------------------------------------------------------------------------------------------------

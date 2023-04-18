@@ -85,8 +85,19 @@ void RepFilterByChannel::init_tables(MedDictionarySections& dict, MedSignals& si
 }
 
 void RepFilterByChannel::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, signal_type));
 }
 
 void RepFilterByChannel::print() {
