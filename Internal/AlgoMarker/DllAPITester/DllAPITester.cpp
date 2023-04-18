@@ -598,7 +598,7 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, string rep_conf,
 	MedPidRepository &rep, MedModel &model, MedSamples &samples,
 	vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, ofstream& msgs_stream,
-	vector<string> ignore_sig, const map<string, string> &rename_signal)
+	vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
 
@@ -1206,6 +1206,7 @@ void load_repo(MedPidRepository &rep, MedModel &model, const vector<int> pids,
 	vector<string> req_signals;
 	model.get_required_signal_names(req_signals);
 
+	//Transform model required input signal into "rep" signal before reading from repo:
 	for (size_t i = 0; i < req_signals.size(); ++i)
 		if (rename_signal.find(req_signals[i]) != rename_signal.end())
 			req_signals[i] = rename_signal.at(req_signals[i]);
@@ -1267,7 +1268,7 @@ int main(int argc, char *argv[])
 	vector<string> sigs;
 	model.get_required_signal_names(sigs);
 
-	map<string, string> rename_signal;
+	map<string, string> rename_signal; //contains target signal as a key into rep signal name (as value)
 	//Read for vm syntax:
 	if (!vm["rename_signal"].as<string>().empty()) {
 		//read and prase file:
@@ -1329,7 +1330,7 @@ int main(int argc, char *argv[])
 	//model.load_repository(vm["rep"].as<string>(), pids, rep, vm["allow_rep_adjustment"].as<bool>());
 	load_repo(rep, model, pids, vm["rep"].as<string>(), vm["allow_rep_adjustment"].as<bool>(), rename_signal);
 
-	//commit rename after reading repo:
+	//commit rename after reading repo: change repo signal name to "model" signal name
 	for (const auto &it : rename_signal)
 	{
 		if (rep.sigs.sid(it.first) < 0) {
@@ -1365,6 +1366,7 @@ int main(int argc, char *argv[])
 		model.add_pre_processors_json_string_to_model(ppjson, "");
 	}
 
+	//Now update model signals with the "rep" after rename + add the old signal as a virtual. The model might still check for this signal existeness (if was part of the model)
 	if (!rename_signal.empty()) {
 		model.fit_for_repository(rep);
 		for (const auto &it : rename_signal) {
@@ -1414,7 +1416,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (vm.count("single"))
-		get_preds_from_algomarker_single(vm, test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, msgs_stream, ignore_sig, rename_signal);
+		get_preds_from_algomarker_single(vm, test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, msgs_stream, ignore_sig);
 	else
 		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, print_msgs, msgs_stream, ignore_sig);
 	for (int i = 0; i < min(50, (int)res1.size()); i++) {
