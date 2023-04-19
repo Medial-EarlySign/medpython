@@ -376,13 +376,13 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				}
 			}
 
-			if (e.find("contributor_level") != e.end() && ex_params.max_threshold > 0
+			if (e.find("contributor_value") != e.end() && ex_params.max_threshold > 0
 				&& ex_params.num_groups > 0) {
 				float level_bin;
 				if (ex_params.use_perc)
 					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
 				else
-					level_bin = (abs(e["contributor_level"].get<float>()) / ex_params.max_threshold);
+					level_bin = (abs(e["contributor_value"].get<float>()) / ex_params.max_threshold);
 				if (level_bin > 1)
 					level_bin = 1;
 				level_bin *= 100;
@@ -396,7 +396,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					level_bin = ex_params.num_groups;
 				level_bin *= (100 / ex_params.num_groups);
 
-				e["contributor_importance"] = (int)level_bin;
+				e["contributor_level"] = (int)level_bin;
 			}
 		}
 }
