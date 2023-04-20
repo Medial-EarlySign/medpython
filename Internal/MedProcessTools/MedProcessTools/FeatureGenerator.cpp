@@ -518,6 +518,15 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	return 0;
 }
 
+void BasicFeatGenerator::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	timeRangeSignalId = sigs.sid(timeRangeSignalName);
+	if (!categ_value2id.empty() &&
+		!sigs.is_categorical_channel(signalId, val_channel)) {
+		categ_value2id.clear();
+	}
+}
+
 // Init look-up table
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {

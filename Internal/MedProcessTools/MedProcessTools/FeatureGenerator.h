@@ -362,7 +362,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
-	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); timeRangeSignalId = sigs.sid(timeRangeSignalName); }
+	void set_signal_ids(MedSignals& sigs);
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
