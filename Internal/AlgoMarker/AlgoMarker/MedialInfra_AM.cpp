@@ -192,47 +192,51 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 		string sig = signalName;
 		int section_id = rep.dict.section_id(sig);
 		int sid = rep.sigs.Name2Sid[sig];
-		if (rep.sigs.Sid2Info[sid].n_val_channels > 0) {
-			int Values_i = 0;
-			int Time_i = 0;
-			const auto& category_map = rep.dict.dict(section_id)->Name2Id;
-			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
-			for (int i = 0; i < n_elem; i++) {
-				bool skip_val = false;
-				int val_start = Values_i;
+
+		int Values_i = 0;
+		int Time_i = 0;
+		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
+		int n_elem = 0;
+		if (rep.sigs.Sid2Info[sid].n_val_channels > 0)
+			n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+		else
+			n_elem = (int)(TimeStamps_len / rep.sigs.Sid2Info[sid].n_time_channels);
+		for (int i = 0; i < n_elem; i++) {
+			bool skip_val = false;
+			int val_start = Values_i;
+			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+				if (rep.sigs.is_categorical_channel(sid, j)) {
+					if (category_map.find(Values[Values_i]) == category_map.end()) {
+						MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
+							sig.c_str(), Values[Values_i]);
+						(*ma.get_unknown_codes(patient_id))[sig].insert(Values[Values_i]);
+						skip_val = true;
+					}
+					++Values_i;
+				}
+			}
+			if (skip_val) {
+				//remove element!
+				Values_len -= rep.sigs.Sid2Info[sid].n_val_channels;
+				TimeStamps_len -= rep.sigs.Sid2Info[sid].n_time_channels;
+			}
+			else {
+				//All done 
+				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_time_channels; j++) {
+					final_tm.push_back(TimeStamps[Time_i]);
+					++Time_i;
+				}
 				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
-					if (rep.sigs.is_categorical_channel(sid, j)) {
-						if (category_map.find(Values[Values_i]) == category_map.end()) {
-							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
-								sig.c_str(), Values[Values_i]);
-							(*ma.get_unknown_codes(patient_id))[sig].insert(Values[Values_i]);
-							skip_val = true;
-						}
-						++Values_i;
-					}
-				}
-				if (skip_val) {
-					//remove element!
-					Values_len -= rep.sigs.Sid2Info[sid].n_val_channels;
-					TimeStamps_len -= rep.sigs.Sid2Info[sid].n_time_channels;
-				}
-				else {
-					//All done 
-					for (int j = 0; j < rep.sigs.Sid2Info[sid].n_time_channels; j++) {
-						final_tm.push_back(TimeStamps[Time_i]);
-						++Time_i;
-					}
-					for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
-						float val;
-						if (!rep.sigs.is_categorical_channel(sid, j))
-							val = stof(Values[Values_i++]);
-						else
-							val = category_map.at(Values[val_start + j]);
-						converted_Values.push_back(val);
-					}
+					float val;
+					if (!rep.sigs.is_categorical_channel(sid, j))
+						val = stof(Values[Values_i++]);
+					else
+						val = category_map.at(Values[val_start + j]);
+					converted_Values.push_back(val);
 				}
 			}
 		}
+
 	}
 	catch (...) {
 		MERR("Catched Error MedialInfraAlgoMarker::AddDataStr!!\n");
@@ -692,7 +696,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -969,7 +973,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
