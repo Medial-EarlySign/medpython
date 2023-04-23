@@ -273,6 +273,7 @@ private:
 	unordered_set<int> categ_forbidden = { FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE,  FTR_STD_VALUE, FTR_LAST_DELTA_VALUE,
 		FTR_SLOPE_VALUE,FTR_WIN_DELTA_VALUE, FTR_MAX_DIFF,FTR_RANGE_WIDTH, FTR_SUM_VALUE }; // Types that are not allowed for categorical data
 	map<string, int> categ_value2id;
+	bool needs_categ_dict = true;
 
 public:
 	// Feature Descrption

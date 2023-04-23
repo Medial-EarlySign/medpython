@@ -521,9 +521,11 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 void BasicFeatGenerator::set_signal_ids(MedSignals& sigs) {
 	signalId = sigs.sid(signalName);
 	timeRangeSignalId = sigs.sid(timeRangeSignalName);
+	needs_categ_dict = sigs.is_categorical_channel(signalId, val_channel);
 	if (!categ_value2id.empty() &&
 		!sigs.is_categorical_channel(signalId, val_channel)) {
 		categ_value2id.clear();
+		needs_categ_dict = false;
 	}
 }
 
@@ -545,7 +547,7 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 		lut.clear();
 
 	// Look-up tables for categ_require_dict types
-	if (categ_require_dict.find(type) != categ_require_dict.end()) {
+	if (categ_require_dict.find(type) != categ_require_dict.end() && needs_categ_dict) {
 		MedDictionary& _dict = dict.dicts[dict.section_id(signalName)];
 		if (_dict.Id2Name.size() == 0)
 			MTHROW_AND_ERR("Empty dictionary for signal %s\n", signalName.c_str());
