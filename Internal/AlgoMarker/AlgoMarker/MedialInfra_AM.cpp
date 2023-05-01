@@ -374,9 +374,9 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				}
 				if (e["contributor_value"].get<float>() < 0)
 					contrib_positive = false;
-				if (contrib_positive && ex_params.total_max_pos_reasons > 0 && tot_pos >= ex_params.total_max_pos_reasons)
+				if (contrib_positive && ex_params.total_max_pos_reasons >= 0 && tot_pos >= ex_params.total_max_pos_reasons)
 					continue;
-				if (!contrib_positive && ex_params.total_max_neg_reasons > 0 && tot_neg >= ex_params.total_max_pos_reasons)
+				if (!contrib_positive && ex_params.total_max_neg_reasons >= 0 && tot_neg >= ex_params.total_max_pos_reasons)
 					continue;
 			}
 			if (e.find("contributor_percentage") != e.end()) {
@@ -385,7 +385,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 						continue;  //sorted, can change to break
 				}
 			}
-			if (ex_params.total_max_reasons > 0 && total_reasons >= ex_params.total_max_reasons)
+			if (ex_params.total_max_reasons >= 0 && total_reasons >= ex_params.total_max_reasons)
 				break;
 			//after all filters:
 			++total_reasons;
@@ -447,8 +447,51 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			final_res.push_back(e);
 		}
 
-		//TODO: add static info:
-		//jattr["static_info"] = "";
+		//add static info:
+		if (!ex_params.static_features_info.empty()) {
+			//special use cage Age, other names is to fetch signal:
+			jattr["static_info"] = nlohmann::ordered_json::array();
+			for (const string &feat : ex_params.static_features_info)
+			{
+				nlohmann::ordered_json feat_js;
+				feat_js["signal"] = feat;
+				if (boost::to_upper_copy(feat) == "AGE") {
+					int sid = rep.sigs.sid("BDATE");
+					if (sid < 0)
+						MTHROW_AND_ERR("Error unknown signal BDATE for Age static fetch\n", feat.c_str());
+					int bdate = medial::repository::get_value(rep, pid, sid);
+					if (bdate < 0)
+						feat_js["value"] = "Missing";
+					else {
+						int age = int(time / 10000) - int(bdate / 10000);
+						feat_js["value"] = age;
+					}
+				}
+				else {
+					UniversalSigVec usv;
+					int sid = rep.sigs.sid(feat);
+					int section_id = rep.dict.section_id(feat);
+					if (sid < 0)
+						MTHROW_AND_ERR("Error unknown signal %s for static fetch\n", feat.c_str());
+					rep.uget(pid, sid, usv);
+					if (usv.len == 0)
+						feat_js["value"] = "Missing";
+					else {
+						if (!rep.sigs.is_categorical_channel(sid, 0))
+							feat_js["value"].push_back(usv.Val(usv.len - 1, 0));
+						else
+						{
+							int code_val = usv.Val<int>(usv.len - 1, 0);
+							string code_str = rep.dict.name(section_id, code_val);
+							feat_js["value"].push_back(code_str);
+						}
+					}
+				}
+
+
+				jattr["static_info"].push_back(feat_js);
+			}
+		}
 
 		jattr.erase("explainer_output");
 		jattr["explainer_output"] = final_res;
@@ -1365,6 +1408,17 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 		json_signals += sig_js;
 	}
 
+	Explainer_parameters ex_params;
+	ma.get_explainer_params(ex_params);
+	if (ex_params.max_threshold > 0) { //has settings
+		jresp["explainability_options"] = nlohmann::ordered_json::array();
+		vector<string> model_groups; //fetch from model
+		ma.get_explainer_output_options(model_groups);
+		//filer ignore:
+		for (const string &str_g : model_groups)
+			if (ex_params.ignore_groups_list.find(str_g) == ex_params.ignore_groups_list.end())
+				jresp["explainability_options"].push_back(str_g);
+	}
 	//ma.get_rep().sigs.Sid2Info[1].
 
 	json_to_char_ptr(jresp, response);
