@@ -352,17 +352,81 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 void process_explainability(nlohmann::ordered_json &jattr,
 	Explainer_parameters &ex_params, MedPidRepository &rep,
 	int pid, int time) {
-	if (jattr.find("explainer_output") != jattr.end())
+	if (jattr.find("explainer_output") != jattr.end()) {
+		auto final_res = nlohmann::ordered_json::array();
+		int total_reasons = 0, tot_pos = 0, tot_neg = 0;
 		for (auto &e : jattr["explainer_output"]) {
 
 			if (e.find("contributor_name") == e.end())
 				MTHROW_AND_ERR("Error - expecting to see contributor_name\n");
 			string contrib_name = e["contributor_name"].get<string>();
+			if (ex_params.ignore_groups_list.find(contrib_name) != ex_params.ignore_groups_list.end()) {
+				//remove group - in ignore, remove "e" from jattr["explainer_output"]
+				continue;
+			}
+
+			//test filters:
+			bool contrib_positive = true;
+			if (e.find("contributor_value") != e.end()) {
+				if (ex_params.threshold_abs > 0) {
+					if (abs(e["contributor_value"].get<float>()) < ex_params.threshold_abs)
+						continue; //sorted, can change to break
+				}
+				if (e["contributor_value"].get<float>() < 0)
+					contrib_positive = false;
+				if (contrib_positive && ex_params.total_max_pos_reasons > 0 && tot_pos >= ex_params.total_max_pos_reasons)
+					continue;
+				if (!contrib_positive && ex_params.total_max_neg_reasons > 0 && tot_neg >= ex_params.total_max_pos_reasons)
+					continue;
+			}
+			if (e.find("contributor_percentage") != e.end()) {
+				if (ex_params.threshold_percentage > 0) {
+					if (abs(e["contributor_percentage"].get<float>()) < ex_params.threshold_percentage)
+						continue;  //sorted, can change to break
+				}
+			}
+			if (ex_params.total_max_reasons > 0 && total_reasons >= ex_params.total_max_reasons)
+				break;
+			//after all filters:
+			++total_reasons;
+			if (e.find("contributor_value") != e.end()) {
+				if (contrib_positive)
+					++tot_pos;
+				else
+					++tot_neg;
+			}
+
+			if (e.find("contributor_value") != e.end() && ex_params.max_threshold > 0
+				&& ex_params.num_groups > 0) {
+				float level_bin;
+				if (ex_params.use_perc)
+					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
+				else
+					level_bin = (abs(e["contributor_value"].get<float>()) / ex_params.max_threshold);
+				if (level_bin > 1)
+					level_bin = 1;
+
+				level_bin *= ex_params.num_groups;
+				if (level_bin > 0)
+					level_bin = (int)(level_bin)+1;
+				else
+					level_bin = int(level_bin);
+
+				if (level_bin > ex_params.num_groups)
+					level_bin = ex_params.num_groups;
+
+				e["contributor_level"] = (int)level_bin;
+				e["contributor_level_max"] = ex_params.num_groups;
+			}
 
 			string contib_info = "";
 			e["contributor_records"] = nlohmann::ordered_json::array();
 			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
 				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
+				e["contributor_records_info"] = nlohmann::ordered_json();
+				e["contributor_records_info"]["contributer_max_time"] = e_cfg.max_time_window;
+				e["contributor_records_info"]["contributer_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
+				e["contributor_records_info"]["contributer_max_count"] = e_cfg.max_count;
 				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
 			}
 			else {
@@ -380,29 +444,15 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				}
 			}
 
-			if (e.find("contributor_value") != e.end() && ex_params.max_threshold > 0
-				&& ex_params.num_groups > 0) {
-				float level_bin;
-				if (ex_params.use_perc)
-					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
-				else
-					level_bin = (abs(e["contributor_value"].get<float>()) / ex_params.max_threshold);
-				if (level_bin > 1)
-					level_bin = 1;
-				level_bin *= 100;
-				level_bin = level_bin / (100 / ex_params.num_groups);
-				if (level_bin > 0)
-					level_bin = (int)(level_bin)+1;
-				else
-					level_bin = int(level_bin);
-
-				if (level_bin > ex_params.num_groups)
-					level_bin = ex_params.num_groups;
-				level_bin *= (100 / ex_params.num_groups);
-
-				e["contributor_level"] = (int)level_bin;
-			}
+			final_res.push_back(e);
 		}
+
+		//TODO: add static info:
+		//jattr["static_info"] = "";
+
+		jattr.erase("explainer_output");
+		jattr["explainer_output"] = final_res;
+	}
 }
 
 //------------------------------------------------------------------------------------------

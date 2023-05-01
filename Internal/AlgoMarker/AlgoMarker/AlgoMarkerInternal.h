@@ -85,6 +85,12 @@ public:
 	int num_groups = 3; ///< control how much binning to present
 	bool use_perc = false; ///< control if binning on absolute value or on percentage
 	Explainer_description_config cfg; ///< file to configure fetching signal to present
+	unordered_set<string> ignore_groups_list; ///< name list of groups to alwaya ignore
+	int total_max_reasons = 0; ///< if bigger than zero max limit for all reasons
+	int total_max_pos_reasons = 0; ///< if bigger than zero max limit for pos reasons
+	int total_max_neg_reasons = 0; ///< if bigger than zero max limit for neg reasons
+	float threshold_abs = -1; ///< absolute thershold if bigger than 0
+	float threshold_percentage = -1; ///< percentage thershold if bigger than 0
 
 	// to be init before:
 	string base_dir = "";
@@ -96,8 +102,23 @@ public:
 				max_threshold = med_stof(it.second);
 			else if (it.first == "num_groups")
 				num_groups = med_stoi(it.second);
+			else if (it.first == "total_max_reasons")
+				total_max_reasons = med_stoi(it.second);
+			else if (it.first == "total_max_pos_reasons")
+				total_max_pos_reasons = med_stoi(it.second);
+			else if (it.first == "total_max_neg_reasons")
+				total_max_neg_reasons = med_stoi(it.second);
+			else if (it.first == "threshold_abs")
+				threshold_abs = med_stof(it.second);
+			else if (it.first == "threshold_percentage")
+				threshold_percentage = med_stof(it.second);
 			else if (it.first == "use_perc")
 				use_perc = med_stoi(it.second) > 0;
+			else if (it.first == "ignore_groups_list") {
+				vector<string> tokens;
+				boost::split(tokens, it.second, boost::is_any_of(","));
+				ignore_groups_list.insert(tokens.begin(), tokens.end());
+			}
 			else if (it.first == "cfg") {
 				if (it.second != "" && it.second[0] != '/' && it.second[0] != '\\' && !base_dir.empty())
 					cfg.read_cfg_file(base_dir + "/" + it.second);
@@ -115,7 +136,7 @@ public:
 	}
 
 	ADD_CLASS_NAME(Explainer_parameters)
-		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups, cfg)
+		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups, cfg, ignore_groups_list, total_max_reasons, total_max_pos_reasons, total_max_neg_reasons, threshold_abs, threshold_percentage)
 };
 
 //===============================================================================
