@@ -457,13 +457,25 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				feat_js["signal"] = feat;
 				if (boost::to_upper_copy(feat) == "AGE") {
 					int sid = rep.sigs.sid("BDATE");
-					if (sid < 0)
-						MTHROW_AND_ERR("Error unknown signal BDATE for Age static fetch\n", feat.c_str());
+					bool using_byear = false;
+					if (sid < 0) {
+						sid = rep.sigs.sid("BYEAR");
+						using_byear = true;
+						if (sid < 0) {
+							MWARN("Error unknown signal BDATE/BYEAR for Age static fetch\n");
+							feat_js["value"] = "Missing";
+							jattr["static_info"].push_back(feat_js);
+							continue;
+						}
+					}
 					int bdate = medial::repository::get_value(rep, pid, sid);
+					int byear = bdate;
+					if (!using_byear)
+						byear = int(bdate / 10000);
 					if (bdate < 0)
 						feat_js["value"] = "Missing";
 					else {
-						int age = int(time / 10000) - int(bdate / 10000);
+						int age = int(time / 10000) - byear;
 						feat_js["value"] = age;
 					}
 				}
@@ -789,7 +801,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -1066,7 +1078,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
