@@ -811,7 +811,25 @@ int CategoryDependencyGenerator::_learn(MedPidRepository& rep, const MedSamples&
 	luts.resize(indexes_order.size());
 	int section_id = rep.dict.section_id(signalName);
 	for (size_t i = 0; i < indexes_order.size(); ++i) {
-		top_codes[i] = categoryId_to_name.at(code_list[indexes_order[i]]).front();
+		const vector<string> &category_names_repr = categoryId_to_name.at(code_list[indexes_order[i]]);
+		//Select by regex if we have:
+		if (regex_filter.empty() && remove_regex_filter.empty())
+			top_codes[i] = category_names_repr.front();
+		else {
+			bool found_nm = false;
+			for (size_t j = 0; j < category_names_repr.size() && !found_nm; ++j)
+				if (regex_filter.empty() || boost::regex_match(category_names_repr[j], reg_pat)) {
+					if (remove_regex_filter.empty() || !boost::regex_match(category_names_repr[j], remove_reg_pat)) {
+						top_codes[i] = category_names_repr[j];
+						found_nm = true;
+					}
+				}
+			if (!found_nm) {
+				top_codes[i] = category_names_repr.front();
+				MWARN("Have category without matched regex (not supose to happen): %s : %s\n",
+					signalName.c_str(), top_codes[i].c_str());
+			}
+		}
 		vector<string> s_names = { top_codes[i] };
 		rep.dict.prep_sets_lookup_table(section_id, s_names, luts[i]);
 	}
