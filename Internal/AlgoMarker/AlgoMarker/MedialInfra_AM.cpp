@@ -1151,6 +1151,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				}
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
+				else if (fields[0] == "AM_MANUFACTOR_DATE")  set_manafactur_date(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
 				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
 				else if (fields[0] == "TESTER_NAME") {}
@@ -1324,7 +1325,8 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 		{
 		{ "name", get_name() },
 		{ "version", get_am_version() },
-		{ "udi_di", get_am_udi_di() },
+		{ "udi", get_am_udi_di() },
+		{ "mfg_date", get_manfactor_date() }, 
 		{ "model_code_version", ma.model_version_info() },
 		{ "lib_code_version", get_lib_code_version() },
 		{ "signals", nlohmann::ordered_json::array() }
