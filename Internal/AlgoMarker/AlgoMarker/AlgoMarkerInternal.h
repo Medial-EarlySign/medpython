@@ -228,7 +228,7 @@ public:
 		//global_logger.log(LOG_APP, LOG_DEF_LEVEL, "Init MedModel for Rep\n");
 		if (!model_rep_done) {
 			model_rep_done = true;
-			return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS);
+			return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
 		}
 		return 0;
 	}

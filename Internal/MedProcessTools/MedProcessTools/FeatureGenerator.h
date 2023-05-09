@@ -475,6 +475,8 @@ public:
 * Gender
 */
 class GenderGenerator : public FeatureGenerator {
+private:
+	vector<string> category_values;
 public:
 
 	/// Gender Id
@@ -501,7 +503,18 @@ public:
 
 	// Signal Ids
 	void set_signal_ids(MedSignals& sigs) { genderId = sigs.sid("GENDER"); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
+	void set_required_signal_ids(MedDictionarySections& dict) { 
+		req_signal_ids.assign(1, dict.id("GENDER")); 
+	}
+
+	void init_tables(MedDictionarySections& dict) {
+		category_values.clear();
+		if (dict.SectionName2Id.find("GENDER") != dict.SectionName2Id.end()) {
+			int section_id = dict.section_id("GENDER");
+			for (const auto &it : dict.dicts[section_id].Id2Name)
+				category_values.push_back(it.second);
+		}
+	}
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
