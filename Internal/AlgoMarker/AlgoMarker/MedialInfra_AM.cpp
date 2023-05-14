@@ -476,7 +476,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 						feat_js["value"] = "Missing";
 					else {
 						int age = int(time / 10000) - byear;
-						feat_js["value"] = age;
+						feat_js["value"] = to_string(age);
 					}
 				}
 				else {
@@ -490,12 +490,12 @@ void process_explainability(nlohmann::ordered_json &jattr,
 						feat_js["value"] = "Missing";
 					else {
 						if (!rep.sigs.is_categorical_channel(sid, 0))
-							feat_js["value"].push_back(usv.Val(usv.len - 1, 0));
+							feat_js["value"] = to_string(usv.Val(usv.len - 1, 0));
 						else
 						{
 							int code_val = usv.Val<int>(usv.len - 1, 0);
 							string code_str = rep.dict.name(section_id, code_val);
-							feat_js["value"].push_back(code_str);
+							feat_js["value"] = code_str;
 						}
 					}
 				}
@@ -801,7 +801,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -1078,7 +1078,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1326,7 +1326,7 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 		{ "name", get_name() },
 		{ "version", get_am_version() },
 		{ "udi", get_am_udi_di() },
-		{ "mfg_date", get_manfactor_date() }, 
+		{ "mfg_date", get_manfactor_date() },
 		{ "model_code_version", ma.model_version_info() },
 		{ "lib_code_version", get_lib_code_version() },
 		{ "signals", nlohmann::ordered_json::array() }
