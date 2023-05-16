@@ -332,7 +332,7 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 		for (int j = 0; j < usv.n_val_channels(); ++j) {
 
 			if (!rep.sigs.is_categorical_channel(sid, j))
-				ele["value"].push_back(usv.Val(i, j));
+				ele["value"].push_back(to_string(usv.Val(i, j)));
 			else
 			{
 				int code_val = usv.Val<int>(i, j);
@@ -439,7 +439,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					element_single["signal"] = fname;
 					element_single["timestamp"] = nlohmann::ordered_json::array();
 					element_single["value"] = nlohmann::ordered_json::array();
-					element_single["value"].push_back(fval);
+					element_single["value"].push_back(to_string(fval));
 					e["contributor_records"].push_back(element_single);
 				}
 			}
