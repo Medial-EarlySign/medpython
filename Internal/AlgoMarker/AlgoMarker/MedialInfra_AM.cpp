@@ -1038,7 +1038,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				else if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end())
 					js.push_back({ e.first, req_i.res->str_attributes[e.second.field] });
 			}
-			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL) {
+			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 				if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end()) {
 					nlohmann::ordered_json jattr;
 					try {
