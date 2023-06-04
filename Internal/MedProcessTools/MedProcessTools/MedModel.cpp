@@ -332,7 +332,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	if (generate_masks_for_features) { features.masks.clear(); features.mark_imputed_in_masks(); };
+	if (generate_masks_for_features) { features.mark_imputed_in_masks(); };
 	// Learn predictor
 	if (start_stage <= MED_MDL_LEARN_PREDICTOR && predictor != NULL) {
 		timer.start();
@@ -593,7 +593,8 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
 		return 0;
 
-	if (generate_masks_for_features) { features.masks.clear(); features.mark_imputed_in_masks(); }
+	//Call again - if FP added missing values (for example by calculating something)
+	if (generate_masks_for_features) { features.mark_imputed_in_masks(); }
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
