@@ -802,10 +802,10 @@ int GenderGenerator::init(map<string, string>& mapper) {
 }
 
 void GenderGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
-	if (category_values.empty()) 
+	if (category_values.empty())
 		return;
-	//if (category_values.size() == 2)
-		for (const string &categ : category_values)
+	for (const string &categ : category_values)
+		if (categ != "GENDER") //remove the name of the signal - if there is rename of the name of signal to SEX
 			signal_categories_in_use["GENDER"].push_back(categ);
 }
 
