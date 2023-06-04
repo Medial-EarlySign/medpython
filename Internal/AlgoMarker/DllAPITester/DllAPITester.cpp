@@ -1371,8 +1371,15 @@ int main(int argc, char *argv[])
 		model.fit_for_repository(rep);
 		for (const auto &it : rename_signal) {
 			//add as virtual signals:
-			MLOG("Add virtual %s\n", it.second.c_str());
-			int vsig_id = rep.sigs.insert_virtual_signal(it.second, "T(i),V(f)");
+			
+			int source_sig = rep.sigs.sid(it.first);
+			UniversalSigVec usv_test;
+			const SignalInfo &sig_info = rep.sigs.Sid2Info.at(source_sig);
+			usv_test.init(sig_info);
+			string sig_spec = usv_test.get_signal_generic_spec();
+			MLOG("Add virtual %s of type [%s]\n", it.second.c_str(), sig_spec.c_str());
+
+			int vsig_id = rep.sigs.insert_virtual_signal(it.second, sig_spec);
 			int add_section = rep.dict.section_id(it.second);
 			rep.dict.dicts[add_section].Name2Id[it.second] = vsig_id;
 			rep.dict.dicts[0].Name2Id[it.second] = vsig_id;

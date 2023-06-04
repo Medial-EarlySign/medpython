@@ -118,6 +118,7 @@ public:
 	/// Global init for general args in all explainers. initialize directly all args in GlobalExplainerParams
 	virtual int init(map<string, string> &mapper);
 
+	virtual int update(map<string, string>& mapper);
 	/// overload function for ModelExplainer - easier API
 	virtual void _learn(const MedFeatures &train_mat) = 0;
 

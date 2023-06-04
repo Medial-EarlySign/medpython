@@ -555,6 +555,43 @@ int ModelExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
+int ModelExplainer::update(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "rename_group") {
+			vector<string> tokens;
+			boost::split(tokens, it->second, boost::is_any_of("|"));
+			for (const string & token : tokens)
+			{
+				vector<string> kv;
+				boost::split(kv, token, boost::is_any_of(":"));
+				if (kv.size() != 2)
+					MTHROW_AND_ERR("Error - bad format - should have 2 tokens with \":\" delimeter. Instead got \"%s\"\n",
+						token.c_str());
+
+				//change name:
+				bool found = false;
+				for (size_t i = 0; i < processing.groupNames.size() && !found; ++i)
+					if (processing.groupNames[i] == kv[0]) {
+						processing.groupNames[i] = kv[1];
+						found = true;
+					}
+				if (!found)
+					MWARN("WARN: couldn't find %s\n", kv[0].c_str());
+				if (processing.groupName2Inds.find(kv[0]) == processing.groupName2Inds.end())
+					MWARN("WARN: couldn't find %s in map\n", kv[0].c_str());
+				else {
+					processing.groupName2Inds[kv[1]] = processing.groupName2Inds[kv[0]];
+					processing.groupName2Inds.erase(kv[0]);
+				}
+			}
+		}
+		else
+			MWARN("Unknown argument %s\n", it->first.c_str());
+	}
+	return 0;
+}
+
 void ModelExplainer::init_post_processor(MedModel& model) {
 	original_predictor = model.predictor;
 	//Find Norm Processors:

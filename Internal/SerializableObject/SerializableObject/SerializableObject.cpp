@@ -140,7 +140,7 @@ int SerializableObject::init_from_string(string init_string) {
 
 	return 0;
 }
-int SerializableObject::update_from_string(string init_string) {
+int SerializableObject::update_from_string(const string &init_string) {
 
 	map<string, string> mapper;
 	if (MedSerialize::init_map_from_string(init_string, mapper) < 0)
