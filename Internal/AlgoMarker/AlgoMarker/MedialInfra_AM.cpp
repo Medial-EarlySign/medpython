@@ -293,10 +293,15 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 string fetch_desription(MedPidRepository &rep, const string &name) {
 	vector<string> tokens;
 	boost::split(tokens, name, boost::is_any_of("."));
-	if (tokens.size() != 2)
+	if (tokens.size() < 2)
 		return "";
 	int section_id = rep.dict.section_id(tokens[0]);
-	int sig_val = rep.dict.id(section_id, tokens[1]);
+	stringstream ss_val;
+	ss_val << tokens[1];
+	for (size_t i = 2; i < tokens.size(); ++i) //if has more than 1 dot, as part of the code
+		ss_val << "." << tokens[i];
+
+	int sig_val = rep.dict.id(section_id, ss_val.str());
 	if (rep.dict.name(section_id, sig_val).empty())
 		return "";
 	const vector<string> &names = rep.dict.dicts[section_id].Id2Names.at(sig_val);
@@ -551,7 +556,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-	}
+}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -810,7 +815,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 				}
 			}
 		}
-	}
+				}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -829,7 +834,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+			}
 
 
 //------------------------------------------------------------------------------------------
@@ -848,7 +853,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-	}
+		}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -1106,7 +1111,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
