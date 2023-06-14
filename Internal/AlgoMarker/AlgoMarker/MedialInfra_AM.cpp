@@ -290,6 +290,32 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 	return ret_code;
 }
 
+string fetch_desription(MedPidRepository &rep, const string &name) {
+	vector<string> tokens;
+	boost::split(tokens, name, boost::is_any_of("."));
+	if (tokens.size() != 2)
+		return "";
+	int section_id = rep.dict.section_id(tokens[0]);
+	int sig_val = rep.dict.id(section_id, tokens[1]);
+	if (rep.dict.name(section_id, sig_val).empty())
+		return "";
+	const vector<string> &names = rep.dict.dicts[section_id].Id2Names.at(sig_val);
+	if (names.size() <= 1) //has only this "name", no other aliases
+		return "";
+	stringstream ss;
+	bool is_empty = true;
+	for (size_t i = 0; i < names.size(); ++i)
+	{
+		if (names[i] == name)
+			continue;
+		if (!is_empty)
+			ss << "|";
+		ss << names[i];
+		is_empty = false;
+	}
+	return ss.str();
+}
+
 void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 	int pid, int time, nlohmann::ordered_json &jres) {
 	UniversalSigVec usv;
@@ -364,6 +390,8 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				//remove group - in ignore, remove "e" from jattr["explainer_output"]
 				continue;
 			}
+			//Add "contributor_description" from name:
+			e["contributor_description"] = fetch_desription(rep, contrib_name);
 
 			//test filters:
 			bool contrib_positive = true;
