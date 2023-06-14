@@ -1453,13 +1453,18 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	Explainer_parameters ex_params;
 	ma.get_explainer_params(ex_params);
 	if (ex_params.max_threshold > 0) { //has settings
+		MedPidRepository &rep = ma.get_rep();
 		jresp["explainability_options"] = nlohmann::ordered_json::array();
 		vector<string> model_groups; //fetch from model
 		ma.get_explainer_output_options(model_groups);
 		//filer ignore:
 		for (const string &str_g : model_groups)
-			if (ex_params.ignore_groups_list.find(str_g) == ex_params.ignore_groups_list.end())
-				jresp["explainability_options"].push_back(str_g);
+			if (ex_params.ignore_groups_list.find(str_g) == ex_params.ignore_groups_list.end()) {
+				nlohmann::ordered_json element_exp;
+				element_exp["name"] = str_g;
+				element_exp["description"] = fetch_desription(rep, str_g);
+				jresp["explainability_options"].push_back(element_exp);
+			}
 	}
 	//ma.get_rep().sigs.Sid2Info[1].
 
