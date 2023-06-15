@@ -300,8 +300,9 @@ string fetch_desription(MedPidRepository &rep, const string &name) {
 	ss_val << tokens[1];
 	for (size_t i = 2; i < tokens.size(); ++i) //if has more than 1 dot, as part of the code
 		ss_val << "." << tokens[i];
+	string curr_name = ss_val.str();
 
-	int sig_val = rep.dict.id(section_id, ss_val.str());
+	int sig_val = rep.dict.id(section_id, curr_name);
 	if (rep.dict.name(section_id, sig_val).empty())
 		return "";
 	const vector<string> &names = rep.dict.dicts[section_id].Id2Names.at(sig_val);
@@ -311,7 +312,7 @@ string fetch_desription(MedPidRepository &rep, const string &name) {
 	bool is_empty = true;
 	for (size_t i = 0; i < names.size(); ++i)
 	{
-		if (names[i] == name)
+		if (names[i] == curr_name)
 			continue;
 		if (!is_empty)
 			ss << "|";
