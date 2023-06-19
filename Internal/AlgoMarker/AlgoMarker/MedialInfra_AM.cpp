@@ -1298,6 +1298,12 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 					nt++;
 					//MLOG("%d ", itime);
 				}
+				//Check size of timestamps:
+				if (nt != n_time_channels) {
+					MLOG("Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d time channels and signal has %d time channels\n",
+						sig.c_str(), patient_id,nt, n_time_channels);
+					return AM_FAIL_RC;
+				}
 				//MLOG("val ");
 				int nv = 0;
 				for (auto &v : d["value"]) {
@@ -1318,6 +1324,12 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 					//char *sp = &sdata[sinds.back()];
 					//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
 					//MLOG("%s ", v.get<string>().c_str());
+				}
+				//Check size of timestamps:
+				if (nv != n_val_channels) {
+					MLOG("Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d value channels and signal has %d value channels\n",
+						sig.c_str(), patient_id, nv, n_val_channels);
+					return AM_FAIL_RC;
 				}
 				//MLOG("\n");
 				n_data++;
