@@ -1,6 +1,8 @@
 #include <cstdio>
 #include <cstring>
 #include <dlfcn.h>
+#include <string>
+#include <memory>
 
 #include <vector>
 #include <map>
@@ -669,15 +671,15 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 	DynAM::AM_API_ClearData(am);
 
 	string in_jsons;
-	unique_ptr<char *> out_messages;
+	char * out_messages;
 	if (read_file_into_string(input_json_path, in_jsons) < 0) {
 		printf("Error on loading file %s\n", in_jsons.c_str());
 		throw logic_error("Error");
 	}
 	printf("read %zu characters from input jsons file %s\n", in_jsons.length(), input_json_path);
-	int load_status = DynAM::AM_API_AddDataByType(am, in_jsons.c_str(), out_messages.get());
+	int load_status = DynAM::AM_API_AddDataByType(am, in_jsons.c_str(), &out_messages);
 	if (out_messages != NULL) {
-		string msgs = string(*out_messages); //New line for each message:
+		string msgs = string(out_messages); //New line for each message:
 		printf("AddDataByType has messages:\n");
 		printf("%s\n", msgs.c_str());
 	}
@@ -691,7 +693,7 @@ int get_preds_from_algomarker_single(AlgoMarker *am,
 	int pred_id, int pred_time, bool print_resp = false)
 {
 
-	char * stypes[] = { "Raw" };
+	const char * stypes[] = { "Raw" };
 	int pid_id = pred_id;
 	long long _timestamp = pred_time;
 	char *jreq = (char *)(sjreq.c_str());
