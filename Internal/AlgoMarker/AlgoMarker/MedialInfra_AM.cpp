@@ -1325,6 +1325,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				good = false;
 				good_sig = false;
 				//return AM_FAIL_RC;
+				continue;
 			}
 			//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
 			int n_data = 0;
