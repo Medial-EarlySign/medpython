@@ -750,7 +750,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		else
 			ma.add_features_mat(am_matrix);
 		first_write = false;
-		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -834,10 +834,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						}
 					}
 
-						}
-					}
 				}
 			}
+		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -856,7 +856,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -1009,7 +1009,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		}
 		else
 			n_bad++;
-		}
+	}
 
 	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
 
@@ -1033,7 +1033,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
-		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -1117,7 +1117,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		}
 		jresp["responses"].push_back(js);
-				}
+	}
 
 	json_to_char_ptr(jresp, response);
 
@@ -1136,7 +1136,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-			}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1282,6 +1282,8 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
+	bool good = true;
+	bool mark_succ_ = false;
 	try {
 		json &js = j_data;
 
@@ -1304,14 +1306,26 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		vector<char> sdata(s_data_size);
 		vector<int> sinds;
 		int curr_s = 0;
+
 		//char str_values[MAX_VALS][MAX_VAL_LEN];
 		for (auto &s : js["signals"]) {
+			bool good_sig = true;
 			times.clear();
 			sinds.clear();
 			curr_s = 0;
 			string sig = s["code"].get<string>();
 			int n_time_channels, n_val_channels, *is_categ;
 			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+			if (n_time_channels == 0 && n_val_channels == 0) {
+				char buf[5000];
+				snprintf(buf, sizeof(buf), "Error in  AddDataByType() - patient %d, unknown signal %s",
+					patient_id, sig.c_str());
+				messages.push_back(string(buf));
+				MLOG("%s\n", buf);
+				good = false;
+				good_sig = false;
+				//return AM_FAIL_RC;
+			}
 			//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
 			int n_data = 0;
 			for (auto &d : s["data"]) {
@@ -1329,7 +1343,9 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 						sig.c_str(), patient_id, nt, n_time_channels);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
-					return AM_FAIL_RC;
+					good = false;
+					good_sig = false;
+					//return AM_FAIL_RC;
 				}
 				//MLOG("val ");
 				int nv = 0;
@@ -1358,7 +1374,9 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 					snprintf(buf, sizeof(buf), "Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d value channels and signal has %d value channels",
 						sig.c_str(), patient_id, nv, n_val_channels);
 					MLOG("%s\n", buf);
-					return AM_FAIL_RC;
+					good = false;
+					good_sig = false;
+					//return AM_FAIL_RC;
 				}
 				//MLOG("\n");
 				n_data++;
@@ -1375,18 +1393,30 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 			//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
 			//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
 
-			if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
-				char buf[5000];
-				snprintf(buf, sizeof(buf), "Failed AddDataStr() in AddDataByType() - patient %d, signal %s",
-					patient_id, sig.c_str());
-				messages.push_back(string(buf));
-				MLOG("%s\n", buf);
-				return AM_FAIL_RC;
+			if (good_sig) {
+				if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
+					char buf[5000];
+					snprintf(buf, sizeof(buf), "Failed AddDataStr() in AddDataByType() - patient %d, signal %s",
+						patient_id, sig.c_str());
+					messages.push_back(string(buf));
+					MLOG("%s\n", buf);
+					good_sig = false;
+					good = false;
+					return AM_FAIL_RC;
+				}
+				else
+					mark_succ_ = true;
 			}
 		}
 	}
 	catch (...) {
 		messages.push_back("AddDataByType() - bad json format");
+		return AM_FAIL_RC;
+	}
+	if (!good) {
+		if (mark_succ_) //add message that some was loaded:
+			messages.push_back("AddDataByType() - some of the data signals were loaded for patient " +
+				to_string(patient_id) + ". Consider calling ClearData if rerun again after fixing.");
 		return AM_FAIL_RC;
 	}
 
