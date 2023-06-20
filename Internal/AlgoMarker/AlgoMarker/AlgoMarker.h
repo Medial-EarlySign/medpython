@@ -294,11 +294,11 @@ public:
 
 	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	virtual int AddDataByType(const char *data, char **messages) { return 0; }
-	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
+	virtual int AddDataByType(const char *data, char **messages) { *messages = NULL; return 0; }
+	virtual int CalculateByType(int CalculateType, char *request, char **response) { *response = NULL; return 0; } // options: JSON_REQ_JSON_RESP
 
 	//Discovery api
-	virtual int Discovery(char **response) { return 0; }
+	virtual int Discovery(char **response) { *response = NULL; return 0; }
 
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);

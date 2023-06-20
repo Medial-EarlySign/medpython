@@ -671,7 +671,7 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 	DynAM::AM_API_ClearData(am);
 
 	string in_jsons;
-	char * out_messages;
+	char *out_messages;
 	if (read_file_into_string(input_json_path, in_jsons) < 0) {
 		printf("Error on loading file %s\n", in_jsons.c_str());
 		throw logic_error("Error");
@@ -683,6 +683,7 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 		printf("AddDataByType has messages:\n");
 		printf("%s\n", msgs.c_str());
 	}
+	DynAM::AM_API_Dispose(out_messages);
 	printf("Added data from %s\n", input_json_path);
 	if (load_status != AM_OK_RC)
 		printf("Error code returned from calling AddDataByType: %d\n", load_status);
@@ -725,7 +726,7 @@ int main(int argc, char *argv[]) {
 	}
 
 	if (argc > 4) {//3 and up
-		bool calc_type = stoi(string(argv[4]))>0;
+		//bool calc_type = stoi(string(argv[4]))>0;
 
 		//get_preds_from_algomarker_single(test_am, sjreq, calc_type, pid_id, prediction_time, true);
 	}

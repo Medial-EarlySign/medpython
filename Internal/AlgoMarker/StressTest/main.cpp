@@ -50,6 +50,7 @@ void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
 		MLOG("AddDataByType has messages:\n");
 		MLOG("%s\n", msgs.c_str());
 	}
+	DYN(AM_API_Dispose(out_messages));
 	MLOG("Added data from %s\n", input_json_path.c_str());
 	if (load_status != AM_OK_RC)
 		MERR("Error code returned from calling AddDataByType: %d\n", load_status);

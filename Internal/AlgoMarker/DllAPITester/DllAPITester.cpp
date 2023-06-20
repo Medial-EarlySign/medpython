@@ -834,13 +834,14 @@ int add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str, 
 	if (js.find("scoreOnDate") != js.end())
 		score_time = js["scoreOnDate"].get<long long>();
 
-	char * out_messages;
+	char *out_messages;
 	int rc_code= DYN(AM_API_AddDataByType(am, json_str, &out_messages));
 	if (out_messages != NULL) {
 		string msgs = string(out_messages); //New line for each message:
 		MLOG("AddDataByType has messages:\n");
 		MLOG("%s\n", msgs.c_str());
 	}
+	DYN(AM_API_Dispose(out_messages));
 	return rc_code;
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
@@ -987,6 +988,7 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 			MLOG("AddDataByType has messages:\n");
 			MLOG("%s\n", msgs.c_str());
 		}
+		DYN(AM_API_Dispose(out_messages));
 		MLOG("Added data from %s\n", vm["in_jsons"].as<string>().c_str());
 		if (load_status != AM_OK_RC)
 			MERR("Error code returned from calling AddDataByType: %d\n", load_status);
