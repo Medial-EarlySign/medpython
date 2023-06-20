@@ -253,7 +253,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 // AddDataByType() : 
 // Supporting loading data directly from a json
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const char *data)
+int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vector<string> &messages)
 {
 	if (DataType != DATA_JSON_FORMAT && DataType != DATA_BATCH_JSON_FORMAT)
 		return AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE;
@@ -267,7 +267,7 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
 			cdata[j_len[j]] = 0;
 			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
-			int rc = AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
+			int rc = rec_AddDataByType(DATA_JSON_FORMAT, &cdata[0], messages);
 			if (rc != 0)
 				ret_code = rc;
 		}
@@ -284,10 +284,30 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 		return AM_ERROR_DATA_JSON_PARSE;
 	}
 
-	int rc = AddJsonData(patient_id, jsdata);
+	int rc = AddJsonData(-1, jsdata, messages);
 	if (rc != 0)
 		ret_code = rc;
 	return ret_code;
+}
+
+int MedialInfraAlgoMarker::AddDataByType(const char *data, char **messages) {
+	*messages = NULL;
+	vector<string> messages_vec;
+	int rc = rec_AddDataByType(DATA_BATCH_JSON_FORMAT, data, messages_vec);
+	//transfer messages_vec to messages - each in new line
+
+	if (!messages_vec.empty()) {
+		stringstream ss;
+		ss << messages_vec[0];
+		for (size_t i = 1; i < messages_vec.size(); ++i)
+			ss << "\n" << messages_vec[i];
+		string str_ = ss.str();
+		*messages = new char[str_.length() + 1];
+		(*messages)[str_.length()] = 0;
+		strncpy(*messages, str_.data(), str_.length());
+	}
+
+	return rc;
 }
 
 string fetch_desription(MedPidRepository &rep, const string &name) {
@@ -557,7 +577,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::Calculate :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -729,7 +749,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 		else
 			ma.add_features_mat(am_matrix);
 		first_write = false;
-	}
+		}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -813,10 +833,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 						}
 					}
 
+						}
+					}
 				}
 			}
-		}
-				}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -835,7 +855,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-			}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -854,7 +874,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (sort_needed) {
 		if (ma.data_load_end() < 0)
 			return AM_FAIL_RC;
-		}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: data_load_end %2.1f milisecond\n", timer.diff_milisec());
@@ -918,9 +938,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		json_req_info j_i;
 		json_parse_request(jreq_i, defaults, j_i);
 		sample_reqs.push_back(j_i);
+		vector<string> vec_messages;
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
-			if (AddJsonData(j_i.sample_pid, jreq_i["data"]) != AM_OK_RC) {
+			if (AddJsonData(j_i.sample_pid, jreq_i["data"], vec_messages) != AM_OK_RC) {
 				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
+				for (size_t i = 0; i < vec_messages.size(); ++i)
+					add_to_json_array(jresp, "errors", vec_messages[i]);
 			}
 		}
 	}
@@ -985,7 +1008,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		}
 		else
 			n_bad++;
-	}
+		}
 
 	if (n_failed > 0) { json_to_char_ptr(jresp, response);	return AM_FAIL_RC; }
 
@@ -1009,7 +1032,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
-	}
+		}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -1093,7 +1116,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		}
 		jresp["responses"].push_back(js);
-	}
+				}
 
 	json_to_char_ptr(jresp, response);
 
@@ -1112,7 +1135,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+			}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1256,7 +1279,7 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 }
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
+int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
 	try {
 		json &js = j_data;
@@ -1300,8 +1323,11 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 				}
 				//Check size of timestamps:
 				if (nt != n_time_channels) {
-					MLOG("Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d time channels and signal has %d time channels\n",
-						sig.c_str(), patient_id,nt, n_time_channels);
+					char buf[5000];
+					snprintf(buf, sizeof(buf), "Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d time channels and signal has %d time channels",
+						sig.c_str(), patient_id, nt, n_time_channels);
+					messages.push_back(string(buf));
+					MLOG("%s\n", buf);
 					return AM_FAIL_RC;
 				}
 				//MLOG("val ");
@@ -1327,8 +1353,10 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 				}
 				//Check size of timestamps:
 				if (nv != n_val_channels) {
-					MLOG("Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d value channels and signal has %d value channels\n",
+					char buf[5000];
+					snprintf(buf, sizeof(buf), "Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d value channels and signal has %d value channels",
 						sig.c_str(), patient_id, nv, n_val_channels);
+					MLOG("%s\n", buf);
 					return AM_FAIL_RC;
 				}
 				//MLOG("\n");
@@ -1347,12 +1375,17 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 			//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
 
 			if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
-				MLOG("Failed AddDataStr() in AddDataByType()\n");
+				char buf[5000];
+				snprintf(buf, sizeof(buf), "Failed AddDataStr() in AddDataByType() - patient %d, signal %s",
+					patient_id, sig.c_str());
+				messages.push_back(string(buf));
+				MLOG("%s\n", buf);
 				return AM_FAIL_RC;
 			}
 		}
 	}
 	catch (...) {
+		messages.push_back("AddDataByType() - bad json format");
 		return AM_FAIL_RC;
 	}
 

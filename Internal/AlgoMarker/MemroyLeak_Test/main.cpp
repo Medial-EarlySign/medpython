@@ -35,10 +35,16 @@ void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
 	DYN(AM_API_ClearData(am));
 
 	string in_jsons;
+	unique_ptr<char *> out_messages;
 	if (read_file_into_string(input_json_path, in_jsons) < 0)
 		MTHROW_AND_ERR("Error on loading file %s\n", in_jsons.c_str());
 	MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), input_json_path.c_str());
-	int load_status = DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
+	int load_status = DYN(AM_API_AddDataByType(am, in_jsons.c_str(), out_messages.get()));
+	if (out_messages != NULL) {
+		string msgs = string(*out_messages); //New line for each message:
+		MLOG("AddDataByType has messages:\n");
+		MLOG("%s\n", msgs.c_str());
+	}
 	MLOG("Added data from %s\n", input_json_path.c_str());
 	if (load_status != AM_OK_RC)
 		MERR("Error code returned from calling AddDataByType: %d\n", load_status);

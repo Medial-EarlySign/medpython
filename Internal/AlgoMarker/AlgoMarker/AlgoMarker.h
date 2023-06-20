@@ -294,8 +294,8 @@ public:
 
 	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
-	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
+	virtual int AddDataByType(const char *data, char **messages) { *messages = NULL; return 0; }
+	virtual int CalculateByType(int CalculateType, char *request, char **response) { *response = NULL; return 0; } // options: JSON_REQ_JSON_RESP
 
 	//Discovery api
 	virtual int Discovery(char **response) { *response = NULL; return 0; }
@@ -357,8 +357,8 @@ private:
 	bool is_loaded = false;
 
 	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
-	int AddJsonData(int patient_id, json &j_data);
-
+	int AddJsonData(int patient_id, json &j_data, vector<string> &messages);
+	int rec_AddDataByType(int DataType, const char *data, vector<string> &messages);
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 
@@ -369,7 +369,7 @@ public:
 	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	int AddDataByType(int DataType, int patient_id, const char *data); // options for DataType : DATA_JSON_FORMAT
+	int AddDataByType(const char *data, char **messages);
 	int CalculateByType(int CalculateType, char *request, char **response); // options: JSON_REQ_JSON_RESP
 	int Discovery(char **response);
 
@@ -435,7 +435,7 @@ extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient
 extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 
 // adding data in a new DataType
-extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data);
+extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, const char *data, char **messages);
 
 // Prepare a Request
 // Null RC means failure

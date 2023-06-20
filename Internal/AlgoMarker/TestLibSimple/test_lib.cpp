@@ -289,7 +289,7 @@ public:
 
 	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
+	virtual int AddDataByType(const char *data, char **messages) { return 0; } // options: DATA_JSON_FORMAT
 	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
 
 
@@ -329,7 +329,7 @@ public:
 	typedef int(*t_AM_API_ClearData)(AlgoMarker * pAlgoMarker);
 	typedef int(*t_AM_API_AddData)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	typedef int(*t_AM_API_AddDataStr)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
-	typedef int(*t_AM_API_AddDataByType)(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data);
+	typedef int(*t_AM_API_AddDataByType)(AlgoMarker * pAlgoMarker, const char *data, char **messages);
 	typedef int(*t_AM_API_CreateRequest)(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 	typedef int(*t_AM_API_CreateResponses)(AMResponses **);
 	typedef int(*t_AM_API_Calculate)(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
@@ -408,7 +408,7 @@ public:
 	static int AM_API_AdditionalLoad(AlgoMarker * pAlgoMarker, const int load_type, const char *load);
 	static int AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	static int AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
-	static int AM_API_AddDataByType(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data);
+	static int AM_API_AddDataByType(AlgoMarker * pAlgoMarker, const char *data, char **messages);
 	static int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
 	static int AM_API_CreateResponses(AMResponses **new_responses);
 	static int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
@@ -609,9 +609,9 @@ int DynAM::AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const cha
 		(pAlgoMarker, patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
 }
 
-int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data) {
+int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, const char *data, char **messages) {
 	return (*((DynAM::t_AM_API_AddDataByType)DynAM::so->addr_AM_API_AddDataByType))
-		(pAlgoMarker, patient_id, DataType, data);
+		(pAlgoMarker, data, messages);
 }
 
 
@@ -669,12 +669,18 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 	DynAM::AM_API_ClearData(am);
 
 	string in_jsons;
+	unique_ptr<char *> out_messages;
 	if (read_file_into_string(input_json_path, in_jsons) < 0) {
 		printf("Error on loading file %s\n", in_jsons.c_str());
 		throw logic_error("Error");
 	}
 	printf("read %zu characters from input jsons file %s\n", in_jsons.length(), input_json_path);
-	int load_status = DynAM::AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str());
+	int load_status = DynAM::AM_API_AddDataByType(am, in_jsons.c_str(), out_messages.get());
+	if (out_messages != NULL) {
+		string msgs = string(*out_messages); //New line for each message:
+		printf("AddDataByType has messages:\n");
+		printf("%s\n", msgs.c_str());
+	}
 	printf("Added data from %s\n", input_json_path);
 	if (load_status != AM_OK_RC)
 		printf("Error code returned from calling AddDataByType: %d\n", load_status);

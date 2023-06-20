@@ -834,7 +834,14 @@ int add_data_to_am_from_json(AlgoMarker *am, json &js_in, const char *json_str, 
 	if (js.find("scoreOnDate") != js.end())
 		score_time = js["scoreOnDate"].get<long long>();
 
-	return DYN(AM_API_AddDataByType(am, pid, DATA_JSON_FORMAT, json_str));
+	unique_ptr<char *> out_messages;
+	int rc_code= DYN(AM_API_AddDataByType(am, json_str, out_messages.get()));
+	if (out_messages != NULL) {
+		string msgs = string(*out_messages); //New line for each message:
+		MLOG("AddDataByType has messages:\n");
+		MLOG("%s\n", msgs.c_str());
+	}
+	return rc_code;
 
 	//char str_values[MAX_VALS][MAX_VAL_LEN];
 	for (auto &s : js["signals"]) {
@@ -971,9 +978,15 @@ void json_req_test(po::variables_map &vm, AlgoMarker *am)
 	// loading data from in_jsons if provided
 	if (vm["in_jsons"].as<string>() != "") {
 		string in_jsons;
+		unique_ptr<char *> out_messages;
 		read_file_into_string(vm["in_jsons"].as<string>(), in_jsons);
 		MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), vm["in_jsons"].as<string>().c_str());
-		int load_status = DYN(AM_API_AddDataByType(am, 0, DATA_BATCH_JSON_FORMAT, in_jsons.c_str()));
+		int load_status = DYN(AM_API_AddDataByType(am, in_jsons.c_str(), out_messages.get()));
+		if (out_messages != NULL) {
+			string msgs = string(*out_messages); //New line for each message:
+			MLOG("AddDataByType has messages:\n");
+			MLOG("%s\n", msgs.c_str());
+		}
 		MLOG("Added data from %s\n", vm["in_jsons"].as<string>().c_str());
 		if (load_status != AM_OK_RC)
 			MERR("Error code returned from calling AddDataByType: %d\n", load_status);

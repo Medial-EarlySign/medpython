@@ -200,9 +200,9 @@ int DynAM::AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const cha
 		(pAlgoMarker, patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values);
 }
 
-int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, int patient_id, int DataType, const char *data) {
+int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, const char *data, char ** messages) {
 	return (*((DynAM::t_AM_API_AddDataByType)DynAM::so->addr_AM_API_AddDataByType))
-		(pAlgoMarker, patient_id, DataType, data);
+		(pAlgoMarker, data, messages);
 }
 
 
