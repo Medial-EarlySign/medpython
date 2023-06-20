@@ -688,58 +688,6 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 		printf("Error code returned from calling AddDataByType: %d\n", load_status);
 }
 
-int get_preds_from_algomarker_single(AlgoMarker *am,
-	const string &sjreq, bool calc_by_type,
-	int pred_id, int pred_time, bool print_resp = false)
-{
-
-	const char * stypes[] = { "Raw" };
-	int pid_id = pred_id;
-	long long _timestamp = pred_time;
-	char *jreq = (char *)(sjreq.c_str());
-	char *jresp;
-
-	if (calc_by_type) {
-		DynAM::AM_API_CalculateByType(am, JSON_REQ_JSON_RESP, jreq, &jresp);
-		if (print_resp) {
-			string s = string(jresp);
-			printf("%s\n", s.c_str());
-		}
-		DynAM::AM_API_Dispose(jresp);
-	}
-	else {
-		AMResponses *resp;
-		DynAM::AM_API_CreateResponses(&resp);
-
-		AMRequest *req;
-		int req_create_rc = DynAM::AM_API_CreateRequest("test_request", stypes, 1, &pid_id, &_timestamp, 1, &req);
-		if (req_create_rc > 0) {
-			printf("Faield to create req\n");
-			throw logic_error("Error");
-		}
-
-		DynAM::AM_API_Calculate(am, req, resp); // calculate
-
-		DynAM::AM_API_GetResponsesNum(resp);
-
-		AMResponse *response;
-		int resp_rc = DynAM::AM_API_GetResponseAtIndex(resp, 0, &response);
-		//get_response_score_into_sample(response, resp_rc);
-		if (resp_rc <0) {
-			printf("error in score calc\n");
-		}
-
-		if (print_resp) {
-			//string s = string(response);
-			//MLOG("%s\n", s.c_str());
-		}
-
-		DynAM::AM_API_DisposeRequest(req);
-		DynAM::AM_API_DisposeResponses(resp);
-	}
-
-	return 0;
-}
 
 int main(int argc, char *argv[]) {
 
@@ -779,7 +727,7 @@ int main(int argc, char *argv[]) {
 	if (argc > 4) {//3 and up
 		bool calc_type = stoi(string(argv[4]))>0;
 
-		get_preds_from_algomarker_single(test_am, sjreq, calc_type, pid_id, prediction_time, true);
+		//get_preds_from_algomarker_single(test_am, sjreq, calc_type, pid_id, prediction_time, true);
 	}
 
 	printf("Clear data!\n");

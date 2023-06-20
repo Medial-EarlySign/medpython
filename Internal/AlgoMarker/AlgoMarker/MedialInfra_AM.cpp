@@ -291,7 +291,6 @@ int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vec
 }
 
 int MedialInfraAlgoMarker::AddDataByType(const char *data, char **messages) {
-	*messages = NULL;
 	vector<string> messages_vec;
 	int rc = rec_AddDataByType(DATA_BATCH_JSON_FORMAT, data, messages_vec);
 	//transfer messages_vec to messages - each in new line
@@ -306,6 +305,8 @@ int MedialInfraAlgoMarker::AddDataByType(const char *data, char **messages) {
 		(*messages)[str_.length()] = 0;
 		strncpy(*messages, str_.data(), str_.length());
 	}
+	else
+		*messages = NULL;
 
 	return rc;
 }
