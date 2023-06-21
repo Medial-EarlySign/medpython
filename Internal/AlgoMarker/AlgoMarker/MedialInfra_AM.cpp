@@ -281,6 +281,10 @@ int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vec
 		jsdata = json::parse(data);
 	}
 	catch (...) {
+		char buf[5000];
+		snprintf(buf, sizeof(buf), "(%d)Could not parse json data",
+			AM_DATA_BAD_FORMAT);
+		messages.push_back(string(buf));
 		return AM_ERROR_DATA_JSON_PARSE;
 	}
 
@@ -1318,8 +1322,13 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 			if (n_time_channels == 0 && n_val_channels == 0) {
 				char buf[5000];
-				snprintf(buf, sizeof(buf), "Error in  AddDataByType() - patient %d, unknown signal %s",
-					patient_id, sig.c_str());
+				if (patient_id != 1)
+					snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s for patient %d",
+						AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
+				else
+					snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s",
+						AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
+
 				messages.push_back(string(buf));
 				MLOG("%s\n", buf);
 				good = false;
@@ -1340,8 +1349,12 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				//Check size of timestamps:
 				if (nt != n_time_channels) {
 					char buf[5000];
-					snprintf(buf, sizeof(buf), "Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d time channels and signal has %d time channels",
-						sig.c_str(), patient_id, nt, n_time_channels);
+					if (patient_id != 1)
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d time channels and signal has %d time channels",
+							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
+					else
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d time channels and signal has %d time channels",
+							AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
 					good = false;
@@ -1372,8 +1385,12 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				//Check size of timestamps:
 				if (nv != n_val_channels) {
 					char buf[5000];
-					snprintf(buf, sizeof(buf), "Error in  AddDataByType() - bad signal structure for signal %s in patient %d. Recieved %d value channels and signal has %d value channels",
-						sig.c_str(), patient_id, nv, n_val_channels);
+					if (patient_id != 1)
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d value channels and signal has %d value channels",
+							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
+					else
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d value channels and signal has %d value channels",
+							AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
 					MLOG("%s\n", buf);
 					good = false;
 					good_sig = false;
@@ -1397,13 +1414,17 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 			if (good_sig) {
 				if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
 					char buf[5000];
-					snprintf(buf, sizeof(buf), "Failed AddDataStr() in AddDataByType() - patient %d, signal %s",
-						patient_id, sig.c_str());
+					if (patient_id != 1)
+						snprintf(buf, sizeof(buf), "(%d)General error in signal: %s for patient %d",
+							AM_DATA_GENERAL_ERROR, sig.c_str(), patient_id);
+					else
+						snprintf(buf, sizeof(buf), "(%d)General error in signal: %s",
+							AM_DATA_GENERAL_ERROR, sig.c_str());
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
 					good_sig = false;
 					good = false;
-					return AM_FAIL_RC;
+					//return AM_FAIL_RC;
 				}
 				else
 					mark_succ_ = true;
@@ -1411,13 +1432,18 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		}
 	}
 	catch (...) {
-		messages.push_back("AddDataByType() - bad json format");
-		return AM_FAIL_RC;
+		char buf[5000];
+		snprintf(buf, sizeof(buf), "(%d)Bad data json format",
+			AM_DATA_BAD_FORMAT);
+		messages.push_back(string(buf));
+		MLOG("%s\n", buf);
+		good = false;
+		//return AM_FAIL_RC;
 	}
 	if (!good) {
 		if (mark_succ_) //add message that some was loaded:
-			messages.push_back("AddDataByType() - some of the data signals were loaded for patient " +
-				to_string(patient_id) + ". Consider calling ClearData if rerun again after fixing.");
+			MLOG("AddDataByType() WARN - some of the data signals were loaded for patient %d. Consider calling ClearData if rerun again after fixing.",
+				patient_id);
 		return AM_FAIL_RC;
 	}
 

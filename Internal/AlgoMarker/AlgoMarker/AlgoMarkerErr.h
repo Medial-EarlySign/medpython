@@ -11,6 +11,10 @@
 #define AM_INVALID_DATA								311
 #define AM_OUTLIER_NON_FATAL						320
 #define AM_OUTLIER_FATAL							321
+#define AM_DATA_BAD_FORMAT							330
+#define AM_DATA_UNKNOWN_SIGNAL						331
+#define AM_DATA_BAD_STRUCTURE						332
+#define AM_DATA_GENERAL_ERROR						333
 #define AM_GENERAL_INFO								390
 #define AM_GENERAL_NON_FATAL						391
 #define AM_GENERAL_FATAL							392
