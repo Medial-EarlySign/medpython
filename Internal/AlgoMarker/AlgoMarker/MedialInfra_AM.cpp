@@ -1327,7 +1327,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 						AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
 				else
 					snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s",
-						AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
+						AM_DATA_UNKNOWN_SIGNAL, sig.c_str());
 
 				messages.push_back(string(buf));
 				MLOG("%s\n", buf);
