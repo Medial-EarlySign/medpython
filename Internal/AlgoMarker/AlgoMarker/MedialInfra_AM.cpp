@@ -1350,10 +1350,10 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				if (nt != n_time_channels) {
 					char buf[5000];
 					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d time channels instead of %d",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d time channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
 					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d time channels instead of %d",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d time channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
@@ -1384,10 +1384,10 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				if (nv != n_val_channels) {
 					char buf[5000];
 					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d value instead of %d",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d value instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
 					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d value channels instead of %d",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d value channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
