@@ -1350,10 +1350,10 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				if (nt != n_time_channels) {
 					char buf[5000];
 					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d time channels and signal has %d time channels",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d time channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
 					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d time channels and signal has %d time channels",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d time channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
@@ -1371,13 +1371,11 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 						s_data_size *= 2;
 						sdata.resize(s_data_size);
 					}
-					if (nv < n_val_channels) {
-						sv.copy(&sdata[curr_s], slen);
-						sdata[curr_s + slen] = 0;
-						sinds.push_back(curr_s);
-						curr_s += slen + 1;
-						nv++;
-					}
+					sv.copy(&sdata[curr_s], slen);
+					sdata[curr_s + slen] = 0;
+					sinds.push_back(curr_s);
+					curr_s += slen + 1;
+					++nv;
 					//char *sp = &sdata[sinds.back()];
 					//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
 					//MLOG("%s ", v.get<string>().c_str());
@@ -1386,11 +1384,12 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				if (nv != n_val_channels) {
 					char buf[5000];
 					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d value channels and signal has %d value channels",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Recieved %d value instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
 					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d value channels and signal has %d value channels",
+						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Recieved %d value channels instead of %d",
 							AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
+					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
 					good = false;
 					good_sig = false;
