@@ -1441,7 +1441,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 	}
 	if (!good) {
 		if (mark_succ_) //add message that some was loaded:
-			MLOG("AddDataByType() WARN - some of the data signals were loaded for patient %d. Consider calling ClearData if rerun again after fixing.",
+			MLOG("AddDataByType() WARN - some of the data signals were loaded for patient %d. Consider calling ClearData if rerun again after fixing.\n",
 				patient_id);
 		return AM_FAIL_RC;
 	}
