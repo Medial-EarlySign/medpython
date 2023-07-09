@@ -931,7 +931,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	vector<json_req_info> sample_reqs;
 
 	//	try {
-	json_parse_request(jreq, defaults, defaults);
+	if (json_parse_request(jreq, defaults, defaults) != 0) {
+		add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the default request fields in request id " +
+			request_id);
+		json_to_char_ptr(jresp, response);
+		return AM_FAIL_RC;
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -941,7 +946,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 	for (auto &jreq_i : jreq["requests"]) {
 		json_req_info j_i;
-		json_parse_request(jreq_i, defaults, j_i);
+		if (json_parse_request(jreq_i, defaults, j_i) != 0) {
+			add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the request fields in request id " +
+				request_id);
+			json_to_char_ptr(jresp, response);
+			return AM_FAIL_RC;
+		}
 		sample_reqs.push_back(j_i);
 		vector<string> vec_messages;
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
@@ -1297,10 +1307,28 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 
 		if (patient_id <= 0) {
 			// in this case we take the patient id directly from the json itself
-			if (js.find("patient_id") != js.end())
-				patient_id = js["patient_id"].get<long long>();
-			else if (js.find("pid") != js.end())
-				patient_id = js["pid"].get<long long>();
+			if (js.find("patient_id") != js.end()) {
+				if (js["patient_id"].is_number_integer())
+					patient_id = js["patient_id"].get<long long>();
+				else {
+					messages.push_back("(330)Bad data json format - patient_id suppose to be integer");
+					return AM_FAIL_RC;
+				}
+			}
+			else {
+				if (js.find("pid") != js.end()) {
+					if (js["pid"].is_number_integer())
+						patient_id = js["pid"].get<long long>();
+					else {
+						messages.push_back("(330)Bad data json format - pid suppose to be integer");
+						return AM_FAIL_RC;
+					}
+				}
+			}
+		}
+		if (patient_id <= 0) {
+			messages.push_back("(330)Bad data json format - no patient_id was given");
+			return AM_FAIL_RC;
 		}
 
 		//MLOG("Loading with pid %d\n", patient_id);
@@ -1629,7 +1657,7 @@ bool json_verify_key(json &js, const string &key, int verify_val_flag, const str
 	if (js.find(key) != js.end()) is_in = true;
 
 	if (is_in && verify_val_flag) {
-		if (js[key].get<string>() != val)
+		if (!js[key].is_string() || (js[key].get<string>() != val))
 			is_in = false;
 	}
 
@@ -1641,7 +1669,7 @@ bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_v
 	if (js.find(key) != js.end()) is_in = true;
 
 	if (is_in && verify_val_flag) {
-		if (js[key].get<string>() != val)
+		if (!js[key].is_string() || (js[key].get<string>() != val))
 			is_in = false;
 	}
 
@@ -1654,63 +1682,85 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 {
 	req_i = defaults;
 	// read defaults (if exist)
-	if (json_verify_key(jreq, "patient_id", 0, "") || json_verify_key(jreq, "pid", 0, "")) {
-		if (json_verify_key(jreq, "patient_id", 0, ""))
-			req_i.sample_pid = stoi(jreq["patient_id"].get<string>());
-		else
-			req_i.sample_pid = stoi(jreq["pid"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
-		if (json_verify_key(jreq, "scoreOnDate", 0, ""))
-			req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
-		else
-			req_i.sample_time = stoll(jreq["time"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "load", 0, "")) {
-		req_i.load_data = stoi(jreq["load"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "export", 0, "")) {
-
-		for (auto &jexp : jreq["export"].items()) {
-
-			string name = jexp.key();
-			string field = jexp.value().get<string>();
-
-			//MLOG("Working on %s : %s\n", name.c_str(), field.c_str());
-			int type = PREDICTION_SOURCE_UNKNOWN;
-			int pred_channel = -1;
-
-			vector<string> f;
-			boost::split(f, field, boost::is_any_of(" "));
-			if (f.size() == 2) {
-				if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
-				else if (f[0] == "json_attr") { type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
-				else if (f[0] == "pred") { type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
-				else if (f[0] == "json") { type = PREDICTION_SOURCE_JSON; field = f[1]; }
+	try {
+		if (json_verify_key(jreq, "patient_id", 0, "") || json_verify_key(jreq, "pid", 0, "")) {
+			if (json_verify_key(jreq, "patient_id", 0, "")) {
+				if (jreq["patient_id"].is_string())
+					req_i.sample_pid = stoi(jreq["patient_id"].get<string>());
+				else if (jreq["patient_id"].is_number_integer())
+					req_i.sample_pid = jreq["patient_id"].get<int>();
+				else
+					MTHROW_AND_ERR("Error in patient_id field - unsupported type\n");
 			}
-
-			if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
-				type = PREDICTION_SOURCE_PREDICTIONS;
-				pred_channel = stoi(field.substr(5));
+			else {
+				if (jreq["pid"].is_string())
+					req_i.sample_pid = stoi(jreq["pid"].get<string>());
+				else if (jreq["pid"].is_number_integer())
+					req_i.sample_pid = jreq["pid"].get<int>();
+				else
+					MTHROW_AND_ERR("Error in pid field - unsupported type\n");
 			}
-
-			if (type == PREDICTION_SOURCE_UNKNOWN) type = PREDICTION_SOURCE_ATTRIBUTE;
-
-			json_req_export jexport;
-
-			jexport.field = field;
-			jexport.pred_channel = pred_channel;
-			jexport.type = type;
-
-			req_i.exports[name] = jexport;
-
 		}
 
-	}
+		if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
+			if (json_verify_key(jreq, "scoreOnDate", 0, ""))
+				req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
+			else
+				req_i.sample_time = stoll(jreq["time"].get<string>());
+		}
 
+		if (json_verify_key(jreq, "load", 0, "")) {
+			if (jreq["load"].is_string())
+				req_i.load_data = stoi(jreq["load"].get<string>());
+			else if (jreq["load"].is_number_integer())
+				req_i.load_data = jreq["load"].get<int>();
+			else
+				MTHROW_AND_ERR("Error in load field - unsupported type\n");
+		}
+
+		if (json_verify_key(jreq, "export", 0, "")) {
+
+			for (auto &jexp : jreq["export"].items()) {
+
+				string name = jexp.key();
+				string field = jexp.value().get<string>();
+
+				//MLOG("Working on %s : %s\n", name.c_str(), field.c_str());
+				int type = PREDICTION_SOURCE_UNKNOWN;
+				int pred_channel = -1;
+
+				vector<string> f;
+				boost::split(f, field, boost::is_any_of(" "));
+				if (f.size() == 2) {
+					if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
+					else if (f[0] == "json_attr") { type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
+					else if (f[0] == "pred") { type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
+					else if (f[0] == "json") { type = PREDICTION_SOURCE_JSON; field = f[1]; }
+				}
+
+				if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
+					type = PREDICTION_SOURCE_PREDICTIONS;
+					pred_channel = stoi(field.substr(5));
+				}
+
+				if (type == PREDICTION_SOURCE_UNKNOWN) type = PREDICTION_SOURCE_ATTRIBUTE;
+
+				json_req_export jexport;
+
+				jexport.field = field;
+				jexport.pred_channel = pred_channel;
+				jexport.type = type;
+
+				req_i.exports[name] = jexport;
+
+			}
+
+		}
+	}
+	catch (...) {
+
+		return -1;
+	}
 	return 0;
 }
 
