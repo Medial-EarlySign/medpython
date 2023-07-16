@@ -1123,7 +1123,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					}
 				}
 			}
-			else if (e.second.type == PREDICTION_SOURCE_JSON) {
+			else if (e.second.type == PREDICTION_SOURCE_JSON && req_i.res != NULL && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 				if (req_i.res->jrec.find(e.second.field) != req_i.res->jrec.end()) {
 					auto &jj = req_i.res->jrec[e.second.field];
 					js.push_back({ e.first, jj });
