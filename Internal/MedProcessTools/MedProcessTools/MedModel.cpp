@@ -590,7 +590,7 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 		if (verbosity > 0) MLOG("MedModel apply() : after applying feature processors\n", samples.idSamples.size());
 	}
 
-	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
 	//Call again - if FP added missing values (for example by calculating something)
