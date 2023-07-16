@@ -598,27 +598,31 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
-			vector<float> pred_res, features_vec(features.data.size());
-			int i_feat = 0;
-			for (const auto &it : features.data)
-			{
-				features_vec[i_feat] = it.second[0];
-				++i_feat;
+		if (predictor != NULL) {
+			if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
+				vector<float> pred_res, features_vec(features.data.size());
+				int i_feat = 0;
+				for (const auto &it : features.data)
+				{
+					features_vec[i_feat] = it.second[0];
+					++i_feat;
+				}
+				predictor->predict_single(features_vec, pred_res);
+				features.samples[0].prediction = move(pred_res);
 			}
-			predictor->predict_single(features_vec, pred_res);
-			features.samples[0].prediction = move(pred_res);
-		}
-		else {
-			if (predictor->predict(features) < 0) {
-				MERR("Predictor failed\n");
-				return -1;
+			else {
+				if (predictor->predict(features) < 0) {
+					MERR("Predictor failed\n");
+					return -1;
+				}
+				//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
+				bool need_agg = samples.nSamples() != features.samples.size();
+				if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+					aggregate_samples(features, take_mean_pred, true);
 			}
-			//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
-			bool need_agg = samples.nSamples() != features.samples.size();
-			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
-				aggregate_samples(features, take_mean_pred, true);
 		}
+		else
+			MWARN("Model has no predictor\n");
 	}
 
 	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
