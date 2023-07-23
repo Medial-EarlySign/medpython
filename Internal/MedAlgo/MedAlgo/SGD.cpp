@@ -18,9 +18,11 @@
 
 SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y, const vector<float> *weights)) {
 #if defined(__unix__)
-#ifndef SO_COMPILATION
-	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
-#endif
+	#if defined(SO_COMPILATION)
+		#pragma message ( "You are compiling shared library - no exceptions in floating points" )
+	#else
+		feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	#endif
 #endif
 	this->_model = mdl;
 	this->loss_function = loss_funct;
