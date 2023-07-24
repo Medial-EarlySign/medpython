@@ -69,7 +69,7 @@ public:
 	// set things
 	void set_request_id(char *req_id) { requestId = string(req_id); }
 	void insert_point(int _pid, long long _timestamp) { AMPoint p; p.set(_pid, _timestamp); points.push_back(p); }
-	void insert_score_types(char **_score_types, int n_score_types) { for (int i = 0; i<n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
+	void insert_score_types(char **_score_types, int n_score_types) { for (int i = 0; i < n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
 
 	// clear
 	void clear()
@@ -440,10 +440,10 @@ void* load_sym(void* lib_h, const char* sym_name, bool exit_on_fail = true)
 	}
 	printf("OK\n");
 	return ret;
-	}
+}
 
 void load_am(const char * am_fname) {
-	if (DynAM::load(am_fname)<0)
+	if (DynAM::load(am_fname) < 0)
 		printf("Error\n");
 }
 
@@ -667,7 +667,7 @@ int read_file_into_string(const char *fname, string &data)
 }
 
 
-void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
+void init_and_load_data(const char *input_json_path, AlgoMarker *am, int &pid) {
 	DynAM::AM_API_ClearData(am);
 
 	string in_jsons;
@@ -675,6 +675,20 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am) {
 	if (read_file_into_string(input_json_path, in_jsons) < 0) {
 		printf("Error on loading file %s\n", in_jsons.c_str());
 		throw logic_error("Error");
+	}
+	int pos_pid = in_jsons.find_first_of("\"patient_id\"");
+	if (pos_pid != string::npos) {
+		string rest = in_jsons.substr(pos_pid + 13);
+		int comma_pos = rest.find_first_of(',');
+		if (comma_pos != string::npos) {
+			rest = rest.substr(0, comma_pos);
+			try {
+				pid = stoi(rest);
+			}
+			catch (...){
+				printf("Failed in fetching patient id from: \"%s\"\n", rest.c_str());
+			}
+		}
 	}
 	printf("read %zu characters from input jsons file %s\n", in_jsons.length(), input_json_path);
 	int load_status = DynAM::AM_API_AddDataByType(am, in_jsons.c_str(), &out_messages);
@@ -716,20 +730,27 @@ int main(int argc, char *argv[]) {
 
 	initialize_algomarker(amconfig, test_am);
 
+
+
+	if (argc > 3) {
+		char *data_json_path = argv[3];
+		init_and_load_data(data_json_path, test_am, pid_id);
+	}
+
 	string sjreq = "";
 	sjreq = "{ \"type\" : \"request\", \"request_id\" : \"my test\", \"export\" : {\"prediction\" : \"pred_0\"}, \"requests\" : [{ \"patient_id\": \"" + to_string(pid_id) +
 		"\", \"time\" : \"" + to_string(prediction_time) + "\" }] }";
 
-	if (argc > 3) {
-		char *data_json_path = argv[3];
-		init_and_load_data(data_json_path, test_am);
-	}
-
+	char *jresp = NULL;
+	int calc_status = -1;
 	if (argc > 4) {//3 and up
-		//bool calc_type = stoi(string(argv[4]))>0;
-
-		//get_preds_from_algomarker_single(test_am, sjreq, calc_type, pid_id, prediction_time, true);
+		char *jreq = (char *)(sjreq.c_str());
+		calc_status = DynAM::AM_API_CalculateByType(test_am, JSON_REQ_JSON_RESP, jreq, &jresp);
 	}
+	if (jresp != NULL)
+		printf("Got responde with status %d\n%s\n", calc_status, jresp);
+	else
+		printf("Got calcuate with status %d\n", calc_status);
 
 	printf("Clear data!\n");
 	DynAM::AM_API_ClearData(test_am);
