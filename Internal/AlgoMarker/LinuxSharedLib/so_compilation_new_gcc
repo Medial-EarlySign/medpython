@@ -40,7 +40,7 @@ if [ "$BUILD_BOOST" = true ] ; then
 pushd ${BOOST_FPIC_DIR}
 if [ ! -f ${STATIC_LIBS_TARGET}/libboost_system.a ] || [ $OVERRIDE_ALL -gt 0 ]; then
 	./b2 --clean
-	./bootstrap.sh --without-icu --prefix=${BOOST_FPIC_DIR}/installation
+	./bootstrap.sh --without-icu --with-libraries=filesystem,system,regex,program_options --prefix=${BOOST_FPIC_DIR}/installation
 	./b2 link=static variant=release linkflags=-static-libstdc++ -j20 cxxflags="-fPIC" toolset=gcc --stagedir="${BLDDIR}"
 else
 	echo "BOOST Already exists"
@@ -96,7 +96,7 @@ strip ${DIR}/../Linux/Release/libdyn_AlgoMarker.so
 nm -CD ${DIR}/../Linux/Release/libdyn_AlgoMarker.so | grep " T " > ${BLDDIR}/AlgoMarker/AlgoMarker.public_symbols
 ldd ${DIR}/../Linux/Release/libdyn_AlgoMarker.so > ${BLDDIR}/AlgoMarker/AlgoMarker.ldd
 FINAL_PT=$(realpath ${DIR}/../Linux/Release/libdyn_AlgoMarker.so)
-echo "AlgoMarker Shared Objecy file written to ${FINAL_PT}"
+echo "AlgoMarker Shared Object file written to ${FINAL_PT}"
 popd
 fi
 

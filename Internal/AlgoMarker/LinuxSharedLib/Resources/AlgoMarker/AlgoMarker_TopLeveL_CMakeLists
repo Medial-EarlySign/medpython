@@ -13,7 +13,7 @@ include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakeDropNDEBUG.txt")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -march=native -Og -DSO_COMPILATION")
 
-include_directories(/nas1/Work/Libs/Boost/boost_1_67_0-fPIC/include/)
+include_directories(SYSTEM /nas1/Work/Libs/Boost/boost_1_67_0-fPIC/include/)
 include_directories($ENV{MR_ROOT}/Libs)
 include_directories($ENV{MR_ROOT}/Libs/External)
 include_directories($ENV{MR_ROOT}/Libs/Internal)

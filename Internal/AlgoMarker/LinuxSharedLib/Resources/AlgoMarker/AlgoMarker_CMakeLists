@@ -17,7 +17,8 @@ set(SRC_FILES
 set(CMAKE_CXX_FLAGS   "${CMAKE_CXX_FLAGS} -fvisibility=hidden -Wl,--version-script=$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AlgoMarker/AlgoMarker-export.version")
 add_library(dyn_AlgoMarker SHARED ${H_FILES} ${SRC_FILES})
 
-target_link_libraries(dyn_AlgoMarker -Wl,-Bstatic,--whole-archive InfraMed Logger Mars MedAlgo MedEmbed MedIO MedMat MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -L$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build/lib/ -lboost_regex -lboost_program_options -lboost_system -lboost_filesystem -lxgboost -lrabit -ldmlc -l_lightgbm  -L/nas1/Work/Libs/ICU-50.2 -licudata -licui18n -licuuc -Wl,-no-whole-archive -Wl,-Bdynamic)
+#-L/nas1/Work/Libs/ICU-50.2 -licudata -licui18n -licuuc
+target_link_libraries(dyn_AlgoMarker -Wl,-Bstatic,--whole-archive InfraMed Logger Mars MedAlgo MedEmbed MedIO MedMat MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -L$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build/lib/ -lboost_regex -lboost_program_options -lboost_system -lboost_filesystem -lxgboost -lrabit -ldmlc -l_lightgbm  -Wl,-no-whole-archive -Wl,-Bdynamic)
 
 
 #include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")
