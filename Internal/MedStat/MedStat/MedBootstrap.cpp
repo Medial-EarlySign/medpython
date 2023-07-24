@@ -159,7 +159,7 @@ int MedBootstrap::init(map<string, string>& map) {
 					is_binary_outcome = false;
 					break;
 				default:
-					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", measure_type);
+					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", (int)measure_type);
 				}
 
 				measurements_with_params.push_back(pair<MeasurementFunctions, Measurement_Params*>(func, pr_m));

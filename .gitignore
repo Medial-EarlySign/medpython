@@ -104,3 +104,5 @@ Internal/AlgoMarker/t2
 Internal/MedProcessTools/MedProcessTools/MedProcessWrappers_bkp.h
 External/xgboost/dmlc-core/windows/dmlc/CMakeLists.txt
 External/xgboost/windows/xgboost/CMakeLists.txt
+
+[Bb]uild.GCC_13.1/
