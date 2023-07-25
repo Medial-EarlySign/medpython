@@ -28,245 +28,6 @@ typedef enum {
 
 using namespace std;
 
-class AMPoint {
-public:
-	int pid = -1;
-	long long timestamp = -1;
-
-	void set(int _pid, long long _timestamp) { pid = _pid; timestamp = _timestamp; }
-
-	void clear() { pid = -1; timestamp = -1; }
-};
-
-class AMRequest {
-
-private:
-
-	// Id for tracking given by user
-	string requestId = "";
-
-	// score types asked for
-	// Currently supporting : "Raw" 
-	vector<string> score_types_str;
-
-	// list of points to give scores at
-	vector<AMPoint> points;
-
-public:
-
-	vector<string> verificationConfig;
-
-
-	// get things
-	char *get_request_id() { return (char *)requestId.c_str(); }
-	int get_n_score_types() { return (int)score_types_str.size(); }
-	char *get_score_type(int index) { if (index >= get_n_score_types()) return NULL; return (char *)score_types_str[index].c_str(); }
-	int get_n_points() { return (int)points.size(); }
-	AMPoint *get_point(int index) { if (index >= get_n_points()) return NULL;  return &points[index]; }
-	int get_pid(int index) { if (index >= get_n_points()) return -1; return points[index].pid; }
-	long long get_timestamp(int index) { if (index >= get_n_points()) return -1; return points[index].timestamp; }
-
-	// set things
-	void set_request_id(char *req_id) { requestId = string(req_id); }
-	void insert_point(int _pid, long long _timestamp) { AMPoint p; p.set(_pid, _timestamp); points.push_back(p); }
-	void insert_score_types(char **_score_types, int n_score_types) { for (int i = 0; i < n_score_types; i++) score_types_str.push_back(string(_score_types[i])); }
-
-	// clear
-	void clear()
-	{
-		for (auto element : points)
-		{
-			element.clear();
-		}
-		requestId.clear();
-		score_types_str.clear();
-		points.clear();
-	}
-};
-
-class AMMessages {
-
-private:
-
-	vector<int> codes;
-	vector<string> args_strs;
-
-	vector<char *> args; // for easier c c# export. pointing to strings , so no need to free.
-	int need_to_update_args = 0;
-
-public:
-
-	// get things
-	int get_n_msgs() { return (int)codes.size(); }
-	void get_messages(int *n_msgs, int **msgs_codes, char ***msgs_args);
-
-	// insert
-	void insert_message(int code, const char *arg_ch);
-
-	// clear
-	void clear() {
-		codes.clear();
-		args_strs.clear();
-		args.clear();
-	}
-
-};
-
-
-class AMScore {
-private:
-	// no need to release the score type pointer
-	char *p_score_type = NULL;
-	float score = (float)AM_UNDEFINED_VALUE;
-	AMMessages msgs;
-
-public:
-	// get things
-	void get_score(float *_score, char **_score_type)
-	{
-		*_score = score;
-		*_score_type = p_score_type;
-
-		//char* x = p_score_type;
-
-		/*	if (p_score_type != NULL)
-		{
-		string x = string(p_score_type);
-		*_score_type = (char *)x.c_str();
-		}*/
-	}
-	AMMessages *get_msgs() { return &msgs; }
-
-	// set things
-	void set_score_type(char *_score_type) { p_score_type = _score_type; }
-	void set_score(float _score) { score = _score; }
-
-	// clear
-	void clear()
-	{
-		msgs.clear();
-		p_score_type = NULL;
-		score = (float)AM_UNDEFINED_VALUE;
-	}
-};
-
-
-class AMResponse {
-
-private:
-
-	// p_score_types just points to the common info in the AMResponses class, no need to free 
-	vector<AMScore> scores;
-
-	AMPoint point;
-
-	AMMessages msgs;
-
-public:
-
-	vector<string> verificationConfig;
-	map<string, int> scoresIndexs;
-	int need_to_update_scoreTypes = 0;
-
-	// get things
-	int get_patient_id() { return point.pid; }
-	long long get_timestamp() { return point.timestamp; }
-	int get_n_scores() { return (int)scores.size(); }
-	AMScore *get_am_score(int idx) { if (idx < 0 || idx >= (int)scores.size()) return NULL; return &scores[idx]; }
-	int get_score(int idx, float *_score, char **_score_type) {
-		if (idx < 0 || idx >= (int)scores.size()) return AM_FAIL_RC;
-		scores[idx].get_score(_score, _score_type);
-		return AM_OK_RC;
-	}
-	AMMessages *get_score_msgs(int idx) { if (idx < 0 || idx >= (int)scores.size()) return NULL; return scores[idx].get_msgs(); }
-	AMMessages *get_msgs() { return &msgs; }
-
-	// set things
-	void set_patient_id(int _patient_id) { point.pid = _patient_id; }
-	void set_timestamp(long long _timestamp) { point.timestamp = _timestamp; }
-	void set_score(int idx, float _score, char *_score_type) { if (idx >= 0 && idx < (int)scores.size()) scores[idx].set_score(_score); scores[idx].set_score_type(_score_type); }
-	void init_scores(int size) { scores.clear(); scores.resize(size); }
-
-	// clear
-	void clear()
-	{
-		for (auto element : scores)
-		{
-			element.clear();
-		}
-		scores.clear();
-		point.clear();
-	}
-
-
-};
-
-class AMResponses;
-
-class AMResponses {
-
-private:
-
-	string requestId = "";
-	string version = "";
-
-	// For each point: pid , time : we hold an AMResponse object that contains all the results on all types for this time point
-	// plus all its specific messages
-	vector<AMResponse> responses;
-	//map<pair<int, long long>, int> point2response_idx;
-
-	// score_types : these are common to all responses
-	vector<string> score_types_str;
-	vector<char *> score_types;
-	//unordered_map<string, int> stype2idx;
-
-	// In here we report messages not specific to a single Response
-	AMMessages shared_msgs;
-public:
-
-	vector<string> verificationConfig;
-
-	// get things
-	int get_n_responses()
-	{
-		return (int)responses.size();
-	}
-	AMResponse *get_response(int index) { if (index >= (int)responses.size()) return NULL; return &(responses[index]); }
-	int get_response_index_by_point(int _pid, long long _timestamp); // if does not exist returns -1.
-																	 //	AMResponse *get_response_by_point(int _pid, long long _timestamp); // if does not exist, return NULL
-	void get_score_types(int *n_score_types, char ***_score_types);
-	AMMessages *get_shared_messages() { return &shared_msgs; }
-	char *get_request_id() { return (char *)requestId.c_str(); }
-	char *get_version() { return (char *)version.c_str(); }
-	int get_score(int _pid, long long _timestamp, char *_score_type, float *out_score);
-	int get_score_by_type(int index, char *_score_type, float *out_score);
-	vector<char *> *get_score_type_vec_ptr() { return &score_types; }
-
-	// set things
-	void set_request_id(char *request_id) { requestId = string(request_id); }
-	void set_version(char *_version) { version = string(_version); }
-	void insert_score_types(char **_score_type, int n_score_types);
-	AMResponse *create_point_response(int _pid, long long _timestamp);
-
-	// clear
-	void clear() {
-		requestId.clear();
-		version.clear();
-		for (auto element : responses)
-		{
-			element.clear();
-		}
-		responses.clear();
-		//point2response_idx.clear(); 
-		score_types_str.clear();
-		score_types.clear();
-		//stype2idx.clear(); 
-		shared_msgs.clear();
-	}
-
-};
-
-
 class AlgoMarker {
 private:
 	AlgoMarkerType type;
@@ -287,7 +48,6 @@ public:
 	virtual int ClearData() { return 0; }
 	virtual int AddData(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values) { return 0; }
 	virtual int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values) { return 0; }
-	virtual int Calculate(AMRequest *request, AMResponses *responses) { return 0; }
 
 	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
@@ -320,8 +80,8 @@ public:
 
 	virtual ~AlgoMarker() { ClearData(); Unload(); };
 
+	virtual int Discovery(char **response) { *response = NULL; return 0; }
 };
-
 
 class DynAM {
 public:
@@ -332,27 +92,11 @@ public:
 	typedef int(*t_AM_API_AddData)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	typedef int(*t_AM_API_AddDataStr)(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	typedef int(*t_AM_API_AddDataByType)(AlgoMarker * pAlgoMarker, const char *data, char **messages);
-	typedef int(*t_AM_API_CreateRequest)(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
-	typedef int(*t_AM_API_CreateResponses)(AMResponses **);
-	typedef int(*t_AM_API_Calculate)(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 	typedef int(*t_AM_API_CalculateByType)(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
-	typedef int(*t_AM_API_GetSharedMessages)(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	typedef int(*t_AM_API_GetResponsesNum)(AMResponses *responses);
-	typedef int(*t_AM_API_GetResponseIndex)(AMResponses *responses, int _pid, long long _timestamp);
-	typedef int(*t_AM_API_GetResponsesRequestId)(AMResponses *responses, char **requestId);
-	typedef int(*t_AM_API_GetResponseScoreByType)(AMResponses *responses, int res_index, char *_score_type, float *out_score);
-	typedef int(*t_AM_API_GetResponseAtIndex)(AMResponses *responses, int index, AMResponse **response);
-	typedef int(*t_AM_API_GetResponseScoresNum)(AMResponse *response, int *n_scores);
-	typedef int(*t_AM_API_GetResponseScoreByIndex)(AMResponse *response, int score_index, float *score, char **_score_type);
-	typedef int(*t_AM_API_GetResponseExtendedScoreByIndex)(AMResponse *response, int score_index, char **ext_score, char **_score_type);
-	typedef int(*t_AM_API_GetResponseMessages)(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	typedef int(*t_AM_API_GetScoreMessages)(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	typedef int(*t_AM_API_GetResponsePoint)(AMResponse *response, int *pid, long long *timestamp);
 	typedef int(*t_AM_API_GetName)(AlgoMarker * pAlgoMArker, char **name);
 	typedef void(*t_AM_API_DisposeAlgoMarker)(AlgoMarker*);
-	typedef void(*t_AM_API_DisposeResponses)(AMResponses*);
-	typedef void(*t_AM_API_DisposeRequest)(AMRequest*);
 	typedef void(*t_AM_API_Dispose)(char *);
+	typedef void(*t_AM_API_Discovery)(AlgoMarker *pAlgoMarker, char **resp);
 	void *addr_AM_API_Create = nullptr;
 	void *addr_AM_API_Load = nullptr;
 	void *addr_AM_API_AdditionalLoad = nullptr;
@@ -360,27 +104,11 @@ public:
 	void *addr_AM_API_AddData = nullptr;
 	void *addr_AM_API_AddDataStr = nullptr;
 	void *addr_AM_API_AddDataByType = nullptr;
-	void *addr_AM_API_CreateRequest = nullptr;
-	void *addr_AM_API_CreateResponses = nullptr;
-	void *addr_AM_API_Calculate = nullptr;
 	void *addr_AM_API_CalculateByType = nullptr;
-	void *addr_AM_API_GetSharedMessages = nullptr;
-	void *addr_AM_API_GetResponsesNum = nullptr;
-	void *addr_AM_API_GetResponseIndex = nullptr;
-	void *addr_AM_API_GetResponsesRequestId = nullptr;
-	void *addr_AM_API_GetResponseScoreByType = nullptr;
-	void *addr_AM_API_GetResponseAtIndex = nullptr;
-	void *addr_AM_API_GetResponseScoresNum = nullptr;
-	void *addr_AM_API_GetResponseScoreByIndex = nullptr;
-	void *addr_AM_API_GetResponseExtendedScoreByIndex = nullptr;
-	void *addr_AM_API_GetResponseMessages = nullptr;
-	void *addr_AM_API_GetScoreMessages = nullptr;
-	void *addr_AM_API_GetResponsePoint = nullptr;
 	void *addr_AM_API_GetName = nullptr;
 	void *addr_AM_API_DisposeAlgoMarker = nullptr;
-	void *addr_AM_API_DisposeResponses = nullptr;
-	void *addr_AM_API_DisposeRequest = nullptr;
 	void *addr_AM_API_Dispose = nullptr;
+	void *addr_AM_API_Discovery = nullptr;
 	// returns index in sos
 	static int load(const char * am_fname);
 	static DynAM* so;
@@ -389,32 +117,16 @@ public:
 
 	static int AM_API_ClearData(AlgoMarker * pAlgoMarker);
 	static void AM_API_DisposeAlgoMarker(AlgoMarker * pAlgoMarker);
-	static void AM_API_DisposeRequest(AMRequest *pRequest);
 	static void AM_API_Dispose(char *data);
-	static void AM_API_DisposeResponses(AMResponses *responses);
-	static int AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores);
 	static int AM_API_GetName(AlgoMarker * pAlgoMArker, char **name);
-	static int AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	static int AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	static int AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score);
-	static int AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type);
-	static int AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **ext_score, char **_score_type);
-	static int AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp);
-	static int AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args);
-	static int AM_API_GetResponsesNum(AMResponses *responses);
-	static int AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp);
-	static int AM_API_GetResponseIndex(AMResponses *responses, char **requestId);
-	static int AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response);
 	static int AM_API_Create(int am_type, AlgoMarker **new_am);
 	static int AM_API_Load(AlgoMarker * pAlgoMarker, const char *config_fname);
 	static int AM_API_AdditionalLoad(AlgoMarker * pAlgoMarker, const int load_type, const char *load);
 	static int AM_API_AddData(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values);
 	static int AM_API_AddDataStr(AlgoMarker * pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	static int AM_API_AddDataByType(AlgoMarker * pAlgoMarker, const char *data, char **messages);
-	static int AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req);
-	static int AM_API_CreateResponses(AMResponses **new_responses);
-	static int AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses);
 	static int AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses);
+	static void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **resp);
 
 	static bool initialized() { return (sos.size() > 0); }
 };
@@ -475,27 +187,11 @@ int DynAM::load(const char * am_fname) {
 	so->addr_AM_API_AddData = load_sym(lib_handle, "AM_API_AddData");
 	so->addr_AM_API_AddDataStr = load_sym(lib_handle, "AM_API_AddDataStr", false);
 	so->addr_AM_API_AddDataByType = load_sym(lib_handle, "AM_API_AddDataByType", false);
-	so->addr_AM_API_CreateRequest = load_sym(lib_handle, "AM_API_CreateRequest");
-	so->addr_AM_API_CreateResponses = load_sym(lib_handle, "AM_API_CreateResponses");
-	so->addr_AM_API_Calculate = load_sym(lib_handle, "AM_API_Calculate");
 	so->addr_AM_API_CalculateByType = load_sym(lib_handle, "AM_API_CalculateByType");
-	so->addr_AM_API_GetResponsesNum = load_sym(lib_handle, "AM_API_GetResponsesNum");
-	so->addr_AM_API_GetSharedMessages = load_sym(lib_handle, "AM_API_GetSharedMessages");
-	so->addr_AM_API_GetResponseIndex = load_sym(lib_handle, "AM_API_GetResponseIndex");
-	so->addr_AM_API_GetResponsesRequestId = load_sym(lib_handle, "AM_API_GetResponsesRequestId");
-	so->addr_AM_API_GetResponseScoreByType = load_sym(lib_handle, "AM_API_GetResponseScoreByType");
-	so->addr_AM_API_GetResponseAtIndex = load_sym(lib_handle, "AM_API_GetResponseAtIndex");
-	so->addr_AM_API_GetResponseScoresNum = load_sym(lib_handle, "AM_API_GetResponseScoresNum");
-	so->addr_AM_API_GetResponseScoreByIndex = load_sym(lib_handle, "AM_API_GetResponseScoreByIndex");
-	so->addr_AM_API_GetResponseExtendedScoreByIndex = load_sym(lib_handle, "AM_API_GetResponseExtendedScoreByIndex");
-	so->addr_AM_API_GetResponseMessages = load_sym(lib_handle, "AM_API_GetResponseMessages");
-	so->addr_AM_API_GetScoreMessages = load_sym(lib_handle, "AM_API_GetScoreMessages");
-	so->addr_AM_API_GetResponsePoint = load_sym(lib_handle, "AM_API_GetResponsePoint");
 	so->addr_AM_API_GetName = load_sym(lib_handle, "AM_API_GetName");
 	so->addr_AM_API_DisposeAlgoMarker = load_sym(lib_handle, "AM_API_DisposeAlgoMarker");
-	so->addr_AM_API_DisposeRequest = load_sym(lib_handle, "AM_API_DisposeRequest");
-	so->addr_AM_API_DisposeResponses = load_sym(lib_handle, "AM_API_DisposeResponses");
 	so->addr_AM_API_Dispose = load_sym(lib_handle, "AM_API_Dispose");
+	so->addr_AM_API_Discovery = load_sym(lib_handle, "AM_API_Discovery", false);
 	return (int)sos.size() - 1;
 }
 
@@ -509,77 +205,23 @@ void DynAM::AM_API_DisposeAlgoMarker(AlgoMarker * pAlgoMarker) {
 		(pAlgoMarker);
 }
 
-void DynAM::AM_API_DisposeRequest(AMRequest *pRequest) {
-	(*((DynAM::t_AM_API_DisposeRequest)DynAM::so->addr_AM_API_DisposeRequest))
-		(pRequest);
-}
-
 void DynAM::AM_API_Dispose(char *data) {
 	(*((DynAM::t_AM_API_Dispose)DynAM::so->addr_AM_API_Dispose))
 		(data);
 }
 
-void DynAM::AM_API_DisposeResponses(AMResponses *responses) {
-	(*((DynAM::t_AM_API_DisposeResponses)DynAM::so->addr_AM_API_DisposeResponses))
-		(responses);
-}
-
-int DynAM::AM_API_GetResponseScoresNum(AMResponse *response, int *n_scores) {
-	return (*((DynAM::t_AM_API_GetResponseScoresNum)DynAM::so->addr_AM_API_GetResponseScoresNum))
-		(response, n_scores);
-}
 int DynAM::AM_API_GetName(AlgoMarker * pAlgoMArker, char **name) {
 	return (*((DynAM::t_AM_API_GetName)DynAM::so->addr_AM_API_GetName))
 		(pAlgoMArker, name);
 }
-int DynAM::AM_API_GetScoreMessages(AMResponse *response, int score_index, int *n_msgs, int **msgs_codes, char ***msgs_args) {
-	return (*((DynAM::t_AM_API_GetScoreMessages)DynAM::so->addr_AM_API_GetScoreMessages))
-		(response, score_index, n_msgs, msgs_codes, msgs_args);
-}
-int DynAM::AM_API_GetResponseMessages(AMResponse *response, int *n_msgs, int **msgs_codes, char ***msgs_args) {
-	return (*((DynAM::t_AM_API_GetResponseMessages)DynAM::so->addr_AM_API_GetResponseMessages))
-		(response, n_msgs, msgs_codes, msgs_args);
-}
-int DynAM::AM_API_GetResponseScoreByType(AMResponses *responses, int res_index, char *_score_type, float *out_score) {
-	return (*((DynAM::t_AM_API_GetResponseScoreByType)DynAM::so->addr_AM_API_GetResponseScoreByType))
-		(responses, res_index, _score_type, out_score);
-}
-int DynAM::AM_API_GetResponseScoreByIndex(AMResponse *response, int score_index, float *score, char **_score_type) {
-	return (*((DynAM::t_AM_API_GetResponseScoreByIndex)DynAM::so->addr_AM_API_GetResponseScoreByIndex))
-		(response, score_index, score, _score_type);
-}
 
-int DynAM::AM_API_GetResponseExtendedScoreByIndex(AMResponse *response, int score_index, char **ext_score, char **_score_type) {
-	return (*((DynAM::t_AM_API_GetResponseExtendedScoreByIndex)DynAM::so->addr_AM_API_GetResponseExtendedScoreByIndex))
-		(response, score_index, ext_score, _score_type);
-}
-
-int DynAM::AM_API_GetResponsePoint(AMResponse *response, int *pid, long long *timestamp) {
-	return (*((DynAM::t_AM_API_GetResponsePoint)DynAM::so->addr_AM_API_GetResponsePoint))
-		(response, pid, timestamp);
-}
-
-int DynAM::AM_API_GetSharedMessages(AMResponses *responses, int *n_msgs, int **msgs_codes, char ***msgs_args) {
-	return (*((DynAM::t_AM_API_GetSharedMessages)DynAM::so->addr_AM_API_GetSharedMessages))
-		(responses, n_msgs, msgs_codes, msgs_args);
-}
-
-int DynAM::AM_API_GetResponsesNum(AMResponses *responses) {
-	return (*((DynAM::t_AM_API_GetResponsesNum)DynAM::so->addr_AM_API_GetResponsesNum))
-		(responses);
-}
-int DynAM::AM_API_GetResponseIndex(AMResponses *responses, int _pid, long long _timestamp) {
-	return (*((DynAM::t_AM_API_GetResponseIndex)DynAM::so->addr_AM_API_GetResponseIndex))
-		(responses, _pid, _timestamp);
-}
-int DynAM::AM_API_GetResponseIndex(AMResponses *responses, char **requestId) {
-	return (*((DynAM::t_AM_API_GetResponsesRequestId)DynAM::so->addr_AM_API_GetResponsesRequestId))
-		(responses, requestId);
-}
-
-int DynAM::AM_API_GetResponseAtIndex(AMResponses *responses, int index, AMResponse **response) {
-	return (*((DynAM::t_AM_API_GetResponseAtIndex)DynAM::so->addr_AM_API_GetResponseAtIndex))
-		(responses, index, response);
+void DynAM::AM_API_Discovery(AlgoMarker * pAlgoMArker, char **discovery) {
+	if (DynAM::so->addr_AM_API_Load == NULL) {
+		printf("AM_API_Discovery is NULL\n");
+		return;
+	}
+	return (*((DynAM::t_AM_API_Discovery)DynAM::so->addr_AM_API_Discovery))
+		(pAlgoMArker, discovery);
 }
 
 int DynAM::AM_API_Create(int am_type, AlgoMarker **new_am) {
@@ -616,27 +258,10 @@ int DynAM::AM_API_AddDataByType(AlgoMarker * pAlgoMarker, const char *data, char
 		(pAlgoMarker, data, messages);
 }
 
-
-int DynAM::AM_API_CreateRequest(char *requestId, char **score_types, int n_score_types, int *patient_ids, long long *time_stamps, int n_points, AMRequest **new_req) {
-	return (*((DynAM::t_AM_API_CreateRequest)DynAM::so->addr_AM_API_CreateRequest))
-		(requestId, score_types, n_score_types, patient_ids, time_stamps, n_points, new_req);
-}
-
-int DynAM::AM_API_CreateResponses(AMResponses **new_responses) {
-	return (*((DynAM::t_AM_API_CreateResponses)DynAM::so->addr_AM_API_CreateResponses))
-		(new_responses);
-}
-
-int DynAM::AM_API_Calculate(AlgoMarker *pAlgoMarker, AMRequest *request, AMResponses *responses) {
-	return (*((DynAM::t_AM_API_Calculate)DynAM::so->addr_AM_API_Calculate))
-		(pAlgoMarker, request, responses);
-}
-
 int DynAM::AM_API_CalculateByType(AlgoMarker *pAlgoMarker, int CalcType, char *request, char **responses) {
 	return (*((DynAM::t_AM_API_CalculateByType)DynAM::so->addr_AM_API_CalculateByType))
 		(pAlgoMarker, CalcType, request, responses);
 }
-
 
 void initialize_algomarker(const char *amconfig, AlgoMarker *&test_am)
 {
@@ -685,7 +310,7 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am, int &pid) {
 			try {
 				pid = stoi(rest);
 			}
-			catch (...){
+			catch (...) {
 				printf("Failed in fetching patient id from: \"%s\"\n", rest.c_str());
 			}
 		}
@@ -707,7 +332,7 @@ void init_and_load_data(const char *input_json_path, AlgoMarker *am, int &pid) {
 int main(int argc, char *argv[]) {
 
 	if (argc <= 2) {
-		printf("Please pass path to lib + amconfig + (optional data_json) (optional data_output)\n");
+		printf("Please pass path to lib + amconfig + (optional data_json)\n");
 		return -1;
 	}
 	char *am_fname = argv[1];
@@ -730,7 +355,10 @@ int main(int argc, char *argv[]) {
 
 	initialize_algomarker(amconfig, test_am);
 
-
+	char *jdiscovery = NULL;
+	DynAM::AM_API_Discovery(test_am, &jdiscovery);
+	if (jdiscovery != NULL)
+		printf("Got discovery output:\n%s\n", jdiscovery);
 
 	if (argc > 3) {
 		char *data_json_path = argv[3];
@@ -743,14 +371,16 @@ int main(int argc, char *argv[]) {
 
 	char *jresp = NULL;
 	int calc_status = -1;
-	if (argc > 4) {//3 and up
+	if (argc > 3) {//3 and up
 		char *jreq = (char *)(sjreq.c_str());
 		calc_status = DynAM::AM_API_CalculateByType(test_am, JSON_REQ_JSON_RESP, jreq, &jresp);
 	}
 	if (jresp != NULL)
-		printf("Got responde with status %d\n%s\n", calc_status, jresp);
-	else
-		printf("Got calcuate with status %d\n", calc_status);
+		printf("Got respond with status %d\n%s\n", calc_status, jresp);
+	else {
+		if (argc > 3)
+			printf("Got calcuate with status %d\n", calc_status);
+	}
 
 	printf("Clear data!\n");
 	DynAM::AM_API_ClearData(test_am);
