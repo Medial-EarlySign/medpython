@@ -1356,6 +1356,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		else {
 			for (auto &s : js["signals"]) {
 				bool good_sig = true;
+				int n_time_channels, n_val_channels, *is_categ;
+				string sig;
 				times.clear();
 				sinds.clear();
 				curr_s = 0;
@@ -1372,8 +1374,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 					good_sig = false;
 				}
 				if (good_sig) {
-					string sig = s["code"].get<string>();
-					int n_time_channels, n_val_channels, *is_categ;
+					sig = s["code"].get<string>();
 					get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 					if (n_time_channels == 0 && n_val_channels == 0) {
 						char buf[5000];
