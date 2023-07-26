@@ -1352,6 +1352,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 					AM_DATA_BAD_FORMAT);
 			messages.push_back(string(buf));
 			MLOG("%s\n", buf);
+			good = false;
 		}
 		else {
 			for (auto &s : js["signals"]) {
@@ -1371,6 +1372,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 							AM_DATA_BAD_FORMAT);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
+					good = false;
 					good_sig = false;
 				}
 				if (good_sig) {
@@ -1404,6 +1406,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								AM_DATA_BAD_FORMAT, sig.c_str());
 						messages.push_back(string(buf));
 						MLOG("%s\n", buf);
+						good = false;
 						good_sig = false;
 					}
 					if (good_sig) {
@@ -1421,6 +1424,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 										AM_DATA_BAD_FORMAT, sig.c_str());
 								messages.push_back(string(buf));
 								MLOG("%s\n", buf);
+								good = false;
 								break;
 							}
 							if (d.find("value") != d.end() && !d["value"].is_array()) {
@@ -1433,6 +1437,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 										AM_DATA_BAD_FORMAT, sig.c_str());
 								messages.push_back(string(buf));
 								MLOG("%s\n", buf);
+								good = false;
 								break;
 							}
 							for (auto &t : d["timestamp"]) {
