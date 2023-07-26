@@ -207,8 +207,8 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
 				if (rep.sigs.is_categorical_channel(sid, j)) {
 					if (category_map.find(Values[Values_i]) == category_map.end()) {
-						MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
-							sig.c_str(), Values[Values_i]);
+						//MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
+						//	sig.c_str(), Values[Values_i]);
 						(*ma.get_unknown_codes(patient_id))[sig].insert(Values[Values_i]);
 						skip_val = true;
 					}
@@ -263,6 +263,7 @@ int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vec
 		vector<size_t> j_start, j_len;
 		vector<char> cdata;
 		get_jsons_locations(data, j_start, j_len);
+		MedProgress progress("AddDataByType", (int)j_start.size(), 60, 10);
 		for (int j = 0; j < j_start.size(); j++) {
 			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
 			cdata[j_len[j]] = 0;
@@ -270,6 +271,7 @@ int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vec
 			int rc = rec_AddDataByType(DATA_JSON_FORMAT, &cdata[0], messages);
 			if (rc != 0)
 				ret_code = rc;
+			progress.update();
 		}
 		return ret_code;
 	}
@@ -860,7 +862,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 
 //------------------------------------------------------------------------------------------
@@ -1150,7 +1152,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
