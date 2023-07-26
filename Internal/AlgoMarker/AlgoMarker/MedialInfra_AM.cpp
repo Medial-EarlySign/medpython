@@ -862,7 +862,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -1152,7 +1152,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1342,121 +1342,228 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		int curr_s = 0;
 
 		//char str_values[MAX_VALS][MAX_VAL_LEN];
-		for (auto &s : js["signals"]) {
-			bool good_sig = true;
-			times.clear();
-			sinds.clear();
-			curr_s = 0;
-			string sig = s["code"].get<string>();
-			int n_time_channels, n_val_channels, *is_categ;
-			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
-			if (n_time_channels == 0 && n_val_channels == 0) {
-				char buf[5000];
-				if (patient_id != 1)
-					snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s for patient %d",
-						AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
-				else
-					snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s",
-						AM_DATA_UNKNOWN_SIGNAL, sig.c_str());
-
-				messages.push_back(string(buf));
-				MLOG("%s\n", buf);
-				good = false;
-				good_sig = false;
-				//return AM_FAIL_RC;
-				continue;
-			}
-			//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
-			int n_data = 0;
-			for (auto &d : s["data"]) {
-				//MLOG("time ");
-				int nt = 0;
-				for (auto &t : d["timestamp"]) {
-					times.push_back(t.get<long long>());
-					nt++;
-					//MLOG("%d ", itime);
-				}
-				//Check size of timestamps:
-				if (nt != n_time_channels) {
+		if (js.find("signals") == js.end() || !js["signals"].is_array()) {
+			char buf[5000];
+			if (patient_id != 1)
+				snprintf(buf, sizeof(buf), "(%d)Bad format in patient %d. Element should contain signals element as array",
+					AM_DATA_BAD_FORMAT, patient_id);
+			else
+				snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain signals element as array",
+					AM_DATA_BAD_FORMAT);
+			messages.push_back(string(buf));
+			MLOG("%s\n", buf);
+		}
+		else {
+			for (auto &s : js["signals"]) {
+				bool good_sig = true;
+				times.clear();
+				sinds.clear();
+				curr_s = 0;
+				if (s.find("code") == s.end() || !s["code"].is_string()) {
 					char buf[5000];
 					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d time channels instead of %d",
-							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
+						snprintf(buf, sizeof(buf), "(%d)Bad format in patient %d. Element should contain code element as signal name",
+							AM_DATA_BAD_FORMAT, patient_id);
 					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d time channels instead of %d",
-							AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
+						snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain code element as signal name",
+							AM_DATA_BAD_FORMAT);
 					messages.push_back(string(buf));
 					MLOG("%s\n", buf);
-					good = false;
 					good_sig = false;
-					//return AM_FAIL_RC;
 				}
-				//MLOG("val ");
-				int nv = 0;
-				for (auto &v : d["value"]) {
-					string sv = v.get<string>().c_str();
-					int slen = (int)sv.length();
-					//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
-					if (curr_s + 1 + slen > s_data_size) {
-						s_data_size *= 2;
-						sdata.resize(s_data_size);
+				if (good_sig) {
+					string sig = s["code"].get<string>();
+					int n_time_channels, n_val_channels, *is_categ;
+					get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+					if (n_time_channels == 0 && n_val_channels == 0) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s for patient %d",
+								AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s",
+								AM_DATA_UNKNOWN_SIGNAL, sig.c_str());
+
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good = false;
+						good_sig = false;
+						//return AM_FAIL_RC;
+						continue;
 					}
-					sv.copy(&sdata[curr_s], slen);
-					sdata[curr_s + slen] = 0;
-					sinds.push_back(curr_s);
-					curr_s += slen + 1;
-					++nv;
-					//char *sp = &sdata[sinds.back()];
-					//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
-					//MLOG("%s ", v.get<string>().c_str());
-				}
-				//Check size of timestamps:
-				if (nv != n_val_channels) {
-					char buf[5000];
-					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d value instead of %d",
-							AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
-					else
-						snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d value channels instead of %d",
-							AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
-					messages.push_back(string(buf));
-					MLOG("%s\n", buf);
-					good = false;
-					good_sig = false;
-					//return AM_FAIL_RC;
-				}
-				//MLOG("\n");
-				n_data++;
-			}
-			vector<char *> p_str;
-			for (auto j : sinds)
-				p_str.push_back(&sdata[j]);
-			long long *p_times = &times[0];
-			int n_times = (int)times.size();
-			char **str_values = &p_str[0];
-			int n_vals = (int)p_str.size();
+					//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
+					int n_data = 0;
+					if (s.find("data") == s.end() || !s["data"].is_array()) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. No data element or data element is not array",
+								AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. No data element or data element is not array",
+								AM_DATA_BAD_FORMAT, sig.c_str());
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good_sig = false;
+					}
+					if (good_sig) {
+						for (auto &d : s["data"]) {
+							//MLOG("time ");
+							int nt = 0;
+							bool good_record = true;
+							if (d.find("timestamp") != d.end() && !d["timestamp"].is_array()) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. timestamp should be array of timestamps, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp should be array of timestamps, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str());
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								break;
+							}
+							if (d.find("value") != d.end() && !d["value"].is_array()) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be array of values, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be array of values, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str());
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								break;
+							}
+							for (auto &t : d["timestamp"]) {
+								if (!t.is_number_integer()) {
+									char buf[5000];
+									if (patient_id != 1)
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. timestamp element should be integer.",
+											AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+									else
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp element should be integer.",
+											AM_DATA_BAD_FORMAT, sig.c_str());
+									messages.push_back(string(buf));
+									MLOG("%s\n", buf);
+									good = false;
+									good_sig = false;
+									good_record = false;
+									break;
+								}
 
-			//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
-			//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
-			//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
-
-			if (good_sig) {
-				if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
-					char buf[5000];
-					if (patient_id != 1)
-						snprintf(buf, sizeof(buf), "(%d)General error in signal: %s for patient %d",
-							AM_DATA_GENERAL_ERROR, sig.c_str(), patient_id);
-					else
-						snprintf(buf, sizeof(buf), "(%d)General error in signal: %s",
-							AM_DATA_GENERAL_ERROR, sig.c_str());
-					messages.push_back(string(buf));
-					MLOG("%s\n", buf);
-					good_sig = false;
-					good = false;
-					//return AM_FAIL_RC;
+								times.push_back(t.get<long long>());
+								nt++;
+								//MLOG("%d ", itime);
+							}
+							if (!good_record)
+								break;
+							//Check size of timestamps:
+							if (nt != n_time_channels) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d time channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d time channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								good_sig = false;
+								good_record = false;
+								//return AM_FAIL_RC;
+							}
+							//MLOG("val ");
+							if (!good_record)
+								break;
+							int nv = 0;
+							for (auto &v : d["value"]) {
+								if (!v.is_string()) {
+									char buf[5000];
+									if (patient_id != 1)
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value element should be string.",
+											AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+									else
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value element should be string.",
+											AM_DATA_BAD_FORMAT, sig.c_str());
+									messages.push_back(string(buf));
+									MLOG("%s\n", buf);
+									good = false;
+									good_sig = false;
+									good_record = false;
+									break;
+								}
+								string sv = v.get<string>().c_str();
+								int slen = (int)sv.length();
+								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
+								if (curr_s + 1 + slen > s_data_size) {
+									s_data_size *= 2;
+									sdata.resize(s_data_size);
+								}
+								sv.copy(&sdata[curr_s], slen);
+								sdata[curr_s + slen] = 0;
+								sinds.push_back(curr_s);
+								curr_s += slen + 1;
+								++nv;
+								//char *sp = &sdata[sinds.back()];
+								//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
+								//MLOG("%s ", v.get<string>().c_str());
+							}
+							if (!good_record)
+								break;
+							//Check size of value:
+							if (nv != n_val_channels) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d value instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d value channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								good_sig = false;
+								good_record = false;
+								//return AM_FAIL_RC;
+							}
+							//MLOG("\n");
+							if (!good_record)
+								break;
+							n_data++;
+						}
+					}
 				}
-				else
-					mark_succ_ = true;
+				vector<char *> p_str;
+				for (auto j : sinds)
+					p_str.push_back(&sdata[j]);
+				long long *p_times = &times[0];
+				int n_times = (int)times.size();
+				char **str_values = &p_str[0];
+				int n_vals = (int)p_str.size();
+
+				//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
+				//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
+				//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
+
+				if (good_sig) {
+					if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)General error in signal: %s for patient %d",
+								AM_DATA_GENERAL_ERROR, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)General error in signal: %s",
+								AM_DATA_GENERAL_ERROR, sig.c_str());
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good_sig = false;
+						good = false;
+						//return AM_FAIL_RC;
+					}
+					else
+						mark_succ_ = true;
+				}
 			}
 		}
 	}
