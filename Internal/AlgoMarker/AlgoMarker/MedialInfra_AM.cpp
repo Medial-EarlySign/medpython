@@ -1312,6 +1312,15 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 			if (js.find("patient_id") != js.end()) {
 				if (js["patient_id"].is_number_integer())
 					patient_id = js["patient_id"].get<long long>();
+				else if (js["patient_id"].is_string()) {
+					try {
+						patient_id = stoll(js["patient_id"].get<string>());
+					}
+					catch (...) {
+						messages.push_back("(330)Bad data json format - couldn't convert patient_id to integer");
+						return AM_FAIL_RC;
+					}
+				}
 				else {
 					messages.push_back("(330)Bad data json format - patient_id suppose to be integer");
 					return AM_FAIL_RC;
@@ -1321,6 +1330,15 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				if (js.find("pid") != js.end()) {
 					if (js["pid"].is_number_integer())
 						patient_id = js["pid"].get<long long>();
+					else if (js["pid"].is_string()) {
+						try {
+							patient_id = stoll(js["pid"].get<string>());
+						}
+						catch (...) {
+							messages.push_back("(330)Bad data json format - couldn't convert pid to integer");
+							return AM_FAIL_RC;
+						}
+					}
 					else {
 						messages.push_back("(330)Bad data json format - pid suppose to be integer");
 						return AM_FAIL_RC;
@@ -1441,8 +1459,29 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								break;
 							}
 							for (auto &t : d["timestamp"]) {
-								if (!t.is_number_integer()) {
-									char buf[5000];
+								char buf[5000];
+								if (t.is_string()) {
+									try {
+										times.push_back(stoll(t.get<string>()));
+										continue;
+									}
+									catch (...) {
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. Couldn't convert timestamp to integer",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. Couldn't convert timestamp to integer",
+												AM_DATA_BAD_FORMAT, sig.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+								}
+								else if (!t.is_number_integer()) {
+
 									if (patient_id != 1)
 										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. timestamp element should be integer.",
 											AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
@@ -1458,7 +1497,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								}
 
 								times.push_back(t.get<long long>());
-								nt++;
+								++nt;
 								//MLOG("%d ", itime);
 							}
 							if (!good_record)
@@ -1484,22 +1523,30 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								break;
 							int nv = 0;
 							for (auto &v : d["value"]) {
-								if (!v.is_string()) {
-									char buf[5000];
-									if (patient_id != 1)
-										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value element should be string.",
-											AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
-									else
-										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value element should be string.",
-											AM_DATA_BAD_FORMAT, sig.c_str());
-									messages.push_back(string(buf));
-									MLOG("%s\n", buf);
-									good = false;
-									good_sig = false;
-									good_record = false;
-									break;
+								string sv;
+								if (v.is_number() && !is_categ[nv]) {
+									sv = to_string(v.get<double>());
 								}
-								string sv = v.get<string>().c_str();
+								else {
+									if (!v.is_string()) {
+										char buf[5000];
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value element should be string.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value element should be string.",
+												AM_DATA_BAD_FORMAT, sig.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+									else
+										sv = v.get<string>().c_str();
+								}
+								
 								int slen = (int)sv.length();
 								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
 								if (curr_s + 1 + slen > s_data_size) {
@@ -1818,10 +1865,22 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 		}
 
 		if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
-			if (json_verify_key(jreq, "scoreOnDate", 0, ""))
-				req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
-			else
-				req_i.sample_time = stoll(jreq["time"].get<string>());
+			if (json_verify_key(jreq, "scoreOnDate", 0, "")) {
+				if (jreq["scoreOnDate"].is_string())
+					req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
+				else if (jreq["scoreOnDate"].is_number_integer())
+					req_i.sample_time = jreq["scoreOnDate"].get<long long>();
+				else
+					MTHROW_AND_ERR("Error in scoreOnDate field - unsupported type\n");
+			}
+			else {
+				if (jreq["time"].is_string())
+					req_i.sample_time = stoll(jreq["time"].get<string>());
+				else if (jreq["time"].is_number_integer())
+					req_i.sample_time = jreq["time"].get<long long>();
+				else
+					MTHROW_AND_ERR("Error in time field - unsupported type\n");
+			}
 		}
 
 		if (json_verify_key(jreq, "load", 0, "")) {
