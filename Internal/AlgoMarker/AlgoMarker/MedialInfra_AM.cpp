@@ -1463,6 +1463,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								if (t.is_string()) {
 									try {
 										times.push_back(stoll(t.get<string>()));
+										++nt;
 										continue;
 									}
 									catch (...) {
