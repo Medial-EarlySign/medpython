@@ -78,12 +78,14 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 void try_parse_attributes_keys(const string &s, map<string, string> &attr, const string &ns,
 	const string &namespace_attr_delimeter, const string &delimeter_keys, const string &delimeter_key_val) {
 	string ss = s;
+	if (s.empty()) //empty attribute value - skip
+		return;
 	bool is_object_ns = false;
-	if (s.at(0) == '{') {
+	if (!s.empty() && s.at(0) == '{') {
 		is_object_ns = true;
 		ss = s.substr(1);
 	}
-	if (ss.at(ss.length() - 1) == '}') {
+	if (!s.empty() && ss.at(ss.length() - 1) == '}') {
 		ss = ss.substr(0, ss.length() - 1);
 		is_object_ns = true;
 	}
