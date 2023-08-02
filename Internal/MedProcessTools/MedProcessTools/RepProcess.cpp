@@ -2733,6 +2733,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
+			if (usv.len == 0)
+				MTHROW_AND_ERR("Error in signal %s - empty\n", signals[i].c_str());
 			if (usv.n_val_channels() > 0)
 				static_signals_values[i] = usv.Val(0);
 			else
@@ -3697,7 +3699,7 @@ void RepBasicRangeCleaner::fit_for_repository(MedPidRepository& rep) {
 	else
 		is_virtual = true;
 
-	if (is_virtual && virtual_signals_generic.empty()) 
+	if (is_virtual && virtual_signals_generic.empty())
 		virtual_signals_generic.push_back(pair<string, string>(output_name, GenericSigVec::get_type_generic_spec(SigType(output_type))));
 }
 
@@ -4132,7 +4134,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					}
 				}
 			}
-							}
+		}
 
 #ifdef _APPLY_VERBOSE
 		for (int j = 0; j < N; j++) {
@@ -4200,10 +4202,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					for (int j = 0; j < N; j++) {
 						if (states[i].last[j] == -1 && states[i + 1].last[j] != -1)
 							states[i].last[j] = states[i + 1].last[j];
-			}
-		}
+					}
 				}
-			}
+					}
+				}
 
 #ifdef _APPLY_VERBOSE
 		for (size_t j = 0; j < states.size(); j++)
@@ -4262,7 +4264,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 					}
 
-				}
+			}
 
 
 			if (max_k >= 0) {
@@ -4282,7 +4284,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 			j++;
-			}
+					}
 
 		// packing and pushing new virtual signal
 		vector<int> v_times;
@@ -4304,11 +4306,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-		}
+				}
 
 
 	return 0;
-		}
+			}
 
 
 //-------------------------------------------------------------------------------------------------------
