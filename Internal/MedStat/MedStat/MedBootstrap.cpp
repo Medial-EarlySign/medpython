@@ -159,12 +159,12 @@ int MedBootstrap::init(map<string, string>& map) {
 					is_binary_outcome = false;
 					break;
 				default:
-					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", measure_type);
+					MTHROW_AND_ERR("Error MedBootstrap::init unsupported measure %d\n", (int)measure_type);
 				}
 
 				measurements_with_params.push_back(pair<MeasurementFunctions, Measurement_Params*>(func, pr_m));
 			}
-			
+
 		}
 		//! [MedBootstrap::init]
 		else
@@ -410,7 +410,7 @@ struct pair_hash {
 		return h1 ^ h2;
 	}
 };
-map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatures &features_mat,
+map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(const MedFeatures &features_mat,
 	const with_registry_args& args, map<int, map<string, map<string, float>>> *results_per_split) {
 	MedBootstrap single_cohort = *this; //copy
 	MedRegistry *registry = args.registry;
@@ -426,7 +426,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_using_registry(MedFeatur
 	unordered_map<string, pair<int, int>> cohort_to_time_res;
 	unordered_map<string, int> cohort_to_time_filter_index;
 	unordered_map<int, vector<MedRegistryRecord *>> pid_to_reg, pid_to_censor;
-	MedFeatures *final_features = &features_mat;
+	const MedFeatures *final_features = &features_mat;
 	if (simTimeWindow) {
 		for (size_t i = 0; i < registry->registry_records.size(); ++i)
 			pid_to_reg[registry->registry_records[i].pid].push_back(&registry->registry_records[i]);
@@ -752,7 +752,7 @@ void MedBootstrap::sort_index_only(const vector<float> &vec, vector<int>::iterat
 	stable_sort(ind_start, ind_end, [&vec](size_t i1, size_t i2) {return vec[i1] > vec[i2]; });
 }
 
-void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
+void MedBootstrap::prepare_bootstrap(const MedFeatures &features, vector<float> &preds, vector<float> &y, vector<int> &pids,
 	map<string, vector<float>> &final_additional_info, vector<int> &preds_order, unordered_map<int, vector<int>> *splits_inds) {
 	if (features.samples.empty() || features.samples[0].prediction.empty())
 		MTHROW_AND_ERR("prepare_bootstrap - sample size %d or number of predictions %d are not valid \n", (int)features.samples.size(), (int)features.samples[0].prediction.size());
@@ -803,7 +803,7 @@ void MedBootstrap::prepare_bootstrap(MedFeatures &features, vector<float> &preds
 			(*splits_inds)[features.samples[i].split].push_back((int)i);
 	}
 }
-map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
+map<string, map<string, float>> MedBootstrap::bootstrap(const MedFeatures &features,
 	map<int, map<string, map<string, float>>> *results_per_split, with_registry_args *registry_args) {
 	if (registry_args != NULL)
 		return bootstrap_using_registry(features, *registry_args, results_per_split);
@@ -821,7 +821,9 @@ map<string, map<string, float>> MedBootstrap::bootstrap(MedFeatures &features,
 
 	//check we have all signals ececpt Time,Label (will be completed in prepare):
 	vector<string> all_names_ls;
-	features.get_feature_names(all_names_ls);
+	all_names_ls.reserve(data.size());
+	for (auto &it : data)
+		all_names_ls.push_back(it.first);
 	unordered_set<string> print_mp;
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 		for (Filter_Param &fp : it->second) {
@@ -1058,16 +1060,18 @@ void MedBootstrap::change_sample_autosim(MedSamples &samples, int min_time, int 
 	}
 	//new_samples.sort_by_id_date(); //not needed
 }
+
+unordered_map<string, MeasurmentFunctionType> MedBootstrap::measurement_function_name_map = {
+	{ "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },
+{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },
+{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
+{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
+{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
+{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
+{ "calc_regression", MeasurmentFunctionType::calc_regression }
+};
+
 MeasurmentFunctionType MedBootstrap::measurement_function_name_to_type(const string& measurement_function_name) {
-	unordered_map<string, MeasurmentFunctionType> measurement_function_name_map = {
-		{ "calc_npos_nneg",MeasurmentFunctionType::calc_npos_nneg },
-		{ "calc_only_auc",MeasurmentFunctionType::calc_only_auc },
-		{ "calc_roc_measures_with_inc",MeasurmentFunctionType::calc_roc_measures_with_inc },
-		{ "calc_multi_class",MeasurmentFunctionType::calc_multi_class },
-		{ "calc_kandel_tau", MeasurmentFunctionType::calc_kandel_tau },
-		{ "calc_harrell_c_statistic", MeasurmentFunctionType::calc_harrell_c_statistic },
-		{ "calc_regression", MeasurmentFunctionType::calc_regression }
-	};
 	if (measurement_function_name_map.find(measurement_function_name) == measurement_function_name_map.end()) {
 		string options = medial::io::get_list(measurement_function_name_map, "\n");
 		MTHROW_AND_ERR("measurement_function_name_to_type: unknown name %s\nOptions:%s\n",

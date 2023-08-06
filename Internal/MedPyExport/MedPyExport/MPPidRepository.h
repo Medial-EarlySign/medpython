@@ -47,13 +47,25 @@ public:
 	int loadsig(const std::string& signame);
 #endif
 
+	MEDPY_DOC(sig_id, "list_signals() -> vector<string>\n"
+		"  returns all repository signal names");
+	std::vector<std::string> list_signals();
+
 	MEDPY_DOC(sig_id, "sig_id(str_signame) -> int\n"
 	"  returns signal id number for a given signal name");
 	int sig_id(const std::string& signame);
 
 	MEDPY_DOC(sig_type, "sig_type(str_signame) -> int\n"
-	"  returns signal type id for a given signal name");
+	"  returns signal type");
 	int sig_type(const std::string& signame);
+
+	MEDPY_DOC(sig_description, "sig_description(str_signame) -> string\n"
+		"  returns signal string description");
+	std::string sig_description(const std::string& signame);
+
+	MEDPY_DOC(is_categorical, "is_categorical(str_signame, int_val_channel) -> bool\n"
+		"  returns True is channel is categorical");
+	bool is_categorical(const std::string& signame, int val_channel);
 	
 	MEDPY_DOC(pids, "pids ; property(read) -> list_Int\n"
 	"  returns array of pids");

@@ -518,6 +518,17 @@ int BasicFeatGenerator::_generate(PidDynamicRec& rec, MedFeatures& features, int
 	return 0;
 }
 
+void BasicFeatGenerator::set_signal_ids(MedSignals& sigs) {
+	signalId = sigs.sid(signalName);
+	timeRangeSignalId = sigs.sid(timeRangeSignalName);
+	needs_categ_dict = sigs.is_categorical_channel(signalId, val_channel);
+	if (!categ_value2id.empty() &&
+		!sigs.is_categorical_channel(signalId, val_channel)) {
+		categ_value2id.clear();
+		needs_categ_dict = false;
+	}
+}
+
 // Init look-up table
 //.......................................................................................
 void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
@@ -536,7 +547,7 @@ void BasicFeatGenerator::init_tables(MedDictionarySections& dict) {
 		lut.clear();
 
 	// Look-up tables for categ_require_dict types
-	if (categ_require_dict.find(type) != categ_require_dict.end()) {
+	if (categ_require_dict.find(type) != categ_require_dict.end() && needs_categ_dict) {
 		MedDictionary& _dict = dict.dicts[dict.section_id(signalName)];
 		if (_dict.Id2Name.size() == 0)
 			MTHROW_AND_ERR("Empty dictionary for signal %s\n", signalName.c_str());
@@ -790,6 +801,13 @@ int GenderGenerator::init(map<string, string>& mapper) {
 	return 0;
 }
 
+void GenderGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
+	if (category_values.empty())
+		return;
+	for (const string &categ : category_values)
+		if (categ != "GENDER") //remove the name of the signal - if there is rename of the name of signal to SEX
+			signal_categories_in_use["GENDER"].push_back(categ);
+}
 
 //=======================================================================================
 // Singleton
@@ -895,6 +913,10 @@ void SingletonGenerator::init_tables(MedDictionarySections& dict) {
 void SingletonGenerator::get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {
 	if (sets.size() > 0)
 		signal_categories_in_use[signalName] = sets;
+	else {
+		for (auto &it : name2Value)
+			signal_categories_in_use[signalName].push_back(it.first);
+	}
 }
 //.......................................................................................
 void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
@@ -911,8 +933,22 @@ void SingletonGenerator::get_id2Value(MedDictionarySections& dict) {
 		id2Value.resize(max_id + 1, (float)0);
 
 		for (auto& rec : dict.dicts[section_id].Id2Name) {
-			if (name2Value.find(rec.second) == name2Value.end())
-				id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			if (name2Value.find(rec.second) == name2Value.end()) {
+				//Test if We can recognize other name:
+				int found_id = -1;
+				for (const string &other_nm : dict.dicts[section_id].Id2Names[rec.first])
+				{
+					if (name2Value.find(other_nm) != name2Value.end())
+					{
+						found_id = name2Value.at(other_nm);
+						break;
+					}
+				}
+				if ((found_id) >= 0)
+					id2Value[rec.first] = found_id;
+				else
+					id2Value[rec.first] = name2Value["SINGLETON_UNKNOWN"];
+			}
 			else
 				id2Value[rec.first] = name2Value[rec.second];
 		}

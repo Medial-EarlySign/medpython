@@ -37,6 +37,10 @@ bool medial::sampling::in_time_window_simple(int pred_date, int start_time, int 
 bool medial::sampling::in_time_window(int pred_date, const MedRegistryRecord *r_outcome, const vector<const MedRegistryRecord *> &r_censor,
 	int time_from, int time_to, int censor_time_from, int  censor_time_to,
 	const TimeWindowMode mode[2], const TimeWindowMode mode_prediction[2]) {
+	if (mode == NULL)
+		MTHROW_AND_ERR("Error medial::sampling::in_time_window - mode is NULL\n");
+	if (mode_prediction == NULL)
+		MTHROW_AND_ERR("Error medial::sampling::in_time_window - mode_prediction is NULL\n");
 	if (censor_time_from == MED_MAT_MISSING_VALUE)
 		censor_time_from = time_from;
 	if (censor_time_to == MED_MAT_MISSING_VALUE)

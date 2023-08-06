@@ -41,6 +41,8 @@ public:
 
 	int max_outliers_flag = 0; // use or not use the tester to accumulate outliers counts
 
+	bool stop_processing_more_errors = false; ///< if true will stop process more errors
+
 	string tester_params; // params for the internal tester
 
 	// initialize from string 
@@ -50,10 +52,12 @@ public:
 	// returns: 1: passes the test , 0: did not pass , -1: could not test
 	// also returns: nvals (if relevant): number of tests in the window time defined in the test
 	//               noutliers (if relevant) : number of outliers found
-	virtual int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { return -1; }
+	virtual int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers) { nvals = 0; noutliers = 0; return -1; }
 
 	virtual int test_if_ok(MedSample &sample) { return -1; };				// 1: good to go 0: did not pass -1: could not test
 
+	virtual int test_if_ok(int pid, long long timestamp,
+		const unordered_map<string, unordered_set<string>> &dict_unknown) { return -1; }
 
 	// 1: good to go 0: did not pass -1: could not test
 	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp) {
@@ -85,6 +89,7 @@ class InputTesterSimple : public InputTester {
 
 public:
 	SanitySimpleFilter sf;
+	string err_message_template;
 
 	InputTesterSimple() {
 		type = (int)INPUT_TESTER_TYPE_SIMPLE;
@@ -94,6 +99,7 @@ public:
 	void input_from_string(const string &in_str);
 	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers); // 1: good to go 0: did not pass -1: could not test
 
+	int test_if_ok(int pid, long long timestamp, const unordered_map<string, unordered_set<string>> &dict_unknown);
 };
 //==============================================================================================================
 // InputTesterAttr : an implementation that is able to test the attributes created in the samples file of a model
@@ -117,6 +123,7 @@ public:
 	int init(map<string, string>& mapper);
 	int test_if_ok(MedSample &sample);						// 1: good to go 0: did not pass -1: could not test
 
+	int test_if_ok(int pid, long long timestamp, const unordered_map<string, unordered_set<string>> &dict_unknown) { return 1; }
 };
 
 ///==============================================================================================================
@@ -152,6 +159,7 @@ public:
 	/// 1: good to go 0: did not pass -1: could not test
 	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers);
 
+	int test_if_ok(int pid, long long timestamp, const unordered_map<string, unordered_set<string>> &dict_unknown) { return 1; }
 };
 //==============================================================================================================
 
@@ -183,6 +191,8 @@ public:
 	~InputSanityTester() { clear(); }
 
 	int read_config(const string &f_conf);
+
+	int test_if_ok(int pid, long long timestamp, const unordered_map<string, unordered_set<string>> &dict_unknown, vector<InputSanityTesterResult> &res);
 
 	// tests all simple testers (Before running model)
 	int test_if_ok(MedPidRepository &rep, int pid, long long timestamp, int &nvals, int &noutliers, vector<InputSanityTesterResult> &res); // tests and stops at first cardinal failed test

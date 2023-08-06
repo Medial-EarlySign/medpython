@@ -167,7 +167,7 @@ private:
 /**
 * A base class for measurements parameter
 */
-class Measurement_Params {
+class Measurement_Params : public SerializableObject {
 public:
 	bool show_warns; ///< If True will show warnnings
 	Measurement_Params();
@@ -286,9 +286,10 @@ public:
 * stores the working point, and other parameters for the roc measurments
 * bootstrap calculations.
 */
-class ROC_Params : public Measurement_Params, public SerializableObject {
+class ROC_Params : public Measurement_Params {
 public:
 	vector<float> working_point_FPR; ///< The False Positive rate working point definition
+	vector<int> working_point_TOPN; ///< The Top N working points
 	vector<float> working_point_SENS; ///< The True Positive rate working point definition
 	vector<float> working_point_PR; ///< The Positive rate working point definition
 	vector<float> working_point_auc; ///< The partial auc working points definition
@@ -328,14 +329,14 @@ public:
 	int init(map<string, string>& map);
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
-	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_Score, working_point_auc, use_score_working_points,
+	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_TOPN, working_point_Score, working_point_auc, use_score_working_points,
 		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
 };
 
 /**
 * Parameter object for Multiclass measure functions
 */
-class Multiclass_Params : public Measurement_Params, public SerializableObject {
+class Multiclass_Params : public Measurement_Params {
 public:
 	vector<int> top_n; ///< when looking on top predictions, this is the maximal index
 	int n_categ; ///< Number of categories
@@ -351,20 +352,28 @@ public:
 	int init(map<string, string>& map);
 	void read_dist_matrix_from_file(const string& fileName);
 
+	ADD_CLASS_NAME(Multiclass_Params)
 	ADD_SERIALIZATION_FUNCS(top_n, n_categ, dist_weights, dist_file, dist_matrix, dist_name, do_class_auc)
 };
 
 /**
 * Parameter object for Regression measure functions
 */
-class Regression_Params : public Measurement_Params, public SerializableObject {
+class Regression_Params : public Measurement_Params {
 public:
 	bool do_logloss = false;
 	double epsilon = 1e-5;
+	vector<float> coverage_quantile_percentages;
 
+	/// <summary>
+	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
+	/// for vectors values use "," between numbers
+	/// @snippet bootstrap.cpp Regression_Params::init
+	/// </summary>
 	int init(map<string, string>& mapper);
 
-	ADD_SERIALIZATION_FUNCS(do_logloss)
+	ADD_CLASS_NAME(Regression_Params)
+	ADD_SERIALIZATION_FUNCS(do_logloss, coverage_quantile_percentages, epsilon)
 };
 
 #pragma region Cohort Functions
@@ -474,6 +483,12 @@ inline string format_working_point(const string &init_str, float wp, bool perc =
 	return string(res);
 }
 
+inline string format_working_point_topn(const string &init_str, int wp, bool perc = true) {
+	char res[100];
+	snprintf(res, sizeof(res), "%s_%d", init_str.c_str(), wp);
+	return string(res);
+}
+
 /// <summary>
 /// to run bootstrap on single cohort
 /// </summary>
@@ -572,6 +587,8 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 MEDSERIALIZE_SUPPORT(Incident_Stats)
 MEDSERIALIZE_SUPPORT(ROC_Params)
 MEDSERIALIZE_SUPPORT(Filter_Param)
+MEDSERIALIZE_SUPPORT(Regression_Params)
+MEDSERIALIZE_SUPPORT(Multiclass_Params)
 
 #endif // !__BOOTSTRAP_ANALYSIS_H__
 

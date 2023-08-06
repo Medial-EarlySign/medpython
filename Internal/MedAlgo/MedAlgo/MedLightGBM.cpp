@@ -290,7 +290,8 @@ namespace LightGBM {
 
 		vector<double> out_result_vec(len_res);
 		double *out_result = &out_result_vec[0];
-		if (shap_vals == NULL) shap_vals = new float[nrows*num_pred_in_one_row];
+		if (shap_vals == NULL)
+			MTHROW_AND_ERR("Error MemApp::PredictShap - shap_vals was NULL\n");
 
 		OMP_INIT_EX();
 #pragma omp parallel for schedule(static)

@@ -1,6 +1,9 @@
 #include "MPBootstrap.h"
 #include "MedStat/MedStat/MedBootstrap.h"
 
+#define LOCAL_SECTION LOG_APP
+#define LOCAL_LEVEL LOG_DEF_LEVEL
+
 /*************************************************/
 MPStringBtResultMap::MPStringBtResultMap() { o = new std::map<std::string, std::map<std::string, float> >(); }
 MPStringBtResultMap::MPStringBtResultMap(const MPStringBtResultMap& other)
@@ -81,9 +84,42 @@ void MPBootstrap::parse_cohort_file(const string &cohorts_path) { o->parse_cohor
 
 void MPBootstrap::init_from_str(const string &str) { o->init_from_string(str); }
 
-MPStringBtResultMap MPBootstrap::bootstrap(MPSamples *samples, const string &rep_path) {
+void get_cohort_params_use(const map<string, vector<Filter_Param>> &filter_cohort, vector<string> &param_use) {
+	param_use.clear();
+	unordered_set<string> con_set;
+	for (auto ii = filter_cohort.begin(); ii != filter_cohort.end(); ++ii)
+		for (size_t i = 0; i < ii->second.size(); ++i)
+			con_set.insert(ii->second[i].param_name);
+	param_use.insert(param_use.end(), con_set.begin(), con_set.end());
+}
+
+MPStringBtResultMap MPBootstrap::bootstrap_cohort(MPSamples *samples, const string &rep_path, const string &json_model,
+	const string &cohorts_path) {
+	
+	if (!cohorts_path.empty()) {
+		o->filter_cohort.clear();
+		o->parse_cohort_file(cohorts_path);
+	}
+
+	MedModel model;
+	if (!json_model.empty())
+		model.init_from_json_file(json_model);
+	else {
+		model.add_age();
+		model.add_gender();
+	}
+
+	vector<int> pids;
+	samples->o->get_ids(pids);
+
+	MedPidRepository rep;
+	model.load_repository(rep_path, pids, rep, true);
+
+	if (model.learn(rep, samples->o, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+		MTHROW_AND_ERR("Model did not succeed to generate matrix for bootstrap filtering!\n");
+
 	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
-	*res = o->bootstrap(*samples->o, rep_path);
+	*res = o->bootstrap(model.features);
 
 	return MPStringBtResultMap(res);
 }
@@ -110,6 +146,8 @@ MPStringFloatMapAdaptor MPBootstrap::_bootstrap(const std::vector<float> &preds,
 	std::map<std::string, std::vector<float> > additional_data;
 	std::map<std::string, float>  *res = new std::map<std::string, float>();
 
+	o->filter_cohort.clear();
+	o->filter_cohort["All"] = {};
 	*res = o->bootstrap(samples, additional_data)["All"];
 
 	return MPStringFloatMapAdaptor(res);
@@ -174,6 +212,9 @@ MPStringFloatMapAdaptor MPBootstrap::_bootstrap_pid(const std::vector<float> &pi
 		throw runtime_error(string("vectors are not in the same size: pids.size=") +
 			std::to_string(pids.size()) + string(" labels.size=") + std::to_string(labels.size()));
 	}
+
+	o->filter_cohort.clear();
+	o->filter_cohort["All"] = {};
 
 	MedFeatures bt_features;
 	bt_features.samples.resize(pids.size());

@@ -4,11 +4,144 @@
 #include <InfraMed/InfraMed/InfraMed.h>
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
+#include <MedProcessTools/MedProcessTools/ExplainWrapper.h>
 #include "InputTesters.h"
 #include "AlgoMarkerErr.h"
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+
+class Explainer_record_config : public SerializableObject {
+public:
+	string contributer_group_name = ""; ///< name of explainer group
+	string signal_name = ""; ///< name of signal to fetch
+	int max_count = 1; ///< limit of maximal last values
+	int max_time_window = 0; ///< limit on maximal time before prediction
+	int time_channel = 0; ///< time channel to filter
+	int time_unit = MedTime::Days; ///< time unit for max_time_window
+	int val_channel = 0; ///< val channel to filter sets
+	vector<string> sets; ///< sets to filter categorical signal
+
+	// Not to be initialized:
+	vector<char> lut;
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "contributer_group_name")
+				contributer_group_name = it.second;
+			else if (it.first == "signal_name")
+				signal_name = it.second;
+			else if (it.first == "max_count")
+				max_count = med_stoi(it.second);
+			else if (it.first == "max_time_window")
+				max_time_window = med_stoi(it.second);
+			else if (it.first == "time_channel")
+				time_channel = med_stoi(it.second);
+			else if (it.first == "val_channel")
+				val_channel = med_stoi(it.second);
+			else if (it.first == "time_unit")
+				time_unit = med_time_converter.string_to_type(it.second);
+			else if (it.first == "sets")
+				boost::split(sets, it.second, boost::is_any_of(","));
+			else
+				HMTHROW_AND_ERR("Error in Explainer_record_config::init - unknown parameter \"%s\"\n",
+					it.first.c_str());
+		}
+		if (contributer_group_name.empty())
+			HMTHROW_AND_ERR("Error in Explainer_record_config::init - contributer_group_name must be given\n");
+		if (signal_name.empty())
+			HMTHROW_AND_ERR("Error in Explainer_record_config::init - signal_name must be given\n");
+		return  0;
+	}
+
+	ADD_CLASS_NAME(Explainer_record_config)
+		ADD_SERIALIZATION_FUNCS(contributer_group_name, signal_name, max_count, max_time_window, time_channel, time_unit, val_channel, sets)
+};
+
+class Explainer_description_config : public SerializableObject {
+public:
+	map<string, Explainer_record_config> records;
+
+	void read_cfg_file(const string &file);
+
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "records")
+				read_cfg_file(it.second);
+			else
+				HMTHROW_AND_ERR("Error in Explainer_description_config::init - unknown parameter \"%s\"\n",
+					it.first.c_str());
+		}
+		return  0;
+	}
+
+	ADD_CLASS_NAME(Explainer_description_config)
+		ADD_SERIALIZATION_FUNCS(records)
+};
+
+class Explainer_parameters : public SerializableObject {
+public:
+	float max_threshold = 0; ///< control max threshold
+	int num_groups = 3; ///< control how much binning to present
+	bool use_perc = false; ///< control if binning on absolute value or on percentage
+	Explainer_description_config cfg; ///< file to configure fetching signal to present
+	unordered_set<string> ignore_groups_list; ///< name list of groups to alwaya ignore
+	int total_max_reasons = -1; ///< if bigger than zero max limit for all reasons
+	int total_max_pos_reasons = -1; ///< if bigger than zero max limit for pos reasons
+	int total_max_neg_reasons = -1; ///< if bigger than zero max limit for neg reasons
+	float threshold_abs = -1; ///< absolute thershold if bigger than 0
+	float threshold_percentage = -1; ///< percentage thershold if bigger than 0
+	vector<string> static_features_info; ///< config of information to fetch for every patient.
+
+	// to be init before:
+	string base_dir = "";
+
+	int init(map<string, string>& mapper) {
+		for (auto &it : mapper)
+		{
+			if (it.first == "max_threshold")
+				max_threshold = med_stof(it.second);
+			else if (it.first == "num_groups")
+				num_groups = med_stoi(it.second);
+			else if (it.first == "total_max_reasons")
+				total_max_reasons = med_stoi(it.second);
+			else if (it.first == "total_max_pos_reasons")
+				total_max_pos_reasons = med_stoi(it.second);
+			else if (it.first == "total_max_neg_reasons")
+				total_max_neg_reasons = med_stoi(it.second);
+			else if (it.first == "threshold_abs")
+				threshold_abs = med_stof(it.second);
+			else if (it.first == "threshold_percentage")
+				threshold_percentage = med_stof(it.second);
+			else if (it.first == "use_perc")
+				use_perc = med_stoi(it.second) > 0;
+			else if (it.first == "static_features_info")
+				boost::split(static_features_info, it.second, boost::is_any_of(","));
+			else if (it.first == "ignore_groups_list") {
+				vector<string> tokens;
+				boost::split(tokens, it.second, boost::is_any_of(","));
+				ignore_groups_list.insert(tokens.begin(), tokens.end());
+			}
+			else if (it.first == "cfg") {
+				if (it.second != "" && it.second[0] != '/' && it.second[0] != '\\' && !base_dir.empty())
+					cfg.read_cfg_file(base_dir + "/" + it.second);
+				else
+					cfg.read_cfg_file(it.second);
+			}
+			else
+				HMTHROW_AND_ERR("Error in Explainer_parameters::init - unknown parameter \"%s\"\n",
+					it.first.c_str());
+		}
+		if (max_threshold < 0)
+			HMTHROW_AND_ERR("Error in Explainer_parameters::init - max_threshold should be positive\n");
+
+		return 0;
+	}
+
+	ADD_CLASS_NAME(Explainer_parameters)
+		ADD_SERIALIZATION_FUNCS(max_threshold, num_groups, cfg, ignore_groups_list, total_max_reasons, total_max_pos_reasons, total_max_neg_reasons, threshold_abs, threshold_percentage, static_features_info)
+};
 
 //===============================================================================
 // MedAlgoMarkerInternal - a mid-way API class : hiding all details of 
@@ -23,6 +156,8 @@ private:
 	MedPidRepository rep;
 	MedModel model;
 	MedSamples samples;
+	unordered_map<int, unordered_map<string, unordered_set<string>>> unknown_codes;
+	Explainer_parameters explainer_params;
 	//InputSanityTester ist;
 
 	string name;
@@ -31,7 +166,7 @@ private:
 	vector<int> pids;
 	int model_end_stage = MED_MDL_END;
 	bool model_init_done = false;
-
+	bool model_rep_done = false;
 public:
 
 	MedPidRepository & get_rep() { return rep; }
@@ -89,6 +224,18 @@ public:
 		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
 	}
 
+	int init_model_for_rep() {
+		//global_logger.log(LOG_APP, LOG_DEF_LEVEL, "Init MedModel for Rep\n");
+		if (!model_rep_done) {
+			model_rep_done = true;
+			return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
+		}
+		return 0;
+	}
+
+	unordered_map<string, unordered_set<string>> *get_unknown_codes(int pid) {
+		return &unknown_codes[pid];
+	}
 	// init samples
 	int init_samples(int *pids, int *times, int n_samples) { clear_samples(); int rc = insert_samples(pids, times, n_samples); samples.normalize(); return rc; }
 	int init_samples(int pid, int time) { return init_samples(&pid, &time, 1); }  // single prediction point initiation 
@@ -105,7 +252,7 @@ public:
 	//========================================================
 
 	 // init loading : actions that must be taken BEFORE any loading starts
-	int data_load_init() { rep.switch_to_in_mem_mode(); return 0; }
+	int data_load_init() { unknown_codes.clear(); rep.switch_to_in_mem_mode(); return 0; }
 
 	// load n_elems for a pid,sig
 	int data_load_pid_sig(int pid, const char *sig_name, int *times, float *vals, int n_elems) {
@@ -239,10 +386,12 @@ public:
 	//========================================================
 	// Clearing - freeing mem
 	//========================================================
-	void clear() { pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
+	void clear() { unknown_codes.clear(); pids.clear(); model.clear(); samples.clear(); rep.in_mem_rep.clear(); rep.clear(); }
 
 	// clear_data() : leave model up, leave repository config up, but get rid of data and samples
-	void clear_data() { samples.clear(); rep.in_mem_rep.clear(); }
+	void clear_data() {
+		samples.clear(); rep.in_mem_rep.clear(); unknown_codes.clear();
+	}
 
 
 	//========================================================
@@ -283,5 +432,47 @@ public:
 	string model_version_info() const {
 		return model.version_info;
 	}
+
+	void get_model_signals_info(vector<string> &sigs,
+		unordered_map<string, vector<string>> &res_categ) const {
+		model.get_required_signal_names(sigs);
+		model.get_required_signal_categories(res_categ);
+	}
+
+	void get_explainer_params(Explainer_parameters &out) const {
+		out = explainer_params;
+	}
+
+	void get_explainer_output_options(vector<string> &opts) {
+		vector<const PostProcessor *> flat;
+		for (const PostProcessor *pp : model.post_processors) {
+			if (pp->processor_type == PostProcessorTypes::FTR_POSTPROCESS_MULTI)
+			{
+				const MultiPostProcessor *multi = static_cast<const MultiPostProcessor *>(pp);
+				for (const PostProcessor *m_pp : multi->post_processors)
+					flat.push_back(m_pp);
+			}
+			else
+				flat.push_back(pp);
+		}
+
+		for (const PostProcessor *pp : flat)
+		{
+			const ModelExplainer *explainer_m = dynamic_cast<const ModelExplainer *>(pp);
+			if (explainer_m != NULL) {
+				for (const string &grp : explainer_m->processing.groupNames)
+					opts.push_back(grp);
+				break;
+			}
+		}
+	}
+
+	void set_explainer_params(const string &params, const string &base_dir) {
+		explainer_params.base_dir = base_dir;
+		explainer_params.init_from_string(params);
+	}
 };
 
+MEDSERIALIZE_SUPPORT(Explainer_record_config)
+MEDSERIALIZE_SUPPORT(Explainer_description_config)
+MEDSERIALIZE_SUPPORT(Explainer_parameters)

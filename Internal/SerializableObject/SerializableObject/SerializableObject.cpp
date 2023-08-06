@@ -9,6 +9,7 @@
 #include <boost/algorithm/string.hpp>
 #include "MedIO/MedIO/MedIO.h"
 #include "MedUtils/MedUtils/MedRunPath.h"
+#include <cctype>
 
 
 #ifndef _MSC_VER
@@ -23,7 +24,7 @@ float med_stof(const string& _Str) {
 	try {
 		return stof(_Str);
 	}
-	catch (exception e) {
+	catch (exception &e) {
 		MTHROW_AND_ERR("invalid stof argument [%s]\n", _Str.c_str());
 	}
 }
@@ -32,7 +33,7 @@ int med_stoi(const string& _Str) {
 	try {
 		return stoi(_Str);
 	}
-	catch (exception e) {
+	catch (exception &e) {
 		MTHROW_AND_ERR("invalid stoi argument [%s]\n", _Str.c_str());
 	}
 }
@@ -139,7 +140,7 @@ int SerializableObject::init_from_string(string init_string) {
 
 	return 0;
 }
-int SerializableObject::update_from_string(string init_string) {
+int SerializableObject::update_from_string(const string &init_string) {
 
 	map<string, string> mapper;
 	if (MedSerialize::init_map_from_string(init_string, mapper) < 0)
@@ -225,4 +226,17 @@ string SerializableObject::object_json() const {
 	str << "\n}";
 
 	return str.str();
+}
+
+void mes_trim(string &s) {
+	auto p_start = s.begin();
+	auto p_end = s.end() - 1;
+	//trim start
+	while (p_start <= p_end && isspace(*p_start))
+		++p_start;
+	//trim end
+	while (p_start <= p_end && isspace(*p_end))
+		--p_end;
+
+	s = string(p_start, p_end + 1);
 }

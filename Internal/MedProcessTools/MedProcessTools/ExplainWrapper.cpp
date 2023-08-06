@@ -555,6 +555,43 @@ int ModelExplainer::init(map<string, string> &mapper) {
 	return 0;
 }
 
+int ModelExplainer::update(map<string, string> &mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		if (it->first == "rename_group") {
+			vector<string> tokens;
+			boost::split(tokens, it->second, boost::is_any_of("|"));
+			for (const string & token : tokens)
+			{
+				vector<string> kv;
+				boost::split(kv, token, boost::is_any_of(":"));
+				if (kv.size() != 2)
+					MTHROW_AND_ERR("Error - bad format - should have 2 tokens with \":\" delimeter. Instead got \"%s\"\n",
+						token.c_str());
+
+				//change name:
+				bool found = false;
+				for (size_t i = 0; i < processing.groupNames.size() && !found; ++i)
+					if (processing.groupNames[i] == kv[0]) {
+						processing.groupNames[i] = kv[1];
+						found = true;
+					}
+				if (!found)
+					MWARN("WARN: couldn't find %s\n", kv[0].c_str());
+				if (processing.groupName2Inds.find(kv[0]) == processing.groupName2Inds.end())
+					MWARN("WARN: couldn't find %s in map\n", kv[0].c_str());
+				else {
+					processing.groupName2Inds[kv[1]] = processing.groupName2Inds[kv[0]];
+					processing.groupName2Inds.erase(kv[0]);
+				}
+			}
+		}
+		else
+			MWARN("Unknown argument %s\n", it->first.c_str());
+	}
+	return 0;
+}
+
 void ModelExplainer::init_post_processor(MedModel& model) {
 	original_predictor = model.predictor;
 	//Find Norm Processors:
@@ -617,21 +654,23 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 
 #pragma omp parallel for if (explain_reasons.size() > 2)
 		for (int i = 0; i < explain_reasons.size(); ++i) {
-			json full_res;
+			nlohmann::ordered_json full_res;
 			string global_explainer_section = "explainer_output";
-			full_res[global_explainer_section] = json::array();
+			full_res[global_explainer_section] = nlohmann::ordered_json::array();
 			vector<pair<string, float>> sorted_exp(explain_reasons[i].size());
 			int idx = 0;
+			double tot_val = 0;
 			for (auto it = explain_reasons[i].begin(); it != explain_reasons[i].end(); ++it) {
 				sorted_exp[idx].first = it->first;
 				sorted_exp[idx].second = it->second;
 				++idx;
+				tot_val += abs(it->second);
 			}
 			sort(sorted_exp.begin(), sorted_exp.end(), [](const pair<string, float> &a, const pair<string, float> &b)
 			{ return abs(a.second) > abs(b.second); });
 			for (const auto &pt : sorted_exp) {
-				json group_json;
-				json child_elements = json::array();
+				nlohmann::ordered_json group_json;
+				nlohmann::ordered_json child_elements = nlohmann::ordered_json::array();
 				//Fill with group features: Feature_Name, Feature_Value
 				const vector<int> &grp_idx = processing.groupName2Inds.at(pt.first);
 				// TODO: sort by importance
@@ -645,15 +684,16 @@ void ModelExplainer::explain(MedFeatures &matrix) const {
 						const FeatureNormalizer *normalizer = feats_to_norm.at(feat_name);
 						normalizer->reverse_apply(feat_value);
 					}
-					json child_e;
+					nlohmann::ordered_json child_e;
 					child_e["feature_name"] = feat_name;
 					child_e["feature_value"] = feat_value;
 					child_elements.push_back(child_e);
 				}
 
-				group_json["contributer_name"] = pt.first;
-				group_json["contributer_level"] = pt.second;
-				group_json["contributer_elements"] = child_elements;
+				group_json["contributor_name"] = pt.first;
+				group_json["contributor_value"] = pt.second;
+				group_json["contributor_percentage"] = 100 * abs(pt.second) / tot_val;
+				group_json["contributor_elements"] = child_elements;
 
 				full_res[global_explainer_section].push_back(group_json);
 			}
@@ -722,6 +762,13 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 				}
+				++idx;
+				++idx;
+				//Add more tokens till last one - last one in ".win_X_Y"
+				while (idx + 1 < tokens.size()) {
+					word += "." + tokens[idx];
+					++idx;
+				}
 			}
 
 			groups[word].push_back(i);
@@ -755,6 +802,15 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 					tokens[idx + 1] = boost::regex_replace(tokens[idx + 1], last_nth_reg, "");
 					word += "." + tokens[idx + 1];
 					categ = true;
+				}
+				if (categ) {
+					++idx;
+					++idx;
+					//Add more tokens till last one - last one in ".win_X_Y"
+					while (idx + 1 < tokens.size()) {
+						word += "." + tokens[idx];
+						++idx;
+					}
 				}
 			}
 			//check if TREND: slope, std, last_delta, win_delta, max_diff

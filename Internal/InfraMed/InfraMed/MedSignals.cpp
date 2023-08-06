@@ -313,7 +313,7 @@ int MedSignals::read(const string &fname)
 					info.time_unit = MedTime::Undefined;
 					if (my_repo != NULL)
 						info.time_unit = my_repo->time_unit;
-					if (fields.size() >= 8) {
+					if (fields.size() >= 8 && !fields[7].empty()) {
 						int time_unit = med_stoi(fields[7]);
 						if (time_unit != MedTime::Undefined)
 							info.time_unit = time_unit;

@@ -215,6 +215,15 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 	translate_split_penalties(split_penalties_s);
 	XGBoosterSetParam(h_booster, "split_penalties_s", boost::lexical_cast<std::string>(split_penalties_s).c_str());
 
+	string monotone_constraints_s;
+	//MLOG(">>>>>>>> monotone_constraints before: %s \n", params.monotone_constraints.c_str());
+	if (boost::size(params.monotone_constraints) > 0) {
+		translate_monotone_constraints(monotone_constraints_s);
+		//MLOG(">>>>>>>> translated_monotone_constraints after: %s \n", monotone_constraints_s.c_str());
+		if (XGBoosterSetParam(h_booster, "monotone_constraints", boost::lexical_cast<std::string>(monotone_constraints_s).c_str()) != 0)
+			MTHROW_AND_ERR("MedXGB:: Wrong usage in monotone_constraints\n");
+	}
+
 	const double start = dmlc::GetTime();
 	const char *evnames[2] = { "train", "test" };
 	const char *out_result;
@@ -260,6 +269,24 @@ void MedXGB::translate_split_penalties(string& split_penalties_s) {
 	}
 
 	split_penalties_s = boost::join(out_elems, ",");
+}
+
+void MedXGB::translate_monotone_constraints(string& monotone_constraints_s) {
+
+	vector<string> elems;
+	boost::split(elems, params.monotone_constraints, boost::is_any_of("#:"));
+	//if (elems.size() < 2)
+	//	return;
+	
+	int nftrs = (int)model_features.size();
+	vector<string> out_elems(nftrs, "0");
+
+	for (unsigned int i = 0; i < elems.size(); i += 2) {
+		int index = find_in_feature_names(model_features, elems[i], false);
+		if (index != -1) { out_elems[index] = elems[i + 1]; }
+	}
+
+	monotone_constraints_s = "(" + boost::join(out_elems, ",") + ")";
 }
 
 typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
@@ -452,6 +479,7 @@ int MedXGB::set_params(map<string, string>& mapper) {
 		else if (field == "seed") params.seed = stoi(entry.second);
 		else if (field == "verbose_eval") params.verbose_eval = stoi(entry.second);
 		else if (field == "split_penalties") params.split_penalties = entry.second;
+		else if (field == "monotone_constraints") params.monotone_constraints = entry.second;
 		else if (field == "validate_frac") params.validate_frac = stof(entry.second);
 
 		else MLOG("Unknonw parameter \'%s\' for XGB\n", field.c_str());

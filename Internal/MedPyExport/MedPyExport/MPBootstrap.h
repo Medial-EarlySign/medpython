@@ -72,7 +72,7 @@ public:
 
 	void init_from_str(const string &str);
 
-	MPStringBtResultMap bootstrap(MPSamples *samples, const string &rep_path);
+	MPStringBtResultMap bootstrap_cohort(MPSamples *samples, const string &rep_path, const string &json_model, const string &cohorts_path);
 
 	MPStringFloatMapAdaptor _bootstrap(const std::vector<float> &preds,const std::vector<float> &labels);
 

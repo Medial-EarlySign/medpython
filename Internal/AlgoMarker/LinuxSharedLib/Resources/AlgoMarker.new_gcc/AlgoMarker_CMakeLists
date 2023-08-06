@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 2.8)
+
+set(H_FILES 
+	AlgoMarkerErr.h
+	AlgoMarker.h
+	AlgoMarkerInternal.h
+	InputTesters.h
+)
+			
+set(SRC_FILES
+	AlgoMarker.cpp
+	AlgoMarkerInternal.cpp
+	MedialInfra_AM.cpp
+	SimpleExampleEGFR_AM.cpp
+)
+
+set(CMAKE_CXX_FLAGS   "${CMAKE_CXX_FLAGS} -fvisibility=hidden -Wl,--version-script=$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AlgoMarker/AlgoMarker-export.version")
+add_library(dyn_AlgoMarker SHARED ${H_FILES} ${SRC_FILES})
+
+target_link_libraries(dyn_AlgoMarker -Wl,-Bstatic,--whole-archive InfraMed Logger Mars MedAlgo MedEmbed MedIO MedMat MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -L$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.GCC_13.1/lib/ -lboost_regex -lboost_program_options -lboost_system -lboost_filesystem -lxgboost -lrabit -ldmlc -l_lightgbm  -Wl,-no-whole-archive -Wl,-Bdynamic)
+
+
+#include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")

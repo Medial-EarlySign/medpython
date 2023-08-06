@@ -18,7 +18,11 @@
 
 SGD::SGD(PredictiveModel *mdl, double(*loss_funct)(const vector<double> &got, const vector<float> &y, const vector<float> *weights)) {
 #if defined(__unix__)
-	feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	#if defined(SO_COMPILATION)
+		#pragma message ( "You are compiling shared library - no exceptions in floating points" )
+	#else
+		feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+	#endif
 #endif
 	this->_model = mdl;
 	this->loss_function = loss_funct;
@@ -471,9 +475,9 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 				avgLoss = (float)loss_function(modelRes, yf, &wf);
 				if (step_loss_function != NULL) {
 					float avg_loss_step = (float)step_loss_function(modelRes, yf, _model->model_params, &wf);
-					
+
 					if (print_auc) {
-						float auc_val =  medial::performance::auc_q(modelRes, yf, &wf);
+						float auc_val = medial::performance::auc_q(modelRes, yf, &wf);
 						cout << "Learned Model \"" << _model->model_name
 							<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << " AUC " << auc_val << endl;
 					}
@@ -495,7 +499,7 @@ void SGD::Learn(const vector<vector<float>> &xData, const vector<float> &yData, 
 							<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << " AUC " << auc_val << endl;
 					}
 					else
-					cout << "Learned Model \"" << _model->model_name
+						cout << "Learned Model \"" << _model->model_name
 						<< "\" with average loss of " << float2Str(avgLoss) << " step loss " << float2Str(avg_loss_step) << endl;
 				}
 				else

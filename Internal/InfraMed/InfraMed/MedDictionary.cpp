@@ -64,7 +64,8 @@ int MedDictionary::read(const string &fname)
 	fnames.push_back(fname); // TD : check that we didn't already load this file
 	string curr_line;
 	while (getline(inf, curr_line)) {
-		trim(curr_line);
+		mes_trim(curr_line); //Alpine has problem with boost::trim 
+		//trim(curr_line);
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
 
 			vector<string> fields;
@@ -748,6 +749,7 @@ void MedDictionarySections::connect_to_section(string new_section_name, int sect
 {
 	lock_guard<mutex> guard(lock_dict_changes);
 	SectionName2Id[new_section_name] = section_id;
+	dicts[section_id].section_name.insert(new_section_name);
 }
 
 //------------------------------------------------------------------------------------------------------

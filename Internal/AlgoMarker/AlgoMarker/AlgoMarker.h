@@ -169,7 +169,7 @@ public:
 	void set_timestamp(long long _timestamp) { point.timestamp = _timestamp; }
 	void set_score(int idx, float _score, char *_score_type, const string& _ext_score) {
 		if (idx >= 0 && idx < scores.size()) scores[idx].set_score(_score);
-		scores[idx].set_score_type(_score_type); 
+		scores[idx].set_score_type(_score_type);
 		scores[idx].set_ext_score(_ext_score);
 	}
 	void init_scores(int size) { scores.clear(); scores.resize(size); }
@@ -274,6 +274,7 @@ private:
 	AlgoMarkerType type;
 	string name = "";
 	string am_udi_di = "";
+	string am_manfactor_date = "";
 	string am_version = "";
 	string config_fname = "";
 	vector<string> supported_score_types;
@@ -293,9 +294,11 @@ public:
 
 	// Extentions
 	virtual int AdditionalLoad(const int LoadType, const char *load) { return 0; } // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	virtual int AddDataByType(int DataType, int patient_id, const char *data) { return 0; } // options: DATA_JSON_FORMAT
-	virtual int CalculateByType(int CalculateType, char *request, char **response) { return 0; } // options: JSON_REQ_JSON_RESP
-	
+	virtual int AddDataByType(const char *data, char **messages) { *messages = NULL; return 0; }
+	virtual int CalculateByType(int CalculateType, char *request, char **response) { *response = NULL; return 0; } // options: JSON_REQ_JSON_RESP
+
+	//Discovery api
+	virtual int Discovery(char **response) { *response = NULL; return 0; }
 
 	// check supported score types in the supported_score_types vector
 	int IsScoreTypeSupported(const char *_stype);
@@ -306,6 +309,7 @@ public:
 	char *get_config() { return (char *)config_fname.c_str(); }
 	int get_time_unit() { return time_unit; }
 	char *get_am_udi_di() { return  (char *)am_udi_di.c_str(); }
+	char *get_manfactor_date() { return (char *)am_manfactor_date.c_str(); }
 	char *get_am_version() { return  (char *)am_version.c_str(); }
 
 	// set things
@@ -315,6 +319,7 @@ public:
 	void add_supported_stype(const char *stype) { supported_score_types.push_back(string(stype)); }
 	void set_time_unit(int tu) { time_unit = tu; }
 	void set_am_udi_di(const char *_am_udi_di) { am_udi_di = string(_am_udi_di); }
+	void set_manafactur_date(const char *_am_man_date) { am_manfactor_date = string(_am_man_date); }
 	void set_am_version(const char *_am_version) { am_version = string(_am_version); }
 
 	// get a new AlgoMarker
@@ -340,7 +345,7 @@ private:
 	string model_fname = "";
 	string input_tester_config_file = "";
 
-	int read_config(string conf_f);
+	int read_config(const string &conf_f);
 
 	//vector<string> supported_score_types ={ "Raw" };
 
@@ -352,8 +357,8 @@ private:
 	bool is_loaded = false;
 
 	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
-	int AddJsonData(int patient_id, json &j_data);
-
+	int AddJsonData(int patient_id, json &j_data, vector<string> &messages);
+	int rec_AddDataByType(int DataType, const char *data, vector<string> &messages);
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 
@@ -364,13 +369,18 @@ public:
 	int AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 	int Calculate(AMRequest *request, AMResponses *responses);
 	int AdditionalLoad(const int LoadType, const char *load); // options for LoadType: LOAD_DICT_FROM_FILE , LOAD_DICT_FROM_JSON
-	int AddDataByType(int DataType, int patient_id, const char *data); // options for DataType : DATA_JSON_FORMAT
+	int AddDataByType(const char *data, char **messages);
 	int CalculateByType(int CalculateType, char *request, char **response); // options: JSON_REQ_JSON_RESP
+	int Discovery(char **response);
 
 	int set_sort(int s) { sort_needed = s; return 0; } // use only for debug modes.
-	void set_am_matrix(string s) { am_matrix = s;  }
+	void set_am_matrix(string s) { am_matrix = s; }
 	void get_am_rep_signals(unordered_set<string> &am_sigs) { ma.get_rep_signals(am_sigs); } // returns the available 
 	void get_sig_structure(string &sig, int &n_time_channels, int &n_val_channels, int* &is_categ) { ma.get_signal_structure(sig, n_time_channels, n_val_channels, is_categ); }
+
+	string get_sig_unit(const string &sig, int val_channel) { return ma.get_rep().sigs.unit_of_measurement(sig, val_channel); }
+
+	string get_lib_code_version();
 };
 
 //===============================================================================
@@ -425,7 +435,7 @@ extern "C" DLL_WORK_MODE int AM_API_AddData(AlgoMarker* pAlgoMarker, int patient
 extern "C" DLL_WORK_MODE int AM_API_AddDataStr(AlgoMarker* pAlgoMarker, int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values);
 
 // adding data in a new DataType
-extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, int patient_id, int DataType, const char *data);
+extern "C" DLL_WORK_MODE int AM_API_AddDataByType(AlgoMarker* pAlgoMarker, const char *data, char **messages);
 
 // Prepare a Request
 // Null RC means failure
@@ -488,6 +498,7 @@ extern "C" DLL_WORK_MODE void AM_API_DisposeRequest(AMRequest *pRequest);
 // Dispose of responses - free all memory
 extern "C" DLL_WORK_MODE void AM_API_DisposeResponses(AMResponses *responses);
 
+extern "C" DLL_WORK_MODE void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **resp);
 
 // Dispose of allocated memory
 extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);

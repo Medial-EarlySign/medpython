@@ -2,6 +2,7 @@
 
 #include <Logger/Logger/Logger.h>
 #include <MedTime/MedTime/MedTime.h>
+#include <MedUtils/MedUtils/MedUtils.h>
 #include <json/json.hpp>
 #include "AlgoMarkerErr.h"
 
@@ -39,8 +40,11 @@ public:
 
 // local helper functions (these are CalculateByType helpers)
 void add_to_json_array(json &js, const string &key, const string &s_add);
+void add_to_json_array(nlohmann::ordered_json &js, const string &key, const string &s_add);
 void json_to_char_ptr(json &js, char **jarr);
+void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
+bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
 
 //===========================================================================================================
@@ -66,8 +70,8 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
-	
-	if (strcmp(get_name(), "")) {
+
+	if (strlen(get_name()) == 0) {
 		MERR("ERROR: Name is missing\n");
 		return AM_ERROR_LOAD_BAD_NAME;
 	}
@@ -179,43 +183,69 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values)
 {
 	vector<float> converted_Values;
+	vector<long long> final_tm;
+	final_tm.reserve(TimeStamps_len);
+	converted_Values.reserve(Values_len);
 	MedRepository &rep = ma.get_rep();
 
 	try {
 		string sig = signalName;
 		int section_id = rep.dict.section_id(sig);
 		int sid = rep.sigs.Name2Sid[sig];
-		if (rep.sigs.Sid2Info[sid].n_val_channels > 0) {
-			int Values_i = 0;
-			const auto& category_map = rep.dict.dict(section_id)->Name2Id;
-			int n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
-			for (int i = 0; i < n_elem; i++) {
-				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
-					float val = -1;
-					if (!rep.sigs.is_categorical_channel(sid, j)) {
-						val = stof(Values[Values_i++]);
-					}
-					else {
-						if (category_map.find(Values[Values_i]) == category_map.end()) {
-							MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
-								sig.c_str(), Values[Values_i]);
-						}
-						else
-							val = category_map.at(Values[Values_i]);
-						++Values_i;
-					}
 
+		int Values_i = 0;
+		int Time_i = 0;
+		const auto& category_map = rep.dict.dict(section_id)->Name2Id;
+		int n_elem = 0;
+		if (rep.sigs.Sid2Info[sid].n_val_channels > 0)
+			n_elem = (int)(Values_len / rep.sigs.Sid2Info[sid].n_val_channels);
+		else
+			n_elem = (int)(TimeStamps_len / rep.sigs.Sid2Info[sid].n_time_channels);
+		for (int i = 0; i < n_elem; i++) {
+			bool skip_val = false;
+			int val_start = Values_i;
+			for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+				if (rep.sigs.is_categorical_channel(sid, j)) {
+					if (category_map.find(Values[Values_i]) == category_map.end()) {
+						//MWARN("Found undefined code for signal \"%s\" and value \"%s\"\n",
+						//	sig.c_str(), Values[Values_i]);
+						(*ma.get_unknown_codes(patient_id))[sig].insert(Values[Values_i]);
+						skip_val = true;
+					}
+					++Values_i;
+				}
+			}
+			if (skip_val) {
+				//remove element!
+				Values_len -= rep.sigs.Sid2Info[sid].n_val_channels;
+				TimeStamps_len -= rep.sigs.Sid2Info[sid].n_time_channels;
+			}
+			else {
+				//All done 
+				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_time_channels; j++) {
+					final_tm.push_back(TimeStamps[Time_i]);
+					++Time_i;
+				}
+				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
+					float val;
+					if (!rep.sigs.is_categorical_channel(sid, j))
+						val = stof(Values[Values_i++]);
+					else
+						val = category_map.at(Values[val_start + j]);
 					converted_Values.push_back(val);
 				}
 			}
 		}
+
 	}
 	catch (...) {
 		MERR("Catched Error MedialInfraAlgoMarker::AddDataStr!!\n");
 		return AM_FAIL_RC;
 	}
 
-	return AddData(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, converted_Values.data());
+	if (TimeStamps_len > 0 || Values_len > 0)
+		return AddData(patient_id, signalName, TimeStamps_len, final_tm.data(), Values_len, converted_Values.data());
+	return AM_OK_RC;
 
 }
 
@@ -223,7 +253,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 // AddDataByType() : 
 // Supporting loading data directly from a json
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const char *data)
+int MedialInfraAlgoMarker::rec_AddDataByType(int DataType, const char *data, vector<string> &messages)
 {
 	if (DataType != DATA_JSON_FORMAT && DataType != DATA_BATCH_JSON_FORMAT)
 		return AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE;
@@ -233,13 +263,15 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 		vector<size_t> j_start, j_len;
 		vector<char> cdata;
 		get_jsons_locations(data, j_start, j_len);
+		MedProgress progress("AddDataByType", (int)j_start.size(), 60, 10);
 		for (int j = 0; j < j_start.size(); j++) {
 			if (cdata.size() < j_len[j] + 10) cdata.resize(j_len[j] + 10);
 			cdata[j_len[j]] = 0;
 			strncpy(&cdata[0], &data[j_start[j]], j_len[j]);
-			int rc = AddDataByType(DATA_JSON_FORMAT, patient_id, &cdata[0]);
+			int rc = rec_AddDataByType(DATA_JSON_FORMAT, &cdata[0], messages);
 			if (rc != 0)
 				ret_code = rc;
+			progress.update();
 		}
 		return ret_code;
 	}
@@ -251,13 +283,292 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 		jsdata = json::parse(data);
 	}
 	catch (...) {
+		char buf[5000];
+		snprintf(buf, sizeof(buf), "(%d)Could not parse json data",
+			AM_DATA_BAD_FORMAT);
+		messages.push_back(string(buf));
 		return AM_ERROR_DATA_JSON_PARSE;
 	}
 
-	int rc = AddJsonData(patient_id, jsdata);
+	int rc = AddJsonData(-1, jsdata, messages);
 	if (rc != 0)
 		ret_code = rc;
 	return ret_code;
+}
+
+int MedialInfraAlgoMarker::AddDataByType(const char *data, char **messages) {
+	vector<string> messages_vec;
+	int rc = rec_AddDataByType(DATA_BATCH_JSON_FORMAT, data, messages_vec);
+	//transfer messages_vec to messages - each in new line
+
+	if (!messages_vec.empty()) {
+		stringstream ss;
+		ss << messages_vec[0];
+		for (size_t i = 1; i < messages_vec.size(); ++i)
+			ss << "\n" << messages_vec[i];
+		string str_ = ss.str();
+		*messages = new char[str_.length() + 1];
+		(*messages)[str_.length()] = 0;
+		strncpy(*messages, str_.data(), str_.length());
+	}
+	else
+		*messages = NULL;
+
+	return rc;
+}
+
+string fetch_desription(MedPidRepository &rep, const string &name) {
+	vector<string> tokens;
+	boost::split(tokens, name, boost::is_any_of("."));
+	if (tokens.size() < 2)
+		return "";
+	int section_id = rep.dict.section_id(tokens[0]);
+	stringstream ss_val;
+	ss_val << tokens[1];
+	for (size_t i = 2; i < tokens.size(); ++i) //if has more than 1 dot, as part of the code
+		ss_val << "." << tokens[i];
+	string curr_name = ss_val.str();
+
+	int sig_val = rep.dict.id(section_id, curr_name);
+	if (rep.dict.name(section_id, sig_val).empty())
+		return "";
+	const vector<string> &names = rep.dict.dicts[section_id].Id2Names.at(sig_val);
+	if (names.size() <= 1) //has only this "name", no other aliases
+		return "";
+	stringstream ss;
+	bool is_empty = true;
+	for (size_t i = 0; i < names.size(); ++i)
+	{
+		if (names[i] == curr_name)
+			continue;
+		if (!is_empty)
+			ss << "|";
+		ss << names[i];
+		is_empty = false;
+	}
+	return ss.str();
+}
+
+void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
+	int pid, int time, nlohmann::ordered_json &jres) {
+	UniversalSigVec usv;
+	int sid = rep.sigs.sid(e_cfg.signal_name);
+	if (sid < 0)
+		MTHROW_AND_ERR("Error unknown signal %s\n", e_cfg.signal_name.c_str());
+	rep.uget(pid, sid, usv);
+
+	bool test_sets = false;
+	int section_id = rep.dict.section_id(e_cfg.signal_name);
+	if (rep.sigs.is_categorical_channel(sid, e_cfg.val_channel) && !e_cfg.sets.empty())
+	{
+		//init lut if needed in first time
+		if (e_cfg.lut.empty())
+			rep.dict.prep_sets_lookup_table(section_id, e_cfg.sets, e_cfg.lut);
+		test_sets = true;
+	}
+
+	int min_time = med_time_converter.add_subtract_time(time, usv.time_unit(),
+		-e_cfg.max_time_window, e_cfg.time_unit);
+	int cnt = 0;
+	for (int i = usv.len - 1; i >= 0; --i)
+	{
+		if (usv.Time(i, e_cfg.time_channel) > time)
+			continue;
+		if (usv.Time(i, e_cfg.time_channel) < min_time)
+			break;
+		//test categorical values if needed
+		if (test_sets && !e_cfg.lut[usv.Val(i, e_cfg.val_channel)])
+			continue;
+
+		//In time window - take at most e_cfg.max_count records, most recent.
+		nlohmann::ordered_json ele;
+		ele["signal"] = e_cfg.signal_name;
+		ele["timestamp"] = nlohmann::ordered_json::array();
+		ele["value"] = nlohmann::ordered_json::array();
+		//Print time values:
+		for (int j = 0; j < usv.n_time_channels(); ++j)
+			ele["timestamp"].push_back(usv.Time(i, j));
+		for (int j = 0; j < usv.n_val_channels(); ++j) {
+
+			if (!rep.sigs.is_categorical_channel(sid, j))
+				ele["value"].push_back(to_string(usv.Val(i, j)));
+			else
+			{
+				int code_val = usv.Val<int>(i, j);
+				string code_str = rep.dict.name(section_id, code_val);
+				ele["value"].push_back(code_str);
+			}
+		}
+
+		jres.push_back(ele);
+		++cnt;
+		if (cnt >= e_cfg.max_count)
+			break;
+	}
+
+}
+
+void process_explainability(nlohmann::ordered_json &jattr,
+	Explainer_parameters &ex_params, MedPidRepository &rep,
+	int pid, int time) {
+	if (jattr.find("explainer_output") != jattr.end()) {
+		auto final_res = nlohmann::ordered_json::array();
+		int total_reasons = 0, tot_pos = 0, tot_neg = 0;
+		for (auto &e : jattr["explainer_output"]) {
+
+			if (e.find("contributor_name") == e.end())
+				MTHROW_AND_ERR("Error - expecting to see contributor_name\n");
+			string contrib_name = e["contributor_name"].get<string>();
+			if (ex_params.ignore_groups_list.find(contrib_name) != ex_params.ignore_groups_list.end()) {
+				//remove group - in ignore, remove "e" from jattr["explainer_output"]
+				continue;
+			}
+			//Add "contributor_description" from name:
+			e["contributor_description"] = fetch_desription(rep, contrib_name);
+
+			//test filters:
+			bool contrib_positive = true;
+			if (e.find("contributor_value") != e.end()) {
+				if (ex_params.threshold_abs > 0) {
+					if (abs(e["contributor_value"].get<float>()) < ex_params.threshold_abs)
+						continue; //sorted, can change to break
+				}
+				if (e["contributor_value"].get<float>() < 0)
+					contrib_positive = false;
+				if (contrib_positive && ex_params.total_max_pos_reasons >= 0 && tot_pos >= ex_params.total_max_pos_reasons)
+					continue;
+				if (!contrib_positive && ex_params.total_max_neg_reasons >= 0 && tot_neg >= ex_params.total_max_pos_reasons)
+					continue;
+			}
+			if (e.find("contributor_percentage") != e.end()) {
+				if (ex_params.threshold_percentage > 0) {
+					if (abs(e["contributor_percentage"].get<float>()) < ex_params.threshold_percentage)
+						continue;  //sorted, can change to break
+				}
+			}
+			if (ex_params.total_max_reasons >= 0 && total_reasons >= ex_params.total_max_reasons)
+				break;
+			//after all filters:
+			++total_reasons;
+			if (e.find("contributor_value") != e.end()) {
+				if (contrib_positive)
+					++tot_pos;
+				else
+					++tot_neg;
+			}
+
+			if (e.find("contributor_value") != e.end() && ex_params.max_threshold > 0
+				&& ex_params.num_groups > 0) {
+				float level_bin;
+				if (ex_params.use_perc)
+					level_bin = (abs(e["contributor_percentage"].get<float>()) / ex_params.max_threshold);
+				else
+					level_bin = (abs(e["contributor_value"].get<float>()) / ex_params.max_threshold);
+				if (level_bin > 1)
+					level_bin = 1;
+
+				level_bin *= ex_params.num_groups;
+				if (level_bin > 0)
+					level_bin = (int)(level_bin)+1;
+				else
+					level_bin = int(level_bin);
+
+				if (level_bin > ex_params.num_groups)
+					level_bin = ex_params.num_groups;
+
+				e["contributor_level"] = (int)level_bin;
+				e["contributor_level_max"] = ex_params.num_groups;
+			}
+
+			string contib_info = "";
+			e["contributor_records"] = nlohmann::ordered_json::array();
+			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
+				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
+				e["contributor_records_info"] = nlohmann::ordered_json();
+				e["contributor_records_info"]["contributer_max_time"] = e_cfg.max_time_window;
+				e["contributor_records_info"]["contributer_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
+				e["contributor_records_info"]["contributer_max_count"] = e_cfg.max_count;
+				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
+			}
+			else {
+				//check if Age, or if has 1 feature, so present it:
+				if (e.find("contributor_elements") != e.end() && e["contributor_elements"].size() == 1) {
+					string fname = e["contributor_elements"].begin()->at("feature_name").get<string>();
+					float fval = e["contributor_elements"].begin()->at("feature_value").get<float>();
+
+					nlohmann::ordered_json element_single;
+					element_single["signal"] = fname;
+					element_single["timestamp"] = nlohmann::ordered_json::array();
+					element_single["value"] = nlohmann::ordered_json::array();
+					element_single["value"].push_back(to_string(fval));
+					e["contributor_records"].push_back(element_single);
+				}
+			}
+
+			final_res.push_back(e);
+		}
+
+		//add static info:
+		if (!ex_params.static_features_info.empty()) {
+			//special use cage Age, other names is to fetch signal:
+			jattr["static_info"] = nlohmann::ordered_json::array();
+			for (const string &feat : ex_params.static_features_info)
+			{
+				nlohmann::ordered_json feat_js;
+				feat_js["signal"] = feat;
+				if (boost::to_upper_copy(feat) == "AGE") {
+					int sid = rep.sigs.sid("BDATE");
+					bool using_byear = false;
+					if (sid < 0) {
+						sid = rep.sigs.sid("BYEAR");
+						using_byear = true;
+						if (sid < 0) {
+							MWARN("Error unknown signal BDATE/BYEAR for Age static fetch\n");
+							feat_js["value"] = "Missing";
+							jattr["static_info"].push_back(feat_js);
+							continue;
+						}
+					}
+					int bdate = medial::repository::get_value(rep, pid, sid);
+					int byear = bdate;
+					if (!using_byear)
+						byear = int(bdate / 10000);
+					if (bdate < 0)
+						feat_js["value"] = "Missing";
+					else {
+						int age = int(time / 10000) - byear;
+						feat_js["value"] = to_string(age);
+					}
+				}
+				else {
+					UniversalSigVec usv;
+					int sid = rep.sigs.sid(feat);
+					int section_id = rep.dict.section_id(feat);
+					if (sid < 0)
+						MTHROW_AND_ERR("Error unknown signal %s for static fetch\n", feat.c_str());
+					rep.uget(pid, sid, usv);
+					if (usv.len == 0)
+						feat_js["value"] = "Missing";
+					else {
+						if (!rep.sigs.is_categorical_channel(sid, 0))
+							feat_js["value"] = to_string(usv.Val(usv.len - 1, 0));
+						else
+						{
+							int code_val = usv.Val<int>(usv.len - 1, 0);
+							string code_str = rep.dict.name(section_id, code_val);
+							feat_js["value"] = code_str;
+						}
+					}
+				}
+
+
+				jattr["static_info"].push_back(feat_js);
+			}
+		}
+
+		jattr.erase("explainer_output");
+		jattr["explainer_output"] = final_res;
+	}
 }
 
 //------------------------------------------------------------------------------------------
@@ -265,6 +576,7 @@ int MedialInfraAlgoMarker::AddDataByType(int DataType, int patient_id, const cha
 //------------------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 {
+	MWARN("Warning : Calculate is deprecated and will not be supported in the future, please use CalculateByType\n");
 #ifdef AM_TIMING_LOGS
 	MedTimer timer;
 	timer.start();
@@ -383,7 +695,10 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 		// test this point for eligibility and add errors if needed
 		vector<InputSanityTesterResult> test_res;
-		int test_rc = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
+		int test_rc = ist.test_if_ok(_pid, (long long)conv_times[i], *ma.get_unknown_codes(_pid), test_res);
+		int test_rc2 = ist.test_if_ok(rep, _pid, (long long)conv_times[i], test_res);
+		if (test_rc2 < 1)
+			test_rc = test_rc2;
 
 		// push messages if there are any
 		AMMessages *msgs = res->get_msgs();
@@ -437,9 +752,9 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 
 	if (am_matrix != "" && _n_points > 0) { // debug only
 		if (first_write)
-			ma.write_features_mat(am_matrix); 
+			ma.write_features_mat(am_matrix);
 		else
-			ma.add_features_mat(am_matrix); 
+			ma.add_features_mat(am_matrix);
 		first_write = false;
 	}
 
@@ -454,6 +769,8 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	responses->get_score_types(&_n_score_types, &_score_types);
 
 	MedSamples *meds = ma.get_samples_ptr();
+	Explainer_parameters ex_params;
+	ma.get_explainer_params(ex_params);
 
 	for (auto &id_s : meds->idSamples) {
 		for (auto &s : id_s.samples) {
@@ -464,10 +781,14 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 			float c_scr = s.prediction.size() > 0 ? s.prediction[0] : (float)AM_UNDEFINED_VALUE;
 			string c_ext_scr = "";
 			if (s.str_attributes.size() > 0) {
-				json c_ext_scr_json({});
+				nlohmann::ordered_json c_ext_scr_json({});
+
 				for (auto &ex_res_field_name : extended_result_fields) {
-					if (s.str_attributes.count(ex_res_field_name))
-						c_ext_scr_json[ex_res_field_name] = json::parse(s.str_attributes[ex_res_field_name]);
+					if (s.str_attributes.count(ex_res_field_name)) {
+						c_ext_scr_json[ex_res_field_name] = nlohmann::ordered_json::parse(s.str_attributes[ex_res_field_name]);
+						process_explainability(c_ext_scr_json[ex_res_field_name], ex_params,
+							rep, c_pid, c_ts);
+					}
 				}
 				c_ext_scr = c_ext_scr_json.dump();
 			}
@@ -541,7 +862,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -577,9 +898,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
-	json jreq, jresp;
+	json jreq;
+	nlohmann::ordered_json jresp;
 
-	jresp = json({ { "type", "response" } });
+	jresp = nlohmann::ordered_json({ { "type", "response" } });
 	try {
 		jreq = json::parse(request);
 	}
@@ -611,7 +933,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	vector<json_req_info> sample_reqs;
 
 	//	try {
-	json_parse_request(jreq, defaults, defaults);
+	if (json_parse_request(jreq, defaults, defaults) != 0) {
+		add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the default request fields in request id " +
+			request_id);
+		json_to_char_ptr(jresp, response);
+		return AM_FAIL_RC;
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -621,11 +948,19 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 	for (auto &jreq_i : jreq["requests"]) {
 		json_req_info j_i;
-		json_parse_request(jreq_i, defaults, j_i);
+		if (json_parse_request(jreq_i, defaults, j_i) != 0) {
+			add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the request fields in request id " +
+				request_id);
+			json_to_char_ptr(jresp, response);
+			return AM_FAIL_RC;
+		}
 		sample_reqs.push_back(j_i);
+		vector<string> vec_messages;
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, "")) {
-			if (AddJsonData(j_i.sample_pid, jreq_i["data"]) != AM_OK_RC) {
+			if (AddJsonData(j_i.sample_pid, jreq_i["data"], vec_messages) != AM_OK_RC) {
 				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
+				for (size_t i = 0; i < vec_messages.size(); ++i)
+					add_to_json_array(jresp, "errors", vec_messages[i]);
 			}
 		}
 	}
@@ -668,7 +1003,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 		else {
 			try {
-				req_i.sanity_test_rc = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+				req_i.sanity_test_rc = ist.test_if_ok(req_i.sample_pid, (long long)req_i.conv_time, *ma.get_unknown_codes(req_i.sample_pid), req_i.sanity_res);
+				int rc_res = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+				if (rc_res < 1)
+					req_i.sanity_test_rc = rc_res;
 			}
 			catch (...) {
 				req_i.sanity_caught_err = 1;
@@ -744,8 +1082,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				req_i.sanity_caught_err = 1;
 			}
 		}
+		Explainer_parameters ex_params;
+		ma.get_explainer_params(ex_params);
 		//MLOG("=====> Working on i %d pid %d time %d sanity_test_rc %d sanity_caught_err %d\n", i, req_i.sample_pid, req_i.sample_time, req_i.sanity_test_rc, req_i.sanity_caught_err);
-		json js = json({});
+		nlohmann::ordered_json js = nlohmann::ordered_json({});
 
 		js.push_back({ "patient_id" , to_string(req_i.sample_pid) });
 		js.push_back({ "time" , to_string(req_i.sample_time) });
@@ -772,11 +1112,12 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				else if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end())
 					js.push_back({ e.first, req_i.res->str_attributes[e.second.field] });
 			}
-			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL) {
+			else if (e.second.type == PREDICTION_SOURCE_ATTRIBUTE_AS_JSON && req_i.res != NULL && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 				if (req_i.res->str_attributes.find(e.second.field) != req_i.res->str_attributes.end()) {
-					json jattr;
+					nlohmann::ordered_json jattr;
 					try {
-						jattr = json::parse(req_i.res->str_attributes[e.second.field]);
+						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
+						process_explainability(jattr, ex_params, rep, req_i.sample_pid, req_i.sample_time);
 						js.push_back({ e.first, jattr });
 					}
 					catch (...) {
@@ -784,7 +1125,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					}
 				}
 			}
-			else if (e.second.type == PREDICTION_SOURCE_JSON) {
+			else if (e.second.type == PREDICTION_SOURCE_JSON && req_i.res != NULL && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 				if (req_i.res->jrec.find(e.second.field) != req_i.res->jrec.end()) {
 					auto &jj = req_i.res->jrec[e.second.field];
 					js.push_back({ e.first, jj });
@@ -811,7 +1152,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -850,7 +1191,7 @@ int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
 //-----------------------------------------------------------------------------------
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::read_config(string conf_f)
+int MedialInfraAlgoMarker::read_config(const string &conf_f)
 {
 	set_config(conf_f.c_str());
 
@@ -859,6 +1200,7 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 	if (!inf)
 		return AM_ERROR_LOAD_NO_CONFIG_FILE;
 
+	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	string curr_line;
 	while (getline(inf, curr_line)) {
 		if ((curr_line.size() > 1) && (curr_line[0] != '#')) {
@@ -883,12 +1225,16 @@ int MedialInfraAlgoMarker::read_config(string conf_f)
 				}
 				else if (fields[0] == "DEBUG_MATRIX")  am_matrix = fields[1];
 				else if (fields[0] == "AM_UDI_DI")  set_am_udi_di(fields[1].c_str());
+				else if (fields[0] == "AM_MANUFACTOR_DATE")  set_manafactur_date(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
+				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
+				else if (fields[0] == "TESTER_NAME") {}
+				else if (fields[0] == "FILTER") {}
+				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
 			}
 		}
 	}
 
-	string dir = conf_f.substr(0, conf_f.find_last_of("/\\"));
 	if (rep_fname != "" && rep_fname[0] != '/' && rep_fname[0] != '\\') {
 		// relative path
 		rep_fname = dir + "/" + rep_fname;
@@ -950,8 +1296,10 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 }
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
+int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
+	bool good = true;
+	bool mark_succ_ = false;
 	try {
 		json &js = j_data;
 
@@ -961,10 +1309,46 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 
 		if (patient_id <= 0) {
 			// in this case we take the patient id directly from the json itself
-			if (js.find("patient_id") != js.end())
-				patient_id = js["patient_id"].get<long long>();
-			else if (js.find("pid") != js.end())
-				patient_id = js["pid"].get<long long>();
+			if (js.find("patient_id") != js.end()) {
+				if (js["patient_id"].is_number_integer())
+					patient_id = js["patient_id"].get<long long>();
+				else if (js["patient_id"].is_string()) {
+					try {
+						patient_id = stoll(js["patient_id"].get<string>());
+					}
+					catch (...) {
+						messages.push_back("(330)Bad data json format - couldn't convert patient_id to integer");
+						return AM_FAIL_RC;
+					}
+				}
+				else {
+					messages.push_back("(330)Bad data json format - patient_id suppose to be integer");
+					return AM_FAIL_RC;
+				}
+			}
+			else {
+				if (js.find("pid") != js.end()) {
+					if (js["pid"].is_number_integer())
+						patient_id = js["pid"].get<long long>();
+					else if (js["pid"].is_string()) {
+						try {
+							patient_id = stoll(js["pid"].get<string>());
+						}
+						catch (...) {
+							messages.push_back("(330)Bad data json format - couldn't convert pid to integer");
+							return AM_FAIL_RC;
+						}
+					}
+					else {
+						messages.push_back("(330)Bad data json format - pid suppose to be integer");
+						return AM_FAIL_RC;
+					}
+				}
+			}
+		}
+		if (patient_id <= 0) {
+			messages.push_back("(330)Bad data json format - no patient_id was given");
+			return AM_FAIL_RC;
 		}
 
 		//MLOG("Loading with pid %d\n", patient_id);
@@ -974,71 +1358,417 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data)
 		vector<char> sdata(s_data_size);
 		vector<int> sinds;
 		int curr_s = 0;
+
 		//char str_values[MAX_VALS][MAX_VAL_LEN];
-		for (auto &s : js["signals"]) {
-			times.clear();
-			sinds.clear();
-			curr_s = 0;
-			string sig = s["code"].get<string>();
-			int n_time_channels, n_val_channels, *is_categ;
-			get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
-			//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
-			int n_data = 0;
-			for (auto &d : s["data"]) {
-				//MLOG("time ");
-				int nt = 0;
-				for (auto &t : d["timestamp"]) {
-					times.push_back(t.get<long long>());
-					nt++;
-					//MLOG("%d ", itime);
+		if (js.find("signals") == js.end() || !js["signals"].is_array()) {
+			char buf[5000];
+			if (patient_id != 1)
+				snprintf(buf, sizeof(buf), "(%d)Bad format in patient %d. Element should contain signals element as array",
+					AM_DATA_BAD_FORMAT, patient_id);
+			else
+				snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain signals element as array",
+					AM_DATA_BAD_FORMAT);
+			messages.push_back(string(buf));
+			MLOG("%s\n", buf);
+			good = false;
+		}
+		else {
+			for (auto &s : js["signals"]) {
+				bool good_sig = true;
+				int n_time_channels, n_val_channels, *is_categ;
+				string sig;
+				times.clear();
+				sinds.clear();
+				curr_s = 0;
+				if (s.find("code") == s.end() || !s["code"].is_string()) {
+					char buf[5000];
+					if (patient_id != 1)
+						snprintf(buf, sizeof(buf), "(%d)Bad format in patient %d. Element should contain code element as signal name",
+							AM_DATA_BAD_FORMAT, patient_id);
+					else
+						snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain code element as signal name",
+							AM_DATA_BAD_FORMAT);
+					messages.push_back(string(buf));
+					MLOG("%s\n", buf);
+					good = false;
+					good_sig = false;
 				}
-				//MLOG("val ");
-				int nv = 0;
-				for (auto &v : d["value"]) {
-					string sv = v.get<string>().c_str();
-					int slen = (int)sv.length();
-					//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
-					if (curr_s + 1 + slen > s_data_size) {
-						s_data_size *= 2;
-						sdata.resize(s_data_size);
+				if (good_sig) {
+					sig = s["code"].get<string>();
+					get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+					if (n_time_channels == 0 && n_val_channels == 0) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s for patient %d",
+								AM_DATA_UNKNOWN_SIGNAL, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)An unknown signal was found: %s",
+								AM_DATA_UNKNOWN_SIGNAL, sig.c_str());
+
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good = false;
+						good_sig = false;
+						//return AM_FAIL_RC;
+						continue;
 					}
-					if (nv < n_val_channels) {
-						sv.copy(&sdata[curr_s], slen);
-						sdata[curr_s + slen] = 0;
-						sinds.push_back(curr_s);
-						curr_s += slen + 1;
-						nv++;
+					//MLOG("%s %d %d\n", sig.c_str(), n_time_channels, n_val_channels);
+					int n_data = 0;
+					if (s.find("data") == s.end() || !s["data"].is_array()) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. No data element or data element is not array",
+								AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. No data element or data element is not array",
+								AM_DATA_BAD_FORMAT, sig.c_str());
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good = false;
+						good_sig = false;
 					}
-					//char *sp = &sdata[sinds.back()];
-					//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
-					//MLOG("%s ", v.get<string>().c_str());
+					if (good_sig) {
+						for (auto &d : s["data"]) {
+							//MLOG("time ");
+							int nt = 0;
+							bool good_record = true;
+							if (d.find("timestamp") != d.end() && !d["timestamp"].is_array()) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. timestamp should be array of timestamps, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp should be array of timestamps, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str());
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								break;
+							}
+							if (d.find("value") != d.end() && !d["value"].is_array()) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be array of values, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be array of values, each represents a different channel.",
+										AM_DATA_BAD_FORMAT, sig.c_str());
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								break;
+							}
+							for (auto &t : d["timestamp"]) {
+								char buf[5000];
+								if (t.is_string()) {
+									try {
+										times.push_back(stoll(t.get<string>()));
+										++nt;
+										continue;
+									}
+									catch (...) {
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. Couldn't convert timestamp to integer",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. Couldn't convert timestamp to integer",
+												AM_DATA_BAD_FORMAT, sig.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+								}
+								else if (!t.is_number_integer()) {
+
+									if (patient_id != 1)
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. timestamp element should be integer.",
+											AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+									else
+										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp element should be integer.",
+											AM_DATA_BAD_FORMAT, sig.c_str());
+									messages.push_back(string(buf));
+									MLOG("%s\n", buf);
+									good = false;
+									good_sig = false;
+									good_record = false;
+									break;
+								}
+
+								times.push_back(t.get<long long>());
+								++nt;
+								//MLOG("%d ", itime);
+							}
+							if (!good_record)
+								break;
+							//Check size of timestamps:
+							if (nt != n_time_channels) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d time channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nt, n_time_channels);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d time channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								good_sig = false;
+								good_record = false;
+								//return AM_FAIL_RC;
+							}
+							//MLOG("val ");
+							if (!good_record)
+								break;
+							int nv = 0;
+							for (auto &v : d["value"]) {
+								string sv;
+								if (v.is_number() && !is_categ[nv]) {
+									sv = to_string(v.get<double>());
+								}
+								else {
+									if (!v.is_string()) {
+										char buf[5000];
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value element should be string.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id);
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value element should be string.",
+												AM_DATA_BAD_FORMAT, sig.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+									else
+										sv = v.get<string>().c_str();
+								}
+								
+								int slen = (int)sv.length();
+								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
+								if (curr_s + 1 + slen > s_data_size) {
+									s_data_size *= 2;
+									sdata.resize(s_data_size);
+								}
+								sv.copy(&sdata[curr_s], slen);
+								sdata[curr_s + slen] = 0;
+								sinds.push_back(curr_s);
+								curr_s += slen + 1;
+								++nv;
+								//char *sp = &sdata[sinds.back()];
+								//MLOG("val %d %d %s : %s len: %d curr_s %d s_data_size %d %d\n", sinds.size(), sinds.back(), sp, sv.c_str(), slen, curr_s, s_data_size, sdata.size());
+								//MLOG("%s ", v.get<string>().c_str());
+							}
+							if (!good_record)
+								break;
+							//Check size of value:
+							if (nv != n_val_channels) {
+								char buf[5000];
+								if (patient_id != 1)
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s in patient %d. Received %d value instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), patient_id, nv, n_val_channels);
+								else
+									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d value channels instead of %d",
+										AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
+								messages.push_back(string(buf));
+								MLOG("%s\n", buf);
+								good = false;
+								good_sig = false;
+								good_record = false;
+								//return AM_FAIL_RC;
+							}
+							//MLOG("\n");
+							if (!good_record)
+								break;
+							n_data++;
+						}
+					}
 				}
-				//MLOG("\n");
-				n_data++;
-			}
-			vector<char *> p_str;
-			for (auto j : sinds)
-				p_str.push_back(&sdata[j]);
-			long long *p_times = &times[0];
-			int n_times = (int)times.size();
-			char **str_values = &p_str[0];
-			int n_vals = (int)p_str.size();
+				vector<char *> p_str;
+				for (auto j : sinds)
+					p_str.push_back(&sdata[j]);
+				long long *p_times = &times[0];
+				int n_times = (int)times.size();
+				char **str_values = &p_str[0];
+				int n_vals = (int)p_str.size();
 
-			//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
-			//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
-			//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
+				//MLOG("%s n_times %d n_vals %d n_data %d\n", sig.c_str(), n_times, n_vals, n_data);
+				//MLOG("times: "); for (int j = 0; j < n_times; j++) MLOG("%d,", p_times[j]); 	MLOG("\nvals: ");
+				//for (int j = 0; j < n_vals; j++) MLOG("%s, ", str_values[j]); MLOG("\n");
 
-			if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
-				MLOG("Failed AddDataStr() in AddDataByType()\n");
-				return AM_FAIL_RC;
+				if (good_sig) {
+					if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC) {
+						char buf[5000];
+						if (patient_id != 1)
+							snprintf(buf, sizeof(buf), "(%d)General error in signal: %s for patient %d",
+								AM_DATA_GENERAL_ERROR, sig.c_str(), patient_id);
+						else
+							snprintf(buf, sizeof(buf), "(%d)General error in signal: %s",
+								AM_DATA_GENERAL_ERROR, sig.c_str());
+						messages.push_back(string(buf));
+						MLOG("%s\n", buf);
+						good_sig = false;
+						good = false;
+						//return AM_FAIL_RC;
+					}
+					else
+						mark_succ_ = true;
+				}
 			}
 		}
 	}
 	catch (...) {
+		char buf[5000];
+		snprintf(buf, sizeof(buf), "(%d)Bad data json format",
+			AM_DATA_BAD_FORMAT);
+		messages.push_back(string(buf));
+		MLOG("%s\n", buf);
+		good = false;
+		//return AM_FAIL_RC;
+	}
+	if (!good) {
+		if (mark_succ_) //add message that some was loaded:
+			MLOG("AddDataByType() WARN - some of the data signals were loaded for patient %d. Consider calling ClearData if rerun again after fixing.\n",
+				patient_id);
 		return AM_FAIL_RC;
 	}
 
 	return AM_OK_RC;
+}
+
+//-----------------------------------------------------------------------------------
+string MedialInfraAlgoMarker::get_lib_code_version() {
+	return medial::get_git_version();
+}
+
+//-----------------------------------------------------------------------------------
+int MedialInfraAlgoMarker::Discovery(char **response) {
+	nlohmann::ordered_json jresp;
+	jresp = nlohmann::ordered_json(
+		{
+		{ "name", get_name() },
+		{ "version", get_am_version() },
+		{ "udi", get_am_udi_di() },
+		{ "mfg_date", get_manfactor_date() },
+		{ "model_code_version", ma.model_version_info() },
+		{ "lib_code_version", get_lib_code_version() },
+		{ "signals", nlohmann::ordered_json::array() }
+		}
+	);
+
+	nlohmann::ordered_json &json_signals = jresp["signals"];
+
+	//Add signals to json_signals
+	if (!ma.model_initiated())
+		ma.init_model_for_rep();
+
+	unordered_set<string> sigs;
+	get_am_rep_signals(sigs);
+	vector<string> req_sigs;
+	unordered_map<string, vector<string>> sig_categ, sig_categ_final;
+	ma.get_model_signals_info(req_sigs, sig_categ);
+	unordered_set<string> req_set(req_sigs.begin(), req_sigs.end());
+	//rename sig_categ if needed in some cases!
+	for (const auto &it : sig_categ)
+	{
+		if (req_set.find(it.first) != req_set.end())
+			sig_categ_final[it.first] = it.second;
+		else {
+			//test by section name!
+			int sig_section = ma.get_rep().dict.section_id(it.first);
+			//retrieve name that exists in SECTION:
+			const unordered_set<string> &sec_names = ma.get_rep().dict.dict(sig_section)->section_name;
+			vector<string> candidates;
+			for (const string &cand : sec_names)
+			{
+				if (req_set.find(cand) == req_set.end())
+					continue;
+				candidates.push_back(cand);
+			}
+
+			//Add to all:
+			if (candidates.empty())
+				MWARN("Warn - has used categorical signal %s without mapping\n",
+					it.first.c_str());
+			else if (candidates.size() > 1)
+				MWARN("Warn - has used categorical signal %s with multiple mapping\n",
+					it.first.c_str());
+			else {
+				unordered_set<string> sig_list_c(sig_categ_final[candidates[0]].begin(), sig_categ_final[candidates[0]].end());
+				sig_list_c.insert(it.second.begin(), it.second.end());
+				vector<string> final_list(sig_list_c.begin(), sig_list_c.end());
+				sort(final_list.begin(), final_list.end());
+				sig_categ_final[candidates[0]] = move(final_list);
+			}
+		}
+	}
+
+	for (const string &sig_name : req_sigs)
+	{
+		string sig_nm = sig_name;
+		string sig_unit = "";
+		string sig_type = "";
+		vector<int> categorical_ch;
+		vector<string> categorical_vals;
+		if (sigs.find(sig_name) != sigs.end()) {
+			int sid = ma.get_rep().sigs.sid(sig_name);
+			const SignalInfo &si = ma.get_rep().sigs.Sid2Info[sid];
+			for (int i = 0; i < si.n_val_channels; ++i) {
+				if (i > 0)
+					sig_unit += ",";
+				sig_unit += si.unit_of_measurement_per_val_channel[i];
+			}
+			UniversalSigVec usv;
+			usv.init(si);
+			sig_type = usv.get_signal_generic_spec();
+			categorical_ch.resize(si.n_val_channels);
+			for (size_t i = 0; i < si.n_val_channels; ++i)
+				if (si.is_categorical_per_val_channel[i])
+					categorical_ch[i] = 1;
+
+		}
+		else {
+			sig_nm = sig_nm + "(virtual)";
+		}
+		if (sig_categ_final.find(sig_name) != sig_categ_final.end())
+			categorical_vals = std::move(sig_categ_final.at(sig_name));
+
+		nlohmann::ordered_json sig_js;
+		sig_js = {
+			{ "code", sig_nm },
+			{ "unit", sig_unit },
+			{ "type", sig_type },
+			{ "categorical_channels", categorical_ch },
+			{ "categorical_values", categorical_vals }
+		};
+
+		json_signals += sig_js;
+	}
+
+	Explainer_parameters ex_params;
+	ma.get_explainer_params(ex_params);
+	if (ex_params.max_threshold > 0) { //has settings
+		MedPidRepository &rep = ma.get_rep();
+		jresp["explainability_options"] = nlohmann::ordered_json::array();
+		vector<string> model_groups; //fetch from model
+		ma.get_explainer_output_options(model_groups);
+		//filer ignore:
+		for (const string &str_g : model_groups)
+			if (ex_params.ignore_groups_list.find(str_g) == ex_params.ignore_groups_list.end()) {
+				nlohmann::ordered_json element_exp;
+				element_exp["name"] = str_g;
+				element_exp["description"] = fetch_desription(rep, str_g);
+				jresp["explainability_options"].push_back(element_exp);
+			}
+	}
+	//ma.get_rep().sigs.Sid2Info[1].
+
+	json_to_char_ptr(jresp, response);
+	return 0;
 }
 
 //-----------------------------------------------------------------------------------
@@ -1048,9 +1778,29 @@ void add_to_json_array(json &js, const string &key, const string &s_add)
 		js.push_back({ key, json::array() });
 	js[key] += s_add;
 }
+void add_to_json_array(nlohmann::ordered_json &js, const string &key, const string &s_add)
+{
+	if (js.find(key) == js.end())
+		js.push_back({ key, json::array() });
+	js[key] += s_add;
+}
+
 
 //-----------------------------------------------------------------------------------
 void json_to_char_ptr(json &js, char **jarr)
+{
+	*jarr = NULL;
+	string sj = js.dump(1, '\t');
+
+	*jarr = new char[sj.length() + 1];
+
+	if (*jarr != NULL) {
+		(*jarr)[sj.length()] = 0;
+		strncpy(*jarr, sj.c_str(), sj.length());
+	}
+}
+
+void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr)
 {
 	*jarr = NULL;
 	string sj = js.dump(1, '\t');
@@ -1070,74 +1820,165 @@ bool json_verify_key(json &js, const string &key, int verify_val_flag, const str
 	if (js.find(key) != js.end()) is_in = true;
 
 	if (is_in && verify_val_flag) {
-		if (js[key].get<string>() != val)
+		if (!js[key].is_string() || (js[key].get<string>() != val))
+			is_in = false;
+	}
+
+	return is_in;
+}
+bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val)
+{
+	bool is_in = false;
+	if (js.find(key) != js.end()) is_in = true;
+
+	if (is_in && verify_val_flag) {
+		if (!js[key].is_string() || (js[key].get<string>() != val))
 			is_in = false;
 	}
 
 	return is_in;
 }
 
+
 //------------------------------------------------------------------------------------------
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i)
 {
 	req_i = defaults;
 	// read defaults (if exist)
-	if (json_verify_key(jreq, "patient_id", 0, "") || json_verify_key(jreq, "pid", 0, "")) {
-		if (json_verify_key(jreq, "patient_id", 0, ""))
-			req_i.sample_pid = stoi(jreq["patient_id"].get<string>());
-		else
-			req_i.sample_pid = stoi(jreq["pid"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
-		if (json_verify_key(jreq, "scoreOnDate", 0, ""))
-			req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
-		else
-			req_i.sample_time = stoll(jreq["time"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "load", 0, "")) {
-		req_i.load_data = stoi(jreq["load"].get<string>());
-	}
-
-	if (json_verify_key(jreq, "export", 0, "")) {
-
-		for (auto &jexp : jreq["export"].items()) {
-
-			string name = jexp.key();
-			string field = jexp.value().get<string>();
-
-			//MLOG("Working on %s : %s\n", name.c_str(), field.c_str());
-			int type = PREDICTION_SOURCE_UNKNOWN;
-			int pred_channel = -1;
-
-			vector<string> f;
-			boost::split(f, field, boost::is_any_of(" "));
-			if (f.size() == 2) {
-				if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
-				else if (f[0] == "json_attr") { type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
-				else if (f[0] == "pred") { type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
-				else if (f[0] == "json") { type = PREDICTION_SOURCE_JSON; field = f[1]; }
+	try {
+		if (json_verify_key(jreq, "patient_id", 0, "") || json_verify_key(jreq, "pid", 0, "")) {
+			if (json_verify_key(jreq, "patient_id", 0, "")) {
+				if (jreq["patient_id"].is_string())
+					req_i.sample_pid = stoi(jreq["patient_id"].get<string>());
+				else if (jreq["patient_id"].is_number_integer())
+					req_i.sample_pid = jreq["patient_id"].get<int>();
+				else
+					MTHROW_AND_ERR("Error in patient_id field - unsupported type\n");
 			}
-
-			if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
-				type = PREDICTION_SOURCE_PREDICTIONS;
-				pred_channel = stoi(field.substr(5));
+			else {
+				if (jreq["pid"].is_string())
+					req_i.sample_pid = stoi(jreq["pid"].get<string>());
+				else if (jreq["pid"].is_number_integer())
+					req_i.sample_pid = jreq["pid"].get<int>();
+				else
+					MTHROW_AND_ERR("Error in pid field - unsupported type\n");
 			}
-
-			if (type == PREDICTION_SOURCE_UNKNOWN) type = PREDICTION_SOURCE_ATTRIBUTE;
-
-			json_req_export jexport;
-
-			jexport.field = field;
-			jexport.pred_channel = pred_channel;
-			jexport.type = type;
-
-			req_i.exports[name] = jexport;
-
 		}
 
+		if (json_verify_key(jreq, "scoreOnDate", 0, "") || json_verify_key(jreq, "time", 0, "")) {
+			if (json_verify_key(jreq, "scoreOnDate", 0, "")) {
+				if (jreq["scoreOnDate"].is_string())
+					req_i.sample_time = stoll(jreq["scoreOnDate"].get<string>());
+				else if (jreq["scoreOnDate"].is_number_integer())
+					req_i.sample_time = jreq["scoreOnDate"].get<long long>();
+				else
+					MTHROW_AND_ERR("Error in scoreOnDate field - unsupported type\n");
+			}
+			else {
+				if (jreq["time"].is_string())
+					req_i.sample_time = stoll(jreq["time"].get<string>());
+				else if (jreq["time"].is_number_integer())
+					req_i.sample_time = jreq["time"].get<long long>();
+				else
+					MTHROW_AND_ERR("Error in time field - unsupported type\n");
+			}
+		}
+
+		if (json_verify_key(jreq, "load", 0, "")) {
+			if (jreq["load"].is_string())
+				req_i.load_data = stoi(jreq["load"].get<string>());
+			else if (jreq["load"].is_number_integer())
+				req_i.load_data = jreq["load"].get<int>();
+			else
+				MTHROW_AND_ERR("Error in load field - unsupported type\n");
+		}
+
+		if (json_verify_key(jreq, "export", 0, "")) {
+
+			for (auto &jexp : jreq["export"].items()) {
+
+				string name = jexp.key();
+				string field = jexp.value().get<string>();
+
+				//MLOG("Working on %s : %s\n", name.c_str(), field.c_str());
+				int type = PREDICTION_SOURCE_UNKNOWN;
+				int pred_channel = -1;
+
+				vector<string> f;
+				boost::split(f, field, boost::is_any_of(" "));
+				if (f.size() == 2) {
+					if (f[0] == "attr") { type = PREDICTION_SOURCE_ATTRIBUTE; field = f[1]; }
+					else if (f[0] == "json_attr") { type = PREDICTION_SOURCE_ATTRIBUTE_AS_JSON; field = f[1]; }
+					else if (f[0] == "pred") { type = PREDICTION_SOURCE_PREDICTIONS; field = "pred_" + f[1]; }
+					else if (f[0] == "json") { type = PREDICTION_SOURCE_JSON; field = f[1]; }
+				}
+
+				if ((type == PREDICTION_SOURCE_UNKNOWN || type == PREDICTION_SOURCE_PREDICTIONS) && (field.length() > 5) && (field.substr(0, 5) == "pred_")) {
+					type = PREDICTION_SOURCE_PREDICTIONS;
+					pred_channel = stoi(field.substr(5));
+				}
+
+				if (type == PREDICTION_SOURCE_UNKNOWN) type = PREDICTION_SOURCE_ATTRIBUTE;
+
+				json_req_export jexport;
+
+				jexport.field = field;
+				jexport.pred_channel = pred_channel;
+				jexport.type = type;
+
+				req_i.exports[name] = jexport;
+
+			}
+
+		}
+	}
+	catch (...) {
+
+		return -1;
+	}
+	return 0;
+}
+
+void Explainer_description_config::read_cfg_file(const string &file) {
+	ifstream file_reader(file);
+	if (!file_reader.good())
+		MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - file %s wasn't found\n",
+			file.c_str());
+	records.clear();
+	unordered_set<string> contrib_seen;
+
+	string line;
+	while (getline(file_reader, line)) {
+		mes_trim(line);
+		if (line.empty() || line[0] == '#')
+			continue;
+		vector<string> tokens; //by the order of Explainer_record_config
+		boost::split(tokens, line, boost::is_any_of("\t"));
+		if (tokens.size() < 2)
+			MTHROW_AND_ERR("Error Explainer_description_config::read_cfg_file - in file %s. Expected to have at least 2 tokens.\nGot line: \"%s\"\n",
+				file.c_str(), line.c_str());
+		Explainer_record_config r;
+		r.contributer_group_name = tokens[0];
+		r.signal_name = tokens[1];
+		if (tokens.size() > 2)
+			r.max_count = med_stoi(tokens[2]);
+		if (tokens.size() > 3)
+			r.max_time_window = med_stoi(tokens[3]);
+		if (tokens.size() > 4)
+			r.time_channel = med_stoi(tokens[4]);
+		if (tokens.size() > 5)
+			r.time_unit = med_time_converter.string_to_type(tokens[5]);
+		if (tokens.size() > 6)
+			r.val_channel = med_stoi(tokens[6]);
+		if (tokens.size() > 7)
+			boost::split(r.sets, tokens[7], boost::is_any_of(","));
+
+		if (contrib_seen.find(r.contributer_group_name) != contrib_seen.end())
+			MTHROW_AND_ERR("Error, already defined rule for %s\n", r.contributer_group_name.c_str());
+		contrib_seen.insert(r.contributer_group_name);
+
+		records[r.contributer_group_name] = r;
 	}
 
-	return 0;
+	file_reader.close();
 }

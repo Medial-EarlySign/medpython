@@ -129,6 +129,13 @@ int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order);
 int knn_predict(float *test_x, int ind, float *learn_x, float *learn_y, int nlearn, int nftrs, float *weights, int *order, int *nbrs, double *dists, int k,
 	knnAveraging knnAv, knnMetric knnMetr, float *nbrs_x, float *nbrs_y, float *nbrs_w, float *nbrs_b, float *nbrs_r, float *pred);
 
+template <class T> void clear_mem(T *&order) {
+	if (order != NULL) {
+		free(order);
+		order = NULL;
+	}
+}
+
 int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) const {
 	assert(preds);
 	assert(_nftrs == nftrs);
@@ -143,11 +150,14 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) c
 	fprintf(stderr, "Running knn : K = %d , Data = (%d + %d) x %d\n", params.k, nsamples, nsamples, nftrs);
 
 	// Allocation
-	int *order, *nbrs;
-	double *dists;
+	int *order = NULL, *nbrs = NULL;
+	double *dists = NULL;
 
 	if ((order = (int *)malloc(nftrs * sizeof(int))) == NULL || (nbrs = (int *)malloc(params.k * sizeof(int))) == NULL ||
 		(dists = (double *)malloc(params.k * sizeof(double))) == NULL) {
+		clear_mem<int>(order);
+		clear_mem<int>(nbrs);
+		clear_mem<double>(dists);
 		fprintf(stderr, "Allocation failed\n");
 		return -1;
 	}
@@ -158,19 +168,44 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) c
 			(nbrs_w = (float *)malloc(params.k * sizeof(float))) == NULL || (nbrs_b = (float *)malloc(nftrs * sizeof(float))) == NULL ||
 			(nbrs_r = (float *)malloc(nftrs * sizeof(float))) == NULL) {
 			fprintf(stderr, "nbrs data allocation failed\n");
+			clear_mem<int>(order);
+			clear_mem<int>(nbrs);
+			clear_mem<double>(dists);
+			clear_mem<float>(nbrs_x);
+			clear_mem<float>(nbrs_y);
+			clear_mem<float>(nbrs_w);
+			clear_mem<float>(nbrs_b);
+			clear_mem<float>(nbrs_r);
 			return -1;
 		}
 	}
 
 	// Order features
-	if (order_ftrs(x, nsamples, nftrs, w, order) == -1)
+	if (order_ftrs(x, nsamples, nftrs, w, order) == -1) {
+		clear_mem<int>(order);
+		clear_mem<int>(nbrs);
+		clear_mem<double>(dists);
+		clear_mem<float>(nbrs_x);
+		clear_mem<float>(nbrs_y);
+		clear_mem<float>(nbrs_w);
+		clear_mem<float>(nbrs_b);
+		clear_mem<float>(nbrs_r);
 		return -1;
+	}
 
 	for (int i = 0; i < pred_samples; i++) {
 		if (i % 1000 == 1)
 			fprintf(stderr, "Predicting %d/%d\n", i, pred_samples);
 		if (knn_predict(xPred, i, x, y, nsamples, nftrs, w, order, nbrs, dists, params.k, params.knnAv, params.knnMetr, nbrs_x, nbrs_y, nbrs_w, nbrs_b, nbrs_r, &(preds[i])) == -1) {
 			fprintf(stderr, "knn prediction failed\n");
+			clear_mem<int>(order);
+			clear_mem<int>(nbrs);
+			clear_mem<double>(dists);
+			clear_mem<float>(nbrs_x);
+			clear_mem<float>(nbrs_y);
+			clear_mem<float>(nbrs_w);
+			clear_mem<float>(nbrs_b);
+			clear_mem<float>(nbrs_r);
 			return -1;
 		}
 	}
@@ -309,9 +344,11 @@ int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order) {
 		order[i] = i;
 
 
-	float *avg, *std;
+	float *avg = NULL, *std = NULL;
 	if ((avg = (float *)malloc(nftrs * sizeof(float))) == NULL || (std = (float *)malloc(nftrs * sizeof(float))) == NULL) {
 		fprintf(stderr, "Stats allocation failed\n");
+		clear_mem<float>(avg);
+		clear_mem<float>(std);
 		return -1;
 	}
 
@@ -578,7 +615,7 @@ int nbrs_ls(float *testx, int ind, int *nbrs, double *dists, float *x, float *y,
 	}
 
 	// Normalize
-	double yavg, *xavg, *xstd;
+	double yavg, *xavg = NULL, *xstd = NULL;
 	if (tcalc_stats(localx, localy, localw, nrows, nftrs, &xavg, &xstd, &yavg) == -1)
 		return -1;
 
@@ -592,8 +629,11 @@ int nbrs_ls(float *testx, int ind, int *nbrs, double *dists, float *x, float *y,
 
 	float err;
 
-	if (learn_lm(localx, localy, localw, nrows, nftrs, NITER, (float)EITER, localr, localw, localb, &err) == -1)
+	if (learn_lm(localx, localy, localw, nrows, nftrs, NITER, (float)EITER, localr, localw, localb, &err) == -1) {
+		clear_mem<double>(xavg);
+		clear_mem<double>(xstd);
 		return -1;
+	}
 
 	// Predict
 	*pred = (float)yavg;

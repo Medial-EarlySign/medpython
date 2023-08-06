@@ -495,7 +495,7 @@ void RepMultiProcessor::get_required_signal_ids(unordered_set<int>& signalIds) {
 
 // Virtual Signals names : Get the virtual signals map
 //.......................................................................................
-void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic)
+void RepMultiProcessor::add_virtual_signals(map<string, int> &_virtual_signals, map<string, string> &_virtual_signals_generic) const
 {
 	for (auto& processor : processors)
 		processor->add_virtual_signals(_virtual_signals, _virtual_signals_generic);
@@ -1085,7 +1085,7 @@ int RepConfiguredOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "time_channel") time_channel = med_stoi(entry.second);
 		else if (field == "val_channel") val_channel = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
-		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		else if (field == "conf_file") readConfFile(entry.second, outlierParams_dict);
@@ -1834,7 +1834,7 @@ int RepNbrsOutlierCleaner::init(map<string, string>& mapper)
 		else if (field == "nbr_time_unit") nbr_time_unit = med_time_converter.string_to_type(entry.second);
 		else if (field == "nbr_time_width") nbr_time_width = med_stoi(entry.second);
 		else if (field == "nrem_attr") nRem_attr = entry.second;
-		else if (field == "ntrim_attr") nTrim_attr == entry.second;
+		else if (field == "ntrim_attr") nTrim_attr = entry.second;
 		else if (field == "nrem_suff") nRem_attr_suffix = entry.second;
 		else if (field == "ntrim_suff") nTrim_attr_suffix = entry.second;
 		//! [RepNbrsOutlierCleaner::init]
@@ -2733,6 +2733,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 		if (static_input_signals[i]) {
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
+			if (usv.len == 0)
+				MTHROW_AND_ERR("Error in signal %s - empty\n", signals[i].c_str());
 			if (usv.n_val_channels() > 0)
 				static_signals_values[i] = usv.Val(0);
 			else
@@ -2985,8 +2987,19 @@ void RepCombineSignals::init_tables(MedDictionarySections& dict, MedSignals& sig
 }
 
 void RepCombineSignals::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, signal_type));
 }
 
 void RepCombineSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
@@ -3675,8 +3688,19 @@ int RepBasicRangeCleaner::_apply(PidDynamicRec& rec, vector<int>& time_points, v
 }
 
 void RepBasicRangeCleaner::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, GenericSigVec::get_type_generic_spec(SigType(output_type))));
 }
 
 void RepBasicRangeCleaner::print()
@@ -4180,8 +4204,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 							states[i].last[j] = states[i + 1].last[j];
 					}
 				}
-			}
-		}
+					}
+				}
 
 #ifdef _APPLY_VERBOSE
 		for (size_t j = 0; j < states.size(); j++)
@@ -4238,7 +4262,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #endif
 					}
 
-				}
+					}
 
 			}
 
@@ -4260,7 +4284,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 			j++;
-		}
+					}
 
 		// packing and pushing new virtual signal
 		vector<int> v_times;
@@ -4282,11 +4306,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-	}
+				}
 
 
 	return 0;
-}
+			}
 
 
 //-------------------------------------------------------------------------------------------------------

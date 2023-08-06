@@ -332,7 +332,7 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	if (generate_masks_for_features) { features.masks.clear(); features.mark_imputed_in_masks(); };
+	if (generate_masks_for_features) { features.mark_imputed_in_masks(); };
 	// Learn predictor
 	if (start_stage <= MED_MDL_LEARN_PREDICTOR && predictor != NULL) {
 		timer.start();
@@ -398,7 +398,11 @@ int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage st
 	if (start_stage < MED_MDL_APPLY_FTR_PROCESSORS)
 		max_smp_batch = get_apply_batch_count();
 
-	init_model_for_apply(rep, start_stage, end_stage);
+	if (init_model_for_apply(rep, start_stage, end_stage) < 0) {
+		MERR("Init model for apply failed\n");
+		return -1;
+	}
+
 
 	if (start_stage >= MED_MDL_APPLY_FTR_PROCESSORS || samples.nSamples() <= max_smp_batch)
 		return no_init_apply(rep, samples, start_stage, end_stage);
@@ -503,8 +507,14 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 		required_signal_ids.clear();
 
 		get_required_signal_names(required_signal_names);
-		for (string signal : required_signal_names)
-			required_signal_ids.insert(rep.dict.id(signal));
+		for (string signal : required_signal_names) {
+			int signalId = rep.dict.id(signal);
+			if (signalId < 0) {
+				MERR("Unknown signal %s in repository, can't apply model\n", signal.c_str());
+				return -1;
+			}
+			required_signal_ids.insert(signalId);
+		}
 
 		for (int signalId : required_signal_ids) {
 			if ((!rep.in_mem_mode_active()) && rep.index.index_table[signalId].is_loaded != 1)
@@ -580,34 +590,39 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 		if (verbosity > 0) MLOG("MedModel apply() : after applying feature processors\n", samples.idSamples.size());
 	}
 
-	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS || predictor == NULL)
+	if (end_stage <= MED_MDL_APPLY_FTR_PROCESSORS)
 		return 0;
 
-	if (generate_masks_for_features) { features.masks.clear(); features.mark_imputed_in_masks(); }
+	//Call again - if FP added missing values (for example by calculating something)
+	if (generate_masks_for_features) { features.mark_imputed_in_masks(); }
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
 		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
-			vector<float> pred_res, features_vec(features.data.size());
-			int i_feat = 0;
-			for (const auto &it : features.data)
-			{
-				features_vec[i_feat] = it.second[0];
-				++i_feat;
+		if (predictor != NULL) {
+			if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
+				vector<float> pred_res, features_vec(features.data.size());
+				int i_feat = 0;
+				for (const auto &it : features.data)
+				{
+					features_vec[i_feat] = it.second[0];
+					++i_feat;
+				}
+				predictor->predict_single(features_vec, pred_res);
+				features.samples[0].prediction = move(pred_res);
 			}
-			predictor->predict_single(features_vec, pred_res);
-			features.samples[0].prediction = move(pred_res);
-		}
-		else {
-			if (predictor->predict(features) < 0) {
-				MERR("Predictor failed\n");
-				return -1;
+			else {
+				if (predictor->predict(features) < 0) {
+					MERR("Predictor failed\n");
+					return -1;
+				}
+				//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
+				bool need_agg = samples.nSamples() != features.samples.size();
+				if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+					aggregate_samples(features, take_mean_pred, true);
 			}
-			//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
-			bool need_agg = samples.nSamples() != features.samples.size();
-			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
-				aggregate_samples(features, take_mean_pred, true);
 		}
+		else
+			MWARN("Model has no predictor\n");
 	}
 
 	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
@@ -678,7 +693,7 @@ int MedModel::learn_feature_generators(MedPidRepository &rep, MedSamples *learn_
 }
 
 //.......................................................................................
-void MedModel::get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators) {
+void MedModel::get_applied_generators(unordered_set<string>& req_feature_generators, vector<FeatureGenerator *>& _generators) const {
 
 	for (auto& generator : generators) {
 		if (req_feature_generators.empty() || generator->filter_features(req_feature_generators) != 0)
@@ -914,7 +929,7 @@ int MedModel::apply_feature_processors(MedFeatures &features, vector<unordered_s
 }
 
 //.......................................................................................
-void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_features_vec) {
+void MedModel::build_req_features_vec(vector<unordered_set<string>>& req_features_vec) const {
 
 	req_features_vec.resize(feature_processors.size() + 1);
 	req_features_vec[0] = {};
@@ -1504,7 +1519,7 @@ void MedModel::init_all(MedDictionarySections& dict, MedSignals& sigs) {
 // the feature generators, and then find add signals required by the rep_porcessors that
 // are required ....
 //.......................................................................................
-void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
+void MedModel::get_required_signal_names(unordered_set<string>& signalNames) const {
 
 	// Identify required generators
 	vector<unordered_set<string> > req_features_vec;
@@ -1518,23 +1533,25 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 	get_all_required_signal_names(signalNames, rep_processors, -1, applied_generators);
 
 	// collect virtuals
+	map<string, int> p_virtual_signals;
+	map<string, string> p_virtual_signals_generic;
 	for (RepProcessor *processor : rep_processors) {
 		if (verbosity) MLOG_D("MedModel::get_required_signal_names adding virtual signals from rep type %d\n", processor->processor_type);
-		processor->add_virtual_signals(virtual_signals, virtual_signals_generic);
+		processor->add_virtual_signals(p_virtual_signals, p_virtual_signals_generic);
 	}
 
 	if (verbosity) MLOG_D("MedModel::get_required_signal_names %d signalNames %d virtual_signals\n", signalNames.size(), virtual_signals.size());
 
 
 	// Erasing virtual signals !
-	for (auto &vsig : virtual_signals) {
+	for (auto &vsig : p_virtual_signals) {
 		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
 	}
 
 	// Erasing virtual signals !
-	for (auto &vsig : virtual_signals_generic) {
+	for (auto &vsig : p_virtual_signals_generic) {
 		if (verbosity) MLOG_D("check virtual %s\n", vsig.first.c_str());
 		if (signalNames.find(vsig.first) != signalNames.end())
 			signalNames.erase(vsig.first);
@@ -1546,7 +1563,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) {
 
 // Get required names as a vector
 //.......................................................................................
-void MedModel::get_required_signal_names(vector<string>& signalNames) {
+void MedModel::get_required_signal_names(vector<string>& signalNames) const{
 	unordered_set<string> sigs;
 	get_required_signal_names(sigs);
 	signalNames.clear();
@@ -1915,7 +1932,7 @@ void medial::repository::prepare_repository(const vector<int> &pids, const strin
 
 	mod.get_required_signal_names(req_names);
 
-	vector<string> sigs = { "BDATE", "GENDER", "TRAIN" };
+	vector<string> sigs = { "BDATE", "GENDER" };
 	for (string s : req_names)
 		sigs.push_back(s);
 	sort(sigs.begin(), sigs.end());

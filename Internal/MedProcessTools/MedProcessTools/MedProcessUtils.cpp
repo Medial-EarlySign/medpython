@@ -66,7 +66,8 @@ string int_to_string_digits(int i, int ndigits)
 // the feature generators, and then find add signals required by the rep_porcessors that
 // are required ....
 //.......................................................................................
-void get_all_required_signal_names(unordered_set<string>& signalNames, vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators) {
+void get_all_required_signal_names(unordered_set<string>& signalNames,
+	const vector<RepProcessor *>& rep_processors, int position, vector<FeatureGenerator *>& generators) {
 
 	// Collect from generators
 	for (auto& generator : generators)

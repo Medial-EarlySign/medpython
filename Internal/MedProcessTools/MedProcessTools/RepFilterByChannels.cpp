@@ -51,7 +51,7 @@ void RepFilterByChannel::init_tables(MedDictionarySections& dict, MedSignals& si
 	filter_chan.clear();
 	filter_chan.reserve(filter_set_by_val_channel.size());
 	int section_id = dict.section_id(signal_name);
-	for (size_t i = 0; i < filter_set_by_val_channel.size(); ++i)
+	for (int i = 0; i < filter_set_by_val_channel.size(); ++i)
 	{
 		const vector<string> &set_vals = filter_set_by_val_channel[i];
 		vector<char> &lut = filter_luts[i];
@@ -85,8 +85,19 @@ void RepFilterByChannel::init_tables(MedDictionarySections& dict, MedSignals& si
 }
 
 void RepFilterByChannel::fit_for_repository(MedPidRepository& rep) {
-	if (rep.sigs.sid(output_name) > 0)
-		virtual_signals_generic.clear(); //not virtual signal
+	bool is_virtual = false;
+	if (rep.sigs.sid(output_name) > 0) {
+		const SignalInfo &si = rep.sigs.Sid2Info[rep.sigs.sid(output_name)];
+		if (!si.virtual_sig)
+			virtual_signals_generic.clear(); //not virtual signal
+		else
+			is_virtual = true;
+	}
+	else
+		is_virtual = true;
+
+	if (is_virtual && virtual_signals_generic.empty())
+		virtual_signals_generic.push_back(pair<string, string>(output_name, signal_type));
 }
 
 void RepFilterByChannel::print() {
@@ -115,7 +126,7 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		int final_size = 0;
 		vector<float> v_vals;
 		vector<int> v_times;
-		for (size_t i = 0; i < usv.len; ++i)
+		for (int i = 0; i < usv.len; ++i)
 		{
 			//Check filters:
 			bool passed = true;
@@ -128,10 +139,10 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			}
 			if (passed) {
 				//Add val channels:
-				for (size_t j = 0; j < usv.n_time_channels() && j < v_out_n_times; ++j)
+				for (int j = 0; j < usv.n_time_channels() && j < v_out_n_times; ++j)
 					v_times.push_back(usv.Time(i, j));
 				//Add vals:
-				for (size_t j = 0; j < usv.n_val_channels() && j < v_out_n_vals; ++j)
+				for (int j = 0; j < usv.n_val_channels() && j < v_out_n_vals; ++j)
 					v_vals.push_back(usv.Val(i, j));
 				++final_size;
 			}

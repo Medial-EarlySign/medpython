@@ -273,6 +273,7 @@ private:
 	unordered_set<int> categ_forbidden = { FTR_AVG_VALUE, FTR_MAX_VALUE, FTR_MIN_VALUE,  FTR_STD_VALUE, FTR_LAST_DELTA_VALUE,
 		FTR_SLOPE_VALUE,FTR_WIN_DELTA_VALUE, FTR_MAX_DIFF,FTR_RANGE_WIDTH, FTR_SUM_VALUE }; // Types that are not allowed for categorical data
 	map<string, int> categ_value2id;
+	bool needs_categ_dict = true;
 
 public:
 	// Feature Descrption
@@ -362,7 +363,7 @@ public:
 	float get_value(PidDynamicRec& rec, int index, int time, int outcomeTime);
 
 	/// Signal Ids
-	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); timeRangeSignalId = sigs.sid(timeRangeSignalName); }
+	void set_signal_ids(MedSignals& sigs);
 
 	/// Init required tables
 	void init_tables(MedDictionarySections& dict);
@@ -474,6 +475,8 @@ public:
 * Gender
 */
 class GenderGenerator : public FeatureGenerator {
+private:
+	vector<string> category_values;
 public:
 
 	/// Gender Id
@@ -500,7 +503,20 @@ public:
 
 	// Signal Ids
 	void set_signal_ids(MedSignals& sigs) { genderId = sigs.sid("GENDER"); }
-	void set_required_signal_ids(MedDictionarySections& dict) { req_signal_ids.assign(1, dict.id("GENDER")); }
+	void set_required_signal_ids(MedDictionarySections& dict) { 
+		req_signal_ids.assign(1, dict.id("GENDER")); 
+	}
+
+	void init_tables(MedDictionarySections& dict) {
+		category_values.clear();
+		if (dict.SectionName2Id.find("GENDER") != dict.SectionName2Id.end()) {
+			int section_id = dict.section_id("GENDER");
+			for (const auto &it : dict.dicts[section_id].Id2Name)
+				category_values.push_back(it.second);
+		}
+	}
+
+	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	// Serialization
 	ADD_CLASS_NAME(GenderGenerator)
@@ -952,6 +968,8 @@ public:
 	/// The parsed fields from init command.
 	/// @snippet CategoryDependencyGenerator.cpp CategoryDependencyGenerator::init
 	int init(map<string, string>& mapper);
+
+	int update(map<string, string>& mapper);
 
 	void set_names();
 	int filter_features(unordered_set<string>& validFeatures);

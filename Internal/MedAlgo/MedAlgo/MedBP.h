@@ -54,7 +54,6 @@ public:
 
 	// Function
 	MedBP();
-	MedBP(void *params);
 	MedBP(MedBPParams& params);
 	int init(void *params);
 	/// The parsed fields from init command.

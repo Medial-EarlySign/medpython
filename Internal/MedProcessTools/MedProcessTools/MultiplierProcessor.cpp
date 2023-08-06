@@ -46,10 +46,10 @@ int MultiplierProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 		for (const string &candidate_tag : feature_tags)
 		{
 			for (const string& substring : s) {
-				boost::regex regi(substring);
-				if (boost::regex_match(candidate_tag, regi)) {
-					found_match = true;
-					break;
+				int location_i = 0;
+				while (!(found_match) && location_i + substring.length() <= candidate_tag.length()) {
+					found_match = (candidate_tag.substr(location_i, substring.length()) == substring);
+					++location_i;
 				}
 			}
 			if (found_match)

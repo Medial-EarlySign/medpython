@@ -1649,7 +1649,7 @@ int MedRepository::unlock(const vector<int> &sids)
 //--------------------------------------------------------------------------------------
 int MedRepository::free_all_sigs()
 {
-	return free(sigs.signals_ids);
+	return this->free(sigs.signals_ids);
 }
 
 //--------------------------------------------------------------------------------------
@@ -1915,7 +1915,12 @@ void IndexTable::clear()
 	}
 	work_area = NULL;
 	init();
-	sv.clear();
+	try {
+		sv.clear();
+	}
+	catch (...) {
+		MERR("Error IndexTable::clear - not enough memory\n");
+	}
 
 }
 

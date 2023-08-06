@@ -137,8 +137,8 @@ void UnifiedSmokingGenerator::init_tables(MedDictionarySections& dict) {
 	{
 		vector<string> set_vals = { smoke_st_vals[i] };
 		if (dict.id(smoke_status_sec_id, smoke_st_vals[i]) < 0) {
-			MWARN("WARN UnifiedSmokingGenerator::init_tables - Smoking_Status \"%s\" is undefined\n",
-				smoke_st_vals[i].c_str());
+			//MWARN("WARN UnifiedSmokingGenerator::init_tables - Smoking_Status \"%s\" is undefined\n",
+			//	smoke_st_vals[i].c_str());
 			set_vals.clear(); //Allow Unknown smoking status to be undefined
 		}
 		dict.prep_sets_lookup_table(smoke_status_sec_id, set_vals, smoke_status_luts[i]);
@@ -383,7 +383,7 @@ SMOKING_STATUS UnifiedSmokingGenerator::val2SmokingStatus(int sigVal, int smokin
 
 void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, vector<pair<SMOKING_STATUS, int>> &smokingStatusVec, int testDate, int &unknownSmoker, int &neverSmoker, int &passiveSmoker, int &formerSmoker, int &currentSmoker)
 {
-	SMOKING_STATUS inVal, outVal;
+	SMOKING_STATUS inVal, outVal = UNKNOWN_SMOKER;
 	if (smokingStatusUsv.len > 0)
 	{
 		if (smokingStatusUsv.Time(0) <= testDate)
