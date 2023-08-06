@@ -212,6 +212,7 @@ template<typename T> void GibbsSampler<T>::learn_gibbs(const map<string, vector<
 #pragma omp parallel for
 			for (int i = 0; i < all_names.size(); ++i)
 			{
+				// Find unique values of feature i
 				unordered_set<float> uniq_vals;
 				for (size_t k = 0; k < cohort_data.at(all_names[i]).size(); ++k)
 					uniq_vals.insert(cohort_data.at(all_names[i])[k]);

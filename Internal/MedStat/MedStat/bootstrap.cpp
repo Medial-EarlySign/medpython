@@ -24,6 +24,9 @@
 
 #pragma region Helper Functions
 float meanArr(const vector<float> &arr) {
+	/*
+	Compute mean while ignoring missing values
+	*/
 	double res = 0;
 	int cnt = 0;
 	for (size_t i = 0; i < arr.size(); ++i)
@@ -38,6 +41,10 @@ float meanArr(const vector<float> &arr) {
 	return (float)res;
 }
 float stdArr(const vector<float> &arr, float meanVal) {
+	/*
+	Compute standard deviation while ignoring missing values.
+	Accepts pre-computed mean as an argument
+	*/
 	double res = 0;
 	int cnt = 0;
 	for (size_t i = 0; i < arr.size(); ++i)
@@ -54,12 +61,15 @@ float stdArr(const vector<float> &arr, float meanVal) {
 	return (float)res;
 }
 template<class T> string print_obj(T obj, string format) {
-	//return to_string((round(num * 1000) / 1000));
+	// TODO
 	char res[50];
 	snprintf(res, sizeof(res), format.c_str(), obj);
 	return string(res);
 }
 string printVec(const vector<float> &v, int from, int to) {
+	/*
+	Convert a vector of floats to a string
+	*/
 	string res;
 	if (from < 0)
 		from = 0;
@@ -73,21 +83,43 @@ string printVec(const vector<float> &v, int from, int to) {
 random_device Lazy_Iterator::rd;
 
 
-void Lazy_Iterator::init(const vector<int> *p_pids, const vector<float> *p_preds,
-	const vector<float> *p_y, const vector<float> *p_w, float p_sample_ratio, int p_sample_per_pid, int max_loops, int seed) {
+void Lazy_Iterator::init(
+	const vector<int>   *p_pids,   // note: vector can contain multiple entries for the same patient id 
+	const vector<float> *p_preds,  // predictions 
+	const vector<float> *p_y,      // ground truth label
+	const vector<float> *p_w,      // optional weights [can affect metrics computation]
+	float p_sample_ratio, 
+	int p_sample_per_pid, 
+	int max_loops, 
+	int seed) 
+{
+	/*
+	TODO:
+
+	Reduce memory consumption by avoiding allocation of full vector 
+	when randomly drawing  blah blah blah
+	*/
+
+	// How many samples to take for each patients, 0 - means no sampling (take all sample for patient)
 	sample_per_pid = p_sample_per_pid;
 	//sample_ratio = p_sample_ratio;
 	sample_ratio = 1.0; //no support for smaller size for now - need to fix Std for smaller sizes
+	// there are two modes of sampling
+	// true:     no sampling at patient level
+	// false:    randomly draw a patient (with replacement)
 	sample_all_no_sampling = false;
 	pids = p_pids;
 	weights = (p_w == NULL || p_w->empty()) ? NULL : p_w->data();
 	y = p_y->data();
 	preds = p_preds->data();
+	
+	// thread-realted stuff
 	maxThreadCount = max_loops;
 	vec_size.resize(maxThreadCount);
 	vec_y.resize(maxThreadCount);
 	vec_preds.resize(maxThreadCount);
 	vec_weights.resize(maxThreadCount);
+
 	vec_size.back() = (int)p_pids->size();
 	vec_y.back() = y;
 	vec_preds.back() = preds;
@@ -704,7 +736,10 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	return all_final_measures;
 }
 
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
+map<string, map<string, float>> booststrap_analyze(
+	const vector<float> &preds, 
+	const vector<int> &preds_order, 
+	const vector<float> &y, const vector<float> *weights, const vector<int> &pids,
 	const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort
 	, const vector<MeasurementFunctions> &meas_functions, const map<string, void *> *cohort_params,
 	const vector<Measurement_Params *> *function_params, ProcessMeasurementParamFunc process_measurments_params,
@@ -713,17 +748,24 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 #if defined(__unix__)
 	//feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
 #endif
-	//for each pid - randomize x sample from all it's tests. do loop_times
+	
+	// sanity check
 	if (pids.size() != y.size()) {
 		cerr << "bootstrap sizes aren't equal pids=" << pids.size() << " y=" << y.size() << endl;
 		throw invalid_argument("bootstrap sizes aren't equal");
 	}
+	
+	// allocate vector to keep parameters of function that implement different metrics 
 	vector<Measurement_Params *> params((int)meas_functions.size());
+
 	if (function_params == NULL)
 		for (size_t i = 0; i < params.size(); ++i)
 			params[i] = NULL;
+
 	MLOG_D("Started Bootstarp Analysis on %d samples with %d cohorts\n", preds.size(), filter_cohort.size());
 	time_t start = time(NULL);
+	
+	// preprocess predictions (if requested)
 	const vector<float> *final_preds = &preds;
 	vector<float> copy_preds;
 	if (preprocess_scores != NULL) {
@@ -741,16 +783,27 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 	preds_order_c.reserve((int)preds.size());
 	filtered_indexes.reserve((int)y.size());
 	y_c.reserve((int)y.size());
+
 	int warn_cnt = 0;
 	if (weights != NULL && !weights->empty())
 		weights_c.reserve(weights->size());
+	
+	// In cases of multiclass predictions, predictions are arranged like
+    // class_1_pred[0], class_2_pred[0], class_1_pred[1], class_2_pred[1] ...
 	size_t num_categories = preds.size() / y.size();
+	
+	// Loop over cohorts
 	MedProgress progress_bt("Full_bootstrap", (int)filter_cohort.size(), 60, 1);
 	for (auto it = filter_cohort.begin(); it != filter_cohort.end(); ++it)
 	{
 		void *c_params = NULL;
+		// fetch cohort parameters (if exist)
 		if (cohort_params != NULL && (*cohort_params).find(it->first) != (*cohort_params).end())
 			c_params = (*cohort_params).at(it->first);
+
+		//===============
+		// Compose cohort
+		//===============
 
 		pids_c.clear();
 		preds_c.clear();
@@ -758,19 +811,30 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 		preds_order_c.clear();
 		weights_c.clear();
 		filtered_indexes.clear();
+		
+		// initialize to zeros
 		class_sz.assign(2, 0);
+		
+		// loop over label/prediction pairs
 		for (size_t j = 0; j < y.size(); ++j)
+			// decide whether current sample belogs to current cohort
 			if (it->second(additional_info, (int)j, c_params)) {
 				bool has_legal_w = true;
+				
+				// check whether weight of current sample is valid
 				if (weights != NULL && !weights->empty()) {
 					if (weights->at(j) > 0)
 						weights_c.push_back(weights->at(j));
 					else
 						has_legal_w = false;
 				}
+
+				// apparently pids_c/y_c/preds_c contain only pids/labels/predictions of samples with _valid_ weights
 				if (has_legal_w) {
+
 					pids_c.push_back(pids[j]);
 					y_c.push_back(y[j]);
+					
 					for (size_t k = 0; k < num_categories; k++)
 					{
 						preds_c.push_back((*final_preds)[j*num_categories + k]);
@@ -783,13 +847,18 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 
 			}
 
-		//now we have cohort: run analysis:
+		//===============
+		// Analyse cohort
+		//===============
 		string cohort_name = it->first;
 
+		// Skip cohort if too small
 		if (y_c.size() < 10) {
 			MWARN("WARN: Cohort [%s] is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
 			continue;
 		}
+
+		// Additional sanity checks for binary classification case 
 		if (binary_outcome) {
 			if ((class_sz[0] < 1 || class_sz[1] < 1)) {
 				MWARN("WARN: Cohort [%s] is too small - has %d samples with labels = [%d, %d]. Skipping\n",
@@ -799,13 +868,30 @@ map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, c
 			else MLOG("Cohort [%s] - has %d samples with labels = [%d, %d]\n",
 				cohort_name.c_str(), int(y_c.size()), class_sz[0], class_sz[1]);
 		}
+
 		vector<float> *weights_p = NULL;
 		if (!weights_c.empty())
 			weights_p = &weights_c;
-		map<string, float> cohort_measurments = booststrap_analyze_cohort(preds_c, preds_order_c, y_c, pids_c,
-			sample_ratio, sample_per_pid, loopCnt, meas_functions,
+
+		map<string, float> cohort_measurments = booststrap_analyze_cohort(
+			preds_c, 
+			preds_order_c, 
+			y_c, 
+			pids_c,
+			sample_ratio, 
+			sample_per_pid, 
+			loopCnt, 
+			meas_functions,
 			function_params != NULL ? *function_params : params,
-			process_measurments_params, additional_info, y, pids, weights_p, filtered_indexes, it->second, c_params, warn_cnt, cohort_name, seed);
+			process_measurments_params, 
+			additional_info, 
+			y, 
+			pids, 
+			weights_p, 
+			filtered_indexes, 
+			it->second, 
+			c_params, 
+			warn_cnt, cohort_name, seed);
 
 		all_cohorts_measurments[cohort_name] = cohort_measurments;
 
@@ -942,7 +1028,7 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 	fr.close();
 }
 
-#pragma region Measurements Fucntions
+#pragma region Measurements Functions
 
 map<string, float> calc_npos_nneg(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
@@ -2586,7 +2672,7 @@ map<string, float> calc_regression(Lazy_Iterator *iterator, int thread_num, Meas
 
 #pragma endregion
 
-#pragma region Cohort Fucntions
+#pragma region Cohort Functions
 bool time_range_filter(float outcome, int min_time, int max_time, int time, int outcome_time) {
 	if (med_time.YearsMonths2Days.empty())
 		med_time.init_time_tables();

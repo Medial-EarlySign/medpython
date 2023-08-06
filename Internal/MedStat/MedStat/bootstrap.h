@@ -174,7 +174,7 @@ public:
 	virtual ~Measurement_Params() {};
 };
 
-#pragma region Measurements Fucntions
+#pragma region Measurements Functions
 /// <summary>
 /// A Function to calculate only NPOS,NNEG (already calculated in calc_roc_measures_with_inc). \n
 /// Implements MeasurementFunctions signature function
@@ -282,7 +282,7 @@ public:
 };
 
 /**
-* Parameter object for calc_roc_measures fucntions. this object
+* Parameter object for calc_roc_measures functions. this object
 * stores the working point, and other parameters for the roc measurments
 * bootstrap calculations.
 */
@@ -376,7 +376,7 @@ public:
 	ADD_SERIALIZATION_FUNCS(do_logloss, coverage_quantile_percentages, epsilon)
 };
 
-#pragma region Cohort Fucntions
+#pragma region Cohort Functions
 /// <summary>
 /// A function to filter samples based on single Filter_Param object. it's a FilterCohortFunc signature
 /// </summary>
@@ -389,7 +389,7 @@ bool filter_range_params(const map<string, vector<float>> &record_info, int inde
 #pragma endregion
 
 /**
-* Parameter object for filter_params fucntions
+* Parameter object for filter_params functions
 */
 class Filter_Param : public SerializableObject { //for example Age and range for filter
 public:
@@ -499,43 +499,51 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 	const map<string, vector<float>> &additional_info, const vector<float> &y_full,
 	const vector<int> &pids_full, const vector<float> *weights, const vector<int> &filter_indexes, FilterCohortFunc cohort_def,
 	void *cohort_params, int &warn_cnt, const string &cohort_name, int seed = 0);
-/// <summary>
-/// The main bootstrap function to run all bootstrap process with all the arguments
-/// @param preds the predicitions vector
-/// @param y the labels vector
-/// @param pids the ids vector to sample different ids
-/// @param additional_info The features to filter and create cohorts. map from feature name to 
-/// it's values for each sample
-/// @param filter_cohort The cohorts definition from the name to the filtering function
-/// @param meas_functions The measurements to calculate for each bootstrap
-/// @param cohort_params Additional parameters for the filtering cohort function. each key
-/// is coresponding to the same key in filter_cohort
-/// @param function_params Additional parameters for the measurements functions. in the same
-/// order and size of meas_functions
-/// @param process_measurments_params Function to process the function_params before running on each
-/// cohort (helps to calc incidence for example)
-/// @param preprocess_scores A function to preprocess all scores - for example binning the scores
-/// to speedup bootstrap
+
+
+
+/// @brief The main bootstrap function to run all bootstrap process with all the arguments
+/// @param preds vector of predictions 
+/// @param y labels
+/// @param pids patient ids [used for random draws]
+/// @param additional_info Dictionary used to keep values of features [for filtering]. Key is the feature name. Val contains vector of feature values. 
+/// @param filter_cohort Dictionary, where key is name of cohort, value is a function which performs the filtering [keeps only entries that belong to this cohort]
+
+/// @param meas_functions Vector of metrics to calculate per one bootstrap (?) experiment 
+/// @param cohort_params Key: name of a cohort, Value: additional parameters which are passed to functions from filter_cohort.values
+/// @param function_params Configuration parameters passed to "meas_functions" (like 2 for F2 metric).
+/// @param process_measurments_params Function to process the function_params before running on each cohort (helps to calc incidence for example)
+/// @param preprocess_scores A function to preprocess all scores - for example binning the scores (can sometimes speedup metrics calculation)
 /// @param preprocess_scores_params Additional parameters for the preprocess_scores function
-/// @param sample_ratio A number in range (0,1] for subsampling the samples
-/// @param sample_per_pid How many samples to sample on each id
-/// @param loopCnt How many bootstrap to do
+/// @param sample_ratio A number in range (0,1] for subsampling the samples [in order to speed-up the bootstrap]
+/// @param sample_per_pid How many samples to sample on each id [sampling with replacement]
+/// @param loopCnt How many bootstrap experiments(?) to do
 /// @param seed The random seed. If 0 will use random_device to create random seed
-/// @param binary_outcome A flag to indicate the labels are binary (used to validate
-/// The input labels)
-/// </summary>
+/// @param binary_outcome A flag to indicate whether the labels are binary (used to validate the input labels)
 /// <returns>
 /// Returns a map from each cohort name to the measurments results. each measurments results
 /// is also a map from each measurement name to it's value
 /// </returns>
-map<string, map<string, float>> booststrap_analyze(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<float> *weights
-	, const vector<int> &pids, const map<string, vector<float>> &additional_info, const map<string, FilterCohortFunc> &filter_cohort,
+map<string, map<string, float>> booststrap_analyze(
+	const vector<float> &preds, 
+	const vector<int> &preds_order, 
+	const vector<float> &y, 
+	const vector<float> *weights, 
+	const vector<int> &pids, 
+	const map<string, vector<float>> &additional_info, 
+	const map<string, FilterCohortFunc> &filter_cohort,
 	const vector<MeasurementFunctions> &meas_functions = { calc_roc_measures_with_inc },
-	const map<string, void *> *cohort_params = NULL, const vector<Measurement_Params *> *function_params = NULL,
+	const map<string, void *> *cohort_params = NULL, 
+	const vector<Measurement_Params *> *function_params = NULL,
 	ProcessMeasurementParamFunc process_measurments_params = NULL,
-	PreprocessScoresFunc preprocess_scores = NULL, Measurement_Params *preprocess_scores_params = NULL,
-	float sample_ratio = (float)1.0, int sample_per_pid = 1,
-	int loopCnt = 500, int seed = 0, bool binary_outcome = true);
+	PreprocessScoresFunc preprocess_scores = NULL, 
+	Measurement_Params *preprocess_scores_params = NULL,
+	float sample_ratio = (float)1.0, 
+	int sample_per_pid = 1,
+	int loopCnt = 500, 
+	int seed = 0, 
+	bool binary_outcome = true
+);
 
 /// <summary>
 /// @param pids the pids vector
