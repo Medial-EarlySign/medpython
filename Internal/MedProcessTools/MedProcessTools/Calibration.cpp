@@ -167,6 +167,7 @@ void Calibrator::learn_isotonic_regression(const vector<float> &x, const vector<
 		for (auto &xy : x2y)
 			sum_weights += xy[2];
 
+		nag.resize(j + 1);
 		reverse(nag.begin(), nag.end()); //to match order of other vectors
 		MLOG("Created %d bins for mapping prediction scores to probabilities\n", map_prob.size());
 		for (size_t i = 0; i < map_prob.size(); ++i)
