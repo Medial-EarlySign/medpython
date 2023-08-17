@@ -178,6 +178,16 @@ Lazy_Iterator::Lazy_Iterator(const vector<int> *p_pids, const vector<float> *p_p
 	vec_preds_order.back() = preds_order;
 }
 
+void Lazy_Iterator::set_thread_sample_all(int thread_num) {
+#pragma omp critical 
+	{
+		vec_size[thread_num] = (int)pids->size();
+		vec_y[thread_num] = y;
+		vec_preds[thread_num] = preds;
+		vec_weights[thread_num] = weights;
+	}
+}
+
 void Lazy_Iterator::set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, const vector<int> *p_preds_order, int thread_num) {
 #pragma omp critical 
 	{

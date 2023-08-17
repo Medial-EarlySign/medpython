@@ -69,6 +69,8 @@ public:
 	/// </summary>
 	void set_static(const vector<float> *p_y, const vector<float> *p_preds, const vector<float> *p_w, const vector<int> *p_preds_order, int thread_num);
 
+	void set_thread_sample_all(int thread);
+
 	~Lazy_Iterator();
 
 	//sampling params:
