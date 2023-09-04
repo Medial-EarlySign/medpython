@@ -234,6 +234,9 @@ int MedSignals::read(const string &fname)
 				// SIGNAL <name> <signal id> 16:<generic_signal_type> <description> <is_categorical_per_val_channel> <unit_per_val_channel separated by '|' char>
 
 				int sid = stoi(fields[2]);
+				if (sid >= MAX_SID_NUMBER)
+					MTHROW_AND_ERR("MedSignals::read Error - can't use sid over %d, got %d forsignal %s\n",
+						MAX_SID_NUMBER, sid, fields[1].c_str());
 				if (Name2Sid.find(fields[1]) != Name2Sid.end() || Sid2Name.find(sid) != Sid2Name.end()) {
 					MERR("MedSignals: read: name or id already used in line %s\n", curr_line.c_str());
 					return -1;
