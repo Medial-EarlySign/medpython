@@ -865,6 +865,7 @@ map<string, map<string, float>> booststrap_analyze(
 		// Skip cohort if too small
 		if (y_c.size() < 10) {
 			MWARN("WARN: Cohort [%s] is too small - has %d samples. Skipping\n", cohort_name.c_str(), int(y_c.size()));
+			progress_bt.update();
 			continue;
 		}
 
