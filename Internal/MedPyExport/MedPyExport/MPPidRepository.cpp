@@ -45,13 +45,18 @@ int MPPidRepository::read_all(const std::string &conf_fname, MEDPY_NP_INPUT(int*
 }
 
 int MPPidRepository::loadsig(const std::string& signame) { return o->load(signame); };
+int MPPidRepository::loadsig_pids(const std::string& signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take)) {
+	vector<int> pids(pids_to_take, pids_to_take + num_pids_to_take);
+	return o->load(signame, pids);
+};
+
 #endif 
 
 int MPPidRepository::init(const std::string &conf_fname) { return o->init(conf_fname); };
 const std::vector<int>& MPPidRepository::MEDPY_GET_pids() { return o->index.pids; };
 int MPPidRepository::sig_id(const std::string& signame) { return o->dict.id(signame); };
 int MPPidRepository::sig_type(const std::string& signame) { return o->sigs.type(signame); };
-std::string MPPidRepository::sig_description(const std::string& signame) { 
+std::string MPPidRepository::sig_description(const std::string& signame) {
 	int id = o->sigs.sid(signame);
 	if (id < 0)
 		MTHROW_AND_ERR("Error signal %s wasn't found\n", signame.c_str());
@@ -403,7 +408,7 @@ MPSig::MPSig(const MPSig& other) { o = other.o; idx = other.idx; };
 std::vector<std::string> MPPidRepository::list_signals() {
 	std::vector<std::string> res;
 	res.reserve(o->sigs.Name2Sid.size());
-	for (const auto & it : o->sigs.Name2Sid) 
+	for (const auto & it : o->sigs.Name2Sid)
 		res.push_back(it.first);
 	return res;
 }

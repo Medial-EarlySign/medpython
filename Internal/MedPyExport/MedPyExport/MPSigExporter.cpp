@@ -12,10 +12,16 @@
 #include "MedProcessTools/MedProcessTools/SampleFilter.h"
 
 #ifndef AM_API_FOR_CLIENT
-MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag) 
-	: o(rep.o), sig_name(signame_str), translate(translate_flag!=0), free_sig(free_sig_flag!=0) {
-	if (rep.loadsig(signame_str) != 0)
-		throw runtime_error("could not load signal");
+MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag)
+	: o(rep.o), sig_name(signame_str), translate(translate_flag != 0), free_sig(free_sig_flag != 0) {
+	if (use_all_pids) {
+		if (rep.loadsig(signame_str) != 0)
+			throw runtime_error("could not load signal");
+	}
+	else {
+		if (rep.loadsig_pids(signame_str, pids_to_take, num_pids_to_take) != 0)
+			throw runtime_error("could not load signal");
+	}
 	sig_id = rep.sig_id(sig_name);
 	if (sig_id == -1)
 		throw runtime_error("bad sig id");
@@ -34,7 +40,7 @@ MPSigExporter::MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDP
 }
 
 
-static int convert_sv_type_to_npy_val_type(int sv_type){
+static int convert_sv_type_to_npy_val_type(int sv_type) {
 	switch (sv_type) {
 	case GenericSigVec::type_enc::INT32:   return (int)MED_NPY_TYPE::values::NPY_INT;  //int
 	case GenericSigVec::type_enc::INT64:   return (int)MED_NPY_TYPE::values::NPY_LONGLONG;  //long long
@@ -53,7 +59,7 @@ static int convert_sv_type_to_npy_val_type(int sv_type){
 
 
 int MPSigExporter::__get_key_id_or_throw(const string& key) {
-	for (int i = 0; i < data_keys.size();++i)
+	for (int i = 0; i < data_keys.size(); ++i)
 		if (data_keys[i] == key) return i;
 	throw runtime_error("Unknown row");
 }
@@ -72,21 +78,21 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 		new_arr = (int*)malloc(sizeof(int)*arr_sz);
 	//std::unordered_set<int> values;
 	switch (arr_npytype) {
-	case (int)MED_NPY_TYPES::NPY_FLOAT: 
-		{float* tarr = (float*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i]=(int)tarr[i]; }
-		break;
-	case (int)MED_NPY_TYPES::NPY_USHORT: 
-		{unsigned short* tarr = (unsigned short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
-		break;
-	case (int)MED_NPY_TYPES::NPY_LONGLONG: 
-		{long long* tarr = (long long*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
-		break;
-	case (int)MED_NPY_TYPES::NPY_SHORT: 
-		{short* tarr = (short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
-		break;
+	case (int)MED_NPY_TYPES::NPY_FLOAT:
+	{float* tarr = (float*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
+	break;
+	case (int)MED_NPY_TYPES::NPY_USHORT:
+	{unsigned short* tarr = (unsigned short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
+	break;
+	case (int)MED_NPY_TYPES::NPY_LONGLONG:
+	{long long* tarr = (long long*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
+	break;
+	case (int)MED_NPY_TYPES::NPY_SHORT:
+	{short* tarr = (short*)arr; for (size_t i = 0; i < arr_sz; ++i) new_arr[i] = (int)tarr[i]; }
+	break;
 	case (int)MED_NPY_TYPES::NPY_INT:
-		{new_arr = (int*)arr; }
-		break;
+	{new_arr = (int*)arr; }
+	break;
 	default:
 		if (new_arr) free(new_arr);
 		throw runtime_error("MedPy: categorical value type not supported, we only have values of types float, unsigned short, long long, short");
@@ -98,7 +104,7 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 	raw_val_to_new_val[field_name].reserve(Id2Names.size());
 	std::vector<std::string> category;
 	category.push_back("Undefined Category");  // category[0] , (code 0) is undefined
-	for (size_t i = 0; i < arr_sz;i++) {
+	for (size_t i = 0; i < arr_sz; i++) {
 		int raw_val = new_arr[i];
 		if (translation_dict.count(raw_val) == 0) {
 			do {
@@ -107,8 +113,8 @@ void MPSigExporter::gen_cat_dict(const string& field_name, int channel) {
 					break;
 				}
 				auto& names = Id2Names[raw_val];
-				if (names.size() == 0) { 
-					translation_dict[raw_val] = 0; 
+				if (names.size() == 0) {
+					translation_dict[raw_val] = 0;
 					break;
 				}
 				string cat_name = "";
@@ -148,7 +154,7 @@ void MPSigExporter::get_all_data() {
 		int* date_vec = (int*)malloc(sizeof(int)*this->record_count);;
 		float* val_vec = (float*)malloc(sizeof(float)*this->record_count);;
 		if (pid_vec == nullptr)
-			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " bytes for pid column record_count = "+to_string(this->record_count));
+			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " bytes for pid column record_count = " + to_string(this->record_count));
 
 		if (date_vec == nullptr)
 			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " for date channel");
@@ -159,7 +165,7 @@ void MPSigExporter::get_all_data() {
 		int len;
 		SDateVal *sdv = nullptr;
 		size_t cur_row = 0;
-		for (size_t j = 0; j < this->pids.size();j++) {
+		for (size_t j = 0; j < this->pids.size(); j++) {
 			int pid = this->pids[j];
 			sdv = (SDateVal *)o->get(pid, this->sig_id, len);
 			if (len == 0)
@@ -657,7 +663,7 @@ void MPSigExporter::get_all_data() {
 		gen_cat_dict("val2", 1);
 	}
 	break;
-	
+
 	case SigType::T_TimeShort4:
 	{
 		data_keys = vector<string>({ "pid","time","val1","val2","val3","val4" });
@@ -709,12 +715,12 @@ void MPSigExporter::get_all_data() {
 	{
 		typedef struct {
 			string data_key;
-			char* buf = nullptr; 
-			int buf_bytes_len = 0; 
+			char* buf = nullptr;
+			int buf_bytes_len = 0;
 			int gsv_type = 0;
 			int gsv_type_offset = 0;
-			int npy_type = 0; 
-			int gsv_type_bytes_len = 0; 
+			int npy_type = 0;
+			int gsv_type_bytes_len = 0;
 			int gsv_chan_num = -1;
 			int rec_count = 0;
 			bool is_timechan = false;
@@ -722,7 +728,7 @@ void MPSigExporter::get_all_data() {
 		data_keys = vector<string>();
 		vector<chan_info> data_vec;
 		UniversalSigVec sv;
-		
+
 		//o->usv_init(, sv);
 		sv.init_from_repo(*o, this->sig_id);
 
@@ -736,14 +742,14 @@ void MPSigExporter::get_all_data() {
 			ci.buf_bytes_len = ci.rec_count * ci.gsv_type_bytes_len;
 			ci.npy_type = convert_sv_type_to_npy_val_type(ci.gsv_type);
 			ci.buf = (char*)malloc(ci.buf_bytes_len);
-			if(ci.buf == nullptr)
-				throw runtime_error(string("Failed allocating memory of size ")+to_string(ci.buf_bytes_len)+" for time channel "+to_string(tchan));
+			if (ci.buf == nullptr)
+				throw runtime_error(string("Failed allocating memory of size ") + to_string(ci.buf_bytes_len) + " for time channel " + to_string(tchan));
 			ci.gsv_chan_num = tchan;
 			ci.is_timechan = true;
 			data_vec.push_back(ci);
 		}
 
-		for (int vchan = 0; vchan < sv.n_val; vchan++) {			
+		for (int vchan = 0; vchan < sv.n_val; vchan++) {
 			chan_info ci;
 			ci.data_key = string("val") + to_string(vchan);
 			ci.rec_count = this->record_count;
@@ -763,7 +769,7 @@ void MPSigExporter::get_all_data() {
 		if (pid_vec == nullptr)
 			throw runtime_error(string("Failed allocating memory of size ") + to_string(sizeof(int)*this->record_count) + " for pid column");
 
-		
+
 		size_t cur_row = 0;
 		for (int pid : this->pids) {
 			o->uget(pid, this->sig_id, sv);
@@ -772,7 +778,7 @@ void MPSigExporter::get_all_data() {
 				continue;
 			for (int i = 0; i < sv.len; i++) {
 				pid_vec[cur_row] = pid;
-				for(auto& ci : data_vec){
+				for (auto& ci : data_vec) {
 					memcpy(&ci.buf[cur_row*ci.gsv_type_bytes_len], &data[ci.gsv_type_offset], ci.gsv_type_bytes_len);
 				}
 				data += sv.struct_size;
@@ -782,7 +788,7 @@ void MPSigExporter::get_all_data() {
 		data_keys.push_back("pid");
 		data_column.push_back(pid_vec);
 		data_column_nptype.push_back((int)MED_NPY_TYPES::NPY_INT);
-		
+
 		for (auto& ci : data_vec) {
 			data_keys.push_back(ci.data_key);
 			data_column.push_back(ci.buf);
@@ -798,7 +804,7 @@ void MPSigExporter::get_all_data() {
 
 
 	default:
-		throw runtime_error(string("MedPy: sig type not supported: ")+to_string(this->sig_type));
+		throw runtime_error(string("MedPy: sig type not supported: ") + to_string(this->sig_type));
 		break;
 	}
 }

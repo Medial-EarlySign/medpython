@@ -45,6 +45,10 @@ public:
 	MEDPY_DOC(loadsig, "loadsig(str_signame) -> int\n" 
 	"  load a signal");
 	int loadsig(const std::string& signame);
+
+	MEDPY_DOC(loadsig, "loadsig(str_signame) -> int\n"
+		"  load a signal for pids");
+	int loadsig_pids(const std::string& signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take));
 #endif
 
 	MEDPY_DOC(sig_id, "list_signals() -> vector<string>\n"
