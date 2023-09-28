@@ -2734,7 +2734,8 @@ int RepCalcSimpleSignals::apply_calc_in_time(PidDynamicRec& rec, vector<int>& ti
 			UniversalSigVec usv;
 			rec.uget(sigs_ids[i], first_ver, usv);
 			if (usv.len == 0)
-				MTHROW_AND_ERR("Error in signal %s - empty\n", signals[i].c_str());
+				MTHROW_AND_ERR("Error in signal %s - empty. patient %d\n", signals[i].c_str(),
+					rec.pid);
 			if (usv.n_val_channels() > 0)
 				static_signals_values[i] = usv.Val(0);
 			else
