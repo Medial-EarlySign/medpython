@@ -802,6 +802,7 @@ template void medial::process::commit_selection<float>(vector<float> &vec, const
 template void medial::process::commit_selection<double>(vector<double> &vec, const vector<int> &idx);
 template void medial::process::commit_selection<int>(vector<int> &vec, const vector<int> &idx);
 
+//Assume selected_indexes is "sorted"
 void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector<int> &selected_indexes, bool op_flag) {
 	MedFeatures filtered;
 	filtered.time_unit = dataMat.time_unit;
@@ -813,6 +814,11 @@ void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector
 			filtered.data[iit->first].reserve(selected_indexes.size());
 		if (!dataMat.weights.empty())
 			filtered.weights.reserve(selected_indexes.size());
+		if (!dataMat.masks.empty()) {
+			for (auto iit = dataMat.masks.begin(); iit != dataMat.masks.end(); ++iit)
+				filtered.masks[iit->first].reserve(selected_indexes.size());
+		}
+
 		filtered.samples.reserve(selected_indexes.size());
 		for (int i : selected_indexes) //all selected indexes
 		{
@@ -822,6 +828,11 @@ void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector
 
 			if (!dataMat.weights.empty())
 				filtered.weights.push_back(dataMat.weights[i]);
+			if (!dataMat.masks.empty()) {
+				for (auto iit = dataMat.masks.begin(); iit != dataMat.masks.end(); ++iit)
+					filtered.masks[iit->first].push_back(iit->second[i]);
+			}
+
 		}
 	}
 	else {
@@ -829,6 +840,10 @@ void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector
 			filtered.data[iit->first].reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
 		if (!dataMat.weights.empty())
 			filtered.weights.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
+		if (!dataMat.masks.empty()) {
+			for (auto iit = dataMat.masks.begin(); iit != dataMat.masks.end(); ++iit)
+				filtered.masks[iit->first].reserve(selected_indexes.size());
+		}
 		filtered.samples.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
 		for (int i = 0; i < dataMat.samples.size(); ++i)
 		{
@@ -842,6 +857,10 @@ void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector
 				filtered.data[iit->first].push_back(iit->second[i]);
 			if (!dataMat.weights.empty())
 				filtered.weights.push_back(dataMat.weights[i]);
+			if (!dataMat.masks.empty()) {
+				for (auto iit = dataMat.masks.begin(); iit != dataMat.masks.end(); ++iit)
+					filtered.masks[iit->first].push_back(iit->second[i]);
+			}
 		}
 	}
 	filtered.init_pid_pos_len();
@@ -854,63 +873,12 @@ void medial::process::filter_row_indexes_safe(MedFeatures &dataMat, const vector
 	dataMat.attributes.swap(filtered.attributes);
 	dataMat.tags.swap(filtered.tags);
 	dataMat.time_unit = filtered.time_unit;
+	dataMat.masks.swap(filtered.masks);
 }
 
-
 void medial::process::filter_row_indexes(MedFeatures &dataMat, vector<int> &selected_indexes, bool op_flag) {
-	MedFeatures filtered;
-	filtered.time_unit = dataMat.time_unit;
-	filtered.attributes = dataMat.attributes;
-
 	sort(selected_indexes.begin(), selected_indexes.end());
-
-	int curr_ind = 0;
-	if (!op_flag) {
-		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
-			filtered.data[iit->first].reserve(selected_indexes.size());
-		if (!dataMat.weights.empty())
-			filtered.weights.reserve(selected_indexes.size());
-		filtered.samples.reserve(selected_indexes.size());
-		for (int i : selected_indexes) //all selected indexes
-		{
-			filtered.samples.push_back(dataMat.samples[i]);
-			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
-				filtered.data[iit->first].push_back(iit->second[i]);
-
-			if (!dataMat.weights.empty())
-				filtered.weights.push_back(dataMat.weights[i]);
-		}
-	}
-	else {
-		for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
-			filtered.data[iit->first].reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
-		if (!dataMat.weights.empty())
-			filtered.weights.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
-		filtered.samples.reserve((int)dataMat.samples.size() - (int)selected_indexes.size());
-		for (int i = 0; i < dataMat.samples.size(); ++i)
-		{
-			//remove selected row when matched:
-			if (curr_ind < selected_indexes.size() && i == selected_indexes[curr_ind]) {
-				++curr_ind;
-				continue;
-			}
-			filtered.samples.push_back(dataMat.samples[i]);
-			for (auto iit = dataMat.data.begin(); iit != dataMat.data.end(); ++iit)
-				filtered.data[iit->first].push_back(iit->second[i]);
-			if (!dataMat.weights.empty())
-				filtered.weights.push_back(dataMat.weights[i]);
-		}
-	}
-	filtered.init_pid_pos_len();
-
-	//dataMat = filtered;
-	dataMat.samples.swap(filtered.samples);
-	dataMat.data.swap(filtered.data);
-	dataMat.weights.swap(filtered.weights);
-	dataMat.pid_pos_len.swap(filtered.pid_pos_len);
-	dataMat.attributes.swap(filtered.attributes);
-	dataMat.tags.swap(filtered.tags);
-	dataMat.time_unit = filtered.time_unit;
+	filter_row_indexes_safe(dataMat, selected_indexes, op_flag);
 }
 
 void medial::process::down_sample(MedFeatures &dataMat, double take_ratio, bool with_repeats,
