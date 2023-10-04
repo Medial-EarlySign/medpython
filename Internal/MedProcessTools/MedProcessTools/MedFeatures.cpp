@@ -2086,6 +2086,23 @@ int MedFeatures::get_masks_as_mat(MedMat<unsigned char> &masks_mat)
 
 	vector<string> names;
 	get_feature_names(names);
+	masks_mat.set_signals(names);
+	//Set metadata from samples:
+	masks_mat.recordsMetadata.resize(samples.size());
+	for (size_t i = 0; i < samples.size(); ++i)
+	{
+		RecordData &d = masks_mat.recordsMetadata[i];
+		const MedSample &s = samples[i];
+		d.id = s.id;
+		d.date = s.time;
+		d.outcomeTime = s.outcomeTime;
+		d.split = s.split;
+		d.label = s.outcome;
+		if (!s.prediction.empty())
+			d.pred = s.prediction[0];
+		if (!weights.empty())
+			d.weight = weights[i];
+	}
 
 #pragma omp parallel for
 	for (int i = 0; i < names.size(); i++) {
