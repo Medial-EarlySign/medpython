@@ -25,6 +25,7 @@
 #include <MedAlgo/MedAlgo/MedGBM.h>
 #include <MedAlgo/MedAlgo/MedMultiClass.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedAlgo/MedAlgo/MedPredictorsByMissingValues.h>
 #include <External/Eigen/Core>
 #include <cmath>
 
@@ -62,6 +63,7 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_BART, "bart" },
 	{ MODEL_EXTERNAL_NN, "external_nn" },
 	{ MODEL_SIMPLE_ENSEMBLE, "simple_ensemble" },
+	{ MODEL_BY_MISSING_VALUES_SUBSET, "by_missing_value_subset" }
 };
 //=======================================================================================
 // MedPredictor
@@ -113,6 +115,7 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedLinearModel);
 	CONDITIONAL_NEW_CLASS(dname, MedExternalNN);
 	CONDITIONAL_NEW_CLASS(dname, MedSimpleEnsemble);
+	CONDITIONAL_NEW_CLASS(dname, MedPredictorsByMissingValues);
 
 #if NEW_COMPLIER
 	CONDITIONAL_NEW_CLASS(dname, MedVW);
@@ -166,6 +169,8 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedExternalNN;
 	else if (model_type == MODEL_SIMPLE_ENSEMBLE)
 		return new MedSimpleEnsemble;
+	else if (model_type == MODEL_BY_MISSING_VALUES_SUBSET)
+		return new MedPredictorsByMissingValues;
 #if NEW_COMPLIER
 	else if (model_type == MODEL_VW)
 		return new MedVW;

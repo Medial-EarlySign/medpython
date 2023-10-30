@@ -99,6 +99,7 @@
     <ClInclude Include="MedMars.h" />
     <ClInclude Include="MedMicNet.h" />
     <ClInclude Include="MedMultiClass.h" />
+    <ClInclude Include="MedPredictorsByMissingValues.h" />
     <ClInclude Include="MedQRF.h" />
     <ClInclude Include="MedSpecificGroupModels.h" />
     <ClInclude Include="MedSVM.h" />
@@ -129,6 +130,7 @@
     <ClCompile Include="MedLM.cpp" />
     <ClCompile Include="MedMars.cpp" />
     <ClCompile Include="MedMultiClass.cpp" />
+    <ClCompile Include="MedPredictorsByMissingValues.cpp" />
     <ClCompile Include="MedQRF.cpp" />
     <ClCompile Include="MedSpecificGroupModels.cpp" />
     <ClCompile Include="MedSvm.cpp" />

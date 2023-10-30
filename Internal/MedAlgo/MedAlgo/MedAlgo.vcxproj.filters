@@ -108,6 +108,9 @@
     <ClInclude Include="MedMultiClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="MedPredictorsByMissingValues.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="MedAlgo.cpp">
@@ -192,6 +195,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SimpleEnsemble.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MedPredictorsByMissingValues.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
