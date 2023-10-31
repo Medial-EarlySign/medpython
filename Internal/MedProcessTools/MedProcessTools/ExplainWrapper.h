@@ -126,6 +126,9 @@ public:
 	virtual void Learn(const MedFeatures &train_mat);
 	void Apply(MedFeatures &matrix) { explain(matrix); } ///< alias for explain
 
+	void get_input_fields(vector<Effected_Field> &fields) const;
+	void get_output_fields(vector<Effected_Field> &fields) const;
+
 	///Init ModelExplainer from MedModel - copies predictor pointer, might save normalizers pointers
 	void init_post_processor(MedModel& model);
 

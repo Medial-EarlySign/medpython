@@ -53,6 +53,24 @@ int AggregatePredsPostProcessor::init(map<string, string> &mapper) {
 	return 0;
 }
 
+void AggregatePredsPostProcessor::get_input_fields(vector<Effected_Field> &fields) const {
+	Effected_Field f(Field_Type::FEATURE, "");
+	//empty value means all features, not a specific one
+
+	fields.push_back(f);
+}
+void AggregatePredsPostProcessor::get_output_fields(vector<Effected_Field> &fields) const {
+	Effected_Field f(Field_Type::PREDICTION, "0");
+	fields.push_back(f);
+
+	//Add additional attributes:
+	fields.push_back(Effected_Field (Field_Type::NUMERIC_ATTRIBUTE, "pred.std"));
+	fields.push_back(Effected_Field (Field_Type::NUMERIC_ATTRIBUTE, "pred.ci_lower"));
+	fields.push_back(Effected_Field (Field_Type::NUMERIC_ATTRIBUTE, "pred.ci_upper"));
+	fields.push_back(Effected_Field (Field_Type::NUMERIC_ATTRIBUTE, "pred.mean"));
+	fields.push_back(Effected_Field (Field_Type::NUMERIC_ATTRIBUTE, "pred.median"));
+}
+
 void AggregatePredsPostProcessor::init_post_processor(MedModel& model)
 {
 	p_model = &model;

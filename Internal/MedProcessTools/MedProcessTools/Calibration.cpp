@@ -35,6 +35,20 @@ CalibrationTypes clibration_name_to_type(const string& calibration_name) {
 		calibration_name.c_str(), opts.c_str());
 }
 
+void Calibrator::get_input_fields(vector<Effected_Field> &fields) const {
+	Effected_Field f(Field_Type::PREDICTION, "0");
+	Effected_Field f_w(Field_Type::NUMERIC_ATTRIBUTE, weights_attr_name);
+	
+	fields.push_back(f); //prediction
+	fields.push_back(f_w); //weight if exists
+}
+
+void Calibrator::get_output_fields(vector<Effected_Field> &fields) const {
+	Effected_Field f(Field_Type::PREDICTION, "0");
+	
+	fields.push_back(f); //prediction
+}
+
 int Calibrator::init(map<string, string>& mapper) {
 	for (auto entry : mapper) {
 		string field = entry.first;

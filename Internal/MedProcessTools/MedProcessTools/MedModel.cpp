@@ -387,7 +387,132 @@ int MedModel::learn(MedPidRepository& rep, MedSamples& model_learning_set_orig, 
 
 	return 0;
 }
+//.......................................................................................
+bool is_needed_post_processor(PostProcessor *p, const unordered_set<Effected_Field, Effected_Field::HashFunction> &requested_output) {
+	//assume not MultiPostProcessor:
+	//Let's see if this post processor has output on what's needed:
+	vector<Effected_Field> fields;
+	p->get_output_fields(fields);
+	bool needed = false;
+	//if 1 of them is needed we can stop
+	for (size_t i = 0; i < fields.size() && !needed; ++i)
+	{
+		const Effected_Field &f = fields[i];
+		//test if part of requested_output:
+		for (const Effected_Field &f_needed : requested_output)
+		{
+			//Test if f is f_needed:
+			if (f.field == f_needed.field) {
+				//can only change "needed" if on same field
+				if (f_needed.value_name.empty() || f.value_name.empty() ||
+					f.value_name == f_needed.value_name)
+					needed = true; //if f_needed value is empty - means we need all.
+			}
+		}
+		if (needed)
+			break;
+	}
+	return needed;
+}
 
+void MedModel::no_init_apply_partial(MedPidRepository& rep, MedSamples& samples,
+	const vector<Effected_Field> &requested_outputs) {
+	no_init_apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_LEARN_PREDICTOR); //Stop before predictor
+
+	//test from post_processors end to begining and predictor what to apply:
+	vector<vector<char>> apply_pp(post_processors.size());
+	unordered_set<Effected_Field, Effected_Field::HashFunction> current_fields(requested_outputs.begin(), requested_outputs.end()); //might expend when apply what's needed
+	for (int i = (int)post_processors.size() - 1; i >= 0; --i)
+	{
+		unordered_set<Effected_Field, Effected_Field::HashFunction> input_fields_to_add;
+		vector<char> &mask_apply = apply_pp[i]; //edit this to choose what to apply
+		if (post_processors[i]->processor_type == PostProcessorTypes::FTR_POSTPROCESS_MULTI) {
+			MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+			mask_apply.resize(multi->post_processors.size());
+
+			for (size_t j = 0; j < mask_apply.size(); ++j)
+			{
+				mask_apply[j] = is_needed_post_processor(multi->post_processors[j],
+					current_fields);
+				if (mask_apply[j]) {
+					//update needed fields -> add inputs of p as needed!
+					vector<Effected_Field> inp_fields;
+					multi->post_processors[j]->get_input_fields(inp_fields);
+					input_fields_to_add.insert(inp_fields.begin(), inp_fields.end());
+				}
+			}
+		}
+		else {
+			mask_apply.resize(1);
+			//check if we need to apply this pp
+			mask_apply[0] = is_needed_post_processor(post_processors[i], current_fields);
+			if (mask_apply[0]) {
+				//update needed fields -> add inputs of post_processors[i] as needed!
+				vector<Effected_Field> inp_fields;
+				post_processors[i]->get_input_fields(inp_fields);
+				input_fields_to_add.insert(inp_fields.begin(), inp_fields.end());
+			}
+		}
+
+		//update current_fields from input_fields_to_add (if empty will do nothing):
+		current_fields.insert(input_fields_to_add.begin(), input_fields_to_add.end());
+	}
+
+	//apply of needed prediction
+	bool predictor_needed = false;
+	for (const Effected_Field &f : current_fields)
+	{
+		predictor_needed = f.field == Field_Type::PREDICTION;
+		if (predictor_needed)
+			break;
+	}
+
+	if (predictor_needed) {
+		apply_predictor(samples);
+		if (samples.insert_preds(features) != 0)
+			MTHROW_AND_ERR("Insertion of predictions to samples failed\n");
+	}
+
+	//now we have binary mask for what to apply in apply_pp
+	if (verbosity > 0) MLOG("Applying %d postprocessors\n", (int)post_processors.size());
+	MedTimer pp_timer("post_processors"); pp_timer.start();
+	for (size_t i = 0; i < post_processors.size(); ++i) {
+		const vector<char> &current_pp_mask = apply_pp[i];
+		if (post_processors[i]->processor_type == PostProcessorTypes::FTR_POSTPROCESS_MULTI) {
+			MultiPostProcessor *multi = static_cast<MultiPostProcessor *>(post_processors[i]);
+			for (size_t j = 0; j < multi->post_processors.size(); ++j)
+				if (current_pp_mask[j]) {
+					multi->post_processors[j]->Apply(features);
+					if (verbosity > 0)
+						MLOG("Apply %s\n", multi->post_processors[j]->my_class_name().c_str());
+				}
+				else {
+					if (verbosity > 0)
+						MLOG("SKIP %s\n", multi->post_processors[j]->my_class_name().c_str());
+				}
+		}
+		else {
+			if (current_pp_mask[0]) {
+				post_processors[i]->Apply(features);
+				if (verbosity > 0)
+					MLOG("Apply %s\n", post_processors[i]->my_class_name().c_str());
+			}
+			else {
+				if (verbosity > 0)
+					MLOG("SKIP %s\n", post_processors[i]->my_class_name().c_str());
+			}
+		}
+
+	}
+	pp_timer.take_curr_time();
+	if (verbosity > 0)
+		MLOG("Finished postprocessors within %2.1f seconds\n", pp_timer.diff_sec());
+
+	if (samples.insert_preds(features) != 0)
+		MTHROW_AND_ERR("Insertion of predictions to samples failed\n");
+	if (samples.copy_attributes(features.samples) != 0)
+		MTHROW_AND_ERR("Insertion of post_process to samples failed\n");
+}
 //.......................................................................................
 // Apply
 int MedModel::apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage) {
@@ -545,6 +670,35 @@ int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_st
 }
 
 //-------------------------------------------------------------------------------------------------------------------------------
+int MedModel::apply_predictor(MedSamples &samples) {
+	if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
+	if (predictor != NULL) {
+		if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
+			vector<float> pred_res, features_vec(features.data.size());
+			int i_feat = 0;
+			for (const auto &it : features.data)
+			{
+				features_vec[i_feat] = it.second[0];
+				++i_feat;
+			}
+			predictor->predict_single(features_vec, pred_res);
+			features.samples[0].prediction = move(pred_res);
+		}
+		else {
+			if (predictor->predict(features) < 0) {
+				MERR("Predictor failed\n");
+				return -1;
+			}
+			//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
+			bool need_agg = samples.nSamples() != features.samples.size();
+			if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
+				aggregate_samples(features, take_mean_pred, true);
+		}
+	}
+	else
+		MWARN("Model has no predictor\n");
+	return 0;
+}
 int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage)
 {
 	p_rep = &rep;
@@ -597,32 +751,9 @@ int MedModel::no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModel
 	if (generate_masks_for_features) { features.mark_imputed_in_masks(); }
 	// Apply predictor
 	if (start_stage <= MED_MDL_APPLY_PREDICTOR) {
-		if (verbosity > 0) MLOG("before predict: for MedFeatures of: %d x %d\n", features.data.size(), features.samples.size());
-		if (predictor != NULL) {
-			if (features.samples.size() == 1 && !predictor->predict_single_not_implemented()) {
-				vector<float> pred_res, features_vec(features.data.size());
-				int i_feat = 0;
-				for (const auto &it : features.data)
-				{
-					features_vec[i_feat] = it.second[0];
-					++i_feat;
-				}
-				predictor->predict_single(features_vec, pred_res);
-				features.samples[0].prediction = move(pred_res);
-			}
-			else {
-				if (predictor->predict(features) < 0) {
-					MERR("Predictor failed\n");
-					return -1;
-				}
-				//MLOG("samples %d features.samples %d n_preds %d\n", samples.nSamples(), features.samples.size(), predictor->n_preds_per_sample());
-				bool need_agg = samples.nSamples() != features.samples.size();
-				if (need_agg) //to save time - check is need to aggregate - has some FP that generates new matrix
-					aggregate_samples(features, take_mean_pred, true);
-			}
-		}
-		else
-			MWARN("Model has no predictor\n");
+		int rc_pred = apply_predictor(samples);
+		if (rc_pred != 0)
+			return rc_pred;
 	}
 
 	if (end_stage <= MED_MDL_APPLY_PREDICTOR)
@@ -821,14 +952,14 @@ int MedModel::generate_features(MedPidRepository &rep, MedSamples *samples, vect
 
 #pragma omp critical 
 				if (rc < 0) RC = -1;
-			}
+		}
 			catch (...) {
 				// have to catch each thread
 				thrown = -1;
 				MERR("!!! Got thrown set to %d\n", thrown);
 				//throw std::runtime_error("thrown from openmp");
 			}
-		}
+	}
 	}
 	catch (...) {
 		MERR("Caught An error in generate_feature()\n");
@@ -1563,7 +1694,7 @@ void MedModel::get_required_signal_names(unordered_set<string>& signalNames) con
 
 // Get required names as a vector
 //.......................................................................................
-void MedModel::get_required_signal_names(vector<string>& signalNames) const{
+void MedModel::get_required_signal_names(vector<string>& signalNames) const {
 	unordered_set<string> sigs;
 	get_required_signal_names(sigs);
 	signalNames.clear();

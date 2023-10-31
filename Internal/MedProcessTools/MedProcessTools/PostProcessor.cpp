@@ -116,6 +116,25 @@ void *PostProcessor::new_polymorphic(string dname)
 	return NULL;
 }
 
+void MultiPostProcessor::get_input_fields(vector<Effected_Field> &fields) const {
+	unordered_set<Effected_Field, Effected_Field::HashFunction> full_ls;
+	for (size_t i = 0; i < post_processors.size(); ++i) {
+		vector<Effected_Field> f;
+		post_processors[i]->get_input_fields(f);
+		full_ls.insert(f.begin(), f.end());
+	}
+	fields.insert(fields.end(), full_ls.begin(), full_ls.end());
+}
+void MultiPostProcessor::get_output_fields(vector<Effected_Field> &fields) const {
+	unordered_set<Effected_Field, Effected_Field::HashFunction> full_ls;
+	for (size_t i = 0; i < post_processors.size(); ++i) {
+		vector<Effected_Field> f;
+		post_processors[i]->get_output_fields(f);
+		full_ls.insert(f.begin(), f.end());
+	}
+	fields.insert(fields.end(), full_ls.begin(), full_ls.end());
+}
+
 void MultiPostProcessor::init_post_processor(MedModel& model) {
 #pragma omp parallel for if (call_parallel_learn && post_processors.size()>1)
 	for (int i = 0; i < post_processors.size(); ++i)
@@ -147,7 +166,7 @@ void MultiPostProcessor::Apply(MedFeatures &matrix) {
 
 void MultiPostProcessor::dprint(const string &pref) const {
 	MLOG("%s :: %s\n", pref.c_str(), my_class_name().c_str());
-	for (size_t i = 0; i < post_processors.size(); ++i) 
+	for (size_t i = 0; i < post_processors.size(); ++i)
 		post_processors[i]->dprint("\t" + pref + "-in-MULTI[" + to_string(i) + "]");
 }
 
@@ -171,7 +190,7 @@ float MultiPostProcessor::get_use_p() {
 				MTHROW_AND_ERR("MultiPostProcessor: use_p inconsistecny (%f vs %f)\n", use_p, post_processors[i]->use_p);
 		}
 	}
-	
+
 	return use_p;
 }
 

@@ -22,6 +22,23 @@ public:
 	string field;
 	int type = PREDICTION_SOURCE_UNKNOWN;
 	int pred_channel = -1; // relevant only if type is PREDICTION_SOURCE_PREDICTIONS
+
+	bool operator==(const json_req_export &other) const {
+		if (this->field == other.field && this->pred_channel == other.pred_channel &&
+			this->type == other.type) return true;
+		else return false;
+	}
+
+	struct HashFunction
+	{
+		size_t operator()(const json_req_export& other) const
+		{
+			size_t xHash = std::hash<int>()(other.type);
+			size_t yHash = std::hash<int>()(other.pred_channel) << 1;
+			size_t zHash = std::hash<string>()(other.field) << 2;
+			return xHash ^ yHash ^ zHash;
+		}
+	};
 };
 
 class json_req_info {
@@ -1035,11 +1052,54 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
+	//Fetch what's needed:
+	unordered_set<json_req_export, json_req_export::HashFunction> set_rep_f;
+	for (int i = 0; i < sample_reqs.size(); i++) {
+		json_req_info &req_i = sample_reqs[i];
+		unordered_map<string, json_req_export> &req_fields = req_i.exports;
+		for (auto &it : req_fields)
+			set_rep_f.insert(it.second);
+	}
+	vector<json_req_export> uniq_req_fields(set_rep_f.begin(), set_rep_f.end());
+	//convert to requested_fields
+	unordered_set<Effected_Field, Effected_Field::HashFunction> set_requested_fields;
+	for (size_t i = 0; i < uniq_req_fields.size(); ++i)
+	{
+		const json_req_export &jinp = uniq_req_fields[i];
+		Effected_Field f;
+		switch (jinp.type)
+		{
+		case PREDICTION_SOURCE_ATTRIBUTE:
+			f.field = Field_Type::NUMERIC_ATTRIBUTE;
+			f.value_name = jinp.field;
+			//add also string attributes
+			set_requested_fields.insert(Effected_Field(Field_Type::STRING_ATTRIBUTE, jinp.field));
+			break;
+		case PREDICTION_SOURCE_ATTRIBUTE_AS_JSON:
+			f.field = Field_Type::STRING_ATTRIBUTE;
+			f.value_name = jinp.field;
+			break;
+		case PREDICTION_SOURCE_JSON:
+			f.field = Field_Type::JSON_DATA;
+			f.value_name = jinp.field;
+			break;
+		case PREDICTION_SOURCE_PREDICTIONS:
+			f.field = Field_Type::PREDICTION;
+			f.value_name = to_string(jinp.pred_channel);
+			break;
+		default:
+			MLOG("WARN unknown request field %s\n", jinp.field.c_str());
+			break;
+		}
+		set_requested_fields.insert(f);
+	}
+	vector<Effected_Field> requested_fields(set_requested_fields.begin(), set_requested_fields.end());
+
 	// at this point in time we are ready to score eligible_pids,eligible_timepoints. We will do that, and later wrap it all up into a single json back.
 	int _n_points = (int)eligible_pids.size();
 	int get_preds_rc = -1;
 	try {
-		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points)) < 0) {
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points, requested_fields)) < 0) {
 			add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc));
 			json_to_char_ptr(jresp, response);
 			return AM_FAIL_RC;
@@ -1547,7 +1607,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									else
 										sv = v.get<string>().c_str();
 								}
-								
+
 								int slen = (int)sv.length();
 								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
 								if (curr_s + 1 + slen > s_data_size) {

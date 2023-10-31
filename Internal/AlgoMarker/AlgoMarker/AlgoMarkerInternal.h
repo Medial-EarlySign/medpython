@@ -321,6 +321,55 @@ public:
 		return get_raw_preds(_pids, times, preds);
 	}
 
+	int get_preds(int *_pids, int *times, float *preds, int n_samples,
+		const vector<Effected_Field> &requested_fields) {
+
+		// init_samples
+		init_samples(_pids, times, n_samples);
+
+		return get_raw_preds(_pids, times, preds, requested_fields);
+	}
+
+	int get_raw_preds(int *_pids, int *times, float *preds,
+		const vector<Effected_Field> &requested_fields) {
+
+		try {
+
+			try {
+				// run model to calculate predictions
+				if (!samples.idSamples.empty())
+					model.no_init_apply_partial(rep, samples, requested_fields);
+			}
+			catch (...) {
+				fprintf(stderr, "Caught an exception in no_init_apply_partial\n");
+				return -1;
+			}
+
+			// export pids, times and preds to c arrays
+			int j = 0;
+			if (preds != NULL) {
+				for (auto& idSample : samples.idSamples)
+					for (auto& sample : idSample.samples) {
+						_pids[j] = sample.id;
+						times[j] = sample.time;
+						preds[j] = sample.prediction.size() > 0 ? sample.prediction[0] : (float)AM_UNDEFINED_VALUE; // This is Naive - but works for simple predictors giving the Raw score.
+						j++;
+					}
+			}
+
+			return 0;
+		}
+		catch (int &exception_code) {
+			fprintf(stderr, "Caught an exception code: %d\n", exception_code);
+			return -1; // exception_code;
+		}
+		catch (...) {
+			fprintf(stderr, "Caught Something...\n");
+			return -1;
+		}
+	}
+
+
 	int get_raw_preds(int *_pids, int *times, float *preds) {
 
 		try {
