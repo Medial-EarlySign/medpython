@@ -18,9 +18,16 @@ int MedPredictorsByMissingValues::init(map<string, string>& mapper) {
 	//! [MedPredictorsByMissingValues::init]
 }
 
-int MedPredictorsByMissingValues::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
+int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, const vector<float> &wgts) {
 	throw logic_error("please implement");
+	//x.write_to_csv_file() - write to csv
+	//x(i,j); - access sample i in feature j
+	//x.signals - name of features
+	//x.get_sub_mat() - return subset of matrix
+
+	//predictors.push_back(MedPredictor::make_predictor(predictor_type,predictor_params));
+	//predictors[0]->learn(x, y, wgts);
 }
-int MedPredictorsByMissingValues::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
+int MedPredictorsByMissingValues::predict(MedMat<float> &x, vector<float> &preds) const {
 	throw logic_error("please implement");
 }

@@ -14,8 +14,9 @@ public:
 	/// @snippet MedPredictorsByMissingValues.cpp MedPredictorsByMissingValues::init
 	/// </summary>
 	int init(map<string, string>& mapper);
-	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
-	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
+	//int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
+	int learn(MedMat<float> &x, MedMat<float> &y, const vector<float> &wgts);
+	int predict(MedMat<float> &x, vector<float> &preds) const;
 
 	~MedPredictorsByMissingValues() {
 		for (size_t i = 0; i < predictors.size(); ++i)
