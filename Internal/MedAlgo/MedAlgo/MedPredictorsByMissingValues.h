@@ -8,6 +8,7 @@ public:
 	vector<MedPredictor *> predictors;
 	string predictor_type;
 	string predictor_params;
+	string masks_params;
 
 	/// <summary>
 	/// an initialization for model
