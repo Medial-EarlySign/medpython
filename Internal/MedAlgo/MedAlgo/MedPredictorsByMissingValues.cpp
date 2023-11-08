@@ -38,14 +38,27 @@ vector<int> MedPredictorsByMissingValues::get_cols_of_mask(string &full_mask, ve
 		MTHROW_AND_ERR("Check the masks - one of the masks is empty");
 	}
 	
-	string sig;
+	string sig, sig1;
 	for (int m = 0; m < signals_in_mask.size(); m++) {
 		len_cols = cols.size();
-		sig = '.' + signals_in_mask[m]; // not optimal when one signal name is part of another signal name both starting the same, '.signal.' could have been better, however not working for features without time window
-		for (int s = 0; s < signals.size(); s++) {
-			bool isFound = signals[s].find(sig) != string::npos;
-			if (isFound) {
-				cols.insert(cols.end(), s);
+		if (signals_in_mask[m] == "Smoking_Intensity") {
+			sig = "Smok_Pack_Years";
+			sig1 = "Smoking_Intensity";
+			for (int s = 0; s < signals.size(); s++) {
+				bool isFound = signals[s].find(sig) != string::npos;
+				bool isFound1 = signals[s].find(sig1) != string::npos;
+				if (isFound | isFound1) {
+					cols.insert(cols.end(), s);
+				}
+			}
+		}
+		else {
+			sig = '.' + signals_in_mask[m] + '.'; 
+			for (int s = 0; s < signals.size(); s++) {
+				bool isFound = signals[s].find(sig) != string::npos;
+				if (isFound) {
+					cols.insert(cols.end(), s);
+				}
 			}
 		}
 		if (len_cols == cols.size()) {
@@ -72,7 +85,7 @@ vector<int> MedPredictorsByMissingValues::get_cols_of_predictor(int i, vector<ve
 	for (int j = cols_per_mask.size() - 1; j >= 0; j--) {
 		if (i >= pow(2, j)) {
 			// mask j is part of model i
-			cout << "mask " << j << " is part of predictor " << i << " with " << cols_per_mask[j].size() << " features" << endl;
+			// cout << "mask " << j << " is part of predictor " << i << " with " << cols_per_mask[j].size() << " features" << endl;
 			i = i - pow(2, j);
 			cols.insert(cols.end(), cols_per_mask[j].begin(), cols_per_mask[j].end());
 		}
@@ -84,7 +97,6 @@ vector<int> MedPredictorsByMissingValues::get_cols_of_predictor(int i, vector<ve
 	for (int s = 0; s < cols.size(); s++)
 		cols_to_keep_p.erase(remove(cols_to_keep_p.begin(), cols_to_keep_p.end(), cols[s]), cols_to_keep_p.end());
 
-	cout << "returning " << cols_to_keep_p.size() << " features after " << cols.size() << " were moved out" << endl;
 	return cols_to_keep_p;
 }
 
@@ -169,7 +181,6 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		// what are the features of predictor i
 		cols_to_keep_p = get_cols_of_predictor(i, cols_per_mask, all_cols);
 		cols_per_predictor.insert(cols_per_predictor.end(), cols_to_keep_p);
-		cout << "############# predictor " << i << " has " << cols_per_predictor[i].size() << "features" << endl;
 	}
 
 	// for every mask - find the indicator columns
@@ -211,8 +222,6 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		}
 
 		// predict per sample
-
-		cout << "sample " << i << " uses predictor " << p << " with " << cols_per_predictor[p].size() << " features" << endl;
 
 		x_copy = x;
 		sample_number.clear();
