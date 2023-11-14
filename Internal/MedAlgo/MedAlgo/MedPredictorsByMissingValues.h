@@ -31,6 +31,10 @@ public:
 		predictors.clear();
 	}
 
+	MedPredictorsByMissingValues() {
+		classifier_type = MODEL_BY_MISSING_VALUES_SUBSET;
+	}
+
 	ADD_CLASS_NAME(MedPredictorsByMissingValues)
 		ADD_SERIALIZATION_FUNCS(classifier_type, predictors, predictor_type, predictor_params, masks_params, masks_tw)
 };
