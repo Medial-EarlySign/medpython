@@ -17,7 +17,7 @@ void UnifiedSmokingGenerator::set_names() {
 		if (legal_features.find(s) == legal_features.end())
 			MTHROW_AND_ERR("UnifiedSmokingGenerator does not know how to generate [%s]", s.c_str());
 		if ((s == "NLST_Criterion") && (nonDefaultNlstCriterion == true))
-			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Smoking." + s + "_min_age_" + to_string((int)nlstMinAge) + "_max_age_" + to_string((int)nlstMaxAge) + "_pack_years_" + to_string((int)nlstPackYears));
+			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Smoking." + s + "_min_age_" + to_string((int)nlstMinAge) + "_max_age_" + to_string((int)nlstMaxAge) + "_pack_years_" + to_string((int)nlstPackYears) + "_quit_years_" + to_string((int)nlstQuitTimeYears));
 		else
 			names.push_back("FTR_" + int_to_string_digits(serial_id, 6) + ".Smoking." + s);
 	}
