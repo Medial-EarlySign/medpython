@@ -126,6 +126,8 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 		cols_per_mask.insert(cols_per_mask.end(), cols);
 	}
 	
+	x.recordsMetadata.clear();
+
 	for (int i = 0; i < p; i++) {
 		// what are the features of predictor i
 		cols_to_keep_p = get_cols_of_predictor(i, cols_per_mask, all_cols);
@@ -137,7 +139,7 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 		// train model i
 		predictors.push_back(MedPredictor::make_predictor(predictor_type, predictor_params));
 		predictors[i]->learn(x_copy, y, wgts);
-		x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/tmp" + to_string(i) + ".csv"); // write to csv
+		//x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/tmp" + to_string(i) + ".csv"); // write to csv
 	}
 	return 0;
 }
@@ -154,7 +156,6 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	string sig;
 	vector<vector<string>> indicator_cols;
 	int s_found;
-	int missing;
 	vector<int> sample_number;
 	vector<float> score;
 
@@ -206,13 +207,17 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		}
 		indicator_cols.insert(indicator_cols.end(), mask);
 	}
-	
+
+	vector<float> sample(x.signals.size());
+	vector<float> sample4p(x.signals.size());
+
 	// for every sample - find the right predictor
+//#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.get_nrows(); i++) {
-		p = 0; // default, no mask is needed
+		int p = 0; // default, no mask is needed
 		// for every mask, check if value is missing in 50% or more of the indicator columns
 		for (int s = 0; s < masks.size(); s++) {
-			missing = 0;
+			int missing = 0;
 			for (int m = 0; m < indicator_cols[s].size(); m++) {
 				if (int(features.masks[indicator_cols[s][m]][i]) > 0)
 					missing = missing + 1;
@@ -222,12 +227,13 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		}
 
 		// predict per sample
+		x.get_row(i, sample);
+		for (int j = 0; j < cols_per_predictor[p].size(); j++) {
+			sample4p[j] = sample[cols_per_predictor[p][j]];
+		}
 
-		x_copy = x;
-		sample_number.clear();
-		sample_number.insert(sample_number.end(), i);
-		x_copy.get_sub_mat(sample_number, cols_per_predictor[p]);
-		predictors[p]->predict(x_copy, score);
+		//cout << "predict ..." << endl;
+		predictors[p]->predict(sample4p, score, 1, cols_per_predictor[p].size());
 
 		features.samples[i].prediction = { score[0] };
 
