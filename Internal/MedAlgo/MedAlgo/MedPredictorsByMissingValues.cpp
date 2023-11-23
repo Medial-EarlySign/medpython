@@ -211,10 +211,13 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	vector<float> sample(x.signals.size());
 	vector<float> sample4p(x.signals.size());
 
+	vector<int> mask_stat(masks.size());
+	vector<int> predictor_stat(p);
+
 	// for every sample - find the right predictor
 //#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.get_nrows(); i++) {
-		int p = 0; // default, no mask is needed
+		int p1 = 0; // default, no mask is needed
 		// for every mask, check if value is missing in 50% or more of the indicator columns
 		for (int s = 0; s < masks.size(); s++) {
 			int missing = 0;
@@ -222,22 +225,36 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 				if (int(features.masks[indicator_cols[s][m]][i]) > 0)
 					missing = missing + 1;
 			}
-			if (2 * missing >= indicator_cols[s].size())
-				p = p + pow(2, s);
+			if (2 * missing >= indicator_cols[s].size()) {
+				p1 = p1 + pow(2, s);
+				mask_stat[s]++;
+			}
 		}
+		predictor_stat[p1]++;
 
 		// predict per sample
 		x.get_row(i, sample);
-		for (int j = 0; j < cols_per_predictor[p].size(); j++) {
-			sample4p[j] = sample[cols_per_predictor[p][j]];
+		for (int j = 0; j < cols_per_predictor[p1].size(); j++) {
+			sample4p[j] = sample[cols_per_predictor[p1][j]];
 		}
 
 		//cout << "predict ..." << endl;
-		predictors[p]->predict(sample4p, score, 1, cols_per_predictor[p].size());
+		predictors[p1]->predict(sample4p, score, 1, cols_per_predictor[p1].size());
 
 		features.samples[i].prediction = { score[0] };
 
 	}
+
+	// report some stat
+	cout << "MASKs frequencyn" << endl;
+	for (int m = 0; m < masks.size(); m++) {
+		cout << (float) 100 * mask_stat[m] / x.get_nrows() << "% " << masks[m] << endl;
+	}
+	cout << endl << "Predictors frequency - predictor 0 is no mask" << endl;
+	for (int m = 0; m < p; m++) {
+		cout << m << " " << (float)100 * predictor_stat[m] / x.get_nrows() << "%" << endl;
+	}
+
 	return 0;
 }
 
