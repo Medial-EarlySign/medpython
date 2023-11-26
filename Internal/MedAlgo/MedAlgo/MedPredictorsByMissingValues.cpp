@@ -126,6 +126,8 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 		cols_per_mask.insert(cols_per_mask.end(), cols);
 	}
 	
+	x.recordsMetadata.clear();
+
 	for (int i = 0; i < p; i++) {
 		// what are the features of predictor i
 		cols_to_keep_p = get_cols_of_predictor(i, cols_per_mask, all_cols);
@@ -137,7 +139,7 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 		// train model i
 		predictors.push_back(MedPredictor::make_predictor(predictor_type, predictor_params));
 		predictors[i]->learn(x_copy, y, wgts);
-		x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/tmp" + to_string(i) + ".csv"); // write to csv
+		//x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/tmp" + to_string(i) + ".csv"); // write to csv
 	}
 	return 0;
 }
@@ -154,7 +156,6 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	string sig;
 	vector<vector<string>> indicator_cols;
 	int s_found;
-	int missing;
 	vector<int> sample_number;
 	vector<float> score;
 
@@ -206,32 +207,54 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		}
 		indicator_cols.insert(indicator_cols.end(), mask);
 	}
-	
+
+	vector<float> sample(x.signals.size());
+	vector<float> sample4p(x.signals.size());
+
+	vector<int> mask_stat(masks.size());
+	vector<int> predictor_stat(p);
+
 	// for every sample - find the right predictor
+//#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.get_nrows(); i++) {
-		p = 0; // default, no mask is needed
+		int p1 = 0; // default, no mask is needed
 		// for every mask, check if value is missing in 50% or more of the indicator columns
 		for (int s = 0; s < masks.size(); s++) {
-			missing = 0;
+			int missing = 0;
 			for (int m = 0; m < indicator_cols[s].size(); m++) {
 				if (int(features.masks[indicator_cols[s][m]][i]) > 0)
 					missing = missing + 1;
 			}
-			if (2 * missing >= indicator_cols[s].size())
-				p = p + pow(2, s);
+			if (2 * missing >= indicator_cols[s].size()) {
+				p1 = p1 + pow(2, s);
+				mask_stat[s]++;
+			}
 		}
+		predictor_stat[p1]++;
 
 		// predict per sample
+		x.get_row(i, sample);
+		for (int j = 0; j < cols_per_predictor[p1].size(); j++) {
+			sample4p[j] = sample[cols_per_predictor[p1][j]];
+		}
 
-		x_copy = x;
-		sample_number.clear();
-		sample_number.insert(sample_number.end(), i);
-		x_copy.get_sub_mat(sample_number, cols_per_predictor[p]);
-		predictors[p]->predict(x_copy, score);
+		//cout << "predict ..." << endl;
+		predictors[p1]->predict(sample4p, score, 1, cols_per_predictor[p1].size());
 
 		features.samples[i].prediction = { score[0] };
 
 	}
+
+	// report some stat
+	cout << "MASKs frequencyn" << endl;
+	for (int m = 0; m < masks.size(); m++) {
+		cout << (float) 100 * mask_stat[m] / x.get_nrows() << "% " << masks[m] << endl;
+	}
+	cout << endl << "Predictors frequency - predictor 0 is no mask" << endl;
+	for (int m = 0; m < p; m++) {
+		cout << m << " " << (float)100 * predictor_stat[m] / x.get_nrows() << "%" << endl;
+	}
+
 	return 0;
 }
 
