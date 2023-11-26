@@ -245,7 +245,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 				}
 				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
 					float val;
-					if (!rep.sigs.is_categorical_channel(sid, j))
+					if (!rep.sigs.is_categorical_channel(sid, j)) 
 						val = stof(Values[Values_i++]);
 					else
 						val = category_map.at(Values[val_start + j]);
@@ -858,9 +858,9 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 					}
 
 				}
+					}
+				}
 			}
-		}
-	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -879,7 +879,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+		}
 
 
 //------------------------------------------------------------------------------------------
@@ -908,7 +908,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (!ma.model_initiated()) {
 		if (ma.init_model_for_apply() < 0)
 			return AM_FAIL_RC;
-	}
+		}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: init_model_for_apply %2.1f milisecond\n", timer.diff_milisec());
@@ -1212,7 +1212,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+			}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1358,6 +1358,7 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
+	MedRepository &rep = ma.get_rep();
 	bool good = true;
 	bool mark_succ_ = false;
 	try {
@@ -1586,7 +1587,30 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 							for (auto &v : d["value"]) {
 								string sv;
 								if (v.is_number() && !is_categ[nv]) {
+									//Check if "Date"
+									int sid = rep.sigs.Name2Sid[sig];
+									string unit_m = rep.sigs.unit_of_measurement(sid, nv);
+									boost::to_lower(unit_m);
 									sv = to_string(v.get<double>());
+									if (unit_m == "date") {
+										int full_date = (int)v.get<double>();
+										//check if valid date?
+										if (!med_time_converter.is_valid_date(full_date)) {
+											char buf[5000];
+											if (patient_id != 1)
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, full_date);
+											else
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), full_date);
+											messages.push_back(string(buf));
+											MLOG("%s\n", buf);
+											good = false;
+											good_sig = false;
+											good_record = false;
+											break;
+										}
+									}
 								}
 								else {
 									if (!v.is_string()) {

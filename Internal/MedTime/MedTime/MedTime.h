@@ -40,6 +40,8 @@ public:
 
 	MedTime() { init_time_tables(); }
 
+	bool is_valid_date(int date) const;
+
 	// general converters
 	// when times are given/returned in int they are rounded to the floor
 	// then times are given/returned in double they are in fractions of the given/requested unit
