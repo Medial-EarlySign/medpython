@@ -19,7 +19,7 @@ bool MedTime::is_valid_date(int date) const {
 
 	if (valid) {
 		//check month:
-		int month = int((year % 10000) / 100);
+		int month = int(date / 100) % 100;
 		valid = month >= 1 && month <= 12;
 		if (valid) { //check day:
 			int day = date % 100;

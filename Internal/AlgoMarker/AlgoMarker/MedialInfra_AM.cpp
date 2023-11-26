@@ -1456,6 +1456,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				}
 				if (good_sig) {
 					sig = s["code"].get<string>();
+					int sid = rep.sigs.Name2Sid[sig];
 					get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 					if (n_time_channels == 0 && n_val_channels == 0) {
 						char buf[5000];
@@ -1587,30 +1588,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 							for (auto &v : d["value"]) {
 								string sv;
 								if (v.is_number() && !is_categ[nv]) {
-									//Check if "Date"
-									int sid = rep.sigs.Name2Sid[sig];
-									string unit_m = rep.sigs.unit_of_measurement(sid, nv);
-									boost::to_lower(unit_m);
 									sv = to_string(v.get<double>());
-									if (unit_m == "date") {
-										int full_date = (int)v.get<double>();
-										//check if valid date?
-										if (!med_time_converter.is_valid_date(full_date)) {
-											char buf[5000];
-											if (patient_id != 1)
-												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %d.",
-													AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, full_date);
-											else
-												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %d.",
-													AM_DATA_BAD_FORMAT, sig.c_str(), full_date);
-											messages.push_back(string(buf));
-											MLOG("%s\n", buf);
-											good = false;
-											good_sig = false;
-											good_record = false;
-											break;
-										}
-									}
 								}
 								else {
 									if (!v.is_string()) {
@@ -1631,6 +1609,47 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									else
 										sv = v.get<string>().c_str();
 								}
+
+								//Check if "Date"
+								string unit_m = rep.sigs.unit_of_measurement(sid, nv);
+								boost::to_lower(unit_m);
+								if (unit_m == "date") {
+									try {
+										int full_date = (int)stod(sv);
+										//check if valid date?
+										if (!med_time_converter.is_valid_date(full_date)) {
+											char buf[5000];
+											if (patient_id != 1)
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, full_date);
+											else
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), full_date);
+											messages.push_back(string(buf));
+											MLOG("%s\n", buf);
+											good = false;
+											good_sig = false;
+											good_record = false;
+											break;
+										}
+									}
+									catch (...) {
+										char buf[5000];
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %s.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, sv.c_str());
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %s.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), sv.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+								}
+
 
 								int slen = (int)sv.length();
 								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
