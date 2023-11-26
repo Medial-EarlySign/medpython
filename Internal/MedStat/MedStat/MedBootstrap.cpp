@@ -1292,6 +1292,14 @@ void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &
 	vector<int> preds_order;
 	map<string, vector<float>> bt_data;
 	mbr.prepare_bootstrap(features, preds, labelsOrig, pidsOrig, bt_data, preds_order);
+	//check that all params are known:
+	const vector<Filter_Param> &filters_test = mbr.filter_cohort["bs"];
+	for (size_t i = 0; i < filters_test.size(); ++i)
+	{
+		const string &fname = filters_test[i].param_name;
+		if (bt_data.find(fname) == bt_data.end())
+			MTHROW_AND_ERR("Error - can't find %s in data\n", fname.c_str());
+	}
 
 	//commit filter on: test_bt_features and store to curr_samples
 	vector<int> sel;
