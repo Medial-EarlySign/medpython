@@ -1272,6 +1272,43 @@ void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivo
 		read_bootstrap_results(path, bootstrap_results);
 }
 
+void map_bootstrap_names(vector<Filter_Param> &filters_test,
+	const map<string, vector<float>> &data) {
+	bool all_valid = true;
+	vector<string> all_names_ls;
+	for (auto &it : data)
+		all_names_ls.push_back(it.first);
+
+	for (Filter_Param param_name : filters_test)
+		if (data.find(param_name.param_name) == data.end()) {
+			//try and fix first:
+			int fn_pos = find_in_feature_names(all_names_ls, param_name.param_name, false);
+			if (fn_pos < 0) {
+				all_valid = false;
+				MERR("ERROR:: Wrong use in \"%s\" as filter params. the parameter is missing\n", param_name.param_name.c_str());
+			}
+			else {
+				//fix name:
+				string found_nm = all_names_ls[fn_pos];
+				MLOG("Mapped %s => %s\n", param_name.param_name.c_str(), found_nm.c_str());
+				for (Filter_Param &pp : filters_test)
+					if (pp.param_name == param_name.param_name)
+						pp.param_name = found_nm;
+			}
+		}
+
+	if (!all_valid) {
+		MLOG("Feature Names availible for cohort filtering:\n");
+		for (auto it = data.begin(); it != data.end(); ++it)
+			MLOG("%s\n", it->first.c_str());
+		MLOG("Time-Window\n");
+		MLOG("\n");
+
+		MTHROW_AND_ERR("Cohort file has wrong paramter names. look above for all avaible params\n");
+	}
+}
+
+
 void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &bt_cohort) {
 	//create bt object with cohort filter
 	MedBootstrap mbr;
@@ -1293,14 +1330,9 @@ void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &
 	map<string, vector<float>> bt_data;
 	mbr.prepare_bootstrap(features, preds, labelsOrig, pidsOrig, bt_data, preds_order);
 	//check that all params are known:
-	const vector<Filter_Param> &filters_test = mbr.filter_cohort["bs"];
-	for (size_t i = 0; i < filters_test.size(); ++i)
-	{
-		const string &fname = filters_test[i].param_name;
-		if (bt_data.find(fname) == bt_data.end())
-			MTHROW_AND_ERR("Error - can't find %s in data\n", fname.c_str());
-	}
-
+	vector<Filter_Param> &filters_test = mbr.filter_cohort["bs"];
+	map_bootstrap_names(filters_test, bt_data);
+	
 	//commit filter on: test_bt_features and store to curr_samples
 	vector<int> sel;
 	for (int i = 0; i < features.samples.size(); ++i)
