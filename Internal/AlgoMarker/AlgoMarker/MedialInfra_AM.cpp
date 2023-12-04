@@ -520,6 +520,12 @@ void process_explainability(nlohmann::ordered_json &jattr,
 
 					nlohmann::ordered_json element_single;
 					element_single["signal"] = fname;
+					element_single["unit"] = nlohmann::ordered_json::array();
+					if (fname == "Age")
+						element_single["unit"].push_back("Year");
+					else {
+						element_single["unit"].push_back("");
+					}
 					element_single["timestamp"] = nlohmann::ordered_json::array();
 					element_single["value"] = nlohmann::ordered_json::array();
 					element_single["value"].push_back(to_string(fval));
@@ -537,11 +543,9 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			for (const string &feat : ex_params.static_features_info)
 			{
 				nlohmann::ordered_json feat_js;
-				feat_js["signal"] = feat;
-				feat_js["unit"] = nlohmann::ordered_json::array();
+				feat_js["signal"] = feat;			
 				if (boost::to_upper_copy(feat) == "AGE") {
-					feat_js["unit"].push_back("years");
-
+					feat_js["unit"] = "Year";
 					int sid = rep.sigs.sid("BDATE");
 					bool using_byear = false;
 					if (sid < 0) {
@@ -572,7 +576,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					if (sid < 0)
 						MTHROW_AND_ERR("Error unknown signal %s for static fetch\n", feat.c_str());
 					rep.uget(pid, sid, usv);
-					feat_js["unit"].push_back(rep.sigs.unit_of_measurement(sid, 0));
+					feat_js["unit"] = rep.sigs.unit_of_measurement(sid, 0);
 					if (usv.len == 0)
 						feat_js["value"] = "Missing";
 					else {
@@ -888,7 +892,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-			}
+}
 
 
 //------------------------------------------------------------------------------------------
@@ -1221,7 +1225,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-	}
+}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
