@@ -245,7 +245,7 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 				}
 				for (int j = 0; j < rep.sigs.Sid2Info[sid].n_val_channels; j++) {
 					float val;
-					if (!rep.sigs.is_categorical_channel(sid, j)) 
+					if (!rep.sigs.is_categorical_channel(sid, j))
 						val = stof(Values[Values_i++]);
 					else
 						val = category_map.at(Values[val_start + j]);
@@ -400,6 +400,11 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 		//In time window - take at most e_cfg.max_count records, most recent.
 		nlohmann::ordered_json ele;
 		ele["signal"] = e_cfg.signal_name;
+		string full_unit = rep.sigs.unit_of_measurement(sid, 0);
+		ele["unit"] = nlohmann::ordered_json::array();
+		for (int j = 0; j < usv.n_val_channels(); ++j)
+			ele["unit"].push_back(rep.sigs.unit_of_measurement(sid, j));
+
 		ele["timestamp"] = nlohmann::ordered_json::array();
 		ele["value"] = nlohmann::ordered_json::array();
 		//Print time values:
@@ -533,7 +538,10 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			{
 				nlohmann::ordered_json feat_js;
 				feat_js["signal"] = feat;
+				feat_js["unit"] = nlohmann::ordered_json::array();
 				if (boost::to_upper_copy(feat) == "AGE") {
+					feat_js["unit"].push_back("years");
+
 					int sid = rep.sigs.sid("BDATE");
 					bool using_byear = false;
 					if (sid < 0) {
@@ -564,6 +572,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					if (sid < 0)
 						MTHROW_AND_ERR("Error unknown signal %s for static fetch\n", feat.c_str());
 					rep.uget(pid, sid, usv);
+					feat_js["unit"].push_back(rep.sigs.unit_of_measurement(sid, 0));
 					if (usv.len == 0)
 						feat_js["value"] = "Missing";
 					else {
@@ -858,9 +867,9 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 					}
 
 				}
-					}
-				}
 			}
+		}
+	}
 
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
@@ -879,7 +888,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-		}
+			}
 
 
 //------------------------------------------------------------------------------------------
@@ -908,7 +917,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (!ma.model_initiated()) {
 		if (ma.init_model_for_apply() < 0)
 			return AM_FAIL_RC;
-		}
+	}
 #ifdef AM_TIMING_LOGS
 	timer.take_curr_time();
 	MLOG("INFO:: MedialInfraAlgoMarker::CalculateByType :: init_model_for_apply %2.1f milisecond\n", timer.diff_milisec());
@@ -1212,7 +1221,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-			}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
