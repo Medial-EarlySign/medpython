@@ -7,16 +7,10 @@
 //=====================================================================
 #define AM_ELIGIBILITY_ERROR						300
 #define AM_RESPONSES_ELIGIBILITY_ERROR				301
-#define AM_INSUFFICIENT_DATA						310
-#define AM_INVALID_DATA								311
-#define AM_OUTLIER_NON_FATAL						320
-#define AM_OUTLIER_FATAL							321
 #define AM_DATA_BAD_FORMAT							330
 #define AM_DATA_UNKNOWN_SIGNAL						331
 #define AM_DATA_BAD_STRUCTURE						332
 #define AM_DATA_GENERAL_ERROR						333
-#define AM_GENERAL_INFO								390
-#define AM_GENERAL_NON_FATAL						391
 #define AM_GENERAL_FATAL							392
 
 //=====================================================================
@@ -49,11 +43,11 @@
 #define AM_ERROR_PARSING_JSON_DICT					1112
 
 // AddData Errors
-#define AM_ERROR_ADD_DATA_FAILED					1201
+#define AM_ERROR_ADD_DATA_FAILED					1201 //Only in old API - AddData, not AddDataByType
 #define AM_ERROR_DATA_JSON_PARSE					1202
-#define AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE			1203
+#define AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE			1203 //Can't happen
 
-// Messages Codes For Responses
+// Messages Codes For Responses - in old API Calculate
 #define AM_MSG_NULL_REQUEST							101
 #define AM_MSG_BAD_PREDICTION_POINT					102
 #define AM_MSG_BAD_SCORE_TYPE						103
