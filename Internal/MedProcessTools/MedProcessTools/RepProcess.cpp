@@ -2509,6 +2509,7 @@ int RepCalcSimpleSignals::init(map<string, string>& mapper)
 
 	calculator_logic->missing_value = missing_value;
 	calculator_logic->work_channel = work_channel;
+	calculator_logic->output_signal_names = V_names;
 
 	req_signals.clear();
 	if (signals.empty() && calc2req_sigs.find(calculator) != calc2req_sigs.end())
@@ -2570,6 +2571,8 @@ SimpleCalculator *SimpleCalculator::make_calculator(const string &calc_type) {
 		return new EmptyCalculator();
 	else if (calc_type == "kfre" || calc_type == "calc_kfre")
 		return new KfreCalculator();
+	else if (calc_type == "constant" || calc_type == "constant_value")
+		return new ConstantValueCalculator();
 	else
 		HMTHROW_AND_ERR("Error: SimpleCalculator::make_calculator - unsupported calculator: %s\n",
 			calc_type.c_str());

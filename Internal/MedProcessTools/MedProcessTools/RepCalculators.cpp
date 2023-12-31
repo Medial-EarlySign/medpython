@@ -20,6 +20,7 @@ void *SimpleCalculator::new_polymorphic(string derived_class_name) {
 	CONDITIONAL_NEW_CLASS(derived_class_name, SetCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, ExistsCalculator);
 	CONDITIONAL_NEW_CLASS(derived_class_name, EmptyCalculator);
+	CONDITIONAL_NEW_CLASS(derived_class_name, ConstantValueCalculator);
 
 	MTHROW_AND_ERR("Warning in SimpleCalculator::new_polymorphic - Unsupported class %s\n", derived_class_name.c_str());
 }
@@ -28,6 +29,10 @@ void *SimpleCalculator::new_polymorphic(string derived_class_name) {
 void EmptyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
 	
 	_virtual_signals.push_back(pair<string, string>("EMPTY_DEFAULT", output_type));
+}
+void EmptyCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (output_signals.size() != 1)
+		MTHROW_AND_ERR("Error EmptyCalculator::validate_arguments - Requires 1 output signals \n");
 }
 
 bool EmptyCalculator::do_calc(const vector<float> &vals, float &res) const {
@@ -809,6 +814,51 @@ bool ExistsCalculator::do_calc(const vector<float> &vals, float &res) const {
 		return !keep_only_in_range;
 	return true; //always return
 }
+//.......................................................................................
+
+int ConstantValueCalculator::init(map<string, string>& mapper) {
+	for (auto it = mapper.begin(); it != mapper.end(); ++it)
+	{
+		//! [ConstantValueCalculator::init]
+		if (it->first == "is_numeric")
+			is_numeric = stoi(it->second)>0;
+		else if (it->first == "value")
+			value = it->second;
+		else
+			MTHROW_AND_ERR("Error in ConstantValueCalculator::init - Unsupported argument \"%s\"\n",
+				it->first.c_str());
+		//! [ConstantValueCalculator::init]
+	}
+	if (value.empty())
+		MTHROW_AND_ERR("Error in ConstantValueCalculator::init - value must be given\n");
+	if (is_numeric)
+		numeric_val = stof(value);
+	return 0;
+}
+void ConstantValueCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
+	if (output_signals.size() != 1)
+		MTHROW_AND_ERR("Error ConstantValueCalculator::validate_arguments - Requires 1 output signals \n");
+}
+void ConstantValueCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
+	_virtual_signals.push_back(pair<string, string>("DEFAULT_CONSTANT_VALUE", output_type));
+}
+bool ConstantValueCalculator::do_calc(const vector<float> &vals, float &res) const {
+	res = numeric_val;
+	//We will need to register this value "1" as categorical if non numerci
+	return true; //always return
+}
+
+void ConstantValueCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
+	if (is_numeric)
+		return;
+	//Start new virtual signal with categories:
+	dict.add_section(output_signal_names[0]);
+	int section_id = dict.section_id(output_signal_names[0]);
+	//Add categorical value "1" as described:
+	dict.dict[section_id].push_new_def(value, 1);
+	
+}
+
 //.......................................................................................
 
 //.......................................................................................
