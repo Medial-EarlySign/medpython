@@ -855,7 +855,7 @@ void ConstantValueCalculator::init_tables(MedDictionarySections& dict, MedSignal
 	dict.add_section(output_signal_names[0]);
 	int section_id = dict.section_id(output_signal_names[0]);
 	//Add categorical value "1" as described:
-	dict.dict[section_id].push_new_def(value, 1);
+	dict.dicts[section_id].push_new_def(value, (int)1);
 	
 }
 
