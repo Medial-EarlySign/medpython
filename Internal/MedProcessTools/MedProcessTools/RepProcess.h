@@ -1308,8 +1308,8 @@ public:
 
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
 
-	ADD_CLASS_NAME(ExistsCalculator)
-		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val)
+	ADD_CLASS_NAME(ConstantValueCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val, output_signal_names)
 };
 
 /**
