@@ -2588,6 +2588,18 @@ RepCalcSimpleSignals::~RepCalcSimpleSignals() {
 
 mutex RepCalcSimpleSignals_init_tables_mutex;
 //.......................................................................................
+void RepCalcSimpleSignals::fit_for_repository(MedPidRepository &rep) {
+	if (calculator_logic == NULL) { //recover from serialization
+		calculator_logic = SimpleCalculator::make_calculator(calculator);
+
+		if (!calculator_init_params.empty()) {
+			if (calculator_logic->init_from_string(calculator_init_params) < 0)
+				MTHROW_AND_ERR("Cannot init calculator from \'%s\'\n", calculator_init_params.c_str());
+		}
+		calculator_logic->missing_value = missing_value;
+	}
+	calculator_logic->fit_for_repository(rep, virtual_signals_generic);
+}
 void RepCalcSimpleSignals::init_tables(MedDictionarySections& dict, MedSignals& sigs)
 {
 	lock_guard<mutex> guard(RepCalcSimpleSignals_init_tables_mutex);
@@ -2674,8 +2686,11 @@ void RepCalcSimpleSignals::get_required_signal_categories(unordered_map<string, 
 void RepCalcSimpleSignals::register_virtual_section_name_id(MedDictionarySections& dict) {
 	if (!signals.empty()) {
 		int section_id = dict.section_id(signals.front());
-		for (size_t i = 0; i < V_names.size(); ++i)
+		for (size_t i = 0; i < V_names.size(); ++i) {
+			if (dict.section_id(V_names[i]) > 0)
+				continue; //already defined
 			dict.connect_to_section(V_names[i], section_id);
+		}
 	}
 }
 //.......................................................................................
@@ -4105,8 +4120,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 					ev.push_back(category_event_state(e.last_time, e.last_appearance, j, 0));
 
 				}
-			}
-		}
+	}
+}
 
 		// sorting the pairs, by date, and within each date: first the ends , then the starts
 		sort(ev.begin(), ev.end());
@@ -4133,10 +4148,10 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 								MLOG("ID=%d\tClipping period %d of category %d to %d\n", rec.pid, i, ev[i].categ, ev[i].time);
 #endif
-							}
 						}
 					}
 				}
+			}
 			}
 		}
 
@@ -4145,7 +4160,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 			for (auto &e : time_intervals[j]) {
 				if (e.first_appearance > 0)
 					MLOG("ID=%d\ttime intervals2: j=%d first_a %d n %d last_a %d last_t %d\n", rec.pid, j, e.first_appearance, e.n_appearances, e.last_appearance, e.last_time);
-			}
+		}
 		}
 #endif
 
@@ -4208,8 +4223,8 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 							states[i].last[j] = states[i + 1].last[j];
 					}
 				}
-					}
-				}
+			}
+		}
 
 #ifdef _APPLY_VERBOSE
 		for (size_t j = 0; j < states.size(); j++)
@@ -4248,7 +4263,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : A-AB-B\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+				}
 
 					// the case of ABC-AB-A
 					if ((len < min_jitters[1]) && ((v1 | v2) == v1) && ((v2 | v3) == v2) && ((v1 | v3) == v1)) {
@@ -4256,7 +4271,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : ABC-AB-A\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
+			}
 
 					// the case of AB-A-AC
 					if ((len < min_jitters[2]) && ((v1 | v2) == v1) && ((v2 | v3) == v3)) {
@@ -4264,11 +4279,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-					}
-
-					}
+		}
 
 			}
+
+		}
 
 
 			if (max_k >= 0) {

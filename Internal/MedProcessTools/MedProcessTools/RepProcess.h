@@ -1052,6 +1052,8 @@ public:
 
 	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
 
+	virtual void fit_for_repository(MedPidRepository &rep, vector<pair<string, string>> &_virtual_signals) {};
+
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
 
@@ -1306,7 +1308,7 @@ public:
 
 	bool do_calc(const vector<float> &vals, float &res) const;
 
-	void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals);
+	void fit_for_repository(MedPidRepository &rep, vector<pair<string, string>> &_virtual_signals);
 
 	ADD_CLASS_NAME(ConstantValueCalculator)
 		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val, output_signal_names)
@@ -1347,6 +1349,8 @@ public:
 
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	void fit_for_repository(MedPidRepository &rep);
 
 	// Learning
 	/// <summary> In this class there's never learning - we return 0 immediately </summary>

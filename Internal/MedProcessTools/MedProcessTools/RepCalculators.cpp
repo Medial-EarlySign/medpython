@@ -27,7 +27,7 @@ void *SimpleCalculator::new_polymorphic(string derived_class_name) {
 
 //....................................Empty Calculator..................................
 void EmptyCalculator::list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type) {
-	
+
 	_virtual_signals.push_back(pair<string, string>("EMPTY_DEFAULT", output_type));
 }
 void EmptyCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
@@ -77,7 +77,7 @@ void RatioCalculator::list_output_signals(const vector<string> &input_signals, v
 		if (power_base != 1)
 			o_name += "^" + medial::print::print_obj(power_base, "%2.3f");
 	}
-	
+
 	_virtual_signals.push_back(pair<string, string>(o_name, output_type));
 }
 
@@ -90,7 +90,7 @@ bool RatioCalculator::do_calc(const vector<float> &vals, float &res) const {
 }
 //.......................................KFRE Calculator................................
 int KfreCalculator::init(map<string, string>& mapper) {
-	
+
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
 		if (it->first == "n_variables")
@@ -110,8 +110,8 @@ int KfreCalculator::init(map<string, string>& mapper) {
 			keep_only_in_range = stoi(it->second) > 0;
 			MLOG_V("Set keep_only_in_range=%d\n", keep_only_in_range);
 		}
-		else 
-			MTHROW_AND_ERR("Error in KfreCalculator::init - Unsupported argument \"%s\"\n",it->first.c_str());
+		else
+			MTHROW_AND_ERR("Error in KfreCalculator::init - Unsupported argument \"%s\"\n", it->first.c_str());
 	}
 
 	return 0;
@@ -120,7 +120,7 @@ int KfreCalculator::init(map<string, string>& mapper) {
 void KfreCalculator::validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const {
 
 	/*
-	Verify that the number of the input and output parameters is correct 
+	Verify that the number of the input and output parameters is correct
 	and that names of the input parameters are correct.
 	*/
 
@@ -190,9 +190,9 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 
 	// Verify that the number of arguments is correct
 	// (one more than n_variables, due to the "time"
-	if (vals.size() != n_variables+1)
+	if (vals.size() != n_variables + 1)
 		MTHROW_AND_ERR("Error KfreCalculator::do_calc -wrong number of arguments. expected %d, got %zu\n",
-			n_variables+1,vals.size());
+			n_variables + 1, vals.size());
 
 	// Prepare and validate input arguments
 
@@ -238,15 +238,15 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 
 	if (n_variables >= 8)
 	{
-		Calcium		= vals[4];
+		Calcium = vals[4];
 		if (Calcium < 7.5 || Calcium > 10.5)
 			range_check_failed = true;
 
-		Phosphorus	= vals[5];
+		Phosphorus = vals[5];
 		if (Phosphorus < 3 || Phosphorus > 6.5)
 			range_check_failed = true;
 
-		Albumin		= vals[6];
+		Albumin = vals[6];
 		if (Albumin < 1 || Albumin > 4)
 			range_check_failed = true;
 
@@ -256,15 +256,15 @@ bool KfreCalculator::do_calc(const vector<float> &vals, float &res) const {
 	}
 
 	// when we perform range check AND it fails
-    // there are TWO options: do NOT return a value (keep_only_in_range=TRUE) or return a MISSING value (keep_only_in_range=FALSE[default]) 
-	if(!discard_range_check)
+	// there are TWO options: do NOT return a value (keep_only_in_range=TRUE) or return a MISSING value (keep_only_in_range=FALSE[default]) 
+	if (!discard_range_check)
 		if (range_check_failed)
 		{
 			//MLOG_V("Observed keep_only_in_range=%d\n", keep_only_in_range);
 			res = -1.;
 			return !keep_only_in_range;
 		}
-		
+
 	bool valid = true;
 
 	if (kfre_version == 0) {
@@ -722,7 +722,7 @@ int SetCalculator::init(map<string, string>& mapper) {
 			keep_only_in_range = stoi(it->second) > 0;
 		else if (it->first == "regex_on_sets")
 			regex_on_sets = (bool)stoi(it->second) > 0;
-		
+
 		else
 			MTHROW_AND_ERR("Error in SumCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -821,7 +821,7 @@ int ConstantValueCalculator::init(map<string, string>& mapper) {
 	{
 		//! [ConstantValueCalculator::init]
 		if (it->first == "is_numeric")
-			is_numeric = stoi(it->second)>0;
+			is_numeric = stoi(it->second) > 0;
 		else if (it->first == "value")
 			value = it->second;
 		else
@@ -848,15 +848,47 @@ bool ConstantValueCalculator::do_calc(const vector<float> &vals, float &res) con
 	return true; //always return
 }
 
-void ConstantValueCalculator::init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {
+void ConstantValueCalculator::fit_for_repository(MedPidRepository& rep, vector<pair<string, string>> &_virtual_signals) {
 	if (is_numeric)
 		return;
 	//Start new virtual signal with categories:
-	dict.add_section(output_signal_names[0]);
-	int section_id = dict.section_id(output_signal_names[0]);
+	for (size_t i = 0; i < _virtual_signals.size(); ++i)
+	{
+		string vsig_name = _virtual_signals[i].first;
+		if (rep.sigs.sid(vsig_name) < 0) {
+			MLOG_D("ConstantValueCalculator:: Adding signal %s", vsig_name.c_str());
+			rep.sigs.insert_virtual_signal(vsig_name, _virtual_signals[i].second);
+			//Store as "categorical"
+			int vsig_id = rep.sigs.Name2Sid[vsig_name];
+			MLOG_D(" - %d\n", vsig_id);
+			rep.sigs.Sid2Info[vsig_id].is_categorical_per_val_channel[0] = 1;
+			if (rep.dict.SectionName2Id.find(output_signal_names[0]) == rep.dict.SectionName2Id.end()) {
+				MLOG_D("ConstantValueCalculator:: Adding section %s\n", output_signal_names[0].c_str());
+				rep.dict.add_section(output_signal_names[0]);
+				//sections_names
+				
+			}
+			int add_section = rep.dict.section_id(vsig_name);
+			rep.dict.connect_to_section(output_signal_names[0], add_section);
+		}
+
+
+		int vsig_id = rep.sigs.Name2Sid[vsig_name];
+		int add_section = rep.dict.section_id(vsig_name);
+		rep.dict.dicts[add_section].Name2Id[vsig_name] = vsig_id;
+		rep.dict.dicts[0].Name2Id[vsig_name] = vsig_id;
+		rep.dict.dicts[add_section].Id2Name[vsig_id] = vsig_name;
+		rep.dict.dicts[add_section].Id2Names[vsig_id] = { vsig_name };
+		rep.sigs.Sid2Info[vsig_id].time_unit = rep.sigs.my_repo->time_unit;
+		//rep.dict.SectionName2Id[vsig_name] = 0;
+		MLOG_D("updated dict %d : %d\n", add_section, rep.dict.dicts[add_section].id(vsig_name));
+	}
+
+
+	int section_id = rep.dict.section_id(output_signal_names[0]);
 	//Add categorical value "1" as described:
-	dict.dicts[section_id].push_new_def(value, (int)1);
-	
+	MLOG_D("Adding value %s for signal %s in section %d\n", value.c_str(), output_signal_names[0].c_str(), section_id);
+	rep.dict.dicts[section_id].push_new_def(value, (int)1);
 }
 
 //.......................................................................................
