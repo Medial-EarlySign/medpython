@@ -824,6 +824,8 @@ int ConstantValueCalculator::init(map<string, string>& mapper) {
 			is_numeric = stoi(it->second) > 0;
 		else if (it->first == "value")
 			value = it->second;
+		else if (it->first == "additional_dict_vals")
+			boost::split(additional_dict_vals, it->second, boost::is_any_of(","));
 		else
 			MTHROW_AND_ERR("Error in ConstantValueCalculator::init - Unsupported argument \"%s\"\n",
 				it->first.c_str());
@@ -866,7 +868,7 @@ void ConstantValueCalculator::fit_for_repository(MedPidRepository& rep, vector<p
 				MLOG_D("ConstantValueCalculator:: Adding section %s\n", output_signal_names[0].c_str());
 				rep.dict.add_section(output_signal_names[0]);
 				//sections_names
-				
+
 			}
 			int add_section = rep.dict.section_id(vsig_name);
 			rep.dict.connect_to_section(output_signal_names[0], add_section);
@@ -889,6 +891,14 @@ void ConstantValueCalculator::fit_for_repository(MedPidRepository& rep, vector<p
 	//Add categorical value "1" as described:
 	MLOG_D("Adding value %s for signal %s in section %d\n", value.c_str(), output_signal_names[0].c_str(), section_id);
 	rep.dict.dicts[section_id].push_new_def(value, (int)1);
+
+	//add new value:
+	int max_id = rep.dict.dicts[section_id].Id2Name.rbegin()->first;
+	for (size_t i = 0; i < additional_dict_vals.size(); ++i)
+	{
+		++max_id;
+		rep.dict.dicts[section_id].push_new_def(additional_dict_vals[i], max_id);
+	}
 }
 
 //.......................................................................................

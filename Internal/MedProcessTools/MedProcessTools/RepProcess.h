@@ -1296,6 +1296,7 @@ private:
 public:
 	string value;
 	bool is_numeric;
+	vector<string> additional_dict_vals;
 	ConstantValueCalculator() {
 		calculator_name = "constant_value"; is_numeric = false; value = ""; numeric_val = 1;
 	};
@@ -1311,7 +1312,7 @@ public:
 	void fit_for_repository(MedPidRepository &rep, vector<pair<string, string>> &_virtual_signals);
 
 	ADD_CLASS_NAME(ConstantValueCalculator)
-		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val, output_signal_names)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val, output_signal_names, additional_dict_vals)
 };
 
 /**
