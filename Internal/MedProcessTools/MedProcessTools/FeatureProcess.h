@@ -831,7 +831,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(TagFeatureSelector)
-		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, selected)
+		ADD_SERIALIZATION_FUNCS(processor_type, selected_tags, removed_tags, selected)
 private:
 	// Find set of selected features
 	int _learn(MedFeatures& features, unordered_set<int>& ids);
