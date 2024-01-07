@@ -145,7 +145,7 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 }
 
 int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
-
+	cout << "+++++++++++ enter predict +++++++++++++" << endl;
 	vector<string> masks, masksTime, mask;
 	boost::split(masks, masks_params, boost::is_any_of("|"));
 	boost::split(masksTime, masks_tw, boost::is_any_of(","));
@@ -166,11 +166,13 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	for (int s = 0; s < x.signals.size(); s++)
 		all_cols.insert(all_cols.end(), s);
 
+	//x.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/debug.csv"); // write to csv
+
 	// prepare predictors
 	int p = pow(2, masks.size()); // p - number of trained models
 	for (int i = 0; i < p; i++)
 		predictors[i]->prepare_predict_single();
-	
+
 	// preperation - what are the signals of each input mask
 	for (int m = 0; m < masks.size(); m++) {
 		cols = get_cols_of_mask(masks[m], x.signals);
@@ -246,7 +248,7 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	}
 
 	// report some stat
-	cout << "MASKs frequencyn" << endl;
+	cout << endl << "MASKs frequency" << endl;
 	for (int m = 0; m < masks.size(); m++) {
 		cout << (float) 100 * mask_stat[m] / x.get_nrows() << "% " << masks[m] << endl;
 	}
@@ -254,6 +256,7 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	for (int m = 0; m < p; m++) {
 		cout << m << " " << (float)100 * predictor_stat[m] / x.get_nrows() << "%" << endl;
 	}
+	cout << endl;
 
 	return 0;
 }
