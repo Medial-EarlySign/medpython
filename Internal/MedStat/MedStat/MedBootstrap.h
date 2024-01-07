@@ -64,6 +64,7 @@ public:
 	///Time window simulation (in cohorts with Time-Window filtering) - instead of censoring cases out of time range
 	///, treat them as controls
 	bool simTimeWindow;
+	float censor_time_factor;
 	bool sort_preds_in_multicategory;
 	size_t num_categories; ///< number of categories
 	vector<pair<MeasurementFunctions, Measurement_Params *>> measurements_with_params;  ///<not Serializable! the measurements with the params
@@ -299,7 +300,7 @@ public:
 		MedSamples &curr_samples, const string &bt_cohort);
 
 	ADD_CLASS_NAME(MedBootstrap)
-	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow, multiclass_params)
+	ADD_SERIALIZATION_FUNCS(sample_ratio, sample_per_pid, sample_patient_label, sample_seed, loopCnt, roc_Params, filter_cohort, simTimeWindow, multiclass_params, censor_time_factor)
 
 private:
 	map<string, map<string, float>> bootstrap_base(const vector<float> &preds, const vector<int> &preds_order,  const vector<float> &y, const vector<int> &pids,
@@ -396,7 +397,7 @@ namespace medial {
 		void make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
 			const vector<float> &y, const map<string, vector<float>> &additional_info,
 			vector<float> &y_changed, map<string, vector<float>> &cp_info,
-			map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t);
+			map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t, float censor_time_factor = 2);
 	}
 }
 
