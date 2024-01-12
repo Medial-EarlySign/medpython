@@ -266,11 +266,17 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	inc_smps.swap(mdl.features.samples);
 }
 
-void medial::process::make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
-	const vector<float> &y, const map<string, vector<float>> &additional_info,
-	vector<float> &y_changed, map<string, vector<float>> &cp_info,
-	map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t, 
-	float censor_time_factor) {
+void medial::process::make_sim_time_window(
+	const string &cohort_name, 
+	const vector<Filter_Param> &filter_p,
+	const vector<float> &y, 
+	const map<string, vector<float>> &additional_info,
+	vector<float> &y_changed, 
+	map<string, vector<float>> &cp_info,
+	map<string, FilterCohortFunc> &cohorts_t, 
+	map<string, void *> &cohort_params_t, 
+	float censor_time_factor) 
+{
 	string search_term = "Time-Window";
 	cohorts_t[cohort_name] = filter_range_params;
 	cohort_params_t[cohort_name] = (void *)&filter_p;
@@ -312,7 +318,14 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 		}
 	}
 	MLOG("make_sim_time_window for cohort [%s] censored %d cases with %d<gap<%d and changed %d cases to controls with %d<gap, left with %d cases\n",
-		cohort_name.c_str(), cases_censored, max_range, max_range * censor_time_factor, cases_changed_to_controls, max_range * censor_time_factor, cases_left_as_cases);
+		cohort_name.c_str(), 
+		cases_censored, 
+		max_range, 
+		max_range * (int)censor_time_factor, 
+		cases_changed_to_controls, 
+		max_range * (int)censor_time_factor, 
+		cases_left_as_cases
+	);
 }
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<int> &pids,
