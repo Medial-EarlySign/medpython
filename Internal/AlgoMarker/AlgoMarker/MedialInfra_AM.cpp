@@ -47,6 +47,7 @@ public:
 	long long sample_time = -1;
 	int load_data = 0;
 	unordered_map<string, json_req_export> exports;
+	string flag_threshold = "";
 
 	int conv_time = -1; // this one is calculated
 	int sanity_test_rc = 0; // calculated, keeping eligibility testing result
@@ -63,6 +64,8 @@ void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
 bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
+void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
+	const string &flag_threshold);
 
 //===========================================================================================================
 //===========================================================================================================
@@ -543,7 +546,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			for (const string &feat : ex_params.static_features_info)
 			{
 				nlohmann::ordered_json feat_js;
-				feat_js["signal"] = feat;			
+				feat_js["signal"] = feat;
 				if (boost::to_upper_copy(feat) == "AGE") {
 					feat_js["unit"] = "Year";
 					int sid = rep.sigs.sid("BDATE");
@@ -1069,6 +1072,9 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	unordered_set<json_req_export, json_req_export::HashFunction> set_rep_f;
 	for (int i = 0; i < sample_reqs.size(); i++) {
 		json_req_info &req_i = sample_reqs[i];
+		//set req_i.flag_threshold if empty:
+		if (req_i.flag_threshold.empty())
+			req_i.flag_threshold = ma.get_default_threshold();
 		unordered_map<string, json_req_export> &req_fields = req_i.exports;
 		for (auto &it : req_fields)
 			set_rep_f.insert(it.second);
@@ -1170,8 +1176,11 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		for (auto &e : req_i.exports) {
 			if (e.second.type == PREDICTION_SOURCE_PREDICTIONS) {
-				if (req_i.res != NULL && req_i.res->prediction.size() > e.second.pred_channel && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0)
+				if (req_i.res != NULL && req_i.res->prediction.size() > e.second.pred_channel && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 					js.push_back({ e.first, to_string(req_i.res->prediction[e.second.pred_channel]) });
+					//Add Flag if configured:
+					add_flag_response(js, req_i.res->prediction[e.second.pred_channel], ma, req_i.flag_threshold);
+				}
 				else
 					js.push_back({ e.first, to_string(AM_UNDEFINED_VALUE) });
 				if (req_i.res == NULL)
@@ -1301,6 +1310,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				else if (fields[0] == "AM_MANUFACTOR_DATE")  set_manafactur_date(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
 				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
+				else if (fields[0] == "THRESHOLD_LEAFLET") ma.set_threshold_leaflet(fields[1], dir);
 				else if (fields[0] == "TESTER_NAME") {}
 				else if (fields[0] == "FILTER") {}
 				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
@@ -1883,6 +1893,14 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	}
 	//ma.get_rep().sigs.Sid2Info[1].
 
+	vector<string> mbr_opts;
+	ma.fetch_all_thresholds(mbr_opts);
+	if (!mbr_opts.empty()) {
+		jresp["flag_threshold_options"] = json::array();
+		for (const string & opt : mbr_opts)
+			jresp["flag_threshold_options"].push_back(opt);
+	}
+
 	json_to_char_ptr(jresp, response);
 	return 0;
 }
@@ -2047,6 +2065,12 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 			}
 
 		}
+
+		if (json_verify_key(jreq, "flag_threshold", 0, "")) {
+			if (!jreq["flag_threshold"].is_string())
+				MTHROW_AND_ERR("Error in flag_threshold field - unsupported type, expecting string\n");
+			req_i.flag_threshold = jreq["flag_threshold"].get<string>();
+		}
 	}
 	catch (...) {
 
@@ -2097,4 +2121,22 @@ void Explainer_description_config::read_cfg_file(const string &file) {
 	}
 
 	file_reader.close();
+}
+
+void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
+	const string &flag_threshold) {
+	if (!ma.has_threshold_settings()) //No flag settings - do nothing
+		return;
+	js.push_back({ "flag_threshold", flag_threshold });
+
+	string err_msg;
+	float cutoff = ma.fetch_threshold(flag_threshold, err_msg);
+	if (!err_msg.empty()) {
+		js.push_back({ "flag_result", AM_UNDEFINED_VALUE });
+		add_to_json_array(js, "messages", err_msg);
+		return;
+	}
+	//All OK:
+	int flag = int(score >= cutoff);
+	js.push_back({ "flag_result", flag });
 }
