@@ -1896,6 +1896,7 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	vector<string> mbr_opts;
 	ma.fetch_all_thresholds(mbr_opts);
 	if (!mbr_opts.empty()) {
+		jresp["default_threshold"] = ma.get_default_threshold();
 		jresp["flag_threshold_options"] = json::array();
 		for (const string & opt : mbr_opts)
 			jresp["flag_threshold_options"].push_back(opt);
