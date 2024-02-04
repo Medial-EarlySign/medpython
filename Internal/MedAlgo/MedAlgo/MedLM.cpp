@@ -145,6 +145,18 @@ MedLM::MedLM(void *_in_params)
 	init(_in_params);
 }
 
+//..............................................................................
+void MedLM::calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs) {
+	contribs.resize(x.nrows, x.ncols + 1); // last is bo
+	contribs.signals = x.signals;
+	contribs.signals.push_back("b0");
+	for (size_t i = 0; i < x.nrows; ++i) {
+		for (size_t j = 0; j < x.ncols; ++j)
+			contribs(i, j) = x(i, j)*b[j];
+		contribs(i, x.ncols) = b0;
+	}
+	
+}
 
 //..............................................................................
 int MedLM::Learn (float *x, float *y, int nsamples, int nftrs) {

@@ -8,6 +8,13 @@
 mutex model_init_for_apply;
 
 //==================================================================
+void ProbAdjustPostProcessor::get_input_fields(vector<Effected_Field> &fields) const {
+	fields.push_back(Effected_Field(Field_Type::PREDICTION, ""));
+}
+void ProbAdjustPostProcessor::get_output_fields(vector<Effected_Field> &fields) const {
+	fields.push_back(Effected_Field(Field_Type::PREDICTION, ""));
+}
+//==================================================================
 int ProbAdjustPostProcessor::init(map<string, string>& mapper)
 {
 	//! [MedAdjustedModel::init]
@@ -163,12 +170,12 @@ void ProbAdjustPostProcessor::Learn(const MedFeatures &matrix)
 }
 
 //====================================================================================================
-void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
+void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) {
 
 	MedSamples _samples;
 	_samples.import_from_sample_vec(matrix.samples);
 	priorsModel->verbosity = inherited_verbosity;
-		
+
 	if (!model_initiated)
 	{
 		lock_guard<mutex> guard(model_init_for_apply);
@@ -178,7 +185,7 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
 		}
 	}
 	priorsModel->no_init_apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
-	
+
 	//priorsModel->apply(*p_rep, _samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_APPLY_FTR_PROCESSORS);
 
 	vector<const float *> data_p(resolvedNames.size());
@@ -196,8 +203,8 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix)  {
 			int value = (int)data_p[j][i];
 			if (value < min[j] || value > max[j]) {
 #pragma omp critical
-			if (err_s.length() == 0)
-				err_s = "ProbAdjustPostProcessor: Value " + to_string(value) + " of " + resolvedNames[j] + " is outside priors range";
+				if (err_s.length() == 0)
+					err_s = "ProbAdjustPostProcessor: Value " + to_string(value) + " of " + resolvedNames[j] + " is outside priors range";
 				//MTHROW_AND_ERR("ProbAdjustPostProcessor: Value %d of %s is outside priors range [%d,%d] sample: %d %d\n", value, resolvedNames[j].c_str(), min[j], max[j], priorsModel->features.samples[i].id, priorsModel->features.samples[i].time);
 			}
 			index += (value - min[j])*factors[j];

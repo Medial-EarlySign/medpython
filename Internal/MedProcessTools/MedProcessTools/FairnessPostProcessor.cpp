@@ -92,6 +92,13 @@ int FairnessPostProcessor::init(map<string, string> &mapper) {
 	return 0;
 }
 
+void FairnessPostProcessor::get_input_fields(vector<Effected_Field> &fields) const {
+	fields.push_back(Effected_Field(Field_Type::PREDICTION, "0"));
+}
+void FairnessPostProcessor::get_output_fields(vector<Effected_Field> &fields) const {
+	fields.push_back(Effected_Field(Field_Type::PREDICTION, "0"));
+}
+
 float fetch_score_from_string(const string &best_val) {
 	vector<string> tokens;
 	boost::split(tokens, best_val, boost::is_any_of("@"));

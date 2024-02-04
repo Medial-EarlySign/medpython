@@ -22,6 +22,23 @@ public:
 	string field;
 	int type = PREDICTION_SOURCE_UNKNOWN;
 	int pred_channel = -1; // relevant only if type is PREDICTION_SOURCE_PREDICTIONS
+
+	bool operator==(const json_req_export &other) const {
+		if (this->field == other.field && this->pred_channel == other.pred_channel &&
+			this->type == other.type) return true;
+		else return false;
+	}
+
+	struct HashFunction
+	{
+		size_t operator()(const json_req_export& other) const
+		{
+			size_t xHash = std::hash<int>()(other.type);
+			size_t yHash = std::hash<int>()(other.pred_channel) << 1;
+			size_t zHash = std::hash<string>()(other.field) << 2;
+			return xHash ^ yHash ^ zHash;
+		}
+	};
 };
 
 class json_req_info {
@@ -30,6 +47,7 @@ public:
 	long long sample_time = -1;
 	int load_data = 0;
 	unordered_map<string, json_req_export> exports;
+	string flag_threshold = "";
 
 	int conv_time = -1; // this one is calculated
 	int sanity_test_rc = 0; // calculated, keeping eligibility testing result
@@ -46,6 +64,8 @@ void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
 bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
+void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
+	const string &flag_threshold);
 
 //===========================================================================================================
 //===========================================================================================================
@@ -383,6 +403,11 @@ void process_signal_json(MedPidRepository &rep, Explainer_record_config &e_cfg,
 		//In time window - take at most e_cfg.max_count records, most recent.
 		nlohmann::ordered_json ele;
 		ele["signal"] = e_cfg.signal_name;
+		string full_unit = rep.sigs.unit_of_measurement(sid, 0);
+		ele["unit"] = nlohmann::ordered_json::array();
+		for (int j = 0; j < usv.n_val_channels(); ++j)
+			ele["unit"].push_back(rep.sigs.unit_of_measurement(sid, j));
+
 		ele["timestamp"] = nlohmann::ordered_json::array();
 		ele["value"] = nlohmann::ordered_json::array();
 		//Print time values:
@@ -498,6 +523,12 @@ void process_explainability(nlohmann::ordered_json &jattr,
 
 					nlohmann::ordered_json element_single;
 					element_single["signal"] = fname;
+					element_single["unit"] = nlohmann::ordered_json::array();
+					if (fname == "Age")
+						element_single["unit"].push_back("Year");
+					else {
+						element_single["unit"].push_back("");
+					}
 					element_single["timestamp"] = nlohmann::ordered_json::array();
 					element_single["value"] = nlohmann::ordered_json::array();
 					element_single["value"].push_back(to_string(fval));
@@ -517,6 +548,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 				nlohmann::ordered_json feat_js;
 				feat_js["signal"] = feat;
 				if (boost::to_upper_copy(feat) == "AGE") {
+					feat_js["unit"] = "Year";
 					int sid = rep.sigs.sid("BDATE");
 					bool using_byear = false;
 					if (sid < 0) {
@@ -547,6 +579,7 @@ void process_explainability(nlohmann::ordered_json &jattr,
 					if (sid < 0)
 						MTHROW_AND_ERR("Error unknown signal %s for static fetch\n", feat.c_str());
 					rep.uget(pid, sid, usv);
+					feat_js["unit"] = rep.sigs.unit_of_measurement(sid, 0);
 					if (usv.len == 0)
 						feat_js["value"] = "Missing";
 					else {
@@ -1035,11 +1068,57 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
+	//Fetch what's needed:
+	unordered_set<json_req_export, json_req_export::HashFunction> set_rep_f;
+	for (int i = 0; i < sample_reqs.size(); i++) {
+		json_req_info &req_i = sample_reqs[i];
+		//set req_i.flag_threshold if empty:
+		if (req_i.flag_threshold.empty())
+			req_i.flag_threshold = ma.get_default_threshold();
+		unordered_map<string, json_req_export> &req_fields = req_i.exports;
+		for (auto &it : req_fields)
+			set_rep_f.insert(it.second);
+	}
+	vector<json_req_export> uniq_req_fields(set_rep_f.begin(), set_rep_f.end());
+	//convert to requested_fields
+	unordered_set<Effected_Field, Effected_Field::HashFunction> set_requested_fields;
+	for (size_t i = 0; i < uniq_req_fields.size(); ++i)
+	{
+		const json_req_export &jinp = uniq_req_fields[i];
+		Effected_Field f;
+		switch (jinp.type)
+		{
+		case PREDICTION_SOURCE_ATTRIBUTE:
+			f.field = Field_Type::NUMERIC_ATTRIBUTE;
+			f.value_name = jinp.field;
+			//add also string attributes
+			set_requested_fields.insert(Effected_Field(Field_Type::STRING_ATTRIBUTE, jinp.field));
+			break;
+		case PREDICTION_SOURCE_ATTRIBUTE_AS_JSON:
+			f.field = Field_Type::STRING_ATTRIBUTE;
+			f.value_name = jinp.field;
+			break;
+		case PREDICTION_SOURCE_JSON:
+			f.field = Field_Type::JSON_DATA;
+			f.value_name = jinp.field;
+			break;
+		case PREDICTION_SOURCE_PREDICTIONS:
+			f.field = Field_Type::PREDICTION;
+			f.value_name = to_string(jinp.pred_channel);
+			break;
+		default:
+			MLOG("WARN unknown request field %s\n", jinp.field.c_str());
+			break;
+		}
+		set_requested_fields.insert(f);
+	}
+	vector<Effected_Field> requested_fields(set_requested_fields.begin(), set_requested_fields.end());
+
 	// at this point in time we are ready to score eligible_pids,eligible_timepoints. We will do that, and later wrap it all up into a single json back.
 	int _n_points = (int)eligible_pids.size();
 	int get_preds_rc = -1;
 	try {
-		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points)) < 0) {
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points, requested_fields)) < 0) {
 			add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc));
 			json_to_char_ptr(jresp, response);
 			return AM_FAIL_RC;
@@ -1097,8 +1176,11 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			}
 		for (auto &e : req_i.exports) {
 			if (e.second.type == PREDICTION_SOURCE_PREDICTIONS) {
-				if (req_i.res != NULL && req_i.res->prediction.size() > e.second.pred_channel && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0)
+				if (req_i.res != NULL && req_i.res->prediction.size() > e.second.pred_channel && req_i.sanity_caught_err == 0 && req_i.sanity_test_rc > 0) {
 					js.push_back({ e.first, to_string(req_i.res->prediction[e.second.pred_channel]) });
+					//Add Flag if configured:
+					add_flag_response(js, req_i.res->prediction[e.second.pred_channel], ma, req_i.flag_threshold);
+				}
 				else
 					js.push_back({ e.first, to_string(AM_UNDEFINED_VALUE) });
 				if (req_i.res == NULL)
@@ -1228,6 +1310,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				else if (fields[0] == "AM_MANUFACTOR_DATE")  set_manafactur_date(fields[1].c_str());
 				else if (fields[0] == "AM_VERSION")  set_am_version(fields[1].c_str());
 				else if (fields[0] == "EXPLAINABILITY_PARAMS") ma.set_explainer_params(fields[1], dir);
+				else if (fields[0] == "THRESHOLD_LEAFLET") ma.set_threshold_leaflet(fields[1], dir);
 				else if (fields[0] == "TESTER_NAME") {}
 				else if (fields[0] == "FILTER") {}
 				else MWARN("WRAN: unknown parameter \"%s\". Read and ignored\n", fields[0].c_str());
@@ -1298,6 +1381,7 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
+	MedRepository &rep = ma.get_rep();
 	bool good = true;
 	bool mark_succ_ = false;
 	try {
@@ -1395,6 +1479,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				}
 				if (good_sig) {
 					sig = s["code"].get<string>();
+					int sid = rep.sigs.Name2Sid[sig];
 					get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
 					if (n_time_channels == 0 && n_val_channels == 0) {
 						char buf[5000];
@@ -1547,7 +1632,48 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									else
 										sv = v.get<string>().c_str();
 								}
-								
+
+								//Check if "Date"
+								string unit_m = rep.sigs.unit_of_measurement(sid, nv);
+								boost::to_lower(unit_m);
+								if (unit_m == "date") {
+									try {
+										int full_date = (int)stod(sv);
+										//check if valid date?
+										if (!med_time_converter.is_valid_date(full_date)) {
+											char buf[5000];
+											if (patient_id != 1)
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, full_date);
+											else
+												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %d.",
+													AM_DATA_BAD_FORMAT, sig.c_str(), full_date);
+											messages.push_back(string(buf));
+											MLOG("%s\n", buf);
+											good = false;
+											good_sig = false;
+											good_record = false;
+											break;
+										}
+									}
+									catch (...) {
+										char buf[5000];
+										if (patient_id != 1)
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s in patient %d. value should be date format. Recieved %s.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), patient_id, sv.c_str());
+										else
+											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %s.",
+												AM_DATA_BAD_FORMAT, sig.c_str(), sv.c_str());
+										messages.push_back(string(buf));
+										MLOG("%s\n", buf);
+										good = false;
+										good_sig = false;
+										good_record = false;
+										break;
+									}
+								}
+
+
 								int slen = (int)sv.length();
 								//MLOG("val %d : %s len: %d curr_s %d s_data_size %d %d n_val_channels %d\n", nv, sv.c_str(), slen, curr_s, s_data_size, sdata.size(), n_val_channels);
 								if (curr_s + 1 + slen > s_data_size) {
@@ -1767,6 +1893,15 @@ int MedialInfraAlgoMarker::Discovery(char **response) {
 	}
 	//ma.get_rep().sigs.Sid2Info[1].
 
+	vector<string> mbr_opts;
+	ma.fetch_all_thresholds(mbr_opts);
+	if (!mbr_opts.empty()) {
+		jresp["default_threshold"] = ma.get_default_threshold();
+		jresp["flag_threshold_options"] = json::array();
+		for (const string & opt : mbr_opts)
+			jresp["flag_threshold_options"].push_back(opt);
+	}
+
 	json_to_char_ptr(jresp, response);
 	return 0;
 }
@@ -1931,6 +2066,12 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 			}
 
 		}
+
+		if (json_verify_key(jreq, "flag_threshold", 0, "")) {
+			if (!jreq["flag_threshold"].is_string())
+				MTHROW_AND_ERR("Error in flag_threshold field - unsupported type, expecting string\n");
+			req_i.flag_threshold = jreq["flag_threshold"].get<string>();
+		}
 	}
 	catch (...) {
 
@@ -1981,4 +2122,22 @@ void Explainer_description_config::read_cfg_file(const string &file) {
 	}
 
 	file_reader.close();
+}
+
+void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
+	const string &flag_threshold) {
+	if (!ma.has_threshold_settings()) //No flag settings - do nothing
+		return;
+	js.push_back({ "flag_threshold", flag_threshold });
+
+	string err_msg;
+	float cutoff = ma.fetch_threshold(flag_threshold, err_msg);
+	if (!err_msg.empty()) {
+		js.push_back({ "flag_result", AM_UNDEFINED_VALUE });
+		add_to_json_array(js, "messages", err_msg);
+		return;
+	}
+	//All OK:
+	int flag = int(score >= cutoff);
+	js.push_back({ "flag_result", flag });
 }

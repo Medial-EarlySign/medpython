@@ -57,6 +57,7 @@ public:
 	void init_defaults();
 
 	//int learn(MedMat<float> &x, MedMat<float> &y) {return (MedPredictor::learn(x,y));}; 	// Special case - un-normalized Y
+	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	int Learn(float *x, float *y, int nsamples, int nftrs);
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);

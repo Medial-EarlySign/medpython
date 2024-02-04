@@ -6,6 +6,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedSamples.h"
 #include "MedModel.h"
+#include "Effected_Field.h"
 
 /** @enum
 * Post Processors types enum
@@ -30,6 +31,8 @@ using namespace std;
 
 class MedModel;
 
+
+
 /**
 * An Abstract PostProcessor class
 */
@@ -42,6 +45,12 @@ public:
 	// or use_p (put aside a proportion 0 < p < 1 of the ids) can be given. but not both
 	int use_split = -1;
 	float use_p = 0.0;
+
+	/// List of fields that are used by this post_processor
+	virtual void get_input_fields(vector<Effected_Field> &fields) const {};
+	/// List of fields that are being effected by this post_processor. Options:
+	/// "prediction:X", "attr:$NAME", "str_attr:$NAME", "feature:$NAME", "json"
+	virtual void get_output_fields(vector<Effected_Field> &fields) const {};
 
 	virtual void init_post_processor(MedModel& mdl) {};
 	virtual void Learn(const MedFeatures &matrix);
@@ -79,6 +88,9 @@ public:
 
 	void Learn(const MedFeatures &matrix);
 	void Apply(MedFeatures &matrix);
+
+	void get_input_fields(vector<Effected_Field> &fields) const;
+	void get_output_fields(vector<Effected_Field> &fields) const;
 
 	void init_post_processor(MedModel& mdl);
 

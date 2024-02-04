@@ -65,6 +65,7 @@ typedef enum {
 	MODEL_BART = 19, ///< to_use:"bart" MedBART model using BART
 	MODEL_EXTERNAL_NN = 20, ///< to_use: "external_nn" , initialize a neural net using a layers file. creates MedExternalNN
 	MODEL_SIMPLE_ENSEMBLE = 21, ///< to_use: "simple_ensemble" , give 1 or more models to train, and ensemble them with given weights from the user. creates MedSimpleEnsemble
+	MODEL_BY_MISSING_VALUES_SUBSET = 22, ///< to_use: "by_missing_value_subset", choosed MedPredictor on subset of the features based on missing values. choose best fit - creates MedPredictorsByMissingValues.
 	MODEL_LAST
 } MedPredictorTypes;
 

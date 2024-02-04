@@ -1034,6 +1034,7 @@ private:
 */
 class SimpleCalculator : public SerializableObject {
 public:
+	vector<string> output_signal_names;
 	float missing_value = (float)MED_MAT_MISSING_VALUE; ///< missing value 
 	string calculator_name = ""; ///< just for debuging
 	int work_channel = 0; ///< the working channel
@@ -1052,6 +1053,8 @@ public:
 	virtual void init_tables(MedDictionarySections& dict, MedSignals& sigs, const vector<string> &input_signals) {};
 
 	virtual void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const {};
+
+	virtual void fit_for_repository(MedPidRepository &rep, vector<pair<string, string>> &_virtual_signals) {};
 
 	/// @snippet RepProcess.cpp SimpleCalculator::make_calculator
 	static SimpleCalculator *make_calculator(const string &calc_type);
@@ -1073,6 +1076,7 @@ class EmptyCalculator : public SimpleCalculator {
 public:
 	EmptyCalculator() { calculator_name = "empty"; keep_only_in_range = false; };
 
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
 	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
 	bool do_calc(const vector<float> &vals, float &res) const;
 
@@ -1288,6 +1292,31 @@ public:
 		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, in_range_val, out_range_val)
 };
 
+class ConstantValueCalculator : public SimpleCalculator {
+private:
+	float numeric_val;
+public:
+	string value;
+	bool is_numeric;
+	vector<string> additional_dict_vals;
+	ConstantValueCalculator() {
+		calculator_name = "constant_value"; is_numeric = false; value = ""; numeric_val = 1;
+	};
+
+	/// @snippet RepCalculators.cpp ConstantValueCalculator::init
+	int init(map<string, string>& mapper);
+
+	void validate_arguments(const vector<string> &input_signals, const vector<string> &output_signals) const;
+	void list_output_signals(const vector<string> &input_signals, vector<pair<string, string>> &_virtual_signals, const string &output_type);
+
+	bool do_calc(const vector<float> &vals, float &res) const;
+
+	void fit_for_repository(MedPidRepository &rep, vector<pair<string, string>> &_virtual_signals);
+
+	ADD_CLASS_NAME(ConstantValueCalculator)
+		ADD_SERIALIZATION_FUNCS(calculator_name, missing_value, work_channel, need_time, keep_only_in_range, value, is_numeric, numeric_val, output_signal_names, additional_dict_vals)
+};
+
 /**
 * A simple class for calculating virtual signals. please reffer to SimpleCalculator to see which
 * calculation are supported right now
@@ -1323,6 +1352,8 @@ public:
 
 	// making sure V_ids and sigs_ids are initialized
 	void init_tables(MedDictionarySections& dict, MedSignals& sigs);
+
+	void fit_for_repository(MedPidRepository &rep);
 
 	// Learning
 	/// <summary> In this class there's never learning - we return 0 immediately </summary>
@@ -1785,9 +1816,9 @@ public:
 
 	//void print();
 	ADD_CLASS_NAME(RepCreateBitSignal)
-	ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, aff_signals,req_signals,
-		t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, duration_add, duration_mult, dont_look_back, min_clip_time, last_clip_period, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode, 
-		virtual_signals_generic, time_channels, min_jitters)
+		ADD_SERIALIZATION_FUNCS(processor_type, in_sig, out_virtual, aff_signals, req_signals,
+			t_chan, c_chan, duration_chan, min_duration, min_durations, max_duration, duration_add, duration_mult, dont_look_back, min_clip_time, last_clip_period, categories_names, categories_sets, time_unit_sig, time_unit_duration, change_at_prescription_mode,
+			virtual_signals_generic, time_channels, min_jitters)
 
 private:
 	int v_out_sid = -1;
@@ -1963,12 +1994,12 @@ public:
 	vector<int> new_order;
 	string signal_name = "";
 
-	RepReoderChannels()	 {
+	RepReoderChannels() {
 		processor_type = REP_PROCESS_REODER_CHANNELS;
 	}
 
 	void set_signal_ids(MedSignals& sigs);
-	void set_signal(const string& _signalName) { sid = -1; signal_name = _signalName;  }
+	void set_signal(const string& _signalName) { sid = -1; signal_name = _signalName; }
 
 	/// @snippet RepReoderChannels.cpp RepReoderChannels::init
 	int init(map<string, string>& mapper);
@@ -1980,7 +2011,7 @@ public:
 	void print();
 
 	ADD_CLASS_NAME(RepReoderChannels)
-		ADD_SERIALIZATION_FUNCS(processor_type,  req_signals, aff_signals, virtual_signals, virtual_signals_generic, signal_name, new_order)
+		ADD_SERIALIZATION_FUNCS(processor_type, req_signals, aff_signals, virtual_signals, virtual_signals_generic, signal_name, new_order)
 };
 
 //.......................................................................................
@@ -2028,4 +2059,6 @@ MEDSERIALIZE_SUPPORT(SumCalculator)
 MEDSERIALIZE_SUPPORT(RangeCalculator)
 MEDSERIALIZE_SUPPORT(ExistsCalculator)
 MEDSERIALIZE_SUPPORT(EmptyCalculator)
+MEDSERIALIZE_SUPPORT(ConstantValueCalculator)
+
 #endif

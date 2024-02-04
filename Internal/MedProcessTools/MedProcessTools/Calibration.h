@@ -91,6 +91,9 @@ public:
 	void Apply(const vector<float> &preds, vector<float> &probs) const;
 	float Apply(float pred) const;
 
+	void get_input_fields(vector<Effected_Field> &fields) const;
+	void get_output_fields(vector<Effected_Field> &fields) const;
+
 	//PostProcessor functions:
 	void Learn(const MedFeatures &matrix) {Learn(matrix.samples); }
 	void Apply(MedFeatures &matrix);

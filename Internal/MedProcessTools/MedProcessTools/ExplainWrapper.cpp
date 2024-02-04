@@ -592,6 +592,25 @@ int ModelExplainer::update(map<string, string> &mapper) {
 	return 0;
 }
 
+void ModelExplainer::get_input_fields(vector<Effected_Field> &fields) const {
+	fields.push_back(Effected_Field(Field_Type::FEATURE, ""));
+}
+void ModelExplainer::get_output_fields(vector<Effected_Field> &fields) const {
+	string group_name = global_explain_params.attr_name;
+	if (global_explain_params.attr_name.empty()) //default name
+		group_name = my_class_name();
+
+	if (global_explain_params.store_as_json) {
+		fields.push_back(Effected_Field(Field_Type::STRING_ATTRIBUTE, group_name));
+	}
+	else {
+		for (size_t i = 0; i < processing.groupNames.size(); ++i) {
+			fields.push_back(Effected_Field(Field_Type::NUMERIC_ATTRIBUTE,
+				group_name + "::" + processing.groupNames[i]));
+		}
+	}
+}
+
 void ModelExplainer::init_post_processor(MedModel& model) {
 	original_predictor = model.predictor;
 	//Find Norm Processors:

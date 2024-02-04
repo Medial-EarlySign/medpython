@@ -73,8 +73,11 @@ public:
 
 	void print(FILE *fp, const string& prefix, int level = 0) const;
 
+	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
+
 	ADD_CLASS_NAME(MedGDLM)
 	ADD_SERIALIZATION_FUNCS(classifier_type, params, n_ftrs, b, b0, model_features, features_count)
+
 
 	// actual computation functions
 	int Learn_full(float *x, float *y, const float *w, int nsamples, int nftrs); // full non-iterative solution, not supporting lasso

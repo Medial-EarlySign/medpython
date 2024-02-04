@@ -14,6 +14,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedModelExceptions.h"
 #include <boost/property_tree/ptree.hpp>
+#include "Effected_Field.h"
 
 using namespace boost::property_tree;
 
@@ -231,6 +232,8 @@ public:
 	int apply(MedPidRepository& rep, MedSamples& samples) { return apply(rep, samples, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END); }
 	int apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
 
+	void no_init_apply_partial(MedPidRepository& rep, MedSamples& samples, const vector<Effected_Field> &requested_outputs);
+
 	// follows are apply methods separating the initialization of the model from the actual apply
 	int init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage);
 	int no_init_apply(MedPidRepository& rep, MedSamples& samples, MedModelStage start_stage, MedModelStage end_stage);
@@ -303,6 +306,7 @@ private:
 	void insert_environment_params_to_json(string& json_content);
 	string json_file_to_string(int recursion_level, const string& main_file, vector<string>& alterations, const string& small_file = "", bool add_change_path = false);
 	void parse_action(basic_ptree<string, string>& action, vector<vector<string>>& all_action_attrs, int& duplicate, ptree& root, const string& fname);
+	int apply_predictor(MedSamples &samples);
 
 	// Handle learning sets for model/post-processors
 	void split_learning_set(MedSamples& inSamples, vector<MedSamples>& post_processors_learning_sets, MedSamples& model_learning_set);

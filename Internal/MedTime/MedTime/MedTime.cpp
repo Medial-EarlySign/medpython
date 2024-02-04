@@ -13,6 +13,28 @@ int global_default_windows_time_unit = MedTime::Days;
 
 // implementations
 
+bool MedTime::is_valid_date(int date) const {
+	int year = int(date / 10000);
+	bool valid = year >= 1900 && year <= 3000;
+
+	if (valid) {
+		//check month:
+		int month = int(date / 100) % 100;
+		valid = month >= 1 && month <= 12;
+		if (valid) { //check day:
+			int day = date % 100;
+			int days_in_month = days2month[month] - days2month[month - 1];
+			if ((month == 2) &&  //check years with 29 days
+				(year % 4) == 0 && ((year % 100) != 0 || (year % 400) == 0))
+					++days_in_month;
+			
+			valid = day >= 1 && day <= days_in_month;
+		}
+	}
+
+	return valid;
+}
+
 //.....................................................................................................
 void MedTime::init_time_tables()
 {

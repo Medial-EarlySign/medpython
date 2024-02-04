@@ -3340,6 +3340,8 @@ int ROC_Params::init(map<string, string>& map) {
 			parse_vector(param_value, working_point_Score);
 		else if (param_name == "working_point_sens")
 			parse_vector(param_value, working_point_SENS);
+		else if (param_name == "working_point_auc")
+			parse_vector(param_value, working_point_auc);
 		else if (param_name == "show_warns")
 			show_warns = med_stoi(param_value) > 0;
 		//! [ROC_Params::init]

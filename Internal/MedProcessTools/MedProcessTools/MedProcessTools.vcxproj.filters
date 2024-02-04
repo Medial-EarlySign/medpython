@@ -290,6 +290,9 @@
     <ClInclude Include="RepCategoryDescenders.h">
       <Filter>Header Files\RepProcessors</Filter>
     </ClInclude>
+    <ClInclude Include="Effected_Field.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="..\Config_Examples\fragile_config.json">

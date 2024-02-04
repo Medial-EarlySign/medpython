@@ -135,6 +135,7 @@
     <ClInclude Include="DoCalcFeatProcessor.h" />
     <ClInclude Include="DrugIntakeGenerator.h" />
     <ClInclude Include="DuplicateProcessor.h" />
+    <ClInclude Include="Effected_Field.h" />
     <ClInclude Include="ElixhauserGenerator.h" />
     <ClInclude Include="EmbeddingGenerator.h" />
     <ClInclude Include="ExplainWrapper.h" />

@@ -30,6 +30,9 @@ public:
 	~ProbAdjustPostProcessor() { delete priorsModel; };
 	void init_post_processor(MedModel& mdl) { p_rep = mdl.p_rep; inherited_verbosity = mdl.verbosity; }
 
+	void get_input_fields(vector<Effected_Field> &fields) const;
+	void get_output_fields(vector<Effected_Field> &fields) const;
+
 	/// Global init for general args in all explainers
 	int init(map<string, string> &mapper);
 

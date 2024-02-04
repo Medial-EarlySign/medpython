@@ -71,6 +71,7 @@ MedBootstrap::MedBootstrap()
 	sample_patient_label = false;
 	sample_seed = 0;
 	loopCnt = 500;
+	censor_time_factor = 2;
 	filter_cohort["All"] = {};
 	simTimeWindow = false;
 	is_binary_outcome = true;
@@ -107,6 +108,8 @@ int MedBootstrap::init(map<string, string>& map) {
 		}
 		else if (param_name == "simtimewindow")
 			simTimeWindow = stoi(param_value) > 0;
+		else if (param_name == "censor_time_factor")
+			censor_time_factor = stof(param_value);
 		else if (param_name == "is_binary_outcome")
 			is_binary_outcome = stoi(param_value) > 0;
 		else if (param_name == "use_time_control_as_case")
@@ -263,10 +266,17 @@ void get_data_for_filter(const string &json_model, const string &rep_path,
 	inc_smps.swap(mdl.features.samples);
 }
 
-void medial::process::make_sim_time_window(const string &cohort_name, const vector<Filter_Param> &filter_p,
-	const vector<float> &y, const map<string, vector<float>> &additional_info,
-	vector<float> &y_changed, map<string, vector<float>> &cp_info,
-	map<string, FilterCohortFunc> &cohorts_t, map<string, void *> &cohort_params_t) {
+void medial::process::make_sim_time_window(
+	const string &cohort_name, 
+	const vector<Filter_Param> &filter_p,
+	const vector<float> &y, 
+	const map<string, vector<float>> &additional_info,
+	vector<float> &y_changed, 
+	map<string, vector<float>> &cp_info,
+	map<string, FilterCohortFunc> &cohorts_t, 
+	map<string, void *> &cohort_params_t, 
+	float censor_time_factor) 
+{
 	string search_term = "Time-Window";
 	cohorts_t[cohort_name] = filter_range_params;
 	cohort_params_t[cohort_name] = (void *)&filter_p;
@@ -289,13 +299,14 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 	{
 		if (y[i] > 0) {
 			if (!filter_range_param(additional_info, (int)i, &time_filter)) {
+				//when censor_time_factor=2
 				// cases which are long before the outcome (>2*max_range) are considered as controls:
 
 				// ----------------max_range*2--------max_range---------min_range---event---------------
 				// -------------------^-------------------^----------------^----------^-----------------
 				// ------control------|------censor-------|------case------|--------censor--------------
 
-				if (additional_info.at(search_term)[i] > max_range * 2) {
+				if (additional_info.at(search_term)[i] > max_range * censor_time_factor) {
 					y_changed[i] = 0;
 					cp_info[search_term][i] = time_filter.min_range; // bogus time - wont filter because in time range
 					cases_changed_to_controls++;
@@ -307,7 +318,14 @@ void medial::process::make_sim_time_window(const string &cohort_name, const vect
 		}
 	}
 	MLOG("make_sim_time_window for cohort [%s] censored %d cases with %d<gap<%d and changed %d cases to controls with %d<gap, left with %d cases\n",
-		cohort_name.c_str(), cases_censored, max_range, max_range * 2, cases_changed_to_controls, max_range * 2, cases_left_as_cases);
+		cohort_name.c_str(), 
+		cases_censored, 
+		max_range, 
+		max_range * (int)censor_time_factor, 
+		cases_changed_to_controls, 
+		max_range * (int)censor_time_factor, 
+		cases_left_as_cases
+	);
 }
 
 map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float> &preds, const vector<int> &preds_order, const vector<float> &y, const vector<int> &pids,
@@ -385,7 +403,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 				map<string, FilterCohortFunc> cohorts_t;
 				map<string, void *> cohort_params_t;
 				medial::process::make_sim_time_window(it->first, it->second,
-					y, additional_info, y_changed, cp_info, cohorts_t, cohort_params_t);
+					y, additional_info, y_changed, cp_info, cohorts_t, cohort_params_t, censor_time_factor);
 
 				auto agg_res = booststrap_analyze(preds, preds_order, y_changed, weights, *rep_ids, cp_info, cohorts_t,
 					measures, &cohort_params_t, &measurements_params, fix_cohort_sample_incidence,
@@ -1272,6 +1290,43 @@ void MedBootstrapResult::read_results_to_text_file(const string &path, bool pivo
 		read_bootstrap_results(path, bootstrap_results);
 }
 
+void map_bootstrap_names(vector<Filter_Param> &filters_test,
+	const map<string, vector<float>> &data) {
+	bool all_valid = true;
+	vector<string> all_names_ls;
+	for (auto &it : data)
+		all_names_ls.push_back(it.first);
+
+	for (Filter_Param param_name : filters_test)
+		if (data.find(param_name.param_name) == data.end()) {
+			//try and fix first:
+			int fn_pos = find_in_feature_names(all_names_ls, param_name.param_name, false);
+			if (fn_pos < 0) {
+				all_valid = false;
+				MERR("ERROR:: Wrong use in \"%s\" as filter params. the parameter is missing\n", param_name.param_name.c_str());
+			}
+			else {
+				//fix name:
+				string found_nm = all_names_ls[fn_pos];
+				MLOG("Mapped %s => %s\n", param_name.param_name.c_str(), found_nm.c_str());
+				for (Filter_Param &pp : filters_test)
+					if (pp.param_name == param_name.param_name)
+						pp.param_name = found_nm;
+			}
+		}
+
+	if (!all_valid) {
+		MLOG("Feature Names availible for cohort filtering:\n");
+		for (auto it = data.begin(); it != data.end(); ++it)
+			MLOG("%s\n", it->first.c_str());
+		MLOG("Time-Window\n");
+		MLOG("\n");
+
+		MTHROW_AND_ERR("Cohort file has wrong paramter names. look above for all avaible params\n");
+	}
+}
+
+
 void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &bt_cohort) {
 	//create bt object with cohort filter
 	MedBootstrap mbr;
@@ -1292,7 +1347,10 @@ void MedBootstrap::filter_bootstrap_cohort(MedFeatures &features, const string &
 	vector<int> preds_order;
 	map<string, vector<float>> bt_data;
 	mbr.prepare_bootstrap(features, preds, labelsOrig, pidsOrig, bt_data, preds_order);
-
+	//check that all params are known:
+	vector<Filter_Param> &filters_test = mbr.filter_cohort["bs"];
+	map_bootstrap_names(filters_test, bt_data);
+	
 	//commit filter on: test_bt_features and store to curr_samples
 	vector<int> sel;
 	for (int i = 0; i < features.samples.size(); ++i)

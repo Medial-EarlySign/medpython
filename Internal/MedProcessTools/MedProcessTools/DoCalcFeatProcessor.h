@@ -31,6 +31,9 @@ public:
 	/// for sum
 	vector<float> weights;
 
+	/// Tags - for defining labels or groups. may be used later for filtering for example
+	vector<string> tags;
+
 	// Functions
 	DoCalcFeatProcessor() : FeatureProcessor() { serial_id = ++MedFeatures::global_serial_id_cnt; init_defaults(); }
 	~DoCalcFeatProcessor() {};
@@ -68,7 +71,7 @@ public:
 
 	// Serialization
 	ADD_CLASS_NAME(DoCalcFeatProcessor)
-	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights, parameters)
+	ADD_SERIALIZATION_FUNCS(processor_type, serial_id, raw_target_feature_name, feature_name, calc_type, missing_value, raw_source_feature_names, source_feature_names, weights, parameters, tags)
 
 private:
 	virtual void resolve_feature_names(MedFeatures &features);
