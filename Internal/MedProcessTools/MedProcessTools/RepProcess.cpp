@@ -4635,6 +4635,7 @@ int RepNumericNoiser::init(map<string, string>& mapper)
 		else if (field == "time_noise") time_noise = med_stoi(entry.second);
 		else if (field == "value_noise") value_noise = med_stof(entry.second);
 		else if (field == "truncation") truncation = med_stoi(entry.second);
+		else if (field == "drop_probability") drop_probability = med_stof(entry.second);
 		else if (field != "rp_type")
 			MWARN("WARN :: RepNumericNoiser::init - unknown parameter %s - ignored\n", field.c_str());
 		//! [RepHistoryLimit::init]
@@ -4679,8 +4680,7 @@ int RepNumericNoiser::_learn(MedPidRepository& rep, MedSamples& samples, vector<
 int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
 
-	vector<int> times;
-	vector<float> vals;
+	
 	UniversalSigVec usv;
 
 	set<int>iteratorSignalIds;
@@ -4693,18 +4693,28 @@ int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(signalId, iver, usv);
 		int final_size = usv.len;
+		vector<int> times;
+		vector<float> vals;
 
 		for (int i = 0; i < usv.len; i++) {
+
+			uniform_real_distribution<> dist_prob(0, 1);
+			float random_sample = dist_prob(gens[3 * n_th]);
+			if (random_sample < drop_probability) {
+				final_size -= 1;
+				continue;
+			}
+
 			int i_time = usv.Time(i, time_channel);
 			float val = usv.Val(i, val_channel);
 
 			uniform_int_distribution<> distrib_uni(-1 * time_noise, 0);
-			int new_time = i_time + distrib_uni(gens[n_th]);
+			int new_time = i_time + distrib_uni(gens[3*n_th+1]);
 			times.push_back(new_time);
 
-			//Add noise to val
+			//Add noise to vals
 			normal_distribution<float> distrib_norm(0.0, stdev*value_noise);
-			float new_val = val + distrib_norm(gens[n_th]);
+			float new_val = val + distrib_norm(gens[3*n_th+2]);
 			new_val = round(new_val*pow(10, truncation)) / pow(10, truncation);
 			//float new_val = val;
 			vals.push_back(new_val);

@@ -1931,7 +1931,7 @@ public:
 
 //----------------------------------------------------------------------------------------
 // RepNumericNoiser : given a numeric signal : adds gaussian noise to each value, with std as user-determined
-// fraction of signal std, and uniform distribution to time
+// fraction of signal std, uniform distribution to time, and probability of dropping value
 //----------------------------------------------------------------------------------------
 class RepNumericNoiser : public RepProcessor {
 private:
@@ -1952,6 +1952,7 @@ public:
 	int time_noise = 0; ///< uniform dist of x days will be added to time-signal
 	float value_noise = 0; ///< x times signal std will be added to each value
 	int truncation = 2; 
+	float drop_probability = 0.1; ///<probability of dropping lab
 
 
 	RepNumericNoiser() { init_defaults(); }
@@ -1961,8 +1962,8 @@ public:
 	void init_defaults() { 
 		processor_type = REP_PROCESS_NUMERIC_NOISER; 
 		int N_TH = omp_get_max_threads();
-		gens.resize(N_TH);
-		for (size_t i = 0; i < N_TH; ++i)
+		gens.resize(3*N_TH);
+		for (size_t i = 0; i < 3*N_TH; ++i)
 			gens[i] = mt19937(rd());
 	}
 
@@ -1983,7 +1984,7 @@ public:
 
 	ADD_CLASS_NAME(RepNumericNoiser)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, val_channel, time_channel,
-			time_noise, value_noise, req_signals, aff_signals, stdev, truncation)
+			time_noise, value_noise, drop_probability, req_signals, aff_signals, stdev, truncation)
 
 };
 
