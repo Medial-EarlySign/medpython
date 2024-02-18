@@ -187,7 +187,7 @@ int UnifiedSmokingGenerator::_generate(PidDynamicRec& rec, MedFeatures& features
 		// Map between status to <First Date, Last Date>
 		map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
 		vector<int> dates = {};
-		genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, testDate, smokingStatusDates, dates);
+		genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, testDate, smokingStatusDates, dates, birthDate);
 
 		// Determine Smoking Status per date
 		vector<pair<SMOKING_STATUS, int>> smokingStatusVec = { { UNKNOWN_SMOKER,  (int)bdateUsv.Val(0) } };
@@ -447,7 +447,7 @@ void UnifiedSmokingGenerator::genSmokingVec(PidDynamicRec& rec, UniversalSigVec 
 
 }
 
-void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, UniversalSigVec &quitTimeUsv, int testDate, map<SMOKING_STATUS, pair<int, int>> &smokingStatusDates, vector<int> &dates)
+void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, UniversalSigVec &smokingStatusUsv, UniversalSigVec &quitTimeUsv, int testDate, map<SMOKING_STATUS, pair<int, int>> &smokingStatusDates, vector<int> &dates, int birth_date)
 {
 	for (int timeInd = 0; timeInd < smokingStatusUsv.len; timeInd++)
 	{
@@ -475,7 +475,7 @@ void UnifiedSmokingGenerator::genFirstLastSmokingDates(PidDynamicRec& rec, Unive
 		int currTime = quitTimeUsv.Time(timeInd);
 		if (currTime > testDate) { break; }
 		int quitTime = (int)quitTimeUsv.Val(timeInd);
-		if (quitTime < MedTime::MIN_DATE_SUPPORT) { continue; }
+		if (quitTime < MedTime::MIN_DATE_SUPPORT || quitTime < birth_date) { continue; }
 		if (prevQuitTimes.find(quitTime) != prevQuitTimes.end())
 			continue;
 		prevQuitTimes.insert(quitTime);
@@ -748,7 +748,7 @@ void UnifiedSmokingGenerator::getQuitAge(PidDynamicRec& rec, int lastDate, float
 	// Map between status to <First Date, Last Date>
 	map<SMOKING_STATUS, pair<int, int>> smokingStatusDates = { { NEVER_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } ,{ PASSIVE_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ CURRENT_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } },{ NEVER_OR_EX_SMOKER,{ NA_SMOKING_DATE,NA_SMOKING_DATE } } };
 	vector<int> dates = {};
-	genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, lastDate, smokingStatusDates, dates);
+	genFirstLastSmokingDates(rec, smokingStatusUsv, quitTimeUsv, lastDate, smokingStatusDates, dates, birthDate);
 
 	// Determine Smoking Status per date
 	vector<pair<SMOKING_STATUS, int>> smokingStatusVec = { { UNKNOWN_SMOKER,  (int)bdateUsv.Val(0) } };

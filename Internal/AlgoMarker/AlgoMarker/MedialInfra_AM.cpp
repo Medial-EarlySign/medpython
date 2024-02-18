@@ -510,9 +510,9 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
 				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
 				e["contributor_records_info"] = nlohmann::ordered_json();
-				e["contributor_records_info"]["contributer_max_time"] = e_cfg.max_time_window;
-				e["contributor_records_info"]["contributer_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
-				e["contributor_records_info"]["contributer_max_count"] = e_cfg.max_count;
+				e["contributor_records_info"]["contributor_max_time"] = e_cfg.max_time_window;
+				e["contributor_records_info"]["contributor_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
+				e["contributor_records_info"]["contributor_max_count"] = e_cfg.max_count;
 				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
 			}
 			else {
