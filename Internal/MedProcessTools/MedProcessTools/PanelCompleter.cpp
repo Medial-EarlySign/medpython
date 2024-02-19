@@ -117,14 +117,40 @@ void RepPanelCompleter::set_signal_ids(MedSignals& sigs) {
 
 }
 
+bool has_valid_panel(const vector<vector<int>> &mini_panel,
+	const vector<string> &input_signals, MedPidRepository& rep,
+	unordered_set<string> &missing_sigs) {
+	bool has_valid_minipanel = false;
+	for (size_t i = 0; i < mini_panel.size(); ++i)
+	{
+		vector<string> mini_panel_missing;
+		const vector<int> &input_sig_idx = mini_panel[i];
+		for (size_t j = 0; j < input_sig_idx.size(); ++j)
+			if (rep.sigs.Name2Sid.find(input_signals[input_sig_idx[j]]) == rep.sigs.Name2Sid.end())
+				mini_panel_missing.push_back(input_signals[input_sig_idx[j]]);
+
+		if (mini_panel_missing.size() == 1) {
+			missing_sigs.insert(mini_panel_missing[0]); //at least we have partial match
+			has_valid_minipanel = true;
+		}
+		else {
+			if (mini_panel_missing.empty())
+				has_valid_minipanel = true;
+		}
+	}
+
+	return has_valid_minipanel;
+}
+
 // Check if some required signals are missing and make them virtual or remove relevant panel completer
 void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
-	
+
 	unordered_set<string> missing_sigs;
 	for (int iPanel = 0; iPanel < panel_signal_names.size(); iPanel++) {
 		vector<string> panel_missing;
-		for (int iSig = 0; iSig < panel_signal_names[iPanel].size(); iSig++) {
-			const string &sig_name = panel_signal_names[iPanel][iSig];
+		const vector<string> &input_signals = panel_signal_names[iPanel];
+		for (int iSig = 0; iSig < input_signals.size(); iSig++) {
+			const string &sig_name = input_signals[iSig];
 			if (rep.sigs.Name2Sid.find(sig_name) == rep.sigs.Name2Sid.end())
 				panel_missing.push_back(sig_name);
 		}
@@ -133,13 +159,64 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 		// Otherwise, we have to remove the completer
 		if (panel_missing.size() == 1)
 			missing_sigs.insert(panel_missing[0]);
-		else if (!panel_missing.empty()) {
-			panel_signal_names[iPanel].clear();
-			string panel_name = "";
-			for (const auto &it: panel2type)
-				if (it.second == iPanel)
-					panel_name = it.first;
-			MLOG("RepPanelCompleter::fit_for_repository - removed panel %s\n", panel_name.c_str());
+		else {
+			bool has_valid_minipanel = false;
+			if (!input_signals.empty()) {
+				if (iPanel == REP_CMPLT_RED_LINE_PANEL) {
+					//break into mini-panels:
+					vector<vector<int>> mini_panel(3);
+					mini_panel[0] = { RED_PNL_MCV , RED_PNL_HCT , RED_PNL_RBC };
+					mini_panel[1] = { RED_PNL_MCH , RED_PNL_HGB , RED_PNL_RBC };
+					mini_panel[2] = { RED_PNL_MCHC , RED_PNL_HGB , RED_PNL_HCT };
+
+					has_valid_minipanel = has_valid_panel(mini_panel, input_signals, rep, missing_sigs);
+				}
+				else if (iPanel == REP_CMPLT_WHITE_LINE_PANEL) {
+					vector<vector<int>> mini_panel(white_panel_nums.size() + 1);
+					mini_panel[0] = white_panel_nums;
+					mini_panel[0].push_back(WHITE_PNL_WBC);
+					for (int j = 0; j < white_panel_nums.size(); j++) {
+						int num_idx = white_panel_nums[j];
+						int perc_idx = white_panel_precs[j];
+						mini_panel[j + 1] = { num_idx , perc_idx , WHITE_PNL_WBC };
+					}
+
+					has_valid_minipanel = has_valid_panel(mini_panel, input_signals, rep, missing_sigs);
+				}
+				else if (iPanel == REP_CMPLT_LIPIDS_PANEL) {
+					vector<vector<int>> mini_panel(9);
+					mini_panel[0] = { LIPIDS_PNL_HDL_OVER_CHOL, LIPIDS_PNL_HDL, LIPIDS_PNL_CHOL };
+					mini_panel[1] = { LIPIDS_PNL_CHOL_OVER_HDL, LIPIDS_PNL_CHOL, LIPIDS_PNL_HDL };
+					mini_panel[2] = { LIPIDS_PNL_HDL_OVER_LDL, LIPIDS_PNL_HDL, LIPIDS_PNL_LDL };
+					mini_panel[3] = { LIPIDS_PNL_LDL_OVER_HDL, LIPIDS_PNL_LDL, LIPIDS_PNL_HDL };
+					mini_panel[4] = { LIPIDS_PNL_HDL_OVER_NON_HDL, LIPIDS_PNL_HDL, LIPIDS_PNL_NON_HDL_CHOL };
+					mini_panel[5] = { LIPIDS_PNL_HDL_OVER_LDL, LIPIDS_PNL_LDL_OVER_HDL };
+					mini_panel[6] = { LIPIDS_PNL_HDL_OVER_CHOL, LIPIDS_PNL_CHOL_OVER_HDL };
+					mini_panel[7] = chol_types1;
+					mini_panel[7].push_back(LIPIDS_PNL_CHOL);
+					mini_panel[8] = chol_types2;
+					mini_panel[8].push_back(LIPIDS_PNL_CHOL);
+
+					has_valid_minipanel = has_valid_panel(mini_panel, input_signals, rep, missing_sigs);
+				}
+			}
+
+			if (has_valid_minipanel) {
+				//TODO: break into mini-panels and only add needed signals.
+				// Currently, if will not add all signals in the panel, it will not work.
+				// the code expects all signals in the panel to be defined (phisical, or virtually)
+				missing_sigs.insert(panel_missing.begin(), panel_missing.end());
+			}
+
+			if (!panel_missing.empty() && !has_valid_minipanel) {
+				//remove panel
+				panel_signal_names[iPanel].clear();
+				string panel_name = "";
+				for (const auto &it : panel2type)
+					if (it.second == iPanel)
+						panel_name = it.first;
+				MLOG("RepPanelCompleter::fit_for_repository - removed panel %s\n", panel_name.c_str());
+			}
 		}
 	}
 
@@ -567,7 +644,7 @@ int RepPanelCompleter::perpare_for_age_and_gender(PidDynamicRec& rec, int& age, 
 		MERR("No BDATE given for %d\n", rec.pid);
 		return -1;
 	}
-	int bdate_v= (int)(rec.usv.Val(0));
+	int bdate_v = (int)(rec.usv.Val(0));
 	bYear = int(bdate_v / 10000);
 
 	return 0;
