@@ -2122,7 +2122,7 @@ void medial::registry::complete_active_period_as_controls(vector<MedRegistryReco
 		//commit to reg with unite:
 
 		MedRegistryRecord rec_temp;
-		for (const auto rec : pid_to_regs) {
+		for (const auto &rec : pid_to_regs) {
 			//sort(rec.second.begin(), rec.second.end(), [](const MedRegistryRecord &a, const MedRegistryRecord &b)
 			//{ return a.start_date < b.start_date; });
 			//unite control times:

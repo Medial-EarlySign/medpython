@@ -265,7 +265,7 @@ void DoCalcFeatProcessor::do_threshold(vector<float*> p_sources, float *p_out, i
 	{
 		thresold = boost::lexical_cast<float>(parameters[1]);
 	}
-	catch (const boost::bad_lexical_cast) {
+	catch (const boost::bad_lexical_cast &) {
 		MTHROW_AND_ERR("do_threshold expects the second parameter to be a float threshold, got [%s]\n", parameters[1].c_str());
 	}
 

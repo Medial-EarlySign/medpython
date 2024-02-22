@@ -218,7 +218,7 @@ void ProbAdjustPostProcessor::Apply(MedFeatures &matrix) {
 	}
 
 	if (err_s.length() > 0)
-		MTHROW_AND_ERR(err_s.c_str());
+		MTHROW_AND_ERR("%s\n", err_s.c_str());
 }
 
 
