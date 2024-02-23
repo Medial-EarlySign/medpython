@@ -2800,7 +2800,7 @@ static void FormatOneResponse(
     const int nUsedCols = nTerms;       // nUsedCols is needed for the Betas_ macro
     printf(sFormat, Betas_(0, iResp));  // intercept
     while (nKnots++ < nKnotsMax)
-        printf(sPad);
+        printf("%s", sPad);
     printf(" // 0\n");
 
     for (int iTerm = 1; iTerm < nTerms; iTerm++)
@@ -2837,7 +2837,7 @@ static void FormatOneResponse(
                     }
                 }
                 while (nKnots++ < nKnotsMax)
-                    printf(sPad);
+                    printf("%s", sPad);
                 printf(" // %d\n", iBestTerm);
             }
         }
