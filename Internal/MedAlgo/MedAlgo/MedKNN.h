@@ -18,11 +18,14 @@ typedef enum {
 	KNN_METRIC_LAST
 }knnMetric;
 
-struct MedKNNParams {
+struct MedKNNParams : public SerializableObject {
 
 	int k;
 	knnAveraging knnAv;
 	knnMetric knnMetr;
+
+	ADD_CLASS_NAME(MedKNNParams)
+		ADD_SERIALIZATION_FUNCS(k, knnAv, knnMetr)
 };
 
 class MedKNN : public MedPredictor {
@@ -30,9 +33,9 @@ public:
 	// Model
 	int nsamples;
 	int nftrs;
-	float *x;
-	float *y;
-	float *w;
+	vector<float> x;
+	vector<float> y;
+	vector<float> w;
 
 
 	// Parameters
@@ -47,7 +50,6 @@ public:
 	/// @snippet MedKNN.cpp MedKNN::init
 	virtual int set_params(map<string, string>& mapper);
 	int init(void *params);
-	~MedKNN();
 	knnAveraging get_knn_averaging(string name);
 	knnMetric get_knn_metric(string name);
 
@@ -55,10 +57,8 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 
 	ADD_CLASS_NAME(MedKNN)
-		size_t get_size();
-	size_t serialize(unsigned char *blob);
-	size_t deserialize(unsigned char *blob);
+		ADD_SERIALIZATION_FUNCS(classifier_type, params, nsamples, nftrs, x, y, w)
 };
 
-
+MEDSERIALIZE_SUPPORT(MedKNNParams)
 MEDSERIALIZE_SUPPORT(MedKNN)

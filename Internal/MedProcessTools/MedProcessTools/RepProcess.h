@@ -1952,7 +1952,7 @@ public:
 	int time_noise = 0; ///< uniform dist of x days will be added to time-signal
 	float value_noise = 0; ///< x times signal std will be added to each value
 	int truncation = 2; 
-	float drop_probability = 0.1; ///<probability of dropping lab
+	float drop_probability = (float)0.1; ///<probability of dropping lab
 
 
 	RepNumericNoiser() { init_defaults(); }
