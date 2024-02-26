@@ -87,7 +87,7 @@ def file_parse(in_file, out_file):
         prop_type = first_word.search(d['proptype']).group(0)
         prop_name = d['propname']
         prop_list.setdefault(cur_class,[]).append((prop_type, prop_name))
-  for (io_type,array_type), params in apply_list.iteritems():
+  for (io_type,array_type), params in apply_list.items():
     for i in range(len(params)):
       params[i] = '({})'.format(params[i])
     params_str = '{'+ ', '.join(params) + '}'

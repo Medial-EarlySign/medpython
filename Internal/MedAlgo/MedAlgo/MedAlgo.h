@@ -16,7 +16,6 @@
 #include <MedStat/MedStat/MedStat.h>
 #include <MedFeat/MedFeat/MedFeat.h>
 #include <QRF/QRF/QRF.h>
-#include <gbm/gbm/gbm_utils.h>
 #include <micNet/micNet/micNet.h>
 #include <string.h>
 #include <limits.h>
@@ -45,7 +44,6 @@ using namespace std;
 typedef enum {
 	MODEL_LINEAR_MODEL = 0, ///< to_use:"linear_model" Linear %Model - creates MedLM
 	MODEL_QRF = 1, ///< to_use:"qrf" Q-Random-Forest - creates MedQRF
-	MODEL_GBM = 2, ///< to_use:"gbm" Gradient Boosting %Model - creates MedGBM
 	MODEL_KNN = 3, ///< to_use:"knn" K Nearest Neighbour - creates MedKNN
 	MODEL_BP = 4, ///< to_use:"BP" Neural Network Back Propagation - creates MedBP
 	MODEL_MARS = 5, ///< to_use:"mars" Multivariate Adaptive Regression Splines - creates MedMars

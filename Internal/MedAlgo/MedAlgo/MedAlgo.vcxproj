@@ -87,7 +87,6 @@
     <ClInclude Include="ExternalNN.h" />
     <ClInclude Include="MedBART.h" />
     <ClInclude Include="MedBP.h" />
-    <ClInclude Include="MedGBM.h" />
     <ClInclude Include="MedGDLM.h" />
     <ClInclude Include="MedKNN.h" />
     <ClInclude Include="MedLinearModel.h" />
@@ -123,7 +122,6 @@
     <ClCompile Include="MedCluster.cpp" />
     <ClCompile Include="MedBP.cpp" />
     <ClCompile Include="MedDeepBit.cpp" />
-    <ClCompile Include="MedGBM.cpp" />
     <ClCompile Include="MedGDLM.cpp" />
     <ClCompile Include="MedKNN.cpp" />
     <ClCompile Include="MedLightGBM.cpp" />
