@@ -16,7 +16,7 @@ OPTION(USE_R35 "Set to ON if your R version is not smaller than 3.5" OFF)
 #####WHEN UPDATE CMAKE OF LIGHTGBM - COPY THOES VARIABLES#####
 #SWITCH and add this precedings before "src"
 set(LIGHTGBM_SRC $ENV{MR_ROOT}/Libs/External/LightGBM_2.2.3/LightGBM-2.2.3)
-set(LIGHTGBM_BUILD ../../Build/GCC_13.1/lib)
+set(LIGHTGBM_BUILD ../../Build.ubuntu/lib)
 #####END SECTION
 
 if(APPLE)

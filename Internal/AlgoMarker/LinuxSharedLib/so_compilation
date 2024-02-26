@@ -43,6 +43,7 @@ if [ "$BUILD_XGBOOST" = true ] ; then
 pushd $MR_ROOT/Libs/External/xgboost
 if [ $OVERRIDE_ALL -gt 0 ]; then
 make clean
+#cmake .
 
 #The clean doesn't delete .a files
 find . -name '*.a' -exec rm {} \;
