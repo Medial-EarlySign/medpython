@@ -106,3 +106,4 @@ External/xgboost/dmlc-core/windows/dmlc/CMakeLists.txt
 External/xgboost/windows/xgboost/CMakeLists.txt
 
 [Bb]uild.GCC_13.1/
+[Bb]uild.ubuntu/
