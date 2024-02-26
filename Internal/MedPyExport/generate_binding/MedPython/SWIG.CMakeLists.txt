@@ -34,13 +34,16 @@ SET_SOURCE_FILES_PROPERTIES(medpython.i PROPERTIES CPLUSPLUS ON)
 SET_SOURCE_FILES_PROPERTIES(medpython.i PROPERTIES SWIG_FLAGS "-includeall")
 message("\n*********************************************\n${CMAKE_CXX_FLAGS}\n*********************************************\n")
 file(GLOB CppFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/*.cpp)
-SET_SOURCE_FILES_PROPERTIES(SOURCE ${CppFiles} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -lpython2.7 -lpthread -ldl -lutil -lm")
-set(SWIG_MODULE_medpython_EXTRA_DEPS MedPython.h MedPython.h ../../MedPyExport/*.h apply_directives pythoncode.i)
+file(GLOB HeaderFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/*.h)
+
+
+SET_SOURCE_FILES_PROPERTIES(SOURCE ${CppFiles} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -lpython3 -lpthread -ldl -lutil -lm")
+set(SWIG_MODULE_medpython_EXTRA_DEPS MedPython.h MedPython.h ${HeaderFiles} apply_directives pythoncode.i)
 SWIG_ADD_MODULE(medpython python medpython.i ${CppFiles})
 
-message("\n*********************************************\nlinking params:\n$ENV{PYTHON_LIBRARY} -Wl,--start-group MedMat MedSplit InfraMed Logger Mars MedAlgo MedEmbed MedFeat MedIO MedProcessTools MedSparseMat MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet -Wl,--end-group libboost_regex.so libboost_program_options.so libboost_filesystem.so libboost_system.so $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a\n*********************************************\n")
+message("\n*********************************************\nlinking params:\n$ENV{PYTHON_LIBRARY} -Wl,-Bstatic,--whole-archive MedMat MedSplit InfraMed Logger Mars MedAlgo MedEmbed MedFeat MedIO MedProcessTools MedSparseMat MedStat MedTime MedUtils QRF SerializableObject TQRF micNet -Wl,--end-group libboost_regex.so libboost_program_options.so libboost_filesystem.so libboost_system.so $ENV{MR_ROOT}/Libs/External/xgboost/lib/libxgboost.so /server/Work/SharedLibs/linux/ubuntu/${CMAKE_BUILD_TYPE}/lib_lightgbm.so $ENV{MR_ROOT}/Libs/External/xgboost/rabit/lib/librabit.a -Wl,-no-whole-archive -Wl,-Bdynamic\n*********************************************\n")
 
-SWIG_LINK_LIBRARIES(medpython $ENV{PYTHON_LIBRARY} -Wl,--start-group MedMat MedSplit InfraMed Logger Mars MedAlgo MedEmbed MedFeat MedIO MedProcessTools MedSparseMat MedStat MedTime MedUtils QRF SerializableObject TQRF gbm micNet CommonLib -Wl,--end-group -lboost_regex -lboost_program_options -lboost_filesystem -lboost_system /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/libxgboost.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/lib_lightgbm.so /server/Work/SharedLibs/linux/lib64/${CMAKE_BUILD_TYPE}/librabit.so)
+SWIG_LINK_LIBRARIES(medpython $ENV{PYTHON_LIBRARY} -Wl,-Bstatic,--whole-archive MedMat MedSplit InfraMed Logger Mars MedAlgo MedEmbed MedFeat MedIO MedProcessTools MedSparseMat MedStat MedTime MedUtils QRF SerializableObject TQRF micNet CommonLib  $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libboost_regex.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libboost_program_options.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libboost_filesystem.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libboost_system.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libxgboost.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/lib_lightgbm.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/librabit.a $ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib/libdmlc.a -Wl,-no-whole-archive -Wl,-Bdynamic)
 
 #
 #  TODO: Why doesn't it compile with: 
