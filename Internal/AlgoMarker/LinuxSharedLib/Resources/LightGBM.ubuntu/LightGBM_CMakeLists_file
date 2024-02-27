@@ -1,8 +1,4 @@
-if(USE_GPU OR APPLE)
-  cmake_minimum_required(VERSION 3.2)
-else()
-  cmake_minimum_required(VERSION 2.8)
-endif()
+cmake_minimum_required(VERSION 3.2)
 
 PROJECT(lightgbm)
 

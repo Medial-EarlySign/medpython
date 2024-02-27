@@ -23,8 +23,9 @@ public:
 	void MEDPY_SET_default_windows_time_unit(int new_val);
 	MPRNG RNG;
 	MPLogger logger;
+	string version_info;
 
-	string MEDPY_GET_version_info();
+	MPGlobalClass();
 };
 
 class MPCommonLib {

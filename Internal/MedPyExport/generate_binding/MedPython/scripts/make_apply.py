@@ -97,15 +97,15 @@ def file_parse(in_file, out_file):
     prop_def = {}
     for ptype,pname in prop_list[cur_class]:
       prop_def[pname] = ['None','None']
-    #for ptype,pname in prop_list[cur_class]:
+    for ptype,pname in prop_list[cur_class]:
       #if ptype.lower()=='get':
       #  continue
-      #prop_func_name = 'MEDPY_'+ptype+'_'+pname
+      prop_func_name = 'MEDPY_'+ptype+'_'+pname
       #print('    __swig_{}methods__["{}"] = {}'.format(ptype.lower(), pname, prop_func_name), file=out_file)
-      #prop_def[pname][0 if ptype=='GET' else 1] = prop_func_name
+      prop_def[pname][0 if ptype=='GET' else 1] = prop_func_name
     #print('    if _newclass:', file=out_file)
-    #for pname in prop_def:
-    #  print('      {} = property(''{}'',''{}'')'.format(pname, prop_def[pname][0], prop_def[pname][1]), file=out_file)
+    for pname in prop_def:
+      print('      {} = property(''{}'',''{}'')'.format(pname, prop_def[pname][0], prop_def[pname][1]), file=out_file)
     print('  %}\n};', file=out_file)
    
 
