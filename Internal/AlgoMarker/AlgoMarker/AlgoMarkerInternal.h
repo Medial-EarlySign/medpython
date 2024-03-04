@@ -431,6 +431,7 @@ public:
 			for (auto& sample : idSample.samples) {
 				preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
 			}
+		return 0;
 	}
 
 	int get_pred(int *pid, int *time, float *pred) { return get_preds(pid, time, pred, 1); }
