@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 BUILD_BOOST=true
 BUILD_XGBOOST=true
 BUILD_LIGHTGBM=true
@@ -50,17 +50,18 @@ fi
 
 if [ "$BUILD_XGBOOST" = true ] ; then
 pushd $MR_ROOT/Libs/External/xgboost
-if [ $OVERRIDE_ALL -gt 0 ]; then
-make clean
-cp $MR_ROOT/Libs/External/xgboost/CMakeLists.txt.orig $MR_ROOT/Libs/External/xgboost/CMakeLists.txt
-cmake .
 
-#The clean doesn't delete .a files
-find . -name '*.a' -exec rm {} \;
+if [ $OVERRIDE_ALL -gt 0 ]; then
+	cp $MR_ROOT/Libs/External/xgboost/CMakeLists.txt.orig $MR_ROOT/Libs/External/xgboost/CMakeLists.txt
+	make clean
+	cmake .
+	#The clean doesn't delete .a files
+	find . -name '*.a' -exec rm {} \;
+	make -j20
 fi
-make -j20
-cp ./lib/libxgboost.a ${STATIC_LIBS_TARGET}
-cp ./rabit/lib/librabit.a ${STATIC_LIBS_TARGET}
+
+cp ./libxgboost_static.a ${STATIC_LIBS_TARGET}/libxgboost.a
+cp ./librabit.a ${STATIC_LIBS_TARGET}
 cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
 popd
 fi
@@ -103,7 +104,7 @@ popd
 fi
 
 echo "To run with new lib"
-echo "export LD_LIBRARY_PATH=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/lib64:\$LD_LIBRARY_PATH"
+echo "export LD_LIBRARY_PATH=/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib:\$LD_LIBRARY_PATH"
 
 exit 0
 
