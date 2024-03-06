@@ -5,8 +5,10 @@
 #include <InfraMed/InfraMed/MedPidRepository.h>
 #include <MedProcessTools/MedProcessTools/MedModel.h>
 #include <MedProcessTools/MedProcessTools/ExplainWrapper.h>
+#include <MedStat/MedStat/MedBootstrap.h>
 #include "InputTesters.h"
 #include "AlgoMarkerErr.h"
+#include <cmath>
 
 #define LOCAL_SECTION LOG_APP
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
@@ -125,7 +127,7 @@ public:
 			}
 			else if (it.first == "cfg") {
 				if (it.second != "" && it.second[0] != '/' && it.second[0] != '\\' && !base_dir.empty())
-					cfg.read_cfg_file(base_dir + "/" + it.second);
+					cfg.read_cfg_file(base_dir + path_sep() + it.second);
 				else
 					cfg.read_cfg_file(it.second);
 			}
@@ -159,6 +161,8 @@ private:
 	unordered_map<int, unordered_map<string, unordered_set<string>>> unknown_codes;
 	Explainer_parameters explainer_params;
 	//InputSanityTester ist;
+	map<string, map<string, float>> mbr; ///< read bootstrap cohort, then measure and then value
+	string default_threshold = ""; ///< deafult trehsold
 
 	string name;
 	string model_fname;
@@ -427,6 +431,7 @@ public:
 			for (auto& sample : idSample.samples) {
 				preds[j++] = sample.prediction[0]; // This is Naive - but works for simple predictors giving the Raw score.
 			}
+		return 0;
 	}
 
 	int get_pred(int *pid, int *time, float *pred) { return get_preds(pid, time, pred, 1); }
@@ -519,6 +524,151 @@ public:
 	void set_explainer_params(const string &params, const string &base_dir) {
 		explainer_params.base_dir = base_dir;
 		explainer_params.init_from_string(params);
+	}
+
+	void set_threshold_leaflet(const string &init_string, const string &base_dir) {
+		map<string, string> params;
+		if (MedSerialize::init_map_from_string(init_string, params) < 0)
+			MTHROW_AND_ERR("Error Init from String %s\n", init_string.c_str());
+		string bt_file_path = "";
+		map<string, string> rename_cohorts;
+		for (const auto &it : params)
+		{
+			if (it.first == "bootstrap_file_path")
+				bt_file_path = it.second;
+			else if (it.first == "rename_cohorts") {
+				vector<string> tokens;
+				boost::split(tokens, it.second, boost::is_any_of("#"));
+				for (const string &tk : tokens)
+				{
+					vector<string> src_target;
+					boost::split(src_target, tk, boost::is_any_of("|"));
+					if (src_target.size() != 2)
+						MTHROW_AND_ERR("Error expecting 2 tokens, recieved \"%s\"\n", tk.c_str());
+					mes_trim(src_target[1]);
+					mes_trim(src_target[1]);
+					rename_cohorts[src_target[0]] = src_target[1];
+				}
+			}
+			else if (it.first == "default_threshold") {
+				default_threshold = it.second;
+				mes_trim(default_threshold);
+			}
+			else
+				MTHROW_AND_ERR("Error unknown param %s\n", it.first.c_str());
+		}
+		if (bt_file_path.empty())
+			MTHROW_AND_ERR("Error must provide bootstrap_file_path in THRESHOLD_LEAFLET\n");
+
+		if (bt_file_path != "" && bt_file_path[0] != '/' && bt_file_path[0] != '\\' && !base_dir.empty())
+			bt_file_path = base_dir + path_sep() + bt_file_path;
+
+		if (default_threshold.empty())
+			MTHROW_AND_ERR("Error - must have default_threshold\n");
+
+		map<string, map<string, float>> mbr_before;
+		read_pivot_bootstrap_results(bt_file_path, mbr_before);
+
+		//commit rename:
+		for (auto &it : mbr_before)
+		{
+			string cohort = it.first;
+			if (rename_cohorts.find(cohort) != rename_cohorts.end())
+				cohort = rename_cohorts[cohort];
+			//Filter to take only "SCORE@" prefix
+			map<string, float> &filt = mbr[cohort];
+			for (const auto &jt : it.second)
+				if (boost::starts_with(jt.first, "SCORE@") && boost::ends_with(jt.first, "_Mean"))
+					filt[jt.first.substr(6, jt.first.length() - 11)] = jt.second;
+		}
+
+		//Test default is OK:
+		string err_c;
+		fetch_threshold(default_threshold, err_c);
+		if (!err_c.empty()) {
+			vector<string> opts;
+			fetch_all_thresholds(opts);
+			for (const string & s : opts)
+				MLOG("Option: \"%s\"\n", s.c_str());
+			MTHROW_AND_ERR("Error default_threshold is invalid - please select one in format as COHORT$MEASURE_NUMERIC\n");
+		}
+	}
+
+	bool has_threshold_settings() const {
+		return !mbr.empty();
+	}
+
+	string get_default_threshold() const { return default_threshold; }
+
+	void fetch_all_thresholds(vector<string> &opts) const {
+		for (const auto &it : mbr)
+		{
+			for (const auto &jt : it.second)
+			{
+				string res = it.first + "$" + jt.first;
+				opts.push_back(res);
+			}
+		}
+	}
+
+	float fetch_threshold(const string &threshold, string &err_msg) const {
+		vector<string> tokens;
+		err_msg = "";
+		boost::split(tokens, threshold, boost::is_any_of("$"));
+		if (tokens.size() != 2) {
+			err_msg = "("+ to_string(AM_GENERAL_FATAL) + ")Error flag_threshold should contain $";
+			return MED_MAT_MISSING_VALUE;
+		}
+		mes_trim(tokens[0]);
+		mes_trim(tokens[1]);
+		if (mbr.find(tokens[0]) == mbr.end()) {
+			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't contain threshold settings for " + tokens[0];
+			return MED_MAT_MISSING_VALUE;
+		}
+		const map<string, float> &fnd = mbr.at(tokens[0]);
+		//Search numericly:
+		vector<string> meas_tokens;
+		boost::split(meas_tokens, tokens[1], boost::is_any_of("_"));
+		if (meas_tokens.size() != 2) {
+			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't should contain _ in the cutoff setting part";
+			return MED_MAT_MISSING_VALUE;
+		}
+		float num_val;
+		try {
+			num_val = stof(meas_tokens[1]);
+		}
+		catch (...) {
+			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold search cutoff isn't numeric";
+			return MED_MAT_MISSING_VALUE;
+		}
+
+		float res = MED_MAT_MISSING_VALUE;
+		for (const auto &jt : fnd)
+		{
+			string cand = jt.first;
+			vector<string> cand_tokens;
+			boost::split(cand_tokens, cand, boost::is_any_of("_"));
+			if (cand_tokens.size() != 2)
+				continue;
+			if (cand_tokens[0] != meas_tokens[0])
+				continue;
+			//Need to compare numericaly: cand_tokens[1] == meas_tokens[1]
+			float num_val_cmp;
+			try {
+				num_val_cmp = stof(cand_tokens[1]);
+			}
+			catch (...) {
+				continue;
+			}
+			if (abs(num_val_cmp - num_val) <= 1e-6) {
+				res = jt.second;
+				break; //found
+			}
+		}
+
+		if (res == MED_MAT_MISSING_VALUE)
+			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't contain threshold for " + tokens[1];
+		return res;
 	}
 };
 

@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -e
 BUILD_BOOST=true
 BUILD_XGBOOST=true
 BUILD_LIGHTGBM=true
@@ -7,13 +7,13 @@ BUILD_ALGOMARKER=true
 
 OVERRIDE_ALL=${1-0}
 
-export CC=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin/gcc
-export CXX=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin/c++
-export PATH=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin:$PATH
+#export CC=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin/gcc
+#export CXX=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin/c++
+#export PATH=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/bin:$PATH
 
-BOOST_FPIC_DIR=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.gcc.13.1
+BOOST_FPIC_DIR=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
-BLDDIR="${DIR}/Build.GCC_13.1"
+BLDDIR="${DIR}/Build.ubuntu"
 STATIC_LIBS_TARGET="${BLDDIR}/lib"
 
 mkdir -p ${BLDDIR}
@@ -34,7 +34,7 @@ echo "STATIC_LIBS_TARGET=${STATIC_LIBS_TARGET}"
 
 mkdir -p "${STATIC_LIBS_TARGET}"
 mkdir -p ${BOOST_FPIC_DIR}/installation
-source /nas1/Work/python-env/python38/bin/activate
+source /nas1/Work/python-env/python310/bin/activate
 
 if [ "$BUILD_BOOST" = true ] ; then
 pushd ${BOOST_FPIC_DIR}
@@ -50,22 +50,25 @@ fi
 
 if [ "$BUILD_XGBOOST" = true ] ; then
 pushd $MR_ROOT/Libs/External/xgboost
-if [ $OVERRIDE_ALL -gt 0 ]; then
-make clean
 
-#The clean doesn't delete .a files
-find . -name '*.a' -exec rm {} \;
+if [ $OVERRIDE_ALL -gt 0 ]; then
+	cp $MR_ROOT/Libs/External/xgboost/CMakeLists.txt.orig $MR_ROOT/Libs/External/xgboost/CMakeLists.txt
+	make clean
+	cmake .
+	#The clean doesn't delete .a files
+	find . -name '*.a' -exec rm {} \;
+	make -j20
 fi
-make -j20
-cp ./lib/libxgboost.a ${STATIC_LIBS_TARGET}
-cp ./rabit/lib/librabit.a ${STATIC_LIBS_TARGET}
+
+cp ./libxgboost_static.a ${STATIC_LIBS_TARGET}/libxgboost.a
+cp ./librabit.a ${STATIC_LIBS_TARGET}
 cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
 popd
 fi
 
 if [ "$BUILD_LIGHTGBM" = true ] ; then
 mkdir -p ${BLDDIR}/LightGBM/
-cp ${DIR}/Resources/LightGBM.new_gcc/LightGBM_CMakeLists_file ${BLDDIR}/LightGBM/CMakeLists.txt
+cp ${DIR}/Resources/LightGBM.ubuntu/LightGBM_CMakeLists_file ${BLDDIR}/LightGBM/CMakeLists.txt
 pushd ${BLDDIR}/LightGBM/
 cmake .
 make -j20
@@ -73,15 +76,15 @@ popd
 fi
 
 #To remove warnings in boost library
- export CPATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.gcc.13.1
- export CPLUS_INCLUDE_PATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.gcc.13.1
- export C_INCLUDE_PATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.gcc.13.1
+ export CPATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu
+ export CPLUS_INCLUDE_PATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu
+ export C_INCLUDE_PATH=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu
  export LIBRARY_PATH=${STATIC_LIBS_TARGET}
 
 
 if [ "$BUILD_ALGOMARKER" = true ] ; then
-cp ${DIR}/Resources/AlgoMarker.new_gcc/AlgoMarker_TopLeveL_CMakeLists ${DIR}/../CMakeLists.txt
-cp ${DIR}/Resources/AlgoMarker.new_gcc/AlgoMarker_CMakeLists ${DIR}/../AlgoMarker/CMakeLists.txt
+cp ${DIR}/Resources/AlgoMarker.ubuntu/AlgoMarker_TopLeveL_CMakeLists ${DIR}/../CMakeLists.txt
+cp ${DIR}/Resources/AlgoMarker.ubuntu/AlgoMarker_CMakeLists ${DIR}/../AlgoMarker/CMakeLists.txt
 mkdir -p ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 pushd ${BLDDIR}/AlgoMarker/CMakeBuild/Linux/Release
 cmake -D SO_COMPILATION=TRUE ${DIR}/..
@@ -100,8 +103,8 @@ echo "AlgoMarker Shared Object file written to ${FINAL_PT}"
 popd
 fi
 
-echo "To run wiht new lib"
-echo "export LD_LIBRARY_PATH=/nas1/Work/Applications/GCC/gcc-13.1.0/installation/lib64:\$LD_LIBRARY_PATH"
+echo "To run with new lib"
+echo "export LD_LIBRARY_PATH=/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib:\$LD_LIBRARY_PATH"
 
 exit 0
 

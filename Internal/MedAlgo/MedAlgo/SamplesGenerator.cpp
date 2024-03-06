@@ -153,7 +153,7 @@ template class GibbsSamplesGenerator<float>;
 template class GibbsSamplesGenerator<double>;
 
 int MaskedGANParams::init(map<string, string> &mapper) {
-	for (const auto it : mapper)
+	for (const auto &it : mapper)
 	{
 		if (it.first == "keep_original_values")
 			keep_original_values = med_stoi(it.second) > 0;

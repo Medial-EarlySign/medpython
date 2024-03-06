@@ -33,7 +33,7 @@ void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt)
 	try {
 		read_json(no_comments_stream, pt);
 	}
-	catch (json_parser_error e) {
+	catch (json_parser_error &e) {
 		no_comments_stream.clear();
 		no_comments_stream.seekg(0);
 		MLOG("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());
@@ -276,12 +276,11 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 //
 // use "" and a file name to start from a file, or a string and empty or given fname to start from a string
 //-----------------------------------------------------------------------------------------------------
-void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname)
+void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations)
 {
 	string json_contents = in_json;
 	if (json_contents == "") {
-		vector<string> dummy_alts;
-		json_contents = json_file_to_string(0, fname, dummy_alts);
+		json_contents = json_file_to_string(0, fname, alterations);
 	}
 	ptree pt;
 	parse_my_json_to_pt(json_contents, pt);

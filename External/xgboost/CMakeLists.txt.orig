@@ -209,6 +209,7 @@ else()
 
   # Shared library
   add_library(xgboost SHARED $<TARGET_OBJECTS:objxgboost>)
+  add_library(xgboost_static STATIC $<TARGET_OBJECTS:objxgboost>)
   target_link_libraries(xgboost ${LINK_LIBRARIES})
   set_output_directory(xgboost ${PROJECT_SOURCE_DIR}/lib)
   if(MINGW)

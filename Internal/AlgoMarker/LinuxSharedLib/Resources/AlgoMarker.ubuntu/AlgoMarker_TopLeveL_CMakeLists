@@ -1,5 +1,5 @@
+cmake_minimum_required(VERSION 3.2)
 project(AlgoMarker)
-cmake_minimum_required(VERSION 2.8)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
@@ -13,7 +13,7 @@ include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakeDropNDEBUG.txt")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -march=native -Og -DSO_COMPILATION")
 
-include_directories(SYSTEM /nas1/Work/Libs/Boost/boost_1_67_0-fPIC.gcc.13.1/include/)
+include_directories(SYSTEM /nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/include/)
 include_directories($ENV{MR_ROOT}/Libs)
 include_directories($ENV{MR_ROOT}/Libs/External)
 include_directories($ENV{MR_ROOT}/Libs/Internal)
@@ -48,7 +48,6 @@ add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedUtils/MedUtils MedUtils)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/QRF/QRF QRF)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/SerializableObject/SerializableObject SerializableObject)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/TQRF/TQRF TQRF)
-add_subdirectory($ENV{MR_ROOT}/Libs/External/gbm/gbm gbm)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/micNet/micNet micNet)
 
 

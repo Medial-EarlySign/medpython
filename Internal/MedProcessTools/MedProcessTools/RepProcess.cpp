@@ -8,8 +8,12 @@
 #include "RepCreateRegistry.h"
 #include "RepCategoryDescenders.h"
 #include "RepFilterByChannels.h"
+#include <omp.h>
 #include <cmath>
 #include <iomanip>
+#include <iostream>
+#include <iterator>
+#include <random>
 
 //=======================================================================================
 // RepProcessors
@@ -59,6 +63,8 @@ RepProcessorTypes rep_processor_name_to_type(const string& processor_name) {
 		return REP_PROCESS_REODER_CHANNELS;
 	else if (processor_name == "filter_channels")
 		return REP_PROCESS_FILTER_BY_CHANNELS;
+	else if (processor_name == "numeric_noiser" || processor_name == "noiser")
+		return REP_PROCESS_NUMERIC_NOISER;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -88,6 +94,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepCategoryDescenders);
 	CONDITIONAL_NEW_CLASS(dname, RepReoderChannels);
 	CONDITIONAL_NEW_CLASS(dname, RepFilterByChannel);
+	CONDITIONAL_NEW_CLASS(dname, RepNumericNoiser);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -161,6 +168,8 @@ RepProcessor * RepProcessor::make_processor(RepProcessorTypes processor_type) {
 		return new RepReoderChannels;
 	else if (processor_type == REP_PROCESS_FILTER_BY_CHANNELS)
 		return new RepFilterByChannel;
+	else if (processor_type == REP_PROCESS_NUMERIC_NOISER)
+		return new RepNumericNoiser;
 	else
 		return NULL;
 
@@ -4279,7 +4288,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 #ifdef _APPLY_VERBOSE
 						MLOG("ID=%d\tJitter at j=%d len = %d last_taken=%d v1=%d k=%d v2=%d and v3=%d : AB-A-AC\n", rec.pid, j, len, last_taken, v1, k, v2, v3);
 #endif
-		}
+					}
 
 			}
 
@@ -4303,7 +4312,7 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 				}
 			}
 			j++;
-					}
+		}
 
 		// packing and pushing new virtual signal
 		vector<int> v_times;
@@ -4325,11 +4334,11 @@ int RepCreateBitSignal::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 
 			rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], (int)v_vals.size());
 		}
-				}
+	}
 
 
 	return 0;
-			}
+}
 
 
 //-------------------------------------------------------------------------------------------------------
@@ -4598,6 +4607,127 @@ int RepHistoryLimit::_apply(PidDynamicRec& rec, vector<int>& time_points, vector
 }
 
 
+
+
+//----------------------------------------------------------------------------------------
+// RepNumericNoiser : given a numeric signal : adds gaussian noise to each value, with std as user-determined
+// fraction of signal std
+//----------------------------------------------------------------------------------------
+
+// Fill req- and aff-signals vectors
+//.......................................................................................
+void RepNumericNoiser::init_lists() {
+
+	req_signals.insert(signalName);
+	aff_signals.insert(signalName);
+}
+
+// Init from map
+//.......................................................................................
+int RepNumericNoiser::init(map<string, string>& mapper)
+{
+	for (auto entry : mapper) {
+		string field = entry.first;
+		//! [RepHistoryLimit::init]
+		if (field == "signal") { signalName = entry.second; }
+		else if (field == "time_channel") time_channel = med_stoi(entry.second);
+		else if (field == "val_channel") val_channel = med_stoi(entry.second);
+		else if (field == "time_noise") time_noise = med_stoi(entry.second);
+		else if (field == "value_noise") value_noise = med_stof(entry.second);
+		else if (field == "truncation") truncation = med_stoi(entry.second);
+		else if (field == "drop_probability") drop_probability = med_stof(entry.second);
+		else if (field != "rp_type")
+			MWARN("WARN :: RepNumericNoiser::init - unknown parameter %s - ignored\n", field.c_str());
+		//! [RepHistoryLimit::init]
+	}
+
+	init_lists();
+
+	return 0;
+}
+
+
+//---------------------------------------------------------------------------------------------------------------
+
+int RepNumericNoiser::_learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_cleaners) {
+
+	// Sanity check
+	if (signalId == -1) {
+		MERR("RepNumericNoiser::_learn - Uninitialized signalId(%s)\n", signalName.c_str());
+		return -1;
+	}
+
+	// Get all values
+	vector<float> v;
+	get_values(rep, samples, signalId, time_channel, val_channel, -FLT_MAX, FLT_MAX, v, prev_cleaners);
+
+	if (v.empty()) {
+		MTHROW_AND_ERR("RepNumericNoiser::_learn WARNING signal [%d] = [%s] is empty, will not calculate std\n", signalId,
+			this->signalName.c_str());
+	}
+
+	double sum = std::accumulate(v.begin(), v.end(), 0.0);
+	double mean = sum / v.size();
+
+	std::vector<double> diff(v.size());
+	std::transform(v.begin(), v.end(), diff.begin(), [mean](double x) { return x - mean; });
+	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+	stdev = std::sqrt(sq_sum / v.size());
+
+	return 0;
+}
+//---------------------------------------------------------------------------------------------------------------
+int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
+{
+
+	
+	UniversalSigVec usv;
+
+	set<int>iteratorSignalIds;
+	iteratorSignalIds.insert(signalId);
+	allVersionsIterator vit(rec, iteratorSignalIds);
+
+	int n_th = omp_get_thread_num();
+
+
+	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
+		rec.uget(signalId, iver, usv);
+		int final_size = usv.len;
+		vector<int> times;
+		vector<float> vals;
+
+		for (int i = 0; i < usv.len; i++) {
+
+			uniform_real_distribution<> dist_prob(0, 1);
+			float random_sample = dist_prob(gens[3 * n_th]);
+			if (random_sample < drop_probability) {
+				final_size -= 1;
+				continue;
+			}
+
+			int i_time = usv.Time(i, time_channel);
+			float val = usv.Val(i, val_channel);
+
+			uniform_int_distribution<> distrib_uni(-1 * time_noise, 0);
+			int new_time = i_time + distrib_uni(gens[3*n_th+1]);
+			times.push_back(new_time);
+
+			//Add noise to vals
+			normal_distribution<float> distrib_norm(0.0, stdev*value_noise);
+			float new_val = val + distrib_norm(gens[3*n_th+2]);
+			new_val = round(new_val*pow(10, truncation)) / pow(10, truncation);
+			//float new_val = val;
+			vals.push_back(new_val);
+		}
+		rec.set_version_universal_data(signalId, iver, &times[0], &vals[0], final_size);
+	}
+
+
+	return 0;
+}
+
+
+
 //=======================================================================================
 // Utility Functions
 //=======================================================================================
@@ -4625,9 +4755,11 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 		vector<int> time_points;
 		// Special care for virtual signals - use samples 
 		if (signalIsVirtual) {
+
 			time_points.resize(idSamples.samples.size());
-			for (size_t i = 0; i < time_points.size(); i++)
+			for (size_t i = 0; i < time_points.size(); i++) {
 				time_points[i] = idSamples.samples[i].time;
+			}
 		}
 		else {
 			// Get signal
@@ -4636,59 +4768,67 @@ int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_c
 			time_points.resize(usv.len);
 			for (int i = 0; i < usv.len; i++)
 				time_points[i] = usv.Time(i, time_channel);
-		}
 
-		// Nothing to do if empty ...
-		if (time_points.empty())
-			continue;
+			// Nothing to do if empty ...
+			if (time_points.empty())
+				continue;
 
-		if (prev_processors.size()) {
+			if (prev_processors.size()) {
 
-			// Init Dynamic Rec
-			rec.init_from_rep(std::addressof(rep), id, req_signal_ids_v, (int)time_points.size());
+				// Init Dynamic Rec
+				rec.init_from_rep(std::addressof(rep), id, req_signal_ids_v, (int)time_points.size());
 
-			// Process at all time-points
-			vector<vector<float>> dummy_attributes_mat;
-			for (size_t i = 0; i < prev_processors.size(); i++)
-				prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
+				// Process at all time-points
+				vector<vector<float>> dummy_attributes_mat;
+				for (size_t i = 0; i < prev_processors.size(); i++)
+					prev_processors[i]->conditional_apply(rec, time_points, current_required_signal_ids[i], dummy_attributes_mat);
 
-			// If virtual - we need to get the signal now
-			if (signalIsVirtual)
-				rec.uget(signalId, 0, usv);
+				// If virtual - we need to get the signal now
+				if (signalIsVirtual)
+					rec.uget(signalId, 0, usv);
 
-			// Collect
-			int iVersion = 0;
-			rec.uget(signalId, iVersion, rec.usv);
+				// Collect
+				int iVersion = 0;
+				rec.uget(signalId, iVersion, rec.usv);
 
-			for (int i = 0; i < usv.len; i++) {
-				// Get a new version if we past the current one
-				if (usv.Time(i) > time_points[iVersion]) {
-					iVersion++;
-					if (iVersion == rec.get_n_versions())
-						break;
-					rec.uget(signalId, iVersion, rec.usv);
+				for (int i = 0; i < usv.len; i++) {
+					// Get a new version if we past the current one
+					if (usv.Time(i) > time_points[iVersion]) {
+						iVersion++;
+						if (iVersion == rec.get_n_versions())
+							break;
+						rec.uget(signalId, iVersion, rec.usv);
+					}
+
+					float ival = rec.usv.Val(i, val_channel);
+					if (ival >= range_min && ival <= range_max)
+						values.push_back(ival);
 				}
-
-				float ival = rec.usv.Val(i, val_channel);
-				if (ival >= range_min && ival <= range_max)
-					values.push_back(ival);
 			}
-		}
-		else {
-			// Collect 
-			for (int i = 0; i < usv.len; i++) {
-				float ival = usv.Val(i, val_channel);
-				if (ival >= range_min && ival <= range_max)
-					values.push_back(ival);
+			else {
+				// Collect 
+				for (int i = 0; i < usv.len; i++) {
+					float ival = usv.Val(i, val_channel);
+					if (ival >= range_min && ival <= range_max)
+						values.push_back(ival);
+				}
 			}
 		}
 	}
-
 	return 0;
-}
 
+}
 //.......................................................................................
-int get_values(MedRepository& rep, MedSamples& samples, int signalId, int time_channel, int val_channel, float range_min, float range_max, vector<float>& values) {
+int get_values(
+	MedRepository& rep, 
+	MedSamples& samples, 
+	int signalId, 
+	int time_channel, 
+	int val_channel, 
+	float range_min, 
+	float range_max, 
+	vector<float>& values) 
+{
 	vector<RepProcessor *> temp;
 	return get_values(rep, samples, signalId, time_channel, val_channel, range_min, range_max, values, temp);
 }

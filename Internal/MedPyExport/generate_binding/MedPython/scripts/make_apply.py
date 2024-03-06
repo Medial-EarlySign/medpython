@@ -87,7 +87,7 @@ def file_parse(in_file, out_file):
         prop_type = first_word.search(d['proptype']).group(0)
         prop_name = d['propname']
         prop_list.setdefault(cur_class,[]).append((prop_type, prop_name))
-  for (io_type,array_type), params in apply_list.iteritems():
+  for (io_type,array_type), params in apply_list.items():
     for i in range(len(params)):
       params[i] = '({})'.format(params[i])
     params_str = '{'+ ', '.join(params) + '}'
@@ -98,10 +98,12 @@ def file_parse(in_file, out_file):
     for ptype,pname in prop_list[cur_class]:
       prop_def[pname] = ['None','None']
     for ptype,pname in prop_list[cur_class]:
+      #if ptype.lower()=='get':
+      #  continue
       prop_func_name = 'MEDPY_'+ptype+'_'+pname
-      print('    __swig_{}methods__["{}"] = {}'.format(ptype.lower(), pname, prop_func_name), file=out_file)
+      #print('    __swig_{}methods__["{}"] = {}'.format(ptype.lower(), pname, prop_func_name), file=out_file)
       prop_def[pname][0 if ptype=='GET' else 1] = prop_func_name
-    print('    if _newclass:', file=out_file)
+    #print('    if _newclass:', file=out_file)
     for pname in prop_def:
       print('      {} = property(''{}'',''{}'')'.format(pname, prop_def[pname][0], prop_def[pname][1]), file=out_file)
     print('  %}\n};', file=out_file)

@@ -22,7 +22,6 @@
 #include <MedAlgo/MedAlgo/MedBP.h>
 #include <MedAlgo/MedAlgo/MedMars.h>
 #include <MedAlgo/MedAlgo/MedKNN.h>
-#include <MedAlgo/MedAlgo/MedGBM.h>
 #include <MedAlgo/MedAlgo/MedMultiClass.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
 #include <MedAlgo/MedAlgo/MedPredictorsByMissingValues.h>
@@ -45,7 +44,6 @@ unordered_map<int, string> predictor_type_to_name = {
 	{ MODEL_QRF , "qrf" },
 	{ MODEL_KNN , "knn" },
 	{ MODEL_MARS , "mars" },
-	{ MODEL_GBM , "gbm" },
 	{ MODEL_BP , "BP" },
 	{ MODEL_MULTI_CLASS , "multi_class" },
 	{ MODEL_XGB , "xgb" },
@@ -99,7 +97,6 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedQRF);
 	CONDITIONAL_NEW_CLASS(dname, MedKNN);
 	CONDITIONAL_NEW_CLASS(dname, MedMars);
-	CONDITIONAL_NEW_CLASS(dname, MedGBM);
 	CONDITIONAL_NEW_CLASS(dname, MedBP);
 	CONDITIONAL_NEW_CLASS(dname, MedMultiClass);
 	CONDITIONAL_NEW_CLASS(dname, MedXGB);
@@ -137,8 +134,6 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedKNN;
 	else if (model_type == MODEL_MARS)
 		return new MedMars;
-	else if (model_type == MODEL_GBM)
-		return new MedGBM;
 	else if (model_type == MODEL_BP)
 		return new MedBP;
 	else if (model_type == MODEL_MULTI_CLASS)

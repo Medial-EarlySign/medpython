@@ -182,7 +182,8 @@ public:
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
-	void add_pre_processors_json_string_to_model(string in_json, string fname);
+	void add_pre_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_pre_processors_json_string_to_model(in_json, fname, dummy); }
+	void add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations);
 	int add_post_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_post_processors_json_string_to_model(in_json, fname, dummy); }
 	int add_post_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
@@ -202,8 +203,9 @@ public:
 	void replace_predictor_with_json_predictor(string f_json); // given a loaded model and a json file, replaces the model predictor definition with the one in the json.
 
 	/// signal ids
-	void set_required_signal_ids(MedDictionarySections& dict);
-	void set_affected_signal_ids(MedDictionarySections& dict);
+	void set_required_signal_ids(MedDictionarySections& dict, vector<RepProcessor *> &applied_rep_processors,
+		vector<FeatureGenerator *> &applied_generators);
+	void set_affected_signal_ids(MedDictionarySections& dict, vector<RepProcessor *> &applied_rep_processors);
 
 	// Required signals back-propogation
 	void get_required_signal_names(unordered_set<string>& signalNames) const;
@@ -223,8 +225,9 @@ public:
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
 	/// Initialization : signal ids and tables
-	void init_all(MedDictionarySections& dict, MedSignals& sigs);
-
+	void init_all(MedDictionarySections& dict, MedSignals& sigs,vector<RepProcessor *> &applied_rep_processors,
+		vector<FeatureGenerator *> &applied_generators);
+	void init_all(MedDictionarySections& dict, MedSignals& sigs) { init_all(dict, sigs, rep_processors, generators); }
 	// Learn/Apply
 	int learn(MedPidRepository& rep, MedSamples* samples) { return learn(rep, samples, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_END); }
 	int learn(MedPidRepository& rep, MedSamples* samples, MedModelStage start_stage, MedModelStage end_stage);
@@ -323,6 +326,11 @@ private:
 	template <class T> void apply_change(const ChangeModelInfo &change_request, void *obj);
 
 	vector<FeatureGenerator *> applied_generators_to_use;
+	vector<RepProcessor *> applied_rep_processors_to_use;
+	void get_applied_pipeline(vector<unordered_set<string>> &req_features_vec, unordered_set<string> &required_feature_generators, vector<RepProcessor *> &applied_rep_processors,
+		vector<FeatureGenerator *> &applied_generators) const;
+	void get_applied_all(vector<unordered_set<string>> &req_features_vec, unordered_set<string> &required_feature_generators, vector<RepProcessor *> &applied_rep_processors,
+		vector<FeatureGenerator *> &applied_generators, unordered_set<string>& signalNames) const;
 };
 
 void filter_rep_processors(const vector<string> &current_req_signal_names, vector<RepProcessor *> *rep_processors);

@@ -8,6 +8,7 @@
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
 #include <MedMat/MedMat/MedMat.h>
+#include <omp.h>
 
 #define DEFAULT_REP_CLNR_NTHREADS 8
 
@@ -38,6 +39,7 @@ typedef enum {
 	REP_PROCESS_CATEGORY_DESCENDERS, ///< "category_descenders" creates all descenders values for each category value. Creates RepCategoryDescenders
 	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
 	REP_PROCESS_FILTER_BY_CHANNELS, ///< "filter_channels" reorder signal channels. Creates RepFilterByChannel
+	REP_PROCESS_NUMERIC_NOISER, ///<"numeric_noiser" adds gaussian noise to value and uniform noise to time for numeric signal. Creates RepNumericNoiser
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
@@ -1927,6 +1929,65 @@ public:
 
 };
 
+//----------------------------------------------------------------------------------------
+// RepNumericNoiser : given a numeric signal : adds gaussian noise to each value, with std as user-determined
+// fraction of signal std, uniform distribution to time, and probability of dropping value
+//----------------------------------------------------------------------------------------
+class RepNumericNoiser : public RepProcessor {
+private:
+	int signalId =-1;	///< id of signal to clean
+	double stdev;
+
+	random_device rd;
+	//mt19937 gens;
+	vector<mt19937> gens;
+
+	//mt19937 generator;
+
+public:
+	string signalName; 	///< name of signal to clean
+	
+	int val_channel = 0; ///< value channel to consider in cleaning
+	int time_channel = 0; ///< time channel to consider in cleaning
+	int time_noise = 0; ///< uniform dist of x days will be added to time-signal
+	float value_noise = 0; ///< x times signal std will be added to each value
+	int truncation = 2; 
+	float drop_probability = (float)0.1; ///<probability of dropping lab
+
+
+	RepNumericNoiser() { init_defaults(); }
+
+
+	// default init
+	void init_defaults() { 
+		processor_type = REP_PROCESS_NUMERIC_NOISER; 
+		int N_TH = omp_get_max_threads();
+		gens.resize(3*N_TH);
+		for (size_t i = 0; i < 3*N_TH; ++i)
+			gens[i] = mt19937(rd());
+	}
+
+	// preparations
+	void set_signal_ids(MedSignals& sigs) { signalId = sigs.sid(signalName); }
+
+	// learn - nothing to do
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processor);
+
+	// apply
+	int _apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat);
+
+	/// @snippet RepProcess.cpp RepHistoryLimit::init
+	int init(map<string, string>& mapper);
+
+	/// Fill req- and aff-signals vectors
+	void init_lists();
+
+	ADD_CLASS_NAME(RepNumericNoiser)
+		ADD_SERIALIZATION_FUNCS(processor_type, signalName, val_channel, time_channel,
+			time_noise, value_noise, drop_probability, req_signals, aff_signals, stdev, truncation)
+
+};
+
 class RepReoderChannels : public RepProcessor {
 private:
 	int sid = -1;
@@ -1988,7 +2049,7 @@ MEDSERIALIZE_SUPPORT(RepCheckReq)
 MEDSERIALIZE_SUPPORT(RepHistoryLimit)
 MEDSERIALIZE_SUPPORT(RepCreateBitSignal)
 MEDSERIALIZE_SUPPORT(RepReoderChannels)
-
+MEDSERIALIZE_SUPPORT(RepNumericNoiser)
 MEDSERIALIZE_SUPPORT(SimpleCalculator)
 MEDSERIALIZE_SUPPORT(SetCalculator)
 MEDSERIALIZE_SUPPORT(MultiplyCalculator)
