@@ -1,299 +1,258 @@
-/*!
- * Copyright 2018 by Contributors
+/**
+ * Copyright 2018-2023 by XGBoost Contributors
  */
-#include "../helpers.h"
-#include "../../../src/tree/param.h"
-#include "../../../src/tree/updater_quantile_hist.h"
-#include "../../../src/tree/split_evaluator.h"
-#include "../../../src/common/host_device_vector.h"
-
-#include <xgboost/tree_updater.h>
 #include <gtest/gtest.h>
+#include <xgboost/host_device_vector.h>
+#include <xgboost/tree_updater.h>
 
 #include <algorithm>
-#include <vector>
+#include <cstddef>  // for size_t
 #include <string>
+#include <vector>
 
-namespace xgboost {
-namespace tree {
+#include "../../../src/tree/common_row_partitioner.h"
+#include "../../../src/tree/hist/expand_entry.h"  // for MultiExpandEntry, CPUExpandEntry
+#include "../../../src/tree/param.h"
+#include "../helpers.h"
+#include "test_partitioner.h"
+#include "xgboost/data.h"
 
-class QuantileHistMock : public QuantileHistMaker {
-  static double constexpr kEps = 1e-6;
+namespace xgboost::tree {
 
-  struct BuilderMock : public QuantileHistMaker::Builder {
-    using RealImpl = QuantileHistMaker::Builder;
+namespace {
+template <typename ExpandEntry>
+void TestPartitioner(bst_target_t n_targets) {
+  std::size_t n_samples = 1024, base_rowid = 0;
+  bst_feature_t n_features = 1;
 
-    BuilderMock(const TrainParam& param,
-                std::unique_ptr<TreeUpdater> pruner,
-                std::unique_ptr<SplitEvaluator> spliteval)
-        : RealImpl(param, std::move(pruner), std::move(spliteval)) {}
+  Context ctx;
+  ctx.InitAllowUnknown(Args{});
 
-   public:
-    void TestInitData(const GHistIndexMatrix& gmat,
-                      const std::vector<GradientPair>& gpair,
-                      DMatrix* p_fmat,
-                      const RegTree& tree) {
-      RealImpl::InitData(gmat, gpair, *p_fmat, tree);
-      ASSERT_EQ(data_layout_, kSparseData);
+  CommonRowPartitioner partitioner{&ctx, n_samples, base_rowid, false};
+  ASSERT_EQ(partitioner.base_rowid, base_rowid);
+  ASSERT_EQ(partitioner.Size(), 1);
+  ASSERT_EQ(partitioner.Partitions()[0].Size(), n_samples);
 
-      /* The creation of HistCutMatrix and GHistIndexMatrix are not technically
-       * part of QuantileHist updater logic, but we include it here because
-       * QuantileHist updater object currently stores GHistIndexMatrix
-       * internally. According to https://github.com/dmlc/xgboost/pull/3803,
-       * we should eventually move GHistIndexMatrix out of the QuantileHist
-       * updater. */
+  auto Xy = RandomDataGenerator{n_samples, n_features, 0}.GenerateDMatrix(true);
+  std::vector<ExpandEntry> candidates{{0, 0}};
+  candidates.front().split.loss_chg = 0.4;
 
-      const size_t num_row = p_fmat->Info().num_row_;
-      const size_t num_col = p_fmat->Info().num_col_;
-      /* Validate HistCutMatrix */
-      ASSERT_EQ(gmat.cut.row_ptr.size(), num_col + 1);
-      for (size_t fid = 0; fid < num_col; ++fid) {
-        // Each feature must have at least one quantile point (cut)
-        const size_t ibegin = gmat.cut.row_ptr[fid];
-        const size_t iend = gmat.cut.row_ptr[fid + 1];
-        ASSERT_LT(ibegin, iend);
-        for (size_t i = ibegin; i < iend - 1; ++i) {
-          // Quantile points must be sorted in ascending order
-          // No duplicates allowed
-          ASSERT_LT(gmat.cut.cut[i], gmat.cut.cut[i + 1]);
-        }
+  auto cuts = common::SketchOnDMatrix(&ctx, Xy.get(), 64);
+
+  for (auto const& page : Xy->GetBatches<SparsePage>()) {
+    GHistIndexMatrix gmat(page, {}, cuts, 64, true, 0.5, ctx.Threads());
+    bst_feature_t const split_ind = 0;
+    common::ColumnMatrix column_indices;
+    column_indices.InitFromSparse(page, gmat, 0.5, ctx.Threads());
+    {
+      auto min_value = gmat.cut.MinValues()[split_ind];
+      RegTree tree{n_targets, n_features};
+      CommonRowPartitioner partitioner{&ctx, n_samples, base_rowid, false};
+      if constexpr (std::is_same_v<ExpandEntry, CPUExpandEntry>) {
+        GetSplit(&tree, min_value, &candidates);
+      } else {
+        GetMultiSplitForTest(&tree, min_value, &candidates);
       }
+      partitioner.UpdatePosition<false, true>(&ctx, gmat, column_indices, candidates, &tree);
+      ASSERT_EQ(partitioner.Size(), 3);
+      ASSERT_EQ(partitioner[1].Size(), 0);
+      ASSERT_EQ(partitioner[2].Size(), n_samples);
+    }
+    {
+      CommonRowPartitioner partitioner{&ctx, n_samples, base_rowid, false};
+      auto ptr = gmat.cut.Ptrs()[split_ind + 1];
+      float split_value = gmat.cut.Values().at(ptr / 2);
+      RegTree tree{n_targets, n_features};
+      if constexpr (std::is_same<ExpandEntry, CPUExpandEntry>::value) {
+        GetSplit(&tree, split_value, &candidates);
+      } else {
+        GetMultiSplitForTest(&tree, split_value, &candidates);
+      }
+      auto left_nidx = tree.LeftChild(RegTree::kRoot);
+      partitioner.UpdatePosition<false, true>(&ctx, gmat, column_indices, candidates, &tree);
 
-      /* Validate GHistIndexMatrix */
-      ASSERT_EQ(gmat.row_ptr.size(), num_row + 1);
-      ASSERT_LT(*std::max_element(gmat.index.begin(), gmat.index.end()),
-                gmat.cut.row_ptr.back());
-      for (const auto& batch : p_fmat->GetRowBatches()) {
-        for (size_t i = 0; i < batch.Size(); ++i) {
-          const size_t rid = batch.base_rowid + i;
-          ASSERT_LT(rid, num_row);
-          const size_t gmat_row_offset = gmat.row_ptr[rid];
-          ASSERT_LT(gmat_row_offset, gmat.index.size());
-          SparsePage::Inst inst = batch[i];
-          ASSERT_EQ(gmat.row_ptr[rid] + inst.size(), gmat.row_ptr[rid + 1]);
-          for (size_t j = 0; j < inst.size(); ++j) {
-            // Each entry of GHistIndexMatrix represents a bin ID
-            const size_t bin_id = gmat.index[gmat_row_offset + j];
-            const size_t fid = inst[j].index;
-            // The bin ID must correspond to correct feature
-            ASSERT_GE(bin_id, gmat.cut.row_ptr[fid]);
-            ASSERT_LT(bin_id, gmat.cut.row_ptr[fid + 1]);
-            // The bin ID must correspond to a region between two
-            // suitable quantile points
-            ASSERT_LT(inst[j].fvalue, gmat.cut.cut[bin_id]);
-            if (bin_id > gmat.cut.row_ptr[fid]) {
-              ASSERT_GE(inst[j].fvalue, gmat.cut.cut[bin_id - 1]);
-            } else {
-              ASSERT_GE(inst[j].fvalue, gmat.cut.min_val[fid]);
-            }
-          }
-        }
+      auto elem = partitioner[left_nidx];
+      ASSERT_LT(elem.Size(), n_samples);
+      ASSERT_GT(elem.Size(), 1);
+      for (auto it = elem.begin; it != elem.end; ++it) {
+        auto value = gmat.cut.Values().at(gmat.index[*it]);
+        ASSERT_LE(value, split_value);
+      }
+      auto right_nidx = tree.RightChild(RegTree::kRoot);
+      elem = partitioner[right_nidx];
+      for (auto it = elem.begin; it != elem.end; ++it) {
+        auto value = gmat.cut.Values().at(gmat.index[*it]);
+        ASSERT_GT(value, split_value);
       }
     }
+  }
+}
+}  // anonymous namespace
 
-    void TestBuildHist(int nid,
-                       const GHistIndexMatrix& gmat,
-                       const DMatrix& fmat,
-                       const RegTree& tree) {
-      const std::vector<GradientPair> gpair =
-          { {0.23f, 0.24f}, {0.24f, 0.25f}, {0.26f, 0.27f}, {0.27f, 0.28f},
-            {0.27f, 0.29f}, {0.37f, 0.39f}, {0.47f, 0.49f}, {0.57f, 0.59f} };
-      RealImpl::InitData(gmat, gpair, fmat, tree);
-      GHistIndexBlockMatrix dummy;
-      hist_.AddHistRow(nid);
-      BuildHist(gpair, row_set_collection_[nid],
-                gmat, dummy, hist_[nid], false);
+TEST(QuantileHist, Partitioner) { TestPartitioner<CPUExpandEntry>(1); }
 
-      // Check if number of histogram bins is correct
-      ASSERT_EQ(hist_[nid].size(), gmat.cut.row_ptr.back());
-      std::vector<GradientPairPrecise> histogram_expected(hist_[nid].size());
+TEST(QuantileHist, MultiPartitioner) { TestPartitioner<MultiExpandEntry>(3); }
 
-      // Compute the correct histogram (histogram_expected)
-      const size_t num_row = fmat.Info().num_row_;
-      CHECK_EQ(gpair.size(), num_row);
-      for (size_t rid = 0; rid < num_row; ++rid) {
-        const size_t ibegin = gmat.row_ptr[rid];
-        const size_t iend = gmat.row_ptr[rid + 1];
-        for (size_t i = ibegin; i < iend; ++i) {
-          const size_t bin_id = gmat.index[i];
-          histogram_expected[bin_id] += GradientPairPrecise(gpair[rid]);
-        }
+namespace {
+
+template <typename ExpandEntry>
+void VerifyColumnSplitPartitioner(bst_target_t n_targets, size_t n_samples,
+                                  bst_feature_t n_features, size_t base_rowid,
+                                  std::shared_ptr<DMatrix> Xy, float min_value, float mid_value,
+                                  CommonRowPartitioner const& expected_mid_partitioner) {
+  auto dmat =
+      std::unique_ptr<DMatrix>{Xy->SliceCol(collective::GetWorldSize(), collective::GetRank())};
+
+  Context ctx;
+  ctx.InitAllowUnknown(Args{});
+
+  std::vector<ExpandEntry> candidates{{0, 0}};
+  candidates.front().split.loss_chg = 0.4;
+  auto cuts = common::SketchOnDMatrix(&ctx, dmat.get(), 64);
+
+  for (auto const& page : Xy->GetBatches<SparsePage>()) {
+    GHistIndexMatrix gmat(page, {}, cuts, 64, true, 0.5, ctx.Threads());
+    common::ColumnMatrix column_indices;
+    column_indices.InitFromSparse(page, gmat, 0.5, ctx.Threads());
+    {
+      RegTree tree{n_targets, n_features};
+      CommonRowPartitioner partitioner{&ctx, n_samples, base_rowid, true};
+      if constexpr (std::is_same<ExpandEntry, CPUExpandEntry>::value) {
+        GetSplit(&tree, min_value, &candidates);
+      } else {
+        GetMultiSplitForTest(&tree, min_value, &candidates);
+      }
+      partitioner.UpdatePosition<false, true>(&ctx, gmat, column_indices, candidates, &tree);
+      ASSERT_EQ(partitioner.Size(), 3);
+      ASSERT_EQ(partitioner[1].Size(), 0);
+      ASSERT_EQ(partitioner[2].Size(), n_samples);
+    }
+    {
+      RegTree tree{n_targets, n_features};
+      CommonRowPartitioner partitioner{&ctx, n_samples, base_rowid, true};
+      if constexpr (std::is_same<ExpandEntry, CPUExpandEntry>::value) {
+        GetSplit(&tree, mid_value, &candidates);
+      } else {
+        GetMultiSplitForTest(&tree, mid_value, &candidates);
+      }
+      auto left_nidx = tree.LeftChild(RegTree::kRoot);
+      partitioner.UpdatePosition<false, true>(&ctx, gmat, column_indices, candidates, &tree);
+
+      auto elem = partitioner[left_nidx];
+      ASSERT_LT(elem.Size(), n_samples);
+      ASSERT_GT(elem.Size(), 1);
+      auto expected_elem = expected_mid_partitioner[left_nidx];
+      ASSERT_EQ(elem.Size(), expected_elem.Size());
+      for (auto it = elem.begin, eit = expected_elem.begin; it != elem.end; ++it, ++eit) {
+        ASSERT_EQ(*it, *eit);
       }
 
-      // Now validate the computed histogram returned by BuildHist
-      for (size_t i = 0; i < hist_[nid].size(); ++i) {
-        GradientPairPrecise sol = histogram_expected[i];
-        ASSERT_NEAR(sol.GetGrad(), hist_[nid][i].GetGrad(), kEps);
-        ASSERT_NEAR(sol.GetHess(), hist_[nid][i].GetHess(), kEps);
+      auto right_nidx = tree.RightChild(RegTree::kRoot);
+      elem = partitioner[right_nidx];
+      expected_elem = expected_mid_partitioner[right_nidx];
+      ASSERT_EQ(elem.Size(), expected_elem.Size());
+      for (auto it = elem.begin, eit = expected_elem.begin; it != elem.end; ++it, ++eit) {
+        ASSERT_EQ(*it, *eit);
       }
     }
+  }
+}
 
-    void TestEvaluateSplit(const GHistIndexBlockMatrix& quantile_index_block,
-                           const RegTree& tree) {
-      std::vector<GradientPair> row_gpairs =
-          { {1.23f, 0.24f}, {0.24f, 0.25f}, {0.26f, 0.27f}, {2.27f, 0.28f},
-            {0.27f, 0.29f}, {0.37f, 0.39f}, {-0.47f, 0.49f}, {0.57f, 0.59f} };
-      size_t constexpr kMaxBins = 4;
-      auto dmat = CreateDMatrix(kNRows, kNCols, 0, 3);
-        // dense, no missing values
+template <typename ExpandEntry>
+void TestColumnSplitPartitioner(bst_target_t n_targets) {
+  std::size_t n_samples = 1024, base_rowid = 0;
+  bst_feature_t n_features = 16;
+  auto Xy = RandomDataGenerator{n_samples, n_features, 0}.GenerateDMatrix(true);
+  std::vector<ExpandEntry> candidates{{0, 0}};
+  candidates.front().split.loss_chg = 0.4;
 
-      common::GHistIndexMatrix gmat;
-      gmat.Init((*dmat).get(), kMaxBins);
+  Context ctx;
+  ctx.InitAllowUnknown(Args{});
+  auto cuts = common::SketchOnDMatrix(&ctx, Xy.get(), 64);
 
-      RealImpl::InitData(gmat, row_gpairs, *(*dmat), tree);
-      hist_.AddHistRow(0);
+  float min_value, mid_value;
+  CommonRowPartitioner mid_partitioner{&ctx, n_samples, base_rowid, false};
+  for (auto const& page : Xy->GetBatches<SparsePage>()) {
+    GHistIndexMatrix gmat(page, {}, cuts, 64, true, 0.5, ctx.Threads());
+    bst_feature_t const split_ind = 0;
+    common::ColumnMatrix column_indices;
+    column_indices.InitFromSparse(page, gmat, 0.5, ctx.Threads());
+    min_value = gmat.cut.MinValues()[split_ind];
 
-      BuildHist(row_gpairs, row_set_collection_[0],
-                gmat, quantile_index_block, hist_[0], false);
-
-      RealImpl::InitNewNode(0, gmat, row_gpairs, *(*dmat), tree);
-
-      /* Compute correct split (best_split) using the computed histogram */
-      const size_t num_row = dmat->get()->Info().num_row_;
-      const size_t num_feature = dmat->get()->Info().num_col_;
-      CHECK_EQ(num_row, row_gpairs.size());
-      // Compute total gradient for all data points
-      GradientPairPrecise total_gpair;
-      for (const auto& e : row_gpairs) {
-        total_gpair += GradientPairPrecise(e);
-      }
-      // Initialize split evaluator
-      std::unique_ptr<SplitEvaluator> evaluator(SplitEvaluator::Create("elastic_net"));
-      evaluator->Init({});
-
-      // Now enumerate all feature*threshold combination to get best split
-      // To simplify logic, we make some assumptions:
-      // 1) no missing values in data
-      // 2) no regularization, i.e. set min_child_weight, reg_lambda, reg_alpha,
-      //    and max_delta_step to 0.
-      bst_float best_split_gain = 0.0f;
-      size_t best_split_threshold = std::numeric_limits<size_t>::max();
-      size_t best_split_feature = std::numeric_limits<size_t>::max();
-      // Enumerate all features
-      for (size_t fid = 0; fid < num_feature; ++fid) {
-        const size_t bin_id_min = gmat.cut.row_ptr[fid];
-        const size_t bin_id_max = gmat.cut.row_ptr[fid + 1];
-        // Enumerate all bin ID in [bin_id_min, bin_id_max), i.e. every possible
-        // choice of thresholds for feature fid
-        for (size_t split_thresh = bin_id_min;
-             split_thresh < bin_id_max; ++split_thresh) {
-          // left_sum, right_sum: Gradient sums for data points whose feature
-          //                      value is left/right side of the split threshold
-          GradientPairPrecise left_sum, right_sum;
-          for (size_t rid = 0; rid < num_row; ++rid) {
-            for (size_t offset = gmat.row_ptr[rid];
-                 offset < gmat.row_ptr[rid + 1]; ++offset) {
-              const size_t bin_id = gmat.index[offset];
-              if (bin_id >= bin_id_min && bin_id < bin_id_max) {
-                if (bin_id <= split_thresh) {
-                  left_sum += GradientPairPrecise(row_gpairs[rid]);
-                } else {
-                  right_sum += GradientPairPrecise(row_gpairs[rid]);
-                }
-              }
-            }
-          }
-          // Now compute gain (change in loss)
-          const auto split_gain
-            = evaluator->ComputeSplitScore(0, fid, GradStats(left_sum),
-                                           GradStats(right_sum));
-          if (split_gain > best_split_gain) {
-            best_split_gain = split_gain;
-            best_split_feature = fid;
-            best_split_threshold = split_thresh;
-          }
-        }
-      }
-
-      /* Now compare against result given by EvaluateSplit() */
-      RealImpl::EvaluateSplit(0, gmat, hist_, *(*dmat), tree);
-      ASSERT_EQ(snode_[0].best.SplitIndex(), best_split_feature);
-      ASSERT_EQ(snode_[0].best.split_value, gmat.cut.cut[best_split_threshold]);
-
-      delete dmat;
+    auto ptr = gmat.cut.Ptrs()[split_ind + 1];
+    mid_value = gmat.cut.Values().at(ptr / 2);
+    RegTree tree{n_targets, n_features};
+    if constexpr (std::is_same<ExpandEntry, CPUExpandEntry>::value) {
+      GetSplit(&tree, mid_value, &candidates);
+    } else {
+      GetMultiSplitForTest(&tree, mid_value, &candidates);
     }
-  };
-
-  int static constexpr kNRows = 8, kNCols = 16;
-  std::shared_ptr<xgboost::DMatrix> *dmat_;
-  const std::vector<std::pair<std::string, std::string> > cfg_;
-  std::shared_ptr<BuilderMock> builder_;
-
- public:
-  explicit QuantileHistMock(
-      const std::vector<std::pair<std::string, std::string> >& args) :
-      cfg_{args} {
-    QuantileHistMaker::Init(args);
-    builder_.reset(
-        new BuilderMock(
-            param_,
-            std::move(pruner_),
-            std::unique_ptr<SplitEvaluator>(spliteval_->GetHostClone())));
-    dmat_ = CreateDMatrix(kNRows, kNCols, 0.8, 3);
-  }
-  ~QuantileHistMock() override { delete dmat_; }
-
-  static size_t GetNumColumns() { return kNCols; }
-
-  void TestInitData() {
-    size_t constexpr kMaxBins = 4;
-    common::GHistIndexMatrix gmat;
-    gmat.Init((*dmat_).get(), kMaxBins);
-
-    RegTree tree = RegTree();
-    tree.param.InitAllowUnknown(cfg_);
-
-    std::vector<GradientPair> gpair =
-        { {0.23f, 0.24f}, {0.23f, 0.24f}, {0.23f, 0.24f}, {0.23f, 0.24f},
-          {0.27f, 0.29f}, {0.27f, 0.29f}, {0.27f, 0.29f}, {0.27f, 0.29f} };
-
-    builder_->TestInitData(gmat, gpair, dmat_->get(), tree);
+    mid_partitioner.UpdatePosition<false, true>(&ctx, gmat, column_indices, candidates, &tree);
   }
 
-  void TestBuildHist() {
-    RegTree tree = RegTree();
-    tree.param.InitAllowUnknown(cfg_);
+  auto constexpr kWorkers = 4;
+  RunWithInMemoryCommunicator(kWorkers, VerifyColumnSplitPartitioner<ExpandEntry>, n_targets,
+                              n_samples, n_features, base_rowid, Xy, min_value, mid_value,
+                              mid_partitioner);
+}
+}  // anonymous namespace
 
-    size_t constexpr kMaxBins = 4;
-    common::GHistIndexMatrix gmat;
-    gmat.Init((*dmat_).get(), kMaxBins);
+TEST(QuantileHist, PartitionerColSplit) { TestColumnSplitPartitioner<CPUExpandEntry>(1); }
 
-    builder_->TestBuildHist(0, gmat, *(*dmat_).get(), tree);
-  }
+TEST(QuantileHist, MultiPartitionerColSplit) { TestColumnSplitPartitioner<MultiExpandEntry>(3); }
 
-  void TestEvaluateSplit() {
-    RegTree tree = RegTree();
-    tree.param.InitAllowUnknown(cfg_);
+namespace {
+void VerifyColumnSplit(bst_row_t rows, bst_feature_t cols, bst_target_t n_targets,
+                       RegTree const& expected_tree) {
+  auto Xy = RandomDataGenerator{rows, cols, 0}.GenerateDMatrix(true);
+  auto p_gradients = GenerateGradients(rows, n_targets);
+  Context ctx;
+  ObjInfo task{ObjInfo::kRegression};
+  std::unique_ptr<TreeUpdater> updater{TreeUpdater::Create("grow_quantile_histmaker", &ctx, &task)};
+  std::vector<HostDeviceVector<bst_node_t>> position(1);
 
-    builder_->TestEvaluateSplit(gmatb_, tree);
-  }
-};
+  std::unique_ptr<DMatrix> sliced{Xy->SliceCol(collective::GetWorldSize(), collective::GetRank())};
 
-TEST(Updater, QuantileHist_InitData) {
-  std::vector<std::pair<std::string, std::string>> cfg
-      {{"num_feature", std::to_string(QuantileHistMock::GetNumColumns())}};
-  QuantileHistMock maker(cfg);
-  maker.TestInitData();
+  RegTree tree{n_targets, cols};
+  TrainParam param;
+  param.Init(Args{});
+  updater->Configure(Args{});
+  updater->Update(&param, p_gradients.get(), sliced.get(), position, {&tree});
+
+  Json json{Object{}};
+  tree.SaveModel(&json);
+  Json expected_json{Object{}};
+  expected_tree.SaveModel(&expected_json);
+  ASSERT_EQ(json, expected_json);
 }
 
-TEST(Updater, QuantileHist_BuildHist) {
-  // Don't enable feature grouping
-  std::vector<std::pair<std::string, std::string>> cfg
-      {{"num_feature", std::to_string(QuantileHistMock::GetNumColumns())},
-       {"enable_feature_grouping", std::to_string(0)}};
-  QuantileHistMock maker(cfg);
-  maker.TestBuildHist();
-}
+void TestColumnSplit(bst_target_t n_targets) {
+  auto constexpr kRows = 32;
+  auto constexpr kCols = 16;
 
-TEST(Updater, QuantileHist_EvalSplits) {
-  std::vector<std::pair<std::string, std::string>> cfg
-      {{"num_feature", std::to_string(QuantileHistMock::GetNumColumns())},
-       {"split_evaluator", "elastic_net"},
-       {"reg_lambda", "0"}, {"reg_alpha", "0"}, {"max_delta_step", "0"},
-       {"min_child_weight", "0"}};
-  QuantileHistMock maker(cfg);
-  maker.TestEvaluateSplit();
-}
+  RegTree expected_tree{n_targets, kCols};
+  ObjInfo task{ObjInfo::kRegression};
+  {
+    auto Xy = RandomDataGenerator{kRows, kCols, 0}.GenerateDMatrix(true);
+    auto p_gradients = GenerateGradients(kRows, n_targets);
+    Context ctx;
+    std::unique_ptr<TreeUpdater> updater{
+        TreeUpdater::Create("grow_quantile_histmaker", &ctx, &task)};
+    std::vector<HostDeviceVector<bst_node_t>> position(1);
+    TrainParam param;
+    param.Init(Args{});
+    updater->Configure(Args{});
+    updater->Update(&param, p_gradients.get(), Xy.get(), position, {&expected_tree});
+  }
 
-}  // namespace tree
-}  // namespace xgboost
+  auto constexpr kWorldSize = 2;
+  RunWithInMemoryCommunicator(kWorldSize, VerifyColumnSplit, kRows, kCols, n_targets,
+                              std::cref(expected_tree));
+}
+}  // anonymous namespace
+
+TEST(QuantileHist, ColumnSplit) { TestColumnSplit(1); }
+
+TEST(QuantileHist, ColumnSplitMultiTarget) { TestColumnSplit(3); }
+
+}  // namespace xgboost::tree

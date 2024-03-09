@@ -1,5 +1,5 @@
-/*
-  Copyright (c) 2014 by Contributors
+/**
+  Copyright (c) 2014-2023 by Contributors
   Licensed under the Apache License, Version 2.0 (the "License");
   you may not use this file except in compliance with the License.
   You may obtain a copy of the License at
@@ -12,14 +12,31 @@
   limitations under the License.
 */
 
-#include <cstdint>
-#include <xgboost/c_api.h>
-#include <xgboost/base.h>
-#include <xgboost/logging.h>
 #include "./xgboost4j.h"
+
+#include <rabit/c_api.h>
+#include <xgboost/base.h>
+#include <xgboost/c_api.h>
+#include <xgboost/json.h>
+#include <xgboost/logging.h>
+
+#include <cstddef>
+#include <cstdint>
 #include <cstring>
-#include <vector>
+#include <limits>
 #include <string>
+#include <type_traits>
+#include <vector>
+
+#include "../../../src/c_api/c_api_utils.h"
+
+#define JVM_CHECK_CALL(__expr)                                                 \
+  {                                                                            \
+    int __errcode = (__expr);                                                  \
+    if (__errcode != 0) {                                                      \
+      return __errcode;                                                        \
+    }                                                                          \
+  }
 
 // helper functions
 // set handle
@@ -32,12 +49,14 @@ void setHandle(JNIEnv *jenv, jlongArray jhandle, void* handle) {
   jenv->SetLongArrayRegion(jhandle, 0, 1, &out);
 }
 
-// global JVM
-static JavaVM* global_jvm = nullptr;
+JavaVM*& GlobalJvm() {
+  static JavaVM* vm;
+  return vm;
+}
 
 // overrides JNI on load
 jint JNI_OnLoad(JavaVM *vm, void *reserved) {
-  global_jvm = vm;
+  GlobalJvm() = vm;
   return JNI_VERSION_1_6;
 }
 
@@ -47,9 +66,9 @@ XGB_EXTERN_C int XGBoost4jCallbackDataIterNext(
     DataHolderHandle set_function_handle) {
   jobject jiter = static_cast<jobject>(data_handle);
   JNIEnv* jenv;
-  int jni_status = global_jvm->GetEnv((void **)&jenv, JNI_VERSION_1_6);
+  int jni_status = GlobalJvm()->GetEnv((void **)&jenv, JNI_VERSION_1_6);
   if (jni_status == JNI_EDETACHED) {
-    global_jvm->AttachCurrentThread(reinterpret_cast<void **>(&jenv), nullptr);
+    GlobalJvm()->AttachCurrentThread(reinterpret_cast<void **>(&jenv), nullptr);
   } else {
     CHECK(jni_status == JNI_OK);
   }
@@ -79,9 +98,12 @@ XGB_EXTERN_C int XGBoost4jCallbackDataIterNext(
       jintArray jindex = (jintArray)jenv->GetObjectField(
           batch, jenv->GetFieldID(batchClass, "featureIndex", "[I"));
       jfloatArray jvalue = (jfloatArray)jenv->GetObjectField(
-        batch, jenv->GetFieldID(batchClass, "featureValue", "[F"));
+          batch, jenv->GetFieldID(batchClass, "featureValue", "[F"));
+      jint jcols = jenv->GetIntField(
+          batch, jenv->GetFieldID(batchClass, "featureCols", "I"));
       XGBoostBatchCSR cbatch;
       cbatch.size = jenv->GetArrayLength(joffset) - 1;
+      cbatch.columns = jcols;
       cbatch.offset = reinterpret_cast<jlong *>(
           jenv->GetLongArrayElements(joffset, 0));
       if (jlabel != nullptr) {
@@ -134,13 +156,13 @@ XGB_EXTERN_C int XGBoost4jCallbackDataIterNext(
     jenv->DeleteLocalRef(iterClass);
     // only detach if it is a async call.
     if (jni_status == JNI_EDETACHED) {
-      global_jvm->DetachCurrentThread();
+      GlobalJvm()->DetachCurrentThread();
     }
     return ret_value;
-  } catch(dmlc::Error e) {
+  } catch(dmlc::Error const& e) {
     // only detach if it is a async call.
     if (jni_status == JNI_EDETACHED) {
-      global_jvm->DetachCurrentThread();
+      GlobalJvm()->DetachCurrentThread();
     }
     LOG(FATAL) << e.what();
     return -1;
@@ -176,6 +198,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFro
   }
   int ret = XGDMatrixCreateFromDataIter(
       jiter, XGBoost4jCallbackDataIterNext, cache_info, &result);
+  JVM_CHECK_CALL(ret);
   if (cache_info) {
     jenv->ReleaseStringUTFChars(jcache_info, cache_info);
   }
@@ -193,6 +216,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFro
   DMatrixHandle result;
   const char* fname = jenv->GetStringUTFChars(jfname, 0);
   int ret = XGDMatrixCreateFromFile(fname, jsilent, &result);
+  JVM_CHECK_CALL(ret);
   if (fname) {
     jenv->ReleaseStringUTFChars(jfname, fname);
   }
@@ -200,49 +224,104 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFro
   return ret;
 }
 
-/*
- * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    XGDMatrixCreateFromCSREx
- * Signature: ([J[J[F)J
+namespace {
+/**
+ * \brief Create from sparse matrix.
+ *
+ * \param maker Indirect call to XGBoost C function for creating CSC and CSR.
+ *
+ * \return Status
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromCSREx
-  (JNIEnv *jenv, jclass jcls, jlongArray jindptr, jintArray jindices, jfloatArray jdata, jint jcol, jlongArray jout) {
+template <typename Fn>
+jint MakeJVMSparseInput(JNIEnv *jenv, jlongArray jindptr, jintArray jindices, jfloatArray jdata,
+                        jfloat jmissing, jint jnthread, Fn &&maker, jlongArray jout) {
   DMatrixHandle result;
-  jlong* indptr = jenv->GetLongArrayElements(jindptr, 0);
-  jint* indices = jenv->GetIntArrayElements(jindices, 0);
-  jfloat* data = jenv->GetFloatArrayElements(jdata, 0);
-  bst_ulong nindptr = (bst_ulong)jenv->GetArrayLength(jindptr);
-  bst_ulong nelem = (bst_ulong)jenv->GetArrayLength(jdata);
-  jint ret = (jint) XGDMatrixCreateFromCSREx((size_t const *)indptr, (unsigned int const *)indices, (float const *)data, nindptr, nelem, jcol, &result);
+
+  jlong *indptr = jenv->GetLongArrayElements(jindptr, nullptr);
+  jint *indices = jenv->GetIntArrayElements(jindices, nullptr);
+  jfloat *data = jenv->GetFloatArrayElements(jdata, nullptr);
+  bst_ulong nindptr = static_cast<bst_ulong>(jenv->GetArrayLength(jindptr));
+  bst_ulong nelem = static_cast<bst_ulong>(jenv->GetArrayLength(jdata));
+
+  std::string sindptr, sindices, sdata;
+  CHECK_EQ(indptr[nindptr - 1], nelem);
+  using IndPtrT = std::conditional_t<std::is_convertible<jlong *, long *>::value, long, long long>;
+  using IndT =
+      std::conditional_t<std::is_convertible<jint *, std::int32_t *>::value, std::int32_t, long>;
+  xgboost::detail::MakeSparseFromPtr(
+      static_cast<IndPtrT const *>(indptr), static_cast<IndT const *>(indices),
+      static_cast<float const *>(data), nindptr, &sindptr, &sindices, &sdata);
+
+  xgboost::Json jconfig{xgboost::Object{}};
+  auto missing = static_cast<float>(jmissing);
+  auto n_threads = static_cast<std::int32_t>(jnthread);
+  // Construct configuration
+  jconfig["nthread"] = xgboost::Integer{n_threads};
+  jconfig["missing"] = xgboost::Number{missing};
+  std::string config;
+  xgboost::Json::Dump(jconfig, &config);
+
+  jint ret = maker(sindptr.c_str(), sindices.c_str(), sdata.c_str(), config.c_str(), &result);
+  JVM_CHECK_CALL(ret);
   setHandle(jenv, jout, result);
-  //Release
+
+  // Release
   jenv->ReleaseLongArrayElements(jindptr, indptr, 0);
   jenv->ReleaseIntArrayElements(jindices, indices, 0);
   jenv->ReleaseFloatArrayElements(jdata, data, 0);
   return ret;
 }
+}  // anonymous namespace
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    XGDMatrixCreateFromCSCEx
- * Signature: ([J[J[F)J
+ * Method:    XGDMatrixCreateFromCSR
+ * Signature: ([J[I[FIFI[J)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromCSCEx
-  (JNIEnv *jenv, jclass jcls, jlongArray jindptr, jintArray jindices, jfloatArray jdata, jint jrow, jlongArray jout) {
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromCSR(
+    JNIEnv *jenv, jclass jcls, jlongArray jindptr, jintArray jindices, jfloatArray jdata, jint jcol,
+    jfloat jmissing, jint jnthread, jlongArray jout) {
+  using CSTR = char const *;
+  return MakeJVMSparseInput(
+      jenv, jindptr, jindices, jdata, jmissing, jnthread,
+      [&](CSTR sindptr, CSTR sindices, CSTR sdata, CSTR sconfig, DMatrixHandle *result) {
+        return XGDMatrixCreateFromCSR(sindptr, sindices, sdata, static_cast<std::int32_t>(jcol),
+                                      sconfig, result);
+      },
+      jout);
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixCreateFromCSC
+ * Signature: ([J[I[FIFI[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromCSC(
+    JNIEnv *jenv, jclass jcls, jlongArray jindptr, jintArray jindices, jfloatArray jdata, jint jrow,
+    jfloat jmissing, jint jnthread, jlongArray jout) {
+  using CSTR = char const *;
+  return MakeJVMSparseInput(
+      jenv, jindptr, jindices, jdata, jmissing, jnthread,
+      [&](CSTR sindptr, CSTR sindices, CSTR sdata, CSTR sconfig, DMatrixHandle *result) {
+        return XGDMatrixCreateFromCSC(sindptr, sindices, sdata, static_cast<bst_ulong>(jrow),
+                                      sconfig, result);
+      },
+      jout);
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixCreateFromMatRef
+ * Signature: (JIIF)J
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromMatRef
+  (JNIEnv *jenv, jclass jcls, jlong jdataRef, jint jnrow, jint jncol, jfloat jmiss, jlongArray jout) {
   DMatrixHandle result;
-  jlong* indptr = jenv->GetLongArrayElements(jindptr, NULL);
-  jint* indices = jenv->GetIntArrayElements(jindices, 0);
-  jfloat* data = jenv->GetFloatArrayElements(jdata, NULL);
-  bst_ulong nindptr = (bst_ulong)jenv->GetArrayLength(jindptr);
-  bst_ulong nelem = (bst_ulong)jenv->GetArrayLength(jdata);
-
-  jint ret = (jint) XGDMatrixCreateFromCSCEx((size_t const *)indptr, (unsigned int const *)indices, (float const *)data, nindptr, nelem, jrow, &result);
+  bst_ulong nrow = (bst_ulong)jnrow;
+  bst_ulong ncol = (bst_ulong)jncol;
+  jint ret = (jint) XGDMatrixCreateFromMat((float const *)jdataRef, nrow, ncol, jmiss, &result);
+  JVM_CHECK_CALL(ret);
   setHandle(jenv, jout, result);
-  //release
-  jenv->ReleaseLongArrayElements(jindptr, indptr, 0);
-  jenv->ReleaseIntArrayElements(jindices, indices, 0);
-  jenv->ReleaseFloatArrayElements(jdata, data, 0);
-
   return ret;
 }
 
@@ -259,6 +338,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFro
   bst_ulong nrow = (bst_ulong)jnrow;
   bst_ulong ncol = (bst_ulong)jncol;
   jint ret = (jint) XGDMatrixCreateFromMat((float const *)data, nrow, ncol, jmiss, &result);
+  JVM_CHECK_CALL(ret);
   setHandle(jenv, jout, result);
   //release
   jenv->ReleaseFloatArrayElements(jdata, data, 0);
@@ -278,7 +358,9 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSliceDMat
   jint* indexset = jenv->GetIntArrayElements(jindexset, 0);
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jindexset);
 
-  jint ret = (jint) XGDMatrixSliceDMatrix(handle, (int const *)indexset, len, &result);
+  // default to not allowing slicing with group ID specified -- feel free to add if necessary
+  jint ret = (jint) XGDMatrixSliceDMatrixEx(handle, (int const *)indexset, len, &result, 0);
+  JVM_CHECK_CALL(ret);
   setHandle(jenv, jout, result);
   //release
   jenv->ReleaseIntArrayElements(jindexset, indexset, 0);
@@ -308,6 +390,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSaveBinar
   DMatrixHandle handle = (DMatrixHandle) jhandle;
   const char* fname = jenv->GetStringUTFChars(jfname, 0);
   int ret = XGDMatrixSaveBinary(handle, fname, jsilent);
+  JVM_CHECK_CALL(ret);
   if (fname) jenv->ReleaseStringUTFChars(jfname, (const char *)fname);
   return ret;
 }
@@ -325,6 +408,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSetFloatI
   jfloat* array = jenv->GetFloatArrayElements(jarray, NULL);
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jarray);
   int ret = XGDMatrixSetFloatInfo(handle, field, (float const *)array, len);
+  JVM_CHECK_CALL(ret);
   //release
   if (field) jenv->ReleaseStringUTFChars(jfield, field);
   jenv->ReleaseFloatArrayElements(jarray, array, 0);
@@ -343,26 +427,11 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSetUIntIn
   jint* array = jenv->GetIntArrayElements(jarray, NULL);
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jarray);
   int ret = XGDMatrixSetUIntInfo(handle, (char const *)field, (unsigned int const *)array, len);
+  JVM_CHECK_CALL(ret);
   //release
   if (field) jenv->ReleaseStringUTFChars(jfield, (const char *)field);
   jenv->ReleaseIntArrayElements(jarray, array, 0);
 
-  return ret;
-}
-
-/*
- * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    XGDMatrixSetGroup
- * Signature: (J[I)V
- */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSetGroup
-  (JNIEnv * jenv, jclass jcls, jlong jhandle, jintArray jarray) {
-  DMatrixHandle handle = (DMatrixHandle) jhandle;
-  jint* array = jenv->GetIntArrayElements(jarray, NULL);
-  bst_ulong len = (bst_ulong)jenv->GetArrayLength(jarray);
-  int ret = XGDMatrixSetGroup(handle, (unsigned int const *)array, len);
-  //release
-  jenv->ReleaseIntArrayElements(jarray, array, 0);
   return ret;
 }
 
@@ -378,6 +447,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixGetFloatI
   bst_ulong len;
   float *result;
   int ret = XGDMatrixGetFloatInfo(handle, field, &len, (const float**) &result);
+  JVM_CHECK_CALL(ret);
   if (field) jenv->ReleaseStringUTFChars(jfield, field);
 
   jsize jlen = (jsize) len;
@@ -400,6 +470,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixGetUIntIn
   bst_ulong len;
   unsigned int *result;
   int ret = (jint) XGDMatrixGetUIntInfo(handle, field, &len, (const unsigned int **) &result);
+  JVM_CHECK_CALL(ret);
   if (field) jenv->ReleaseStringUTFChars(jfield, field);
 
   jsize jlen = (jsize) len;
@@ -419,7 +490,25 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixNumRow
   DMatrixHandle handle = (DMatrixHandle) jhandle;
   bst_ulong result[1];
   int ret = (jint) XGDMatrixNumRow(handle, result);
+  JVM_CHECK_CALL(ret);
   jenv->SetLongArrayRegion(jout, 0, 1, (const jlong *) result);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixNumNonMissing
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixNumNonMissing(
+    JNIEnv *jenv, jclass, jlong jhandle, jlongArray jout) {
+  DMatrixHandle handle = reinterpret_cast<DMatrixHandle>(jhandle);
+  CHECK(handle);
+  bst_ulong result[1];
+  auto ret = static_cast<jint>(XGDMatrixNumNonMissing(handle, result));
+  jlong jresult[1]{static_cast<jlong>(result[0])};
+  jenv->SetLongArrayRegion(jout, 0, 1, jresult);
+  JVM_CHECK_CALL(ret);
   return ret;
 }
 
@@ -441,6 +530,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterCreate
   }
   BoosterHandle result;
   int ret = XGBoosterCreate(dmlc::BeginPtr(handles), handles.size(), &result);
+  JVM_CHECK_CALL(ret);
   setHandle(jenv, jout, result);
   return ret;
 }
@@ -468,6 +558,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSetParam
   const char* name = jenv->GetStringUTFChars(jname, 0);
   const char* value = jenv->GetStringUTFChars(jvalue, 0);
   int ret = XGBoosterSetParam(handle, name, value);
+  JVM_CHECK_CALL(ret);
   //release
   if (name) jenv->ReleaseStringUTFChars(jname, name);
   if (value) jenv->ReleaseStringUTFChars(jvalue, value);
@@ -499,6 +590,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterBoostOneI
   jfloat* hess = jenv->GetFloatArrayElements(jhess, 0);
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jgrad);
   int ret = XGBoosterBoostOneIter(handle, dtrain, grad, hess, len);
+  JVM_CHECK_CALL(ret);
   //release
   jenv->ReleaseFloatArrayElements(jgrad, grad, 0);
   jenv->ReleaseFloatArrayElements(jhess, hess, 0);
@@ -536,6 +628,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterEvalOneIt
                                  dmlc::BeginPtr(dmats),
                                  dmlc::BeginPtr(evchars),
                                  len, &result);
+  JVM_CHECK_CALL(ret);
   jstring jinfo = nullptr;
   if (result != nullptr) {
     jinfo = jenv->NewStringUTF(result);
@@ -555,7 +648,10 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterPredict
   DMatrixHandle dmat = (DMatrixHandle) jdmat;
   bst_ulong len;
   float *result;
-  int ret = XGBoosterPredict(handle, dmat, joption_mask, (unsigned int) jntree_limit, &len, (const float **) &result);
+  int ret = XGBoosterPredict(handle, dmat, joption_mask, (unsigned int) jntree_limit,
+                             /* training = */ 0,  // Currently this parameter is not supported by JVM
+                             &len, (const float **) &result);
+  JVM_CHECK_CALL(ret);
   if (len) {
     jsize jlen = (jsize) len;
     jfloatArray jarray = jenv->NewFloatArray(jlen);
@@ -576,7 +672,10 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterLoadModel
   const char* fname = jenv->GetStringUTFChars(jfname, 0);
 
   int ret = XGBoosterLoadModel(handle, fname);
-  if (fname) jenv->ReleaseStringUTFChars(jfname,fname);
+  JVM_CHECK_CALL(ret);
+  if (fname) {
+    jenv->ReleaseStringUTFChars(jfname,fname);
+  }
   return ret;
 }
 
@@ -591,7 +690,10 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSaveModel
   const char*  fname = jenv->GetStringUTFChars(jfname, 0);
 
   int ret = XGBoosterSaveModel(handle, fname);
-  if (fname) jenv->ReleaseStringUTFChars(jfname, fname);
+  JVM_CHECK_CALL(ret);
+  if (fname) {
+    jenv->ReleaseStringUTFChars(jfname, fname);
+  }
   return ret;
 }
 
@@ -606,25 +708,32 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterLoadModel
   jbyte* buffer = jenv->GetByteArrayElements(jbytes, 0);
   int ret = XGBoosterLoadModelFromBuffer(
       handle, buffer, jenv->GetArrayLength(jbytes));
+  JVM_CHECK_CALL(ret);
   jenv->ReleaseByteArrayElements(jbytes, buffer, 0);
   return ret;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    XGBoosterGetModelRaw
- * Signature: (J[[B)I
+ * Method:    XGBoosterSaveModelToBuffer
+ * Signature: (JLjava/lang/String;[[B)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetModelRaw
-  (JNIEnv * jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSaveModelToBuffer
+  (JNIEnv * jenv, jclass jcls, jlong jhandle, jstring jformat, jobjectArray jout) {
   BoosterHandle handle = (BoosterHandle) jhandle;
+  const char *format = jenv->GetStringUTFChars(jformat, 0);
   bst_ulong len = 0;
-  const char* result;
-  int ret = XGBoosterGetModelRaw(handle, &len, &result);
+  const char *result{nullptr};
+  xgboost::Json config {xgboost::Object{}};
+  config["format"] = std::string{format};
+  std::string config_str;
+  xgboost::Json::Dump(config, &config_str);
 
+  int ret = XGBoosterSaveModelToBuffer(handle, config_str.c_str(), &len, &result);
+  JVM_CHECK_CALL(ret);
   if (result) {
     jbyteArray jarray = jenv->NewByteArray(len);
-    jenv->SetByteArrayRegion(jarray, 0, len, (jbyte*)result);
+    jenv->SetByteArrayRegion(jarray, 0, len, (jbyte *)result);
     jenv->SetObjectArrayElement(jout, 0, jarray);
   }
   return ret;
@@ -633,7 +742,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetModelR
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
  * Method:    XGBoosterDumpModelEx
- * Signature: (JLjava/lang/String;I)[Ljava/lang/String;
+ * Signature: (JLjava/lang/String;ILjava/lang/String;[[Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModelEx
   (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jfmap, jint jwith_stats, jstring jformat, jobjectArray jout) {
@@ -644,6 +753,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModel
   char **result;
 
   int ret = XGBoosterDumpModelEx(handle, fmap, jwith_stats, format, &len, (const char ***) &result);
+  JVM_CHECK_CALL(ret);
 
   jsize jlen = (jsize) len;
   jobjectArray jinfos = jenv->NewObjectArray(jlen, jenv->FindClass("java/lang/String"), jenv->NewStringUTF(""));
@@ -659,7 +769,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModel
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
  * Method:    XGBoosterDumpModelExWithFeatures
- * Signature: (JLjava/lang/String;I[[Ljava/lang/String;)I
+ * Signature: (J[Ljava/lang/String;ILjava/lang/String;[[Ljava/lang/String;)I
  */
 JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModelExWithFeatures
   (JNIEnv *jenv, jclass jcls, jlong jhandle, jobjectArray jfeature_names, jint jwith_stats,
@@ -695,6 +805,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModel
                                              (const char **) dmlc::BeginPtr(feature_names_char),
                                              (const char **) dmlc::BeginPtr(feature_types_char),
                                              jwith_stats, format, &len, (const char ***) &result);
+  JVM_CHECK_CALL(ret);
 
   jsize jlen = (jsize) len;
   jobjectArray jinfos = jenv->NewObjectArray(jlen, jenv->FindClass("java/lang/String"), jenv->NewStringUTF(""));
@@ -708,6 +819,71 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterDumpModel
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterGetAttrNames
+ * Signature: (J[[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetAttrNames
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jobjectArray jout) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  bst_ulong len = 0;
+  char **result;
+  int ret = XGBoosterGetAttrNames(handle, &len, (const char ***) &result);
+  JVM_CHECK_CALL(ret);
+
+  jsize jlen = (jsize) len;
+  jobjectArray jinfos = jenv->NewObjectArray(jlen, jenv->FindClass("java/lang/String"), jenv->NewStringUTF(""));
+  for(int i=0 ; i<jlen; i++) {
+    jenv->SetObjectArrayElement(jinfos, i, jenv->NewStringUTF((const char*) result[i]));
+  }
+  jenv->SetObjectArrayElement(jout, 0, jinfos);
+
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterGetAttr
+ * Signature: (JLjava/lang/String;[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetAttr
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jkey, jobjectArray jout) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  const char* key = jenv->GetStringUTFChars(jkey, 0);
+  const char* result;
+  int success;
+  int ret = XGBoosterGetAttr(handle, key, &result, &success);
+  JVM_CHECK_CALL(ret);
+  //release
+  if (key) jenv->ReleaseStringUTFChars(jkey, key);
+
+  if (success > 0) {
+    jstring jret = jenv->NewStringUTF(result);
+    jenv->SetObjectArrayElement(jout, 0, jret);
+  }
+
+  return ret;
+};
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterSetAttr
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSetAttr
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jkey, jstring jvalue) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  const char* key = jenv->GetStringUTFChars(jkey, 0);
+  const char* value = jenv->GetStringUTFChars(jvalue, 0);
+  int ret = XGBoosterSetAttr(handle, key, value);
+  JVM_CHECK_CALL(ret);
+  //release
+  if (key) jenv->ReleaseStringUTFChars(jkey, key);
+  if (value) jenv->ReleaseStringUTFChars(jvalue, value);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
  * Method:    XGBoosterLoadRabitCheckpoint
  * Signature: (J[I)I
  */
@@ -716,6 +892,7 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterLoadRabit
   BoosterHandle handle = (BoosterHandle) jhandle;
   int version;
   int ret = XGBoosterLoadRabitCheckpoint(handle, &version);
+  JVM_CHECK_CALL(ret);
   jint jversion = version;
   jenv->SetIntArrayRegion(jout, 0, 1, &jversion);
   return ret;
@@ -734,99 +911,305 @@ JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSaveRabit
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitInit
+ * Method:    XGBoosterGetNumFeature
+ * Signature: (J[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetNumFeature
+  (JNIEnv *jenv, jclass jcls, jlong jhandle, jlongArray jout) {
+  BoosterHandle handle = (BoosterHandle) jhandle;
+  bst_ulong num_feature;
+  int ret = XGBoosterGetNumFeature(handle, &num_feature);
+  JVM_CHECK_CALL(ret);
+  jlong jnum_feature = num_feature;
+  jenv->SetLongArrayRegion(jout, 0, 1, &jnum_feature);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    CommunicatorInit
  * Signature: ([Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitInit
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorInit
   (JNIEnv *jenv, jclass jcls, jobjectArray jargs) {
-  std::vector<std::string> args;
-  std::vector<char*> argv;
+  xgboost::Json config{xgboost::Object{}};
   bst_ulong len = (bst_ulong)jenv->GetArrayLength(jargs);
-  for (bst_ulong i = 0; i < len; ++i) {
-    jstring arg = (jstring)jenv->GetObjectArrayElement(jargs, i);
-    const char *s = jenv->GetStringUTFChars(arg, 0);
-    args.push_back(std::string(s, jenv->GetStringLength(arg)));
-    if (s != nullptr) jenv->ReleaseStringUTFChars(arg, s);
-    if (args.back().length() == 0) args.pop_back();
+  assert(len % 2 == 0);
+  for (bst_ulong i = 0; i < len / 2; ++i) {
+    jstring key = (jstring)jenv->GetObjectArrayElement(jargs, 2 * i);
+    std::string key_str(jenv->GetStringUTFChars(key, 0), jenv->GetStringLength(key));
+    jstring value = (jstring)jenv->GetObjectArrayElement(jargs, 2 * i + 1);
+    std::string value_str(jenv->GetStringUTFChars(value, 0), jenv->GetStringLength(value));
+    config[key_str] = xgboost::String(value_str);
   }
-
-  for (size_t i = 0; i < args.size(); ++i) {
-    argv.push_back(&args[i][0]);
-  }
-
-  RabitInit(args.size(), dmlc::BeginPtr(argv));
+  std::string json_str;
+  xgboost::Json::Dump(config, &json_str);
+  JVM_CHECK_CALL(XGCommunicatorInit(json_str.c_str()));
   return 0;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitFinalize
+ * Method:    CommunicatorFinalize
  * Signature: ()I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitFinalize
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorFinalize
   (JNIEnv *jenv, jclass jcls) {
-  RabitFinalize();
+  JVM_CHECK_CALL(XGCommunicatorFinalize());
   return 0;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitTrackerPrint
+ * Method:    CommunicatorPrint
  * Signature: (Ljava/lang/String;)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitTrackerPrint
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorPrint
   (JNIEnv *jenv, jclass jcls, jstring jmsg) {
   std::string str(jenv->GetStringUTFChars(jmsg, 0),
                   jenv->GetStringLength(jmsg));
-  RabitTrackerPrint(str.c_str());
+  JVM_CHECK_CALL(XGCommunicatorPrint(str.c_str()));
   return 0;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitGetRank
+ * Method:    CommunicatorGetRank
  * Signature: ([I)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitGetRank
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorGetRank
   (JNIEnv *jenv, jclass jcls, jintArray jout) {
-  jint rank = RabitGetRank();
+  jint rank = XGCommunicatorGetRank();
   jenv->SetIntArrayRegion(jout, 0, 1, &rank);
   return 0;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitGetWorldSize
+ * Method:    CommunicatorGetWorldSize
  * Signature: ([I)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitGetWorldSize
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorGetWorldSize
   (JNIEnv *jenv, jclass jcls, jintArray jout) {
-  jint out = RabitGetWorldSize();
+  jint out = XGCommunicatorGetWorldSize();
   jenv->SetIntArrayRegion(jout, 0, 1, &out);
   return 0;
 }
 
 /*
  * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitVersionNumber
- * Signature: ([I)I
- */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitVersionNumber
-  (JNIEnv *jenv, jclass jcls, jintArray jout) {
-  jint out = RabitVersionNumber();
-  jenv->SetIntArrayRegion(jout, 0, 1, &out);
-  return 0;
-}
-
-/*
- * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
- * Method:    RabitAllreduce
+ * Method:    CommunicatorAllreduce
  * Signature: (Ljava/nio/ByteBuffer;III)I
  */
-JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_RabitAllreduce
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_CommunicatorAllreduce
   (JNIEnv *jenv, jclass jcls, jobject jsendrecvbuf, jint jcount, jint jenum_dtype, jint jenum_op) {
   void *ptr_sendrecvbuf = jenv->GetDirectBufferAddress(jsendrecvbuf);
-  RabitAllreduce(ptr_sendrecvbuf, (size_t) jcount, jenum_dtype, jenum_op, NULL, NULL);
-
+  JVM_CHECK_CALL(XGCommunicatorAllreduce(ptr_sendrecvbuf, (size_t) jcount, jenum_dtype, jenum_op));
   return 0;
+}
+
+namespace xgboost {
+namespace jni {
+  XGB_DLL int XGDeviceQuantileDMatrixCreateFromCallbackImpl(JNIEnv *jenv, jclass jcls,
+                                                            jobject jiter,
+                                                            jfloat jmissing,
+                                                            jint jmax_bin, jint jnthread,
+                                                            jlongArray jout);
+  XGB_DLL int XGQuantileDMatrixCreateFromCallbackImpl(JNIEnv *jenv, jclass jcls,
+                                                      jobject jdata_iter, jobject jref_iter,
+                                                      char const *config, jlongArray jout);
+} // namespace jni
+} // namespace xgboost
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDeviceQuantileDMatrixCreateFromCallback
+ * Signature: (Ljava/util/Iterator;FII[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDeviceQuantileDMatrixCreateFromCallback
+    (JNIEnv *jenv, jclass jcls, jobject jiter, jfloat jmissing, jint jmax_bin,
+     jint jnthread, jlongArray jout) {
+  return xgboost::jni::XGDeviceQuantileDMatrixCreateFromCallbackImpl(
+      jenv, jcls, jiter, jmissing, jmax_bin, jnthread, jout);
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGQuantileDMatrixCreateFromCallback
+ * Signature: (Ljava/util/Iterator;Ljava/util/Iterator;Ljava/lang/String;[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGQuantileDMatrixCreateFromCallback
+    (JNIEnv *jenv, jclass jcls, jobject jdata_iter, jobject jref_iter, jstring jconf, jlongArray jout) {
+  char const *conf = jenv->GetStringUTFChars(jconf, 0);
+  return xgboost::jni::XGQuantileDMatrixCreateFromCallbackImpl(jenv, jcls, jdata_iter, jref_iter,
+                                                               conf, jout);
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixSetInfoFromInterface
+ * Signature: (JLjava/lang/String;Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSetInfoFromInterface
+    (JNIEnv *jenv, jclass jcls, jlong jhandle, jstring jfield, jstring jjson_columns) {
+  DMatrixHandle handle = (DMatrixHandle) jhandle;
+  const char* field = jenv->GetStringUTFChars(jfield, 0);
+  const char* cjson_columns = jenv->GetStringUTFChars(jjson_columns, 0);
+
+  int ret = XGDMatrixSetInfoFromInterface(handle, field, cjson_columns);
+  JVM_CHECK_CALL(ret);
+  //release
+  if (field) jenv->ReleaseStringUTFChars(jfield, field);
+  if (cjson_columns) jenv->ReleaseStringUTFChars(jjson_columns, cjson_columns);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixCreateFromArrayInterfaceColumns
+ * Signature: (Ljava/lang/String;FI[J)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixCreateFromArrayInterfaceColumns
+  (JNIEnv *jenv, jclass jcls, jstring jjson_columns, jfloat jmissing, jint jnthread, jlongArray jout) {
+  DMatrixHandle result;
+  const char* cjson_columns = jenv->GetStringUTFChars(jjson_columns, nullptr);
+  xgboost::Json config{xgboost::Object{}};
+  auto missing = static_cast<float>(jmissing);
+  auto n_threads = static_cast<int32_t>(jnthread);
+  config["missing"] = xgboost::Number(missing);
+  config["nthread"] = xgboost::Integer(n_threads);
+  std::string config_str;
+  xgboost::Json::Dump(config, &config_str);
+  int ret = XGDMatrixCreateFromCudaColumnar(cjson_columns, config_str.c_str(),
+                                            &result);
+  JVM_CHECK_CALL(ret);
+  if (cjson_columns) {
+    jenv->ReleaseStringUTFChars(jjson_columns, cjson_columns);
+  }
+
+  setHandle(jenv, jout, result);
+  return ret;
+}
+
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixSetStrFeatureInfo
+    (JNIEnv *jenv, jclass jclz, jlong jhandle, jstring jfield, jobjectArray jvalues) {
+  DMatrixHandle handle = (DMatrixHandle) jhandle;
+  const char* field = jenv->GetStringUTFChars(jfield, 0);
+  int size = jenv->GetArrayLength(jvalues);
+
+  // tmp storage for java strings
+  std::vector<std::string> values;
+  for (int i = 0; i < size; i++) {
+    jstring jstr = (jstring)(jenv->GetObjectArrayElement(jvalues, i));
+    const char *value = jenv->GetStringUTFChars(jstr, 0);
+    values.emplace_back(value);
+    if (value) jenv->ReleaseStringUTFChars(jstr, value);
+  }
+
+  std::vector<char const*> c_values;
+  c_values.resize(size);
+  std::transform(values.cbegin(), values.cend(),
+                 c_values.begin(),
+                 [](auto const &str) { return str.c_str(); });
+
+  int ret = XGDMatrixSetStrFeatureInfo(handle, field, c_values.data(), size);
+  JVM_CHECK_CALL(ret);
+
+  if (field) jenv->ReleaseStringUTFChars(jfield, field);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGDMatrixGetStrFeatureInfo
+ * Signature: (JLjava/lang/String;[J[[Ljava/lang/String;)I
+ */
+JNIEXPORT jint JNICALL Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGDMatrixGetStrFeatureInfo
+  (JNIEnv *jenv, jclass jclz, jlong jhandle, jstring jfield, jlongArray joutLenArray,
+     jobjectArray joutValueArray) {
+  DMatrixHandle handle = (DMatrixHandle) jhandle;
+  const char *field = jenv->GetStringUTFChars(jfield, 0);
+
+  bst_ulong out_len = 0;
+  char const **c_out_features;
+  int ret = XGDMatrixGetStrFeatureInfo(handle, field, &out_len, &c_out_features);
+
+  jlong jlen = (jlong) out_len;
+  jenv->SetLongArrayRegion(joutLenArray, 0, 1, &jlen);
+
+  jobjectArray jinfos = jenv->NewObjectArray(jlen, jenv->FindClass("java/lang/String"),
+                                             jenv->NewStringUTF(""));
+  for (int i = 0; i < jlen; i++) {
+    jenv->SetObjectArrayElement(jinfos, i, jenv->NewStringUTF(c_out_features[i]));
+  }
+  jenv->SetObjectArrayElement(joutValueArray, 0, jinfos);
+
+  JVM_CHECK_CALL(ret);
+  if (field) jenv->ReleaseStringUTFChars(jfield, field);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterSetStrFeatureInfo
+ * Signature: (JLjava/lang/String;[Ljava/lang/String;])I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterSetStrFeatureInfo(
+    JNIEnv *jenv, jclass jclz, jlong jhandle, jstring jfield,
+    jobjectArray jfeatures) {
+  BoosterHandle handle = (BoosterHandle)jhandle;
+
+  const char *field = jenv->GetStringUTFChars(jfield, 0);
+
+  bst_ulong feature_num = (bst_ulong)jenv->GetArrayLength(jfeatures);
+
+  std::vector<std::string> features;
+  std::vector<char const*> features_char;
+
+  for (bst_ulong i = 0; i < feature_num; ++i) {
+    jstring jfeature = (jstring)jenv->GetObjectArrayElement(jfeatures, i);
+    const char *s = jenv->GetStringUTFChars(jfeature, 0);
+    features.push_back(std::string(s, jenv->GetStringLength(jfeature)));
+    if (s != nullptr) jenv->ReleaseStringUTFChars(jfeature, s);
+  }
+
+  for (size_t i = 0; i < features.size(); ++i) {
+    features_char.push_back(features[i].c_str());
+  }
+
+  int ret = XGBoosterSetStrFeatureInfo(
+      handle, field, dmlc::BeginPtr(features_char), feature_num);
+  JVM_CHECK_CALL(ret);
+  return ret;
+}
+
+/*
+ * Class:     ml_dmlc_xgboost4j_java_XGBoostJNI
+ * Method:    XGBoosterSetGtrFeatureInfo
+ * Signature: (JLjava/lang/String;[Ljava/lang/String;])I
+ */
+JNIEXPORT jint JNICALL
+Java_ml_dmlc_xgboost4j_java_XGBoostJNI_XGBoosterGetStrFeatureInfo(
+    JNIEnv *jenv, jclass jclz, jlong jhandle, jstring jfield,
+    jobjectArray jout) {
+  BoosterHandle handle = (BoosterHandle)jhandle;
+
+  const char *field = jenv->GetStringUTFChars(jfield, 0);
+
+  bst_ulong feature_num = (bst_ulong)jenv->GetArrayLength(jout);
+
+  const char **features;
+  std::vector<char *> features_char;
+
+  int ret = XGBoosterGetStrFeatureInfo(handle, field, &feature_num,
+                                       (const char ***)&features);
+  JVM_CHECK_CALL(ret);
+
+  for (bst_ulong i = 0; i < feature_num; i++) {
+    jstring jfeature = jenv->NewStringUTF(features[i]);
+    jenv->SetObjectArrayElement(jout, i, jfeature);
+  }
+
+  return ret;
 }

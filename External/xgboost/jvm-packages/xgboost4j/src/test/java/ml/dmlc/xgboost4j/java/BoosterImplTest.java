@@ -1,10 +1,10 @@
 /*
- Copyright (c) 2014 by Contributors 
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
  You may obtain a copy of the License at
-    
+
  http://www.apache.org/licenses/LICENSE-2.0
 
  Unless required by applicable law or agreed to in writing, software
@@ -16,12 +16,7 @@
 package ml.dmlc.xgboost4j.java;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import junit.framework.TestCase;
 import org.junit.Test;
@@ -32,6 +27,9 @@ import org.junit.Test;
  * @author hzx
  */
 public class BoosterImplTest {
+  private String train_uri = "../../demo/data/agaricus.txt.train?indexing_mode=1&format=libsvm";
+  private String test_uri = "../../demo/data/agaricus.txt.test?indexing_mode=1&format=libsvm";
+
   public static class EvalError implements IEvaluation {
     @Override
     public String getMetric() {
@@ -87,8 +85,8 @@ public class BoosterImplTest {
   @Test
   public void testBoosterBasic() throws XGBoostError, IOException {
 
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
 
@@ -103,8 +101,8 @@ public class BoosterImplTest {
 
   @Test
   public void saveLoadModelWithPath() throws XGBoostError, IOException {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     IEvaluation eval = new EvalError();
 
     Booster booster = trainBooster(trainMat, testMat);
@@ -114,23 +112,57 @@ public class BoosterImplTest {
     booster.saveModel(temp.getAbsolutePath());
 
     Booster bst2 = XGBoost.loadModel(temp.getAbsolutePath());
-    assert (Arrays.equals(bst2.toByteArray(), booster.toByteArray()));
+    assert (Arrays.equals(bst2.toByteArray("ubj"), booster.toByteArray("ubj")));
+    assert (Arrays.equals(bst2.toByteArray("json"), booster.toByteArray("json")));
+    assert (Arrays.equals(bst2.toByteArray("deprecated"), booster.toByteArray("deprecated")));
+    float[][] predicts2 = bst2.predict(testMat, true, 0);
+    TestCase.assertTrue(eval.eval(predicts2, testMat) < 0.1f);
+  }
+
+  @Test
+  public void saveLoadModelWithFeaturesWithPath() throws XGBoostError, IOException {
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
+    IEvaluation eval = new EvalError();
+
+    String[] featureNames = new String[126];
+    String[] featureTypes = new String[126];
+    for(int i = 0; i < 126; i++) {
+      featureNames[i] = "test_feature_name_" + i;
+      featureTypes[i] = "q";
+    }
+    trainMat.setFeatureNames(featureNames);
+    testMat.setFeatureNames(featureNames);
+    trainMat.setFeatureTypes(featureTypes);
+    testMat.setFeatureTypes(featureTypes);
+
+    Booster booster = trainBooster(trainMat, testMat);
+    // save and load, only json format save and load feature_name and feature_type
+    File temp = File.createTempFile("temp", ".json");
+    temp.deleteOnExit();
+    booster.saveModel(temp.getAbsolutePath());
+
+    String modelString = new String(booster.toByteArray("json"));
+
+    Booster bst2 = XGBoost.loadModel(temp.getAbsolutePath());
+    assert (Arrays.equals(bst2.toByteArray("ubj"), booster.toByteArray("ubj")));
+    assert (Arrays.equals(bst2.toByteArray("json"), booster.toByteArray("json")));
+    assert (Arrays.equals(bst2.toByteArray("deprecated"), booster.toByteArray("deprecated")));
     float[][] predicts2 = bst2.predict(testMat, true, 0);
     TestCase.assertTrue(eval.eval(predicts2, testMat) < 0.1f);
   }
 
   @Test
   public void saveLoadModelWithStream() throws XGBoostError, IOException {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
 
-    Path tempDir = Files.createTempDirectory("boosterTest-");
-    File tempFile = Files.createTempFile("", "").toFile();
-    booster.saveModel(new FileOutputStream(tempFile));
+    ByteArrayOutputStream output = new ByteArrayOutputStream();
+    booster.saveModel(output);
     IEvaluation eval = new EvalError();
-    Booster loadedBooster = XGBoost.loadModel(new FileInputStream(tempFile));
+    Booster loadedBooster = XGBoost.loadModel(new ByteArrayInputStream(output.toByteArray()));
     float originalPredictError = eval.eval(booster.predict(testMat, true), testMat);
     TestCase.assertTrue("originalPredictErr:" + originalPredictError,
             originalPredictError < 0.1f);
@@ -311,8 +343,8 @@ public class BoosterImplTest {
 
   @Test
   public void testBoosterEarlyStop() throws XGBoostError, IOException {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
@@ -345,6 +377,34 @@ public class BoosterImplTest {
     }
   }
 
+  @Test
+  public void testEarlyStoppingAttributes() throws XGBoostError, IOException {
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
+    Map<String, Object> paramMap = new HashMap<String, Object>() {
+      {
+        put("max_depth", 3);
+        put("objective", "binary:logistic");
+        put("maximize_evaluation_metrics", "false");
+      }
+    };
+    Map<String, DMatrix> watches = new LinkedHashMap<>();
+    watches.put("training", trainMat);
+    watches.put("test", testMat);
+
+    int round = 30;
+    int earlyStoppingRound = 4;
+    float[][] metrics = new float[watches.size()][round];
+
+    Booster booster = XGBoost.train(trainMat, paramMap, round,
+				    watches, metrics, null, null, earlyStoppingRound);
+
+    int bestIter = Integer.valueOf(booster.getAttr("best_iteration"));
+    float bestScore = Float.valueOf(booster.getAttr("best_score"));
+    TestCase.assertEquals(bestIter, round - 1);
+    TestCase.assertEquals(bestScore, metrics[watches.size() - 1][round - 1]);
+  }
+
   private void testWithQuantileHisto(DMatrix trainingSet, Map<String, DMatrix> watches, int round,
                                       Map<String, Object> paramMap, float threshold) throws XGBoostError {
     float[][] metrics = new float[watches.size()][round];
@@ -364,8 +424,8 @@ public class BoosterImplTest {
 
   @Test
   public void testQuantileHistoDepthWise() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
@@ -384,11 +444,11 @@ public class BoosterImplTest {
 
   @Test
   public void testQuantileHistoLossGuide() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
-        put("max_depth", 0);
+        put("max_depth", 3);
         put("silent", 1);
         put("objective", "binary:logistic");
         put("tree_method", "hist");
@@ -405,11 +465,11 @@ public class BoosterImplTest {
 
   @Test
   public void testQuantileHistoLossGuideMaxBin() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
-        put("max_depth", 0);
+        put("max_depth", 3);
         put("silent", 1);
         put("objective", "binary:logistic");
         put("tree_method", "hist");
@@ -426,8 +486,8 @@ public class BoosterImplTest {
 
   @Test
   public void testDumpModelJson() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] dump = booster.getModelDump("", false, "json");
@@ -442,8 +502,8 @@ public class BoosterImplTest {
 
   @Test
   public void testGetFeatureScore() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] featureNames = new String[126];
@@ -454,8 +514,8 @@ public class BoosterImplTest {
 
   @Test
   public void testGetFeatureImportanceGain() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] featureNames = new String[126];
@@ -466,8 +526,8 @@ public class BoosterImplTest {
 
   @Test
   public void testGetFeatureImportanceTotalGain() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] featureNames = new String[126];
@@ -478,8 +538,8 @@ public class BoosterImplTest {
 
   @Test
   public void testGetFeatureImportanceCover() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] featureNames = new String[126];
@@ -490,8 +550,8 @@ public class BoosterImplTest {
 
   @Test
   public void testGetFeatureImportanceTotalCover() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
 
     Booster booster = trainBooster(trainMat, testMat);
     String[] featureNames = new String[126];
@@ -502,7 +562,7 @@ public class BoosterImplTest {
 
   @Test
   public void testQuantileHistoDepthwiseMaxDepth() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix trainMat = new DMatrix(this.train_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
@@ -520,8 +580,8 @@ public class BoosterImplTest {
 
   @Test
   public void testQuantileHistoDepthwiseMaxDepthMaxBin() throws XGBoostError {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     Map<String, Object> paramMap = new HashMap<String, Object>() {
       {
         put("max_depth", 3);
@@ -546,7 +606,7 @@ public class BoosterImplTest {
   @Test
   public void testCV() throws XGBoostError {
     //load train mat
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
+    DMatrix trainMat = new DMatrix(this.train_uri);
 
     //set params
     Map<String, Object> param = new HashMap<String, Object>() {
@@ -574,8 +634,8 @@ public class BoosterImplTest {
    */
   @Test
   public void testTrainFromExistingModel() throws XGBoostError, IOException {
-    DMatrix trainMat = new DMatrix("../../demo/data/agaricus.txt.train");
-    DMatrix testMat = new DMatrix("../../demo/data/agaricus.txt.test");
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
     IEvaluation eval = new EvalError();
 
     Map<String, Object> paramMap = new HashMap<String, Object>() {
@@ -616,5 +676,49 @@ public class BoosterImplTest {
     float booster2error = eval.eval(booster2.predict(testMat, true, 0), testMat);
     TestCase.assertTrue(booster1error == booster2error);
     TestCase.assertTrue(tempBoosterError > booster2error);
+  }
+
+  /**
+   * test set/get attributes to/from a booster
+   *
+   * @throws XGBoostError
+   */
+  @Test
+  public void testSetAndGetAttrs() throws XGBoostError {
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
+
+    Booster booster = trainBooster(trainMat, testMat);
+    booster.setAttr("testKey1", "testValue1");
+    TestCase.assertEquals(booster.getAttr("testKey1"), "testValue1");
+    booster.setAttr("testKey1", "testValue2");
+    TestCase.assertEquals(booster.getAttr("testKey1"), "testValue2");
+
+    booster.setAttrs(new HashMap<String, String>(){{
+      put("aa", "AA");
+      put("bb", "BB");
+      put("cc", "CC");
+    }});
+
+    Map<String, String> attr = booster.getAttrs();
+    TestCase.assertEquals(attr.size(), 6);
+    TestCase.assertEquals(attr.get("testKey1"), "testValue2");
+    TestCase.assertEquals(attr.get("aa"), "AA");
+    TestCase.assertEquals(attr.get("bb"), "BB");
+    TestCase.assertEquals(attr.get("cc"), "CC");
+  }
+
+  /**
+   * test get number of features from a booster
+   *
+   * @throws XGBoostError
+   */
+  @Test
+  public void testGetNumFeature() throws XGBoostError {
+    DMatrix trainMat = new DMatrix(this.train_uri);
+    DMatrix testMat = new DMatrix(this.test_uri);
+
+    Booster booster = trainBooster(trainMat, testMat);
+    TestCase.assertEquals(booster.getNumFeature(), 126);
   }
 }

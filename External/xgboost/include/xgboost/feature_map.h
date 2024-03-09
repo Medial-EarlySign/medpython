@@ -1,11 +1,13 @@
 /*!
- * Copyright 2014 by Contributors
+ * Copyright 2014-2021 by Contributors
  * \file feature_map.h
  * \brief Feature map data structure to help visualization and model dump.
  * \author Tianqi Chen
  */
 #ifndef XGBOOST_FEATURE_MAP_H_
 #define XGBOOST_FEATURE_MAP_H_
+
+#include <xgboost/logging.h>
 
 #include <vector>
 #include <string>
@@ -24,7 +26,8 @@ class FeatureMap {
     kIndicator = 0,
     kQuantitive = 1,
     kInteger = 2,
-    kFloat = 3
+    kFloat = 3,
+    kCategorical = 4
   };
   /*!
    * \brief load feature map from input stream
@@ -63,7 +66,7 @@ class FeatureMap {
     return names_[idx].c_str();
   }
   /*! \return type of specific feature */
-  Type type(size_t idx) const {
+  Type TypeOf(size_t idx) const {
     CHECK_LT(idx, names_.size()) << "FeatureMap feature index exceed bound";
     return types_[idx];
   }
@@ -80,6 +83,7 @@ class FeatureMap {
     if (!strcmp("q", tname)) return kQuantitive;
     if (!strcmp("int", tname)) return kInteger;
     if (!strcmp("float", tname)) return kFloat;
+    if (!strcmp("c", tname)) return kCategorical;
     LOG(FATAL) << "unknown feature type, use i for indicator and q for quantity";
     return kIndicator;
   }

@@ -11,6 +11,7 @@
 #include <vector>
 #ifndef _LIBCPP_SGX_NO_IOSTREAMS
 #include <iostream>
+#include <sstream>
 #endif
 #include <cctype>
 #include <string>
@@ -88,7 +89,8 @@ class JSONReader {
    *  // value can be any type that is json serializable.
    *  std::string value;
    *  reader->BeginArray();
-   *  while (reader->NextObjectArrayItem(&value)) {
+   *  while (reader->NextArrayItem()) {
+   *    reader->Read(&value);
    *    // do somthing to value
    *  }
    * \endcode
@@ -133,7 +135,7 @@ class JSONReader {
 
     // string getline
     size_t end_pos = is_->find('\n');
-    end_pos = std::min((size_t)64,
+    end_pos = std::min(static_cast<size_t>(64),
         end_pos == std::string::npos ? is_->size() : end_pos);
     std::string line = is_->substr(0, end_pos);
     is_->erase(0, line.size() + 1);  // +1 for \n
@@ -557,7 +559,7 @@ class AnyJSONManager {
 
   template<typename T>
   inline static void WriteAny(JSONWriter *writer, const any &data) {
-    writer->Write(dmlc::get<T>(data));
+    writer->Write(dmlc::unsafe_get<T>(data));
   }
   template<typename T>
   inline static void ReadAny(JSONReader *reader, any* data) {
@@ -737,7 +739,7 @@ inline void JSONReader::BeginArray() {
   int ch = NextNonSpace();
   CHECK_EQ(ch, '[')
       << "Error at" << line_info()
-      << ", Expect \'{\' but get \'" << static_cast<char>(ch) << '\'';
+      << ", Expect \'[\' but get \'" << static_cast<char>(ch) << '\'';
   scope_counter_.push_back(0);
 }
 

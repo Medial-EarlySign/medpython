@@ -1,53 +1,77 @@
-# coding: utf-8
 # pylint: disable=too-many-locals, too-many-arguments, invalid-name,
 # pylint: disable=too-many-branches
 """Plotting Library."""
-from __future__ import absolute_import
-
-import re
+import json
 from io import BytesIO
+from typing import Any, Optional, Union
+
 import numpy as np
+
+from ._typing import PathLike
 from .core import Booster
 from .sklearn import XGBModel
 
+Axes = Any  # real type is matplotlib.axes.Axes
+GraphvizSource = Any  # real type is graphviz.Source
 
-def plot_importance(booster, ax=None, height=0.2,
-                    xlim=None, ylim=None, title='Feature importance',
-                    xlabel='F score', ylabel='Features',
-                    importance_type='weight', max_num_features=None,
-                    grid=True, show_values=True, **kwargs):
+
+def plot_importance(
+    booster: Union[XGBModel, Booster, dict],
+    ax: Optional[Axes] = None,
+    height: float = 0.2,
+    xlim: Optional[tuple] = None,
+    ylim: Optional[tuple] = None,
+    title: str = "Feature importance",
+    xlabel: str = "F score",
+    ylabel: str = "Features",
+    fmap: PathLike = "",
+    importance_type: str = "weight",
+    max_num_features: Optional[int] = None,
+    grid: bool = True,
+    show_values: bool = True,
+    values_format: str = "{v}",
+    **kwargs: Any,
+) -> Axes:
     """Plot importance based on fitted trees.
 
     Parameters
     ----------
-    booster : Booster, XGBModel or dict
+    booster :
         Booster or XGBModel instance, or dict taken by Booster.get_fscore()
-    ax : matplotlib Axes, default None
+    ax : matplotlib Axes
         Target axes instance. If None, new figure and axes will be created.
-    grid : bool, Turn the axes grids on or off.  Default is True (On).
-    importance_type : str, default "weight"
+    grid :
+        Turn the axes grids on or off.  Default is True (On).
+    importance_type :
         How the importance is calculated: either "weight", "gain", or "cover"
 
         * "weight" is the number of times a feature appears in a tree
         * "gain" is the average gain of splits which use the feature
         * "cover" is the average coverage of splits which use the feature
           where coverage is defined as the number of samples affected by the split
-    max_num_features : int, default None
-        Maximum number of top features displayed on plot. If None, all features will be displayed.
-    height : float, default 0.2
+    max_num_features :
+        Maximum number of top features displayed on plot. If None, all features will be
+        displayed.
+    height :
         Bar height, passed to ax.barh()
-    xlim : tuple, default None
+    xlim :
         Tuple passed to axes.xlim()
-    ylim : tuple, default None
+    ylim :
         Tuple passed to axes.ylim()
-    title : str, default "Feature importance"
+    title :
         Axes title. To disable, pass None.
-    xlabel : str, default "F score"
+    xlabel :
         X axis title label. To disable, pass None.
-    ylabel : str, default "Features"
+    ylabel :
         Y axis title label. To disable, pass None.
-    show_values : bool, default True
+    fmap :
+        The name of feature map file.
+    show_values :
         Show values on plot. To disable, pass False.
+    values_format :
+        Format string for values. "v" will be replaced by the value of the feature
+        importance.  e.g. Pass "{v:.2f}" in order to limit the number of digits after
+        the decimal point to two, for each value printed on the graph.
     kwargs :
         Other keywords passed to ax.barh()
 
@@ -55,54 +79,59 @@ def plot_importance(booster, ax=None, height=0.2,
     -------
     ax : matplotlib Axes
     """
-    # TODO: move this to compat.py
     try:
         import matplotlib.pyplot as plt
-    except ImportError:
-        raise ImportError('You must install matplotlib to plot importance')
+    except ImportError as e:
+        raise ImportError("You must install matplotlib to plot importance") from e
 
     if isinstance(booster, XGBModel):
-        importance = booster.get_booster().get_score(importance_type=importance_type)
+        importance = booster.get_booster().get_score(
+            importance_type=importance_type, fmap=fmap
+        )
     elif isinstance(booster, Booster):
-        importance = booster.get_score(importance_type=importance_type)
+        importance = booster.get_score(importance_type=importance_type, fmap=fmap)
     elif isinstance(booster, dict):
         importance = booster
     else:
-        raise ValueError('tree must be Booster, XGBModel or dict instance')
+        raise ValueError("tree must be Booster, XGBModel or dict instance")
 
-    if len(importance) == 0:
-        raise ValueError('Booster.get_score() results in empty')
+    if not importance:
+        raise ValueError(
+            "Booster.get_score() results in empty.  "
+            + "This maybe caused by having all trees as decision dumps."
+        )
 
     tuples = [(k, importance[k]) for k in importance]
     if max_num_features is not None:
-        tuples = sorted(tuples, key=lambda x: x[1])[-max_num_features:]
+        # pylint: disable=invalid-unary-operand-type
+        tuples = sorted(tuples, key=lambda _x: _x[1])[-max_num_features:]
     else:
-        tuples = sorted(tuples, key=lambda x: x[1])
+        tuples = sorted(tuples, key=lambda _x: _x[1])
     labels, values = zip(*tuples)
 
     if ax is None:
         _, ax = plt.subplots(1, 1)
 
     ylocs = np.arange(len(values))
-    ax.barh(ylocs, values, align='center', height=height, **kwargs)
+    ax.barh(ylocs, values, align="center", height=height, **kwargs)
 
     if show_values is True:
         for x, y in zip(values, ylocs):
-            ax.text(x + 1, y, x, va='center')
+            ax.text(x + 1, y, values_format.format(v=x), va="center")
 
     ax.set_yticks(ylocs)
     ax.set_yticklabels(labels)
 
     if xlim is not None:
         if not isinstance(xlim, tuple) or len(xlim) != 2:
-            raise ValueError('xlim must be a tuple of 2 elements')
+            raise ValueError("xlim must be a tuple of 2 elements")
     else:
         xlim = (0, max(values) * 1.1)
     ax.set_xlim(xlim)
 
     if ylim is not None:
         if not isinstance(ylim, tuple) or len(ylim) != 2:
-            raise ValueError('ylim must be a tuple of 2 elements')
+            raise ValueError("ylim must be a tuple of 2 elements")
     else:
         ylim = (-1, len(values))
     ax.set_ylim(ylim)
@@ -117,131 +146,112 @@ def plot_importance(booster, ax=None, height=0.2,
     return ax
 
 
-_NODEPAT = re.compile(r'(\d+):\[(.+)\]')
-_LEAFPAT = re.compile(r'(\d+):(leaf=.+)')
-_EDGEPAT = re.compile(r'yes=(\d+),no=(\d+),missing=(\d+)')
-_EDGEPAT2 = re.compile(r'yes=(\d+),no=(\d+)')
-
-
-def _parse_node(graph, text, condition_node_params, leaf_node_params):
-    """parse dumped node"""
-    match = _NODEPAT.match(text)
-    if match is not None:
-        node = match.group(1)
-        graph.node(node, label=match.group(2), **condition_node_params)
-        return node
-    match = _LEAFPAT.match(text)
-    if match is not None:
-        node = match.group(1)
-        graph.node(node, label=match.group(2), **leaf_node_params)
-        return node
-    raise ValueError('Unable to parse node: {0}'.format(text))
-
-
-def _parse_edge(graph, node, text, yes_color='#0000FF', no_color='#FF0000'):
-    """parse dumped edge"""
-    try:
-        match = _EDGEPAT.match(text)
-        if match is not None:
-            yes, no, missing = match.groups()
-            if yes == missing:
-                graph.edge(node, yes, label='yes, missing', color=yes_color)
-                graph.edge(node, no, label='no', color=no_color)
-            else:
-                graph.edge(node, yes, label='yes', color=yes_color)
-                graph.edge(node, no, label='no, missing', color=no_color)
-            return
-    except ValueError:
-        pass
-    match = _EDGEPAT2.match(text)
-    if match is not None:
-        yes, no = match.groups()
-        graph.edge(node, yes, label='yes', color=yes_color)
-        graph.edge(node, no, label='no', color=no_color)
-        return
-    raise ValueError('Unable to parse edge: {0}'.format(text))
-
-
-def to_graphviz(booster, fmap='', num_trees=0, rankdir='UT',
-                yes_color='#0000FF', no_color='#FF0000',
-                condition_node_params=None, leaf_node_params=None, **kwargs):
-    """Convert specified tree to graphviz instance. IPython can automatically plot the
-    returned graphiz instance. Otherwise, you should call .render() method
-    of the returned graphiz instance.
+def to_graphviz(
+    booster: Union[Booster, XGBModel],
+    fmap: PathLike = "",
+    num_trees: int = 0,
+    rankdir: Optional[str] = None,
+    yes_color: Optional[str] = None,
+    no_color: Optional[str] = None,
+    condition_node_params: Optional[dict] = None,
+    leaf_node_params: Optional[dict] = None,
+    **kwargs: Any,
+) -> GraphvizSource:
+    """Convert specified tree to graphviz instance. IPython can automatically plot
+    the returned graphviz instance. Otherwise, you should call .render() method
+    of the returned graphviz instance.
 
     Parameters
     ----------
-    booster : Booster, XGBModel
+    booster :
         Booster or XGBModel instance
-    fmap: str (optional)
+    fmap :
        The name of feature map file
-    num_trees : int, default 0
+    num_trees :
         Specify the ordinal number of target tree
-    rankdir : str, default "UT"
-        Passed to graphiz via graph_attr
-    yes_color : str, default '#0000FF'
+    rankdir :
+        Passed to graphviz via graph_attr
+    yes_color :
         Edge color when meets the node condition.
-    no_color : str, default '#FF0000'
+    no_color :
         Edge color when doesn't meet the node condition.
-    condition_node_params : dict (optional)
-        condition node configuration,
-        {'shape':'box',
-               'style':'filled,rounded',
-               'fillcolor':'#78bceb'
-        }
-    leaf_node_params : dict (optional)
-        leaf node configuration
-        {'shape':'box',
-               'style':'filled',
-               'fillcolor':'#e48038'
-        }
+    condition_node_params :
+        Condition node configuration for for graphviz.  Example:
+
+        .. code-block:: python
+
+            {'shape': 'box',
+             'style': 'filled,rounded',
+             'fillcolor': '#78bceb'}
+
+    leaf_node_params :
+        Leaf node configuration for graphviz. Example:
+
+        .. code-block:: python
+
+            {'shape': 'box',
+             'style': 'filled',
+             'fillcolor': '#e48038'}
+
     kwargs :
-        Other keywords passed to graphviz graph_attr
+        Other keywords passed to graphviz graph_attr, e.g. ``graph [ {key} = {value} ]``
 
     Returns
     -------
-    ax : matplotlib Axes
+    graph: graphviz.Source
+
     """
-
-    if condition_node_params is None:
-        condition_node_params = {}
-    if leaf_node_params is None:
-        leaf_node_params = {}
-
     try:
-        from graphviz import Digraph
-    except ImportError:
-        raise ImportError('You must install graphviz to plot tree')
-
-    if not isinstance(booster, (Booster, XGBModel)):
-        raise ValueError('booster must be Booster or XGBModel instance')
-
+        from graphviz import Source
+    except ImportError as e:
+        raise ImportError("You must install graphviz to plot tree") from e
     if isinstance(booster, XGBModel):
         booster = booster.get_booster()
 
-    tree = booster.get_dump(fmap=fmap)[num_trees]
-    tree = tree.split()
+    # squash everything back into kwargs again for compatibility
+    parameters = "dot"
+    extra = {}
+    for key, value in kwargs.items():
+        extra[key] = value
 
-    kwargs = kwargs.copy()
-    kwargs.update({'rankdir': rankdir})
-    graph = Digraph(graph_attr=kwargs)
-
-    for i, text in enumerate(tree):
-        if text[0].isdigit():
-            node = _parse_node(
-                graph, text, condition_node_params=condition_node_params,
-                leaf_node_params=leaf_node_params)
+    if rankdir is not None:
+        kwargs["graph_attrs"] = {}
+        kwargs["graph_attrs"]["rankdir"] = rankdir
+    for key, value in extra.items():
+        if kwargs.get("graph_attrs", None) is not None:
+            kwargs["graph_attrs"][key] = value
         else:
-            if i == 0:
-                # 1st string must be node
-                raise ValueError('Unable to parse given string as tree')
-            _parse_edge(graph, node, text, yes_color=yes_color,
-                        no_color=no_color)
+            kwargs["graph_attrs"] = {}
+        del kwargs[key]
 
-    return graph
+    if yes_color is not None or no_color is not None:
+        kwargs["edge"] = {}
+    if yes_color is not None:
+        kwargs["edge"]["yes_color"] = yes_color
+    if no_color is not None:
+        kwargs["edge"]["no_color"] = no_color
+
+    if condition_node_params is not None:
+        kwargs["condition_node_params"] = condition_node_params
+    if leaf_node_params is not None:
+        kwargs["leaf_node_params"] = leaf_node_params
+
+    if kwargs:
+        parameters += ":"
+        parameters += json.dumps(kwargs)
+    tree = booster.get_dump(fmap=fmap, dump_format=parameters)[num_trees]
+    g = Source(tree)
+    return g
 
 
-def plot_tree(booster, fmap='', num_trees=0, rankdir='UT', ax=None, **kwargs):
+def plot_tree(
+    booster: Booster,
+    fmap: PathLike = "",
+    num_trees: int = 0,
+    rankdir: Optional[str] = None,
+    ax: Optional[Axes] = None,
+    **kwargs: Any,
+) -> Axes:
     """Plot specified tree.
 
     Parameters
@@ -252,8 +262,8 @@ def plot_tree(booster, fmap='', num_trees=0, rankdir='UT', ax=None, **kwargs):
        The name of feature map file
     num_trees : int, default 0
         Specify the ordinal number of target tree
-    rankdir : str, default "UT"
-        Passed to graphiz via graph_attr
+    rankdir : str, default "TB"
+        Passed to graphviz via graph_attr
     ax : matplotlib Axes, default None
         Target axes instance. If None, new figure and axes will be created.
     kwargs :
@@ -264,24 +274,22 @@ def plot_tree(booster, fmap='', num_trees=0, rankdir='UT', ax=None, **kwargs):
     ax : matplotlib Axes
 
     """
-
     try:
-        import matplotlib.pyplot as plt
-        import matplotlib.image as image
-    except ImportError:
-        raise ImportError('You must install matplotlib to plot tree')
+        from matplotlib import image
+        from matplotlib import pyplot as plt
+    except ImportError as e:
+        raise ImportError("You must install matplotlib to plot tree") from e
 
     if ax is None:
         _, ax = plt.subplots(1, 1)
 
-    g = to_graphviz(booster, fmap=fmap, num_trees=num_trees,
-                    rankdir=rankdir, **kwargs)
+    g = to_graphviz(booster, fmap=fmap, num_trees=num_trees, rankdir=rankdir, **kwargs)
 
     s = BytesIO()
-    s.write(g.pipe(format='png'))
+    s.write(g.pipe(format="png"))
     s.seek(0)
     img = image.imread(s)
 
     ax.imshow(img)
-    ax.axis('off')
+    ax.axis("off")
     return ax

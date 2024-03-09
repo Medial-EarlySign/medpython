@@ -42,9 +42,8 @@ struct CSVParserParam : public Parameter<CSVParserParam> {
 
 /*!
  * \brief CSVParser, parses a dense csv format.
- *  Currently is a dummy implementation, when label column is not specified.
  *  All columns are treated as real dense data.
- *  label will be assigned to 0.
+ *  Label will be empty if the label column is not specified.
  *
  *  This should be extended in future to accept arguments of column types.
  */
@@ -90,7 +89,6 @@ ParseBlock(const char *begin,
     const char* p = lbegin;
     int column_index = 0;
     IndexType idx = 0;
-    DType label = DType(0.0f);
     real_t weight = std::numeric_limits<real_t>::quiet_NaN();
 
     while (p != lend) {
@@ -109,17 +107,21 @@ ParseBlock(const char *begin,
       } else {
         LOG(FATAL) << "Only float32, int32, and int64 are supported for the time being";
       }
-      p = (endptr >= lend) ? lend : endptr;
 
       if (column_index == param_.label_column) {
-        label = v;
+        out->label.push_back(v);
       } else if (std::is_same<DType, real_t>::value
                  && column_index == param_.weight_column) {
         weight = v;
       } else {
-        out->value.push_back(v);
-        out->index.push_back(idx++);
+        if (std::distance(p, static_cast<char const*>(endptr)) != 0) {
+          out->value.push_back(v);
+          out->index.push_back(idx++);
+        } else {
+          idx++;
+        }
       }
+      p = (endptr >= lend) ? lend : endptr;
       ++column_index;
       while (*p != param_.delimiter[0] && p != lend) ++p;
       if (p == lend && idx == 0) {
@@ -132,13 +134,12 @@ ParseBlock(const char *begin,
     // skip empty line
     while ((*lend == '\n' || *lend == '\r') && lend != end) ++lend;
     lbegin = lend;
-    out->label.push_back(label);
     if (!std::isnan(weight)) {
       out->weight.push_back(weight);
     }
     out->offset.push_back(out->index.size());
   }
-  CHECK(out->label.size() + 1 == out->offset.size());
+  CHECK(out->label.size() == 0 || out->label.size() + 1 == out->offset.size());
   CHECK(out->weight.size() == 0 || out->weight.size() + 1 == out->offset.size());
 }
 }  // namespace data

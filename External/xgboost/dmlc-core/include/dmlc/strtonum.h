@@ -48,6 +48,19 @@ inline bool isdigit(char c) {
 }
 
 /*!
+ * \brief Inline implementation of isalpha(). Tests whether the given character
+ *        is an alphabet letter
+ * \param c Character to test
+ * \return Result of the test
+ */
+inline bool isalpha(char c) {
+  static_assert(
+    static_cast<int>('A') == 65 && static_cast<int>('Z' - 'A') == 25,
+    "Only system with ASCII character set is supported");
+  return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
+/*!
  * \brief Tests whether the given character is a valid letter in the string
  *        representation of a floating-point value, i.e. decimal digits,
  *        signs (+/-), decimal point (.), or exponent marker (e/E).
@@ -69,7 +82,7 @@ const int kStrtofMaxDigits = 19;
 
 /*!
  * \brief Common implementation for dmlc::strtof() and dmlc::strtod()
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * \param nptr Beginning of the string that's to be converted into a
  *             floating-point number
  * \param endptr After the conversion, this pointer will be set to point one
@@ -121,6 +134,43 @@ inline FloatType ParseFloat(const char* nptr, char** endptr) {
     sign = false; ++p;
   } else if (*p == '+') {
     ++p;
+  }
+
+  // Handle INF and NAN
+  {
+    int i = 0;
+    // case-insensitive match for INF and INFINITY
+    while (i < 8 && static_cast<char>((*p) | 32) == "infinity"[i]) {
+      ++i; ++p;
+    }
+    if (i == 3 || i == 8) {
+      if (endptr) *endptr = (char*)p;  // NOLINT(*)
+      return sign ?  std::numeric_limits<FloatType>::infinity()
+                  : -std::numeric_limits<FloatType>::infinity();
+    } else {
+      p -= i;
+    }
+
+    // case-insensitive match for NAN
+    i = 0;
+    while (i < 3 && static_cast<char>((*p) | 32) == "nan"[i]) {
+      ++i; ++p;
+    }
+    if (i == 3) {
+      // Got NAN; check if the value is of form NAN(char_sequence)
+      if (*p == '(') {
+        ++p;
+        while (isdigit(*p) || isalpha(*p) || *p == '_') ++p;
+        CHECK_EQ(*p, ')') << "Invalid NAN literal";
+        ++p;
+      }
+      static_assert(std::numeric_limits<FloatType>::has_quiet_NaN,
+        "Only system with quiet NaN is supported");
+      if (endptr) *endptr = (char*)p;  // NOLINT(*)
+      return std::numeric_limits<FloatType>::quiet_NaN();
+    } else {
+      p -= i;
+    }
   }
 
   // Get digits before decimal point or exponent, if any.
@@ -206,7 +256,7 @@ inline FloatType ParseFloat(const char* nptr, char** endptr) {
  * \brief A faster implementation of strtof(). See documentation of
  *        std::strtof() for more information. Note that this function does not
  *        check for overflow. Use strtof_check_range() to check for overflow.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -224,7 +274,7 @@ inline float strtof(const char* nptr, char** endptr) {
  *        std::strtof() for more information. This function will check for
  *        overflow. If the converted value is outside the range for the float
  *        type, errno is set to ERANGE and HUGE_VALF is returned.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -241,7 +291,7 @@ inline float strtof_check_range(const char* nptr, char** endptr) {
  * \brief A faster implementation of strtod(). See documentation of
  *        std::strtof() for more information. Note that this function does not
  *        check for overflow. Use strtod_check_range() to check for overflow.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -259,7 +309,7 @@ inline double strtod(const char* nptr, char** endptr) {
  *        std::strtod() for more information. This function will check for
  *        overflow. If the converted value is outside the range for the double
  *        type, errno is set to ERANGE and HUGE_VAL is returned.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -388,7 +438,7 @@ inline long atol(const char* p) {  // NOLINT(*)
 /*!
  * \brief A faster implementation of atof(). Unlike std::atof(), this function
  *        returns float type. Note that this function does not check for overflow.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -403,7 +453,7 @@ inline float atof(const char* nptr) {
  * \brief A faster implementation of stof(). See documentation of std::stof()
  *        for more information. This function will test for overflow and
  *        invalid arguments.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -433,7 +483,7 @@ inline float stof(const std::string& value, size_t* pos = nullptr) {
  * \brief A faster implementation of stod(). See documentation of std::stod()
  *        for more information. This function will test for overflow and
  *        invalid arguments.
- * TODO: the current version does not support INF, NAN, and hex number
+ * TODO: the current version does not support hex number
  * TODO: the current version does not handle long decimals: you may only have
  *       up to 19 digits after the decimal point, and you cannot have too many
  *       digits before the decimal point either.
@@ -471,22 +521,20 @@ class Str2T {
   /*!
    * \brief Convert a string into type T
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, in type T
    */
-  static inline T get(const char * begin, const char * end);
+  static inline T get(const char * begin);
 };
 
 /*!
  * \brief Convenience function for converting string into type T
  * \param begin Beginning of the string to convert
- * \param end End of the string to convert
  * \return Converted value, in type T
  * \tparam Type of converted value
  */
 template<typename T>
-inline T Str2Type(const char * begin, const char * end) {
-  return Str2T<T>::get(begin, end);
+inline T Str2Type(const char * begin) {
+  return Str2T<T>::get(begin);
 }
 
 /*!
@@ -498,10 +546,9 @@ class Str2T<int32_t> {
   /*!
    * \brief Convert a string into signed 32-bit integer
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, as signed 32-bit integer
    */
-  static inline int32_t get(const char * begin, const char * end) {
+  static inline int32_t get(const char * begin) {
     return ParseSignedInt<int32_t>(begin, NULL, 10);
   }
 };
@@ -515,10 +562,9 @@ class Str2T<uint32_t> {
   /*!
    * \brief Convert a string into unsigned 32-bit integer
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, as unsigned 32-bit integer
    */
-  static inline uint32_t get(const char* begin, const char* end) {
+  static inline uint32_t get(const char* begin) {
     return ParseUnsignedInt<uint32_t>(begin, NULL, 10);
   }
 };
@@ -532,10 +578,9 @@ class Str2T<int64_t> {
   /*!
    * \brief Convert a string into signed 64-bit integer
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, as signed 64-bit integer
    */
-  static inline int64_t get(const char * begin, const char * end) {
+  static inline int64_t get(const char * begin) {
     return ParseSignedInt<int64_t>(begin, NULL, 10);
   }
 };
@@ -549,10 +594,9 @@ class Str2T<uint64_t> {
   /*!
    * \brief Convert a string into unsigned 64-bit integer
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, as unsigned 64-bit integer
    */
-  static inline uint64_t get(const char * begin, const char * end) {
+  static inline uint64_t get(const char * begin) {
     return ParseUnsignedInt<uint64_t>(begin, NULL, 10);
   }
 };
@@ -566,10 +610,9 @@ class Str2T<float> {
   /*!
    * \brief Convert a string into float
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, in float type
    */
-  static inline float get(const char * begin, const char * end) {
+  static inline float get(const char * begin) {
     return atof(begin);
   }
 };
@@ -583,10 +626,9 @@ class Str2T<double> {
   /*!
    * \brief Convert a string into double
    * \param begin Beginning of the string to convert
-   * \param end End of the string to convert
    * \return Converted value, in double type
    */
-  static inline double get(const char * begin, const char * end) {
+  static inline double get(const char * begin) {
     return strtod(begin, 0);
   }
 };
@@ -613,7 +655,7 @@ inline int ParsePair(const char * begin, const char * end,
   }
   const char * q = p;
   while (q != end && isdigitchars(*q)) ++q;
-  v1 = Str2Type<T1>(p, q);
+  v1 = Str2Type<T1>(p);
   p = q;
   while (p != end && isblank(*p)) ++p;
   if (p == end || *p != ':') {
@@ -626,7 +668,7 @@ inline int ParsePair(const char * begin, const char * end,
   q = p;
   while (q != end && isdigitchars(*q)) ++q;
   *endptr = q;
-  v2 = Str2Type<T2>(p, q);
+  v2 = Str2Type<T2>(p);
   return 2;
 }
 
@@ -654,7 +696,7 @@ inline int ParseTriple(const char * begin, const char * end,
   }
   const char * q = p;
   while (q != end && isdigitchars(*q)) ++q;
-  v1 = Str2Type<T1>(p, q);
+  v1 = Str2Type<T1>(p);
   p = q;
   while (p != end && isblank(*p)) ++p;
   if (p == end || *p != ':') {
@@ -666,7 +708,7 @@ inline int ParseTriple(const char * begin, const char * end,
   while (p != end && !isdigitchars(*p)) ++p;
   q = p;
   while (q != end && isdigitchars(*q)) ++q;
-  v2 = Str2Type<T2>(p, q);
+  v2 = Str2Type<T2>(p);
   p = q;
   while (p != end && isblank(*p)) ++p;
   if (p == end || *p != ':') {
@@ -679,7 +721,7 @@ inline int ParseTriple(const char * begin, const char * end,
   q = p;
   while (q != end && isdigitchars(*q)) ++q;
   *endptr = q;
-  v3 = Str2Type<T3>(p, q);
+  v3 = Str2Type<T3>(p);
   return 3;
 }
 }  // namespace dmlc

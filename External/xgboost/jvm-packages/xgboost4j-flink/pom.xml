@@ -5,11 +5,16 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>ml.dmlc</groupId>
-        <artifactId>xgboost-jvm</artifactId>
-        <version>0.83-SNAPSHOT</version>
+        <artifactId>xgboost-jvm_2.12</artifactId>
+        <version>2.0.3</version>
     </parent>
-    <artifactId>xgboost4j-flink</artifactId>
-    <version>0.83-SNAPSHOT</version>
+
+    <name>xgboost4j-flink</name>
+    <artifactId>xgboost4j-flink_2.12</artifactId>
+    <version>2.0.3</version>
+    <properties>
+      <flink-ml.version>2.2.0</flink-ml.version>
+    </properties>
     <build>
         <plugins>
             <plugin>
@@ -25,33 +30,23 @@
     <dependencies>
         <dependency>
             <groupId>ml.dmlc</groupId>
-            <artifactId>xgboost4j</artifactId>
-            <version>0.83-SNAPSHOT</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.commons</groupId>
-            <artifactId>commons-lang3</artifactId>
-            <version>3.4</version>
+            <artifactId>xgboost4j_2.12</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-scala_${scala.binary.version}</artifactId>
+            <artifactId>flink-clients</artifactId>
             <version>${flink.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.flink</groupId>
-            <artifactId>flink-clients_${scala.binary.version}</artifactId>
-            <version>${flink.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.flink</groupId>
-            <artifactId>flink-ml_${scala.binary.version}</artifactId>
-            <version>${flink.version}</version>
+            <artifactId>flink-ml-servable-core</artifactId>
+            <version>${flink-ml.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-common</artifactId>
-            <version>2.7.3</version>
+            <version>${hadoop.version}</version>
         </dependency>
     </dependencies>
 

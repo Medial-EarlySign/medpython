@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Helper utilty function for customization."""
-import sys
+"""Helper utility function for customization."""
 import os
-import docutils
 import subprocess
+import sys
 
 READTHEDOCS_BUILD = (os.environ.get('READTHEDOCS', None) is not None)
 

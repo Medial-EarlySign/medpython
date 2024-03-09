@@ -14,13 +14,12 @@
 \item{...}{not currently used}
 }
 \description{
-Print information about xgb.DMatrix. 
+Print information about xgb.DMatrix.
 Currently it displays dimensions and presence of info-fields and colnames.
 }
 \examples{
 data(agaricus.train, package='xgboost')
-train <- agaricus.train
-dtrain <- xgb.DMatrix(train$data, label=train$label)
+dtrain <- with(agaricus.train, xgb.DMatrix(data, label = label, nthread = 2))
 
 dtrain
 print(dtrain, verbose=TRUE)

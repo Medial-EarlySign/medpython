@@ -76,8 +76,10 @@ class Registry {
    * \return ref to the registered entry, used to set properties
    */
   inline EntryType &__REGISTER__(const std::string& name) {
-    CHECK_EQ(fmap_.count(name), 0U)
-        << name << " already registered";
+    std::lock_guard<std::mutex> guard(registering_mutex);
+    if (fmap_.count(name) > 0) {
+      return *fmap_[name];
+    }
     EntryType *e = new EntryType();
     e->name = name;
     fmap_[name] = e;
@@ -111,6 +113,8 @@ class Registry {
   std::vector<const EntryType*> const_list_;
   /*! \brief map of name->function */
   std::map<std::string, EntryType*> fmap_;
+  /*! \brief lock guarding the registering*/
+  std::mutex registering_mutex;
   /*! \brief constructor */
   Registry() {}
   /*! \brief destructor */
@@ -276,7 +280,7 @@ class FunctionRegEntryBase {
  *  Use of this is optional as it will create an error when a file tag do not exist.
  *  An alternative solution is always ask user to enable --whole-archieve during static link.
  *
- * \begincode
+ * \code
  * // in file objective_registry.cc
  * DMLC_REGISTRY_ENABLE(MyObjective);
  * DMLC_REGISTRY_LINK_TAG(regression_op);

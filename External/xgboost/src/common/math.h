@@ -1,5 +1,5 @@
-/*!
- * Copyright 2015 by Contributors
+/**
+ * Copyright 2015-2023 by XGBoost Contributors
  * \file math.h
  * \brief additional math utils
  * \author Tianqi Chen
@@ -7,23 +7,52 @@
 #ifndef XGBOOST_COMMON_MATH_H_
 #define XGBOOST_COMMON_MATH_H_
 
-#include <xgboost/base.h>
+#include <xgboost/base.h>  // for XGBOOST_DEVICE
 
-#include <utility>
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <utility>
+#include <algorithm>    // for max
+#include <cmath>        // for exp, abs, log, lgamma
+#include <limits>       // for numeric_limits
+#include <type_traits>  // for is_floating_point, conditional, is_signed, is_same, declval, enable_if
+#include <utility>      // for pair
 
 namespace xgboost {
 namespace common {
+
+template <typename T> XGBOOST_DEVICE T Sqr(T const &w) { return w * w; }
+
 /*!
  * \brief calculate the sigmoid of the input.
  * \param x input parameter
  * \return the transformed value.
  */
 XGBOOST_DEVICE inline float Sigmoid(float x) {
-  return 1.0f / (1.0f + expf(-x));
+  float constexpr kEps = 1e-16;  // avoid 0 div
+  x = std::min(-x, 88.7f);       // avoid exp overflow
+  auto denom = expf(x) + 1.0f + kEps;
+  auto y = 1.0f / denom;
+  return y;
+}
+
+XGBOOST_DEVICE inline double Sigmoid(double x) {
+  auto denom = std::exp(-x) + 1.0;
+  auto y = 1.0 / denom;
+  return y;
+}
+/*!
+ * \brief Equality test for both integer and floating point.
+ */
+template <typename T, typename U>
+XGBOOST_DEVICE constexpr bool CloseTo(T a, U b) {
+  using Casted =
+      typename std::conditional<
+        std::is_floating_point<T>::value || std::is_floating_point<U>::value,
+          double,
+          typename std::conditional<
+            std::is_signed<T>::value || std::is_signed<U>::value,
+            int64_t,
+            uint64_t>::type>::type;
+  return std::is_floating_point<Casted>::value ?
+      std::abs(static_cast<Casted>(a) -static_cast<Casted>(b)) < 1e-6 : a == b;
 }
 
 /*!
@@ -57,7 +86,7 @@ XGBOOST_DEVICE inline void Softmax(Iterator start, Iterator end) {
 
 /*!
  * \brief Find the maximum iterator within the iterators
- * \param begin The begining iterator.
+ * \param begin The beginning iterator.
  * \param end The end iterator.
  * \return the iterator point to the maximum value.
  * \tparam Iterator The type of the iterator.
@@ -87,7 +116,7 @@ inline float LogSum(float x, float y) {
 
 /*!
  * \brief perform numerically safe logsum
- * \param begin The begining iterator.
+ * \param begin The beginning iterator.
  * \param end The end iterator.
  * \return the iterator point to the maximum value.
  * \tparam Iterator The type of the iterator.
@@ -105,30 +134,38 @@ inline float LogSum(Iterator begin, Iterator end) {
   return mx + std::log(sum);
 }
 
-// comparator functions for sorting pairs in descending order
-inline static bool CmpFirst(const std::pair<float, unsigned> &a,
-                            const std::pair<float, unsigned> &b) {
-  return a.first > b.first;
-}
-inline static bool CmpSecond(const std::pair<float, unsigned> &a,
-                             const std::pair<float, unsigned> &b) {
-  return a.second > b.second;
+// Redefined here to workaround a VC bug that doesn't support overloading for integer
+// types.
+template <typename T>
+XGBOOST_DEVICE typename std::enable_if<
+  std::numeric_limits<T>::is_integer, bool>::type
+CheckNAN(T) {
+  return false;
 }
 
-#if XGBOOST_STRICT_R_MODE
-// check nan
+#if XGBOOST_STRICT_R_MODE && !defined(__CUDA_ARCH__)
+
 bool CheckNAN(double v);
-#else
-template<typename T>
-inline bool CheckNAN(T v) {
-#ifdef _MSC_VER
-  return (_isnan(v) != 0);
-#else
-  return std::isnan(v);
-#endif  // _MSC_VER
-}
-#endif  // XGBOOST_STRICT_R_MODE_
 
+#else
+
+XGBOOST_DEVICE bool inline CheckNAN(float x) {
+#if defined(__CUDA_ARCH__)
+  return isnan(x);
+#else
+  return std::isnan(x);
+#endif  // defined(__CUDA_ARCH__)
+}
+
+XGBOOST_DEVICE bool inline CheckNAN(double x) {
+#if defined(__CUDA_ARCH__)
+  return isnan(x);
+#else
+  return std::isnan(x);
+#endif  // defined(__CUDA_ARCH__)
+}
+
+#endif  // XGBOOST_STRICT_R_MODE && !defined(__CUDA_ARCH__)
 // GPU version is not uploaded in CRAN anyway.
 // Specialize only when using R with CPU.
 #if XGBOOST_STRICT_R_MODE && !defined(XGBOOST_USE_CUDA)

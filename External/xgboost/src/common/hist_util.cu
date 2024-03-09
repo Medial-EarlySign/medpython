@@ -1,404 +1,365 @@
-/*!
- * Copyright 2018 XGBoost contributors
+/**
+ * Copyright 2018~2023 by XGBoost contributors
  */
-
-#include "./hist_util.h"
-
+#include <thrust/binary_search.h>
 #include <thrust/copy.h>
+#include <thrust/execution_policy.h>
 #include <thrust/functional.h>
 #include <thrust/iterator/counting_iterator.h>
+#include <thrust/iterator/discard_iterator.h>
 #include <thrust/iterator/transform_iterator.h>
 #include <thrust/reduce.h>
-#include <thrust/sequence.h>
+#include <thrust/sort.h>
+#include <xgboost/logging.h>
 
+#include <cstddef>  // for size_t
+#include <memory>
+#include <mutex>
 #include <utility>
 #include <vector>
 
-#include "../tree/param.h"
-#include "./host_device_vector.h"
-#include "./device_helpers.cuh"
-#include "./quantile.h"
+#include "categorical.h"
+#include "cuda_context.cuh"  // for CUDAContext
+#include "device_helpers.cuh"
+#include "hist_util.cuh"
+#include "hist_util.h"
+#include "quantile.h"
+#include "xgboost/host_device_vector.h"
 
-namespace xgboost {
-namespace common {
+namespace xgboost::common {
+constexpr float SketchContainer::kFactor;
 
-using WXQSketch = HistCutMatrix::WXQSketch;
+namespace detail {
+size_t RequiredSampleCutsPerColumn(int max_bins, size_t num_rows) {
+  double eps = 1.0 / (WQSketch::kFactor * max_bins);
+  size_t dummy_nlevel;
+  size_t num_cuts;
+  WQuantileSketch<bst_float, bst_float>::LimitSizeLevel(
+      num_rows, eps, &dummy_nlevel, &num_cuts);
+  return std::min(num_cuts, num_rows);
+}
 
-__global__ void FindCutsK
-(WXQSketch::Entry* __restrict__ cuts, const bst_float* __restrict__ data,
- const float* __restrict__ cum_weights, int nsamples, int ncuts) {
-  // ncuts < nsamples
-  int icut = threadIdx.x + blockIdx.x * blockDim.x;
-  if (icut >= ncuts) {
-    return;
+size_t RequiredSampleCuts(bst_row_t num_rows, bst_feature_t num_columns,
+                          size_t max_bins, size_t nnz) {
+  auto per_column = RequiredSampleCutsPerColumn(max_bins, num_rows);
+  auto if_dense = num_columns * per_column;
+  auto result = std::min(nnz, if_dense);
+  return result;
+}
+
+size_t RequiredMemory(bst_row_t num_rows, bst_feature_t num_columns, size_t nnz,
+                      size_t num_bins, bool with_weights) {
+  size_t peak = 0;
+  // 0. Allocate cut pointer in quantile container by increasing: n_columns + 1
+  size_t total = (num_columns + 1) * sizeof(SketchContainer::OffsetT);
+  // 1. Copy and sort: 2 * bytes_per_element * shape
+  total += BytesPerElement(with_weights) * num_rows * num_columns;
+  peak = std::max(peak, total);
+  // 2. Deallocate bytes_per_element * shape due to reusing memory in sort.
+  total -= BytesPerElement(with_weights) * num_rows * num_columns / 2;
+  // 3. Allocate colomn size scan by increasing: n_columns + 1
+  total += (num_columns + 1) * sizeof(SketchContainer::OffsetT);
+  // 4. Allocate cut pointer by increasing: n_columns + 1
+  total += (num_columns + 1) * sizeof(SketchContainer::OffsetT);
+  // 5. Allocate cuts: assuming rows is greater than bins: n_columns * limit_size
+  total += RequiredSampleCuts(num_rows, num_bins, num_bins, nnz) * sizeof(SketchEntry);
+  // 6. Deallocate copied entries by reducing: bytes_per_element * shape.
+  peak = std::max(peak, total);
+  total -= (BytesPerElement(with_weights) * num_rows * num_columns) / 2;
+  // 7. Deallocate column size scan.
+  peak = std::max(peak, total);
+  total -= (num_columns + 1) * sizeof(SketchContainer::OffsetT);
+  // 8. Deallocate cut size scan.
+  total -= (num_columns + 1) * sizeof(SketchContainer::OffsetT);
+  // 9. Allocate final cut values, min values, cut ptrs: std::min(rows, bins + 1) *
+  //    n_columns + n_columns + n_columns + 1
+  total += std::min(num_rows, num_bins) * num_columns * sizeof(float);
+  total += num_columns *
+           sizeof(std::remove_reference_t<decltype(
+                      std::declval<HistogramCuts>().MinValues())>::value_type);
+  total += (num_columns + 1) *
+           sizeof(std::remove_reference_t<decltype(
+                      std::declval<HistogramCuts>().Ptrs())>::value_type);
+  peak = std::max(peak, total);
+
+  return peak;
+}
+
+size_t SketchBatchNumElements(size_t sketch_batch_num_elements, bst_row_t num_rows,
+                              bst_feature_t columns, size_t nnz, int device, size_t num_cuts,
+                              bool has_weight) {
+  auto constexpr kIntMax = static_cast<std::size_t>(std::numeric_limits<std::int32_t>::max());
+#if defined(XGBOOST_USE_RMM) && XGBOOST_USE_RMM == 1
+  // device available memory is not accurate when rmm is used.
+  return std::min(nnz, kIntMax);
+#endif  // defined(XGBOOST_USE_RMM) && XGBOOST_USE_RMM == 1
+
+  if (sketch_batch_num_elements == 0) {
+    auto required_memory = RequiredMemory(num_rows, columns, nnz, num_cuts, has_weight);
+    // use up to 80% of available space
+    auto avail = dh::AvailableMemory(device) * 0.8;
+    if (required_memory > avail) {
+      sketch_batch_num_elements = avail / BytesPerElement(has_weight);
+    } else {
+      sketch_batch_num_elements = std::min(num_rows * static_cast<size_t>(columns), nnz);
+    }
   }
-  WXQSketch::Entry v;
-  int isample = 0;
-  if (icut == 0) {
-    isample = 0;
-  } else if (icut == ncuts - 1) {
-    isample = nsamples - 1;
+
+  return std::min(sketch_batch_num_elements, kIntMax);
+}
+
+void SortByWeight(dh::device_vector<float>* weights, dh::device_vector<Entry>* sorted_entries) {
+  // Sort both entries and wegihts.
+  dh::XGBDeviceAllocator<char> alloc;
+  CHECK_EQ(weights->size(), sorted_entries->size());
+  thrust::sort_by_key(thrust::cuda::par(alloc), sorted_entries->begin(), sorted_entries->end(),
+                      weights->begin(), detail::EntryCompareOp());
+
+  // Scan weights
+  dh::XGBCachingDeviceAllocator<char> caching;
+  thrust::inclusive_scan_by_key(
+      thrust::cuda::par(caching), sorted_entries->begin(), sorted_entries->end(), weights->begin(),
+      weights->begin(),
+      [=] __device__(const Entry& a, const Entry& b) { return a.index == b.index; });
+}
+
+void RemoveDuplicatedCategories(int32_t device, MetaInfo const& info, Span<bst_row_t> d_cuts_ptr,
+                                dh::device_vector<Entry>* p_sorted_entries,
+                                dh::device_vector<float>* p_sorted_weights,
+                                dh::caching_device_vector<size_t>* p_column_sizes_scan) {
+  info.feature_types.SetDevice(device);
+  auto d_feature_types = info.feature_types.ConstDeviceSpan();
+  CHECK(!d_feature_types.empty());
+  auto& column_sizes_scan = *p_column_sizes_scan;
+  auto& sorted_entries = *p_sorted_entries;
+  // Removing duplicated entries in categorical features.
+
+  // We don't need to accumulate weight for duplicated entries as there's no weighted
+  // sketching for categorical features, the categories are the cut values.
+  dh::caching_device_vector<size_t> new_column_scan(column_sizes_scan.size());
+  std::size_t n_uniques{0};
+  if (p_sorted_weights) {
+    using Pair = thrust::tuple<Entry, float>;
+    auto d_sorted_entries = dh::ToSpan(sorted_entries);
+    auto d_sorted_weights = dh::ToSpan(*p_sorted_weights);
+    auto val_in_it = thrust::make_zip_iterator(d_sorted_entries.data(), d_sorted_weights.data());
+    auto val_out_it = thrust::make_zip_iterator(d_sorted_entries.data(), d_sorted_weights.data());
+    n_uniques = dh::SegmentedUnique(
+        column_sizes_scan.data().get(), column_sizes_scan.data().get() + column_sizes_scan.size(),
+        val_in_it, val_in_it + sorted_entries.size(), new_column_scan.data().get(), val_out_it,
+        [=] __device__(Pair const& l, Pair const& r) {
+          Entry const& le = thrust::get<0>(l);
+          Entry const& re = thrust::get<0>(r);
+          if (le.index == re.index && IsCat(d_feature_types, le.index)) {
+            return le.fvalue == re.fvalue;
+          }
+          return false;
+        });
+    p_sorted_weights->resize(n_uniques);
   } else {
-    bst_float rank = cum_weights[nsamples - 1] / static_cast<float>(ncuts - 1)
-      * static_cast<float>(icut);
-    // -1 is used because cum_weights is an inclusive sum
-    isample = dh::UpperBound(cum_weights, nsamples, rank);
-    isample = max(0, min(isample, nsamples - 1));
+    n_uniques = dh::SegmentedUnique(
+        column_sizes_scan.data().get(), column_sizes_scan.data().get() + column_sizes_scan.size(),
+        sorted_entries.begin(), sorted_entries.end(), new_column_scan.data().get(),
+        sorted_entries.begin(), [=] __device__(Entry const& l, Entry const& r) {
+          if (l.index == r.index) {
+            if (IsCat(d_feature_types, l.index)) {
+              return l.fvalue == r.fvalue;
+            }
+          }
+          return false;
+        });
   }
-  // repeated values will be filtered out on the CPU
-  bst_float rmin = isample > 0 ? cum_weights[isample - 1] : 0;
-  bst_float rmax = cum_weights[isample];
-  cuts[icut] = WXQSketch::Entry(rmin, rmax, rmax - rmin, data[isample]);
+  sorted_entries.resize(n_uniques);
+
+  // Renew the column scan and cut scan based on categorical data.
+  auto d_old_column_sizes_scan = dh::ToSpan(column_sizes_scan);
+  dh::caching_device_vector<SketchContainer::OffsetT> new_cuts_size(info.num_col_ + 1);
+  CHECK_EQ(new_column_scan.size(), new_cuts_size.size());
+  dh::LaunchN(new_column_scan.size(),
+              [=, d_new_cuts_size = dh::ToSpan(new_cuts_size),
+               d_old_column_sizes_scan = dh::ToSpan(column_sizes_scan),
+               d_new_columns_ptr = dh::ToSpan(new_column_scan)] __device__(size_t idx) {
+                d_old_column_sizes_scan[idx] = d_new_columns_ptr[idx];
+                if (idx == d_new_columns_ptr.size() - 1) {
+                  return;
+                }
+                if (IsCat(d_feature_types, idx)) {
+                  // Cut size is the same as number of categories in input.
+                  d_new_cuts_size[idx] = d_new_columns_ptr[idx + 1] - d_new_columns_ptr[idx];
+                } else {
+                  d_new_cuts_size[idx] = d_cuts_ptr[idx + 1] - d_cuts_ptr[idx];
+                }
+              });
+  // Turn size into ptr.
+  thrust::exclusive_scan(thrust::device, new_cuts_size.cbegin(), new_cuts_size.cend(),
+                         d_cuts_ptr.data());
 }
+}  // namespace detail
 
-// predictate for thrust filtering that returns true if the element is not a NaN
-struct IsNotNaN {
-  __device__ bool operator()(float a) const { return !isnan(a); }
-};
-
-__global__ void UnpackFeaturesK
-(float* __restrict__ fvalues, float* __restrict__ feature_weights,
- const size_t* __restrict__ row_ptrs, const float* __restrict__ weights,
- Entry* entries, size_t nrows_array, int ncols, size_t row_begin_ptr,
- size_t nrows) {
-  size_t irow = threadIdx.x + size_t(blockIdx.x) * blockDim.x;
-  if (irow >= nrows) {
-    return;
+void ProcessWeightedBatch(Context const* ctx, const SparsePage& page, MetaInfo const& info,
+                          std::size_t begin, std::size_t end,
+                          SketchContainer* sketch_container,  // <- output sketch
+                          int num_cuts_per_feature, common::Span<float const> sample_weight) {
+  dh::device_vector<Entry> sorted_entries;
+  if (page.data.DeviceCanRead()) {
+    // direct copy if data is already on device
+    auto const& d_data = page.data.ConstDevicePointer();
+    sorted_entries = dh::device_vector<Entry>(d_data + begin, d_data + end);
+  } else {
+    const auto& h_data = page.data.ConstHostVector();
+    sorted_entries = dh::device_vector<Entry>(h_data.begin() + begin, h_data.begin() + end);
   }
-  size_t row_length = row_ptrs[irow + 1] - row_ptrs[irow];
-  int icol = threadIdx.y + blockIdx.y * blockDim.y;
-  if (icol >= row_length) {
-    return;
+
+  bst_row_t base_rowid = page.base_rowid;
+
+  dh::device_vector<float> entry_weight;
+  auto cuctx = ctx->CUDACtx();
+  if (!sample_weight.empty()) {
+    // Expand sample weight into entry weight.
+    CHECK_EQ(sample_weight.size(), info.num_row_);
+    entry_weight.resize(sorted_entries.size());
+    auto d_temp_weight = dh::ToSpan(entry_weight);
+    page.offset.SetDevice(ctx->Device());
+    auto row_ptrs = page.offset.ConstDeviceSpan();
+    thrust::for_each_n(cuctx->CTP(), thrust::make_counting_iterator(0ul), entry_weight.size(),
+                       [=] __device__(std::size_t idx) {
+                         std::size_t element_idx = idx + begin;
+                         std::size_t ridx = dh::SegmentId(row_ptrs, element_idx);
+                         d_temp_weight[idx] = sample_weight[ridx + base_rowid];
+                       });
+    detail::SortByWeight(&entry_weight, &sorted_entries);
+  } else {
+    thrust::sort(cuctx->CTP(), sorted_entries.begin(), sorted_entries.end(),
+                 detail::EntryCompareOp());
   }
-  Entry entry = entries[row_ptrs[irow] - row_begin_ptr + icol];
-  size_t ind = entry.index * nrows_array + irow;
-  // if weights are present, ensure that a non-NaN value is written to weights
-  // if and only if it is also written to features
-  if (!isnan(entry.fvalue) && (weights == nullptr || !isnan(weights[irow]))) {
-    fvalues[ind] = entry.fvalue;
-    if (feature_weights != nullptr && weights != nullptr) {
-      feature_weights[ind] = weights[irow];
-    }
-  }
-}
 
-// finds quantiles on the GPU
-struct GPUSketcher {
-  // manage memory for a single GPU
-  class DeviceShard {
-    int device_;
-    bst_uint row_begin_;  // The row offset for this shard
-    bst_uint row_end_;
-    bst_uint n_rows_;
-    int num_cols_{0};
-    size_t n_cuts_{0};
-    size_t gpu_batch_nrows_{0};
-    bool has_weights_{false};
-
-    tree::TrainParam param_;
-    std::vector<WXQSketch> sketches_;
-    thrust::device_vector<size_t> row_ptrs_;
-    std::vector<WXQSketch::SummaryContainer> summaries_;
-    thrust::device_vector<Entry> entries_;
-    thrust::device_vector<bst_float> fvalues_;
-    thrust::device_vector<bst_float> feature_weights_;
-    thrust::device_vector<bst_float> fvalues_cur_;
-    thrust::device_vector<WXQSketch::Entry> cuts_d_;
-    thrust::host_vector<WXQSketch::Entry> cuts_h_;
-    thrust::device_vector<bst_float> weights_;
-    thrust::device_vector<bst_float> weights2_;
-    std::vector<size_t> n_cuts_cur_;
-    thrust::device_vector<size_t> num_elements_;
-    thrust::device_vector<char> tmp_storage_;
-
-   public:
-    DeviceShard(int device, bst_uint row_begin, bst_uint row_end,
-                tree::TrainParam param) :
-      device_(device), row_begin_(row_begin), row_end_(row_end),
-      n_rows_(row_end - row_begin), param_(std::move(param)) {
-    }
-
-    void Init(const SparsePage& row_batch, const MetaInfo& info, int gpu_batch_nrows) {
-      num_cols_ = info.num_col_;
-      has_weights_ = info.weights_.Size() > 0;
-
-      // find the batch size
-      if (gpu_batch_nrows == 0) {
-        // By default, use no more than 1/16th of GPU memory
-        gpu_batch_nrows_ = dh::TotalMemory(device_) /
-          (16 * num_cols_ * sizeof(Entry));
-      } else if (gpu_batch_nrows == -1) {
-        gpu_batch_nrows_ = n_rows_;
-      } else {
-        gpu_batch_nrows_ = gpu_batch_nrows;
-      }
-      if (gpu_batch_nrows_ > n_rows_) {
-        gpu_batch_nrows_ = n_rows_;
-      }
-
-      // initialize sketches
-      sketches_.resize(num_cols_);
-      summaries_.resize(num_cols_);
-      constexpr int kFactor = 8;
-      double eps = 1.0 / (kFactor * param_.max_bin);
-      size_t dummy_nlevel;
-      WXQSketch::LimitSizeLevel(row_batch.Size(), eps, &dummy_nlevel, &n_cuts_);
-      // double ncuts to be the same as the number of values
-      // in the temporary buffers of the sketches
-      n_cuts_ *= 2;
-      for (int icol = 0; icol < num_cols_; ++icol) {
-        sketches_[icol].Init(row_batch.Size(), eps);
-        summaries_[icol].Reserve(n_cuts_);
-      }
-
-      // allocate necessary GPU buffers
-      dh::safe_cuda(cudaSetDevice(device_));
-
-      entries_.resize(gpu_batch_nrows_ * num_cols_);
-      fvalues_.resize(gpu_batch_nrows_ * num_cols_);
-      fvalues_cur_.resize(gpu_batch_nrows_);
-      cuts_d_.resize(n_cuts_ * num_cols_);
-      cuts_h_.resize(n_cuts_ * num_cols_);
-      weights_.resize(gpu_batch_nrows_);
-      weights2_.resize(gpu_batch_nrows_);
-      num_elements_.resize(1);
-
-      if (has_weights_) {
-        feature_weights_.resize(gpu_batch_nrows_ * num_cols_);
-      }
-      n_cuts_cur_.resize(num_cols_);
-
-      // allocate storage for CUB algorithms; the size is the maximum of the sizes
-      // required for various algorithm
-      size_t tmp_size = 0, cur_tmp_size = 0;
-      // size for sorting
-      if (has_weights_) {
-        cub::DeviceRadixSort::SortPairs
-          (nullptr, cur_tmp_size, fvalues_cur_.data().get(),
-           fvalues_.data().get(), weights_.data().get(), weights2_.data().get(),
-           gpu_batch_nrows_);
-      } else {
-        cub::DeviceRadixSort::SortKeys
-          (nullptr, cur_tmp_size, fvalues_cur_.data().get(), fvalues_.data().get(),
-           gpu_batch_nrows_);
-      }
-      tmp_size = std::max(tmp_size, cur_tmp_size);
-      // size for inclusive scan
-      if (has_weights_) {
-        cub::DeviceScan::InclusiveSum
-          (nullptr, cur_tmp_size, weights2_.begin(), weights_.begin(), gpu_batch_nrows_);
-        tmp_size = std::max(tmp_size, cur_tmp_size);
-      }
-      // size for reduction by key
-      cub::DeviceReduce::ReduceByKey
-        (nullptr, cur_tmp_size, fvalues_.begin(),
-         fvalues_cur_.begin(), weights_.begin(), weights2_.begin(),
-         num_elements_.begin(), thrust::maximum<bst_float>(), gpu_batch_nrows_);
-      tmp_size = std::max(tmp_size, cur_tmp_size);
-      // size for filtering
-      cub::DeviceSelect::If
-        (nullptr, cur_tmp_size, fvalues_.begin(), fvalues_cur_.begin(),
-         num_elements_.begin(), gpu_batch_nrows_, IsNotNaN());
-      tmp_size = std::max(tmp_size, cur_tmp_size);
-
-      tmp_storage_.resize(tmp_size);
-    }
-
-    void FindColumnCuts(size_t batch_nrows, size_t icol) {
-      size_t tmp_size = tmp_storage_.size();
-      // filter out NaNs in feature values
-      auto fvalues_begin = fvalues_.data() + icol * gpu_batch_nrows_;
-      cub::DeviceSelect::If
-        (tmp_storage_.data().get(), tmp_size, fvalues_begin,
-         fvalues_cur_.data(), num_elements_.begin(), batch_nrows, IsNotNaN());
-      size_t nfvalues_cur = 0;
-      thrust::copy_n(num_elements_.begin(), 1, &nfvalues_cur);
-
-      // compute cumulative weights using a prefix scan
-      if (has_weights_) {
-        // filter out NaNs in weights;
-        // since cub::DeviceSelect::If performs stable filtering,
-        // the weights are stored in the correct positions
-        auto feature_weights_begin = feature_weights_.data() +
-          icol * gpu_batch_nrows_;
-        cub::DeviceSelect::If
-          (tmp_storage_.data().get(), tmp_size, feature_weights_begin,
-           weights_.data().get(), num_elements_.begin(), batch_nrows, IsNotNaN());
-
-        // sort the values and weights
-        cub::DeviceRadixSort::SortPairs
-          (tmp_storage_.data().get(), tmp_size, fvalues_cur_.data().get(),
-           fvalues_begin.get(), weights_.data().get(), weights2_.data().get(),
-           nfvalues_cur);
-
-        // sum the weights to get cumulative weight values
-        cub::DeviceScan::InclusiveSum
-          (tmp_storage_.data().get(), tmp_size, weights2_.begin(),
-           weights_.begin(), nfvalues_cur);
-      } else {
-        // sort the batch values
-        cub::DeviceRadixSort::SortKeys
-          (tmp_storage_.data().get(), tmp_size,
-           fvalues_cur_.data().get(), fvalues_begin.get(), nfvalues_cur);
-
-        // fill in cumulative weights with counting iterator
-        thrust::copy_n(thrust::make_counting_iterator(1), nfvalues_cur,
-                       weights_.begin());
-      }
-
-      // remove repeated items and sum the weights across them;
-      // non-negative weights are assumed
-      cub::DeviceReduce::ReduceByKey
-        (tmp_storage_.data().get(), tmp_size, fvalues_begin,
-         fvalues_cur_.begin(), weights_.begin(), weights2_.begin(),
-         num_elements_.begin(), thrust::maximum<bst_float>(), nfvalues_cur);
-      size_t n_unique = 0;
-      thrust::copy_n(num_elements_.begin(), 1, &n_unique);
-
-      // extract cuts
-      n_cuts_cur_[icol] = std::min(n_cuts_, n_unique);
-      // if less elements than cuts: copy all elements with their weights
-      if (n_cuts_ > n_unique) {
-        float* weights2_ptr = weights2_.data().get();
-        float* fvalues_ptr = fvalues_cur_.data().get();
-        WXQSketch::Entry* cuts_ptr = cuts_d_.data().get() + icol * n_cuts_;
-        dh::LaunchN(device_, n_unique, [=]__device__(size_t i) {
-            bst_float rmax = weights2_ptr[i];
-            bst_float rmin = i > 0 ? weights2_ptr[i - 1] : 0;
-            cuts_ptr[i] = WXQSketch::Entry(rmin, rmax, rmax - rmin, fvalues_ptr[i]);
-          });
-      } else if (n_cuts_cur_[icol] > 0) {
-        // if more elements than cuts: use binary search on cumulative weights
-        int block = 256;
-        FindCutsK<<<dh::DivRoundUp(n_cuts_cur_[icol], block), block>>>
-          (cuts_d_.data().get() + icol * n_cuts_, fvalues_cur_.data().get(),
-           weights2_.data().get(), n_unique, n_cuts_cur_[icol]);
-        dh::safe_cuda(cudaGetLastError());  // NOLINT
-      }
-    }
-
-    void SketchBatch(const SparsePage& row_batch, const MetaInfo& info,
-                     size_t gpu_batch) {
-      // compute start and end indices
-      size_t batch_row_begin = gpu_batch * gpu_batch_nrows_;
-      size_t batch_row_end = std::min((gpu_batch + 1) * gpu_batch_nrows_,
-                                      static_cast<size_t>(n_rows_));
-      size_t batch_nrows = batch_row_end - batch_row_begin;
-
-      const auto& offset_vec = row_batch.offset.HostVector();
-      const auto& data_vec = row_batch.data.HostVector();
-
-      size_t n_entries = offset_vec[row_begin_ + batch_row_end] -
-        offset_vec[row_begin_ + batch_row_begin];
-      // copy the batch to the GPU
-      dh::safe_cuda
-        (cudaMemcpyAsync(entries_.data().get(),
-                    data_vec.data() + offset_vec[row_begin_ + batch_row_begin],
-                    n_entries * sizeof(Entry), cudaMemcpyDefault));
-      // copy the weights if necessary
-      if (has_weights_) {
-        const auto& weights_vec = info.weights_.HostVector();
-        dh::safe_cuda
-          (cudaMemcpyAsync(weights_.data().get(),
-                      weights_vec.data() + row_begin_ + batch_row_begin,
-                      batch_nrows * sizeof(bst_float), cudaMemcpyDefault));
-      }
-
-      // unpack the features; also unpack weights if present
-      thrust::fill(fvalues_.begin(), fvalues_.end(), NAN);
-      thrust::fill(feature_weights_.begin(), feature_weights_.end(), NAN);
-
-      dim3 block3(64, 4, 1);
-      dim3 grid3(dh::DivRoundUp(batch_nrows, block3.x),
-                 dh::DivRoundUp(num_cols_, block3.y), 1);
-      UnpackFeaturesK<<<grid3, block3>>>
-        (fvalues_.data().get(), has_weights_ ? feature_weights_.data().get() : nullptr,
-         row_ptrs_.data().get() + batch_row_begin,
-         has_weights_ ? weights_.data().get() : nullptr, entries_.data().get(),
-         gpu_batch_nrows_, num_cols_,
-         offset_vec[row_begin_ + batch_row_begin], batch_nrows);
-
-      for (int icol = 0; icol < num_cols_; ++icol) {
-        FindColumnCuts(batch_nrows, icol);
-      }
-
-      // add cuts into sketches
-      thrust::copy(cuts_d_.begin(), cuts_d_.end(), cuts_h_.begin());
-      for (int icol = 0; icol < num_cols_; ++icol) {
-        summaries_[icol].MakeFromSorted(&cuts_h_[n_cuts_ * icol], n_cuts_cur_[icol]);
-        sketches_[icol].PushSummary(summaries_[icol]);
-      }
-    }
-
-    void Sketch(const SparsePage& row_batch, const MetaInfo& info) {
-      // copy rows to the device
-      dh::safe_cuda(cudaSetDevice(device_));
-      const auto& offset_vec = row_batch.offset.HostVector();
-      row_ptrs_.resize(n_rows_ + 1);
-      thrust::copy(offset_vec.data() + row_begin_,
-                   offset_vec.data() + row_end_ + 1, row_ptrs_.begin());
-      size_t gpu_nbatches = dh::DivRoundUp(n_rows_, gpu_batch_nrows_);
-      for (size_t gpu_batch = 0; gpu_batch < gpu_nbatches; ++gpu_batch) {
-        SketchBatch(row_batch, info, gpu_batch);
-      }
-    }
-
-    void GetSummary(WXQSketch::SummaryContainer *summary, size_t const icol) {
-      sketches_[icol].GetSummary(summary);
-    }
-  };
-
-  void Sketch(const SparsePage& batch, const MetaInfo& info,
-              HistCutMatrix* hmat, int gpu_batch_nrows) {
-    // create device shards
-    shards_.resize(dist_.Devices().Size());
-    dh::ExecuteIndexShards(&shards_, [&](int i, std::unique_ptr<DeviceShard>& shard) {
-        size_t start = dist_.ShardStart(info.num_row_, i);
-        size_t size = dist_.ShardSize(info.num_row_, i);
-        shard = std::unique_ptr<DeviceShard>(
-            new DeviceShard(dist_.Devices().DeviceId(i),
-                            start, start + size, param_));
+  HostDeviceVector<SketchContainer::OffsetT> cuts_ptr;
+  dh::caching_device_vector<size_t> column_sizes_scan;
+  data::IsValidFunctor dummy_is_valid(std::numeric_limits<float>::quiet_NaN());
+  auto batch_it = dh::MakeTransformIterator<data::COOTuple>(
+      sorted_entries.data().get(), [] __device__(Entry const& e) -> data::COOTuple {
+        return {0, e.index, e.fvalue};  // row_idx is not needed for scaning column size.
       });
-
-    // compute sketches for each shard
-    dh::ExecuteIndexShards(&shards_,
-                           [&](int idx, std::unique_ptr<DeviceShard>& shard) {
-                             shard->Init(batch, info, gpu_batch_nrows);
-                             shard->Sketch(batch, info);
-                           });
-
-    // merge the sketches from all shards
-    // TODO(canonizer): do it in a tree-like reduction
-    int num_cols = info.num_col_;
-    std::vector<WXQSketch> sketches(num_cols);
-    WXQSketch::SummaryContainer summary;
-    for (int icol = 0; icol < num_cols; ++icol) {
-      sketches[icol].Init(batch.Size(), 1.0 / (8 * param_.max_bin));
-      for (auto &shard : shards_) {
-        shard->GetSummary(&summary, icol);
-        sketches[icol].PushSummary(summary);
-      }
-    }
-
-    hmat->Init(&sketches, param_.max_bin);
+  detail::GetColumnSizesScan(ctx->Ordinal(), info.num_col_, num_cuts_per_feature,
+                             IterSpan{batch_it, sorted_entries.size()}, dummy_is_valid, &cuts_ptr,
+                             &column_sizes_scan);
+  auto d_cuts_ptr = cuts_ptr.DeviceSpan();
+  if (sketch_container->HasCategorical()) {
+    auto p_weight = entry_weight.empty() ? nullptr : &entry_weight;
+    detail::RemoveDuplicatedCategories(ctx->Ordinal(), info, d_cuts_ptr, &sorted_entries, p_weight,
+                                       &column_sizes_scan);
   }
 
-  GPUSketcher(tree::TrainParam param, size_t n_rows) : param_(std::move(param)) {
-    dist_ = GPUDistribution::Block(GPUSet::All(param_.gpu_id, param_.n_gpus, n_rows));
-  }
+  auto const& h_cuts_ptr = cuts_ptr.ConstHostVector();
+  CHECK_EQ(d_cuts_ptr.size(), column_sizes_scan.size());
 
- private:
-  std::vector<std::unique_ptr<DeviceShard>> shards_;
-  tree::TrainParam param_;
-  GPUDistribution dist_;
-};
+  // Add cuts into sketches
+  sketch_container->Push(dh::ToSpan(sorted_entries), dh::ToSpan(column_sizes_scan), d_cuts_ptr,
+                         h_cuts_ptr.back(), dh::ToSpan(entry_weight));
 
-void DeviceSketch
-  (const SparsePage& batch, const MetaInfo& info,
-   const tree::TrainParam& param, HistCutMatrix* hmat, int gpu_batch_nrows) {
-  GPUSketcher sketcher(param, info.num_row_);
-  sketcher.Sketch(batch, info, hmat, gpu_batch_nrows);
+  sorted_entries.clear();
+  sorted_entries.shrink_to_fit();
+  CHECK_EQ(sorted_entries.capacity(), 0);
+  CHECK_NE(cuts_ptr.Size(), 0);
 }
 
-}  // namespace common
-}  // namespace xgboost
+// Unify group weight, Hessian, and sample weight into sample weight.
+[[nodiscard]] Span<float const> UnifyWeight(CUDAContext const* cuctx, MetaInfo const& info,
+                                            common::Span<float const> hessian,
+                                            HostDeviceVector<float>* p_out_weight) {
+  if (hessian.empty()) {
+    if (info.IsRanking() && !info.weights_.Empty()) {
+      common::Span<float const> group_weight = info.weights_.ConstDeviceSpan();
+      dh::device_vector<bst_group_t> group_ptr(info.group_ptr_);
+      auto d_group_ptr = dh::ToSpan(group_ptr);
+      CHECK_GE(d_group_ptr.size(), 2) << "Must have at least 1 group for ranking.";
+      auto d_weight = info.weights_.ConstDeviceSpan();
+      CHECK_EQ(d_weight.size(), d_group_ptr.size() - 1)
+          << "Weight size should equal to number of groups.";
+      p_out_weight->Resize(info.num_row_);
+      auto d_weight_out = p_out_weight->DeviceSpan();
+
+      thrust::for_each_n(cuctx->CTP(), thrust::make_counting_iterator(0ul), d_weight_out.size(),
+                         [=] XGBOOST_DEVICE(std::size_t i) {
+                           auto gidx = dh::SegmentId(d_group_ptr, i);
+                           d_weight_out[i] = d_weight[gidx];
+                         });
+      return p_out_weight->ConstDeviceSpan();
+    } else {
+      return info.weights_.ConstDeviceSpan();
+    }
+  }
+
+  // sketch with hessian as weight
+  p_out_weight->Resize(info.num_row_);
+  auto d_weight_out = p_out_weight->DeviceSpan();
+  if (!info.weights_.Empty()) {
+    // merge sample weight with hessian
+    auto d_weight = info.weights_.ConstDeviceSpan();
+    if (info.IsRanking()) {
+      dh::device_vector<bst_group_t> group_ptr(info.group_ptr_);
+      CHECK_EQ(hessian.size(), d_weight_out.size());
+      auto d_group_ptr = dh::ToSpan(group_ptr);
+      CHECK_GE(d_group_ptr.size(), 2) << "Must have at least 1 group for ranking.";
+      CHECK_EQ(d_weight.size(), d_group_ptr.size() - 1)
+          << "Weight size should equal to number of groups.";
+      thrust::for_each_n(cuctx->CTP(), thrust::make_counting_iterator(0ul), hessian.size(),
+                         [=] XGBOOST_DEVICE(std::size_t i) {
+                           d_weight_out[i] = d_weight[dh::SegmentId(d_group_ptr, i)] * hessian(i);
+                         });
+    } else {
+      CHECK_EQ(hessian.size(), info.num_row_);
+      CHECK_EQ(hessian.size(), d_weight.size());
+      CHECK_EQ(hessian.size(), d_weight_out.size());
+      thrust::for_each_n(
+          cuctx->CTP(), thrust::make_counting_iterator(0ul), hessian.size(),
+          [=] XGBOOST_DEVICE(std::size_t i) { d_weight_out[i] = d_weight[i] * hessian(i); });
+    }
+  } else {
+    // copy hessian as weight
+    CHECK_EQ(d_weight_out.size(), hessian.size());
+    dh::safe_cuda(cudaMemcpyAsync(d_weight_out.data(), hessian.data(), hessian.size_bytes(),
+                                  cudaMemcpyDefault));
+  }
+  return d_weight_out;
+}
+
+HistogramCuts DeviceSketchWithHessian(Context const* ctx, DMatrix* p_fmat, bst_bin_t max_bin,
+                                      Span<float const> hessian,
+                                      std::size_t sketch_batch_num_elements) {
+  auto const& info = p_fmat->Info();
+  bool has_weight = !info.weights_.Empty();
+  info.feature_types.SetDevice(ctx->Device());
+
+  HostDeviceVector<float> weight;
+  weight.SetDevice(ctx->Device());
+
+  // Configure batch size based on available memory
+  std::size_t num_cuts_per_feature = detail::RequiredSampleCutsPerColumn(max_bin, info.num_row_);
+  sketch_batch_num_elements = detail::SketchBatchNumElements(
+      sketch_batch_num_elements, info.num_row_, info.num_col_, info.num_nonzero_, ctx->Ordinal(),
+      num_cuts_per_feature, has_weight);
+
+  CUDAContext const* cuctx = ctx->CUDACtx();
+
+  info.weights_.SetDevice(ctx->Device());
+  auto d_weight = UnifyWeight(cuctx, info, hessian, &weight);
+
+  HistogramCuts cuts;
+  SketchContainer sketch_container(info.feature_types, max_bin, info.num_col_, info.num_row_,
+                                   ctx->Ordinal());
+  CHECK_EQ(has_weight || !hessian.empty(), !d_weight.empty());
+  for (const auto& page : p_fmat->GetBatches<SparsePage>()) {
+    std::size_t page_nnz = page.data.Size();
+    for (auto begin = 0ull; begin < page_nnz; begin += sketch_batch_num_elements) {
+      std::size_t end =
+          std::min(page_nnz, static_cast<std::size_t>(begin + sketch_batch_num_elements));
+      ProcessWeightedBatch(ctx, page, info, begin, end, &sketch_container, num_cuts_per_feature,
+                           d_weight);
+    }
+  }
+
+  sketch_container.MakeCuts(&cuts, p_fmat->Info().IsColumnSplit());
+  return cuts;
+}
+}  // namespace xgboost::common

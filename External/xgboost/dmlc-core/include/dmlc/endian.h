@@ -14,12 +14,22 @@
 #else
   #if defined(__APPLE__) || defined(_WIN32)
     #define DMLC_LITTLE_ENDIAN 1
-  #elif defined(__GLIBC__)
+  #elif defined(__GLIBC__) || defined(__GNU_LIBRARY__) \
+        || defined(__ANDROID__) || defined(__RISCV__)
     #include <endian.h>
     #define DMLC_LITTLE_ENDIAN (__BYTE_ORDER == __LITTLE_ENDIAN)
-  #elif defined(__FreeBSD__)
+  #elif defined(__FreeBSD__) || defined(__OpenBSD__)
     #include <sys/endian.h>
     #define DMLC_LITTLE_ENDIAN (_BYTE_ORDER == _LITTLE_ENDIAN)
+  #elif defined(__EMSCRIPTEN__) || defined(__hexagon__)
+    #define DMLC_LITTLE_ENDIAN 1
+  #elif defined(__sun) || defined(sun)
+    #include <sys/isa_defs.h>
+    #if defined(_LITTLE_ENDIAN)
+      #define DMLC_LITTLE_ENDIAN 1
+    #else
+      #define DMLC_LITTLE_ENDIAN 0
+    #endif
   #else
     #error "Unable to determine endianness of your machine; use CMake to compile"
   #endif
@@ -51,4 +61,3 @@ inline void ByteSwap(void* data, size_t elem_bytes, size_t num_elems) {
 
 }  // namespace dmlc
 #endif  // DMLC_ENDIAN_H_
-

@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014, 2021 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -15,11 +15,19 @@
  */
 package ml.dmlc.xgboost4j.java;
 
-import java.io.*;
-import java.lang.reflect.Field;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Locale;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import static ml.dmlc.xgboost4j.java.NativeLibLoader.LibraryPathProvider.getLibraryPathFor;
+import static ml.dmlc.xgboost4j.java.NativeLibLoader.LibraryPathProvider.getPropertyNameForLibrary;
 
 /**
  * class to load native library
@@ -29,15 +37,171 @@ import org.apache.commons.logging.LogFactory;
 class NativeLibLoader {
   private static final Log logger = LogFactory.getLog(NativeLibLoader.class);
 
+  /**
+   * Supported OS enum.
+   */
+  enum OS {
+    WINDOWS("windows"),
+    MACOS("macos"),
+    LINUX("linux"),
+    SOLARIS("solaris");
+
+    final String name;
+
+    OS(String name) {
+      this.name = name;
+    }
+
+    /**
+     * Detects the OS using the system properties.
+     * Throws IllegalStateException if the OS is not recognized.
+     *
+     * @return The OS.
+     */
+    static OS detectOS() {
+      String os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
+      if (os.contains("mac") || os.contains("darwin")) {
+        return MACOS;
+      } else if (os.contains("win")) {
+        return WINDOWS;
+      } else if (os.contains("nux")) {
+        return LINUX;
+      } else if (os.contains("sunos")) {
+        return SOLARIS;
+      } else {
+        throw new IllegalStateException("Unsupported OS:" + os);
+      }
+    }
+
+  }
+
+  /**
+   * Supported architecture enum.
+   */
+  enum Arch {
+    X86_64("x86_64"),
+    AARCH64("aarch64"),
+    SPARC("sparc");
+
+    final String name;
+
+    Arch(String name) {
+      this.name = name;
+    }
+
+    /**
+     * Detects the chip architecture using the system properties.
+     * Throws IllegalStateException if the architecture is not recognized.
+     * @return The architecture.
+     */
+    static Arch detectArch() {
+      String arch = System.getProperty("os.arch", "generic").toLowerCase(Locale.ENGLISH);
+      if (arch.startsWith("amd64") || arch.startsWith("x86_64")) {
+        return X86_64;
+      } else if (arch.startsWith("aarch64") || arch.startsWith("arm64")) {
+        return AARCH64;
+      } else if (arch.startsWith("sparc")) {
+        return SPARC;
+      } else {
+        throw new IllegalStateException("Unsupported architecture:" + arch);
+      }
+    }
+  }
+
+  /**
+   * Utility class to determine the path of a native library.
+   */
+  static class LibraryPathProvider {
+
+    private static final String nativeResourcePath = "/lib";
+    private static final String customNativeLibraryPathPropertyPrefix = "xgboostruntime.native.";
+
+    static String getPropertyNameForLibrary(String libName) {
+      return customNativeLibraryPathPropertyPrefix + libName;
+    }
+
+    /**
+     * If a library-specific system property is set, this value is
+     * being used without further processing.
+     * Otherwise, the library path depends on the OS and architecture.
+     *
+     * @return path of the native library
+     */
+    static String getLibraryPathFor(OS os, Arch arch, String libName) {
+
+      String libraryPath = System.getProperty(getPropertyNameForLibrary(libName));
+
+      if (libraryPath == null) {
+        libraryPath = nativeResourcePath + "/" +
+                getPlatformFor(os, arch) + "/" +
+                System.mapLibraryName(libName);
+      }
+
+      logger.debug("Using path " + libraryPath + " for library with name " + libName);
+
+      return libraryPath;
+    }
+
+  }
+
   private static boolean initialized = false;
-  private static final String nativePath = "../../lib/";
-  private static final String nativeResourcePath = "/lib/";
   private static final String[] libNames = new String[]{"xgboost4j"};
 
+  /**
+   * Loads the XGBoost library.
+   * <p>
+   * Throws IllegalStateException if the architecture or OS is unsupported.
+   * <ul>
+   *   <li>Supported OS: macOS, Windows, Linux, Solaris.</li>
+   *   <li>Supported Architectures: x86_64, aarch64, sparc.</li>
+   * </ul>
+   * Throws UnsatisfiedLinkError if the library failed to load its dependencies.
+   * @throws IOException If the library could not be extracted from the jar.
+   */
   static synchronized void initXGBoost() throws IOException {
     if (!initialized) {
+      OS os = OS.detectOS();
+      Arch arch = Arch.detectArch();
       for (String libName : libNames) {
-        smartLoad(libName);
+        try {
+          String libraryPathInJar = getLibraryPathFor(os, arch, libName);
+          loadLibraryFromJar(libraryPathInJar);
+        } catch (UnsatisfiedLinkError ule) {
+          String failureMessageIncludingOpenMPHint = "Failed to load " + libName + " " +
+              "due to missing native dependencies for " +
+              "platform " + getPlatformFor(os, arch) + ", " +
+              "this is likely due to a missing OpenMP dependency";
+
+          switch (os) {
+            case WINDOWS:
+              logger.error(failureMessageIncludingOpenMPHint);
+              logger.error("You may need to install 'vcomp140.dll' or 'libgomp-1.dll'");
+              break;
+            case MACOS:
+              logger.error(failureMessageIncludingOpenMPHint);
+              logger.error("You may need to install 'libomp.dylib', via `brew install libomp` " +
+                  "or similar");
+              break;
+            case LINUX:
+              logger.error(failureMessageIncludingOpenMPHint);
+              logger.error("You may need to install 'libgomp.so' (or glibc) via your package " +
+                  "manager.");
+              logger.error("Alternatively, if your Linux OS is musl-based, you should set " +
+                      "the path for the native library " + libName + " " +
+                      "via the system property " + getPropertyNameForLibrary(libName));
+              break;
+            case SOLARIS:
+              logger.error(failureMessageIncludingOpenMPHint);
+              logger.error("You may need to install 'libgomp.so' (or glibc) via your package " +
+                  "manager.");
+              break;
+          }
+          throw ule;
+        } catch (IOException ioe) {
+          logger.error("Failed to load " + libName + " library from jar for platform " +
+                  getPlatformFor(os, arch));
+          throw ioe;
+        }
       }
       initialized = true;
     }
@@ -60,9 +224,8 @@ class NativeLibLoader {
    * @throws IllegalArgumentException If the path is not absolute or if the filename is shorter than
    * three characters
    */
-  private static void loadLibraryFromJar(String path) throws IOException, IllegalArgumentException{
+  private static void loadLibraryFromJar(String path) throws IOException, IllegalArgumentException {
     String temp = createTempFileFromResource(path);
-    // Finally, load the library
     System.load(temp);
   }
 
@@ -77,8 +240,8 @@ class NativeLibLoader {
    * {@code path}.
    * @param path Path to the resources in the jar
    * @return The created temp file.
-   * @throws IOException
-   * @throws IllegalArgumentException
+   * @throws IOException If it failed to read the file.
+   * @throws IllegalArgumentException If the filename is invalid.
    */
   static String createTempFileFromResource(String path) throws
           IOException, IllegalArgumentException {
@@ -90,7 +253,7 @@ class NativeLibLoader {
     String[] parts = path.split("/");
     String filename = (parts.length > 1) ? parts[parts.length - 1] : null;
 
-    // Split filename to prexif and suffix (extension)
+    // Split filename to prefix and suffix (extension)
     String prefix = "";
     String suffix = null;
     if (filename != null) {
@@ -116,73 +279,23 @@ class NativeLibLoader {
     int readBytes;
 
     // Open and check input stream
-    InputStream is = NativeLibLoader.class.getResourceAsStream(path);
-    if (is == null) {
-      throw new FileNotFoundException("File " + path + " was not found inside JAR.");
-    }
+    try (InputStream is = NativeLibLoader.class.getResourceAsStream(path);
+         OutputStream os = new FileOutputStream(temp)) {
+      if (is == null) {
+        throw new FileNotFoundException("File " + path + " was not found inside JAR.");
+      }
 
-    // Open output stream and copy data between source file in JAR and the temporary file
-    OutputStream os = new FileOutputStream(temp);
-    try {
+      // Open output stream and copy data between source file in JAR and the temporary file
       while ((readBytes = is.read(buffer)) != -1) {
         os.write(buffer, 0, readBytes);
       }
-    } finally {
-      // If read/write fails, close streams safely before throwing an exception
-      os.close();
-      is.close();
     }
+
     return temp.getAbsolutePath();
   }
 
-  /**
-   * load native library, this method will first try to load library from java.library.path, then
-   * try to load library in jar package.
-   *
-   * @param libName library path
-   * @throws IOException exception
-   */
-  private static void smartLoad(String libName) throws IOException {
-    addNativeDir(nativePath);
-    try {
-      System.loadLibrary(libName);
-    } catch (UnsatisfiedLinkError e) {
-      try {
-        String libraryFromJar = nativeResourcePath + System.mapLibraryName(libName);
-        loadLibraryFromJar(libraryFromJar);
-      } catch (IOException ioe) {
-        logger.error("failed to load library from both native path and jar");
-        throw ioe;
-      }
-    }
+  private static String getPlatformFor(OS os, Arch arch) {
+    return os.name + "/" + arch.name;
   }
 
-  /**
-   * Add libPath to java.library.path, then native library in libPath would be load properly
-   *
-   * @param libPath library path
-   * @throws IOException exception
-   */
-  private static void addNativeDir(String libPath) throws IOException {
-    try {
-      Field field = ClassLoader.class.getDeclaredField("usr_paths");
-      field.setAccessible(true);
-      String[] paths = (String[]) field.get(null);
-      for (String path : paths) {
-        if (libPath.equals(path)) {
-          return;
-        }
-      }
-      String[] tmp = new String[paths.length + 1];
-      System.arraycopy(paths, 0, tmp, 0, paths.length);
-      tmp[paths.length] = libPath;
-      field.set(null, tmp);
-    } catch (IllegalAccessException e) {
-      logger.error(e.getMessage());
-      throw new IOException("Failed to get permissions to set library path");
-    } catch (NoSuchFieldException e) {
-      logger.error(e.getMessage());
-      throw new IOException("Failed to get field handle to set library path");
-    }
-  }
 }

@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # make prediction
 import numpy as np
+
 import xgboost as xgb
 
 # path to where the data lies
@@ -45,6 +46,3 @@ for k, v in res:
 fo.close()
 
 print ('finished writing into prediction file')
-
-
-

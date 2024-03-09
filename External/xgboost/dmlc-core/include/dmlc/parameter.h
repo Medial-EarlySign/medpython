@@ -20,6 +20,7 @@
 #include <utility>
 #include <stdexcept>
 #include <iostream>
+#include <iomanip>
 #include <cerrno>
 #include "./base.h"
 #include "./json.h"
@@ -100,7 +101,7 @@ struct ParamFieldInfo {
 };
 
 /*!
- * \brief Parameter is the base type every parameter struct should inheritate from
+ * \brief Parameter is the base type every parameter struct should inherit from
  * The following code is a complete example to setup parameters.
  * \code
  *   struct Param : public dmlc::Parameter<Param> {
@@ -160,6 +161,27 @@ struct Parameter {
     PType::__MANAGER__()->RunInit(static_cast<PType*>(this),
                                   kwargs.begin(), kwargs.end(),
                                   &unknown, parameter::kAllowUnknown);
+    return unknown;
+  }
+
+  /*!
+   * \brief Update the parameter by keyword arguments.  This is same as
+   * `InitAllowUnknown', but without setting not provided parameters to their default.
+   *
+   * \tparam Container container type
+   *
+   * \param kwargs map of keyword arguments, or vector of pairs
+   *
+   * \throw ParamError when something go wrong.
+   * \return vector of pairs of unknown arguments.
+   */
+  template <typename Container>
+  std::vector<std::pair<std::string, std::string> >
+  UpdateAllowUnknown(Container const& kwargs) {
+    std::vector<std::pair<std::string, std::string> > unknown;
+    PType::__MANAGER__()->RunUpdate(static_cast<PType *>(this), kwargs.begin(),
+                                    kwargs.end(), parameter::kAllowUnknown,
+                                    &unknown, nullptr);
     return unknown;
   }
 
@@ -255,7 +277,7 @@ struct Parameter {
  *   };
  * \endcode
  *
- * This macro need to be put in a source file so that registeration only happens once.
+ * This macro need to be put in a source file so that registration only happens once.
  * Refer to example code in Parameter for details
  *
  * \param PType the name of parameter struct.
@@ -297,7 +319,7 @@ struct Parameter {
 
 //! \endcond
 /*!
- * \brief internal namespace for parameter manangement
+ * \brief internal namespace for parameter management
  * There is no need to use it directly in normal case
  */
 namespace parameter {
@@ -310,7 +332,7 @@ namespace parameter {
 class FieldAccessEntry {
  public:
   FieldAccessEntry()
-      : has_default_(false) {}
+      : has_default_(false), index_(0) {}
   /*! \brief destructor */
   virtual ~FieldAccessEntry() {}
   /*!
@@ -326,7 +348,7 @@ class FieldAccessEntry {
    */
   virtual void Set(void *head, const std::string &value) const = 0;
   // check if value is OK
-  virtual void Check(void *head) const {}
+  virtual void Check(void * /*head*/) const {}
   /*!
    * \brief get the string representation of value.
    * \param head the pointer to the head of the struct
@@ -349,6 +371,12 @@ class FieldAccessEntry {
   std::string type_;
   /*! \brief description of the parameter */
   std::string description_;
+  // internal offset of the field
+  ptrdiff_t offset_;
+  /*! \brief get pointer to parameter */
+  char* GetRawPtr(void* head) const {
+    return reinterpret_cast<char*>(head) + offset_;
+  }
   /*!
    * \brief print string representation of default value
    * \parma os the stream to print the docstring to.
@@ -382,7 +410,7 @@ class ParamManager {
     return it->second;
   }
   /*!
-   * \brief set parameter by keyword arguments.
+   * \brief Set parameter by keyword arguments and default values.
    * \param head head to the parameter field.
    * \param begin begin iterator of original kwargs
    * \param end end iterator of original kwargs
@@ -398,12 +426,45 @@ class ParamManager {
                       std::vector<std::pair<std::string, std::string> > *unknown_args,
                       parameter::ParamInitOption option) const {
     std::set<FieldAccessEntry*> selected_args;
+    RunUpdate(head, begin, end, option, unknown_args, &selected_args);
+    for (auto const& kv : entry_map_) {
+      if (selected_args.find(kv.second) == selected_args.cend()) {
+        kv.second->SetDefault(head);
+      }
+    }
+    for (std::map<std::string, FieldAccessEntry*>::const_iterator it = entry_map_.begin();
+         it != entry_map_.end(); ++it) {
+      if (selected_args.count(it->second) == 0) {
+        it->second->SetDefault(head);
+      }
+    }
+  }
+  /*!
+   * \brief Update parameters by keyword arguments.
+   *
+   * \tparam RandomAccessIterator iterator type
+   * \param head head to the parameter field.
+   * \param begin begin iterator of original kwargs
+   * \param end end iterator of original kwargs
+   * \param unknown_args optional, used to hold unknown arguments
+   *          When it is specified, unknown arguments will be stored into here, instead of raise an error
+   * \param selected_args The arguments used in update will be pushed into it, defaullt to nullptr.
+   * \throw ParamError when there is unknown argument and unknown_args == NULL, or required argument is missing.
+   */
+  template <typename RandomAccessIterator>
+  void RunUpdate(void *head,
+                 RandomAccessIterator begin,
+                 RandomAccessIterator end,
+                 parameter::ParamInitOption option,
+                 std::vector<std::pair<std::string, std::string> > *unknown_args,
+                 std::set<FieldAccessEntry*>* selected_args = nullptr) const {
     for (RandomAccessIterator it = begin; it != end; ++it) {
-      FieldAccessEntry *e = Find(it->first);
-      if (e != NULL) {
+      if (FieldAccessEntry *e = Find(it->first)) {
         e->Set(head, it->second);
         e->Check(head);
-        selected_args.insert(e);
+        if (selected_args) {
+          selected_args->insert(e);
+        }
       } else {
         if (unknown_args != NULL) {
           unknown_args->push_back(*it);
@@ -422,13 +483,6 @@ class ParamManager {
             throw dmlc::ParamError(os.str());
           }
         }
-      }
-    }
-
-    for (std::map<std::string, FieldAccessEntry*>::const_iterator it = entry_map_.begin();
-         it != entry_map_.end(); ++it) {
-      if (selected_args.count(it->second) == 0) {
-        it->second->SetDefault(head);
       }
     }
   }
@@ -552,7 +606,7 @@ class FieldEntryBase : public FieldAccessEntry {
   // entry type
   typedef TEntry EntryType;
   // implement set value
-  virtual void Set(void *head, const std::string &value) const {
+  void Set(void *head, const std::string &value) const override {
     std::istringstream is(value);
     is >> this->Get(head);
     if (!is.fail()) {
@@ -574,12 +628,13 @@ class FieldEntryBase : public FieldAccessEntry {
       throw dmlc::ParamError(os.str());
     }
   }
-  virtual std::string GetStringValue(void *head) const {
+
+  std::string GetStringValue(void *head) const override {
     std::ostringstream os;
     PrintValue(os, this->Get(head));
     return os.str();
   }
-  virtual ParamFieldInfo GetFieldInfo() const {
+  ParamFieldInfo GetFieldInfo() const override {
     ParamFieldInfo info;
     std::ostringstream os;
     info.name = key_;
@@ -596,7 +651,7 @@ class FieldEntryBase : public FieldAccessEntry {
     return info;
   }
   // implement set head to default value
-  virtual void SetDefault(void *head) const {
+  void SetDefault(void *head) const override {
     if (!has_default_) {
       std::ostringstream os;
       os << "Required parameter " << key_
@@ -638,17 +693,15 @@ class FieldEntryBase : public FieldAccessEntry {
   virtual void PrintValue(std::ostream &os, DType value) const { // NOLINT(*)
     os << value;
   }
-  virtual void PrintDefaultValueString(std::ostream &os) const {  // NOLINT(*)
+  void PrintDefaultValueString(std::ostream &os) const override {  // NOLINT(*)
     PrintValue(os, default_value_);
   }
   // get the internal representation of parameter
   // for example if this entry corresponds field param.learning_rate
   // then Get(&param) will return reference to param.learning_rate
   inline DType &Get(void *head) const {
-    return *(DType*)((char*)(head) + offset_);  // NOLINT(*)
+    return *(DType*)this->GetRawPtr(head);  // NOLINT(*)
   }
-  // internal offset of the field
-  ptrdiff_t offset_;
   // default value of field
   DType default_value_;
 };
@@ -679,18 +732,21 @@ class FieldEntryNumeric
       if (v < begin_ || v > end_) {
         std::ostringstream os;
         os << "value " << v << " for Parameter " << this->key_
-           << " exceed bound [" << begin_ << ',' << end_ <<']';
+           << " exceed bound [" << begin_ << ',' << end_ <<']' << '\n';
+        os << this->key_ << ": " << this->description_;
         throw dmlc::ParamError(os.str());
       }
     } else if (has_begin_ && v < begin_) {
         std::ostringstream os;
         os << "value " << v << " for Parameter " << this->key_
-           << " should be greater equal to " << begin_;
+           << " should be greater equal to " << begin_ << '\n';
+        os << this->key_ << ": " << this->description_;
         throw dmlc::ParamError(os.str());
     } else if (has_end_ && v > end_) {
         std::ostringstream os;
         os << "value " << v << " for Parameter " << this->key_
-           << " should be smaller equal to " << end_;
+           << " should be smaller equal to " << end_ << '\n';
+        os << this->key_ << ": " << this->description_;
         throw dmlc::ParamError(os.str());
     }
   }
@@ -818,6 +874,7 @@ class FieldEntry<int>
     os << '}';
   }
 };
+
 
 // specialize define for optional<int>(enum)
 template<>
@@ -979,6 +1036,7 @@ class FieldEntry<bool>
   }
 };
 
+
 // specialize define for float. Uses stof for platform independent handling of
 // INF, -INF, NAN, etc.
 #if DMLC_USE_CXX11
@@ -1009,6 +1067,12 @@ class FieldEntry<float> : public FieldEntryNumeric<FieldEntry<float>, float> {
          << value.substr(pos) << "\'";
       throw dmlc::ParamError(os.str());
     }
+  }
+
+ protected:
+  // print the value
+  virtual void PrintValue(std::ostream &os, float value) const {  // NOLINT(*)
+    os << std::setprecision(std::numeric_limits<float>::max_digits10) << value;
   }
 };
 
@@ -1043,6 +1107,12 @@ class FieldEntry<double>
       throw dmlc::ParamError(os.str());
     }
   }
+
+ protected:
+  // print the value
+  virtual void PrintValue(std::ostream &os, double value) const {  // NOLINT(*)
+    os << std::setprecision(std::numeric_limits<double>::max_digits10) << value;
+  }
 };
 #endif  // DMLC_USE_CXX11
 
@@ -1074,7 +1144,7 @@ inline void SetEnv(const char *key,
   parameter::FieldEntry<ValueType> e;
   e.Init(key, &value, value);
 #ifdef _WIN32
-  _putenv(key, e.GetStringValue(&value).c_str());
+  _putenv_s(key, e.GetStringValue(&value).c_str());
 #else
   setenv(key, e.GetStringValue(&value).c_str(), 1);
 #endif  // _WIN32

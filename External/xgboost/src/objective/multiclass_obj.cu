@@ -1,18 +1,23 @@
 /*!
- * Copyright 2015-2018 by Contributors
+ * Copyright 2015-2022 by XGBoost Contributors
  * \file multi_class.cc
  * \brief Definition of multi-class classification objectives.
  * \author Tianqi Chen
  */
 #include <dmlc/omp.h>
-#include <dmlc/parameter.h>
-#include <xgboost/data.h>
-#include <xgboost/logging.h>
-#include <xgboost/objective.h>
+
 #include <vector>
 #include <algorithm>
 #include <limits>
 #include <utility>
+
+#include "xgboost/parameter.h"
+#include "xgboost/data.h"
+#include "xgboost/logging.h"
+#include "xgboost/objective.h"
+#include "xgboost/json.h"
+
+#include "../common/common.h"
 #include "../common/math.h"
 #include "../common/transform.h"
 
@@ -23,56 +28,64 @@ namespace obj {
 DMLC_REGISTRY_FILE_TAG(multiclass_obj_gpu);
 #endif  // defined(XGBOOST_USE_CUDA)
 
-struct SoftmaxMultiClassParam : public dmlc::Parameter<SoftmaxMultiClassParam> {
+struct SoftmaxMultiClassParam : public XGBoostParameter<SoftmaxMultiClassParam> {
   int num_class;
-  int n_gpus;
-  int gpu_id;
   // declare parameters
   DMLC_DECLARE_PARAMETER(SoftmaxMultiClassParam) {
     DMLC_DECLARE_FIELD(num_class).set_lower_bound(1)
         .describe("Number of output class in the multi-class classification.");
-    DMLC_DECLARE_FIELD(n_gpus).set_default(1).set_lower_bound(GPUSet::kAll)
-        .describe("Number of GPUs to use for multi-gpu algorithms.");
-    DMLC_DECLARE_FIELD(gpu_id)
-        .set_lower_bound(0)
-        .set_default(0)
-        .describe("gpu to use for objective function evaluation");
   }
 };
-// TODO(trivialfis): Currently the resharding in softmax is less than ideal
-// due to repeated copying data between CPU and GPUs.  Maybe we just use single
-// GPU?
+
 class SoftmaxMultiClassObj : public ObjFunction {
  public:
   explicit SoftmaxMultiClassObj(bool output_prob)
-  : output_prob_(output_prob) {
+  : output_prob_(output_prob) {}
+
+  void Configure(Args const& args) override {
+    param_.UpdateAllowUnknown(args);
   }
-  void Configure(const std::vector<std::pair<std::string, std::string> >& args) override {
-    param_.InitAllowUnknown(args);
-    devices_ = GPUSet::All(param_.gpu_id, param_.n_gpus);
-    label_correct_.Resize(devices_.IsEmpty() ? 1 : devices_.Size());
-  }
+
+  ObjInfo Task() const override { return ObjInfo::kClassification; }
+
   void GetGradient(const HostDeviceVector<bst_float>& preds,
                    const MetaInfo& info,
                    int iter,
                    HostDeviceVector<GradientPair>* out_gpair) override {
-    CHECK_NE(info.labels_.Size(), 0U) << "label set cannot be empty";
-    CHECK(preds.Size() == (static_cast<size_t>(param_.num_class) * info.labels_.Size()))
-        << "SoftmaxMultiClassObj: label size and pred size does not match";
+    // Remove unused parameter compiler warning.
+    (void) iter;
+
+    if (info.labels.Size() == 0) {
+      return;
+    }
+    CHECK(preds.Size() == (static_cast<size_t>(param_.num_class) * info.labels.Size()))
+        << "SoftmaxMultiClassObj: label size and pred size does not match.\n"
+        << "label.Size() * num_class: "
+        << info.labels.Size() * static_cast<size_t>(param_.num_class) << "\n"
+        << "num_class: " << param_.num_class << "\n"
+        << "preds.Size(): " << preds.Size();
 
     const int nclass = param_.num_class;
     const auto ndata = static_cast<int64_t>(preds.Size() / nclass);
 
-    out_gpair->Reshard(GPUDistribution::Granular(devices_, nclass));
-    info.labels_.Reshard(GPUDistribution::Block(devices_));
-    info.weights_.Reshard(GPUDistribution::Block(devices_));
-    preds.Reshard(GPUDistribution::Granular(devices_, nclass));
-    label_correct_.Reshard(GPUDistribution::Block(devices_));
+    auto device = ctx_->gpu_id;
+    out_gpair->SetDevice(device);
+    info.labels.SetDevice(device);
+    info.weights_.SetDevice(device);
+    preds.SetDevice(device);
+
+    label_correct_.Resize(1);
+    label_correct_.SetDevice(device);
 
     out_gpair->Resize(preds.Size());
     label_correct_.Fill(1);
 
     const bool is_null_weight = info.weights_.Size() == 0;
+    if (!is_null_weight) {
+      CHECK_EQ(info.weights_.Size(), ndata)
+          << "Number of weights should be equal to number of data points.";
+    }
+
     common::Transform<>::Init(
         [=] XGBOOST_DEVICE(size_t idx,
                            common::Span<GradientPair> gpair,
@@ -101,8 +114,8 @@ class SoftmaxMultiClassObj : public ObjFunction {
             p = label == k ? p - 1.0f : p;
             gpair[idx * nclass + k] = GradientPair(p * wt, h);
           }
-        }, common::Range{0, ndata}, devices_, false)
-        .Eval(out_gpair, &info.labels_, &preds, &info.weights_, &label_correct_);
+        }, common::Range{0, ndata}, ctx_->Threads(), device)
+        .Eval(out_gpair, info.labels.Data(), &preds, &info.weights_, &label_correct_);
 
     std::vector<int>& label_correct_h = label_correct_.HostVector();
     for (auto const flag : label_correct_h) {
@@ -111,21 +124,21 @@ class SoftmaxMultiClassObj : public ObjFunction {
       }
     }
   }
-  void PredTransform(HostDeviceVector<bst_float>* io_preds) override {
+  void PredTransform(HostDeviceVector<bst_float>* io_preds) const override {
     this->Transform(io_preds, output_prob_);
   }
   void EvalTransform(HostDeviceVector<bst_float>* io_preds) override {
     this->Transform(io_preds, true);
   }
   const char* DefaultEvalMetric() const override {
-    return "merror";
+    return "mlogloss";
   }
 
-  inline void Transform(HostDeviceVector<bst_float> *io_preds, bool prob) {
+  inline void Transform(HostDeviceVector<bst_float> *io_preds, bool prob) const {
     const int nclass = param_.num_class;
     const auto ndata = static_cast<int64_t>(io_preds->Size() / nclass);
-    max_preds_.Resize(ndata);
 
+    auto device = io_preds->DeviceIdx();
     if (prob) {
       common::Transform<>::Init(
           [=] XGBOOST_DEVICE(size_t _idx, common::Span<bst_float> _preds) {
@@ -133,28 +146,41 @@ class SoftmaxMultiClassObj : public ObjFunction {
                 _preds.subspan(_idx * nclass, nclass);
             common::Softmax(point.begin(), point.end());
           },
-          common::Range{0, ndata}, GPUDistribution::Granular(devices_, nclass))
-        .Eval(io_preds);
+          common::Range{0, ndata}, this->ctx_->Threads(), device)
+          .Eval(io_preds);
     } else {
-      io_preds->Reshard(GPUDistribution::Granular(devices_, nclass));
-      max_preds_.Reshard(GPUDistribution::Block(devices_));
+      io_preds->SetDevice(device);
+      HostDeviceVector<bst_float> max_preds;
+      max_preds.SetDevice(device);
+      max_preds.Resize(ndata);
       common::Transform<>::Init(
-          [=] XGBOOST_DEVICE(size_t _idx,
-                             common::Span<const bst_float> _preds,
+          [=] XGBOOST_DEVICE(size_t _idx, common::Span<const bst_float> _preds,
                              common::Span<bst_float> _max_preds) {
             common::Span<const bst_float> point =
                 _preds.subspan(_idx * nclass, nclass);
             _max_preds[_idx] =
-                common::FindMaxIndex(point.cbegin(),
-                                     point.cend()) - point.cbegin();
+                common::FindMaxIndex(point.cbegin(), point.cend()) -
+                point.cbegin();
           },
-          common::Range{0, ndata}, devices_, false)
-        .Eval(io_preds, &max_preds_);
+          common::Range{0, ndata}, this->ctx_->Threads(), device)
+          .Eval(io_preds, &max_preds);
+      io_preds->Resize(max_preds.Size());
+      io_preds->Copy(max_preds);
     }
-    if (!prob) {
-      io_preds->Resize(max_preds_.Size());
-      io_preds->Copy(max_preds_);
+  }
+
+  void SaveConfig(Json* p_out) const override {
+    auto& out = *p_out;
+    if (this->output_prob_) {
+      out["name"] = String("multi:softprob");
+    } else {
+      out["name"] = String("multi:softmax");
     }
+    out["softmax_multiclass_param"] = ToJson(param_);
+  }
+
+  void LoadConfig(Json const& in) override {
+    FromJson(in["softmax_multiclass_param"], &param_);
   }
 
  private:
@@ -162,9 +188,7 @@ class SoftmaxMultiClassObj : public ObjFunction {
   bool output_prob_;
   // parameter
   SoftmaxMultiClassParam param_;
-  GPUSet devices_;
   // Cache for max_preds
-  HostDeviceVector<bst_float> max_preds_;
   HostDeviceVector<int> label_correct_;
 };
 

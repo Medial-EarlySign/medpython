@@ -6,13 +6,13 @@
  *
  * \author Tianqi Chen
  */
-#define _CRT_SECURE_NO_WARNINGS
-#define _CRT_SECURE_NO_DEPRECATE
 #define NOMINMAX
 #include <mpi.h>
+#include <rabit/base.h>
 #include <cstdio>
-#include "../include/rabit/internal/engine.h"
-#include "../include/rabit/internal/utils.h"
+#include <string>
+#include "rabit/internal/engine.h"
+#include "rabit/internal/utils.h"
 
 namespace rabit {
 namespace engine {
@@ -22,16 +22,21 @@ class MPIEngine : public IEngine {
   MPIEngine(void) {
     version_number = 0;
   }
-  virtual void Allreduce(void *sendrecvbuf_,
-                         size_t type_nbytes,
-                         size_t count,
-                         ReduceFunction reducer,
-                         PreprocFunction prepare_fun,
-                         void *prepare_arg) {
+  void Allgather(void *sendrecvbuf_, size_t total_size, size_t slice_begin,
+                 size_t slice_end, size_t size_prev_slice) override {
+    utils::Error("MPIEngine:: Allgather is not supported");
+  }
+  void Allreduce(void *sendrecvbuf_, size_t type_nbytes, size_t count,
+                 ReduceFunction reducer, PreprocFunction prepare_fun,
+                 void *prepare_arg) override {
     utils::Error("MPIEngine:: Allreduce is not supported,"\
                  "use Allreduce_ instead");
   }
-  virtual void Broadcast(void *sendrecvbuf_, size_t size, int root) {
+  int GetRingPrevRank(void) const override {
+    utils::Error("MPIEngine:: GetRingPrevRank is not supported");
+    return -1;
+  }
+  void Broadcast(void *sendrecvbuf_, size_t size, int root) override {
     MPI::COMM_WORLD.Bcast(sendrecvbuf_, size, MPI::CHAR, root);
   }
   virtual void InitAfterException(void) {
@@ -85,13 +90,25 @@ class MPIEngine : public IEngine {
 // singleton sync manager
 MPIEngine manager;
 
-/*! \brief intiialize the synchronization module */
-void Init(int argc, char *argv[]) {
-  MPI::Init(argc, argv);
+/*! \brief initialize the synchronization module */
+bool Init(int argc, char *argv[]) {
+  try {
+    MPI::Init(argc, argv);
+    return true;
+  } catch (const std::exception& e) {
+    fprintf(stderr, " failed in MPI Init %s\n", e.what());
+    return false;
+  }
 }
 /*! \brief finalize syncrhonization module */
-void Finalize(void) {
-  MPI::Finalize();
+bool Finalize(void) {
+  try {
+    MPI::Finalize();
+    return true;
+  } catch (const std::exception& e) {
+    fprintf(stderr, "failed in MPI shutdown %s\n", e.what());
+    return false;
+  }
 }
 
 /*! \brief singleton method to get engine */
@@ -140,72 +157,6 @@ void Allreduce_(void *sendrecvbuf,
   if (prepare_fun != NULL) prepare_fun(prepare_arg);
   MPI::COMM_WORLD.Allreduce(MPI_IN_PLACE, sendrecvbuf,
                             count, GetType(dtype), GetOp(op));
-}
-
-// code for reduce handle
-ReduceHandle::ReduceHandle(void)
-    : handle_(NULL), redfunc_(NULL), htype_(NULL) {
-}
-ReduceHandle::~ReduceHandle(void) {
-  if (handle_ != NULL) {
-    MPI::Op *op = reinterpret_cast<MPI::Op*>(handle_);
-    op->Free();
-    delete op;
-  }
-  if (htype_ != NULL) {
-    MPI::Datatype *dtype = reinterpret_cast<MPI::Datatype*>(htype_);
-    dtype->Free();
-    delete dtype;
-  }
-}
-int ReduceHandle::TypeSize(const MPI::Datatype &dtype) {
-  return dtype.Get_size();
-}
-void ReduceHandle::Init(IEngine::ReduceFunction redfunc, size_t type_nbytes) {
-  utils::Assert(handle_ == NULL, "cannot initialize reduce handle twice");
-  if (type_nbytes != 0) {
-    MPI::Datatype *dtype = new MPI::Datatype();
-    if (type_nbytes % 8 == 0) {
-      *dtype = MPI::LONG.Create_contiguous(type_nbytes / sizeof(long));  // NOLINT(*)
-    } else if (type_nbytes % 4 == 0) {
-      *dtype = MPI::INT.Create_contiguous(type_nbytes / sizeof(int));
-    } else {
-      *dtype = MPI::CHAR.Create_contiguous(type_nbytes);
-    }
-    dtype->Commit();
-    created_type_nbytes_ = type_nbytes;
-    htype_ = dtype;
-  }
-  MPI::Op *op = new MPI::Op();
-  MPI::User_function *pf = redfunc;
-  op->Init(pf, true);
-  handle_ = op;
-}
-void ReduceHandle::Allreduce(void *sendrecvbuf,
-                             size_t type_nbytes, size_t count,
-                             IEngine::PreprocFunction prepare_fun,
-                             void *prepare_arg) {
-  utils::Assert(handle_ != NULL, "must intialize handle to call AllReduce");
-  MPI::Op *op = reinterpret_cast<MPI::Op*>(handle_);
-  MPI::Datatype *dtype = reinterpret_cast<MPI::Datatype*>(htype_);
-  if (created_type_nbytes_ != type_nbytes || dtype == NULL) {
-    if (dtype == NULL) {
-      dtype = new MPI::Datatype();
-    } else {
-      dtype->Free();
-    }
-    if (type_nbytes % 8 == 0) {
-      *dtype = MPI::LONG.Create_contiguous(type_nbytes / sizeof(long));  // NOLINT(*)
-    } else if (type_nbytes % 4 == 0) {
-      *dtype = MPI::INT.Create_contiguous(type_nbytes / sizeof(int));
-    } else {
-      *dtype = MPI::CHAR.Create_contiguous(type_nbytes);
-    }
-    dtype->Commit();
-    created_type_nbytes_ = type_nbytes;
-  }
-  if (prepare_fun != NULL) prepare_fun(prepare_arg);
-  MPI::COMM_WORLD.Allreduce(MPI_IN_PLACE, sendrecvbuf, count, *dtype, *op);
 }
 }  // namespace engine
 }  // namespace rabit

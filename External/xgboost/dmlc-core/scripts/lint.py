@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # pylint: disable=protected-access, unused-variable, locally-disabled, len-as-condition
 """Lint helper to generate lint summary of source.
 
@@ -38,13 +38,13 @@ class LintHelper(object):
         """Print summary of certain result map."""
         if len(result_map) == 0:
             return 0
-        npass = len([x for k, x in result_map.items() if len(x) == 0])
-        strm.write('=====%d/%d %s files passed check=====\n' % (npass, len(result_map), ftype))
+        npass = sum(1 for x in result_map.values() if len(x) == 0)
+        strm.write(f'====={npass}/{len(result_map)} {ftype} files passed check=====\n')
         for fname, emap in result_map.items():
             if len(emap) == 0:
                 continue
-            strm.write('%s: %d Errors of %d Categories map=%s\n' % (
-                fname, sum(emap.values()), len(emap), str(emap)))
+            strm.write(
+                f'{fname}: {sum(emap.values())} Errors of {len(emap)} Categories map={str(emap)}\n')
         return len(result_map) - npass
 
     def __init__(self):
@@ -61,7 +61,7 @@ class LintHelper(object):
 
         self.pylint_cats = set(['error', 'warning', 'convention', 'refactor'])
         # setup cpp lint
-        cpplint_args = ['.', '--extensions=' + (','.join(CXX_SUFFIX))]
+        cpplint_args = ['--quiet', '--extensions=' + (','.join(CXX_SUFFIX)), '.']
         _ = cpplint.ParseArguments(cpplint_args)
         cpplint._SetFilters(','.join(['-build/c++11',
                                       '-build/namespaces',
@@ -106,12 +106,12 @@ class LintHelper(object):
         """Print summary of lint."""
         nerr = 0
         nerr += LintHelper._print_summary_map(strm, self.cpp_header_map, 'cpp-header')
-        nerr += LintHelper._print_summary_map(strm, self.cpp_src_map, 'cpp-soruce')
+        nerr += LintHelper._print_summary_map(strm, self.cpp_src_map, 'cpp-source')
         nerr += LintHelper._print_summary_map(strm, self.python_map, 'python')
         if nerr == 0:
             strm.write('All passed!\n')
         else:
-            strm.write('%d files failed lint\n' % nerr)
+            strm.write(f'{nerr} files failed lint\n')
         return nerr
 
 # singleton helper for lint check
@@ -169,6 +169,7 @@ def main():
     parser.add_argument('path', nargs='+', help='path to traverse')
     parser.add_argument('--exclude_path', nargs='+', default=[],
                         help='exclude this path, and all subfolders if path is a folder')
+    parser.add_argument('--quiet', action='store_true', help='run cpplint in quiet mode')
     parser.add_argument('--pylint-rc', default=None,
                         help='pylint rc file')
     args = parser.parse_args()
@@ -179,9 +180,9 @@ def main():
     file_type = args.filetype
     allow_type = []
     if file_type in ('python', 'all'):
-        allow_type += [x for x in PYTHON_SUFFIX]
+        allow_type += PYTHON_SUFFIX
     if file_type in ('cpp', 'all'):
-        allow_type += [x for x in CXX_SUFFIX]
+        allow_type += CXX_SUFFIX
     allow_type = set(allow_type)
     if sys.version_info.major == 2 and os.name != 'nt':
         sys.stderr = codecs.StreamReaderWriter(sys.stderr,

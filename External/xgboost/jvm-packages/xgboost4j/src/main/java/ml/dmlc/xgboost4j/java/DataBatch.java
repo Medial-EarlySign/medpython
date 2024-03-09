@@ -4,6 +4,9 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import ml.dmlc.xgboost4j.LabeledPoint;
 
 /**
@@ -13,6 +16,7 @@ import ml.dmlc.xgboost4j.LabeledPoint;
  * This class is used to support advanced creation of DMatrix from Iterator of DataBatch,
  */
 class DataBatch {
+  private static final Log logger = LogFactory.getLog(DataBatch.class);
   /** The offset of each rows in the sparse matrix */
   final long[] rowOffset;
   /** weight of each data point, can be null */
@@ -23,14 +27,17 @@ class DataBatch {
   final int[] featureIndex;
   /** value of each non-missing entry in the sparse matrix */
   final float[] featureValue ;
+  /** feature columns */
+  final int featureCols;
 
   DataBatch(long[] rowOffset, float[] weight, float[] label, int[] featureIndex,
-            float[] featureValue) {
+            float[] featureValue, int featureCols) {
     this.rowOffset = rowOffset;
     this.weight = weight;
     this.label = label;
     this.featureIndex = featureIndex;
     this.featureValue = featureValue;
+    this.featureCols = featureCols;
   }
 
   static class BatchIterator implements Iterator<DataBatch> {
@@ -49,44 +56,55 @@ class DataBatch {
 
     @Override
     public DataBatch next() {
-      int numRows = 0;
-      int numElem = 0;
-      List<LabeledPoint> batch = new ArrayList<>(batchSize);
-      while (base.hasNext() && batch.size() < batchSize) {
-        LabeledPoint labeledPoint = base.next();
-        batch.add(labeledPoint);
-        numElem += labeledPoint.values().length;
-        numRows++;
-      }
-
-      long[] rowOffset = new long[numRows + 1];
-      float[] label = new float[numRows];
-      int[] featureIndex = new int[numElem];
-      float[] featureValue = new float[numElem];
-      float[] weight = new float[numRows];
-
-      int offset = 0;
-      for (int i = 0; i < batch.size(); i++) {
-        LabeledPoint labeledPoint = batch.get(i);
-        rowOffset[i] = offset;
-        label[i] = labeledPoint.label();
-        weight[i] = labeledPoint.weight();
-        if (labeledPoint.indices() != null) {
-          System.arraycopy(labeledPoint.indices(), 0, featureIndex, offset,
-                  labeledPoint.indices().length);
-        } else {
-          for (int j = 0; j < labeledPoint.values().length; j++) {
-            featureIndex[offset + j] = j;
+      try {
+        int numRows = 0;
+        int numElem = 0;
+        int numCol  = -1;
+        List<LabeledPoint> batch = new ArrayList<>(batchSize);
+        while (base.hasNext() && batch.size() < batchSize) {
+          LabeledPoint labeledPoint = base.next();
+          if (numCol == -1) {
+            numCol = labeledPoint.size();
+          } else if (numCol != labeledPoint.size()) {
+            throw new RuntimeException("Feature size is not the same");
           }
+          batch.add(labeledPoint);
+          numElem += labeledPoint.values().length;
+          numRows++;
         }
 
-        System.arraycopy(labeledPoint.values(), 0, featureValue, offset,
-                labeledPoint.values().length);
-        offset += labeledPoint.values().length;
-      }
+        long[] rowOffset = new long[numRows + 1];
+        float[] label = new float[numRows];
+        int[] featureIndex = new int[numElem];
+        float[] featureValue = new float[numElem];
+        float[] weight = new float[numRows];
 
-      rowOffset[batch.size()] = offset;
-      return new DataBatch(rowOffset, weight, label, featureIndex, featureValue);
+        int offset = 0;
+        for (int i = 0; i < batch.size(); i++) {
+          LabeledPoint labeledPoint = batch.get(i);
+          rowOffset[i] = offset;
+          label[i] = labeledPoint.label();
+          weight[i] = labeledPoint.weight();
+          if (labeledPoint.indices() != null) {
+            System.arraycopy(labeledPoint.indices(), 0, featureIndex, offset,
+                    labeledPoint.indices().length);
+          } else {
+            for (int j = 0; j < labeledPoint.values().length; j++) {
+              featureIndex[offset + j] = j;
+            }
+          }
+
+          System.arraycopy(labeledPoint.values(), 0, featureValue, offset,
+                  labeledPoint.values().length);
+          offset += labeledPoint.values().length;
+        }
+
+        rowOffset[batch.size()] = offset;
+        return new DataBatch(rowOffset, weight, label, featureIndex, featureValue, numCol);
+      } catch (RuntimeException runtimeError) {
+        logger.error(runtimeError);
+        return null;
+      }
     }
 
     @Override

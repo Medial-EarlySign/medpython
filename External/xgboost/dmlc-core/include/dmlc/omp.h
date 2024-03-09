@@ -11,11 +11,14 @@
 #include <omp.h>
 #else
 
-#if defined(__ANDROID__)
+#if defined(__clang__)
+#undef __GOMP_NOTHROW
 #define __GOMP_NOTHROW
 #elif defined(__cplusplus)
+#undef __GOMP_NOTHROW
 #define __GOMP_NOTHROW throw()
 #else
+#undef __GOMP_NOTHROW
 #define __GOMP_NOTHROW __attribute__((__nothrow__))
 #endif
 
@@ -28,6 +31,7 @@ inline int omp_get_num_threads() __GOMP_NOTHROW { return 1; }
 inline int omp_get_max_threads() __GOMP_NOTHROW { return 1; }
 inline int omp_get_num_procs() __GOMP_NOTHROW { return 1; }
 inline void omp_set_num_threads(int nthread) __GOMP_NOTHROW {}
+inline int omp_in_parallel() __GOMP_NOTHROW { return 0; }
 #ifdef __cplusplus
 }
 #endif  // __cplusplus

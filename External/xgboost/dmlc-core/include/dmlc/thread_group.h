@@ -11,6 +11,8 @@
 #include <dmlc/logging.h>
 #include <string>
 #include <mutex>
+#include <utility>
+#include <memory>
 #include <set>
 #include <thread>
 #include <unordered_set>
@@ -220,7 +222,6 @@ class ThreadGroup {
      * \return true if the thread is joinable
      */
     bool joinable() const {
-      ReadLock guard(thread_mutex_);
       if (thread_.load()) {
         CHECK_EQ(auto_remove_, false);
         // be checked by searching the group or exit event.
@@ -242,7 +243,6 @@ class ThreadGroup {
      * \return this thread's id
      */
     std::thread::id get_id() const {
-      ReadLock guard(thread_mutex_);
       return thread_.load()->get_id();
     }
 
@@ -301,7 +301,7 @@ class ThreadGroup {
      * \brief Whether to automatically remove this thread's object from the ThreadGroup when the
      *        thread exists (perform its own cleanup)
      */
-    volatile bool auto_remove_;
+    std::atomic<bool> auto_remove_;
   };
 
   /*!

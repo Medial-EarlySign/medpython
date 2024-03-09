@@ -1,5 +1,5 @@
 #pylint: skip-file
-import sys, argparse
+import argparse
 import xgboost as xgb
 import numpy as np
 from sklearn.datasets import make_classification
@@ -43,7 +43,7 @@ def run_benchmark(args):
         dtrain.save_binary('dtrain.dm')
 
     param = {'objective': 'binary:logistic','booster':'gblinear'}
-    if args.params is not '':
+    if args.params != '':
         param.update(ast.literal_eval(args.params))
 
     param['updater'] = args.updater

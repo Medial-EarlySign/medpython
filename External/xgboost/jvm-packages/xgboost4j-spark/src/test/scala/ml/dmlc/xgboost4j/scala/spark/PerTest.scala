@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 
 package ml.dmlc.xgboost4j.scala.spark
 
-import java.io.File
+import java.io.{File, FileInputStream}
 
 import ml.dmlc.xgboost4j.{LabeledPoint => XGBLabeledPoint}
 
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.SparkContext
 import org.apache.spark.sql._
-import org.scalatest.{BeforeAndAfterEach, FunSuite}
+import org.scalatest.BeforeAndAfterEach
+import org.scalatest.funsuite.AnyFunSuite
+import scala.math.min
+import scala.util.Random
 
-trait PerTest extends BeforeAndAfterEach { self: FunSuite =>
+import org.apache.commons.io.IOUtils
 
-  protected val numWorkers: Int = Runtime.getRuntime.availableProcessors()
+trait PerTest extends BeforeAndAfterEach { self: AnyFunSuite =>
+
+  protected val numWorkers: Int = min(Runtime.getRuntime.availableProcessors(), 4)
 
   @transient private var currentSession: SparkSession = _
 
@@ -34,21 +39,20 @@ trait PerTest extends BeforeAndAfterEach { self: FunSuite =>
   implicit def sc: SparkContext = ss.sparkContext
 
   protected def sparkSessionBuilder: SparkSession.Builder = SparkSession.builder()
-      .master("local[*]")
+      .master(s"local[${numWorkers}]")
       .appName("XGBoostSuite")
       .config("spark.ui.enabled", false)
       .config("spark.driver.memory", "512m")
+      .config("spark.barrier.sync.timeout", 10)
       .config("spark.task.cpus", 1)
 
   override def beforeEach(): Unit = getOrCreateSession
 
   override def afterEach() {
-    synchronized {
-      if (currentSession != null) {
-        currentSession.stop()
-        cleanExternalCache(currentSession.sparkContext.appName)
-        currentSession = null
-      }
+    if (currentSession != null) {
+      currentSession.stop()
+      cleanExternalCache(currentSession.sparkContext.appName)
+      currentSession = null
     }
   }
 
@@ -70,7 +74,7 @@ trait PerTest extends BeforeAndAfterEach { self: FunSuite =>
   protected def buildDataFrame(
       labeledPoints: Seq[XGBLabeledPoint],
       numPartitions: Int = numWorkers): DataFrame = {
-    import DataUtils._
+    import ml.dmlc.xgboost4j.scala.spark.util.DataUtils._
     val it = labeledPoints.iterator.zipWithIndex
       .map { case (labeledPoint: XGBLabeledPoint, id: Int) =>
         (id, labeledPoint.label, labeledPoint.features)
@@ -80,10 +84,22 @@ trait PerTest extends BeforeAndAfterEach { self: FunSuite =>
       .toDF("id", "label", "features")
   }
 
+  protected def buildDataFrameWithRandSort(
+      labeledPoints: Seq[XGBLabeledPoint],
+      numPartitions: Int = numWorkers): DataFrame = {
+    val df = buildDataFrame(labeledPoints, numPartitions)
+    val rndSortedRDD = df.rdd.mapPartitions { iter =>
+      iter.map(_ -> Random.nextDouble()).toList
+        .sortBy(_._2)
+        .map(_._1).iterator
+    }
+    ss.createDataFrame(rndSortedRDD, df.schema)
+  }
+
   protected def buildDataFrameWithGroup(
       labeledPoints: Seq[XGBLabeledPoint],
       numPartitions: Int = numWorkers): DataFrame = {
-    import DataUtils._
+    import ml.dmlc.xgboost4j.scala.spark.util.DataUtils._
     val it = labeledPoints.iterator.zipWithIndex
       .map { case (labeledPoint: XGBLabeledPoint, id: Int) =>
         (id, labeledPoint.label, labeledPoint.features, labeledPoint.group)
@@ -91,5 +107,23 @@ trait PerTest extends BeforeAndAfterEach { self: FunSuite =>
 
     ss.createDataFrame(sc.parallelize(it.toList, numPartitions))
       .toDF("id", "label", "features", "group")
+  }
+
+
+  protected def compareTwoFiles(lhs: String, rhs: String): Boolean = {
+    withResource(new FileInputStream(lhs)) { lfis =>
+      withResource(new FileInputStream(rhs)) { rfis =>
+        IOUtils.contentEquals(lfis, rfis)
+      }
+    }
+  }
+
+  /** Executes the provided code block and then closes the resource */
+  protected def withResource[T <: AutoCloseable, V](r: T)(block: T => V): V = {
+    try {
+      block(r)
+    } finally {
+      r.close()
+    }
   }
 }

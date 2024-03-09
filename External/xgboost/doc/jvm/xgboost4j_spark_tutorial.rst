@@ -1,5 +1,5 @@
 #######################################
-XGBoost4J-Spark Tutorial (version 0.8+)
+XGBoost4J-Spark Tutorial (version 0.9+)
 #######################################
 
 **XGBoost4J-Spark** is a project aiming to seamlessly integrate XGBoost and Apache Spark by fitting XGBoost to Apache Spark's MLLIB framework. With the integration, user can not only uses the high-performant algorithm implementation of XGBoost, but also leverages the powerful  data processing engine of Spark for:
@@ -27,43 +27,11 @@ Build an ML Application with XGBoost4J-Spark
 Refer to XGBoost4J-Spark Dependency
 ===================================
 
-Before we go into the tour of how to use XGBoost4J-Spark, we would bring a brief introduction about how to build a machine learning application with XGBoost4J-Spark. The first thing you need to do is to refer to the dependency in Maven Central.
+Before we go into the tour of how to use XGBoost4J-Spark, you should first consult :ref:`Installation from Maven repository <install_jvm_packages>` in order to add XGBoost4J-Spark as a dependency for your project. We provide both stable releases and snapshots.
 
-You can add the following dependency in your ``pom.xml``.
+.. note:: XGBoost4J-Spark requires Apache Spark 2.4+
 
-.. code-block:: xml
-
-  <dependency>
-    <groupId>ml.dmlc</groupId>
-    <artifactId>xgboost4j-spark</artifactId>
-    <version>latest_version_num</version>
-  </dependency>
-
-For the latest release version number, please check `here <https://github.com/dmlc/xgboost/releases>`_.
-
-We also publish some functionalities which would be included in the coming release in the form of snapshot version. To access these functionalities, you can add dependency to the snapshot artifacts. We publish snapshot version in github-based repo, so you can add the following repo in ``pom.xml``:
-
-.. code-block:: xml
-
-  <repository>
-    <id>XGBoost4J-Spark Snapshot Repo</id>
-    <name>XGBoost4J-Spark Snapshot Repo</name>
-    <url>https://raw.githubusercontent.com/CodingCat/xgboost/maven-repo/</url>
-  </repository>
-
-and then refer to the snapshot dependency by adding:
-
-.. code-block:: xml
-
-  <dependency>
-      <groupId>ml.dmlc</groupId>
-      <artifactId>xgboost4j-spark</artifactId>
-      <version>next_version_num-SNAPSHOT</version>
-  </dependency>
-
-.. note:: XGBoost4J-Spark requires Apache Spark 2.3+
-
-  XGBoost4J-Spark now requires **Apache Spark 2.3+**. Latest versions of XGBoost4J-Spark uses facilities of `org.apache.spark.ml.param.shared` extensively to provide for a tight integration with Spark MLLIB framework, and these facilities are not fully available on earlier versions of Spark.
+  XGBoost4J-Spark now requires **Apache Spark 2.4+**. Latest versions of XGBoost4J-Spark uses facilities of `org.apache.spark.ml.param.shared` extensively to provide for a tight integration with Spark MLLIB framework, and these facilities are not fully available on earlier versions of Spark.
 
   Also, make sure to install Spark directly from `Apache website <https://spark.apache.org/>`_. **Upstream XGBoost is not guaranteed to work with third-party distributions of Spark, such as Cloudera Spark.** Consult appropriate third parties to obtain their distribution of XGBoost.
 
@@ -71,7 +39,7 @@ Installation from maven repo
 
 .. note:: Use of Python in XGBoost4J-Spark
 
-  By default, we use the tracker in `dmlc-core <https://github.com/dmlc/dmlc-core/tree/master/tracker>`_ to drive the training with XGBoost4J-Spark. It requires Python 2.7+. We also have an experimental Scala version of tracker which can be enabled by passing the parameter ``tracker_conf`` as ``scala``.
+  By default, we use the tracker in `Python package <https://github.com/dmlc/xgboost/blob/master/python-package/xgboost/tracker.py>`_ to drive the training with XGBoost4J-Spark. It requires Python 3.6+. We also have an experimental Scala version of tracker which can be enabled by passing the parameter ``tracker_conf`` as ``scala``.
 
 Data Preparation
 ================
@@ -84,7 +52,7 @@ In this section, we use `Iris <https://archive.ics.uci.edu/ml/datasets/iris>`_ d
 showcase how we use Spark to transform raw dataset and make it fit to the data interface of XGBoost.
 
 Iris dataset is shipped in CSV format. Each instance contains 4 features, "sepal length", "sepal width",
-"petal length" and "petal width". In addition, it contains the "class" columnm, which is essentially the label with three possible values: "Iris Setosa", "Iris Versicolour" and "Iris Virginica".
+"petal length" and "petal width". In addition, it contains the "class" column, which is essentially the label with three possible values: "Iris Setosa", "Iris Versicolour" and "Iris Virginica".
 
 Read Dataset with Spark's Built-In Reader
 -----------------------------------------
@@ -105,7 +73,7 @@ The first thing in data transformation is to load the dataset as Spark's structu
     StructField("class", StringType, true)))
   val rawInput = spark.read.schema(schema).csv("input_path")
 
-At the first line, we create a instance of `SparkSession <http://spark.apache.org/docs/latest/sql-programming-guide.html#starting-point-sparksession>`_ which is the entry of any Spark program working with DataFrame. The ``schema`` variable defines the schema of DataFrame wrapping Iris data. With this explicitly set schema, we can define the columns' name as well as their types; otherwise the column name would be the default ones derived by Spark, such as ``_col0``, etc. Finally, we can use Spark's built-in csv reader to load Iris csv file as a DataFrame named ``rawInput``.
+At the first line, we create a instance of `SparkSession <https://spark.apache.org/docs/latest/sql-getting-started.html#starting-point-sparksession>`_ which is the entry of any Spark program working with DataFrame. The ``schema`` variable defines the schema of DataFrame wrapping Iris data. With this explicitly set schema, we can define the columns' name as well as their types; otherwise the column name would be the default ones derived by Spark, such as ``_col0``, etc. Finally, we can use Spark's built-in csv reader to load Iris csv file as a DataFrame named ``rawInput``.
 
 Spark also contains many built-in readers for other format. The latest version of Spark supports CSV, JSON, Parquet, and LIBSVM.
 
@@ -139,7 +107,7 @@ we drop the column "class" and only keeps the feature columns and the transforme
 
 The ``fit`` and ``transform`` are two key operations in MLLIB. Basically, ``fit`` produces a "transformer", e.g. StringIndexer, and each transformer applies ``transform`` method on DataFrame to add new column(s) containing transformed features/labels or prediction results, etc. To understand more about ``fit`` and ``transform``, You can find more details in `here <http://spark.apache.org/docs/latest/ml-pipeline.html#pipeline-components>`_.
 
-Similarly, we can use another transformer, `VectorAssembler <https://spark.apache.org/docs/2.3.1/api/scala/index.html#org.apache.spark.ml.feature.VectorAssembler>`_, to assemble feature columns "sepal length", "sepal width", "petal length" and "petal width" as a vector.
+Similarly, we can use another transformer, `VectorAssembler <https://spark.apache.org/docs/2.4.0/api/java/org/apache/spark/ml/feature/VectorAssembler.html>`_, to assemble feature columns "sepal length", "sepal width", "petal length" and "petal width" as a vector.
 
 .. code-block:: scala
 
@@ -152,6 +120,90 @@ Similarly, we can use another transformer, `VectorAssembler <https://spark.apach
 Now, we have a DataFrame containing only two columns, "features" which contains vector-represented
 "sepal length", "sepal width", "petal length" and "petal width" and "classIndex" which has Double-typed
 labels. A DataFrame like this (containing vector-represented features and numeric labels) can be fed to XGBoost4J-Spark's training engine directly.
+
+.. note::
+
+  There is no need to assemble feature columns from version 1.6.1+. Instead, users can specify an array of
+  feature column names by ``setFeaturesCol(value: Array[String])`` and XGBoost4j-Spark will do it.
+
+Dealing with missing values
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+XGBoost supports missing values by default (`as desribed here <https://xgboost.readthedocs.io/en/latest/faq.html#how-to-deal-with-missing-values>`_).
+If given a SparseVector, XGBoost will treat any values absent from the SparseVector as missing. You are also able to
+specify to XGBoost to treat a specific value in your Dataset as if it was a missing value. By default XGBoost will treat NaN as the value representing missing.
+
+Example of setting a missing value (e.g. -999) to the "missing" parameter in XGBoostClassifier:
+
+.. code-block:: scala
+
+  import ml.dmlc.xgboost4j.scala.spark.XGBoostClassifier
+  val xgbParam = Map("eta" -> 0.1f,
+        "missing" -> -999,
+        "objective" -> "multi:softprob",
+        "num_class" -> 3,
+        "num_round" -> 100,
+        "num_workers" -> 2)
+  val xgbClassifier = new XGBoostClassifier(xgbParam).
+        setFeaturesCol("features").
+        setLabelCol("classIndex")
+
+.. note:: Missing values with Spark's VectorAssembler
+
+  If given a Dataset with enough features having a value of 0 Spark's VectorAssembler transformer class will return a
+  SparseVector where the absent values are meant to indicate a value of 0. This conflicts with XGBoost's default to
+  treat values absent from the SparseVector as missing. The model would effectively be
+  treating 0 as missing but not declaring that to be so which can lead to confusion when using the trained model on
+  other platforms. To avoid this, XGBoost will raise an exception if it receives a SparseVector and the "missing"
+  parameter has not been explicitly set to 0. To workaround this issue the user has three options:
+
+  1. Explicitly convert the Vector returned from VectorAssembler to a DenseVector to return the zeros to the dataset. If
+  doing this with missing values encoded as NaN, you will want to set ``setHandleInvalid = "keep"`` on VectorAssembler
+  in order to keep the NaN values in the dataset. You would then set the "missing" parameter to whatever you want to be
+  treated as missing. However this may cause a large amount of memory use if your dataset is very sparse. For example:
+
+  .. code-block:: scala
+
+  val assembler = new VectorAssembler().setInputCols(feature_names.toArray).setOutputCol("features").setHandleInvalid("keep")
+
+  // conversion to dense vector using Array()
+
+  val featurePipeline = new Pipeline().setStages(Array(assembler))
+  val featureModel = featurePipeline.fit(df_training)
+  val featureDf = featureModel.transform(df_training)
+
+  val xgbParam = Map("eta" -> 0.1f,
+        "max_depth" -> 2,
+        "objective" -> "multi:softprob",
+        "num_class" -> 3,
+        "num_round" -> 100,
+        "num_workers" -> 2,
+        "allow_non_zero_for_missing" -> "true",
+        "missing" -> -999)
+
+  val xgb = new XGBoostClassifier(xgbParam)
+  val xgbclassifier = xgb.fit(featureDf)
+
+
+  2. Before calling VectorAssembler you can transform the values you want to represent missing into an irregular value
+  that is not 0, NaN, or Null and set the "missing" parameter to 0. The irregular value should ideally be chosen to be
+  outside the range of values that your features have.
+
+  3. Do not use the VectorAssembler class and instead use a custom way of constructing a SparseVector that allows for
+  specifying sparsity to indicate a non-zero value. You can then set the "missing" parameter to whatever sparsity
+  indicates in your Dataset. If this approach is taken you can pass the parameter
+  ``"allow_non_zero_for_missing_value" -> true`` to bypass XGBoost's assertion that "missing" must be zero when given a
+  SparseVector.
+
+  Option 1 is recommended if memory constraints are not an issue. Option 3 requires more work to get set up but is
+  guaranteed to give you correct results while option 2 will be quicker to set up but may be difficult to find a good
+  irregular value that does not conflict with your feature values.
+
+.. note:: Using a non-default missing value when using other bindings of XGBoost.
+
+  When XGBoost is saved in native format only the booster itself is saved, the value of the missing parameter is not
+  saved alongside the model. Thus, if a non-default missing parameter is used to train the model in Spark the user should
+  take care to use the same missing parameter when using the saved model in another binding.
 
 Training
 ========
@@ -196,12 +248,12 @@ Early Stopping
 
 Early stopping is a feature to prevent the unnecessary training iterations. By specifying ``num_early_stopping_rounds`` or directly call ``setNumEarlyStoppingRounds`` over a XGBoostClassifier or XGBoostRegressor, we can define number of rounds if the evaluation metric going away from the best iteration and early stop training iterations.
 
-In additional to ``num_early_stopping_rounds``, you also need to define ``maximize_evaluation_metrics`` or call ``setMaximizeEvaluationMetrics`` to specify whether you want to maximize or minimize the metrics in training.
+When it comes to custom eval metrics, in additional to ``num_early_stopping_rounds``, you also need to define ``maximize_evaluation_metrics`` or call ``setMaximizeEvaluationMetrics`` to specify whether you want to maximize or minimize the metrics in training. For built-in eval metrics, XGBoost4J-Spark will automatically select the direction.
 
-For example, we need to maximize the evaluation metrics (set ``maximize_evaluation_metrics`` with true), and set ``num_early_stopping_rounds`` with 5. The evaluation metric of 10th iteration is the maximum one until now. In the following iterations, if there is no evaluation metric greater than the 10th iteration's (best one), the traning would be early stopped at 15th iteration.  
+For example, we need to maximize the evaluation metrics (set ``maximize_evaluation_metrics`` with true), and set ``num_early_stopping_rounds`` with 5. The evaluation metric of 10th iteration is the maximum one until now. In the following iterations, if there is no evaluation metric greater than the 10th iteration's (best one), the traning would be early stopped at 15th iteration.
 
 Training with Evaluation Sets
-----------------
+-----------------------------
 
 You can also monitor the performance of the model during training with multiple evaluation datasets. By specifying ``eval_sets`` or call ``setEvalSets`` over a XGBoostClassifier or XGBoostRegressor, you can pass in multiple evaluation datasets typed as a Map from String to DataFrame.
 
@@ -293,11 +345,37 @@ and then loading the model in another session:
   val xgbClassificationModel2 = XGBoostClassificationModel.load(xgbClassificationModelPath)
   xgbClassificationModel2.transform(xgbInput)
 
+.. note::
+
+  Besides dumping the model to raw format, users are able to dump the model to be json or ubj format from ``version 1.7.0+``.
+
+  .. code-block:: scala
+
+    val xgbClassificationModelPath = "/tmp/xgbClassificationModel"
+    xgbClassificationModel.write.overwrite().option("format", "json").save(xgbClassificationModelPath)
+
+
 With regards to ML pipeline save and load, please refer the next section.
 
 Interact with Other Bindings of XGBoost
 ---------------------------------------
-After we train a model with XGBoost4j-Spark on massive dataset, sometimes we want to do model serving in single machine or integrate it with other single node libraries for further processing. XGBoost4j-Spark supports export model to local by:
+After we train a model with XGBoost4j-Spark on massive dataset, sometimes we want to do model serving
+in single machine or integrate it with other single node libraries for further processing.
+
+After saving the model, we can load this model with single node Python XGBoost directly from ``version 1.7.0+``.
+
+.. code-block:: scala
+
+  val xgbClassificationModelPath = "/tmp/xgbClassificationModel"
+  xgbClassificationModel.write.overwrite().save(xgbClassificationModelPath)
+
+.. code-block:: python
+
+  import xgboost as xgb
+  bst = xgb.Booster({'nthread': 4})
+  bst.load_model("/tmp/xgbClassificationModel/data/XGBoostClassificationModel")
+
+Before ``version 1.7.0``, XGBoost4j-Spark needs to export model to local manually by:
 
 .. code-block:: scala
 
@@ -316,7 +394,7 @@ Then we can load this model with single node Python XGBoost:
 
   When interacting with other language bindings, XGBoost also supports saving-models-to and loading-models-from file systems other than the local one. You can use HDFS and S3 by prefixing the path with ``hdfs://`` and ``s3://`` respectively. However, for this capability, you must do **one** of the following:
 
-  1. Build XGBoost4J-Spark with the steps described in `here <https://xgboost.readthedocs.io/en/latest/jvm/index.html#installation-from-source>`_, but turning `USE_HDFS <https://github.com/dmlc/xgboost/blob/e939192978a0c152ad7b49b744630e99d54cffa8/jvm-packages/create_jni.py#L18>`_ (or USE_S3, etc. in the same place) switch on. With this approach, you can reuse the above code example by replacing "nativeModelPath" with a HDFS path.
+  1. Build XGBoost4J-Spark with the steps described in :ref:`here <install_jvm_packages>`, but turning `USE_HDFS <https://github.com/dmlc/xgboost/blob/e939192978a0c152ad7b49b744630e99d54cffa8/jvm-packages/create_jni.py#L18>`_ (or USE_S3, etc. in the same place) switch on. With this approach, you can reuse the above code example by replacing "nativeModelPath" with a HDFS path.
 
      - However, if you build with USE_HDFS, etc. you have to ensure that the involved shared object file, e.g. libhdfs.so, is put in the LIBRARY_PATH of your cluster. To avoid the complicated cluster environment configuration, choose the other option.
 
@@ -509,7 +587,7 @@ Checkpoint During Training
 Transient failures are also commonly seen in production environment. To simplify the design of XGBoost,
 we stop training if any of the distributed workers fail. However, if the training fails after having been through a long time, it would be a great waste of resources.
 
-We support creating checkpoint during training to facilitate more efficient recovery from failture. To enable this feature, you can set how many iterations we build each checkpoint with ``setCheckpointInterval`` and the location of checkpoints with ``setCheckpointPath``:
+We support creating checkpoint during training to facilitate more efficient recovery from failure. To enable this feature, you can set how many iterations we build each checkpoint with ``setCheckpointInterval`` and the location of checkpoints with ``setCheckpointPath``:
 
 .. code-block:: scala
 

@@ -6,8 +6,6 @@
 #include <xgboost/learner.h>
 #include <xgboost/data.h>
 #include <xgboost/c_api.h>
-#include "data/simple_csr_source.h"
-#include <xgboost/learner.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 
 struct MedXGBParams : public SerializableObject {
@@ -77,17 +75,19 @@ public:
 			(*it).second = val;
 		}
 		if (configured_) {
-			learner_->Configure(cfg_);
+			learner_->SetParams(cfg_);
+			learner_->Configure();
 		}
 	}
 
 	inline void LazyInit() {
 		if (!configured_) {
-			learner_->Configure(cfg_);
+			learner_->SetParams(cfg_);
+			learner_->Configure();
 			configured_ = true;
 		}
 		if (!initialized_) {
-			learner_->InitModel();
+			//learner_->Configure();
 			initialized_ = true;
 		}
 	}
@@ -120,7 +120,6 @@ public:
 	MedXGB() { init_defaults(); };
 	~MedXGB();
 
-	int validate_me_while_learning(float *x, float *y, int nsamples, int nftrs);
 	int Learn(float *x, float *y, const float *w, int nsamples, int nftrs);
 	int Learn(float *x, float *y, int nsamples, int nftrs);
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;

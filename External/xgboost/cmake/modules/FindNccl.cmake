@@ -22,30 +22,43 @@
 #
 #  NCCL_ROOT - When set, this path is inspected instead of standard library
 #              locations as the root of the NCCL installation.
-#              The environment variable NCCL_ROOT overrides this veriable.
+#              The environment variable NCCL_ROOT overrides this variable.
 #
 # This module defines
 #  Nccl_FOUND, whether nccl has been found
 #  NCCL_INCLUDE_DIR, directory containing header
 #  NCCL_LIBRARY, directory containing nccl library
 #  NCCL_LIB_NAME, nccl library name
+#  USE_NCCL_LIB_PATH, when set, NCCL_LIBRARY path is also inspected for the
+#                     location of the nccl library. This would disable
+#                     switching between static and shared.
 #
 # This module assumes that the user has already called find_package(CUDA)
 
+if (NCCL_LIBRARY)
+  if(NOT USE_NCCL_LIB_PATH)
+    # Don't cache NCCL_LIBRARY to enable switching between static and shared.
+    unset(NCCL_LIBRARY CACHE)
+  endif(NOT USE_NCCL_LIB_PATH)
+endif()
 
-set(NCCL_LIB_NAME nccl_static)
+if (BUILD_WITH_SHARED_NCCL)
+  # libnccl.so
+  set(NCCL_LIB_NAME nccl)
+else ()
+  # libnccl_static.a
+  set(NCCL_LIB_NAME nccl_static)
+endif (BUILD_WITH_SHARED_NCCL)
 
 find_path(NCCL_INCLUDE_DIR
   NAMES nccl.h
-  PATHS $ENV{NCCL_ROOT}/include ${NCCL_ROOT}/include ${CUDA_INCLUDE_DIRS} /usr/include)
+  HINTS  ${NCCL_ROOT}/include $ENV{NCCL_ROOT}/include)
 
 find_library(NCCL_LIBRARY
   NAMES ${NCCL_LIB_NAME}
-  PATHS $ENV{NCCL_ROOT}/lib ${NCCL_ROOT}/lib ${CUDA_INCLUDE_DIRS}/../lib /usr/lib)
+  HINTS ${NCCL_ROOT}/lib $ENV{NCCL_ROOT}/lib/)
 
-if (NCCL_INCLUDE_DIR AND NCCL_LIBRARY)
-  get_filename_component(NCCL_LIBRARY ${NCCL_LIBRARY} PATH)
-endif ()
+message(STATUS "Using nccl library: ${NCCL_LIBRARY}")
 
 include(FindPackageHandleStandardArgs)
 find_package_handle_standard_args(Nccl DEFAULT_MSG
@@ -54,5 +67,4 @@ find_package_handle_standard_args(Nccl DEFAULT_MSG
 mark_as_advanced(
   NCCL_INCLUDE_DIR
   NCCL_LIBRARY
-  NCCL_LIB_NAME
 )

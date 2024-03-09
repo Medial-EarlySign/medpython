@@ -4,11 +4,6 @@
 #include <type_traits>
 #include <typeinfo>
 
-#if __GNUC__ 
-template< bool B, class T = void >
-using enable_if_t = typename enable_if<B, T>::type;
-#endif // !_
-
 namespace MedSerialize {
 
 	// Helper function to parse names and clean spaces, tabs, etc

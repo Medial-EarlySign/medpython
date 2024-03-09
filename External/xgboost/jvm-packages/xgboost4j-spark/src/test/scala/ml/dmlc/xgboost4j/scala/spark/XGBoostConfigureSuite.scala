@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -17,10 +17,11 @@
 package ml.dmlc.xgboost4j.scala.spark
 
 import ml.dmlc.xgboost4j.scala.{Booster, DMatrix}
-import org.apache.spark.sql._
-import org.scalatest.FunSuite
 
-class XGBoostConfigureSuite extends FunSuite with PerTest {
+import org.apache.spark.sql._
+import org.scalatest.funsuite.AnyFunSuite
+
+class XGBoostConfigureSuite extends AnyFunSuite with PerTest {
 
   override def sparkSessionBuilder: SparkSession.Builder = super.sparkSessionBuilder
       .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
@@ -28,7 +29,7 @@ class XGBoostConfigureSuite extends FunSuite with PerTest {
 
   test("nthread configuration must be no larger than spark.task.cpus") {
     val training = buildDataFrame(Classification.train)
-    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "silent" -> "1",
+    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "verbosity" -> "1",
       "objective" -> "binary:logistic", "num_workers" -> numWorkers,
       "nthread" -> (sc.getConf.getInt("spark.task.cpus", 1) + 1))
     intercept[IllegalArgumentException] {
@@ -40,7 +41,7 @@ class XGBoostConfigureSuite extends FunSuite with PerTest {
     // TODO write an isolated test for Booster.
     val training = buildDataFrame(Classification.train)
     val testDM = new DMatrix(Classification.test.iterator, null)
-    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "silent" -> "1",
+    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "verbosity" -> "1",
       "objective" -> "binary:logistic", "num_round" -> 5, "num_workers" -> numWorkers)
 
     val model = new XGBoostClassifier(paramMap).fit(training)
@@ -52,7 +53,7 @@ class XGBoostConfigureSuite extends FunSuite with PerTest {
     val originalSslConfOpt = ss.conf.getOption("spark.ssl.enabled")
     ss.conf.set("spark.ssl.enabled", true)
 
-    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "silent" -> "1",
+    val paramMap = Map("eta" -> "1", "max_depth" -> "2", "verbosity" -> "1",
       "objective" -> "binary:logistic", "num_round" -> 2, "num_workers" -> numWorkers)
     val training = buildDataFrame(Classification.train)
 

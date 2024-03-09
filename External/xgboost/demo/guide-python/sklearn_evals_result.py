@@ -1,10 +1,12 @@
-##
-#  This script demonstrate how to access the xgboost eval metrics by using sklearn
-##
+"""
+Demo for accessing the xgboost eval metrics by using sklearn interface
+======================================================================
+"""
 
-import xgboost as xgb
 import numpy as np
 from sklearn.datasets import make_hastie_10_2
+
+import xgboost as xgb
 
 X, y = make_hastie_10_2(n_samples=2000, random_state=42)
 
@@ -20,7 +22,7 @@ clf = xgb.XGBModel(**param_dist)
 # Or you can use: clf = xgb.XGBClassifier(**param_dist)
 
 clf.fit(X_train, y_train,
-        eval_set=[(X_train, y_train), (X_test, y_test)], 
+        eval_set=[(X_train, y_train), (X_test, y_test)],
         eval_metric='logloss',
         verbose=True)
 
@@ -37,7 +39,7 @@ for e_name, e_mtrs in evals_result.items():
     for e_mtr_name, e_mtr_vals in e_mtrs.items():
         print('   - {}'.format(e_mtr_name))
         print('      - {}'.format(e_mtr_vals))
- 
+
 print('')
 print('Access complete dict:')
 print(evals_result)

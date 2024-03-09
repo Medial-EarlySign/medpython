@@ -1,210 +1,169 @@
-# coding: utf-8
-# pylint: disable= invalid-name
+"""Compatibility shim for xgboost.rabit; to be removed in 2.0"""
+import logging
+import warnings
+from enum import IntEnum, unique
+from typing import Any, Callable, List, Optional, TypeVar
 
-"""Distributed XGBoost Rabit related API."""
-from __future__ import absolute_import
-import sys
-import ctypes
 import numpy as np
 
-from .core import _LIB, c_str, STRING_TYPES
-from .compat import pickle
+from . import collective
+
+LOGGER = logging.getLogger("[xgboost.rabit]")
 
 
-def _init_rabit():
-    """internal library initializer."""
-    if _LIB is not None:
-        _LIB.RabitGetRank.restype = ctypes.c_int
-        _LIB.RabitGetWorldSize.restype = ctypes.c_int
-        _LIB.RabitIsDistributed.restype = ctypes.c_int
-        _LIB.RabitVersionNumber.restype = ctypes.c_int
+def _deprecation_warning() -> str:
+    return (
+        "The xgboost.rabit submodule is marked as deprecated in 1.7 and will be removed "
+        "in 2.0. Please use xgboost.collective instead."
+    )
 
 
-def init(args=None):
+def init(args: Optional[List[bytes]] = None) -> None:
     """Initialize the rabit library with arguments"""
-    if args is None:
-        args = []
-    arr = (ctypes.c_char_p * len(args))()
-    arr[:] = args
-    _LIB.RabitInit(len(arr), arr)
+    warnings.warn(_deprecation_warning(), FutureWarning)
+    parsed = {}
+    if args:
+        for arg in args:
+            kv = arg.decode().split("=")
+            if len(kv) == 2:
+                parsed[kv[0]] = kv[1]
+    collective.init(**parsed)
 
 
-def finalize():
+def finalize() -> None:
     """Finalize the process, notify tracker everything is done."""
-    _LIB.RabitFinalize()
+    collective.finalize()
 
 
-def get_rank():
+def get_rank() -> int:
     """Get rank of current process.
-
     Returns
     -------
     rank : int
         Rank of current process.
     """
-    ret = _LIB.RabitGetRank()
-    return ret
+    return collective.get_rank()
 
 
-def get_world_size():
+def get_world_size() -> int:
     """Get total number workers.
-
     Returns
     -------
     n : int
         Total number of process.
     """
-    ret = _LIB.RabitGetWorldSize()
-    return ret
+    return collective.get_world_size()
 
 
-def tracker_print(msg):
+def is_distributed() -> int:
+    """If rabit is distributed."""
+    return collective.is_distributed()
+
+
+def tracker_print(msg: Any) -> None:
     """Print message to the tracker.
-
     This function can be used to communicate the information of
     the progress to the tracker
-
     Parameters
     ----------
     msg : str
         The message to be printed to tracker.
     """
-    if not isinstance(msg, STRING_TYPES):
-        msg = str(msg)
-    is_dist = _LIB.RabitIsDistributed()
-    if is_dist != 0:
-        _LIB.RabitTrackerPrint(c_str(msg))
-    else:
-        sys.stdout.write(msg)
-        sys.stdout.flush()
+    collective.communicator_print(msg)
 
 
-def get_processor_name():
+def get_processor_name() -> bytes:
     """Get the processor name.
-
     Returns
     -------
     name : str
         the name of processor(host)
     """
-    mxlen = 256
-    length = ctypes.c_ulong()
-    buf = ctypes.create_string_buffer(mxlen)
-    _LIB.RabitGetProcessorName(buf, ctypes.byref(length), mxlen)
-    return buf.value
+    return collective.get_processor_name().encode()
 
 
-def broadcast(data, root):
+T = TypeVar("T")  # pylint:disable=invalid-name
+
+
+def broadcast(data: T, root: int) -> T:
     """Broadcast object from one node to all other nodes.
-
     Parameters
     ----------
     data : any type that can be pickled
         Input data, if current rank does not equal root, this can be None
     root : int
         Rank of the node to broadcast data from.
-
     Returns
     -------
     object : int
         the result of broadcast.
     """
-    rank = get_rank()
-    length = ctypes.c_ulong()
-    if root == rank:
-        assert data is not None, 'need to pass in data when broadcasting'
-        s = pickle.dumps(data, protocol=pickle.HIGHEST_PROTOCOL)
-        length.value = len(s)
-    # run first broadcast
-    _LIB.RabitBroadcast(ctypes.byref(length),
-                        ctypes.sizeof(ctypes.c_ulong), root)
-    if root != rank:
-        dptr = (ctypes.c_char * length.value)()
-        # run second
-        _LIB.RabitBroadcast(ctypes.cast(dptr, ctypes.c_void_p),
-                            length.value, root)
-        data = pickle.loads(dptr.raw)
-        del dptr
-    else:
-        _LIB.RabitBroadcast(ctypes.cast(ctypes.c_char_p(s), ctypes.c_void_p),
-                            length.value, root)
-        del s
-    return data
+    return collective.broadcast(data, root)
 
 
-# enumeration of dtypes
-DTYPE_ENUM__ = {
-    np.dtype('int8'): 0,
-    np.dtype('uint8'): 1,
-    np.dtype('int32'): 2,
-    np.dtype('uint32'): 3,
-    np.dtype('int64'): 4,
-    np.dtype('uint64'): 5,
-    np.dtype('float32'): 6,
-    np.dtype('float64'): 7
-}
+@unique
+class Op(IntEnum):
+    """Supported operations for rabit."""
+
+    MAX = 0
+    MIN = 1
+    SUM = 2
+    OR = 3
 
 
-def allreduce(data, op, prepare_fun=None):
+def allreduce(  # pylint:disable=invalid-name
+    data: np.ndarray, op: Op, prepare_fun: Optional[Callable[[np.ndarray], None]] = None
+) -> np.ndarray:
     """Perform allreduce, return the result.
-
     Parameters
     ----------
-    data: numpy array
+    data :
         Input data.
-    op: int
+    op :
         Reduction operators, can be MIN, MAX, SUM, BITOR
-    prepare_fun: function
+    prepare_fun :
         Lazy preprocessing function, if it is not None, prepare_fun(data)
         will be called by the function before performing allreduce, to initialize the data
         If the result of Allreduce can be recovered directly,
         then prepare_fun will NOT be called
-
     Returns
     -------
-    result : array_like
+    result :
         The result of allreduce, have same shape as data
-
     Notes
     -----
     This function is not thread-safe.
     """
-    if not isinstance(data, np.ndarray):
-        raise Exception('allreduce only takes in numpy.ndarray')
-    buf = data.ravel()
-    if buf.base is data.base:
-        buf = buf.copy()
-    if buf.dtype not in DTYPE_ENUM__:
-        raise Exception('data type %s not supported' % str(buf.dtype))
     if prepare_fun is None:
-        _LIB.RabitAllreduce(buf.ctypes.data_as(ctypes.c_void_p),
-                            buf.size, DTYPE_ENUM__[buf.dtype],
-                            op, None, None)
-    else:
-        func_ptr = ctypes.CFUNCTYPE(None, ctypes.c_void_p)
-
-        def pfunc(_):
-            """prepare function."""
-            prepare_fun(data)
-        _LIB.RabitAllreduce(buf.ctypes.data_as(ctypes.c_void_p),
-                            buf.size, DTYPE_ENUM__[buf.dtype],
-                            op, func_ptr(pfunc), None)
-    return buf
+        return collective.allreduce(data, collective.Op(op))
+    raise ValueError("preprocessing function is no longer supported")
 
 
-def version_number():
+def version_number() -> int:
     """Returns version number of current stored model.
-
     This means how many calls to CheckPoint we made so far.
-
     Returns
     -------
     version : int
         Version number of currently stored model
     """
-    ret = _LIB.RabitVersionNumber()
-    return ret
+    return 0
 
 
-# intialization script
-_init_rabit()
+class RabitContext:
+    """A context controlling rabit initialization and finalization."""
+
+    def __init__(self, args: Optional[List[bytes]] = None) -> None:
+        if args is None:
+            args = []
+        self.args = args
+
+    def __enter__(self) -> None:
+        init(self.args)
+        assert is_distributed()
+        LOGGER.warning(_deprecation_warning())
+        LOGGER.debug("-------------- rabit say hello ------------------")
+
+    def __exit__(self, *args: List) -> None:
+        finalize()
+        LOGGER.debug("--------------- rabit say bye ------------------")

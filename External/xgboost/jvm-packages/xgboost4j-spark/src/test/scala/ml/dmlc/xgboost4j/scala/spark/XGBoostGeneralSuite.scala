@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -16,75 +16,29 @@
 
 package ml.dmlc.xgboost4j.scala.spark
 
-import java.nio.file.Files
-import java.util.concurrent.LinkedBlockingDeque
+import scala.util.Random
 
 import ml.dmlc.xgboost4j.{LabeledPoint => XGBLabeledPoint}
 import ml.dmlc.xgboost4j.scala.DMatrix
-import ml.dmlc.xgboost4j.scala.rabit.RabitTracker
-import ml.dmlc.xgboost4j.scala.{XGBoost => SXGBoost, _}
-import org.apache.hadoop.fs.{FileSystem, Path}
 
-import org.apache.spark.TaskContext
-import org.apache.spark.ml.linalg.Vectors
-import org.apache.spark.sql._
-import org.scalatest.FunSuite
-import scala.util.Random
+import org.apache.spark.{SparkException, TaskContext}
+import org.scalatest.funsuite.AnyFunSuite
 
-import ml.dmlc.xgboost4j.java.Rabit
+import org.apache.spark.ml.feature.VectorAssembler
+import org.apache.spark.sql.functions.lit
 
-class XGBoostGeneralSuite extends FunSuite with PerTest {
-
-  test("test Rabit allreduce to validate Scala-implemented Rabit tracker") {
-    val vectorLength = 100
-    val rdd = sc.parallelize(
-      (1 to numWorkers * vectorLength).toArray.map { _ => Random.nextFloat() }, numWorkers).cache()
-
-    val tracker = new RabitTracker(numWorkers)
-    tracker.start(0)
-    val trackerEnvs = tracker.getWorkerEnvs
-    val collectedAllReduceResults = new LinkedBlockingDeque[Array[Float]]()
-
-    val rawData = rdd.mapPartitions { iter =>
-      Iterator(iter.toArray)
-    }.collect()
-
-    val maxVec = (0 until vectorLength).toArray.map { j =>
-      (0 until numWorkers).toArray.map { i => rawData(i)(j) }.max
-    }
-
-    val allReduceResults = rdd.mapPartitions { iter =>
-      Rabit.init(trackerEnvs)
-      val arr = iter.toArray
-      val results = Rabit.allReduce(arr, Rabit.OpType.MAX)
-      Rabit.shutdown()
-      Iterator(results)
-    }.cache()
-
-    val sparkThread = new Thread() {
-      override def run(): Unit = {
-        allReduceResults.foreachPartition(() => _)
-        val byPartitionResults = allReduceResults.collect()
-        assert(byPartitionResults(0).length == vectorLength)
-        collectedAllReduceResults.put(byPartitionResults(0))
-      }
-    }
-    sparkThread.start()
-    assert(tracker.waitFor(0L) == 0)
-    sparkThread.join()
-
-    assert(collectedAllReduceResults.poll().sameElements(maxVec))
-  }
+class XGBoostGeneralSuite extends AnyFunSuite with TmpFolderPerSuite with PerTest {
 
   test("distributed training with the specified worker number") {
     val trainingRDD = sc.parallelize(Classification.train)
+    val buildTrainingRDD = PreXGBoost.buildRDDLabeledPointToRDDWatches(trainingRDD)
     val (booster, metrics) = XGBoost.trainDistributed(
-      trainingRDD,
+      sc,
+      buildTrainingRDD,
       List("eta" -> "1", "max_depth" -> "6",
         "objective" -> "binary:logistic", "num_round" -> 5, "num_workers" -> numWorkers,
         "custom_eval" -> null, "custom_obj" -> null, "use_external_memory" -> false,
-        "missing" -> Float.NaN).toMap,
-      hasGroup = false)
+        "missing" -> Float.NaN).toMap)
     assert(booster != null)
   }
 
@@ -95,18 +49,6 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
     val paramMap = Map("eta" -> "1", "max_depth" -> "6",
       "objective" -> "binary:logistic", "num_round" -> 5, "num_workers" -> numWorkers,
       "use_external_memory" -> true)
-    val model = new XGBoostClassifier(paramMap).fit(training)
-    assert(eval.eval(model._booster.predict(testDM, outPutMargin = true), testDM) < 0.1)
-  }
-
-
-  test("training with Scala-implemented Rabit tracker") {
-    val eval = new EvalError()
-    val training = buildDataFrame(Classification.train)
-    val testDM = new DMatrix(Classification.test.iterator)
-    val paramMap = Map("eta" -> "1", "max_depth" -> "6",
-      "objective" -> "binary:logistic", "num_round" -> 5, "num_workers" -> numWorkers,
-      "tracker_conf" -> TrackerConf(60 * 60 * 1000, "scala"))
     val model = new XGBoostClassifier(paramMap).fit(training)
     assert(eval.eval(model._booster.predict(testDM, outPutMargin = true), testDM) < 0.1)
   }
@@ -223,74 +165,11 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
     assert(x < 0.1)
   }
 
-  test("dense vectors containing missing value") {
-    def buildDenseDataFrame(): DataFrame = {
-      val numRows = 100
-      val numCols = 5
-
-      val data = (0 until numRows).map { x =>
-        val label = Random.nextInt(2)
-        val values = Array.tabulate[Double](numCols) { c =>
-          if (c == numCols - 1) -0.1 else Random.nextDouble
-        }
-
-        (label, Vectors.dense(values))
-      }
-
-      ss.createDataFrame(sc.parallelize(data.toList)).toDF("label", "features")
-    }
-
-    val denseDF = buildDenseDataFrame().repartition(4)
-    val paramMap = List("eta" -> "1", "max_depth" -> "2",
-      "objective" -> "binary:logistic", "missing" -> -0.1f, "num_workers" -> numWorkers).toMap
-    val model = new XGBoostClassifier(paramMap).fit(denseDF)
-    model.transform(denseDF).collect()
-  }
-
-  test("training with spark parallelism checks disabled") {
-    val eval = new EvalError()
-    val training = buildDataFrame(Classification.train)
-    val testDM = new DMatrix(Classification.test.iterator)
-    val paramMap = Map("eta" -> "1", "max_depth" -> "6",
-      "objective" -> "binary:logistic", "timeout_request_workers" -> 0L,
-      "num_round" -> 5, "num_workers" -> numWorkers)
-    val model = new XGBoostClassifier(paramMap).fit(training)
-    val x = eval.eval(model._booster.predict(testDM, outPutMargin = true), testDM)
-    assert(x < 0.1)
-  }
-
-  test("training with checkpoint boosters") {
-    val eval = new EvalError()
-    val training = buildDataFrame(Classification.train)
-    val testDM = new DMatrix(Classification.test.iterator)
-
-    val tmpPath = Files.createTempDirectory("model1").toAbsolutePath.toString
-    val paramMap = Map("eta" -> "1", "max_depth" -> 2,
-      "objective" -> "binary:logistic", "checkpoint_path" -> tmpPath,
-      "checkpoint_interval" -> 2, "num_workers" -> numWorkers)
-
-    val prevModel = new XGBoostClassifier(paramMap ++ Seq("num_round" -> 5)).fit(training)
-    def error(model: Booster): Float = eval.eval(
-      model.predict(testDM, outPutMargin = true), testDM)
-
-    // Check only one model is kept after training
-    val files = FileSystem.get(sc.hadoopConfiguration).listStatus(new Path(tmpPath))
-    assert(files.length == 1)
-    assert(files.head.getPath.getName == "8.model")
-    val tmpModel = SXGBoost.loadModel(s"$tmpPath/8.model")
-
-    // Train next model based on prev model
-    val nextModel = new XGBoostClassifier(paramMap ++ Seq("num_round" -> 8)).fit(training)
-    assert(error(tmpModel) > error(prevModel._booster))
-    assert(error(prevModel._booster) > error(nextModel._booster))
-    assert(error(nextModel._booster) < 0.1)
-  }
-
   test("repartitionForTrainingGroup with group data") {
     // test different splits to cover the corner cases.
     for (split <- 1 to 20) {
       val trainingRDD = sc.parallelize(Ranking.train, split)
-      val traingGroupsRDD = XGBoost.repartitionForTrainingGroup(trainingRDD, 4)
+      val traingGroupsRDD = PreXGBoost.repartitionForTrainingGroup(trainingRDD, 4)
       val trainingGroups: Array[Array[XGBLabeledPoint]] = traingGroupsRDD.collect()
       // check the the order of the groups with group id.
       // Ranking.train has 20 groups
@@ -312,18 +191,19 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
       // make one partition empty for testing
       it.filter(_ => TaskContext.getPartitionId() != 3)
     })
-    XGBoost.repartitionForTrainingGroup(trainingRDD, 4)
+    PreXGBoost.repartitionForTrainingGroup(trainingRDD, 4)
   }
 
   test("distributed training with group data") {
     val trainingRDD = sc.parallelize(Ranking.train, 5)
+    val buildTrainingRDD = PreXGBoost.buildRDDLabeledPointToRDDWatches(trainingRDD, hasGroup = true)
     val (booster, _) = XGBoost.trainDistributed(
-      trainingRDD,
+      sc,
+      buildTrainingRDD,
       List("eta" -> "1", "max_depth" -> "6",
-        "objective" -> "rank:pairwise", "num_round" -> 5, "num_workers" -> numWorkers,
+        "objective" -> "rank:ndcg", "num_round" -> 5, "num_workers" -> numWorkers,
         "custom_eval" -> null, "custom_obj" -> null, "use_external_memory" -> false,
-        "missing" -> Float.NaN).toMap,
-      hasGroup = true)
+        "missing" -> Float.NaN).toMap)
 
     assert(booster != null)
   }
@@ -386,9 +266,9 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
 
   test("train with multiple validation datasets (ranking)") {
     val training = buildDataFrameWithGroup(Ranking.train, 5)
-    val Array(train, eval1, eval2) = training.randomSplit(Array(0.6, 0.2, 0.2))
+    val Array(train, eval1, eval2) = training.randomSplit(Array(0.6, 0.2, 0.2), 0)
     val paramMap1 = Map("eta" -> "1", "max_depth" -> "6",
-      "objective" -> "rank:pairwise",
+      "objective" -> "rank:ndcg",
       "num_round" -> 5, "num_workers" -> numWorkers, "group_col" -> "group")
     val xgb1 = new XGBoostRegressor(paramMap1).setEvalSets(Map("eval1" -> eval1, "eval2" -> eval2))
     val model1 = xgb1.fit(train)
@@ -401,7 +281,7 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
     assert(model1.summary.trainObjectiveHistory !== model1.summary.validationObjectiveHistory(1))
 
     val paramMap2 = Map("eta" -> "1", "max_depth" -> "6",
-      "objective" -> "rank:pairwise",
+      "objective" -> "rank:ndcg",
       "num_round" -> 5, "num_workers" -> numWorkers, "group_col" -> "group",
       "eval_sets" -> Map("eval1" -> eval1, "eval2" -> eval2))
     val xgb2 = new XGBoostRegressor(paramMap2)
@@ -414,4 +294,83 @@ class XGBoostGeneralSuite extends FunSuite with PerTest {
     assert(model2.summary.trainObjectiveHistory !== model2.summary.validationObjectiveHistory(0))
     assert(model2.summary.trainObjectiveHistory !== model2.summary.validationObjectiveHistory(1))
   }
+
+  test("infer with different batch sizes") {
+    val regModel = new XGBoostRegressor(Map(
+      "eta" -> "1",
+      "max_depth" -> "6",
+      "silent" -> "1",
+      "objective" -> "reg:squarederror",
+      "num_round" -> 5,
+      "num_workers" -> numWorkers))
+        .fit(buildDataFrame(Regression.train))
+    val regDF = buildDataFrame(Regression.test)
+
+    val regRet1 = regModel.transform(regDF).collect()
+    val regRet2 = regModel.setInferBatchSize(1).transform(regDF).collect()
+    val regRet3 = regModel.setInferBatchSize(10).transform(regDF).collect()
+    val regRet4 = regModel.setInferBatchSize(32 << 15).transform(regDF).collect()
+    assert(regRet1 sameElements regRet2)
+    assert(regRet1 sameElements regRet3)
+    assert(regRet1 sameElements regRet4)
+
+    val clsModel = new XGBoostClassifier(Map(
+      "eta" -> "1",
+      "max_depth" -> "6",
+      "silent" -> "1",
+      "objective" -> "binary:logistic",
+      "num_round" -> 5,
+      "num_workers" -> numWorkers))
+        .fit(buildDataFrame(Classification.train))
+    val clsDF = buildDataFrame(Classification.test)
+
+    val clsRet1 = clsModel.transform(clsDF).collect()
+    val clsRet2 = clsModel.setInferBatchSize(1).transform(clsDF).collect()
+    val clsRet3 = clsModel.setInferBatchSize(10).transform(clsDF).collect()
+    val clsRet4 = clsModel.setInferBatchSize(32 << 15).transform(clsDF).collect()
+    assert(clsRet1 sameElements clsRet2)
+    assert(clsRet1 sameElements clsRet3)
+    assert(clsRet1 sameElements clsRet4)
+  }
+
+  test("chaining the prediction") {
+    val modelPath = getClass.getResource("/model/0.82/model").getPath
+    val model = XGBoostClassificationModel.read.load(modelPath)
+    val r = new Random(0)
+    var df = ss.createDataFrame(Seq.fill(100000)(1).map(i => (i, i))).
+      toDF("feature", "label").repartition(5)
+    // 0.82/model was trained with 251 features. and transform will throw exception
+    // if feature size of data is not equal to 251
+    for (x <- 1 to 250) {
+      df = df.withColumn(s"feature_${x}", lit(1))
+    }
+    val assembler = new VectorAssembler()
+      .setInputCols(df.columns.filter(!_.contains("label")))
+      .setOutputCol("features")
+    df = assembler.transform(df)
+    for (x <- 1 to 250) {
+      df = df.drop(s"feature_${x}")
+    }
+    val df1 = model.transform(df).withColumnRenamed(
+      "prediction", "prediction1").withColumnRenamed(
+      "rawPrediction", "rawPrediction1").withColumnRenamed(
+      "probability", "probability1")
+    val df2 = model.transform(df1)
+    df1.collect()
+    df2.collect()
+  }
+
+  test("throw exception for empty partition in trainingset") {
+    val paramMap = Map("eta" -> "0.1", "max_depth" -> "6", "silent" -> "1",
+      "objective" -> "binary:logistic", "num_class" -> "2", "num_round" -> 5,
+      "num_workers" -> numWorkers, "tree_method" -> "auto", "allow_non_zero_for_missing" -> true)
+    // The Dmatrix will be empty
+    val trainingDF = buildDataFrame(Seq(XGBLabeledPoint(1.0f, 4,
+      Array(0, 1, 2, 3), Array(0, 1, 2, 3))))
+    val xgb = new XGBoostClassifier(paramMap)
+    intercept[SparkException] {
+      xgb.fit(trainingDF)
+    }
+  }
+
 }

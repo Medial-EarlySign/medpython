@@ -11,7 +11,7 @@ This is a instruction of new tree booster ``dart``.
 **************
 Original paper
 **************
-Rashmi Korlakai Vinayak, Ran Gilad-Bachrach. "DART: Dropouts meet Multiple Additive Regression Trees." `JMLR <http://www.jmlr.org/proceedings/papers/v38/korlakaivinayak15.pdf>`_.
+Rashmi Korlakai Vinayak, Ran Gilad-Bachrach. "DART: Dropouts meet Multiple Additive Regression Trees." [`PMLR <http://proceedings.mlr.press/v38/korlakaivinayak15.pdf>`_, `arXiv <https://arxiv.org/abs/1505.01866>`_].
 
 ********
 Features
@@ -101,19 +101,11 @@ Sample Script
   # specify parameters via map
   param = {'booster': 'dart',
            'max_depth': 5, 'learning_rate': 0.1,
-           'objective': 'binary:logistic', 'silent': True,
+           'objective': 'binary:logistic',
            'sample_type': 'uniform',
            'normalize_type': 'tree',
            'rate_drop': 0.1,
            'skip_drop': 0.5}
   num_round = 50
   bst = xgb.train(param, dtrain, num_round)
-  # make prediction
-  # ntree_limit must not be 0
-  preds = bst.predict(dtest, ntree_limit=num_round)
-
-.. note:: Specify ``ntree_limit`` when predicting with test sets
-
-  By default, ``bst.predict()`` will perform dropouts on trees. To obtain
-  correct results on test sets, disable dropouts by specifying
-  a nonzero value for ``ntree_limit``.
+  preds = bst.predict(dtest)

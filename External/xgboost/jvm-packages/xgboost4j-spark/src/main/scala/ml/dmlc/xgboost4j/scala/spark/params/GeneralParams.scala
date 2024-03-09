@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -22,14 +22,6 @@ import ml.dmlc.xgboost4j.scala.spark.TrackerConf
 import org.apache.spark.ml.param._
 import scala.collection.mutable
 
-import ml.dmlc.xgboost4j.{LabeledPoint => XGBLabeledPoint}
-
-import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
-import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{Column, DataFrame, Row}
-import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.types.{FloatType, IntegerType}
-
 private[spark] trait GeneralParams extends Params {
 
   /**
@@ -37,6 +29,7 @@ private[spark] trait GeneralParams extends Params {
    */
   final val numRound = new IntParam(this, "numRound", "The number of rounds for boosting",
     ParamValidators.gtEq(1))
+  setDefault(numRound, 1)
 
   final def getNumRound: Int = $(numRound)
 
@@ -45,6 +38,7 @@ private[spark] trait GeneralParams extends Params {
    */
   final val numWorkers = new IntParam(this, "numWorkers", "number of workers used to run xgboost",
     ParamValidators.gtEq(1))
+  setDefault(numWorkers, 1)
 
   final def getNumWorkers: Int = $(numWorkers)
 
@@ -53,6 +47,7 @@ private[spark] trait GeneralParams extends Params {
    */
   final val nthread = new IntParam(this, "nthread", "number of threads used by per worker",
     ParamValidators.gtEq(1))
+  setDefault(nthread, 1)
 
   final def getNthread: Int = $(nthread)
 
@@ -61,6 +56,7 @@ private[spark] trait GeneralParams extends Params {
    */
   final val useExternalMemory = new BooleanParam(this, "useExternalMemory",
     "whether to use external memory as cache")
+  setDefault(useExternalMemory, false)
 
   final def getUseExternalMemory: Boolean = $(useExternalMemory)
 
@@ -102,17 +98,25 @@ private[spark] trait GeneralParams extends Params {
    * the value treated as missing. default: Float.NaN
    */
   final val missing = new FloatParam(this, "missing", "the value treated as missing")
+  setDefault(missing, Float.NaN)
 
   final def getMissing: Float = $(missing)
 
   /**
-    * the maximum time to wait for the job requesting new workers. default: 30 minutes
+    * Allows for having a non-zero value for missing when training on prediction
+    * on a Sparse or Empty vector.
     */
-  final val timeoutRequestWorkers = new LongParam(this, "timeoutRequestWorkers", "the maximum " +
-    "time to request new Workers if numCores are insufficient. The timeout will be disabled " +
-    "if this value is set smaller than or equal to 0.")
+  final val allowNonZeroForMissing = new BooleanParam(
+    this,
+    "allowNonZeroForMissing",
+    "Allow to have a non-zero value for missing when training or " +
+      "predicting on a Sparse or Empty vector. Should only be used if did " +
+      "not use Spark's VectorAssembler class to construct the feature vector " +
+      "but instead used a method that preserves zeros in your vector."
+  )
+  setDefault(allowNonZeroForMissing, false)
 
-  final def getTimeoutRequestWorkers: Long = $(timeoutRequestWorkers)
+  final def getAllowNonZeroForMissingValue: Boolean = $(allowNonZeroForMissing)
 
   /**
     * The hdfs folder to load and save checkpoint boosters. default: `empty_string`
@@ -165,17 +169,29 @@ private[spark] trait GeneralParams extends Params {
     *        Ignored if the tracker implementation is "python".
     */
   final val trackerConf = new TrackerConfParam(this, "trackerConf", "Rabit tracker configurations")
+  setDefault(trackerConf, TrackerConf())
 
   /** Random seed for the C++ part of XGBoost and train/test splitting. */
   final val seed = new LongParam(this, "seed", "random seed")
+  setDefault(seed, 0L)
 
   final def getSeed: Long = $(seed)
 
-  setDefault(numRound -> 1, numWorkers -> 1, nthread -> 1,
-    useExternalMemory -> false, silent -> 0, verbosity -> 1,
-    customObj -> null, customEval -> null, missing -> Float.NaN,
-    trackerConf -> TrackerConf(), seed -> 0, timeoutRequestWorkers -> 30 * 60 * 1000L,
-    checkpointPath -> "", checkpointInterval -> -1)
+  /** Feature's name, it will be set to DMatrix and Booster, and in the final native json model.
+   * In native code, the parameter name is feature_name.
+   * */
+  final val featureNames = new StringArrayParam(this, "feature_names",
+  "an array of feature names")
+
+  final def getFeatureNames: Array[String] = $(featureNames)
+
+  /** Feature types, q is numeric and c is categorical.
+   * In native code, the parameter name is feature_type
+   * */
+  final val featureTypes = new StringArrayParam(this, "feature_types",
+  "an array of feature types")
+
+  final def getFeatureTypes: Array[String] = $(featureTypes)
 }
 
 trait HasLeafPredictionCol extends Params {
@@ -239,29 +255,51 @@ trait HasNumClass extends Params {
   final def getNumClass: Int = $(numClass)
 }
 
+/**
+ * Trait for shared param featuresCols.
+ */
+trait HasFeaturesCols extends Params {
+  /**
+   * Param for the names of feature columns.
+   * @group param
+   */
+  final val featuresCols: StringArrayParam = new StringArrayParam(this, "featuresCols",
+    "an array of feature column names.")
+
+  /** @group getParam */
+  final def getFeaturesCols: Array[String] = $(featuresCols)
+
+  /** Check if featuresCols is valid */
+  def isFeaturesColsValid: Boolean = {
+    isDefined(featuresCols) && $(featuresCols) != Array.empty
+  }
+
+}
+
 private[spark] trait ParamMapFuncs extends Params {
 
-  def XGBoostToMLlibParams(xgboostParams: Map[String, Any]): Unit = {
+  def XGBoost2MLlibParams(xgboostParams: Map[String, Any]): Unit = {
     for ((paramName, paramValue) <- xgboostParams) {
       if ((paramName == "booster" && paramValue != "gbtree") ||
         (paramName == "updater" && paramValue != "grow_histmaker,prune" &&
-          paramValue != "hist")) {
+          paramValue != "grow_quantile_histmaker" && paramValue != "grow_gpu_hist")) {
         throw new IllegalArgumentException(s"you specified $paramName as $paramValue," +
-          s" XGBoost-Spark only supports gbtree as booster type" +
-          " and grow_histmaker,prune or hist as the updater type")
+          s" XGBoost-Spark only supports gbtree as booster type and grow_histmaker or" +
+          s" grow_quantile_histmaker or grow_gpu_hist as the updater type")
       }
       val name = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, paramName)
-      params.find(_.name == name) match {
-        case None =>
-        case Some(_: DoubleParam) =>
+      params.find(_.name == name).foreach {
+        case _: DoubleParam =>
           set(name, paramValue.toString.toDouble)
-        case Some(_: BooleanParam) =>
+        case _: BooleanParam =>
           set(name, paramValue.toString.toBoolean)
-        case Some(_: IntParam) =>
+        case _: IntParam =>
           set(name, paramValue.toString.toInt)
-        case Some(_: FloatParam) =>
+        case _: FloatParam =>
           set(name, paramValue.toString.toFloat)
-        case Some(_: Param[_]) =>
+        case _: LongParam =>
+          set(name, paramValue.toString.toLong)
+        case _: Param[_] =>
           set(name, paramValue)
       }
     }

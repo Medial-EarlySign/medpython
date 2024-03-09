@@ -1,5 +1,5 @@
 /*!
- * Copyright 2015 by Contributors
+ * Copyright 2015-2020 by Contributors
  * \file random.h
  * \brief Utility related to random.
  * \author Tianqi Chen
@@ -7,17 +7,23 @@
 #ifndef XGBOOST_COMMON_RANDOM_H_
 #define XGBOOST_COMMON_RANDOM_H_
 
-#include <rabit/rabit.h>
 #include <xgboost/logging.h>
+
 #include <algorithm>
-#include <vector>
+#include <functional>
 #include <limits>
 #include <map>
 #include <memory>
 #include <numeric>
 #include <random>
+#include <utility>
+#include <vector>
 
-#include "io.h"
+#include "../collective/communicator-inl.h"
+#include "algorithm.h"  // ArgSort
+#include "common.h"
+#include "xgboost/context.h"  // Context
+#include "xgboost/host_device_vector.h"
 
 namespace xgboost {
 namespace common {
@@ -75,6 +81,38 @@ using GlobalRandomEngine = RandomEngine;
  */
 GlobalRandomEngine& GlobalRandom(); // NOLINT(*)
 
+/*
+ * Original paper:
+ * Weighted Random Sampling (2005; Efraimidis, Spirakis)
+ *
+ * Blog:
+ * https://timvieira.github.io/blog/post/2019/09/16/algorithms-for-sampling-without-replacement/
+*/
+template <typename T>
+std::vector<T> WeightedSamplingWithoutReplacement(Context const* ctx, std::vector<T> const& array,
+                                                  std::vector<float> const& weights, size_t n) {
+  // ES sampling.
+  CHECK_EQ(array.size(), weights.size());
+  std::vector<float> keys(weights.size());
+  std::uniform_real_distribution<float> dist;
+  auto& rng = GlobalRandom();
+  for (size_t i = 0; i < array.size(); ++i) {
+    auto w = std::max(weights.at(i), kRtEps);
+    auto u = dist(rng);
+    auto k = std::log(u) / w;
+    keys[i] = k;
+  }
+  auto ind = ArgSort<std::size_t>(ctx, keys.data(), keys.data() + keys.size(), std::greater<>{});
+  ind.resize(n);
+
+  std::vector<T> results(ind.size());
+  for (size_t k = 0; k < ind.size(); ++k) {
+    auto idx = ind[k];
+    results[k] = array[idx];
+  }
+  return results;
+}
+
 /**
  * \class ColumnSampler
  *
@@ -82,40 +120,34 @@ GlobalRandomEngine& GlobalRandom(); // NOLINT(*)
  * colsample_bynode parameters. Should be initialised before tree construction and to
  * reset when tree construction is completed.
  */
-
 class ColumnSampler {
-  std::shared_ptr<std::vector<int>> feature_set_tree_;
-  std::map<int, std::shared_ptr<std::vector<int>>> feature_set_level_;
+  std::shared_ptr<HostDeviceVector<bst_feature_t>> feature_set_tree_;
+  std::map<int, std::shared_ptr<HostDeviceVector<bst_feature_t>>> feature_set_level_;
+  std::vector<float> feature_weights_;
   float colsample_bylevel_{1.0f};
   float colsample_bytree_{1.0f};
   float colsample_bynode_{1.0f};
   GlobalRandomEngine rng_;
-
-  std::shared_ptr<std::vector<int>> ColSample
-    (std::shared_ptr<std::vector<int>> p_features, float colsample) {
-    if (colsample == 1.0f) return p_features;
-    const auto& features = *p_features;
-    CHECK_GT(features.size(), 0);
-    int n = std::max(1, static_cast<int>(colsample * features.size()));
-    auto p_new_features = std::make_shared<std::vector<int>>();
-    auto& new_features = *p_new_features;
-    new_features.resize(features.size());
-    std::copy(features.begin(), features.end(), new_features.begin());
-    std::shuffle(new_features.begin(), new_features.end(), rng_);
-    new_features.resize(n);
-    std::sort(new_features.begin(), new_features.end());
-
-    return p_new_features;
-  }
+  Context const* ctx_;
 
  public:
-  /** 
+  std::shared_ptr<HostDeviceVector<bst_feature_t>> ColSample(
+      std::shared_ptr<HostDeviceVector<bst_feature_t>> p_features, float colsample);
+  /**
    * \brief Column sampler constructor.
-   * \note This constructor synchronizes the RNG seed across processes.
+   * \note This constructor manually sets the rng seed
    */
+  explicit ColumnSampler(uint32_t seed) {
+    rng_.seed(seed);
+  }
+
+  /**
+  * \brief Column sampler constructor.
+  * \note This constructor synchronizes the RNG seed across processes.
+  */
   ColumnSampler() {
     uint32_t seed = common::GlobalRandom()();
-    rabit::Broadcast(&seed, sizeof(seed), 0);
+    collective::Broadcast(&seed, sizeof(seed), 0);
     rng_.seed(seed);
   }
 
@@ -128,20 +160,21 @@ class ColumnSampler {
    * \param colsample_bytree
    * \param skip_index_0      (Optional) True to skip index 0.
    */
-  void Init(int64_t num_col, float colsample_bynode, float colsample_bylevel,
-            float colsample_bytree, bool skip_index_0 = false) {
+  void Init(Context const* ctx, int64_t num_col, std::vector<float> feature_weights,
+            float colsample_bynode, float colsample_bylevel, float colsample_bytree) {
+    feature_weights_ = std::move(feature_weights);
     colsample_bylevel_ = colsample_bylevel;
     colsample_bytree_ = colsample_bytree;
     colsample_bynode_ = colsample_bynode;
+    ctx_ = ctx;
 
     if (feature_set_tree_ == nullptr) {
-      feature_set_tree_ = std::make_shared<std::vector<int>>();
+      feature_set_tree_ = std::make_shared<HostDeviceVector<bst_feature_t>>();
     }
     Reset();
 
-    int begin_idx = skip_index_0 ? 1 : 0;
-    feature_set_tree_->resize(num_col - begin_idx);
-    std::iota(feature_set_tree_->begin(), feature_set_tree_->end(), begin_idx);
+    feature_set_tree_->Resize(num_col);
+    std::iota(feature_set_tree_->HostVector().begin(), feature_set_tree_->HostVector().end(), 0);
 
     feature_set_tree_ = ColSample(feature_set_tree_, colsample_bytree_);
   }
@@ -150,13 +183,13 @@ class ColumnSampler {
    * \brief Resets this object.
    */
   void Reset() {
-    feature_set_tree_->clear();
+    feature_set_tree_->Resize(0);
     feature_set_level_.clear();
   }
 
   /**
    * \brief Samples a feature set.
-   * 
+   *
    * \param depth The tree depth of the node at which to sample.
    * \return The sampled feature set.
    * \note If colsample_bynode_ < 1.0, this method creates a new feature set each time it
@@ -165,7 +198,7 @@ class ColumnSampler {
    * construction of each tree node, and must be called the same number of times in each
    * process and with the same parameters to return the same feature set across processes.
    */
-  std::shared_ptr<std::vector<int>> GetFeatureSet(int depth) {
+  std::shared_ptr<HostDeviceVector<bst_feature_t>> GetFeatureSet(int depth) {
     if (colsample_bylevel_ == 1.0f && colsample_bynode_ == 1.0f) {
       return feature_set_tree_;
     }

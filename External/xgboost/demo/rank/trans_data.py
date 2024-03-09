@@ -1,5 +1,6 @@
 import sys
 
+
 def save_data(group_data,output_feature,output_group):
     if len(group_data) == 0:
         return
@@ -7,7 +8,7 @@ def save_data(group_data,output_feature,output_group):
     output_group.write(str(len(group_data))+"\n")
     for data in group_data:
         # only include nonzero features
-        feats = [ p for p in data[2:] if float(p.split(':')[1]) != 0.0 ]        
+        feats = [ p for p in data[2:] if float(p.split(':')[1]) != 0.0 ]
         output_feature.write(data[0] + " " + " ".join(feats) + "\n")
 
 if __name__ == "__main__":
@@ -18,7 +19,7 @@ if __name__ == "__main__":
     fi = open(sys.argv[1])
     output_feature = open(sys.argv[2],"w")
     output_group = open(sys.argv[3],"w")
-    
+
     group_data = []
     group = ""
     for line in fi:
@@ -38,4 +39,3 @@ if __name__ == "__main__":
     fi.close()
     output_feature.close()
     output_group.close()
-

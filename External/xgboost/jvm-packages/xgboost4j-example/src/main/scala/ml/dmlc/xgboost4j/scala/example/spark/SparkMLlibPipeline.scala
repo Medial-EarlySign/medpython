@@ -20,10 +20,9 @@ import org.apache.spark.ml.{Pipeline, PipelineModel}
 import org.apache.spark.ml.evaluation.MulticlassClassificationEvaluator
 import org.apache.spark.ml.feature._
 import org.apache.spark.ml.tuning._
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, SparkSession}
 import org.apache.spark.sql.types._
-
-import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassifier, XGBoostClassificationModel}
+import ml.dmlc.xgboost4j.scala.spark.{XGBoostClassificationModel, XGBoostClassifier}
 
 // this example works with Iris dataset (https://archive.ics.uci.edu/ml/datasets/iris)
 
@@ -31,8 +30,9 @@ object SparkMLlibPipeline {
 
   def main(args: Array[String]): Unit = {
 
-    if (args.length != 3) {
-      println("Usage: SparkMLlibPipeline input_path native_model_path pipeline_model_path")
+    if (args.length != 3 && args.length != 4) {
+      println("Usage: SparkMLlibPipeline input_path native_model_path pipeline_model_path " +
+        "[cpu|gpu]")
       sys.exit(1)
     }
 
@@ -40,10 +40,21 @@ object SparkMLlibPipeline {
     val nativeModelPath = args(1)
     val pipelineModelPath = args(2)
 
+    val (device, numWorkers) = if (args.length == 4 && args(3) == "gpu") {
+      ("cuda", 1)
+    } else ("cpu", 2)
+
     val spark = SparkSession
       .builder()
       .appName("XGBoost4J-Spark Pipeline Example")
       .getOrCreate()
+
+    run(spark, inputPath, nativeModelPath, pipelineModelPath, device, numWorkers)
+      .show(false)
+  }
+  private[spark] def run(spark: SparkSession, inputPath: String, nativeModelPath: String,
+                         pipelineModelPath: String, device: String,
+                         numWorkers: Int): DataFrame = {
 
     // Load dataset
     val schema = new StructType(Array(
@@ -71,12 +82,14 @@ object SparkMLlibPipeline {
       .setOutputCol("classIndex")
       .fit(training)
     val booster = new XGBoostClassifier(
-      Map("eta" -> 0.1f,
+      Map(
+        "eta" -> 0.1f,
         "max_depth" -> 2,
         "objective" -> "multi:softprob",
         "num_class" -> 3,
         "num_round" -> 100,
-        "num_workers" -> 2
+        "num_workers" -> numWorkers,
+        "device" -> device
       )
     )
     booster.setFeaturesCol("features")
@@ -84,11 +97,11 @@ object SparkMLlibPipeline {
     val labelConverter = new IndexToString()
       .setInputCol("prediction")
       .setOutputCol("realLabel")
-      .setLabels(labelIndexer.labels)
+      .setLabels(labelIndexer.labelsArray(0))
 
     val pipeline = new Pipeline()
       .setStages(Array(assembler, labelIndexer, booster, labelConverter))
-    val model = pipeline.fit(training)
+    val model: PipelineModel = pipeline.fit(training)
 
     // Batch prediction
     val prediction = model.transform(test)
@@ -130,6 +143,6 @@ object SparkMLlibPipeline {
 
     // Load a saved model and serving
     val model2 = PipelineModel.load(pipelineModelPath)
-    model2.transform(test).show(false)
+    model2.transform(test)
   }
 }

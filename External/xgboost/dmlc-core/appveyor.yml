@@ -1,5 +1,15 @@
 environment:
     matrix:
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+          target: msvc
+          ver: 2019
+          generator: "Visual Studio 16 2019"
+          configuration: Debug
+        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2019
+          target: msvc
+          ver: 2019
+          generator: "Visual Studio 16 2019"
+          configuration: Release
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
           target: mingw32
           generator: "MinGW Makefiles"
@@ -12,11 +22,6 @@ environment:
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2017
           target: msys2
           generator: "Unix Makefiles"
-        - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
-          target: msvc
-          ver: 2013
-          generator: "Visual Studio 12 2013 Win64"
-          configuration: Release
         - APPVEYOR_BUILD_WORKER_IMAGE: Visual Studio 2015
           target: msvc
           ver: 2015
@@ -68,35 +73,38 @@ build_script:
         mkdir build_msvc%ver% &&
         cd build_msvc%ver% &&
         if /i "%generator%" == "Visual Studio 12 2013 Win64" (
-          cmake .. -G"%generator%" -DCMAKE_CONFIGURATION_TYPES="Release;Debug;" &&
+          cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_CONFIGURATION_TYPES="Release;Debug;" &&
+          msbuild dmlc.sln
+        ) else if /i "%generator%" == "Visual Studio 16 2019" (
+          cmake .. -G"%generator%" -A x64 -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_CONFIGURATION_TYPES="Release;Debug;" -DGOOGLE_TEST=ON &&
           msbuild dmlc.sln
         ) else (
-          cmake .. -G"%generator%" -DCMAKE_CONFIGURATION_TYPES="Release;Debug;" -DGOOGLE_TEST=ON &&
+          cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_CONFIGURATION_TYPES="Release;Debug;" -DGOOGLE_TEST=ON &&
           msbuild dmlc.sln
         )
       )
     - if /i "%target%" == "msys2" (
         mkdir build_msys2 &&
         cd build_msys2 &&
-        cmake .. -G"%generator%" -DGOOGLE_TEST=ON &&
+        cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DGOOGLE_TEST=ON &&
         cmake --build . -- -j2
       )
     - if /i "%target%" == "mingw32" (
         mkdir build_mingw32 &&
         cd build_mingw32 &&
-        cmake .. -G"%generator%" -DGOOGLE_TEST=ON &&
+        cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DGOOGLE_TEST=ON &&
         cmake --build . -- -j2
       )
     - if /i "%target%" == "mingw" (
         mkdir build_mingw &&
         cd build_mingw &&
-        cmake .. -G"%generator%" -DGOOGLE_TEST=ON &&
+        cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DGOOGLE_TEST=ON &&
         cmake --build . -- -j2
       )
     - if /i "%target%" == "cygwin" (
         mkdir build_cygwin &&
         cd build_cygwin &&
-        cmake .. -G"%generator%" -DGOOGLE_TEST=ON -DOpenMP_gomp_LIBRARY=-lgomp &&
+        cmake .. -G"%generator%" -DCMAKE_VERBOSE_MAKEFILE=ON -DGOOGLE_TEST=ON -DOpenMP_gomp_LIBRARY:FILEPATH=-lgomp &&
         cmake --build . -- -j2
       )
 

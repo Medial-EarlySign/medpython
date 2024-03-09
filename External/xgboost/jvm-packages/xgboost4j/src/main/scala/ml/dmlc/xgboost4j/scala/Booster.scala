@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -31,6 +31,48 @@ import scala.collection.mutable
   */
 class Booster private[xgboost4j](private[xgboost4j] var booster: JBooster)
   extends Serializable  with KryoSerializable {
+
+  /**
+   * Get attributes stored in the Booster as a Map.
+   *
+   * @return A map contain attribute pairs.
+   */
+  @throws(classOf[XGBoostError])
+  def getAttrs: Map[String, String] = {
+    booster.getAttrs.asScala.toMap
+  }
+
+  /**
+   * Get attribute from the Booster.
+   *
+   * @param key   attr name
+   * @return attr value
+   */
+  @throws(classOf[XGBoostError])
+  def getAttr(key: String): String = {
+    booster.getAttr(key)
+  }
+
+  /**
+   * Set attribute to the Booster.
+   *
+   * @param key   attr name
+   * @param value attr value
+   */
+  @throws(classOf[XGBoostError])
+  def setAttr(key: String, value: String): Unit = {
+    booster.setAttr(key, value)
+  }
+
+  /**
+   * set attributes
+   *
+   * @param params attributes key-value map
+   */
+  @throws(classOf[XGBoostError])
+  def setAttrs(params: Map[String, String]): Unit = {
+    booster.setAttrs(params.asJava)
+  }
 
   /**
     * Set parameter to the Booster.
@@ -165,6 +207,7 @@ class Booster private[xgboost4j](private[xgboost4j] var booster: JBooster)
   def saveModel(modelPath: String): Unit = {
     booster.saveModel(modelPath)
   }
+
   /**
     * save model to Output stream
     *
@@ -174,6 +217,18 @@ class Booster private[xgboost4j](private[xgboost4j] var booster: JBooster)
   def saveModel(out: java.io.OutputStream): Unit = {
     booster.saveModel(out)
   }
+
+  /**
+   * save model to Output stream
+   * @param out output stream
+   * @param format the supported model format, (json, ubj, deprecated)
+   * @throws ml.dmlc.xgboost4j.java.XGBoostError
+   */
+  @throws(classOf[XGBoostError])
+  def saveModel(out: java.io.OutputStream, format: String): Unit = {
+    booster.saveModel(out, format)
+  }
+
   /**
    * Dump model as Array of string
    *
@@ -249,10 +304,31 @@ class Booster private[xgboost4j](private[xgboost4j] var booster: JBooster)
         .asScala.mapValues(_.doubleValue).toSeq: _*)
   }
 
+  /**
+    * Get the number of model features.
+    *
+    * @return number of features
+    */
+  @throws(classOf[XGBoostError])
+  def getNumFeature: Long = booster.getNumFeature
+
   def getVersion: Int = booster.getVersion
 
+  /**
+    * Save model into a raw byte array.  Available options are "json", "ubj" and "deprecated".
+    */
+  @throws(classOf[XGBoostError])
+  def toByteArray(format: String): Array[Byte] = {
+    booster.toByteArray(format)
+  }
+
+  /**
+    * Save model into a raw byte array. Currently it's using the deprecated format as
+   *  default, which will be changed into `ubj` in future releases.
+    */
+  @throws(classOf[XGBoostError])
   def toByteArray: Array[Byte] = {
-    booster.toByteArray
+    booster.toByteArray()
   }
 
   /**

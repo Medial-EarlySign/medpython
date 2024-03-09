@@ -1,5 +1,5 @@
 /*
- Copyright (c) 2014 by Contributors
+ Copyright (c) 2014-2022 by Contributors
 
  Licensed under the Apache License, Version 2.0 (the "License");
  you may not use this file except in compliance with the License.
@@ -18,7 +18,7 @@ package ml.dmlc.xgboost4j.scala.spark.params
 
 import scala.collection.immutable.HashSet
 
-import org.apache.spark.ml.param.{DoubleParam, IntParam, Param, Params}
+import org.apache.spark.ml.param.{DoubleParam, IntParam, BooleanParam, Param, Params}
 
 private[spark] trait BoosterParams extends Params {
 
@@ -145,14 +145,23 @@ private[spark] trait BoosterParams extends Params {
   final def getAlpha: Double = $(alpha)
 
   /**
-   * The tree construction algorithm used in XGBoost. options: {'auto', 'exact', 'approx'}
-   *  [default='auto']
+   * The tree construction algorithm used in XGBoost. options:
+   * {'auto', 'exact', 'approx','gpu_hist'} [default='auto']
    */
   final val treeMethod = new Param[String](this, "treeMethod",
-    "The tree construction algorithm used in XGBoost, options: {'auto', 'exact', 'approx', 'hist'}",
+    "The tree construction algorithm used in XGBoost, options: " +
+      "{'auto', 'exact', 'approx', 'hist', 'gpu_hist'}",
     (value: String) => BoosterParams.supportedTreeMethods.contains(value))
 
   final def getTreeMethod: String = $(treeMethod)
+  /**
+    *  The device for running XGBoost algorithms, options: cpu, cuda
+    */
+  final val device = new Param[String](
+    this, "device", "The device for running XGBoost algorithms, options: cpu, cuda"
+  )
+
+  final def getDevice: String = $(device)
 
   /**
    * growth policy for fast histogram algorithm
@@ -174,18 +183,12 @@ private[spark] trait BoosterParams extends Params {
   final def getMaxBins: Int = $(maxBins)
 
   /**
-   * This is only used for approximate greedy algorithm.
-   * This roughly translated into O(1 / sketch_eps) number of bins. Compared to directly select
-   * number of bins, this comes with theoretical guarantee with sketch accuracy.
-   * [default=0.03] range: (0, 1)
+   * whether to build histograms using single precision floating point values
    */
-  final val sketchEps = new DoubleParam(this, "sketchEps",
-    "This is only used for approximate greedy algorithm. This roughly translated into" +
-      " O(1 / sketch_eps) number of bins. Compared to directly select number of bins, this comes" +
-      " with theoretical guarantee with sketch accuracy.",
-    (value: Double) => value < 1 && value > 0)
+  final val singlePrecisionHistogram = new BooleanParam(this, "singlePrecisionHistogram",
+    "whether to use single precision to build histograms")
 
-  final def getSketchEps: Double = $(sketchEps)
+  final def getSinglePrecisionHistogram: Boolean = $(singlePrecisionHistogram)
 
   /**
    * Control the balance of positive and negative weights, useful for unbalanced classes. A typical
@@ -252,6 +255,7 @@ private[spark] trait BoosterParams extends Params {
 
   final val treeLimit = new IntParam(this, name = "treeLimit",
     doc = "number of trees used in the prediction; defaults to 0 (use all trees).")
+  setDefault(treeLimit, 0)
 
   final def getTreeLimit: Int = $(treeLimit)
 
@@ -271,20 +275,13 @@ private[spark] trait BoosterParams extends Params {
 
   final def getInteractionConstraints: String = $(interactionConstraints)
 
-  setDefault(eta -> 0.3, gamma -> 0, maxDepth -> 6,
-    minChildWeight -> 1, maxDeltaStep -> 0,
-    growPolicy -> "depthwise", maxBins -> 16,
-    subsample -> 1, colsampleBytree -> 1, colsampleBylevel -> 1,
-    lambda -> 1, alpha -> 0, treeMethod -> "auto", sketchEps -> 0.03,
-    scalePosWeight -> 1.0, sampleType -> "uniform", normalizeType -> "tree",
-    rateDrop -> 0.0, skipDrop -> 0.0, lambdaBias -> 0, treeLimit -> 0)
 }
 
-private[spark] object BoosterParams {
+private[scala] object BoosterParams {
 
   val supportedBoosters = HashSet("gbtree", "gblinear", "dart")
 
-  val supportedTreeMethods = HashSet("auto", "exact", "approx", "hist")
+  val supportedTreeMethods = HashSet("auto", "exact", "approx", "hist", "gpu_hist")
 
   val supportedGrowthPolicies = HashSet("depthwise", "lossguide")
 

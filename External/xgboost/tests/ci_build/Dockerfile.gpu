@@ -1,47 +1,40 @@
-ARG CUDA_VERSION
-FROM nvidia/cuda:$CUDA_VERSION-devel-centos6
+ARG CUDA_VERSION_ARG
+FROM nvidia/cuda:$CUDA_VERSION_ARG-runtime-ubuntu22.04
+ARG CUDA_VERSION_ARG
+ARG RAPIDS_VERSION_ARG
 
 # Environment
 ENV DEBIAN_FRONTEND noninteractive
+SHELL ["/bin/bash", "-c"]   # Use Bash as shell
 
 # Install all basic requirements
 RUN \
-    yum -y update && \
-    yum install -y tar unzip wget xz git && \
-    wget http://people.centos.org/tru/devtools-2/devtools-2.repo -O /etc/yum.repos.d/devtools-2.repo && \
-    yum install -y devtoolset-2-gcc devtoolset-2-binutils devtoolset-2-gcc-c++ && \
+    apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2204/x86_64/3bf863cc.pub && \
+    apt-get update && \
+    apt-get install -y wget unzip bzip2 libgomp1 build-essential openjdk-8-jdk-headless && \
     # Python
-    wget https://repo.continuum.io/miniconda/Miniconda2-4.3.27-Linux-x86_64.sh && \
-    bash Miniconda2-4.3.27-Linux-x86_64.sh -b -p /opt/python && \
-    # CMake
-    wget -nv -nc https://cmake.org/files/v3.5/cmake-3.5.2-Linux-x86_64.sh --no-check-certificate && \
-    bash cmake-3.5.2-Linux-x86_64.sh --skip-license --prefix=/usr
+    wget -nv -O conda.sh https://github.com/conda-forge/miniforge/releases/download/22.11.1-2/Mambaforge-22.11.1-2-Linux-x86_64.sh && \
+    bash conda.sh -b -p /opt/mambaforge
 
-# NCCL2 (License: https://docs.nvidia.com/deeplearning/sdk/nccl-sla/index.html)
+ENV PATH=/opt/mambaforge/bin:$PATH
+
+# Create new Conda environment with cuDF, Dask, and cuPy
 RUN \
-    export CUDA_SHORT=`echo $CUDA_VERSION | egrep -o '[0-9]+\.[0-9]'` && \
-    if [ "${CUDA_SHORT}" != "10.0" ]; then \
-    wget https://developer.download.nvidia.com/compute/redist/nccl/v2.2/nccl_2.2.13-1%2Bcuda${CUDA_SHORT}_x86_64.txz && \
-    tar xf "nccl_2.2.13-1+cuda${CUDA_SHORT}_x86_64.txz" && \
-    cp nccl_2.2.13-1+cuda${CUDA_SHORT}_x86_64/include/nccl.h /usr/include && \
-    cp nccl_2.2.13-1+cuda${CUDA_SHORT}_x86_64/lib/* /usr/lib && \
-    rm -f nccl_2.2.13-1+cuda${CUDA_SHORT}_x86_64.txz && \
-    rm -r nccl_2.2.13-1+cuda${CUDA_SHORT}_x86_64; fi
-
-ENV PATH=/opt/python/bin:$PATH
-ENV CC=/opt/rh/devtoolset-2/root/usr/bin/gcc
-ENV CXX=/opt/rh/devtoolset-2/root/usr/bin/c++
-ENV CPP=/opt/rh/devtoolset-2/root/usr/bin/cpp
-
-# Install Python packages
-RUN \
-    pip install numpy pytest scipy scikit-learn wheel kubernetes urllib3==1.22
+    conda install -c conda-forge mamba && \
+    mamba create -n gpu_test -c rapidsai-nightly -c rapidsai -c nvidia -c conda-forge -c defaults \
+        python=3.10 cudf=$RAPIDS_VERSION_ARG* rmm=$RAPIDS_VERSION_ARG* cudatoolkit=$CUDA_VERSION_ARG \
+        dask dask-cuda=$RAPIDS_VERSION_ARG* dask-cudf=$RAPIDS_VERSION_ARG* cupy \
+        numpy pytest pytest-timeout scipy scikit-learn pandas matplotlib wheel python-kubernetes urllib3 graphviz hypothesis \
+        pyspark>=3.4.0 cloudpickle cuda-python && \
+    mamba clean --all && \
+    conda run --no-capture-output -n gpu_test pip install buildkite-test-collector
 
 ENV GOSU_VERSION 1.10
+ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 
 # Install lightweight sudo (not bound to TTY)
 RUN set -ex; \
-    wget -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" && \
+    wget -nv -O /usr/local/bin/gosu "https://github.com/tianon/gosu/releases/download/$GOSU_VERSION/gosu-amd64" && \
     chmod +x /usr/local/bin/gosu && \
     gosu nobody true
 

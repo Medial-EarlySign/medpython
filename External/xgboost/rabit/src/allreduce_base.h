@@ -12,14 +12,22 @@
 #ifndef RABIT_ALLREDUCE_BASE_H_
 #define RABIT_ALLREDUCE_BASE_H_
 
+#include <functional>
+#include <future>
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "../include/rabit/internal/utils.h"
-#include "../include/rabit/internal/engine.h"
-#include "./socket.h"
+#include "rabit/internal/utils.h"
+#include "rabit/internal/engine.h"
+#include "rabit/internal/socket.h"
 
-namespace MPI {
+#ifdef RABIT_CXXTESTDEFS_H
+#define private   public
+#define protected public
+#endif  // RABIT_CXXTESTDEFS_H
+
+
+namespace MPI {  // NOLINT
 // MPI data type to be compatible with existing MPI interface
 class Datatype {
  public:
@@ -29,18 +37,19 @@ class Datatype {
 }
 namespace rabit {
 namespace engine {
+
 /*! \brief implementation of basic Allreduce engine */
 class AllreduceBase : public IEngine {
  public:
   // magic number to verify server
   static const int kMagic = 0xff99;
   // constant one byte out of band message to indicate error happening
-  AllreduceBase(void);
-  virtual ~AllreduceBase(void) {}
+  AllreduceBase();
+  virtual ~AllreduceBase() = default;
   // initialize the manager
-  virtual void Init(int argc, char* argv[]);
+  virtual bool Init(int argc, char* argv[]);
   // shutdown the engine
-  virtual void Shutdown(void);
+  virtual bool Shutdown();
   /*!
    * \brief set parameters to the engine
    * \param name parameter name
@@ -53,152 +62,110 @@ class AllreduceBase : public IEngine {
    *    the user who monitors the tracker
    * \param msg message to be printed in the tracker
    */
-  virtual void TrackerPrint(const std::string &msg);
+  void TrackerPrint(const std::string &msg) override;
+
+  /*! \brief get rank of previous node in ring topology*/
+  int GetRingPrevRank() const override {
+    return ring_prev->rank;
+  }
   /*! \brief get rank */
-  virtual int GetRank(void) const {
+  int GetRank() const override {
     return rank;
   }
   /*! \brief get rank */
-  virtual int GetWorldSize(void) const {
+  int GetWorldSize() const override {
     if (world_size == -1) return 1;
     return world_size;
   }
   /*! \brief whether is distributed or not */
-  virtual bool IsDistributed(void) const {
+  bool IsDistributed() const override {
     return tracker_uri != "NULL";
   }
   /*! \brief get rank */
-  virtual std::string GetHost(void) const {
+  std::string GetHost() const override {
     return host_uri;
+  }
+
+  /*!
+  * \brief internal Allgather function, each node have a segment of data in the ring of sendrecvbuf,
+  *  the data provided by current node k is [slice_begin, slice_end),
+  *  the next node's segment must start with slice_end
+  *  after the call of Allgather, sendrecvbuf_ contains all the contents including all segments
+  *  use a ring based algorithm
+  *
+  * \param sendrecvbuf_ buffer for both sending and receiving data, it is a ring conceptually
+  * \param total_size total size of data to be gathered
+  * \param slice_begin beginning of the current slice
+  * \param slice_end end of the current slice
+  * \param size_prev_slice size of the previous slice i.e. slice of node (rank - 1) % world_size
+  */
+  void Allgather(void *sendrecvbuf_, size_t total_size, size_t slice_begin,
+                 size_t slice_end, size_t size_prev_slice) override {
+    if (world_size == 1 || world_size == -1) {
+      return;
+    }
+    utils::Assert(TryAllgatherRing(sendrecvbuf_, total_size, slice_begin,
+                                   slice_end, size_prev_slice) == kSuccess,
+                  "AllgatherRing failed");
   }
   /*!
    * \brief perform in-place allreduce, on sendrecvbuf
    *        this function is NOT thread-safe
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param type_nbytes the unit number of bytes the type have
    * \param count number of elements to be reduced
    * \param reducer reduce function
    * \param prepare_func Lazy preprocessing function, lazy prepare_fun(prepare_arg)
-   *                     will be called by the function before performing Allreduce, to intialize the data in sendrecvbuf_.
+   *                     will be called by the function before performing Allreduce, to initialize the data in sendrecvbuf_.
    *                     If the result of Allreduce can be recovered directly, then prepare_func will NOT be called
    * \param prepare_arg argument used to passed into the lazy preprocessing function
    */
-  virtual void Allreduce(void *sendrecvbuf_,
-                         size_t type_nbytes,
-                         size_t count,
-                         ReduceFunction reducer,
-                         PreprocFunction prepare_fun = NULL,
-                         void *prepare_arg = NULL) {
-    if (prepare_fun != NULL) prepare_fun(prepare_arg);
+  void Allreduce(void *sendrecvbuf_, size_t type_nbytes, size_t count,
+                 ReduceFunction reducer, PreprocFunction prepare_fun = nullptr,
+                 void *prepare_arg = nullptr) override {
+    if (prepare_fun != nullptr) prepare_fun(prepare_arg);
     if (world_size == 1 || world_size == -1) return;
-    utils::Assert(TryAllreduce(sendrecvbuf_,
-                               type_nbytes, count, reducer) == kSuccess,
+    utils::Assert(TryAllreduce(sendrecvbuf_, type_nbytes, count, reducer) ==
+                      kSuccess,
                   "Allreduce failed");
   }
   /*!
    * \brief broadcast data from root to all nodes
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param size the size of the data to be broadcasted
    * \param root the root worker id to broadcast the data
+   * \param _file caller file name used to generate unique cache key
+   * \param _line caller line number used to generate unique cache key
+   * \param _caller caller function name used to generate unique cache key
    */
-  virtual void Broadcast(void *sendrecvbuf_, size_t total_size, int root) {
+  void Broadcast(void *sendrecvbuf_, size_t total_size, int root) override {
     if (world_size == 1 || world_size == -1) return;
     utils::Assert(TryBroadcast(sendrecvbuf_, total_size, root) == kSuccess,
                   "Broadcast failed");
   }
   /*!
-   * \brief load latest check point
-   * \param global_model pointer to the globally shared model/state
-   *   when calling this function, the caller need to gauranttees that global_model
-   *   is the same in all nodes
-   * \param local_model pointer to local model, that is specific to current node/rank
-   *   this can be NULL when no local model is needed
-   *
-   * \return the version number of check point loaded
-   *     if returned version == 0, this means no model has been CheckPointed
-   *     the p_model is not touched, user should do necessary initialization by themselves
-   *
-   *   Common usage example:
-   *      int iter = rabit::LoadCheckPoint(&model);
-   *      if (iter == 0) model.InitParameters();
-   *      for (i = iter; i < max_iter; ++i) {
-   *        do many things, include allreduce
-   *        rabit::CheckPoint(model);
-   *      }
-   *
+   * \brief deprecated
    * \sa CheckPoint, VersionNumber
    */
-  virtual int LoadCheckPoint(Serializable *global_model,
-                             Serializable *local_model = NULL) {
-    return 0;
-  }
-  /*!
-   * \brief checkpoint the model, meaning we finished a stage of execution
-   *  every time we call check point, there is a version number which will increase by one
-   *
-   * \param global_model pointer to the globally shared model/state
-   *   when calling this function, the caller need to gauranttees that global_model
-   *   is the same in all nodes
-   * \param local_model pointer to local model, that is specific to current node/rank
-   *   this can be NULL when no local state is needed
-   *
-   * NOTE: local_model requires explicit replication of the model for fault-tolerance, which will
-   *       bring replication cost in CheckPoint function. global_model do not need explicit replication.
-   *       So only CheckPoint with global_model if possible
-   *
-   * \sa LoadCheckPoint, VersionNumber
-   */
-  virtual void CheckPoint(const Serializable *global_model,
-                          const Serializable *local_model = NULL) {
-    version_number += 1;
-  }
-  /*!
-   * \brief This function can be used to replace CheckPoint for global_model only,
-   *   when certain condition is met(see detailed expplaination).
-   *
-   *   This is a "lazy" checkpoint such that only the pointer to global_model is
-   *   remembered and no memory copy is taken. To use this function, the user MUST ensure that:
-   *   The global_model must remain unchanged util last call of Allreduce/Broadcast in current version finishs.
-   *   In another words, global_model model can be changed only between last call of
-   *   Allreduce/Broadcast and LazyCheckPoint in current version
-   *
-   *   For example, suppose the calling sequence is:
-   *   LazyCheckPoint, code1, Allreduce, code2, Broadcast, code3, LazyCheckPoint
-   *
-   *   If user can only changes global_model in code3, then LazyCheckPoint can be used to
-   *   improve efficiency of the program.
-   * \param global_model pointer to the globally shared model/state
-   *   when calling this function, the caller need to gauranttees that global_model
-   *   is the same in all nodes
-   * \sa LoadCheckPoint, CheckPoint, VersionNumber
-   */
-  virtual void LazyCheckPoint(const Serializable *global_model) {
-    version_number += 1;
-  }
+  int LoadCheckPoint() override { return 0; }
+
+  // deprecated, increase internal version number
+  void CheckPoint() override { version_number += 1; }
   /*!
    * \return version number of current stored model,
    *         which means how many calls to CheckPoint we made so far
    * \sa LoadCheckPoint, CheckPoint
    */
-  virtual int VersionNumber(void) const {
+  int VersionNumber() const override {
     return version_number;
-  }
-  /*!
-   * \brief explicitly re-init everything before calling LoadCheckPoint
-   *    call this function when IEngine throw an exception out,
-   *    this function is only used for test purpose
-   */
-  virtual void InitAfterException(void) {
-    utils::Error("InitAfterException: not implemented");
   }
   /*!
    * \brief report current status to the job tracker
    * depending on the job tracker we are in
    */
-  inline void ReportStatus(void) const {
+  inline void ReportStatus() const {
     if (hadoop_mode != 0) {
-      fprintf(stderr, "reporter:status:Rabit Phase[%03d] Operation %03d\n",
-              version_number, seq_counter);
+      LOG(CONSOLE) << "reporter:status:Rabit Phase[" << version_number << "] Operation " << seq_counter << "\n";
     }
   }
 
@@ -224,7 +191,7 @@ class AllreduceBase : public IEngine {
     /*! \brief internal return type */
     ReturnTypeEnum value;
     // constructor
-    ReturnType() {}
+    ReturnType() = default;
     ReturnType(ReturnTypeEnum value) : value(value) {}  // NOLINT(*)
     inline bool operator==(const ReturnTypeEnum &v) const {
       return value == v;
@@ -234,8 +201,8 @@ class AllreduceBase : public IEngine {
     }
   };
   /*! \brief translate errno to return type */
-  inline static ReturnType Errno2Return() {
-    int errsv = utils::Socket::GetLastError();
+  static ReturnType Errno2Return() {
+    int errsv = xgboost::system::LastError();
     if (errsv == EAGAIN || errsv == EWOULDBLOCK || errsv == 0) return kSuccess;
 #ifdef _WIN32
     if (errsv == WSAEWOULDBLOCK) return kSuccess;
@@ -248,7 +215,7 @@ class AllreduceBase : public IEngine {
   struct LinkRecord {
    public:
     // socket to get data from/to link
-    utils::TCPSocket sock;
+    xgboost::collective::TCPSocket sock;
     // rank of the node in this link
     int rank;
     // size of data readed from link
@@ -256,18 +223,17 @@ class AllreduceBase : public IEngine {
     // size of data sent to the link
     size_t size_write;
     // pointer to buffer head
-    char *buffer_head;
+    char *buffer_head {nullptr};
     // buffer size, in bytes
-    size_t buffer_size;
+    size_t buffer_size {0};
     // constructor
-    LinkRecord(void)
-        : buffer_head(NULL), buffer_size(0) {
-    }
+    LinkRecord() = default;
     // initialize buffer
-    inline void InitBuffer(size_t type_nbytes, size_t count,
-                           size_t reduce_buffer_size) {
+    void InitBuffer(size_t type_nbytes, size_t count,
+                    size_t reduce_buffer_size) {
       size_t n = (type_nbytes * count + 7)/ 8;
-      buffer_.resize(std::min(reduce_buffer_size, n));
+      auto to = Min(reduce_buffer_size, n);
+      buffer_.resize(to);
       // make sure align to type_nbytes
       buffer_size =
           buffer_.size() * sizeof(uint64_t) / type_nbytes * type_nbytes;
@@ -278,7 +244,7 @@ class AllreduceBase : public IEngine {
       buffer_head = reinterpret_cast<char*>(BeginPtr(buffer_));
     }
     // reset the recv and sent size
-    inline void ResetSize(void) {
+    inline void ResetSize() {
       size_write = size_read = 0;
     }
     /*!
@@ -290,14 +256,14 @@ class AllreduceBase : public IEngine {
      * \return the type of reading
      */
     inline ReturnType ReadToRingBuffer(size_t protect_start, size_t max_size_read) {
-      utils::Assert(buffer_head != NULL, "ReadToRingBuffer: buffer not allocated");
+      utils::Assert(buffer_head != nullptr, "ReadToRingBuffer: buffer not allocated");
       utils::Assert(size_read <= max_size_read, "ReadToRingBuffer: max_size_read check");
       size_t ngap = size_read - protect_start;
       utils::Assert(ngap <= buffer_size, "Allreduce: boundary check");
       size_t offset = size_read % buffer_size;
       size_t nmax = max_size_read - size_read;
-      nmax = std::min(nmax, buffer_size - ngap);
-      nmax = std::min(nmax, buffer_size - offset);
+      nmax = Min(nmax, buffer_size - ngap);
+      nmax = Min(nmax, buffer_size - offset);
       if (nmax == 0) return kSuccess;
       ssize_t len = sock.Recv(buffer_head + offset, nmax);
       // length equals 0, remote disconnected
@@ -355,7 +321,7 @@ class AllreduceBase : public IEngine {
     inline LinkRecord &operator[](size_t i) {
       return *plinks[i];
     }
-    inline size_t size(void) const {
+    inline size_t Size() const {
       return plinks.size();
     }
   };
@@ -363,13 +329,13 @@ class AllreduceBase : public IEngine {
    * \brief initialize connection to the tracker
    * \return a socket that initializes the connection
    */
-  utils::TCPSocket ConnectTracker(void) const;
+  xgboost::collective::TCPSocket ConnectTracker() const;
   /*!
    * \brief connect to the tracker to fix the the missing links
    *   this function is also used when the engine start up
    * \param cmd possible command to sent to tracker
    */
-  void ReConnectLinks(const char *cmd = "start");
+  bool ReConnectLinks(const char *cmd = "start");
   /*!
    * \brief perform in-place allreduce, on sendrecvbuf, this function can fail, and will return the cause of failure
    *
@@ -378,7 +344,7 @@ class AllreduceBase : public IEngine {
    *    It only means the current node get the correct result of Allreduce.
    *    However, it means every node finishes LAST call(instead of this one) of Allreduce/Bcast
    *
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param type_nbytes the unit number of bytes the type have
    * \param count number of elements to be reduced
    * \param reducer reduce function
@@ -402,7 +368,7 @@ class AllreduceBase : public IEngine {
    * \brief perform in-place allreduce, on sendrecvbuf,
    * this function implements tree-shape reduction
    *
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param type_nbytes the unit number of bytes the type have
    * \param count number of elements to be reduced
    * \param reducer reduce function
@@ -438,7 +404,7 @@ class AllreduceBase : public IEngine {
    *  the k-th segment is defined by [k * step, min((k + 1) * step,count) )
    *  where step = ceil(count / world_size)
    *
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param type_nbytes the unit number of bytes the type have
    * \param count number of elements to be reduced
    * \param reducer reduce function
@@ -453,7 +419,7 @@ class AllreduceBase : public IEngine {
    * \brief perform in-place allreduce, on sendrecvbuf
    *  use a ring based algorithm, reduce-scatter + allgather
    *
-   * \param sendrecvbuf_ buffer for both sending and recving data
+   * \param sendrecvbuf_ buffer for both sending and receiving data
    * \param type_nbytes the unit number of bytes the type have
    * \param count number of elements to be reduced
    * \param reducer reduce function
@@ -475,52 +441,58 @@ class AllreduceBase : public IEngine {
   //---- data structure related to model ----
   // call sequence counter, records how many calls we made so far
   // from last call to CheckPoint, LoadCheckPoint
-  int seq_counter;
+  int seq_counter{0}; // NOLINT
   // version number of model
-  int version_number;
-  // whether the job is running in hadoop
-  int hadoop_mode;
+  int version_number {0};  // NOLINT
+  // whether the job is running in Hadoop
+  bool hadoop_mode;  // NOLINT
   //---- local data related to link ----
   // index of parent link, can be -1, meaning this is root of the tree
-  int parent_index;
+  int parent_index;  // NOLINT
   // rank of parent node, can be -1
-  int parent_rank;
+  int parent_rank;  // NOLINT
   // sockets of all links this connects to
-  std::vector<LinkRecord> all_links;
+  std::vector<LinkRecord> all_links;  // NOLINT
   // used to record the link where things goes wrong
-  LinkRecord *err_link;
+  LinkRecord *err_link;  // NOLINT
   // all the links in the reduction tree connection
-  RefLinkVector tree_links;
+  RefLinkVector tree_links;  // NOLINT
   // pointer to links in the ring
-  LinkRecord *ring_prev, *ring_next;
+  LinkRecord *ring_prev, *ring_next;  // NOLINT
   //----- meta information-----
   // list of enviroment variables that are of possible interest
-  std::vector<std::string> env_vars;
+  std::vector<std::string> env_vars;  // NOLINT
   // unique identifier of the possible job this process is doing
   // used to assign ranks, optional, default to NULL
-  std::string task_id;
+  std::string task_id;  // NOLINT
   // uri of current host, to be set by Init
-  std::string host_uri;
+  std::string host_uri;  // NOLINT
   // uri of tracker
-  std::string tracker_uri;
+  std::string tracker_uri;  // NOLINT
   // role in dmlc jobs
-  std::string dmlc_role;
+  std::string dmlc_role;  // NOLINT
   // port of tracker address
-  int tracker_port;
-  // port of slave process
-  int slave_port, nport_trial;
+  int tracker_port;  // NOLINT
   // reduce buffer size
-  size_t reduce_buffer_size;
+  size_t reduce_buffer_size;  // NOLINT
   // reduction method
-  int reduce_method;
-  // mininum count of cells to use ring based method
-  size_t reduce_ring_mincount;
+  int reduce_method;  // NOLINT
+  // minimum count of cells to use ring based method
+  size_t reduce_ring_mincount;  // NOLINT
+  // minimum block size per tree reduce
+  size_t tree_reduce_minsize;  // NOLINT
   // current rank
-  int rank;
+  int rank;  // NOLINT
   // world size
-  int world_size;
+  int world_size;  // NOLINT
   // connect retry time
-  int connect_retry;
+  int connect_retry;  // NOLINT
+  // by default, if rabit worker not recover in half an hour exit
+  std::chrono::seconds timeout_sec{std::chrono::seconds{1800}}; // NOLINT
+  // flag to enable rabit_timeout
+  bool rabit_timeout = false;  // NOLINT
+  // Enable TCP node delay
+  bool rabit_enable_tcp_no_delay = false;  // NOLINT
 };
 }  // namespace engine
 }  // namespace rabit

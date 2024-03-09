@@ -4,9 +4,11 @@
 #include <gtest/gtest.h>
 #include <dmlc/threadediter.h>
 
+#include "unittest_threaditer.h"
+
 using namespace dmlc;
 namespace producer_test {
-inline void delay(int sleep) {
+void delay(int sleep) {
   if (sleep < 0) {
     int d = rand() % (-sleep);
     std::this_thread::sleep_for(std::chrono::milliseconds(d));
@@ -14,7 +16,6 @@ inline void delay(int sleep) {
     std::this_thread::sleep_for(std::chrono::milliseconds(sleep));
   }
 }
-
 // int was only used as example, in real life
 // use big data blob
 struct IntProducer : public ThreadedIter<int>::Producer {
@@ -44,9 +45,9 @@ TEST(ThreadedIter, basics) {
   using namespace producer_test;
   ThreadedIter<int> iter;
   iter.set_max_capacity(1);
-  IntProducer prod(10, 100);
+  auto prod = std::make_shared<IntProducer>(10, 100);
   int d = 100;
-  iter.Init(&prod);
+  iter.Init(prod);
   int counter = 0;
   while (iter.Next()) {
     CHECK(counter == iter.Value());

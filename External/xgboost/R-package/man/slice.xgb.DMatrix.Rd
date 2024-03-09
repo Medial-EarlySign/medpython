@@ -5,7 +5,7 @@
 \alias{slice.xgb.DMatrix}
 \alias{[.xgb.DMatrix}
 \title{Get a new DMatrix containing the specified rows of
-orginal xgb.DMatrix object}
+original xgb.DMatrix object}
 \usage{
 slice(object, ...)
 
@@ -24,12 +24,11 @@ slice(object, ...)
 }
 \description{
 Get a new DMatrix containing the specified rows of
-orginal xgb.DMatrix object
+original xgb.DMatrix object
 }
 \examples{
 data(agaricus.train, package='xgboost')
-train <- agaricus.train
-dtrain <- xgb.DMatrix(train$data, label=train$label)
+dtrain <- with(agaricus.train, xgb.DMatrix(data, label = label, nthread = 2))
 
 dsub <- slice(dtrain, 1:42)
 labels1 <- getinfo(dsub, 'label')

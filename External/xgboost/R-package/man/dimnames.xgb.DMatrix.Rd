@@ -16,8 +16,8 @@
 and the second one is column names}
 }
 \description{
-Only column names are supported for \code{xgb.DMatrix}, thus setting of 
-row names would have no effect and returnten row names would be NULL.
+Only column names are supported for \code{xgb.DMatrix}, thus setting of
+row names would have no effect and returned row names would be NULL.
 }
 \details{
 Generic \code{dimnames} methods are used by \code{colnames}.
@@ -26,7 +26,7 @@ Since row names are irrelevant, it is recommended to use \code{colnames} directl
 \examples{
 data(agaricus.train, package='xgboost')
 train <- agaricus.train
-dtrain <- xgb.DMatrix(train$data, label=train$label)
+dtrain <- xgb.DMatrix(train$data, label=train$label, nthread = 2)
 dimnames(dtrain)
 colnames(dtrain)
 colnames(dtrain) <- make.names(1:ncol(train$data))

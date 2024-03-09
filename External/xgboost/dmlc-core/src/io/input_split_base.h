@@ -8,12 +8,12 @@
 #define DMLC_IO_INPUT_SPLIT_BASE_H_
 
 #include <dmlc/io.h>
+#include <dmlc/filesystem.h>
 #include <cstdio>
 #include <cstring>
 #include <vector>
 #include <string>
 #include <algorithm>
-#include "./filesys.h"
 
 namespace dmlc {
 namespace io {
@@ -112,7 +112,7 @@ class InputSplitBase : public InputSplit {
    *  chunk with new batch of data without using internal
    *  temporary chunk
    */
-  virtual bool NextBatchEx(Chunk *chunk, size_t n_records) {
+  virtual bool NextBatchEx(Chunk *chunk, size_t /*n_records*/) {
     return NextChunkEx(chunk);
   }
 

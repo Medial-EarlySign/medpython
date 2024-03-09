@@ -1,16 +1,19 @@
-/*!
- * Copyright 2017-2019 by Contributors
- * \file hist_util.h
+/**
+ * Copyright 2017-2023 by XGBoost Contributors
+ * \file hist_util.cc
  */
-#include <rabit/rabit.h>
-#include <dmlc/omp.h>
-#include <numeric>
+#include "hist_util.h"
+
+#include <dmlc/timer.h>
+
 #include <vector>
 
-#include "./random.h"
-#include "./column_matrix.h"
-#include "./hist_util.h"
-#include "./quantile.h"
+#include "../data/adapter.h"         // for SparsePageAdapterBatch
+#include "../data/gradient_index.h"  // for GHistIndexMatrix
+#include "quantile.h"
+#include "xgboost/base.h"
+#include "xgboost/context.h"  // for Context
+#include "xgboost/data.h"     // for SparsePage, SortedCSCPage
 
 #if defined(XGBOOST_MM_PREFETCH_PRESENT)
   #include <xmmintrin.h>
@@ -21,604 +24,347 @@
   #define PREFETCH_READ_T0(addr) do {} while (0)
 #endif  // defined(XGBOOST_MM_PREFETCH_PRESENT)
 
-namespace xgboost {
-namespace common {
-
-HistCutMatrix::HistCutMatrix() {
-  monitor_.Init("HistCutMatrix");
+namespace xgboost::common {
+HistogramCuts::HistogramCuts() {
+  cut_ptrs_.HostVector().emplace_back(0);
 }
 
-size_t HistCutMatrix::SearchGroupIndFromBaseRow(
-    std::vector<bst_uint> const& group_ptr, size_t const base_rowid) const {
-  using KIt = std::vector<bst_uint>::const_iterator;
-  KIt res = std::lower_bound(group_ptr.cbegin(), group_ptr.cend() - 1, base_rowid);
-  // Cannot use CHECK_NE because it will try to print the iterator.
-  bool const found = res != group_ptr.cend() - 1;
-  if (!found) {
-    LOG(FATAL) << "Row " << base_rowid << " does not lie in any group!\n";
-  }
-  size_t group_ind = std::distance(group_ptr.cbegin(), res);
-  return group_ind;
-}
-
-void HistCutMatrix::Init(DMatrix* p_fmat, uint32_t max_num_bins) {
-  monitor_.Start("Init");
-  const MetaInfo& info = p_fmat->Info();
-
-  // safe factor for better accuracy
-  constexpr int kFactor = 8;
-  std::vector<WXQSketch> sketchs;
-
-  const int nthread = omp_get_max_threads();
-
-  unsigned const nstep =
-      static_cast<unsigned>((info.num_col_ + nthread - 1) / nthread);
-  unsigned const ncol = static_cast<unsigned>(info.num_col_);
-  sketchs.resize(info.num_col_);
-  for (auto& s : sketchs) {
-    s.Init(info.num_row_, 1.0 / (max_num_bins * kFactor));
-  }
-
-  const auto& weights = info.weights_.HostVector();
-
-  // Data groups, used in ranking.
-  std::vector<bst_uint> const& group_ptr = info.group_ptr_;
-  size_t const num_groups = group_ptr.size() == 0 ? 0 : group_ptr.size() - 1;
-  // Use group index for weights?
-  bool const use_group_ind = num_groups != 0 && weights.size() != info.num_row_;
-
-  for (const auto &batch : p_fmat->GetRowBatches()) {
-    size_t group_ind = 0;
-    if (use_group_ind) {
-      group_ind = this->SearchGroupIndFromBaseRow(group_ptr, batch.base_rowid);
-    }
-#pragma omp parallel num_threads(nthread) firstprivate(group_ind, use_group_ind)
-    {
-      CHECK_EQ(nthread, omp_get_num_threads());
-      auto tid = static_cast<unsigned>(omp_get_thread_num());
-      unsigned begin = std::min(nstep * tid, ncol);
-      unsigned end = std::min(nstep * (tid + 1), ncol);
-
-      // do not iterate if no columns are assigned to the thread
-      if (begin < end && end <= ncol) {
-        for (size_t i = 0; i < batch.Size(); ++i) { // NOLINT(*)
-          size_t const ridx = batch.base_rowid + i;
-          SparsePage::Inst const inst = batch[i];
-          if (use_group_ind &&
-              group_ptr[group_ind] == ridx &&
-              // maximum equals to weights.size() - 1
-              group_ind < num_groups - 1) {
-            // move to next group
-            group_ind++;
-          }
-          for (auto const& entry : inst) {
-            if (entry.index >= begin && entry.index < end) {
-              size_t w_idx = use_group_ind ? group_ind : ridx;
-              sketchs[entry.index].Push(entry.fvalue, info.GetWeight(w_idx));
-            }
-          }
-        }
-      }
+HistogramCuts SketchOnDMatrix(Context const *ctx, DMatrix *m, bst_bin_t max_bins, bool use_sorted,
+                              Span<float const> hessian) {
+  HistogramCuts out;
+  auto const &info = m->Info();
+  auto n_threads = ctx->Threads();
+  std::vector<bst_row_t> reduced(info.num_col_, 0);
+  for (auto const &page : m->GetBatches<SparsePage>()) {
+    auto const &entries_per_column =
+        CalcColumnSize(data::SparsePageAdapterBatch{page.GetView()}, info.num_col_, n_threads,
+                       [](auto) { return true; });
+    CHECK_EQ(entries_per_column.size(), info.num_col_);
+    for (size_t i = 0; i < entries_per_column.size(); ++i) {
+      reduced[i] += entries_per_column[i];
     }
   }
 
-  Init(&sketchs, max_num_bins);
-  monitor_.Stop("Init");
+  if (!use_sorted) {
+    HostSketchContainer container(ctx, max_bins, m->Info().feature_types.ConstHostSpan(), reduced,
+                                  HostSketchContainer::UseGroup(info));
+    for (auto const &page : m->GetBatches<SparsePage>()) {
+      container.PushRowPage(page, info, hessian);
+    }
+    container.MakeCuts(m->Info(), &out);
+  } else {
+    SortedSketchContainer container{ctx,
+                                    max_bins,
+                                    m->Info().feature_types.ConstHostSpan(),
+                                    reduced,
+                                    HostSketchContainer::UseGroup(info)};
+    for (auto const &page : m->GetBatches<SortedCSCPage>(ctx)) {
+      container.PushColPage(page, info, hessian);
+    }
+    container.MakeCuts(m->Info(), &out);
+  }
+
+  return out;
 }
 
-void HistCutMatrix::Init
-(std::vector<WXQSketch>* in_sketchs, uint32_t max_num_bins) {
-  std::vector<WXQSketch>& sketchs = *in_sketchs;
-  constexpr int kFactor = 8;
-  // gather the histogram data
-  rabit::SerializeReducer<WXQSketch::SummaryContainer> sreducer;
-  std::vector<WXQSketch::SummaryContainer> summary_array;
-  summary_array.resize(sketchs.size());
-  for (size_t i = 0; i < sketchs.size(); ++i) {
-    WXQSketch::SummaryContainer out;
-    sketchs[i].GetSummary(&out);
-    summary_array[i].Reserve(max_num_bins * kFactor);
-    summary_array[i].SetPrune(out, max_num_bins * kFactor);
+/*!
+ * \brief Increment hist as dst += add in range [begin, end)
+ */
+void IncrementHist(GHistRow dst, ConstGHistRow add, std::size_t begin, std::size_t end) {
+  double *pdst = reinterpret_cast<double *>(dst.data());
+  const double *padd = reinterpret_cast<const double *>(add.data());
+
+  for (std::size_t i = 2 * begin; i < 2 * end; ++i) {
+    pdst[i] += padd[i];
   }
-  CHECK_EQ(summary_array.size(), in_sketchs->size());
-  size_t nbytes = WXQSketch::SummaryContainer::CalcMemCost(max_num_bins * kFactor);
-  sreducer.Allreduce(dmlc::BeginPtr(summary_array), nbytes, summary_array.size());
-  this->min_val.resize(sketchs.size());
-  row_ptr.push_back(0);
-  for (size_t fid = 0; fid < summary_array.size(); ++fid) {
-    WXQSketch::SummaryContainer a;
-    a.Reserve(max_num_bins);
-    a.SetPrune(summary_array[fid], max_num_bins);
-    const bst_float mval = a.data[0].value;
-    this->min_val[fid] = mval - (fabs(mval) + 1e-5);
-    if (a.size > 1 && a.size <= 16) {
-      /* specialized code categorial / ordinal data -- use midpoints */
-      for (size_t i = 1; i < a.size; ++i) {
-        bst_float cpt = (a.data[i].value + a.data[i - 1].value) / 2.0f;
-        if (i == 1 || cpt > cut.back()) {
-          cut.push_back(cpt);
-        }
-      }
+}
+
+/*!
+ * \brief Copy hist from src to dst in range [begin, end)
+ */
+void CopyHist(GHistRow dst, const GHistRow src, size_t begin, size_t end) {
+  double *pdst = reinterpret_cast<double *>(dst.data());
+  const double *psrc = reinterpret_cast<const double *>(src.data());
+
+  for (size_t i = 2 * begin; i < 2 * end; ++i) {
+    pdst[i] = psrc[i];
+  }
+}
+
+/*!
+ * \brief Compute Subtraction: dst = src1 - src2 in range [begin, end)
+ */
+void SubtractionHist(GHistRow dst, const GHistRow src1, const GHistRow src2, size_t begin,
+                     size_t end) {
+  double* pdst = reinterpret_cast<double*>(dst.data());
+  const double* psrc1 = reinterpret_cast<const double*>(src1.data());
+  const double* psrc2 = reinterpret_cast<const double*>(src2.data());
+
+  for (size_t i = 2 * begin; i < 2 * end; ++i) {
+    pdst[i] = psrc1[i] - psrc2[i];
+  }
+}
+
+struct Prefetch {
+ public:
+  static constexpr size_t kCacheLineSize = 64;
+  static constexpr size_t kPrefetchOffset = 10;
+
+ private:
+  static constexpr size_t kNoPrefetchSize =
+      kPrefetchOffset + kCacheLineSize /
+      sizeof(decltype(GHistIndexMatrix::row_ptr)::value_type);
+
+ public:
+  static size_t NoPrefetchSize(size_t rows) {
+    return std::min(rows, kNoPrefetchSize);
+  }
+
+  template <typename T>
+  static constexpr size_t GetPrefetchStep() {
+    return Prefetch::kCacheLineSize / sizeof(T);
+  }
+};
+
+constexpr size_t Prefetch::kNoPrefetchSize;
+
+struct RuntimeFlags {
+  const bool first_page;
+  const bool read_by_column;
+  const BinTypeSize bin_type_size;
+};
+
+template <bool _any_missing,
+          bool _first_page = false,
+          bool _read_by_column = false,
+          typename BinIdxTypeName = uint8_t>
+class GHistBuildingManager {
+ public:
+  constexpr static bool kAnyMissing = _any_missing;
+  constexpr static bool kFirstPage = _first_page;
+  constexpr static bool kReadByColumn = _read_by_column;
+  using BinIdxType = BinIdxTypeName;
+
+ private:
+  template <bool new_first_page>
+  struct SetFirstPage {
+    using Type = GHistBuildingManager<kAnyMissing, new_first_page, kReadByColumn, BinIdxType>;
+  };
+
+  template <bool new_read_by_column>
+  struct SetReadByColumn {
+    using Type = GHistBuildingManager<kAnyMissing, kFirstPage, new_read_by_column, BinIdxType>;
+  };
+
+  template <typename NewBinIdxType>
+  struct SetBinIdxType {
+    using Type = GHistBuildingManager<kAnyMissing, kFirstPage, kReadByColumn, NewBinIdxType>;
+  };
+
+  using Type = GHistBuildingManager<kAnyMissing, kFirstPage, kReadByColumn, BinIdxType>;
+
+ public:
+  /* Entry point to dispatcher
+   * This function check matching run time flags to compile time flags.
+   * In case of difference, it creates a Manager with different template parameters
+   *  and forward the call there.
+   */
+  template <typename Fn>
+  static void DispatchAndExecute(const RuntimeFlags& flags, Fn&& fn) {
+    if (flags.first_page != kFirstPage) {
+      SetFirstPage<true>::Type::DispatchAndExecute(flags, std::forward<Fn>(fn));
+    } else if (flags.read_by_column != kReadByColumn) {
+      SetReadByColumn<true>::Type::DispatchAndExecute(flags, std::forward<Fn>(fn));
+    } else if (flags.bin_type_size != sizeof(BinIdxType)) {
+      DispatchBinType(flags.bin_type_size, [&](auto t) {
+        using NewBinIdxType = decltype(t);
+        SetBinIdxType<NewBinIdxType>::Type::DispatchAndExecute(flags, std::forward<Fn>(fn));
+      });
     } else {
-      for (size_t i = 2; i < a.size; ++i) {
-        bst_float cpt = a.data[i - 1].value;
-        if (i == 2 || cpt > cut.back()) {
-          cut.push_back(cpt);
-        }
-      }
-    }
-    // push a value that is greater than anything
-    const bst_float cpt
-      = (a.size > 0) ? a.data[a.size - 1].value : this->min_val[fid];
-    // this must be bigger than last value in a scale
-    const bst_float last = cpt + (fabs(cpt) + 1e-5);
-    cut.push_back(last);
-
-    // Ensure that every feature gets at least one quantile point
-    CHECK_LE(cut.size(), std::numeric_limits<uint32_t>::max());
-    auto cut_size = static_cast<uint32_t>(cut.size());
-    CHECK_GT(cut_size, row_ptr.back());
-    row_ptr.push_back(cut_size);
-  }
-}
-
-uint32_t HistCutMatrix::GetBinIdx(const Entry& e) {
-  unsigned fid = e.index;
-  auto cbegin = cut.begin() + row_ptr[fid];
-  auto cend = cut.begin() + row_ptr[fid + 1];
-  CHECK(cbegin != cend);
-  auto it = std::upper_bound(cbegin, cend, e.fvalue);
-  if (it == cend) {
-    it = cend - 1;
-  }
-  uint32_t idx = static_cast<uint32_t>(it - cut.begin());
-  return idx;
-}
-
-void GHistIndexMatrix::Init(DMatrix* p_fmat, int max_num_bins) {
-  cut.Init(p_fmat, max_num_bins);
-
-  const int nthread = omp_get_max_threads();
-  const uint32_t nbins = cut.row_ptr.back();
-  hit_count.resize(nbins, 0);
-  hit_count_tloc_.resize(nthread * nbins, 0);
-
-  row_ptr.push_back(0);
-  for (const auto &batch : p_fmat->GetRowBatches()) {
-    const size_t rbegin = row_ptr.size() - 1;
-    for (size_t i = 0; i < batch.Size(); ++i) {
-      row_ptr.push_back(batch[i].size() + row_ptr.back());
-    }
-    index.resize(row_ptr.back());
-
-    CHECK_GT(cut.cut.size(), 0U);
-    CHECK_EQ(cut.row_ptr.back(), cut.cut.size());
-
-    auto bsize = static_cast<omp_ulong>(batch.Size());
-    #pragma omp parallel for num_threads(nthread) schedule(static)
-    for (omp_ulong i = 0; i < bsize; ++i) { // NOLINT(*)
-      const int tid = omp_get_thread_num();
-      size_t ibegin = row_ptr[rbegin + i];
-      size_t iend = row_ptr[rbegin + i + 1];
-      SparsePage::Inst inst = batch[i];
-
-      CHECK_EQ(ibegin + inst.size(), iend);
-
-      for (bst_uint j = 0; j < inst.size(); ++j) {
-        uint32_t idx = cut.GetBinIdx(inst[j]);
-
-        index[ibegin + j] = idx;
-        ++hit_count_tloc_[tid * nbins + idx];
-      }
-      std::sort(index.begin() + ibegin, index.begin() + iend);
-    }
-
-    #pragma omp parallel for num_threads(nthread) schedule(static)
-    for (bst_omp_uint idx = 0; idx < bst_omp_uint(nbins); ++idx) {
-      for (int tid = 0; tid < nthread; ++tid) {
-        hit_count[idx] += hit_count_tloc_[tid * nbins + idx];
-      }
+      fn(Type());
     }
   }
-}
+};
 
-static size_t GetConflictCount(const std::vector<bool>& mark,
-                               const Column& column,
-                               size_t max_cnt) {
-  size_t ret = 0;
-  if (column.GetType() == xgboost::common::kDenseColumn) {
-    for (size_t i = 0; i < column.Size(); ++i) {
-      if (column.GetFeatureBinIdx(i) != std::numeric_limits<uint32_t>::max() && mark[i]) {
-        ++ret;
-        if (ret > max_cnt) {
-          return max_cnt + 1;
-        }
-      }
-    }
-  } else {
-    for (size_t i = 0; i < column.Size(); ++i) {
-      if (mark[column.GetRowIdx(i)]) {
-        ++ret;
-        if (ret > max_cnt) {
-          return max_cnt + 1;
-        }
-      }
-    }
-  }
-  return ret;
-}
-
-inline void
-MarkUsed(std::vector<bool>* p_mark, const Column& column) {
-  std::vector<bool>& mark = *p_mark;
-  if (column.GetType() == xgboost::common::kDenseColumn) {
-    for (size_t i = 0; i < column.Size(); ++i) {
-      if (column.GetFeatureBinIdx(i) != std::numeric_limits<uint32_t>::max()) {
-        mark[i] = true;
-      }
-    }
-  } else {
-    for (size_t i = 0; i < column.Size(); ++i) {
-      mark[column.GetRowIdx(i)] = true;
-    }
-  }
-}
-
-inline std::vector<std::vector<unsigned>>
-FindGroups(const std::vector<unsigned>& feature_list,
-           const std::vector<size_t>& feature_nnz,
-           const ColumnMatrix& colmat,
-           size_t nrow,
-           const tree::TrainParam& param) {
-  /* Goal: Bundle features together that has little or no "overlap", i.e.
-           only a few data points should have nonzero values for
-           member features.
-           Note that one-hot encoded features will be grouped together. */
-
-  std::vector<std::vector<unsigned>> groups;
-  std::vector<std::vector<bool>> conflict_marks;
-  std::vector<size_t> group_nnz;
-  std::vector<size_t> group_conflict_cnt;
-  const auto max_conflict_cnt
-    = static_cast<size_t>(param.max_conflict_rate * nrow);
-
-  for (auto fid : feature_list) {
-    const Column& column = colmat.GetColumn(fid);
-
-    const size_t cur_fid_nnz = feature_nnz[fid];
-    bool need_new_group = true;
-
-    // randomly choose some of existing groups as candidates
-    std::vector<size_t> search_groups;
-    for (size_t gid = 0; gid < groups.size(); ++gid) {
-      if (group_nnz[gid] + cur_fid_nnz <= nrow + max_conflict_cnt) {
-        search_groups.push_back(gid);
-      }
-    }
-    std::shuffle(search_groups.begin(), search_groups.end(), common::GlobalRandom());
-    if (param.max_search_group > 0 && search_groups.size() > param.max_search_group) {
-      search_groups.resize(param.max_search_group);
-    }
-
-    // examine each candidate group: is it okay to insert fid?
-    for (auto gid : search_groups) {
-      const size_t rest_max_cnt = max_conflict_cnt - group_conflict_cnt[gid];
-      const size_t cnt = GetConflictCount(conflict_marks[gid], column, rest_max_cnt);
-      if (cnt <= rest_max_cnt) {
-        need_new_group = false;
-        groups[gid].push_back(fid);
-        group_conflict_cnt[gid] += cnt;
-        group_nnz[gid] += cur_fid_nnz - cnt;
-        MarkUsed(&conflict_marks[gid], column);
-        break;
-      }
-    }
-
-    // create new group if necessary
-    if (need_new_group) {
-      groups.emplace_back();
-      groups.back().push_back(fid);
-      group_conflict_cnt.push_back(0);
-      conflict_marks.emplace_back(nrow, false);
-      MarkUsed(&conflict_marks.back(), column);
-      group_nnz.emplace_back(cur_fid_nnz);
-    }
-  }
-
-  return groups;
-}
-
-inline std::vector<std::vector<unsigned>>
-FastFeatureGrouping(const GHistIndexMatrix& gmat,
-                    const ColumnMatrix& colmat,
-                    const tree::TrainParam& param) {
-  const size_t nrow = gmat.row_ptr.size() - 1;
-  const size_t nfeature = gmat.cut.row_ptr.size() - 1;
-
-  std::vector<unsigned> feature_list(nfeature);
-  std::iota(feature_list.begin(), feature_list.end(), 0);
-
-  // sort features by nonzero counts, descending order
-  std::vector<size_t> feature_nnz(nfeature);
-  std::vector<unsigned> features_by_nnz(feature_list);
-  gmat.GetFeatureCounts(&feature_nnz[0]);
-  std::sort(features_by_nnz.begin(), features_by_nnz.end(),
-            [&feature_nnz](unsigned a, unsigned b) {
-    return feature_nnz[a] > feature_nnz[b];
-  });
-
-  auto groups_alt1 = FindGroups(feature_list, feature_nnz, colmat, nrow, param);
-  auto groups_alt2 = FindGroups(features_by_nnz, feature_nnz, colmat, nrow, param);
-  auto& groups = (groups_alt1.size() > groups_alt2.size()) ? groups_alt2 : groups_alt1;
-
-  // take apart small, sparse groups, as it won't help speed
-  {
-    std::vector<std::vector<unsigned>> ret;
-    for (const auto& group : groups) {
-      if (group.size() <= 1 || group.size() >= 5) {
-        ret.push_back(group);  // keep singleton groups and large (5+) groups
-      } else {
-        size_t nnz = 0;
-        for (auto fid : group) {
-          nnz += feature_nnz[fid];
-        }
-        double nnz_rate = static_cast<double>(nnz) / nrow;
-        // take apart small sparse group, due it will not gain on speed
-        if (nnz_rate <= param.sparse_threshold) {
-          for (auto fid : group) {
-            ret.emplace_back();
-            ret.back().push_back(fid);
-          }
-        } else {
-          ret.push_back(group);
-        }
-      }
-    }
-    groups = std::move(ret);
-  }
-
-  // shuffle groups
-  std::shuffle(groups.begin(), groups.end(), common::GlobalRandom());
-
-  return groups;
-}
-
-void GHistIndexBlockMatrix::Init(const GHistIndexMatrix& gmat,
-                                 const ColumnMatrix& colmat,
-                                 const tree::TrainParam& param) {
-  cut_ = &gmat.cut;
-
-  const size_t nrow = gmat.row_ptr.size() - 1;
-  const uint32_t nbins = gmat.cut.row_ptr.back();
-
-  /* step 1: form feature groups */
-  auto groups = FastFeatureGrouping(gmat, colmat, param);
-  const auto nblock = static_cast<uint32_t>(groups.size());
-
-  /* step 2: build a new CSR matrix for each feature group */
-  std::vector<uint32_t> bin2block(nbins);  // lookup table [bin id] => [block id]
-  for (uint32_t group_id = 0; group_id < nblock; ++group_id) {
-    for (auto& fid : groups[group_id]) {
-      const uint32_t bin_begin = gmat.cut.row_ptr[fid];
-      const uint32_t bin_end = gmat.cut.row_ptr[fid + 1];
-      for (uint32_t bin_id = bin_begin; bin_id < bin_end; ++bin_id) {
-        bin2block[bin_id] = group_id;
-      }
-    }
-  }
-  std::vector<std::vector<uint32_t>> index_temp(nblock);
-  std::vector<std::vector<size_t>> row_ptr_temp(nblock);
-  for (uint32_t block_id = 0; block_id < nblock; ++block_id) {
-    row_ptr_temp[block_id].push_back(0);
-  }
-  for (size_t rid = 0; rid < nrow; ++rid) {
-    const size_t ibegin = gmat.row_ptr[rid];
-    const size_t iend = gmat.row_ptr[rid + 1];
-    for (size_t j = ibegin; j < iend; ++j) {
-      const uint32_t bin_id = gmat.index[j];
-      const uint32_t block_id = bin2block[bin_id];
-      index_temp[block_id].push_back(bin_id);
-    }
-    for (uint32_t block_id = 0; block_id < nblock; ++block_id) {
-      row_ptr_temp[block_id].push_back(index_temp[block_id].size());
-    }
-  }
-
-  /* step 3: concatenate CSR matrices into one (index, row_ptr) pair */
-  std::vector<size_t> index_blk_ptr;
-  std::vector<size_t> row_ptr_blk_ptr;
-  index_blk_ptr.push_back(0);
-  row_ptr_blk_ptr.push_back(0);
-  for (uint32_t block_id = 0; block_id < nblock; ++block_id) {
-    index_.insert(index_.end(), index_temp[block_id].begin(), index_temp[block_id].end());
-    row_ptr_.insert(row_ptr_.end(), row_ptr_temp[block_id].begin(), row_ptr_temp[block_id].end());
-    index_blk_ptr.push_back(index_.size());
-    row_ptr_blk_ptr.push_back(row_ptr_.size());
-  }
-
-  // save shortcut for each block
-  for (uint32_t block_id = 0; block_id < nblock; ++block_id) {
-    Block blk;
-    blk.index_begin = &index_[index_blk_ptr[block_id]];
-    blk.row_ptr_begin = &row_ptr_[row_ptr_blk_ptr[block_id]];
-    blk.index_end = &index_[index_blk_ptr[block_id + 1]];
-    blk.row_ptr_end = &row_ptr_[row_ptr_blk_ptr[block_id + 1]];
-    blocks_.push_back(blk);
-  }
-}
-
-void GHistBuilder::BuildHist(const std::vector<GradientPair>& gpair,
-                             const RowSetCollection::Elem row_indices,
-                             const GHistIndexMatrix& gmat,
+template <bool do_prefetch, class BuildingManager>
+void RowsWiseBuildHistKernel(Span<GradientPair const> gpair,
+                             const RowSetCollection::Elem row_indices, const GHistIndexMatrix &gmat,
                              GHistRow hist) {
-  const size_t nthread = static_cast<size_t>(this->nthread_);
-  data_.resize(nbins_ * nthread_);
+  constexpr bool kAnyMissing = BuildingManager::kAnyMissing;
+  constexpr bool kFirstPage = BuildingManager::kFirstPage;
+  using BinIdxType = typename BuildingManager::BinIdxType;
 
-  const size_t* rid =  row_indices.begin;
-  const size_t nrows = row_indices.Size();
-  const uint32_t* index = gmat.index.data();
-  const size_t* row_ptr =  gmat.row_ptr.data();
-  const float* pgh = reinterpret_cast<const float*>(gpair.data());
+  const size_t size = row_indices.Size();
+  const size_t *rid = row_indices.begin;
+  auto const *p_gpair = reinterpret_cast<const float *>(gpair.data());
+  const BinIdxType *gradient_index = gmat.index.data<BinIdxType>();
 
-  double* hist_data = reinterpret_cast<double*>(hist.data());
-  double* data = reinterpret_cast<double*>(data_.data());
-
-  const size_t block_size = 512;
-  size_t n_blocks = nrows/block_size;
-  n_blocks += !!(nrows - n_blocks*block_size);
-
-  const size_t nthread_to_process = std::min(nthread,  n_blocks);
-  memset(thread_init_.data(), '\0', nthread_to_process*sizeof(size_t));
-
-  const size_t cache_line_size = 64;
-  const size_t prefetch_offset = 10;
-  size_t no_prefetch_size = prefetch_offset + cache_line_size/sizeof(*rid);
-  no_prefetch_size = no_prefetch_size > nrows ? nrows : no_prefetch_size;
-
-#pragma omp parallel for num_threads(nthread_to_process) schedule(guided)
-  for (bst_omp_uint iblock = 0; iblock < n_blocks; iblock++) {
-    dmlc::omp_uint tid = omp_get_thread_num();
-    double* data_local_hist = ((nthread_to_process == 1) ? hist_data :
-                               reinterpret_cast<double*>(data_.data() + tid * nbins_));
-
-    if (!thread_init_[tid]) {
-      memset(data_local_hist, '\0', 2*nbins_*sizeof(double));
-      thread_init_[tid] = true;
-    }
-
-    const size_t istart = iblock*block_size;
-    const size_t iend = (((iblock+1)*block_size > nrows) ? nrows : istart + block_size);
-    for (size_t i = istart; i < iend; ++i) {
-      const size_t icol_start = row_ptr[rid[i]];
-      const size_t icol_end = row_ptr[rid[i]+1];
-
-      if (i < nrows - no_prefetch_size) {
-        PREFETCH_READ_T0(row_ptr + rid[i + prefetch_offset]);
-        PREFETCH_READ_T0(pgh + 2*rid[i + prefetch_offset]);
-      }
-
-      for (size_t j = icol_start; j < icol_end; ++j) {
-        const uint32_t idx_bin = 2*index[j];
-        const size_t idx_gh = 2*rid[i];
-
-        data_local_hist[idx_bin] += pgh[idx_gh];
-        data_local_hist[idx_bin+1] += pgh[idx_gh+1];
-      }
-    }
+  auto const &row_ptr = gmat.row_ptr.data();
+  auto base_rowid = gmat.base_rowid;
+  uint32_t const *offsets = gmat.index.Offset();
+  // There's no feature-based compression if missing value is present.
+  if (kAnyMissing) {
+    CHECK(!offsets);
+  } else {
+    CHECK(offsets);
   }
 
-  if (nthread_to_process > 1) {
-    const size_t size = (2*nbins_);
-    const size_t block_size = 1024;
-    size_t n_blocks = size/block_size;
-    n_blocks += !!(size - n_blocks*block_size);
+  auto get_row_ptr = [&](bst_row_t ridx) {
+    return kFirstPage ? row_ptr[ridx] : row_ptr[ridx - base_rowid];
+  };
+  auto get_rid = [&](bst_row_t ridx) { return kFirstPage ? ridx : (ridx - base_rowid); };
 
-    size_t n_worked_bins = 0;
-    for (size_t i = 0; i < nthread_to_process; ++i) {
-      if (thread_init_[i]) {
-        thread_init_[n_worked_bins++] = i;
+  const size_t n_features =
+      get_row_ptr(row_indices.begin[0] + 1) - get_row_ptr(row_indices.begin[0]);
+  auto hist_data = reinterpret_cast<double *>(hist.data());
+  const uint32_t two{2};  // Each element from 'gpair' and 'hist' contains
+                          // 2 FP values: gradient and hessian.
+                          // So we need to multiply each row-index/bin-index by 2
+                          // to work with gradient pairs as a singe row FP array
+
+  for (std::size_t i = 0; i < size; ++i) {
+    const size_t icol_start =
+        kAnyMissing ? get_row_ptr(rid[i]) : get_rid(rid[i]) * n_features;
+    const size_t icol_end =
+        kAnyMissing ? get_row_ptr(rid[i] + 1) : icol_start + n_features;
+
+    const size_t row_size = icol_end - icol_start;
+    const size_t idx_gh = two * rid[i];
+
+    if (do_prefetch) {
+      const size_t icol_start_prefetch =
+          kAnyMissing
+              ? get_row_ptr(rid[i + Prefetch::kPrefetchOffset])
+              : get_rid(rid[i + Prefetch::kPrefetchOffset]) * n_features;
+      const size_t icol_end_prefetch =
+          kAnyMissing ? get_row_ptr(rid[i + Prefetch::kPrefetchOffset] + 1)
+                      : icol_start_prefetch + n_features;
+
+      PREFETCH_READ_T0(p_gpair + two * rid[i + Prefetch::kPrefetchOffset]);
+      for (size_t j = icol_start_prefetch; j < icol_end_prefetch;
+           j += Prefetch::GetPrefetchStep<uint32_t>()) {
+        PREFETCH_READ_T0(gradient_index + j);
       }
     }
+    const BinIdxType *gr_index_local = gradient_index + icol_start;
 
-#pragma omp parallel for num_threads(std::min(nthread, n_blocks)) schedule(guided)
-    for (bst_omp_uint iblock = 0; iblock < n_blocks; iblock++) {
-      const size_t istart = iblock * block_size;
-      const size_t iend = (((iblock + 1) * block_size > size) ? size : istart + block_size);
+    // The trick with pgh_t buffer helps the compiler to generate faster binary.
+    const float pgh_t[] = {p_gpair[idx_gh], p_gpair[idx_gh + 1]};
+    for (size_t j = 0; j < row_size; ++j) {
+      const uint32_t idx_bin =
+          two * (static_cast<uint32_t>(gr_index_local[j]) + (kAnyMissing ? 0 : offsets[j]));
+      auto hist_local = hist_data + idx_bin;
+      *(hist_local) += pgh_t[0];
+      *(hist_local + 1) += pgh_t[1];
+    }
+  }
+}
 
-      const size_t bin = 2 * thread_init_[0] * nbins_;
-      memcpy(hist_data + istart, (data + bin + istart), sizeof(double) * (iend - istart));
+template <class BuildingManager>
+void ColsWiseBuildHistKernel(Span<GradientPair const> gpair,
+                             const RowSetCollection::Elem row_indices, const GHistIndexMatrix &gmat,
+                             GHistRow hist) {
+  constexpr bool kAnyMissing = BuildingManager::kAnyMissing;
+  constexpr bool kFirstPage = BuildingManager::kFirstPage;
+  using BinIdxType = typename BuildingManager::BinIdxType;
+  const size_t size = row_indices.Size();
+  const size_t *rid = row_indices.begin;
+  auto const *pgh = reinterpret_cast<const float *>(gpair.data());
+  const BinIdxType *gradient_index = gmat.index.data<BinIdxType>();
 
-      for (size_t i_bin_part = 1; i_bin_part < n_worked_bins; ++i_bin_part) {
-        const size_t bin = 2 * thread_init_[i_bin_part] * nbins_;
-        for (size_t i = istart; i < iend; i++) {
-          hist_data[i] += data[bin + i];
-        }
+  auto const &row_ptr = gmat.row_ptr.data();
+  auto base_rowid = gmat.base_rowid;
+  const uint32_t *offsets = gmat.index.Offset();
+  auto get_row_ptr = [&](bst_row_t ridx) {
+    return kFirstPage ? row_ptr[ridx] : row_ptr[ridx - base_rowid];
+  };
+  auto get_rid = [&](bst_row_t ridx) { return kFirstPage ? ridx : (ridx - base_rowid); };
+
+  const size_t n_features = gmat.cut.Ptrs().size() - 1;
+  const size_t n_columns = n_features;
+  auto hist_data = reinterpret_cast<double *>(hist.data());
+  const uint32_t two{2};  // Each element from 'gpair' and 'hist' contains
+                          // 2 FP values: gradient and hessian.
+                          // So we need to multiply each row-index/bin-index by 2
+                          // to work with gradient pairs as a singe row FP array
+  for (size_t cid = 0; cid < n_columns; ++cid) {
+    const uint32_t offset = kAnyMissing ? 0 : offsets[cid];
+    for (size_t i = 0; i < size; ++i) {
+      const size_t row_id = rid[i];
+      const size_t icol_start =
+          kAnyMissing ? get_row_ptr(row_id) : get_rid(row_id) * n_features;
+      const size_t icol_end =
+        kAnyMissing ? get_row_ptr(rid[i] + 1) : icol_start + n_features;
+
+      if (cid < icol_end - icol_start) {
+        const BinIdxType *gr_index_local = gradient_index + icol_start;
+        const uint32_t idx_bin = two * (static_cast<uint32_t>(gr_index_local[cid]) + offset);
+        auto hist_local = hist_data + idx_bin;
+
+        const size_t idx_gh = two * row_id;
+        // The trick with pgh_t buffer helps the compiler to generate faster binary.
+        const float pgh_t[] = {pgh[idx_gh], pgh[idx_gh + 1]};
+        *(hist_local)     += pgh_t[0];
+        *(hist_local + 1) += pgh_t[1];
       }
     }
   }
 }
 
-void GHistBuilder::BuildBlockHist(const std::vector<GradientPair>& gpair,
-                                  const RowSetCollection::Elem row_indices,
-                                  const GHistIndexBlockMatrix& gmatb,
-                                  GHistRow hist) {
-  constexpr int kUnroll = 8;  // loop unrolling factor
-  const size_t nblock = gmatb.GetNumBlock();
-  const size_t nrows = row_indices.end - row_indices.begin;
-  const size_t rest = nrows % kUnroll;
+template <class BuildingManager>
+void BuildHistDispatch(Span<GradientPair const> gpair, const RowSetCollection::Elem row_indices,
+                       const GHistIndexMatrix &gmat, GHistRow hist) {
+  if (BuildingManager::kReadByColumn) {
+    ColsWiseBuildHistKernel<BuildingManager>(gpair, row_indices, gmat, hist);
+  } else {
+    const size_t nrows = row_indices.Size();
+    const size_t no_prefetch_size = Prefetch::NoPrefetchSize(nrows);
+    // if need to work with all rows from bin-matrix (e.g. root node)
+    const bool contiguousBlock =
+        (row_indices.begin[nrows - 1] - row_indices.begin[0]) == (nrows - 1);
 
-#if defined(_OPENMP)
-  const auto nthread = static_cast<bst_omp_uint>(this->nthread_);  // NOLINT
-#endif  // defined(_OPENMP)
-  tree::GradStats* p_hist = hist.data();
+    if (contiguousBlock) {
+      // contiguous memory access, built-in HW prefetching is enough
+      RowsWiseBuildHistKernel<false, BuildingManager>(gpair, row_indices, gmat, hist);
+    } else {
+      const RowSetCollection::Elem span1(row_indices.begin,
+                                        row_indices.end - no_prefetch_size);
+      const RowSetCollection::Elem span2(row_indices.end - no_prefetch_size,
+                                        row_indices.end);
 
-#pragma omp parallel for num_threads(nthread) schedule(guided)
-  for (bst_omp_uint bid = 0; bid < nblock; ++bid) {
-    auto gmat = gmatb[bid];
-
-    for (size_t i = 0; i < nrows - rest; i += kUnroll) {
-      size_t rid[kUnroll];
-      size_t ibegin[kUnroll];
-      size_t iend[kUnroll];
-      GradientPair stat[kUnroll];
-
-      for (int k = 0; k < kUnroll; ++k) {
-        rid[k] = row_indices.begin[i + k];
-        ibegin[k] = gmat.row_ptr[rid[k]];
-        iend[k] = gmat.row_ptr[rid[k] + 1];
-        stat[k] = gpair[rid[k]];
-      }
-      for (int k = 0; k < kUnroll; ++k) {
-        for (size_t j = ibegin[k]; j < iend[k]; ++j) {
-          const uint32_t bin = gmat.index[j];
-          p_hist[bin].Add(stat[k]);
-        }
-      }
-    }
-    for (size_t i = nrows - rest; i < nrows; ++i) {
-      const size_t rid = row_indices.begin[i];
-      const size_t ibegin = gmat.row_ptr[rid];
-      const size_t iend = gmat.row_ptr[rid + 1];
-      const GradientPair stat = gpair[rid];
-      for (size_t j = ibegin; j < iend; ++j) {
-        const uint32_t bin = gmat.index[j];
-        p_hist[bin].Add(stat);
-      }
+      RowsWiseBuildHistKernel<true, BuildingManager>(gpair, span1, gmat, hist);
+      // no prefetching to avoid loading extra memory
+      RowsWiseBuildHistKernel<false, BuildingManager>(gpair, span2, gmat, hist);
     }
   }
 }
 
-void GHistBuilder::SubtractionTrick(GHistRow self, GHistRow sibling, GHistRow parent) {
-  const uint32_t nbins = static_cast<bst_omp_uint>(nbins_);
-  constexpr int kUnroll = 8;  // loop unrolling factor
-  const uint32_t rest = nbins % kUnroll;
+template <bool any_missing>
+void BuildHist(Span<GradientPair const> gpair, const RowSetCollection::Elem row_indices,
+               const GHistIndexMatrix &gmat, GHistRow hist, bool force_read_by_column) {
+  /* force_read_by_column is used for testing the columnwise building of histograms.
+   * default force_read_by_column = false
+   */
+  constexpr double kAdhocL2Size = 1024 * 1024 * 0.8;
+  const bool hist_fit_to_l2 = kAdhocL2Size > 2 * sizeof(float) * gmat.cut.Ptrs().back();
+  bool first_page = gmat.base_rowid == 0;
+  bool read_by_column = !hist_fit_to_l2 && !any_missing;
+  auto bin_type_size = gmat.index.GetBinTypeSize();
 
-#if defined(_OPENMP)
-  const auto nthread = static_cast<bst_omp_uint>(this->nthread_);  // NOLINT
-#endif  // defined(_OPENMP)
-  tree::GradStats* p_self = self.data();
-  tree::GradStats* p_sibling = sibling.data();
-  tree::GradStats* p_parent = parent.data();
-
-#pragma omp parallel for num_threads(nthread) schedule(static)
-  for (bst_omp_uint bin_id = 0;
-       bin_id < static_cast<bst_omp_uint>(nbins - rest); bin_id += kUnroll) {
-    tree::GradStats pb[kUnroll];
-    tree::GradStats sb[kUnroll];
-    for (int k = 0; k < kUnroll; ++k) {
-      pb[k] = p_parent[bin_id + k];
-    }
-    for (int k = 0; k < kUnroll; ++k) {
-      sb[k] = p_sibling[bin_id + k];
-    }
-    for (int k = 0; k < kUnroll; ++k) {
-      p_self[bin_id + k].SetSubstract(pb[k], sb[k]);
-    }
-  }
-  for (uint32_t bin_id = nbins - rest; bin_id < nbins; ++bin_id) {
-    p_self[bin_id].SetSubstract(p_parent[bin_id], p_sibling[bin_id]);
-  }
+  GHistBuildingManager<any_missing>::DispatchAndExecute(
+      {first_page, read_by_column || force_read_by_column, bin_type_size}, [&](auto t) {
+        using BuildingManager = decltype(t);
+        BuildHistDispatch<BuildingManager>(gpair, row_indices, gmat, hist);
+      });
 }
 
-}  // namespace common
-}  // namespace xgboost
+template void BuildHist<true>(Span<GradientPair const> gpair,
+                              const RowSetCollection::Elem row_indices,
+                              const GHistIndexMatrix &gmat, GHistRow hist,
+                              bool force_read_by_column);
+
+template void BuildHist<false>(Span<GradientPair const> gpair,
+                               const RowSetCollection::Elem row_indices,
+                               const GHistIndexMatrix &gmat, GHistRow hist,
+                               bool force_read_by_column);
+}  // namespace xgboost::common

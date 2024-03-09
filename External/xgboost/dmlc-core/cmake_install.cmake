@@ -1,4 +1,4 @@
-# Install script for directory: /nas1/UsersData/alon/MR/Libs/External/xgboost/dmlc-core
+# Install script for directory: /nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -42,15 +42,41 @@ if(NOT DEFINED CMAKE_OBJDUMP)
   set(CMAKE_OBJDUMP "/usr/bin/objdump")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost/dmlc-core/libdmlc.a")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include" TYPE DIRECTORY FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/include/dmlc")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/." TYPE DIRECTORY FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost/dmlc-core/include")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/include/dmlc" TYPE FILE FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/include/dmlc/build_config.h")
 endif()
 
-if(CMAKE_INSTALL_COMPONENT STREQUAL "Unspecified" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/." TYPE DIRECTORY FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost/dmlc-core/doc")
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib" TYPE STATIC_LIBRARY FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/libdmlc.a")
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  if(EXISTS "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc/DMLCTargets.cmake")
+    file(DIFFERENT EXPORT_FILE_CHANGED FILES
+         "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc/DMLCTargets.cmake"
+         "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/CMakeFiles/Export/lib/cmake/dmlc/DMLCTargets.cmake")
+    if(EXPORT_FILE_CHANGED)
+      file(GLOB OLD_CONFIG_FILES "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc/DMLCTargets-*.cmake")
+      if(OLD_CONFIG_FILES)
+        message(STATUS "Old export file \"$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc/DMLCTargets.cmake\" will be replaced.  Removing files [${OLD_CONFIG_FILES}].")
+        file(REMOVE ${OLD_CONFIG_FILES})
+      endif()
+    endif()
+  endif()
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc" TYPE FILE FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/CMakeFiles/Export/lib/cmake/dmlc/DMLCTargets.cmake")
+  if("${CMAKE_INSTALL_CONFIG_NAME}" MATCHES "^([Rr][Ee][Ll][Ee][Aa][Ss][Ee])$")
+    file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc" TYPE FILE FILES "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/dmlc-core/CMakeFiles/Export/lib/cmake/dmlc/DMLCTargets-release.cmake")
+  endif()
+endif()
+
+if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
+  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/lib/cmake/dmlc" TYPE FILE FILES
+    "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/cmake/dmlc-config.cmake"
+    "/nas1/UsersData/alon/MR/Libs/External/xgboost-2.0.3/cmake/dmlc-config-version.cmake"
+    )
 endif()
 

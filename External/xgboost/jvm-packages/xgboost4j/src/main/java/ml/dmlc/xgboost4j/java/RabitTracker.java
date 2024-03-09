@@ -1,7 +1,5 @@
 package ml.dmlc.xgboost4j.java;
 
-
-
 import java.io.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,6 +30,8 @@ public class RabitTracker implements IRabitTracker {
   private Map<String, String> envs = new HashMap<String, String>();
   // number of workers to be submitted.
   private int numWorkers;
+  private String hostIp = "";
+  private String pythonExec = "";
   private AtomicReference<Process> trackerProcess = new AtomicReference<Process>();
 
   static {
@@ -58,8 +58,12 @@ public class RabitTracker implements IRabitTracker {
           trackerProcessLogger.info(line);
         }
         trackerProcess.get().waitFor();
-        trackerProcessLogger.info("Tracker Process ends with exit code " +
-                trackerProcess.get().exitValue());
+        int exitValue = trackerProcess.get().exitValue();
+        if (exitValue != 0) {
+          trackerProcessLogger.error("Tracker Process ends with exit code " + exitValue);
+        } else {
+          trackerProcessLogger.info("Tracker Process ends with exit code " + exitValue);
+        }
       } catch (IOException ex) {
         trackerProcessLogger.error(ex.toString());
       } catch (InterruptedException ie) {
@@ -80,11 +84,18 @@ public class RabitTracker implements IRabitTracker {
   }
 
   public RabitTracker(int numWorkers)
-    throws XGBoostError {
+      throws XGBoostError {
     if (numWorkers < 1) {
       throw new XGBoostError("numWorkers must be greater equal to one");
     }
     this.numWorkers = numWorkers;
+  }
+
+  public RabitTracker(int numWorkers, String hostIp, String pythonExec)
+      throws XGBoostError {
+    this(numWorkers);
+    this.hostIp = hostIp;
+    this.pythonExec = pythonExec;
   }
 
   public void uncaughtException(Thread t, Throwable e) {
@@ -128,30 +139,40 @@ public class RabitTracker implements IRabitTracker {
     }
   }
 
+  /** visible for testing */
+  public String getRabitTrackerCommand() {
+    StringBuilder sb = new StringBuilder();
+    if (pythonExec == null || pythonExec.isEmpty()) {
+      sb.append("python ");
+    } else {
+      sb.append(pythonExec + " ");
+    }
+    sb.append(" " + tracker_py + " ");
+    sb.append(" --log-level=DEBUG" + " ");
+    sb.append(" --num-workers=" + numWorkers + " ");
+
+    // we first check the property then check the parameter
+    String hostIpFromProperties = trackerProperties.getHostIp();
+    if(hostIpFromProperties != null && !hostIpFromProperties.isEmpty()) {
+      logger.debug("Using provided host-ip: " + hostIpFromProperties + " from properties");
+      sb.append(" --host-ip=" + hostIpFromProperties + " ");
+    } else if (hostIp != null & !hostIp.isEmpty()) {
+      logger.debug("Using the parametr host-ip: " + hostIp);
+      sb.append(" --host-ip=" + hostIp + " ");
+    }
+    return sb.toString();
+  }
+
   private boolean startTrackerProcess() {
     try {
-      String trackerExecString = this.addTrackerProperties("python " + tracker_py +
-          " --log-level=DEBUG --num-workers=" + String.valueOf(numWorkers));
-
-      trackerProcess.set(Runtime.getRuntime().exec(trackerExecString));
+      String cmd = getRabitTrackerCommand();
+      trackerProcess.set(Runtime.getRuntime().exec(cmd));
       loadEnvs(trackerProcess.get().getInputStream());
       return true;
     } catch (IOException ioe) {
       ioe.printStackTrace();
       return false;
     }
-  }
-
-  private String addTrackerProperties(String trackerExecString) {
-    StringBuilder sb = new StringBuilder(trackerExecString);
-    String hostIp = trackerProperties.getHostIp();
-
-    if(hostIp != null && !hostIp.isEmpty()){
-      logger.debug("Using provided host-ip: " + hostIp);
-      sb.append(" --host-ip=").append(hostIp);
-    }
-
-    return sb.toString();
   }
 
   public void stop() {

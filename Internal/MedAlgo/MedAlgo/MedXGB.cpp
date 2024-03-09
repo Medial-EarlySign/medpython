@@ -7,6 +7,7 @@
 #include <boost/lexical_cast.hpp>
 #include <MedProcessTools/MedProcessTools/ExplainWrapper.h>
 #include <dmlc/timer.h>
+//#include <data/simple_dmatrix.h>
 
 #include <omp.h>
 
@@ -60,7 +61,7 @@ int MedXGB::Predict(float *x, float *&preds, int nsamples, int nftrs) const {
 
 	xgboost::bst_ulong out_len;
 	const float *out_preds;
-	XGBoosterPredict(my_learner, h_test, 0, 0, &out_len, &out_preds);
+	XGBoosterPredict(my_learner, h_test, 0, 0, 0, &out_len, &out_preds);
 
 	int64_t len_res = nsamples * n_preds_per_sample();
 	if (preds == NULL) preds = new float[len_res];
@@ -95,7 +96,7 @@ void MedXGB::calc_feature_contribs(MedMat<float> &mat_x, MedMat<float> &mat_cont
 
 	flags |= PRED_CONTRIBS;
 
-	XGBoosterPredict(my_learner, h_test, flags, 0, &out_len, &out_preds);
+	XGBoosterPredict(my_learner, h_test, flags, 0, 0, &out_len, &out_preds);
 	for (int i = 0; i < nsamples; i++) {
 		for (int j = 0; j < nftrs; j++) {
 			float v = out_preds[i*(nftrs + 1) + j];
@@ -133,23 +134,6 @@ int MedXGB::Learn(float *x, float *y, int nsamples, int nftrs) {
 	return Learn(x, y, &w[0], nsamples, nftrs);
 }
 
-int MedXGB::validate_me_while_learning(float *x, float *y, int nsamples, int nftrs) {
-	DMatrix *out;
-	if (XGDMatrixCreateFromMat(x, nsamples, nftrs, params.missing_value, (DMatrixHandle*)&out) == -1) {
-		MERR("failed to XGDMatrixCreateFromMat");
-		throw std::exception();
-	}
-
-	if (this->dvalidate != NULL)
-		delete this->dvalidate;
-
-	dvalidate = out;
-
-	for (int i = 0; i < nsamples; i++)
-		dvalidate->Info().labels_.HostVector().push_back(y[i]);
-
-	return 0;
-}
 
 void MedXGB::prepare_mat_handle(float *x, float *y, const float *w, int nsamples, int nftrs, DMatrixHandle &matrix_handle)
 {
@@ -277,7 +261,7 @@ void MedXGB::translate_monotone_constraints(string& monotone_constraints_s) {
 	boost::split(elems, params.monotone_constraints, boost::is_any_of("#:"));
 	//if (elems.size() < 2)
 	//	return;
-	
+
 	int nftrs = (int)model_features.size();
 	vector<string> out_elems(nftrs, "0");
 
@@ -289,12 +273,10 @@ void MedXGB::translate_monotone_constraints(string& monotone_constraints_s) {
 	monotone_constraints_s = "(" + boost::join(out_elems, ",") + ")";
 }
 
-typedef rabit::utils::MemoryFixSizeBuffer MemoryFixSizeBuffer;
-typedef rabit::utils::MemoryBufferStream MemoryBufferStream;
 
 void MedXGB::print(FILE *fp, const string& prefix, int level) const {
 
-	if (level==0)
+	if (level == 0)
 		fprintf(fp, "%s: MedXGB ()\n", prefix.c_str());
 	else {
 		xgboost::bst_ulong num_trees;
@@ -351,7 +333,7 @@ void MedXGB::calc_feature_importance(vector<float> &features_importance_scores,
 
 	if (importance_type == "shap")
 		calc_feature_importance_shap(features_importance_scores, importance_type, features);
-	
+
 }
 
 void MedXGB::calc_feature_importance_local(vector<float> &features_importance_scores, string &importance_type)
@@ -525,44 +507,30 @@ void MedXGB::prepare_predict_single() {
 
 void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const {
 	int n_ftrs = (int)x.size();
-	std::unique_ptr<data::SimpleCSRSource> p_mat(new data::SimpleCSRSource());
-	data::SimpleCSRSource &mat = *p_mat; //copy memory to alter values (const object)
-	auto &offset_vec = mat.page_.offset.HostVector();
-	vector<xgboost::Entry> &vals = mat.page_.data.HostVector();
-	offset_vec.resize(2);
-	mat.info.num_row_ = 1;
-	mat.info.num_col_ = n_ftrs;
+	DMatrixHandle h_test;
+	if (XGDMatrixCreateFromMat(x.data(), 1, n_ftrs, params.missing_value, &h_test) == -1)
+		MTHROW_AND_ERR("failed to XGDMatrixCreateFromMat\n");
 
-	// count elements for sizing data
-	xgboost::bst_ulong nelem = 0;
-	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j)
-		if (x[j] != params.missing_value)
-			++nelem;
-	offset_vec[1] = offset_vec[0] + nelem;
-	vals.resize(vals.size() + offset_vec.back());
-	xgboost::bst_ulong matj = 0;
-	for (xgboost::bst_ulong j = 0; j < n_ftrs; ++j) {
-		if (x[j] != params.missing_value) {
-			vals[offset_vec[0] + matj] = xgboost::Entry(j, x[j]);
-			++matj;
-		}
-	}
-	mat.info.num_nonzero_ = vals.size();
-
-	DMatrix *mat_gen = DMatrix::Create(move(p_mat));
+	int n_th = omp_get_thread_num();
+	//std::shared_ptr<DMatrix> mat_gen = std::shared_ptr<DMatrix>(DMatrix::Create(move(p_mat), (float)MED_MAT_MISSING_VALUE, n_th));
 
 	//int len_res = n_preds_per_sample();
-	xgboost::HostDeviceVector<float> wrapper;
-	int n_th = omp_get_thread_num();
+	//xgboost::HostDeviceVector<float> wrapper;
+
 	//xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(my_learner)->learner();
 	xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(learner_per_thread[n_th])->learner();
 
 	//for each thread learner
-	xgb_mdl->Predict(mat_gen, false, &wrapper, 0, false, false, false, false);
+	//xgb_mdl->Predict(h_test, false, &wrapper, 0, 0, false, false, false, false);
+	xgboost::bst_ulong out_len;
+	const float *out_preds;
+	XGBoosterPredict(xgb_mdl, h_test, 0, 0, 0, &out_len, &out_preds);
 
-	preds = move(wrapper.HostVector());
+	preds = move(vector<float>(out_preds, out_preds + out_len));
 
-	delete mat_gen;
+
+	//delete mat_gen;
+	XGDMatrixFree(h_test);
 }
 
 #endif
