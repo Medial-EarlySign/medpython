@@ -128,7 +128,7 @@ public:
 
 	// Learning
 	/// <summary> In this class there's never learning - we return 0 immediately </summary>
-	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { init_tables(rep.dict, rep.sigs); return 0; };
+	int _learn(MedPidRepository& rep, MedSamples& samples, vector<RepProcessor *>& prev_processors) { return 0; };
 
 	// Applying
 	/// <summary> apply processing on a single PidDynamicRec at a set of time-points : Should be implemented for all inheriting classes </summary>
