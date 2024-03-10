@@ -184,7 +184,7 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 					has_valid_minipanel = has_valid_panel(mini_panel, input_signals, rep, missing_sigs);
 				}
 				else if (iPanel == REP_CMPLT_LIPIDS_PANEL) {
-					vector<vector<int>> mini_panel(9);
+					vector<vector<int>> mini_panel(10);
 					mini_panel[0] = { LIPIDS_PNL_HDL_OVER_CHOL, LIPIDS_PNL_HDL, LIPIDS_PNL_CHOL };
 					mini_panel[1] = { LIPIDS_PNL_CHOL_OVER_HDL, LIPIDS_PNL_CHOL, LIPIDS_PNL_HDL };
 					mini_panel[2] = { LIPIDS_PNL_HDL_OVER_LDL, LIPIDS_PNL_HDL, LIPIDS_PNL_LDL };
@@ -196,6 +196,7 @@ void RepPanelCompleter::fit_for_repository(MedPidRepository& rep) {
 					mini_panel[7].push_back(LIPIDS_PNL_CHOL);
 					mini_panel[8] = chol_types2;
 					mini_panel[8].push_back(LIPIDS_PNL_CHOL);
+					mini_panel[9] = { LIPIDS_PNL_VLDL, LIPIDS_PNL_TRGS };
 
 					has_valid_minipanel = has_valid_panel(mini_panel, input_signals, rep, missing_sigs);
 				}

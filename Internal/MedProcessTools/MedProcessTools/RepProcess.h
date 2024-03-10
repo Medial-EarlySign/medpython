@@ -986,7 +986,7 @@ private:
 		{ "red_line", {"MCV","Hematocrit","RBC","MCH","MCHC-M","Hemoglobin"}},
 		{ "white_line", {"WBC", "Eosinophils#", "Eosinophils%", "Neutrophils#", "Neutrophils%", "Lymphocytes#", "Lymphocytes%", "Monocytes#", "Monocytes%", "Basophils#", "Basophils%"}},
 		{ "platelets", {"Platelets", "Platelets_Hematocrit","MPV"}},
-		{ "lipids",{"Cholesterol", "LDL", "HDL", "HDL_over_Cholesterol", "Cholesterol_over_HDL", "HDL_over_LDL", "LDL_over_HDL", "NonHDLCholesterol", "HDL_over_nonHDL", "Triglycerides"}},
+		{ "lipids",{"Cholesterol", "LDL", "HDL", "HDL_over_Cholesterol", "Cholesterol_over_HDL", "HDL_over_LDL", "LDL_over_HDL", "NonHDLCholesterol", "HDL_over_nonHDL", "Triglycerides", "VLDL"}},
 		{ "egfr", {"Creatinine","eGFR_CKD_EPI","eGFR_MDRD"}},
 		{ "bmi", {"BMI","Weight","Height"}},
 		{"gcs", {"GCS", "GCS_Eye", "GCS_Motor", "GCS_Verbal"}}
