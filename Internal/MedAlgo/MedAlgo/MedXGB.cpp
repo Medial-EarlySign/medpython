@@ -485,8 +485,9 @@ void MedXGB::prepare_predict_single() {
 
 	const char* out_dptr;
 	xgboost::bst_ulong len;
-	if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
-		throw runtime_error("failed XGBoosterGetModelRaw\n");
+	string cfg_js = "{ \"format\":\"json\" }";
+	if (XGBoosterSaveModelToBuffer(my_learner, cfg_js.c_str(), &len, &out_dptr) != 0)
+		throw runtime_error("failed XGBoosterSaveModelToBuffer\n");
 
 	learner_per_thread.resize(N_tot_threads);
 	for (size_t i = 0; i < N_tot_threads; ++i)

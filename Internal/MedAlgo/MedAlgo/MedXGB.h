@@ -125,11 +125,11 @@ public:
 	int Predict(float *x, float *&preds, int nsamples, int nftrs) const;
 	void prepare_mat_handle(float *x, float *y, const float *w, int nsamples, int nftrs, DMatrixHandle &matrix_handle);
 
-	virtual void print(FILE *fp, const string& prefix, int level=0) const;
+	virtual void print(FILE *fp, const string& prefix, int level = 0) const;
 
 	void calc_feature_importance(vector<float> &features_importance_scores,
 		const string &general_params, const MedFeatures *features);
-	
+
 	void calc_feature_contribs(MedMat<float> &x, MedMat<float> &contribs);
 
 	void calc_feature_contribs_conditional(MedMat<float> &mat_x_in, unordered_map<string, float> &contiditional_variables, MedMat<float> &mat_x_out, MedMat<float> &mat_contribs);
@@ -142,8 +142,9 @@ public:
 	void pre_serialization() {
 		const char* out_dptr;
 		xgboost::bst_ulong len;
+		string cfg_js = "{ \"format\":\"json\" }";
 		if (my_learner != NULL) {
-			if (XGBoosterGetModelRaw(my_learner, &len, &out_dptr) != 0)
+			if (XGBoosterSaveModelToBuffer(my_learner, cfg_js.c_str(), &len, &out_dptr) != 0)
 				throw runtime_error("failed XGBoosterGetModelRaw\n");
 			serial_xgb.resize(len);
 			memcpy(&serial_xgb[0], out_dptr, len);
