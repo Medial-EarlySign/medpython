@@ -4,9 +4,11 @@
 #include <type_traits>
 #include <typeinfo>
 
-#if __GNUC__ 
+#if __GNUC__
+#if __cplusplus <= 201402L
 template< bool B, class T = void >
 using enable_if_t = typename enable_if<B, T>::type;
+#endif
 #endif // !_
 
 namespace MedSerialize {
