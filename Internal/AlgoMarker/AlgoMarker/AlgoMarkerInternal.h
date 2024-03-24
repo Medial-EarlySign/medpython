@@ -228,6 +228,10 @@ public:
 		return model.init_model_for_apply(rep, MED_MDL_APPLY_FTR_GENERATORS, MED_MDL_END);
 	}
 
+	void fit_model_to_rep() {
+		model.fit_for_repository(rep);
+	}
+
 	int init_model_for_rep() {
 		//global_logger.log(LOG_APP, LOG_DEF_LEVEL, "Init MedModel for Rep\n");
 		if (!model_rep_done) {
@@ -616,7 +620,7 @@ public:
 		err_msg = "";
 		boost::split(tokens, threshold, boost::is_any_of("$"));
 		if (tokens.size() != 2) {
-			err_msg = "("+ to_string(AM_GENERAL_FATAL) + ")Error flag_threshold should contain $";
+			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold should contain $";
 			return MED_MAT_MISSING_VALUE;
 		}
 		mes_trim(tokens[0]);
