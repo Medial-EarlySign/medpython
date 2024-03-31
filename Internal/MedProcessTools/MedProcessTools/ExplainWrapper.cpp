@@ -756,6 +756,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 	}
 	else if (file_name == "BY_SIGNAL_CATEG") {
 		boost::regex last_nth_reg(range_names);
+		boost::regex tm_val_ch_no_default_regex("t[0-9]+v[0-9]+");
 		for (int i = 0; i < nftrs; ++i)
 		{
 			vector<string> tokens;
@@ -783,8 +784,12 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 				}
 				++idx;
 				++idx;
+				//skip another last one if last one is "tXvY" format where X,Y are numbers:
+				int skip_count = 1;
+				if (boost::regex_search(tokens.back(), tm_val_ch_no_default_regex))
+					++skip_count;
 				//Add more tokens till last one - last one in ".win_X_Y"
-				while (idx + 1 < tokens.size()) {
+				while (idx + skip_count < tokens.size()) {
 					word += "." + tokens[idx];
 					++idx;
 				}
@@ -796,6 +801,7 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 	}
 	else if (file_name == "BY_SIGNAL_CATEG_TREND") {
 		boost::regex last_nth_reg(range_names);
+		boost::regex tm_val_ch_no_default_regex("t[0-9]+v[0-9]+");
 		for (int i = 0; i < nftrs; ++i)
 		{
 			vector<string> tokens;
@@ -825,8 +831,11 @@ void ExplainProcessings::read_feature_grouping(const string &file_name, const ve
 				if (categ) {
 					++idx;
 					++idx;
+					int skip_count = 1;
+					if (boost::regex_search(tokens.back(), tm_val_ch_no_default_regex))
+						++skip_count;
 					//Add more tokens till last one - last one in ".win_X_Y"
-					while (idx + 1 < tokens.size()) {
+					while (idx + skip_count < tokens.size()) {
 						word += "." + tokens[idx];
 						++idx;
 					}
