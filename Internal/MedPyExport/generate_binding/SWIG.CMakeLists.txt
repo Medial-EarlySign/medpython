@@ -10,7 +10,7 @@ execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
   string(REGEX REPLACE "[^/]*/([0-9:]*).*" "\\1"
     PROJECT_BUILD_TIME "${DATE_TIME}")
 
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++11 -Wno-write-strings -Wuninitialized -Wno-narrowing -fopenmp -msse2 -msse3 -msse4 -march=native -Ofast --param inline-unit-growth=1000000 -fPIC -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++17 -Wno-write-strings -Wuninitialized -Wno-narrowing -fopenmp -msse2 -msse3 -msse4 -march=native -Ofast --param inline-unit-growth=1000000 -fPIC -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakeDropNDEBUG.txt")
 
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -march=native -Og")
@@ -23,8 +23,6 @@ include_directories($ENV{MR_ROOT}/Libs)
 include_directories($ENV{MR_ROOT}/Libs/External)
 include_directories($ENV{MR_ROOT}/Libs/Internal)
 include_directories($ENV{MR_ROOT}/Libs/InternalOrig)
-#include_directories($ENV{R_INCL_DIR})
-#include_directories($ENV{LIBXL_INCL_DIR})
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/src)
 include_directories($ENV{MR_ROOT}/Libs/External/xgboost/include)
@@ -35,7 +33,8 @@ if( _medpython_LIB_DEPENDS MATCHES "libpython2.7.so")
     message("Compile with python2.7 and TensorFlow - include numpy")
     include_directories(/usr/lib64/python2.7/site-packages/numpy/core/include)
 else()
-    message("Compile with python 3.6")
+    message("Compile with python 3")
+	include_directories(/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/)
 endif()
 
 link_directories(/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib)
@@ -62,5 +61,3 @@ add_subdirectory($ENV{MR_ROOT}/Libs/Internal/micNet/micNet micNet)
 add_subdirectory($ENV{MR_ROOT}/Tools/MedProcessUtils/CommonLib/ CommonLib)
 
 add_subdirectory(MedPython)
-
-#include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")

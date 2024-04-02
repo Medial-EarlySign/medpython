@@ -30,7 +30,7 @@ BUILD_XGBOOST=true
 BUILD_LIGHTGBM=true
 BUILD_ALGOMARKER=true
 
-OVERRIDE_ALL=${1-0}
+OVERRIDE_ALL=${3-0}
 
 BOOST_FPIC_DIR=/nas1/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu
 DIR=$MR_ROOT/Libs/Internal/AlgoMarker/LinuxSharedLib
@@ -70,29 +70,29 @@ popd
 fi
 
 if [ "$BUILD_XGBOOST" = true ] ; then
-pushd $MR_ROOT/Libs/External/xgboost
-if [ $OVERRIDE_ALL -gt 0 ]; then
-make clean
-cp $MR_ROOT/Libs/External/xgboost/CMakeLists.txt.orig $MR_ROOT/Libs/External/xgboost/CMakeLists.txt
-cmake .
+	pushd $MR_ROOT/Libs/External/xgboost
+	if [ $OVERRIDE_ALL -gt 0 ]; then
+		make clean
+		cp $MR_ROOT/Libs/External/xgboost/CMakeLists.txt.orig $MR_ROOT/Libs/External/xgboost/CMakeLists.txt
+		cmake .
 
-#The clean doesn't delete .a files
-find . -name '*.a' -exec rm {} \;
-fi
-make -j20
-cp ./lib/libxgboost.a ${STATIC_LIBS_TARGET}
-cp ./rabit/lib/librabit.a ${STATIC_LIBS_TARGET}
-cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
-popd
+		#The clean doesn't delete .a files
+		find . -name '*.a' -exec rm {} \;
+	fi
+	make -j20
+	cp ./lib/libxgboost.a ${STATIC_LIBS_TARGET}
+	cp ./rabit/lib/librabit.a ${STATIC_LIBS_TARGET}
+	cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
+	popd
 fi
 
 if [ "$BUILD_LIGHTGBM" = true ] ; then
-mkdir -p ${BLDDIR}/LightGBM/
-cp ${DIR}/Resources/LightGBM.ubuntu/LightGBM_CMakeLists_file ${BLDDIR}/LightGBM/CMakeLists.txt
-pushd ${BLDDIR}/LightGBM/
-cmake .
-make -j20
-popd 
+	mkdir -p ${BLDDIR}/LightGBM/
+	cp ${DIR}/Resources/LightGBM.ubuntu/LightGBM_CMakeLists_file ${BLDDIR}/LightGBM/CMakeLists.txt
+	pushd ${BLDDIR}/LightGBM/
+	cmake .
+	make -j20
+	popd 
 fi
 
 cp SWIG.CMakeLists.txt CMakeLists.txt

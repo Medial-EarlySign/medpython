@@ -459,7 +459,7 @@ void logger_use_stdout() {
 		global_logger.init_file(sect, stdout);
 }
 
-int val_or_exception(int val, const string& exception_str , int expected_val) throw(runtime_error) {
+int val_or_exception(int val, const string& exception_str , int expected_val) {
 	string what_msg = exception_str;
 	if (exception_str == "")
 		what_msg = "Operation failed";
