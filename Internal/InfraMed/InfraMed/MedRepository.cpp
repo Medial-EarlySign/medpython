@@ -1297,7 +1297,10 @@ void MedRepository::convert_pid_sigs(const UniversalSigVec &usv, vector<pair<vec
 				//is_categ |= section_id > 0 && abs(raw_val - usv.Val(l, val_ch)) < 1e-5 && dict.dict(section_id)->Id2Names.find(raw_val) != dict.dict(section_id)->Id2Names.end();
 				if (!is_categ) {
 					stringstream str_buff;
-					str_buff << usv.Val(l, val_ch);
+					if (usv.val_channel_types[val_ch] == GenericSigVec::type_enc::INT32)
+						str_buff << usv.Val<int>(l, val_ch);
+					else
+						str_buff << usv.Val(l, val_ch);
 					rec_vals[val_ch] = str_buff.str();
 				}
 				else {
