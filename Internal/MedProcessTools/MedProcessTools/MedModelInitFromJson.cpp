@@ -276,7 +276,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 //
 // use "" and a file name to start from a file, or a string and empty or given fname to start from a string
 //-----------------------------------------------------------------------------------------------------
-void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations)
+void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations, bool learn_rep_first)
 {
 	string json_contents = in_json;
 	if (json_contents == "") {
@@ -293,7 +293,11 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 
 		string action_type = action.get<string>("action_type").c_str();
 		if (action_type == "rp_set") {
-			int process_set = fp_set++;;
+			int process_set = fp_set++;
+			if (learn_rep_first) {
+				process_set = 0;
+			}
+
 			int num_members = (int)action.get_child("members").size();
 			int num_actions = 0;
 			for (auto &member : action.get_child("members")) {
