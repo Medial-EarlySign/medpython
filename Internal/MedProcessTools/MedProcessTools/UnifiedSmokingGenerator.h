@@ -128,7 +128,7 @@ public:
 
 	void genSmokingVec(PidDynamicRec & rec, UniversalSigVec & smokingStatusUsv, vector<pair<SMOKING_STATUS, int>>& smokingStatusVec, int testDate, int & unknownSmoker, int & neverSmoker, int & passiveSmoker, int & formerSmoker, int & currentSmoker);
 
-	void genFirstLastSmokingDates(PidDynamicRec & rec, UniversalSigVec & smokingStatusUsv, UniversalSigVec & quitTimeUsv, int testDate, map<SMOKING_STATUS, pair<int, int>>& smokingStatusDates, vector<int>& dates);
+	void genFirstLastSmokingDates(PidDynamicRec & rec, UniversalSigVec & smokingStatusUsv, UniversalSigVec & quitTimeUsv, int testDate, map<SMOKING_STATUS, pair<int, int>>& smokingStatusDates, vector<int>& dates, int birth_date);
 
 	void genSmokingStatus(map<SMOKING_STATUS, pair<int, int>>& smokingStatusDates, vector<int>& dates, int testDate, int birthDate, vector<pair<SMOKING_STATUS, int>>& smokingStatusVec);
 

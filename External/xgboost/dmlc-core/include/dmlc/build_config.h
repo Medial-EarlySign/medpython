@@ -8,15 +8,15 @@
   #define fopen64 std::fopen
 #endif
 
-/* #undef DMLC_CXXABI_H_PRESENT */
-/* #undef DMLC_EXECINFO_H_PRESENT */
+#define DMLC_CXXABI_H_PRESENT
+#define DMLC_EXECINFO_H_PRESENT
 
 #if (defined DMLC_CXXABI_H_PRESENT) && (defined DMLC_EXECINFO_H_PRESENT)
   #define DMLC_LOG_STACK_TRACE 1
   #define DMLC_LOG_STACK_TRACE_SIZE 10
 #endif
 
-/* #undef DMLC_NANOSLEEP_PRESENT */
+#define DMLC_NANOSLEEP_PRESENT
 
 #define DMLC_CMAKE_LITTLE_ENDIAN 1
 

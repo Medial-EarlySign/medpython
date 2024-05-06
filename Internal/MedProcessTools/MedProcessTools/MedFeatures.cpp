@@ -391,7 +391,7 @@ int MedFeatures::write_as_csv_mat(const string &csv_fname, bool write_attributes
 				}
 			}
 
-			for (const string attr : attributes_str_names_2) {
+			for (const string &attr : attributes_str_names_2) {
 				if (str_attr_names.find(attr) == str_attr_names.end()) {
 					MERR("Attrributes names inconsistency betweens samples %d and 0 : extra attribute %s\n", i, attr.c_str());
 					return -1;

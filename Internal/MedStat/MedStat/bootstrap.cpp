@@ -1021,7 +1021,7 @@ void read_pivot_bootstrap_results(const string &file_name, map<string, map<strin
 	string line;
 	getline(fr, line); //skip header
 	while (getline(fr, line)) {
-		boost::trim(line);
+		mes_trim(line);
 		if (line.empty())
 			continue;
 		vector<string> tokens;

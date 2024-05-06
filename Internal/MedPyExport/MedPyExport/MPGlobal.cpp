@@ -9,8 +9,8 @@ void MPGlobalClass::MEDPY_SET_default_time_unit(int new_val) { global_default_ti
 int MPGlobalClass::MEDPY_GET_default_windows_time_unit() { return global_default_windows_time_unit; }
 void MPGlobalClass::MEDPY_SET_default_windows_time_unit(int new_val) { global_default_windows_time_unit = new_val; }
 
-string MPGlobalClass::MEDPY_GET_version_info() {
-	return medial::get_git_version();
+MPGlobalClass::MPGlobalClass() {
+	 version_info = medial::get_git_version();
 }
 
 int MPRNG::rand() { return globalRNG::rand(); };

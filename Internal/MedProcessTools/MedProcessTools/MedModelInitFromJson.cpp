@@ -33,7 +33,7 @@ void parse_my_json_to_pt(istringstream &no_comments_stream, ptree &pt)
 	try {
 		read_json(no_comments_stream, pt);
 	}
-	catch (json_parser_error e) {
+	catch (json_parser_error &e) {
 		no_comments_stream.clear();
 		no_comments_stream.seekg(0);
 		MLOG("json parsing error [%s] at line %d\n", e.message().c_str(), e.line());

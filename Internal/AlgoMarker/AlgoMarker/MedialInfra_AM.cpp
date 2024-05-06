@@ -121,6 +121,8 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	try {
 		if (ma.init_model_from_file(model_fname.c_str()) < 0)
 			return AM_ERROR_LOAD_READ_MODEL_ERR;
+		if (allow_rep_adjustments)
+			ma.fit_model_to_rep();
 		if (ma.model_check_required_signals() < 0)
 			return AM_ERROR_LOAD_MISSING_REQ_SIGS;
 		//if (ma.init_model_for_apply() < 0)
@@ -510,9 +512,9 @@ void process_explainability(nlohmann::ordered_json &jattr,
 			if (ex_params.cfg.records.find(contrib_name) != ex_params.cfg.records.end()) {
 				Explainer_record_config &e_cfg = ex_params.cfg.records.at(contrib_name);
 				e["contributor_records_info"] = nlohmann::ordered_json();
-				e["contributor_records_info"]["contributer_max_time"] = e_cfg.max_time_window;
-				e["contributor_records_info"]["contributer_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
-				e["contributor_records_info"]["contributer_max_count"] = e_cfg.max_count;
+				e["contributor_records_info"]["contributor_max_time"] = e_cfg.max_time_window;
+				e["contributor_records_info"]["contributor_max_time_unit"] = med_time_converter.type_to_string(e_cfg.time_unit);
+				e["contributor_records_info"]["contributor_max_count"] = e_cfg.max_count;
 				process_signal_json(rep, e_cfg, pid, time, e["contributor_records"]);
 			}
 			else {
@@ -895,7 +897,7 @@ int MedialInfraAlgoMarker::Calculate(AMRequest *request, AMResponses *responses)
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 
 //------------------------------------------------------------------------------------------
@@ -1234,7 +1236,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	}
 
 	return AM_OK_RC;
-}
+	}
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AdditionalLoad(const int LoadType, const char *load)
@@ -1297,6 +1299,7 @@ int MedialInfraAlgoMarker::read_config(const string &conf_f)
 				if (fields[0] == "TYPE") type_in_config_file = fields[1];
 				else if (fields[0] == "REPOSITORY") rep_fname = fields[1];
 				else if (fields[0] == "MODEL") model_fname = fields[1];
+				else if (fields[0] == "ALLOW_REP_ADJUSTMENTS") allow_rep_adjustments = stoi(fields[1]) > 0;
 				else if (fields[0] == "MODEL_END_STAGE") try { model_end_stage = stoi(fields[1]); }
 				catch (...) { MTHROW_AND_ERR("Could not parse given value MODEL_END_STAGE='%s'\n", fields[1].c_str()); }
 				else if (fields[0] == "EXTENDED_RESULT_FIELDS") split(extended_result_fields, fields[1], boost::is_any_of(";"));

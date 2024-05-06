@@ -48,7 +48,6 @@ add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedUtils/MedUtils MedUtils)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/QRF/QRF QRF)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/SerializableObject/SerializableObject SerializableObject)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/TQRF/TQRF TQRF)
-add_subdirectory($ENV{MR_ROOT}/Libs/External/gbm/gbm gbm)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/micNet/micNet micNet)
 
 

@@ -44,7 +44,7 @@ void write_attributes_keys(stringstream &s_buff, const map<string, string> &attr
 		s_buff << attr.at(keys.front());
 	else {
 		vector<float> vals;
-		for (const string attr_k : keys) {
+		for (const string &attr_k : keys) {
 			float f;
 			try {
 				f = stof(attr.at(attr_k));
@@ -213,7 +213,7 @@ int MedSample::parse_from_string(const vector<string> &fields, const map<string,
 
 		return 0;
 	}
-	catch (std::invalid_argument e) {
+	catch (std::invalid_argument &e) {
 		string s = medial::io::get_list(fields, delimeter);
 		MLOG("could not parse [%s]\n", s.c_str());
 		return -1;
@@ -523,12 +523,14 @@ int extract_field_pos_from_header(vector<string> field_names, map <string, int> 
 		warning += "]";
 		MWARN("%s\n", warning.c_str());
 	}
-	for (auto& e : pos)
+	for (auto& e : pos) {
 		if (e.second == -1)
 			MWARN("[%s]=unspecified, ", e.first.c_str());
-		else MLOG("[%s]=%d, ", e.first.c_str(), e.second);
-		MLOG("\n");
-		return 0;
+		else
+			MLOG("[%s]=%d, ", e.first.c_str(), e.second);
+	}
+	MLOG("\n");
+	return 0;
 }
 
 // read from text file.
@@ -958,7 +960,7 @@ void MedSamples::binary_dilute(float p0, float p1)
 		MedIdSamples mid;
 		mid.id = id.id;
 		mid.split = id.split;
-		for (auto &s : id.samples)
+		for (auto &s : id.samples) {
 			if (s.outcome == 0) {
 				if (rand_1() < p0)
 					mid.samples.push_back(s);
@@ -967,9 +969,10 @@ void MedSamples::binary_dilute(float p0, float p1)
 				if (rand_1() < p1)
 					mid.samples.push_back(s);
 			}
+		}
 
-			if (mid.samples.size() > 0)
-				NewidSamples.push_back(mid);
+		if (mid.samples.size() > 0)
+			NewidSamples.push_back(mid);
 	}
 
 	idSamples = NewidSamples;

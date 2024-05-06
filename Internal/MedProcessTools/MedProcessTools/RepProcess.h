@@ -986,7 +986,7 @@ private:
 		{ "red_line", {"MCV","Hematocrit","RBC","MCH","MCHC-M","Hemoglobin"}},
 		{ "white_line", {"WBC", "Eosinophils#", "Eosinophils%", "Neutrophils#", "Neutrophils%", "Lymphocytes#", "Lymphocytes%", "Monocytes#", "Monocytes%", "Basophils#", "Basophils%"}},
 		{ "platelets", {"Platelets", "Platelets_Hematocrit","MPV"}},
-		{ "lipids",{"Cholesterol", "LDL", "HDL", "HDL_over_Cholesterol", "Cholesterol_over_HDL", "HDL_over_LDL", "LDL_over_HDL", "NonHDLCholesterol", "HDL_over_nonHDL", "Triglycerides"}},
+		{ "lipids",{"Cholesterol", "LDL", "HDL", "HDL_over_Cholesterol", "Cholesterol_over_HDL", "HDL_over_LDL", "LDL_over_HDL", "NonHDLCholesterol", "HDL_over_nonHDL", "Triglycerides", "VLDL"}},
 		{ "egfr", {"Creatinine","eGFR_CKD_EPI","eGFR_MDRD"}},
 		{ "bmi", {"BMI","Weight","Height"}},
 		{"gcs", {"GCS", "GCS_Eye", "GCS_Motor", "GCS_Verbal"}}
@@ -1952,7 +1952,7 @@ public:
 	int time_noise = 0; ///< uniform dist of x days will be added to time-signal
 	float value_noise = 0; ///< x times signal std will be added to each value
 	int truncation = 2; 
-	float drop_probability = 0.0; ///<probability of dropping lab
+	float drop_probability = (float)0.0; ///<probability of dropping lab
 
 
 	RepNumericNoiser() { init_defaults(); }

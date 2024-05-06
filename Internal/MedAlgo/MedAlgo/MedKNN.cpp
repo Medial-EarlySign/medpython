@@ -20,17 +20,6 @@ MedKNN::MedKNN() {
 	init(&inParams);
 
 }
-MedKNN::~MedKNN() {
-	if (x)
-		free(x);
-	x = 0;
-	if (y)
-		free(y);
-	y = 0;
-	if (w)
-		free(w);
-	w = 0;
-}
 
 MedKNN::MedKNN(MedKNNParams& _in_params) {
 
@@ -57,7 +46,7 @@ int MedKNN::init(void *_in_params) {
 	params = in_params;
 	assert(in_params.k > 0);
 	assert(in_params.knnAv >= 0 && in_params.knnAv < KNN_AVG_LAST);
-	x = y = w = NULL;
+	x.clear(); y.clear(); w.clear();
 	nftrs = nsamples = 0;
 	transpose_for_learn = false;
 	transpose_for_predict = false;
@@ -110,23 +99,19 @@ knnMetric MedKNN::get_knn_metric(string name) {
 int MedKNN::Learn(float *_x, float *_y, const float *_w, int _nsamples, int _nftrs) {
 	nsamples = _nsamples;
 	nftrs = _nftrs;
-	x = (float *)realloc(x, nftrs*nsamples * sizeof(float));
-	y = (float *)realloc(y, nsamples * sizeof(float));
-	w = (float *)realloc(w, nsamples * sizeof(float));
-	assert(x&&y&&w);
-	memcpy(x, _x, nftrs*nsamples * sizeof(float));
-	memcpy(y, _y, nsamples * sizeof(float));
-	if (_w)// are there weights ?
-		memcpy(w, _w, nsamples * sizeof(float));
+	x = vector<float>(_x, _x+ nftrs * nsamples);
+	y = vector<float>(_y, _y+ nsamples);
+	if (_w)
+		w = vector<float>(_w, _w + nsamples);
 	else
-		for (int i = 0; i < nsamples; i++)w[i] = 1.0;
-
+		w.resize(nsamples, 1.0);
+	
 	return(0);
 }
 
 //prototypes for the working functions
-int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order);
-int knn_predict(float *test_x, int ind, float *learn_x, float *learn_y, int nlearn, int nftrs, float *weights, int *order, int *nbrs, double *dists, int k,
+int order_ftrs(const float *x, int nsamples, int nftrs, const float *weights, int *order);
+int knn_predict(const float *test_x, int ind, const float *learn_x, const float *learn_y, int nlearn, int nftrs, const float *weights, int *order, int *nbrs, double *dists, int k,
 	knnAveraging knnAv, knnMetric knnMetr, float *nbrs_x, float *nbrs_y, float *nbrs_w, float *nbrs_b, float *nbrs_r, float *pred);
 
 template <class T> void clear_mem(T *&order) {
@@ -181,7 +166,7 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) c
 	}
 
 	// Order features
-	if (order_ftrs(x, nsamples, nftrs, w, order) == -1) {
+	if (order_ftrs(x.data(), nsamples, nftrs, w.data(), order) == -1) {
 		clear_mem<int>(order);
 		clear_mem<int>(nbrs);
 		clear_mem<double>(dists);
@@ -196,7 +181,8 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) c
 	for (int i = 0; i < pred_samples; i++) {
 		if (i % 1000 == 1)
 			fprintf(stderr, "Predicting %d/%d\n", i, pred_samples);
-		if (knn_predict(xPred, i, x, y, nsamples, nftrs, w, order, nbrs, dists, params.k, params.knnAv, params.knnMetr, nbrs_x, nbrs_y, nbrs_w, nbrs_b, nbrs_r, &(preds[i])) == -1) {
+		if (knn_predict(xPred, i, x.data(), y.data(), nsamples, nftrs, w.data(), order, nbrs,
+			dists, params.k, params.knnAv, params.knnMetr, nbrs_x, nbrs_y, nbrs_w, nbrs_b, nbrs_r, &(preds[i])) == -1) {
 			fprintf(stderr, "knn prediction failed\n");
 			clear_mem<int>(order);
 			clear_mem<int>(nbrs);
@@ -227,48 +213,10 @@ int MedKNN::Predict(float *xPred, float *&preds, int pred_samples, int _nftrs) c
 }
 
 
-size_t MedKNN::get_size() {
-	return MedSerialize::get_size(classifier_type) + sizeof(MedKNN) + 3 * nftrs*nsamples * sizeof(float);
-}
-
-size_t MedKNN::serialize(unsigned char *blob) {
-	//assumes blob already assined to get_size()
-	size_t ptr = 0;
-	size_t advance;
-	ptr += MedSerialize::serialize(blob, classifier_type);
-	memcpy(blob + ptr, this, advance = sizeof(*this)); ptr += advance;
-	memcpy(blob + ptr, x, advance = sizeof(float)*nftrs*nsamples); ptr += advance;
-	memcpy(blob + ptr, y, advance = sizeof(float)*nftrs*nsamples); ptr += advance;
-	memcpy(blob + ptr, w, advance = sizeof(float)*nftrs*nsamples); ptr += advance;
-
-	return ptr;
-}
-
-size_t MedKNN::deserialize(unsigned char *blob) {
-
-	size_t ptr = 0;
-	size_t advance;
-	ptr += MedSerialize::deserialize(blob, classifier_type);
-	memcpy(this, blob + ptr, advance = sizeof(*this)); ptr += advance;
-	size_t mySize = nsamples * nftrs * sizeof(float);
-	if (!(x = (float *)malloc(mySize)))return(-1);
-	if (!(y = (float *)malloc(mySize)))return(-1);
-	if (!(w = (float *)malloc(mySize)))return(-1);
-
-	memcpy(x, blob + ptr, mySize); ptr += mySize;
-	memcpy(y, blob + ptr, mySize); ptr += mySize;
-	memcpy(w, blob + ptr, mySize); ptr += mySize;
-
-
-	return ptr;
-}
-
-
-
 #define VIDX(i,j,ncol) ((i)*(ncol)+(j))
 
 // Normalize data - set means to zero.
-void tnormalize_data(float *x, float *y, int nsamples, int nftrs, double *avg, double yavg, double missing = -1)
+void tnormalize_data(float *x, float *y, int nsamples, int nftrs, const double *avg, double yavg, double missing = -1)
 {
 	// Reduce average from each column 
 
@@ -287,7 +235,7 @@ void tnormalize_data(float *x, float *y, int nsamples, int nftrs, double *avg, d
 
 
 // Find Average of a matrix column
-float calc_col_avg(float *table, int col, int nrow, int ncol, float missing)
+float calc_col_avg(const float *table, int col, int nrow, int ncol, float missing)
 {
 	float sum = 0;
 	float cntr = 0;
@@ -302,7 +250,7 @@ float calc_col_avg(float *table, int col, int nrow, int ncol, float missing)
 
 
 
-float calc_col_std(float *table, int col, int nrow, int ncol, float avg, float missing)
+float calc_col_std(const float *table, int col, int nrow, int ncol, float avg, float missing)
 {
 	float result = 0;
 	float cntr = 0;
@@ -318,7 +266,7 @@ float calc_col_std(float *table, int col, int nrow, int ncol, float avg, float m
 }
 
 // Calculate statistics of xtable with weights
-void calc_xstats(float *xtable, int npatient, int nvar, float *avg, float *std)
+void calc_xstats(const float *xtable, int npatient, int nvar, float *avg, float *std)
 {
 	for (int i = 0; i < nvar; i++) {
 		avg[i] = calc_col_avg(xtable, i, npatient, nvar, -1.0);
@@ -327,7 +275,8 @@ void calc_xstats(float *xtable, int npatient, int nvar, float *avg, float *std)
 			std[i] = 1;
 	}
 }
-void calc_xstats(float *xtable, int npatient, int nvar, double *avg, double *std, double missing)
+void calc_xstats(const float *xtable, int npatient, int nvar,
+	double *avg, double *std, double missing)
 {
 	for (int i = 0; i < nvar; i++) {
 		avg[i] = calc_col_avg(xtable, i, npatient, nvar, (float)missing);
@@ -338,7 +287,7 @@ void calc_xstats(float *xtable, int npatient, int nvar, double *avg, double *std
 }
 
 
-int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order) {
+int order_ftrs(const float *x, int nsamples, int nftrs, const float *weights, int *order) {
 
 	for (int i = 0; i < nftrs; i++)
 		order[i] = i;
@@ -371,7 +320,7 @@ int order_ftrs(float *x, int nsamples, int nftrs, float *weights, int *order) {
 	return 0;
 }
 
-void find_nbrs(float *test_x, int ind, int k, float *learn_x, int nlearn, int nftrs, int *order, float *ws, int *nbrs, double *dists, int norm, int test2learn) {
+void find_nbrs(const float *test_x, int ind, int k, const float *learn_x, int nlearn, int nftrs, int *order, const float *ws, int *nbrs, double *dists, int norm, int test2learn) {
 #define INF_DIST  (99999999.0)
 	// Initialize with INF
 	for (int i = 0; i < k; i++) {
@@ -419,7 +368,7 @@ void find_nbrs(float *test_x, int ind, int k, float *learn_x, int nlearn, int nf
 	}
 }
 
-double get_mean_dist(float *test_x, int ind, float *learn_x, int nlearn, int nftrs, int nrand, float *ws, knnMetric knnMetr) {
+double get_mean_dist(const float *test_x, int ind, const float *learn_x, int nlearn, int nftrs, int nrand, const float *ws, knnMetric knnMetr) {
 
 	double sum = 0;
 
@@ -438,7 +387,7 @@ double get_mean_dist(float *test_x, int ind, float *learn_x, int nlearn, int nft
 	return sum / nrand;
 }
 
-void tcalc_xstats(float *x, float *w, int nsamples, int nftrs, double *avg, double *std, double missing = -1)
+void tcalc_xstats(const float *x, const float *w, int nsamples, int nftrs, double *avg, double *std, double missing = -1)
 {
 
 	memset(avg, 0, nftrs * sizeof(double));
@@ -484,7 +433,7 @@ void tcalc_xstats(float *x, float *w, int nsamples, int nftrs, double *avg, doub
 }
 
 // Correlation to label
-double tget_corr(float *x, float *y, int nsamples, int ind, double missing = -1) {
+double tget_corr(const float *x, const float *y, int nsamples, int ind, double missing = -1) {
 
 	vector<double> vec1(nsamples), vec2(nsamples);
 
@@ -502,7 +451,7 @@ double tget_corr(float *x, float *y, int nsamples, int ind, double missing = -1)
 	return medial::performance::pearson_corr_without_cleaning(vec1, vec2);
 }
 
-double nbrs_score(int *nbrs, double *dists, float *y, int k, double mean_dist, knnAveraging knnAv) {
+double nbrs_score(const int *nbrs,  double *dists, const float *y, int k, double mean_dist, knnAveraging knnAv) {
 
 	double pred = 0;
 
@@ -587,7 +536,7 @@ int calc_stats(float *xtable, float *ytable, int npatient, int nvar, double **av
 
 #define NITER 200
 #define EITER 0.00001
-int nbrs_ls(float *testx, int ind, int *nbrs, double *dists, float *x, float *y, int k, int nftrs, double mean_dist, float *localx, float *localy, float *localw,
+int nbrs_ls(const float *testx, int ind, const int *nbrs, const double *dists, const float *x, const float *y, int k, int nftrs, double mean_dist, float *localx, float *localy, float *localw,
 	float *localb, float *localr, float *pred) {
 
 	// Create
@@ -649,7 +598,7 @@ int nbrs_ls(float *testx, int ind, int *nbrs, double *dists, float *x, float *y,
 // Predict a single instance using KNN
 #define NRAND 500
 
-int knn_predict(float *test_x, int ind, float *learn_x, float *learn_y, int nlearn, int nftrs, float *weights, int *order, int *nbrs, double *dists, int k,
+int knn_predict(const float *test_x, int ind, const float *learn_x, const float *learn_y, int nlearn, int nftrs, const float *weights, int *order, int *nbrs, double *dists, int k,
 	knnAveraging knnAv, knnMetric knnMetr, float *nbrs_x, float *nbrs_y, float *nbrs_w, float *nbrs_b, float *nbrs_r, float *pred) {
 
 

@@ -102,9 +102,6 @@
     <ClInclude Include="MedKNN.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MedGBM.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="MedMultiClass.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -126,9 +123,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedMars.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="MedGBM.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="MedCluster.cpp">

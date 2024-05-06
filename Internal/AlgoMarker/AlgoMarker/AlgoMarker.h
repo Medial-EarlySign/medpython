@@ -344,6 +344,7 @@ private:
 	string rep_fname = "";
 	string model_fname = "";
 	string input_tester_config_file = "";
+	bool allow_rep_adjustments = false;
 
 	int read_config(const string &conf_f);
 
