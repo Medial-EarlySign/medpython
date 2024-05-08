@@ -126,8 +126,10 @@ double add_pid_to_am(AlgoMarker *am, MedPidRepository &rep, vector<string> &igno
 
 	UniversalSigVec usv;
 
-	int n_time_channels, n_val_channels, *is_categ;
+	int n_time_channels, n_val_channels, *is_categ = NULL;
 	((MedialInfraAlgoMarker *)am)->get_sig_structure(sig, n_time_channels, n_val_channels, is_categ);
+	if (is_categ == NULL)
+		MTHROW_AND_ERR("Error no signal %s\n", sig.c_str());
 
 	rep.uget(pid, sig, usv);
 	int nelem = usv.len;

@@ -128,7 +128,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("am_csv_file", po::value<string>()->default_value(""), "file to write AM API feature matrix after apply")
 			("samples", po::value<string>()->default_value(""), "MedSamples file to use")
 			("model", po::value<string>()->default_value(""), "model file to use")
-			("amconfig" , po::value<string>()->default_value(""), "AlgoMarker configuration file")
+			("amconfig", po::value<string>()->default_value(""), "AlgoMarker configuration file")
 			("msgs_file", po::value<string>()->default_value(""), "file to save messages codes to")
 			("ignore_sig", po::value<string>()->default_value(""), "Comma-seperated list of signals to ignore, data from these signals will bot be sent to the am")
 			("single", "Run test in single mode, instead of the default batch")
@@ -136,7 +136,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 			("only_am", "Test only the AlgoMarker API with no compare")
 			("only_med", "Test only the direct Medial API with no compare")
 			("egfr_test", "Test simple egfr algomarker")
-			("force_add_data","Force using the AddData() API call instead of the AddDataStr()")
+			("force_add_data", "Force using the AddData() API call instead of the AddDataStr()")
 			("json_reqfile", po::value<string>()->default_value(""), "JSON request file name")
 			("json_resfile", po::value<string>()->default_value(""), "JSON result file name")
 			;
@@ -146,7 +146,7 @@ int read_run_params(int argc, char *argv[], po::variables_map& vm) {
 
 		MLOG("=========================================================================================\n");
 		MLOG("Command Line:");
-		for (int i=0; i<argc; i++) MLOG(" %s", argv[i]);
+		for (int i = 0; i < argc; i++) MLOG(" %s", argv[i]);
 		MLOG("\n");
 		MLOG("..........................................................................................\n");
 	}
@@ -186,18 +186,18 @@ int simple_egfr_test()
 
 
 	// Load Data
-	vector<long long> times ={ 20160101 };
-	vector<float> vals ={ 2.0 };
+	vector<long long> times = { 20160101 };
+	vector<float> vals = { 2.0 };
 	DynAM::AM_API_AddData(test_am, 1, "Creatinine", (int)times.size(), &times[0], (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals ={ 55 };
+	/*vector<float>*/ vals = { 55 };
 	DynAM::AM_API_AddData(test_am, 1, "Age", 0, NULL, (int)vals.size(), &vals[0]);
-	/*vector<float>*/ vals ={ 1 };
+	/*vector<float>*/ vals = { 1 };
 	DynAM::AM_API_AddData(test_am, 1, "GENDER", 0, NULL, (int)vals.size(), &vals[0]);
 
 	// Calculate
-	char *stypes[] ={ "Raw" };
-	vector<int> _pids ={ 1 };
-	vector<long long> _timestamps ={ 20160101 };
+	char *stypes[] = { "Raw" };
+	vector<int> _pids = { 1 };
+	vector<long long> _timestamps = { 20160101 };
 	AMRequest *req;
 	MLOG("Creating Request\n");
 	int req_create_rc = DynAM::AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req);
@@ -217,7 +217,7 @@ int simple_egfr_test()
 	char **shared_args;
 	DynAM::AM_API_GetSharedMessages(resp, &n_shared_msgs, &shared_codes, &shared_args);
 	MLOG("Shared Messages: %d\n", n_shared_msgs);
-	for (int i=0; i<n_shared_msgs; i++) {
+	for (int i = 0; i < n_shared_msgs; i++) {
 		MLOG("Shared message %d : [%d] %s\n", i, shared_codes[i], shared_args[i]);
 	}
 
@@ -229,7 +229,7 @@ int simple_egfr_test()
 	long long ts;
 	char *_scr_type;
 	AMResponse *response;
-	for (int i=0; i<n_resp; i++) {
+	for (int i = 0; i < n_resp; i++) {
 		MLOG("Getting response no. %d\n", i);
 
 		DynAM::AM_API_GetResponseAtIndex(resp, i, &response);
@@ -247,7 +247,7 @@ int simple_egfr_test()
 	int n_msgs, *msg_codes;
 	char **msgs_errs;
 	DynAM::AM_API_GetSharedMessages(resp, &n_msgs, &msg_codes, &msgs_errs);
-	for (int i=0; i<n_msgs; i++) {
+	for (int i = 0; i < n_msgs; i++) {
 		MLOG("Shared Message %d : code %d : err: %s\n", n_msgs, msg_codes[i], msgs_errs[i]);
 	}
 
@@ -262,7 +262,7 @@ int simple_egfr_test()
 	return 0;
 }
 
-vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d){
+vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d) {
 	//const string& amconfig, DataLoader& d, bool print_msgs, bool single, const string& am_csv_file,bool force_add_data, ofstream& msgs_stream, vector<string> ignore_sig){
 	vector<MedSample> res2;
 	AlgoMarker *test_am;
@@ -278,10 +278,10 @@ vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d){
 		set_am_matrix(test_am, t_ctx.am_csv_file);
 	}
 
-    int rc=0;
+	int rc = 0;
 	if ((rc = DynAM::AM_API_Load(test_am, t_ctx.amconfig.c_str())) != AM_OK_RC) {
 		MERR("ERROR: Failed loading algomarker with config file %s ERR_CODE: %d\n", t_ctx.amconfig.c_str(), rc);
-		throw runtime_error(string("ERROR: Failed loading algomarker with config file ")+ t_ctx.amconfig +" ERR_CODE: "+to_string(rc));
+		throw runtime_error(string("ERROR: Failed loading algomarker with config file ") + t_ctx.amconfig + " ERR_CODE: " + to_string(rc));
 	}
 
 	if (t_ctx.single)
@@ -289,38 +289,38 @@ vector<MedSample> apply_am_api(testing_context& t_ctx, DataLoader& d){
 	else
 		get_preds_from_algomarker(test_am, res2, t_ctx.print_msgs, d, t_ctx.force_add_data, t_ctx.msgs_stream, t_ctx.ignore_sig);
 
-    return res2;
+	return res2;
 }
 
-vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples, const string& med_csv_file, vector<string> ignore_sig){
-	
-	if (ignore_sig.size()>0) {
+vector<MedSample> apply_med_api(MedPidRepository& rep, MedModel& model, MedSamples& samples, const string& med_csv_file, vector<string> ignore_sig) {
+
+	if (ignore_sig.size() > 0) {
 		string ppjson = "{\"pre_processors\":[{\"action_type\":\"rep_processor\",\"rp_type\":\"history_limit\",\"signal\":[";
 		ppjson += string("\"") + ignore_sig[0] + "\"";
-		for (int i = 1; i<ignore_sig.size(); i++)
+		for (int i = 1; i < ignore_sig.size(); i++)
 			ppjson += string(",\"") + ignore_sig[i] + "\"";
 		ppjson += "],\"delete_sig\":\"1\"}]}";
 		MLOG("Adding pre_processor = \n'%s'\n", ppjson.c_str());
 		model.add_pre_processors_json_string_to_model(ppjson, "");
 	}
-	
+
 	// apply model (+ print top 50 scores)
 	model.apply(rep, samples);
 
 	if (med_csv_file != "")
 		model.write_feature_matrix(med_csv_file);
 
-    /////// REMOVE THIS
+	/////// REMOVE THIS
 	//model.write_feature_matrix("/nas1/Work/Users/Shlomi/apply-program/generated/fmat-apply-program.csv");
 
 	// printing
 	vector<MedSample> ret;
 	samples.export_to_sample_vec(ret);
-    return ret;
+	return ret;
 }
 
-void compare_results(const vector<MedSample>& res1, const vector<MedSample>& res2){
-	for (int i=0; i<min(50, (int)res1.size()); i++) {
+void compare_results(const vector<MedSample>& res1, const vector<MedSample>& res2) {
+	for (int i = 0; i < min(50, (int)res1.size()); i++) {
 		MLOG("#Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 	}
 
@@ -331,11 +331,12 @@ void compare_results(const vector<MedSample>& res1, const vector<MedSample>& res
 	}
 
 	MLOG("Comparing %d scores\n", res1.size());
-	for (int i=0; i<res1.size(); i++) {
+	for (int i = 0; i < res1.size(); i++) {
 
 		if (res2[i].prediction[0] == (float)AM_UNDEFINED_VALUE) {
 			n_miss++;
-		} else if (res1[i].prediction[0] != res2[i].prediction[0]) {
+		}
+		else if (res1[i].prediction[0] != res2[i].prediction[0]) {
 			MLOG("ERROR !!!: #Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 			nbad++;
 		}
@@ -365,61 +366,63 @@ int main(int argc, char *argv[])
 	assert(rc >= 0);
 
 	if (vm.count("help")) {
-	    return 0;
+		return 0;
 	}
 	testing_context t_ctx;
 	t_ctx.read_from_var_map(vm);
-    
-	if(t_ctx.test_am)
+
+	if (t_ctx.test_am)
 		load_am(t_ctx.amfile.c_str());
 
 	if (t_ctx.egfr_test)
 		return simple_egfr_test();
 
-    DataLoader d;
+	DataLoader d;
 	vector<MedSample> res1;
-	MedSamples samples,samples2;
+	MedSamples samples, samples2;
 
-    try {
-        d.load(t_ctx.rep,
+	try {
+		d.load(t_ctx.rep,
 			t_ctx.model,
 			t_ctx.samples);
 
-        samples2 = samples = d.samples;
+		samples2 = samples = d.samples;
 		if (t_ctx.test_med) {
 			res1 = apply_med_api(d.rep, d.model, samples, t_ctx.med_csv_file, t_ctx.ignore_sig);
-			for (int i = 0; i<min(50, (int)res1.size()); i++) {
+			for (int i = 0; i < min(50, (int)res1.size()); i++) {
 				MLOG("#Res1 :: pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0]);
 			}
 		}
-    }catch(runtime_error e){
+	}
+	catch (runtime_error &e) {
 		cout << "(EE) Error: " << e.what() << "\n";
-      return -1;
-    }
- 
+		return -1;
+	}
 
-    //fake failed
-    //res1[3].prediction[0] = 0.1;
-   
+
+	//fake failed
+	//res1[3].prediction[0] = 0.1;
+
 	//===============================================================================
 	// TEST1: testing internal in_mem in a repository
 	//===============================================================================
-    vector<MedSample> res2;
-    try{
+	vector<MedSample> res2;
+	try {
 		if (t_ctx.test_am)
 			res2 = apply_am_api(t_ctx, d);
-    }catch(runtime_error e){
-      return -1;
-    }
+	}
+	catch (runtime_error &e) {
+		return -1;
+	}
 
-    if(t_ctx.test_med && t_ctx.med_res_file!="")
-        save_sample_vec(res1, t_ctx.med_res_file);
-    if(t_ctx.test_am && t_ctx.am_res_file!="")
-        save_sample_vec(res2, t_ctx.am_res_file);
+	if (t_ctx.test_med && t_ctx.med_res_file != "")
+		save_sample_vec(res1, t_ctx.med_res_file);
+	if (t_ctx.test_am && t_ctx.am_res_file != "")
+		save_sample_vec(res2, t_ctx.am_res_file);
 
-	if(t_ctx.test_am && t_ctx.test_med)
+	if (t_ctx.test_am && t_ctx.test_med)
 		compare_results(res1, res2);
-	
+
 	if (t_ctx.msgs_file != "")
 		t_ctx.msgs_stream.close();
 
@@ -430,7 +433,7 @@ int main(int argc, char *argv[])
 		t_ctx.json_resfile_stream.close();
 	}
 
-    return 0;
+	return 0;
 }
 
 //

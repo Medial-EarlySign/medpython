@@ -519,7 +519,7 @@ void MedXGB::predict_single(const vector<float> &x, vector<float> &preds) const 
 	//xgboost::HostDeviceVector<float> wrapper;
 
 	//xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(my_learner)->learner();
-	xgboost::Learner *xgb_mdl = static_cast<XGBBooster*>(learner_per_thread[n_th])->learner();
+	XGBBooster *xgb_mdl = static_cast<XGBBooster*>(learner_per_thread[n_th]);
 
 	//for each thread learner
 	//xgb_mdl->Predict(h_test, false, &wrapper, 0, 0, false, false, false, false);

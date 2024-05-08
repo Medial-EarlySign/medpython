@@ -1090,7 +1090,7 @@ void parse_tree(ptree& subtree, TreeEnsemble& generic_tree_model, int pos_in_mod
 		int rc = generic_tree_model.children_right[pos_in_model + j] = subtree.get<int>("no");
 		generic_tree_model.children_default[pos_in_model + j] = subtree.get<int>("missing");
 
-		generic_tree_model.features[pos_in_model + j] = subtree.get<int>("split");
+		generic_tree_model.features[pos_in_model + j] = med_stoi(subtree.get<string>("split").substr(1));
 		generic_tree_model.thresholds[pos_in_model + j] = subtree.get<float>("split_condition");
 
 		for (ptree::value_type &child : subtree.get_child("children"))
