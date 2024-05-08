@@ -60,9 +60,11 @@ if [ $OVERRIDE_ALL -gt 0 ]; then
 	make -j20
 fi
 
-cp ./libxgboost_static.a ${STATIC_LIBS_TARGET}/libxgboost.a
-cp ./librabit.a ${STATIC_LIBS_TARGET}
-cp ./dmlc-core/libdmlc.a ${STATIC_LIBS_TARGET}
+if [ ! -f ${STATIC_LIBS_TARGET}/libxgboost.a ]; then
+	cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/libxgboost_static.a ${STATIC_LIBS_TARGET}/libxgboost.a
+fi
+cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/librabit.a ${STATIC_LIBS_TARGET}
+cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/libdmlc.a ${STATIC_LIBS_TARGET}
 popd
 fi
 
