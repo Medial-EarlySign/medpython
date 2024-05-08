@@ -14,6 +14,8 @@
 #include <iostream>
 #include <iterator>
 #include <random>
+#include <cassert>
+#include <iostream>
 
 //=======================================================================================
 // RepProcessors
@@ -4662,21 +4664,25 @@ int RepNumericNoiser::_learn(MedPidRepository& rep, MedSamples& samples, vector<
 	get_values(rep, samples, signalId, time_channel, val_channel, -FLT_MAX, FLT_MAX, v, prev_cleaners);
 
 	if (v.empty()) {
-		MTHROW_AND_ERR("RepNumericNoiser::_learn WARNING signal [%d] = [%s] is empty, will not calculate std\n", signalId,
-			this->signalName.c_str());
+			MTHROW_AND_ERR("RepNumericNoiser::_learn WARNING signal [%d] = [%s] is empty, will not calculate std\n", signalId,
+				this->signalName.c_str());
 	}
+	else {
+		double sum = std::accumulate(v.begin(), v.end(), 0.0);
+		double mean = sum / v.size();
 
-	double sum = std::accumulate(v.begin(), v.end(), 0.0);
-	double mean = sum / v.size();
-
-	std::vector<double> diff(v.size());
-	std::transform(v.begin(), v.end(), diff.begin(), [mean](double x) { return x - mean; });
-	double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
-	stdev = std::sqrt(sq_sum / v.size());
+		std::vector<double> diff(v.size());
+		std::transform(v.begin(), v.end(), diff.begin(), [mean](double x) { return x - mean; });
+		double sq_sum = std::inner_product(diff.begin(), diff.end(), diff.begin(), 0.0);
+		stdev = std::sqrt(sq_sum / v.size());
+	}
 
 	return 0;
 }
 //---------------------------------------------------------------------------------------------------------------
+
+
+
 int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
 
@@ -4689,6 +4695,7 @@ int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 
 	int n_th = omp_get_thread_num();
 
+	int iii = 0;
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
 		rec.uget(signalId, iver, usv);
@@ -4696,7 +4703,32 @@ int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 		vector<int> times;
 		vector<float> vals;
 
+		vector<pair<int, float>> vect;
+
+		int current_date = time_points[iii];
+
+
+
 		for (int i = 0; i < usv.len; i++) {
+
+			int i_time = usv.Time(i, time_channel);
+		
+			
+			if (i_time > current_date) {
+				
+				final_size -= 1;
+				/*
+				MLOG("curr date: %d, filtered date %d\n", current_date, i_time); */
+				continue;
+			} 
+			/*			else {
+				MLOG("curr date: %d, nonfiltered date %d\n", current_date, i_time);
+			}*/
+
+		
+			
+			float val = usv.Val(i, val_channel);
+
 
 			uniform_real_distribution<> dist_prob(0, 1);
 			float random_sample = dist_prob(gens[3 * n_th]);
@@ -4705,25 +4737,71 @@ int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vecto
 				continue;
 			}
 
-			int i_time = usv.Time(i, time_channel);
-			float val = usv.Val(i, val_channel);
 
-			uniform_int_distribution<> distrib_uni(-1 * time_noise, 0);
-			int new_time = i_time + distrib_uni(gens[3*n_th+1]);
-			times.push_back(new_time);
+			uniform_int_distribution<> distrib_uni(0, time_noise);
+			int years = i_time/10000;
+			int months = (i_time%10000)/100;
+			int days = i_time%100;
+
+			int shift = distrib_uni(gens[3 * n_th + 1]);
+
+			int years_to_remove = shift / 365;
+			int months_to_remove = (shift % 365) / 30;
+			int days_to_remove = (shift % 365) % 30;
+
+			days = days - days_to_remove;
+			if (days < 1) {
+				months = months-1;
+				days = days + 30;
+			}
+
+			months = months - months_to_remove;
+			if (months < 1) {
+				months = months + 12;
+				years = years - 1;
+			}
+
+			years = years - years_to_remove;
+
+			int new_time = years * 10000 + months * 100 + days;
+
 
 			//Add noise to vals
+
 			normal_distribution<float> distrib_norm(0.0, stdev*value_noise);
-			float new_val = val + distrib_norm(gens[3*n_th+2]);
+			float new_val = val + distrib_norm(gens[3 * n_th + 2]);
+
 			new_val = round(new_val*pow(10, truncation)) / pow(10, truncation);
-			//float new_val = val;
-			vals.push_back(new_val);
+			vect.push_back(make_pair(new_time, new_val));
 		}
+
+		sort(vect.begin(), vect.end());
+
+		for (int i = 0; i < final_size; i++) {
+			times.push_back(vect[i].first);
+			vals.push_back(vect[i].second);
+		}
+
+		/*
+				if (final_size > 7) {
+			MLOG("non-filtered dates: \n");
+
+			for (int i = 0; i< final_size; i++)
+			{
+				MLOG("%d %d %d\n", current_date, i, times[i]);
+
+			}
+		}
+		*/
+
 		rec.set_version_universal_data(signalId, iver, &times[0], &vals[0], final_size);
+		++iii;
+
 	}
 
 
 	return 0;
+
 }
 
 
