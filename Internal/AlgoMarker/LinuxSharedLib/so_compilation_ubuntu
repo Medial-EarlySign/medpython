@@ -63,8 +63,9 @@ fi
 if [ ! -f ${STATIC_LIBS_TARGET}/libxgboost.a ]; then
 	cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/libxgboost_static.a ${STATIC_LIBS_TARGET}/libxgboost.a
 fi
-cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/librabit.a ${STATIC_LIBS_TARGET}
-cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/libdmlc.a ${STATIC_LIBS_TARGET}
+if [ ! -f ${STATIC_LIBS_TARGET}/libdmlc.a ]; then
+	cp /server/Work/SharedLibs/linux/ubuntu/static_libs/Release_new/libdmlc.a ${STATIC_LIBS_TARGET}
+fi
 popd
 fi
 
@@ -105,8 +106,8 @@ echo "AlgoMarker Shared Object file written to ${FINAL_PT}"
 popd
 fi
 
-echo "To run with new lib"
-echo "export LD_LIBRARY_PATH=/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib:\$LD_LIBRARY_PATH"
+echo "Compiled with new lib - Ubuntu"
+#echo "export LD_LIBRARY_PATH=/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib:\$LD_LIBRARY_PATH"
 
 exit 0
 
