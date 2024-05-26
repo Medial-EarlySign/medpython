@@ -194,6 +194,7 @@ int main(int argc, char *argv[]) {
 	//loop on req:
 	int i = 0;
 	double tot_time = 0;
+	MedProgress progress("AlgoMarker_Stress_Test", 0, 30, 1);
 	while (CONTINUE_RUNNING) {
 		MedTimer timer;
 		timer.start();
@@ -206,8 +207,8 @@ int main(int argc, char *argv[]) {
 			append_to_file(args.log_path, time_df);
 			i = 0;
 			tot_time = 0;
-			MLOG("Wrote to log file %f\n", time_df);
 		}
+		progress.update();
 	}
 
 	finish(test_am);
