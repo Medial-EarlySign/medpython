@@ -3,6 +3,8 @@
 
 #include <AlgoMarker/AlgoMarker/AlgoMarker.h>
 #include <AlgoMarker/DynAMWrapper/DynAMWrapper.h>
+#include <signal.h>
+
 
 #define DYN(s) ((DynAM::initialized()) ? DynAM::s : s)
 
@@ -138,8 +140,9 @@ int get_preds_from_algomarker_single(AlgoMarker *am,
 }
 
 void finish(AlgoMarker *am) {
+	MLOG("Finish and clear\n");
 	DYN(AM_API_ClearData(am));
-
+	DYN(AM_API_DisposeAlgoMarker(am));
 }
 
 void append_to_file(const string &file_path, float time_df) {
@@ -148,7 +151,18 @@ void append_to_file(const string &file_path, float time_df) {
 	fw.close();
 }
 
+bool CONTINUE_RUNNING = true;
+
+void exit_handler(int s) {
+	printf("Caught signal %d - CTRL+c\n", s);
+	//call finish test_am
+	CONTINUE_RUNNING = false;
+	//exit(1);
+}
+
 int main(int argc, char *argv[]) {
+	signal(SIGINT, exit_handler);
+
 	ProgramArgs args;
 	if (args.parse_parameters(argc, argv) < 0)
 		return -1;
@@ -180,7 +194,7 @@ int main(int argc, char *argv[]) {
 	//loop on req:
 	int i = 0;
 	double tot_time = 0;
-	while (true) {
+	while (CONTINUE_RUNNING) {
 		MedTimer timer;
 		timer.start();
 		get_preds_from_algomarker_single(test_am, sjreq, args.calc_by_type, args.pid_id, args.prediction_time);
