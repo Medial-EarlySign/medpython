@@ -357,8 +357,10 @@ int main(int argc, char *argv[]) {
 
 	char *jdiscovery = NULL;
 	DynAM::AM_API_Discovery(test_am, &jdiscovery);
-	if (jdiscovery != NULL)
+	if (jdiscovery != NULL) {
 		printf("Got discovery output:\n%s\n", jdiscovery);
+		DynAM::AM_API_Dispose(jdiscovery);
+	}
 
 	if (argc > 3) {
 		char *data_json_path = argv[3];
@@ -375,8 +377,10 @@ int main(int argc, char *argv[]) {
 		char *jreq = (char *)(sjreq.c_str());
 		calc_status = DynAM::AM_API_CalculateByType(test_am, JSON_REQ_JSON_RESP, jreq, &jresp);
 	}
-	if (jresp != NULL)
+	if (jresp != NULL) {
 		printf("Got respond with status %d\n%s\n", calc_status, jresp);
+		DynAM::AM_API_Dispose(jresp);
+	}
 	else {
 		if (argc > 3)
 			printf("Got calcuate with status %d\n", calc_status);
