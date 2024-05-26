@@ -596,6 +596,8 @@ int MedModel::get_apply_batch_count() {
 //-------------------------------------------------------------------------------------------------------------------------------
 int MedModel::init_model_for_apply(MedPidRepository &rep, MedModelStage start_stage, MedModelStage end_stage)
 {
+	applied_rep_processors_to_use.clear();
+	applied_generators_to_use.clear();
 	p_rep = &rep;
 	// Stage Sanity
 	if (end_stage < MED_MDL_APPLY_FTR_GENERATORS) {
