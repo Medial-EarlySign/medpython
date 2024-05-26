@@ -38,14 +38,10 @@ void initialize_algomarker(ProgramArgs &args, AlgoMarker *&test_am)
 	MLOG("Name is %s\n", test_am->get_name());
 }
 
-void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
+void init_and_load_data(const string &in_jsons, AlgoMarker *am) {
 	DYN(AM_API_ClearData(am));
 
-	string in_jsons;
 	char * out_messages;
-	if (read_file_into_string(input_json_path, in_jsons) < 0)
-		MTHROW_AND_ERR("Error on loading file %s\n", in_jsons.c_str());
-	MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), input_json_path.c_str());
 	int load_status = DYN(AM_API_AddDataByType(am, in_jsons.c_str(), &out_messages));
 	if (out_messages != NULL) {
 		string msgs = string(out_messages); //New line for each message:
@@ -53,7 +49,7 @@ void init_and_load_data(const string &input_json_path, AlgoMarker *am) {
 		MLOG("%s\n", msgs.c_str());
 	}
 	DYN(AM_API_Dispose(out_messages));
-	MLOG("Added data from %s\n", input_json_path.c_str());
+	//MLOG("Added data from %s\n", input_json_path.c_str());
 	if (load_status != AM_OK_RC)
 		MERR("Error code returned from calling AddDataByType: %d\n", load_status);
 }
@@ -186,7 +182,11 @@ int main(int argc, char *argv[]) {
 			"\", \"time\" : \"" + to_string(args.prediction_time) +"\" }] }";
 	}
 
-	init_and_load_data(args.in_jsons, test_am);
+	string in_jsons;
+	if (read_file_into_string(args.in_jsons, in_jsons) < 0)
+		MTHROW_AND_ERR("Error on loading file %s\n", in_jsons.c_str());
+	MLOG("read %d characters from input jsons file %s\n", in_jsons.length(), args.in_jsons.c_str());
+	init_and_load_data(in_jsons, test_am);
 
 	//Check it works:
 	get_preds_from_algomarker_single(test_am, sjreq, args.calc_by_type, args.pid_id, args.prediction_time, true);
@@ -198,6 +198,8 @@ int main(int argc, char *argv[]) {
 	while (CONTINUE_RUNNING) {
 		MedTimer timer;
 		timer.start();
+		if (args.load_data_again) 
+			init_and_load_data(in_jsons, test_am);
 		get_preds_from_algomarker_single(test_am, sjreq, args.calc_by_type, args.pid_id, args.prediction_time);
 		timer.take_curr_time();
 		++i;

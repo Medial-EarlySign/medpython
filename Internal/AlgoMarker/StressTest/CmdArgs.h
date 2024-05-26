@@ -22,6 +22,7 @@ public:
 	
 	int batch_size;
 	bool calc_by_type;
+	bool load_data_again;
 
 	ProgramArgs() {
 		po::options_description options("Required options");
@@ -34,7 +35,9 @@ public:
 			("prediction_time", po::value<int>(&prediction_time)->default_value(20210101), "prediction_time")
 			("log_path", po::value<string>(&log_path)->required(), "log_path")
 			("batch_size", po::value<int>(&batch_size)->default_value(1000), "batch size")
-			("calc_by_type", po::value<bool>(&calc_by_type)->default_value(false), "calc_by_type")
+			("calc_by_type", po::value<bool>(&calc_by_type)->default_value(true), "calc_by_type")
+			("load_data_again", po::value<bool>(&load_data_again)->default_value(false), "call load_data each time")
+
 
 						;
 
