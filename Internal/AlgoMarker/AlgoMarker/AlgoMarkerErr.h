@@ -7,10 +7,11 @@
 //=====================================================================
 #define AM_ELIGIBILITY_ERROR						300
 #define AM_RESPONSES_ELIGIBILITY_ERROR				301
-#define AM_DATA_BAD_FORMAT							330
+#define AM_DATA_BAD_FORMAT_FATAL					330
 #define AM_DATA_UNKNOWN_SIGNAL						331
 #define AM_DATA_BAD_STRUCTURE						332
 #define AM_DATA_GENERAL_ERROR						333
+#define AM_DATA_BAD_FORMAT_NON_FATAL				330
 #define AM_GENERAL_FATAL							392
 
 //=====================================================================
