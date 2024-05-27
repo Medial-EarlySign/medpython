@@ -314,13 +314,10 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] has one member which expanded to %d actions\n",
 						action_type.c_str(), (int)all_combinations.size());
 
-				int pos_add = 0;
-				for (string c : all_combinations) {
-					if (learn_rep_first)
-						rep_processors.insert(rep_processors.begin() + pos_add, NULL); //Add empty that we will fill it now
+				if (learn_rep_first && !all_combinations.empty())
+					rep_processors.insert(rep_processors.begin(), NULL); //Add empty that we will fill it now
+				for (string c : all_combinations) 
 					add_process_to_set(process_set, duplicate, c);
-					++pos_add;
-				}
 				num_actions += (int)all_combinations.size();
 				MLOG("added %zu pre processors to [%d], first of which was [%s]\n",
 					all_combinations.size(), process_set, all_combinations[0].c_str());
