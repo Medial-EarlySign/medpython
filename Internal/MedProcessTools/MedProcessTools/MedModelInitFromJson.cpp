@@ -276,7 +276,7 @@ int MedModel::init_from_json_string(string& json_contents, const string& fname) 
 //
 // use "" and a file name to start from a file, or a string and empty or given fname to start from a string
 //-----------------------------------------------------------------------------------------------------
-void MedModel::add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations, bool learn_rep_first)
+int MedModel::add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations, bool add_rep_first)
 {
 	string json_contents = in_json;
 	if (json_contents == "") {
@@ -287,6 +287,7 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 
 	size_t n = 0;
 	int fp_set = (int)rep_processors.size(); //Add to the end
+	int added_size = 0;
 	for (auto &p : pt.get_child("pre_processors")) {
 		vector<vector<string>> all_action_attrs;
 		auto& action = p.second;
@@ -294,9 +295,8 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 		string action_type = action.get<string>("action_type").c_str();
 		if (action_type == "rp_set") {
 			int process_set = fp_set++;
-			if (learn_rep_first) {
+			if (add_rep_first) 
 				process_set = 0;
-			}
 
 			int num_members = (int)action.get_child("members").size();
 			int num_actions = 0;
@@ -314,14 +314,15 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 					MTHROW_AND_ERR("duplicate is currently supported only for sets with a single action. [%s] has one member which expanded to %d actions\n",
 						action_type.c_str(), (int)all_combinations.size());
 
-				if (learn_rep_first && !all_combinations.empty())
-					rep_processors.insert(rep_processors.begin(), NULL); //Add empty that we will fill it now
+				if (add_rep_first && !all_combinations.empty())
+					rep_processors.insert(rep_processors.begin() + added_size, NULL); //Add empty that we will fill it now
 				for (string c : all_combinations) 
-					add_process_to_set(process_set, duplicate, c);
+					add_process_to_set(process_set + added_size, duplicate, c);
 				num_actions += (int)all_combinations.size();
 				MLOG("added %zu pre processors to [%d], first of which was [%s]\n",
 					all_combinations.size(), process_set, all_combinations[0].c_str());
 				n += all_combinations.size();
+				++added_size;
 			}
 		}
 		else {
@@ -337,13 +338,19 @@ void MedModel::add_pre_processors_json_string_to_model(string in_json, string fn
 			for (int idx = 0; idx < all_combinations.size(); idx++) {
 				string c = all_combinations[idx];
 				MLOG("Adding pre_processor: %s\n", c.c_str());
-				insert_rep_processor(c, idx);
+				int proc_index = added_size + idx;
+				if (!add_rep_first) {
+					proc_index = fp_set + added_size + idx; //add in the end
+				}
+				insert_rep_processor(c, proc_index);
 			}
 			MLOG("added %zu pre processors, first of which was [%s]\n", all_combinations.size(), all_combinations[0].c_str());
 			n += all_combinations.size();
+			added_size += (int)all_combinations.size();
 		}
 	}
 	MLOG("Succesfully added %d pre_processors\n", n);
+	return added_size;
 }
 
 //-----------------------------------------------------------------------------------------------------

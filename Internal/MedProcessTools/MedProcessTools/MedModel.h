@@ -182,8 +182,8 @@ public:
 	void init_from_json_file(const string& fname) { vector<string> dummy;  init_from_json_file_with_alterations(fname, dummy); }
 	void init_from_json_file_with_alterations_version_1(const string& fname, vector<string>& alterations);
 	void init_from_json_file_with_alterations(const string& fname, vector<string>& alterations);
-	void add_pre_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_pre_processors_json_string_to_model(in_json, fname, dummy); }
-	void add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations, bool learn_rep_first = false);
+	int add_pre_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_pre_processors_json_string_to_model(in_json, fname, dummy); }
+	int add_pre_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations, bool add_rep_first = false);
 	int add_post_processors_json_string_to_model(string in_json, string fname) { vector<string> dummy; return add_post_processors_json_string_to_model(in_json, fname, dummy); }
 	int add_post_processors_json_string_to_model(string in_json, string fname, vector<string> &alterations);
 	void add_rep_processor_to_set(int i_set, const string &init_string);		// rp_type and signal are must have parameters in this case
