@@ -52,6 +52,10 @@ int UnifiedSmokingGenerator::init(map<string, string>& mapper) {
 			useDataComplition = stof(entry.second) > 0;
 			cout << endl << "######################### useDataComplition was changed to " << useDataComplition << endl << endl;
 		}
+		else if (field == "timeSinceQuittingModelSlope")
+			timeSinceQuittingModelSlope = stof(entry.second);
+		else if (field == "timeSinceQuittingModelConst")
+			timeSinceQuittingModelConst = stof(entry.second);
 		else if (field == "weights_generator")
 			iGenerateWeights = stoi(entry.second);
 		else if (field == "debug_file")
@@ -877,7 +881,7 @@ int UnifiedSmokingGenerator::_learn(MedPidRepository& rep, const MedSamples& sam
 		timeSinceQuittingModelConst = lm.b0;
 	}
 	else {
-
+		MWARN("WARNING, no samples for learning timeSinceQuit. Will fail in apply unless you will pass default params in timeSinceQuittingModelSlope,timeSinceQuittingModelConst in json init");
 	}
 	return 0;
 }
