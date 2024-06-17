@@ -10,6 +10,7 @@
 #include "MedIO/MedIO/MedIO.h"
 #include "MedUtils/MedUtils/MedRunPath.h"
 #include <cctype>
+#include <cmath>
 
 
 #ifndef _MSC_VER
@@ -53,8 +54,14 @@ void SerializableObject::_read_from_file(const string &fname, bool throw_on_vers
 	int vers = *((int*)blob);
 	if (vers != version()) {
 		if (throw_on_version_error) {
-			MTHROW_AND_ERR("deserialization error. code version %d. requested file version %d\n",
-				version(), vers);
+			if (abs(vers - version()) <= 3) {
+				MTHROW_AND_ERR("deserialization error of %s from %s. code version %d. requested file version %d\n",
+					my_class_name().c_str(), fname.c_str(), version(), vers);
+			}
+			else {
+				MTHROW_AND_ERR("deserialization error of %s from %s. Are you sure this is correct file path? Please check the file path\n",
+					my_class_name().c_str(), fname.c_str());
+			}
 		}
 		else {
 			MWARN("WARNING: SerializableObject::read_from_file - code version %d. requested file version %d\n",
