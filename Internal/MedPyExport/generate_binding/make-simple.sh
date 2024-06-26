@@ -30,11 +30,11 @@ export SUDO=''
 fi
 
 mkdir -p `realpath ${COMPILE_STATIC_PATH}/..`
-mkdir -p ${COMPILE_STATIC_PATH}
+#mkdir -p ${COMPILE_STATIC_PATH}
 echo "STATIC_LIBS_TARGET=${STATIC_LIBS_TARGET}"
 echo "COMPILE_STATIC_PATH=${COMPILE_STATIC_PATH}"
 
-cp -R ${STATIC_LIBS_TARGET}/* ${COMPILE_STATIC_PATH}
+#cp -R ${STATIC_LIBS_TARGET}/* ${COMPILE_STATIC_PATH}
 
 source /nas1/Work/python-env/python310/bin/activate
 
