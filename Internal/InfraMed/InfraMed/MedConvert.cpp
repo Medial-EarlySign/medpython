@@ -1299,7 +1299,7 @@ int MedConvert::write_indexes_new_modes(pid_data &curr)
 			return memcmp(v1.buf, v2.buf, struct_size) == 0;
 			//return cd_to_tuple(v1) == cd_to_tuple(v2); 
 		});
-		curr.raw_data[i].resize(distance(curr.raw_data[i].begin(), it));
+		curr.raw_data[i].resize(std::distance(curr.raw_data[i].begin(), it));
 
 	}
 
