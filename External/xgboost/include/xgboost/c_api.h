@@ -29,7 +29,6 @@
 typedef uint64_t bst_ulong;  // NOLINT(*)
 
 /**
- * @mainpage
  *
  * \brief XGBoost C API reference.
  *

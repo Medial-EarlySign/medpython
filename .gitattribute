@@ -1,0 +1,3 @@
+*.py text eol=crlf
+*.sh text eol=crlf
+*.pl text eol=crlf
