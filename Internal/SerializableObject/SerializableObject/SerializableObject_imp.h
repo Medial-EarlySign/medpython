@@ -1372,7 +1372,7 @@ namespace MedSerialize {
 
 		boost::crc_32_type checksum_agent;
 		checksum_agent.process_bytes(data, size);
-		SRL_LOG("read_binary_data_alloc [%s] with crc32 [%d]\n", fname.c_str(), checksum_agent.checksum());
+		SRL_LOG("read_binary_data_alloc [%s] with crc32 [%zu]\n", fname.c_str(), checksum_agent.checksum());
 
 		inf.close();
 		return 0;
