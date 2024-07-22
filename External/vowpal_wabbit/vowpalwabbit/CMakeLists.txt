@@ -1,0 +1,122 @@
+set(H_FILES 
+	accumulate.h
+	action_score.h
+	active_cover.h
+	active.h
+	allreduce.h
+	array_parameters.h
+	audit_regressor.h
+	autolink.h
+	baseline.h
+	beam.h
+	best_constant.h
+	bfgs.h
+	binary.h
+	boosting.h
+	bs.h
+	cache.h
+	cb_adf.h
+	cb_algs.h
+	cb_explore_adf.h
+	cb_explore.h
+	cb.h
+	cbify.h
+	classweight.h
+	comp_io.h
+	confidence.h
+	config.h
+	constant.h
+	correctedMath.h
+	cost_sensitive.h
+	crossplat_compat.h
+	cs_active.h
+	csoaa.h
+	ect.h
+	example.h
+	explore_eval.h
+	expreplay.h
+	ezexample.h
+	feature_group.h
+	floatbits.h
+	ftrl.h
+	gd.h
+	gd_mf.h
+	gen_cs_example.h
+	global_data.h
+	hash.h
+	interact.h
+	interactions.h
+	io_buf.h
+	kernel_svm.h
+	label_dictionary.h
+	label_parser.h
+	lda_core.h
+	learner.h
+	log_multi.h
+	loss_functions.h
+	lrqfa.h
+	lrq.h
+	marginal.h
+	memory.h
+	mf.h
+	multiclass.h
+	multilabel.h
+	multilabel_oaa.h
+	mwt.h
+	network.h
+	nn.h
+	noop.h
+	oaa.h
+	OjaNewton.h
+	parse_args.h
+	parse_example.h
+	parse_example_json.h
+	parse_primitives.h
+	parse_regressor.h
+	parser.h
+	primitives.h
+	print.h
+	rand48.h
+	recall_tree.h
+	reductions.h
+	scorer.h
+	search_dep_parser.h
+	search_entityrelationtask.h
+	search_graph.h
+	search.h
+	search_hooktask.h
+	search_meta.h
+	search_multiclasstask.h
+	search_sequencetask.h
+	sender.h
+	simple_label.h
+	spanning_tree.h
+	stagewise_poly.h
+	svrg.h
+	topk.h
+	unique_sort.h
+	v_array.h
+	v_hashmap.h
+	vw_allreduce.h
+	vwdll.h
+	vw_exception.h
+	vw.h
+	vw_validate.h
+	vw_versions.h
+)
+			
+set(SRC_FILES
+	vwdll.cpp
+)
+
+# You may create a file named CMakeCustomize.txt to override CMake commands or change flags for a specific project
+include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeCustomize.txt OPTIONAL)
+if(${CMAKELISTS_OVERRIDE})
+  return()
+endif()
+
+add_library(vowpalwabbit STATIC ${H_FILES} ${SRC_FILES})
+add_library(dyn_vowpalwabbit SHARED ${H_FILES} ${SRC_FILES})
+
+
+#include("$ENV{MR_ROOT}/Projects/Resources/CMakeUtils/CMakePrintProperties.txt")
