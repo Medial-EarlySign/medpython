@@ -3,4 +3,4 @@ file(GLOB SRC_FILES
      "*.h"
      "*.cpp"
 )
-add_library(MedPyExport SHARED ${{SRC_FILES}})
+add_library(MedPyExport SHARED ${SRC_FILES})

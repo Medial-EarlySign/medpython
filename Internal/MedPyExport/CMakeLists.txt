@@ -1,5 +1,5 @@
+cmake_minimum_required(VERSION 3.5)
 project(MedPyExport)
-cmake_minimum_required(VERSION 2.8)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
