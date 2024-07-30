@@ -1,13 +1,16 @@
 #!/bin/bash
-BLDDIR=${0%/*}
+BLDDIR=$(realpath ${0%/*})
 pushd ${BLDDIR}
 
 version_txt=`get_git_status_text.py | sed 's|"||g' | awk -F"\t" '{print "\"" $1 "\""}'`
 echo -e "Git version info:\n${version_txt}"
 touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
 
+mkdir -p ${BLDDIR}/build/Release
 pushd ${BLDDIR}/build/Release
-make -j20 -e GIT_HEAD_VERSION="$version_txt"
+cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -S${BLDDIR} -B${BLDDIR}/build/Release -G "Unix Makefiles"
+
+cmake --build ${BLDDIR}/build/Release --config Release --target all -j 10 --
 popd 
 cp ${BLDDIR}/build/Release/AlgoMarker/libdyn_AlgoMarker.so ${BLDDIR}/Linux/Release/
 strip ${BLDDIR}/Linux/Release/libdyn_AlgoMarker.so
