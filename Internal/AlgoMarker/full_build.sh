@@ -10,6 +10,7 @@ mkdir -p ${BLDDIR}/build/Release
 pushd ${BLDDIR}/build/Release
 cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=TRUE -S${BLDDIR} -B${BLDDIR}/build/Release -G "Unix Makefiles"
 
+export GIT_HEAD_VERSION=$version_txt
 cmake --build ${BLDDIR}/build/Release --config Release --target all -j 10 --
 popd 
 cp ${BLDDIR}/build/Release/AlgoMarker/libdyn_AlgoMarker.so ${BLDDIR}/Linux/Release/
