@@ -61,4 +61,3 @@ keep/
 cmake_build/MedAlgo/Makefile
 cmake_build/
 .project
-CMakeLists.txt
