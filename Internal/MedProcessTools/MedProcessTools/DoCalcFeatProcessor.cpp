@@ -130,7 +130,7 @@ int DoCalcFeatProcessor::_apply(MedFeatures& features, unordered_set<int>& ids) 
 
 	// Prepare
 	vector<float*> p_sources;
-	for (string source : source_feature_names) {
+	for (const string &source : source_feature_names) {
 		if (features.data.find(source) == features.data.end())
 			MTHROW_AND_ERR("could not find feature [%s]\n", source.c_str());
 		p_sources.push_back(&(features.data[source][0]));

@@ -67,7 +67,7 @@ keep/
 cmake_build/MedAlgo/Makefile
 cmake_build/
 .project
-CMakeLists.txt
+#CMakeLists.txt
 */CMakeBuild/*
 CMakeFiles/
 External/LightGBM/LightGBM/windows/x64/DLL/LightGBM.tlog/CL.command.1.tlog
