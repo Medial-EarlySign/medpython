@@ -2,14 +2,17 @@
 #define __MEDPREDICTOR_BY_MISSING_VALUE_H__
 
 #include "MedAlgo.h"
+#include <MedProcessTools/MedProcessTools/Calibration.h>
 
 class MedPredictorsByMissingValues : public MedPredictor {
 public:
 	vector<MedPredictor *> predictors;
+	vector<Calibrator *> calibrators;
 	string predictor_type;
 	string predictor_params;
 	string masks_params;
 	string masks_tw;
+	string calibrate_predictions;
 
 	/// <summary>
 	/// an initialization for model
@@ -36,7 +39,7 @@ public:
 	}
 
 	ADD_CLASS_NAME(MedPredictorsByMissingValues)
-		ADD_SERIALIZATION_FUNCS(classifier_type, predictors, predictor_type, predictor_params, masks_params, masks_tw)
+		ADD_SERIALIZATION_FUNCS(classifier_type, predictors, predictor_type, predictor_params, masks_params, masks_tw, calibrate_predictions, calibrators)
 };
 
 MEDSERIALIZE_SUPPORT(MedPredictorsByMissingValues)

@@ -1,10 +1,12 @@
 #include "MedPredictorsByMissingValues.h"
+#include <MedProcessTools/MedProcessTools/Calibration.h>
 #define LOCAL_SECTION LOG_MEDALGO
 #define LOCAL_LEVEL LOG_DEF_LEVEL
 
 int MedPredictorsByMissingValues::init(map<string, string>& mapper) {
 	for (auto it = mapper.begin(); it != mapper.end(); ++it)
 	{
+		calibrate_predictions = "1"; // default - use calibration in predict
 		if (it->first == "predictor_type")
 			predictor_type = it->second;
 		else if (it->first == "predictor_params")
@@ -13,6 +15,8 @@ int MedPredictorsByMissingValues::init(map<string, string>& mapper) {
 			masks_params = it->second;
 		else if (it->first == "masks_tw")
 			masks_tw = it->second;
+		else if (it->first == "calibrate_predictions")
+			calibrate_predictions = it->second;
 		else
 			MTHROW_AND_ERR("Unsupported argument \"%s\" for MedPredictorsByMissingValues\n", it->first.c_str());
 	}
@@ -126,20 +130,48 @@ int MedPredictorsByMissingValues::learn(MedMat<float> &x, MedMat<float> &y, cons
 		cols_per_mask.insert(cols_per_mask.end(), cols);
 	}
 	
-	x.recordsMetadata.clear();
-
 	for (int i = 0; i < p; i++) {
 		// what are the features of predictor i
 		cols_to_keep_p = get_cols_of_predictor(i, cols_per_mask, all_cols);
 	
 		x_copy = x;
 		x_copy.get_sub_mat(empty_is_all, cols_to_keep_p); // retrun sub mat with all the rows and just cols_to_keep columns
-		// cout << "predictor " << i << " has " << cols_to_keep_p.size() << " features" << endl;
+		MLOG("predictor %d has %d features\n", i + 1, cols_to_keep_p.size());
 
 		// train model i
 		predictors.push_back(MedPredictor::make_predictor(predictor_type, predictor_params));
+		MLOG("Going to train predictor %d out of %d\n", i+1, p); 
 		predictors[i]->learn(x_copy, y, wgts);
-		//x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/tmp" + to_string(i) + ".csv"); // write to csv
+		//x_copy.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/before_" + to_string(i) + ".csv"); // write to csv
+		
+		// calibrate predictor i
+		// 1. get predictions, and turn it to vector of MedSample
+		// 2. add new calibrator to out list of calibrator, and prepare (learn) it using this vector
+		
+		// predict
+		vector<float> scores;
+		predictors[i]->predict(x_copy, scores);
+
+		// prepare samples from the predictions
+		vector<MedSample> vec(scores.size());
+		for (size_t i = 0; i< vec.size(); ++i) {
+			vec[i].id = i + 1;
+			vec[i].outcome = x_copy.recordsMetadata[i].label;
+			vec[i].prediction = { scores[i] };
+		}
+
+		// add and train the new calibrator
+		calibrators.push_back(static_cast<Calibrator *>(PostProcessor::make_processor("calibrator", "calibration_type=isotonic_regression")));
+		calibrators[i]->Learn(vec);
+
+		// the rest was used for checking the code
+		//MedSamples samples;
+		//samples.import_from_sample_vec(vec);
+		//samples.write_to_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/before_" + to_string(i) + ".csv"); // write to csv
+		//calibrators[i]->Apply(vec);
+		//samples.import_from_sample_vec(vec);
+		//samples.write_to_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/after_" + to_string(i) + ".csv"); // write to csv
+
 	}
 	return 0;
 }
@@ -160,18 +192,26 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	vector<float> score;
 
 	MedMat<float> x, x_copy;
+
 	features.get_as_matrix(x);
-	// matrix.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/features.csv");
+	//cout << "write features matrix to /opt/medial_sign/Work/Eitan/AAA/output/predictions/features.csv" << endl;
+	//x.write_to_csv_file("/opt/medial_sign/Work/Eitan/AAA/output/predictions/features.csv"); // write to csv
+
+	//MedMat<unsigned char> x1;
+	//cout << "going to prepare masks matrix" << endl;
+	//features.get_masks_as_mat(x1);
+	//cout << "write masks matrix to /opt/medial_sign/Work/Eitan/AAA/output/predictions/masks.csv" << endl;
+	//x1.write_to_csv_file("/opt/medial_sign/Work/Eitan/AAA/output/predictions/masks.csv"); // write to csv
 
 	for (int s = 0; s < x.signals.size(); s++)
 		all_cols.insert(all_cols.end(), s);
 
-	//x.write_to_csv_file("/nas1/Work/Users/Eitan/LungWithMask/predictions/debug.csv"); // write to csv
-
 	// prepare predictors
 	int p = pow(2, masks.size()); // p - number of trained models
-	for (int i = 0; i < p; i++)
+	for (int i = 0; i < p; i++) {
+		// cout << "going to prepare predictor " << i + 1 << endl;
 		predictors[i]->prepare_predict_single();
+	}
 
 	// preperation - what are the signals of each input mask
 	for (int m = 0; m < masks.size(); m++) {
@@ -209,7 +249,6 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 		}
 		indicator_cols.insert(indicator_cols.end(), mask);
 	}
-
 	vector<float> sample(x.signals.size());
 	vector<float> sample4p(x.signals.size());
 
@@ -217,13 +256,17 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 	vector<int> predictor_stat(p);
 
 	// for every sample - find the right predictor
+	cout << "+++++++++++ enter predict per sample ++++" << endl;
 //#pragma omp parallel for schedule(dynamic)
 	for (int i = 0; i < x.get_nrows(); i++) {
+		//cout << "++++++++ row " << i << endl;
 		int p1 = 0; // default, no mask is needed
 		// for every mask, check if value is missing in 50% or more of the indicator columns
 		for (int s = 0; s < masks.size(); s++) {
+			//cout << "++++++ mask " << s+1 << " out of " << masks.size() << endl;
 			int missing = 0;
 			for (int m = 0; m < indicator_cols[s].size(); m++) {
+				//cout << "++++ indicator_cols+1 " << m << " out of " << indicator_cols[s].size() << endl;
 				if (int(features.masks[indicator_cols[s][m]][i]) > 0)
 					missing = missing + 1;
 			}
@@ -240,10 +283,18 @@ int MedPredictorsByMissingValues::predict(MedFeatures& features) const {
 			sample4p[j] = sample[cols_per_predictor[p1][j]];
 		}
 
-		//cout << "predict ..." << endl;
 		predictors[p1]->predict(sample4p, score, 1, cols_per_predictor[p1].size());
+		
+		// calibrate the score per sample
+		vector<MedSample> sampleWprediction(1);
+		sampleWprediction[0].id = 0;
+		sampleWprediction[0].prediction = { score[0] };
+		calibrators[p1]->Apply(sampleWprediction);
+		features.samples[i].prediction = sampleWprediction[0].prediction; 
 
-		features.samples[i].prediction = { score[0] };
+		features.samples[i].prediction.push_back(score[0]);
+		features.samples[i].attributes["mask_number"] = p1;
+		// cout << "sample: " << i << " predictor " << p1 << " score BEFORE calibration: " << score[0] << " and AFTER: " << features.samples[i].prediction[0] << endl;
 
 	}
 
