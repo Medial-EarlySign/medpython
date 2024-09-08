@@ -1,0 +1,24 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build MedPython",
+			"type": "shell",
+			"command":"${workspaceFolder}/generate_binding/make-simple.sh medial-python310",
+			"presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": true,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+			"problemMatcher": [],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+			
+		}
+	]
+}

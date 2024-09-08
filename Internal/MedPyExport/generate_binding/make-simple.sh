@@ -9,7 +9,7 @@ if [ $DIST_NAME == "unknown" ]; then
 		export CPATH=$CPATH:/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/
 		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/
 	else
-		echo "Unknowwn python version"
+		echo "Unknown python version"
 		exit -1
 	fi
 fi
@@ -38,8 +38,8 @@ echo "COMPILE_STATIC_PATH=${COMPILE_STATIC_PATH}"
 
 source /nas1/Work/python-env/python310/bin/activate
 
-cp SWIG.CMakeLists.txt CMakeLists.txt
-cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
+# cp SWIG.CMakeLists.txt CMakeLists.txt
+# cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
 
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
 pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 
