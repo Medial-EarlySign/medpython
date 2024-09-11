@@ -57,7 +57,6 @@ packages/
 *ncrunch*
 *crunch*.local.xml
 MedStat/x64/
-CMakeLists.txt
 MedStat/keep/MedCleaner.cpp
 MedStat/keep/
 MedStat/MedCleaner.cpp.old
