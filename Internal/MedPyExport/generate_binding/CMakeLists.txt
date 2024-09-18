@@ -18,7 +18,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -march=native -Og")
 set(CMAKE_BUILD_TYPE "Release")
 
 
-include_directories(SYSTEM /server/Work/Libs/Boost/latest)
+include_directories(SYSTEM /server/Work/Libs/Boost/boost_1_85_0)
 include_directories($ENV{MR_ROOT}/Libs)
 include_directories($ENV{MR_ROOT}/Libs/External)
 include_directories($ENV{MR_ROOT}/Libs/Internal)
@@ -36,8 +36,6 @@ else()
     message("Compile with python 3")
 	include_directories(/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/)
 endif()
-
-link_directories(/server/Work/Libs/Boost/boost_1_67_0-fPIC.ubuntu/installation/lib)
 
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedMat/MedMat MedMat)
 add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedSplit/MedSplit MedSplit)
