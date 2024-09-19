@@ -113,13 +113,32 @@ MPStringBtResultMap MPBootstrap::bootstrap_cohort(MPSamples *samples, const stri
 	samples->o->get_ids(pids);
 
 	MedPidRepository rep;
-	model.load_repository(rep_path, pids, rep, true);
+	MedFeatures empty_data;
+    MedFeatures *features_data = &empty_data;
+	if (!rep_path.empty()) { 
+		model.load_repository(rep_path, pids, rep, true);
 
-	if (model.learn(rep, samples->o, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS) < 0)
-		MTHROW_AND_ERR("Model did not succeed to generate matrix for bootstrap filtering!\n");
+		if (model.learn(rep, samples->o, MED_MDL_LEARN_REP_PROCESSORS, MED_MDL_APPLY_FTR_PROCESSORS) < 0)
+			MTHROW_AND_ERR("Model did not succeed to generate matrix for bootstrap filtering!\n");
+		features_data = &model.features;
+	}
+	else {
+		if (!json_model.empty() || !cohorts_path.empty())
+			MTHROW_AND_ERR("can't pass json_model,cohorts and no repository\n");
+		// Generate dummy features in empty_data
+		samples->o->export_to_sample_vec(empty_data.samples);
+	}
+
+	if (samples->o->idSamples.size() > 0 && samples->o->idSamples[0].samples.size() >0 &&
+        samples->o->idSamples[0].samples[0].attributes.find("weight") != samples->o->idSamples[0].samples[0].attributes.end()) {
+			vector<float> weights;
+			samples->o->get_attr_values("weight",weights);
+			MLOG("Found weights");
+			features_data->weights = weights; //store weights
+	}
 
 	std::map<std::string, std::map<std::string, float> > *res = new std::map<std::string, std::map<std::string, float> >();
-	*res = o->bootstrap(model.features);
+	*res = o->bootstrap(*features_data);
 
 	return MPStringBtResultMap(res);
 }
