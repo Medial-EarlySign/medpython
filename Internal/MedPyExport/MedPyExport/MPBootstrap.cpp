@@ -133,7 +133,7 @@ MPStringBtResultMap MPBootstrap::bootstrap_cohort(MPSamples *samples, const stri
         samples->o->idSamples[0].samples[0].attributes.find("weight") != samples->o->idSamples[0].samples[0].attributes.end()) {
 			vector<float> weights;
 			samples->o->get_attr_values("weight",weights);
-			MLOG("Found weights");
+			MLOG("Found weights\n");
 			features_data->weights = weights; //store weights
 	}
 
