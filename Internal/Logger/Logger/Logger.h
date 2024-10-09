@@ -223,5 +223,7 @@ public:
 	void update_no_check();
 };
 
+void get_current_time(string &time_str);
+
 #endif
 

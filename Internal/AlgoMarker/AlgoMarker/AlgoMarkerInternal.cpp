@@ -145,6 +145,7 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 	int rc = -1;
 	nvals = 0;
 	noutliers = 0;
+	string current_time;
 	//Assume MedModel was initialized once by init 
 	//=> in first test we will learn the mode if not learned, and prepare for apply - to increase speed.
 	//So first test is slower and rest are faster. "Cold start"
@@ -156,7 +157,8 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 		int sid = rep.sigs.sid(req_s);
 		if (sid < 0) {
 			fail_signals = true;
-			MLOG("Missing signal %s model eligibility testing\n", req_s.c_str());
+			get_current_time(current_time);
+			MLOG("%s:: Missing signal %s model eligibility testing\n", current_time.c_str(), req_s.c_str());
 		}
 		//only when not allowed - not in allowed list:
 		if (allow_missing_signals.find(req_s) == allow_missing_signals.end())
@@ -164,7 +166,8 @@ int InputTesterJsonFeature::test_if_ok(MedPidRepository &rep, int pid, long long
 			if ((!rep.in_mem_mode_active() && !rep.index.index_table[sid].full_load) ||
 				(rep.in_mem_mode_active() && rep.in_mem_rep.data.find(pair<int, int>(pid, sid)) == rep.in_mem_rep.data.end())) {
 				fail_signals = true;
-				MLOG("Signal %s not loaded for model eligibility testing\n", req_s.c_str());
+				get_current_time(current_time);
+				MLOG("%s:: Signal %s not loaded for model eligibility testing\n", current_time.c_str(), req_s.c_str());
 			}
 
 		if (fail_signals)
