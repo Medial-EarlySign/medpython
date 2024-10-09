@@ -4638,6 +4638,8 @@ int RepNumericNoiser::init(map<string, string>& mapper)
 		else if (field == "value_noise") value_noise = med_stof(entry.second);
 		else if (field == "truncation") truncation = med_stoi(entry.second);
 		else if (field == "drop_probability") drop_probability = med_stof(entry.second);
+		else if (field == "apply_in_test") apply_in_test = med_stof(entry.second);
+
 		else if (field != "rp_type")
 			MWARN("WARN :: RepNumericNoiser::init - unknown parameter %s - ignored\n", field.c_str());
 		//! [RepHistoryLimit::init]
@@ -4677,6 +4679,7 @@ int RepNumericNoiser::_learn(MedPidRepository& rep, MedSamples& samples, vector<
 		stdev = std::sqrt(sq_sum / v.size());
 	}
 
+	on_learning = true;
 	return 0;
 }
 //---------------------------------------------------------------------------------------------------------------
@@ -4685,7 +4688,8 @@ int RepNumericNoiser::_learn(MedPidRepository& rep, MedSamples& samples, vector<
 
 int RepNumericNoiser::_apply(PidDynamicRec& rec, vector<int>& time_points, vector<vector<float>>& attributes_mat)
 {
-
+	if (!on_learning && !apply_in_test)
+		return 0;
 	
 	UniversalSigVec usv;
 

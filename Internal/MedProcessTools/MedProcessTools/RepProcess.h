@@ -1937,6 +1937,8 @@ class RepNumericNoiser : public RepProcessor {
 private:
 	int signalId =-1;	///< id of signal to clean
 	double stdev;
+	bool on_learning = false;
+	bool apply_in_test;
 
 	random_device rd;
 	//mt19937 gens;
@@ -1984,7 +1986,7 @@ public:
 
 	ADD_CLASS_NAME(RepNumericNoiser)
 		ADD_SERIALIZATION_FUNCS(processor_type, signalName, val_channel, time_channel,
-			time_noise, value_noise, drop_probability, req_signals, aff_signals, stdev, truncation)
+			time_noise, value_noise, drop_probability, req_signals, aff_signals, stdev, truncation, apply_in_test)
 
 };
 
