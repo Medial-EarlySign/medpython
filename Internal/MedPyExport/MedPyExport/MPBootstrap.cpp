@@ -74,7 +74,8 @@ std::vector<float> MPBootstrap::MEDPY_GET_ROC_working_point_SENS() { return o->r
 void MPBootstrap::MEDPY_SET_ROC_working_point_SENS(const std::vector<float> &_ROC_working_point_SENS) { o->roc_Params.working_point_SENS = _ROC_working_point_SENS; }
 std::vector<float> MPBootstrap::MEDPY_GET_ROC_working_point_Score() { return o->roc_Params.working_point_Score; };
 void MPBootstrap::MEDPY_SET_ROC_working_point_Score(const std::vector<float> &_ROC_working_point_Score) { o->roc_Params.working_point_Score = _ROC_working_point_Score; }
-
+std::vector<int> MPBootstrap::MEDPY_GET_ROC_working_point_TOPN() { return o->roc_Params.working_point_TOPN; };
+void MPBootstrap::MEDPY_SET_ROC_working_point_TOPN(const std::vector<int> &_ROC_working_point_TOPN) { o->roc_Params.working_point_TOPN = _ROC_working_point_TOPN; }
 
 void MPBootstrap::parse_cohort_line(const string &line) { o->parse_cohort_line(line); }
 
