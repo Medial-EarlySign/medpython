@@ -1268,6 +1268,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
+	float max_diff_in_wp_top_n = max_diff_in_wp;
 
 	vector<int> topN_points = params->working_point_TOPN; //Working Top N points:
 	sort(topN_points.begin(), topN_points.end());
@@ -1389,6 +1390,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 	for (size_t i = 1; i < true_rate.size(); ++i)
 		auc += (false_rate[i] - false_rate[i - 1]) * (true_rate[i - 1] + true_rate[i]) / 2;
 
+	max_diff_in_wp_top_n = max_diff_in_wp_top_n*(t_sum+f_sum) * 0.1;
 	// Partial aucs, if required
 	vector<float> part_aucs(params->working_point_auc.size());
 	if (params->working_point_auc.size()) {
@@ -2035,7 +2037,7 @@ map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int threa
 					tot_diff = 2; //take prev - first apeareance
 					prev_diff = 1;
 				}
-				if (prev_diff > max_diff_in_wp || curr_diff > max_diff_in_wp) {
+				if (prev_diff > max_diff_in_wp_top_n || curr_diff > max_diff_in_wp_top_n) {
 					res[format_working_point_topn("SCORE@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point_topn("FPR@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
 					res[format_working_point_topn("SENS@TOPN", topN_points[curr_wp_topn_ind])] = MED_MAT_MISSING_VALUE;
