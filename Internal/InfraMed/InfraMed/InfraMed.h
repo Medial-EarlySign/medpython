@@ -272,6 +272,9 @@ public:
 	int insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val);
 	int insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val);
 
+	/// Erase pid data
+	void erase_pid_data(int pid);
+
 
 	// This sort action MUST be called after inserting all data, otherwise the order of the elements in each pid-sid vector will be the inserting order
 	int sortData();

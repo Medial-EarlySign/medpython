@@ -162,3 +162,14 @@ void * InMemRepData::get(int pid, int sid, int &len)
 	return (void *)&data[pid_sid].second[0];
 
 }
+
+void InMemRepData::erase_pid_data(int pid) {
+	//Erase from data all (pid, sid):
+	for ( auto &it : my_rep->sigs.Name2Sid) {
+		pair<int, int> pid_sid(pid, it.second);
+		if (data.find(pid_sid) != data.end()) {
+			data.erase(pid_sid);
+		}
+	}
+
+}
