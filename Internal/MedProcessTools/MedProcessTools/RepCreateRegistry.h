@@ -60,6 +60,7 @@ public:
 	int time_unit = -1; ///< time-unit of registry
 
 	bool verbose = false; ///< verbosity
+	bool ht_systolic_first = false; //TODO: change to true after transferring exising models
 
 						  // Registry specific parameters
 						  // Hypertension
@@ -136,6 +137,8 @@ public:
 
 	void get_required_signal_categories(unordered_map<string, vector<string>> &signal_categories_in_use) const;
 
+	void make_summary();
+
 	// serialization
 	ADD_CLASS_NAME(RepCreateRegistry)
 		ADD_SERIALIZATION_FUNCS(processor_type, registry, names, signals, time_unit, req_signals, aff_signals, virtual_signals, virtual_signals_generic, registry_values,
@@ -143,13 +146,15 @@ public:
 			ht_drugs, ht_chf_drugs, ht_dm_drugs, ht_extra_drugs, ht_drugs_gap,
 			dm_drug_sig, dm_drug_sets, dm_diagnoses_sig, dm_diagnoses_sets, dm_glucose_sig, dm_hba1c_sig, dm_diagnoses_severity,
 			urine_tests_categories,
-			ckd_egfr_sig, ckd_proteinuria_sig, registry_custom_type, registry_custom_args, custom_registry)
+			ckd_egfr_sig, ckd_proteinuria_sig, registry_custom_type, registry_custom_args, custom_registry, ht_systolic_first)
 
 private:
 	MedRegistry *custom_registry = NULL;
 	int bDateCode = -1;
 	vector<int> create_custom_input_sigs;
 	string registry_name;
+	int found_op_ht = 0;
+	int num_ht_measurements = 0;
 
 	/// registry name to type
 	const map<string, RegistryTypes> name2type = { { "dm" , REP_REGISTRY_DM },{ "ht", REP_REGISTRY_HT },{ "proteinuria", REP_REGISTRY_PROTEINURIA },{ "ckd", REP_REGISTRY_CKD },{ "custom", REP_REGISTRY_CUSTOM } };

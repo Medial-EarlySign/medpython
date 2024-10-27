@@ -48,6 +48,7 @@ int RepCreateRegistry::init(map<string, string>& mapper) {
 		else if (field == "ht_dm_drugs") boost::split(ht_dm_drugs, entry.second, boost::is_any_of(","));
 		else if (field == "ht_extra_drugs") boost::split(ht_extra_drugs, entry.second, boost::is_any_of(","));
 		else if (field == "ht_drugs_gap") ht_drugs_gap = stoi(entry.second);
+		else if (field == "ht_systolic_first") ht_systolic_first = stoi(entry.second) > 0;
 
 		// Prteinuria
 		else if (field == "urine_tests_categories") boost::split(urine_tests_categories, entry.second, boost::is_any_of("/"));
@@ -292,7 +293,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 
 
 	for (int iver = vit.init(); !vit.done(); iver = vit.next()) {
-		for (size_t isig = 0; isig < sig_ids.size(); isig++) 
+		for (size_t isig = 0; isig < sig_ids.size(); isig++)
 			rec.uget(sig_ids[isig], iver, usvs[isig]);
 
 		if (registry == REP_REGISTRY_HT)
@@ -307,7 +308,7 @@ int RepCreateRegistry::_apply(PidDynamicRec& rec, vector<int>& time_points, vect
 			custom_registry_apply(rec, time_points, iver, usvs, all_v_vals, all_v_times, final_sizes);
 
 		// pushing virtual data into rec
-		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++) 
+		for (size_t ivir = 0; ivir < virtual_ids.size(); ivir++)
 			rec.set_version_universal_data(virtual_ids[ivir], iver, &(all_v_times[ivir][0]), &(all_v_vals[ivir][0]), final_sizes[ivir]);
 	}
 
@@ -379,6 +380,9 @@ void RepCreateRegistry::buildLookupTableForHTDrugs(MedDictionary& dict, vector<c
 void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_points, int iver, vector<UniversalSigVec>& usvs, vector<vector<float>>& all_v_vals, vector<vector<int>>& all_v_times,
 	vector<int>& final_sizes)
 {
+	int sys_ch = 1;
+	if (ht_systolic_first)
+		sys_ch = 0;
 
 	int bdate = usvs[bdate_idx].Val(0);
 	int byear = bdate;
@@ -387,14 +391,22 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	vector<pair<int, int> > data; // 0 = Normal BP ; 1 = High BP ; 20 + X = HT Drug ; 3 = HT Read Code (4/5/6 = CHF/MI/AF Read Codes ; 7 = DM)
 
 	// Blood Pressure
+	int _num_ht_measurements = 0, _found_op_ht = 0;
 	for (int i = 0; i < usvs[bp_idx].len; i++) {
 		int time = usvs[bp_idx].Time(i);
 		if (time_points.size() != 0 && time > time_points[iver])
 			break;
-
+		if (usvs[bp_idx].Val(i, sys_ch) < usvs[bp_idx].Val(i, 1 - sys_ch))
+			++_found_op_ht;
+		++_num_ht_measurements;
 		int age = 1900 + med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Years, time) - byear;
-		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i, 1) > 150) || (age < 60 && usvs[bp_idx].Val(i, 1)  > 140) || usvs[bp_idx].Val(i, 0) > 90) ? 1 : 0;
+		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i, sys_ch) > 150) || (age < 60 && usvs[bp_idx].Val(i, sys_ch)  > 140) || usvs[bp_idx].Val(i, 1 - sys_ch) > 90) ? 1 : 0;
 		data.push_back({ med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Days, time) , bpFlag });
+	}
+#pragma omp critical 
+	{
+	num_ht_measurements += _num_ht_measurements;
+	found_op_ht += _found_op_ht;
 	}
 
 	// Drugs
@@ -869,7 +881,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 	int c = 0;
 	for (auto &ev : evs) {
 		MLOG("pid %d %d : ev %d : time %d type %d val %f severity %d\n", rec.pid, time, c++, ev.time, ev.event_type, ev.event_val, ev.event_severity);
-		}
+	}
 	MLOG("DM_registry calculation: pid %d %d : Healthy %d %d : Pre %d %d : Diabetic %d %d\n", rec.pid, time, ranges[0].first, ranges[0].second, ranges[1].first, ranges[1].second, ranges[2].first, ranges[2].second);
 #endif
 }
@@ -1014,7 +1026,7 @@ void RepCreateRegistry::proteinuria_registry_apply(PidDynamicRec& rec, vector<in
 		MLOG(" %d,%d :", e.first, e.second);
 	MLOG("\n");
 #endif
-	}
+}
 
 //===============================================================================================================================
 // CKD (5 levels) code
@@ -1077,7 +1089,7 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 			ip++;
 		}
 
-		if (time>0 &&  i_time > time) break;
+		if (time > 0 && i_time > time) break;
 
 		//MLOG("CKD: pid %d %d : ip %d/%d ie %d/%d i_time %d last_e %f last_p %f\n", rec.pid, time, ip, p_usv.len, ie, e_usv.len, i_time, last_e, last_p);
 
@@ -1136,4 +1148,10 @@ void RepCreateRegistry::ckd_registry_apply(PidDynamicRec& rec, vector<int>& time
 #endif
 
 
-	}
+}
+
+void RepCreateRegistry::make_summary() {
+	if (num_ht_measurements > 0 && float(found_op_ht) / num_ht_measurements > 0.1)
+		MTHROW_AND_ERR("Error in RepCreateRegistry - hypertenstion seems to be opposite (%2.2f) percentage\n",
+			100 * float(found_op_ht) / num_ht_measurements);
+}
