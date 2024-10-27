@@ -37,6 +37,18 @@ vector<string> log_section_to_name = { "APP", "DEFAULT", "INFRA", "REP", "INDEX"
 "VALCLNR", "MED_SAMPLES_CV", "FEAT_SELECTOR", "SMPL_FILTER", "SRL", "MED_MODEL", "REPTYPE" };
 vector<string> log_level_to_name = { "min_level", "", "", "DEBUG", "", "INFO", "", "", "", "WARN", "ERROR" };
 
+void get_current_time(string &time_str) {
+	if (!time_str.empty())
+		return;
+	time_t theTime = time(NULL);
+	struct tm *now;
+	now = localtime(&theTime);
+	char buffer[500];
+	snprintf(buffer, sizeof(buffer), "[%d-%02d-%02d %02d:%02d:%02d]",
+				now->tm_year + 1900, now->tm_mon + 1, now->tm_mday, now->tm_hour, now->tm_min, now->tm_sec);
+	time_str = string(buffer);
+}
+
 //-----------------------------------------------------------------------------------------------
 void MedLogger::init_out()
 {

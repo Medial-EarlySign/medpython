@@ -1378,12 +1378,14 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 		j++;
 	}
 
-	MLOG("Read %d jsons from data string (debug info: counter = %d j = %ld)\n", j_start.size(), counter, j);
+	//MLOG("Read %d jsons from data string (debug info: counter = %d j = %ld)\n", j_start.size(), counter, j);
 }
 
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
 {
+	string current_time = "";
+
 	MedRepository &rep = ma.get_rep();
 	bool good = true;
 	bool mark_succ_ = false;
@@ -1456,7 +1458,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 				snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain signals element as array",
 					AM_DATA_BAD_FORMAT_FATAL);
 			messages.push_back(string(buf));
-			MLOG("%s\n", buf);
+			get_current_time(current_time);
+			MLOG("%s::%s\n", current_time.c_str(), buf);
 			good = false;
 		}
 		else {
@@ -1476,7 +1479,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 						snprintf(buf, sizeof(buf), "(%d)Bad format. Element should contain code element as signal name",
 							AM_DATA_BAD_FORMAT_FATAL);
 					messages.push_back(string(buf));
-					MLOG("%s\n", buf);
+					get_current_time(current_time);
+					MLOG("%s::%s\n", current_time.c_str(), buf);
 					good = false;
 					good_sig = false;
 				}
@@ -1494,7 +1498,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 								AM_DATA_UNKNOWN_SIGNAL, sig.c_str());
 
 						messages.push_back(string(buf));
-						MLOG("%s\n", buf);
+						get_current_time(current_time);
+						MLOG("%s::%s\n", current_time.c_str(), buf);
 						good = false;
 						good_sig = false;
 						//return AM_FAIL_RC;
@@ -1511,13 +1516,13 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 							snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. No data element or data element is not array",
 								AM_DATA_BAD_FORMAT_FATAL, sig.c_str());
 						messages.push_back(string(buf));
-						MLOG("%s\n", buf);
+						get_current_time(current_time);
+						MLOG("%s::%s\n", current_time.c_str(), buf);
 						good = false;
 						good_sig = false;
 					}
 					if (good_sig) {
 						for (auto &d : s["data"]) {
-							//MLOG("time ");
 							int nt = 0;
 							bool good_record = true;
 							if (d.find("timestamp") != d.end() && !d["timestamp"].is_array()) {
@@ -1529,7 +1534,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp should be array of timestamps, each represents a different channel.",
 										AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str());
 								messages.push_back(string(buf));
-								MLOG("%s\n", buf);
+								get_current_time(current_time);
+								MLOG("%s::%s\n", current_time.c_str(), buf);
 								good = false;
 								break;
 							}
@@ -1542,7 +1548,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be array of values, each represents a different channel.",
 										AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str());
 								messages.push_back(string(buf));
-								MLOG("%s\n", buf);
+								get_current_time(current_time);
+								MLOG("%s::%s\n", current_time.c_str(), buf);
 								good = false;
 								break;
 							}
@@ -1562,7 +1569,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. Couldn't convert timestamp to integer",
 												AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str());
 										messages.push_back(string(buf));
-										MLOG("%s\n", buf);
+										get_current_time(current_time);
+										MLOG("%s::%s\n", current_time.c_str(), buf);
 										good = false;
 										good_sig = false;
 										good_record = false;
@@ -1578,7 +1586,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 										snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. timestamp element should be integer.",
 											AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str());
 									messages.push_back(string(buf));
-									MLOG("%s\n", buf);
+									get_current_time(current_time);
+									MLOG("%s::%s\n", current_time.c_str(), buf);
 									good = false;
 									good_sig = false;
 									good_record = false;
@@ -1587,7 +1596,6 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 
 								times.push_back(t.get<long long>());
 								++nt;
-								//MLOG("%d ", itime);
 							}
 							if (!good_record)
 								break;
@@ -1601,13 +1609,13 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d time channels instead of %d",
 										AM_DATA_BAD_STRUCTURE, sig.c_str(), nt, n_time_channels);
 								messages.push_back(string(buf));
-								MLOG("%s\n", buf);
+								get_current_time(current_time);
+								MLOG("%s::%s\n", current_time.c_str(), buf);
 								good = false;
 								good_sig = false;
 								good_record = false;
 								//return AM_FAIL_RC;
 							}
-							//MLOG("val ");
 							if (!good_record)
 								break;
 							int nv = 0;
@@ -1626,7 +1634,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value element should be string.",
 												AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str());
 										messages.push_back(string(buf));
-										MLOG("%s\n", buf);
+										get_current_time(current_time);
+										MLOG("%s::%s\n", current_time.c_str(), buf);
 										good = false;
 										good_sig = false;
 										good_record = false;
@@ -1652,7 +1661,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 												snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %d.",
 													AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str(), full_date);
 											messages.push_back(string(buf));
-											MLOG("%s\n", buf);
+											get_current_time(current_time);
+											MLOG("%s::%s\n", current_time.c_str(), buf);
 											good = false;
 											good_sig = false;
 											good_record = false;
@@ -1668,7 +1678,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 											snprintf(buf, sizeof(buf), "(%d)Bad format for signal: %s. value should be date format. Recieved %s.",
 												AM_DATA_BAD_FORMAT_NON_FATAL, sig.c_str(), sv.c_str());
 										messages.push_back(string(buf));
-										MLOG("%s\n", buf);
+										get_current_time(current_time);
+										MLOG("%s::%s\n", current_time.c_str(), buf);
 										good = false;
 										good_sig = false;
 										good_record = false;
@@ -1704,7 +1715,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 									snprintf(buf, sizeof(buf), "(%d)Bad signal structure for signal: %s. Received %d value channels instead of %d",
 										AM_DATA_BAD_STRUCTURE, sig.c_str(), nv, n_val_channels);
 								messages.push_back(string(buf));
-								MLOG("%s\n", buf);
+								get_current_time(current_time);
+								MLOG("%s::%s\n", current_time.c_str(), buf);
 								good = false;
 								good_sig = false;
 								good_record = false;
@@ -1739,7 +1751,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 							snprintf(buf, sizeof(buf), "(%d)General error in signal: %s",
 								AM_DATA_GENERAL_ERROR, sig.c_str());
 						messages.push_back(string(buf));
-						MLOG("%s\n", buf);
+						get_current_time(current_time);
+						MLOG("%s::%s\n", current_time.c_str(), buf);
 						good_sig = false;
 						good = false;
 						//return AM_FAIL_RC;
@@ -1755,7 +1768,8 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		snprintf(buf, sizeof(buf), "(%d)Bad data json format",
 			AM_DATA_BAD_FORMAT_FATAL);
 		messages.push_back(string(buf));
-		MLOG("%s\n", buf);
+		get_current_time(current_time);
+		MLOG("%s::%s\n", current_time.c_str(), buf);
 		good = false;
 		//return AM_FAIL_RC;
 	}

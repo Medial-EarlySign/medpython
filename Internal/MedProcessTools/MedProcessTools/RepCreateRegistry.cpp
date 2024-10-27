@@ -166,6 +166,8 @@ void RepCreateRegistry::init_tables(MedDictionarySections& dict, MedSignals& sig
 	sig_ids.clear();
 	for (auto &rsig : signals) {
 		int sid = sigs.sid(rsig);
+		if (sid < 0)
+			MTHROW_AND_ERR("Error in RepCreateRegistry::init_tables - unrecognized signal %s\n", rsig.c_str());
 		sig_ids_s.insert(sid);
 		sig_ids.push_back(sid);
 		req_signal_ids.insert(sid);

@@ -64,6 +64,9 @@ public:
 	std::vector<float> MEDPY_GET_ROC_working_point_Score();
 	void MEDPY_SET_ROC_working_point_Score(const std::vector<float> &_ROC_working_point_Score);
 
+	std::vector<int> MEDPY_GET_ROC_working_point_TOPN();
+	void MEDPY_SET_ROC_working_point_TOPN(const std::vector<int> &MEDPY_GET_ROC_working_point_TOPN);
+
 	void parse_cohort_line(const string &line);
 
 	void get_cohort_from_arg(const string &single_cohort);
