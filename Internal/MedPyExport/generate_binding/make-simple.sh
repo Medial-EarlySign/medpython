@@ -18,28 +18,13 @@ echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
 echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
 
-COMPILE_STATIC_PATH=${MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build.ubuntu/lib
 #STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release
 STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release_new
 
-if [[ "`which sudo 2>>/dev/null`" ]]; 
-then 
-export SUDO="`which sudo`"
-else
-export SUDO=''
-fi
-
-mkdir -p `realpath ${COMPILE_STATIC_PATH}/..`
-#mkdir -p ${COMPILE_STATIC_PATH}
 echo "STATIC_LIBS_TARGET=${STATIC_LIBS_TARGET}"
-echo "COMPILE_STATIC_PATH=${COMPILE_STATIC_PATH}"
 
-#cp -R ${STATIC_LIBS_TARGET}/* ${COMPILE_STATIC_PATH}
 
 source /nas1/Work/python-env/python310/bin/activate
-
-# cp SWIG.CMakeLists.txt CMakeLists.txt
-# cp MedPython/SWIG.CMakeLists.txt MedPython/CMakeLists.txt
 
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
 pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 

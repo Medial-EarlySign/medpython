@@ -1,4 +1,6 @@
 cmake_minimum_required(VERSION 3.2)
+cmake_policy(SET CMP0086 NEW)
+cmake_policy(SET CMP0078 NEW)
 
 #execute_process(COMMAND swig -python medpython.i
 #  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
