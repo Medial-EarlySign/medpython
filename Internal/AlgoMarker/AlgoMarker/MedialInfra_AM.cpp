@@ -2435,3 +2435,23 @@ void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMar
 	int flag = int(score >= cutoff);
 	js.push_back({"flag_result", flag});
 }
+
+void MedialInfraAlgoMarker::show_rep_data(char **response) {
+	MedPidRepository &rep = ma.get_rep();
+	nlohmann::ordered_json js;
+	js["data"] = nlohmann::ordered_json::array();
+	unordered_map<int, unordered_set<string>> pid_to_signals;
+	for (auto & it : rep.in_mem_rep.data) {
+		const pair<int,int> &pid_sig = it.first;
+		const string &sig_name = rep.sigs.name(pid_sig.second);
+		pid_to_signals[pid_sig.first].insert(sig_name);
+	}
+	for (auto &it: pid_to_signals)
+	{
+		vector<string> all_sigs(it.second.begin(), it.second.end());
+		js["data"] += {{ "pid", it.first }, 
+						{"signals", all_sigs }};	
+	}
+	
+	json_to_char_ptr(js, response);
+}

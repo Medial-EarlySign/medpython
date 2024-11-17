@@ -311,6 +311,7 @@ public:
 	char *get_am_udi_di() { return  (char *)am_udi_di.c_str(); }
 	char *get_manfactor_date() { return (char *)am_manfactor_date.c_str(); }
 	char *get_am_version() { return  (char *)am_version.c_str(); }
+	virtual void show_rep_data(char **response) { *response = NULL; }
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
@@ -383,6 +384,8 @@ public:
 	string get_sig_unit(const string &sig, int val_channel) { return ma.get_rep().sigs.unit_of_measurement(sig, val_channel); }
 
 	string get_lib_code_version();
+
+	void show_rep_data(char **response);
 };
 
 //===============================================================================
@@ -504,6 +507,9 @@ extern "C" DLL_WORK_MODE void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **r
 
 // Dispose of allocated memory
 extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);
+
+//Show memory:
+extern "C" DLL_WORK_MODE int AM_API_DebugRepMemory(AlgoMarker *pAlgoMarker, char **resp);
 
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#
