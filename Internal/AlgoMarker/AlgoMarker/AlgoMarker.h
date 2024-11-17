@@ -360,6 +360,7 @@ private:
 	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
 	int AddJsonData(int patient_id, json &j_data, vector<string> &messages);
 	int rec_AddDataByType(int DataType, const char *data, vector<string> &messages);
+	void clear_patients_data(const vector<int> &pids);
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 
