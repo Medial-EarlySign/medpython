@@ -4,7 +4,9 @@ pushd ${BLDDIR}
 
 version_txt=`get_git_status_text.py | sed 's|"||g' | awk -F"\t" '{print "\"" $1 "\""}'`
 echo -e "Git version info:\n${version_txt}"
-touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
+if [ ! -z "${version_txt}" ]; then
+    touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
+fi
 
 mkdir -p ${BLDDIR}/build/Release
 pushd ${BLDDIR}/build/Release

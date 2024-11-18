@@ -179,9 +179,9 @@ int MedialInfraAlgoMarker::ClearData()
 //-----------------------------------------------------------------------------------
 // AddData() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, float *Values)
-{
-	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
+int MedialInfraAlgoMarker::AddData_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data) {
+		// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
 	// This may change in the future as needed.
 	int *i_times = NULL;
 	vector<int> times_int;
@@ -206,17 +206,24 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 		i_times = &times_int[0];
 	}
 
-	if (ma.data_load_pid_sig(patient_id, signalName, i_times, TimeStamps_len, Values, Values_len) < 0)
+	if (ma.data_load_pid_sig(patient_id, signalName, i_times, TimeStamps_len, Values, Values_len, data) < 0)
 		return AM_ERROR_ADD_DATA_FAILED;
 
 	return AM_OK_RC;
 }
 
+int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, float *Values)
+{
+	MedRepository &rep = ma.get_rep();
+	map<pair<int, int>, pair<int, vector<char>>> *data = &rep.in_mem_rep.data;
+	return AddData_data(patient_id, signalName, TimeStamps_len, TimeStamps,Values_len , Values, data);
+}
+
 //-----------------------------------------------------------------------------------
 // AddDatStr() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, char **Values)
-{
+int MedialInfraAlgoMarker::AddDataStr_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data) {
 	vector<float> converted_Values;
 	vector<long long> final_tm;
 	final_tm.reserve(TimeStamps_len);
@@ -288,8 +295,15 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 	}
 
 	if (TimeStamps_len > 0 || Values_len > 0)
-		return AddData(patient_id, signalName, TimeStamps_len, final_tm.data(), Values_len, converted_Values.data());
+		return AddData_data(patient_id, signalName, TimeStamps_len, final_tm.data(), Values_len, converted_Values.data(), data);
 	return AM_OK_RC;
+}
+
+int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, char **Values)
+{
+	MedRepository &rep = ma.get_rep();
+	map<pair<int, int>, pair<int, vector<char>>> *data = &rep.in_mem_rep.data;
+	return AddDataStr_data(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values, data);
 }
 
 //-----------------------------------------------------------------------------------
@@ -1081,7 +1095,9 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	timer.start();
 #endif
 
-	vector<int> loaded_pids;
+	bool has_load_data = false;
+	MedPidRepository *rep = &ma.get_rep();
+	map<pair<int, int>, pair<int, vector<char>>> new_data;
 	for (auto &jreq_i : jreq["requests"])
 	{
 		json_req_info j_i;
@@ -1095,14 +1111,36 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		vector<string> vec_messages;
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, ""))
 		{
-			if (AddJsonData(j_i.sample_pid, jreq_i["data"], vec_messages) != AM_OK_RC)
+			has_load_data = true;
+			if (AddJsonData(j_i.sample_pid, jreq_i["data"], vec_messages, &new_data) != AM_OK_RC)
 			{
 				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
 				for (size_t i = 0; i < vec_messages.size(); ++i)
 					add_to_json_array(jresp, "errors", vec_messages[i]);
 			}
-			loaded_pids.push_back(j_i.sample_pid);
 		}
+	}
+	MedPidRepository rep_copy;
+	if (has_load_data) {
+		rep_copy.sigs = rep->sigs; //Created a copy - TODO - smarter copy of all data by pointers, except data
+		rep_copy.dict = rep->dict;
+		rep_copy.switch_to_in_mem_mode();
+		rep_copy.in_mem_rep.data = move(new_data); 
+		rep_copy.in_mem_rep.sortData();
+		rep = &rep_copy; 
+		//Debug print new_data:
+		//for (auto &it : rep->in_mem_rep.data) {
+		//	MLOG("pid: %d, signal: %s, size: %zu\n", it.first.first, rep->sigs.name(it.first.second).c_str(),
+		//	it.second.second.size());
+		//}
+		
+		//Test get BDATE
+		//UniversalSigVec usv_gender;
+		//rep->uget(1, "BDATE", usv_gender);
+		//MLOG("Will print Gender, size: %d, in_mem=%d\n", usv_gender.len, int(rep->in_mem_mode_active()));
+		//for (size_t ii=0; ii< usv_gender.len; ++ii) {
+		//	MLOG("Gender = %f\n", usv_gender.Val(ii));
+		//}
 	}
 	//	}
 
@@ -1112,7 +1150,6 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (json_verify_key(jresp, "errors", 0, ""))
 	{
 		json_to_char_ptr(jresp, response);
-		clear_patients_data(loaded_pids);
 		return AM_FAIL_RC;
 	} // Leave now if there are errors
 
@@ -1127,7 +1164,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	// we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
 	int n_points = (int)sample_reqs.size();
 	int tu = get_time_unit();
-	MedPidRepository &rep = ma.get_rep();
+	
 	vector<int> eligible_pids, eligible_timepoints;
 	unordered_map<unsigned long long, vector<int>> sample2ind; // conversion of each sample to all the ts that were mapped to it.
 	int n_failed = 0, n_bad = 0;
@@ -1154,7 +1191,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			try
 			{
 				req_i.sanity_test_rc = ist.test_if_ok(req_i.sample_pid, (long long)req_i.conv_time, *ma.get_unknown_codes(req_i.sample_pid), req_i.sanity_res);
-				int rc_res = ist.test_if_ok(rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
+				int rc_res = ist.test_if_ok(*rep, req_i.sample_pid, (long long)req_i.conv_time, req_i.sanity_res);
 				if (rc_res < 1)
 					req_i.sanity_test_rc = rc_res;
 			}
@@ -1183,7 +1220,6 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	if (n_failed > 0)
 	{
 		json_to_char_ptr(jresp, response);
-		clear_patients_data(loaded_pids);
 		return AM_FAIL_RC;
 	}
 
@@ -1245,11 +1281,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	int get_preds_rc = -1;
 	try
 	{
-		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points, requested_fields)) < 0)
+		if ((get_preds_rc = ma.get_preds(&eligible_pids[0], &eligible_timepoints[0], NULL, _n_points, requested_fields, rep)) < 0)
 		{
 			add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " With return code " + to_string(get_preds_rc));
 			json_to_char_ptr(jresp, response);
-			clear_patients_data(loaded_pids);
 			return AM_FAIL_RC;
 		}
 	}
@@ -1257,7 +1292,6 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	{
 		add_to_json_array(jresp, "errors", "ERROR: (" + to_string(AM_MSG_RAW_SCORES_ERROR) + ") Failed getting scores in AlgoMarker " + string(get_name()) + " caught a crash");
 		json_to_char_ptr(jresp, response);
-		clear_patients_data(loaded_pids);
 		return AM_FAIL_RC;
 	}
 
@@ -1343,7 +1377,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					try
 					{
 						jattr = nlohmann::ordered_json::parse(req_i.res->str_attributes[e.second.field]);
-						process_explainability(jattr, ex_params, rep, req_i.sample_pid, req_i.sample_time);
+						process_explainability(jattr, ex_params, *rep, req_i.sample_pid, req_i.sample_time);
 						js.push_back({e.first, jattr});
 					}
 					catch (...)
@@ -1381,7 +1415,6 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		first_write = false;
 	}
 
-	clear_patients_data(loaded_pids);
 	return AM_OK_RC;
 }
 
@@ -1573,11 +1606,14 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 }
 
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages)
+int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages, map<pair<int, int>, pair<int, vector<char>>> *data)
 {
 	string current_time = "";
 
 	MedRepository &rep = ma.get_rep();
+	if (data == NULL) //default pointer to global rep
+		data = &rep.in_mem_rep.data;
+
 	bool good = true;
 	bool mark_succ_ = false;
 	try
@@ -1974,7 +2010,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 
 				if (good_sig)
 				{
-					if (AddDataStr(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values) != AM_OK_RC)
+					if (AddDataStr_data(patient_id, sig.c_str(), n_times, p_times, n_vals, str_values, data) != AM_OK_RC)
 					{
 						char buf[5000];
 						if (patient_id != 1)

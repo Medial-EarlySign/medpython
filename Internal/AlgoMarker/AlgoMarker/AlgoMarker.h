@@ -359,9 +359,13 @@ private:
 	bool is_loaded = false;
 
 	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
-	int AddJsonData(int patient_id, json &j_data, vector<string> &messages);
+	int AddJsonData(int patient_id, json &j_data, vector<string> &messages, map<pair<int, int>, pair<int, vector<char>>> *data = NULL);
 	int rec_AddDataByType(int DataType, const char *data, vector<string> &messages);
 	void clear_patients_data(const vector<int> &pids);
+	int AddDataStr_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data);
+	int AddData_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data);
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 

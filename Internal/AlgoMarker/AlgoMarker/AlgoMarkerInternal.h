@@ -273,10 +273,13 @@ public:
 	}
 
 	// load pid,sig with vectors of times and vals
-	int data_load_pid_sig(int pid, const char *sig_name, int *times, int n_times, float *vals, int n_vals) {
+	int data_load_pid_sig(int pid, const char *sig_name, int *times, int n_times, float *vals, int n_vals,
+	map<pair<int, int>, pair<int, vector<char>>> *data = NULL) {
 		int sid = rep.sigs.Name2Sid[string(sig_name)];
 		if (sid < 0) return -1; // no such signal
-		return rep.in_mem_rep.insertData(pid, sid, times, vals, n_times, n_vals);
+		if (data == NULL)
+			data = &rep.in_mem_rep.data;
+		return rep.in_mem_rep.insertData_to_buffer(pid, sid, times, vals, n_times, n_vals, rep.sigs, *data);
 	}
 
 	// load a single element for a pid,sig
@@ -330,23 +333,24 @@ public:
 	}
 
 	int get_preds(int *_pids, int *times, float *preds, int n_samples,
-		const vector<Effected_Field> &requested_fields) {
+		const vector<Effected_Field> &requested_fields, MedPidRepository *_rep=NULL) {
 
 		// init_samples
 		init_samples(_pids, times, n_samples);
-
-		return get_raw_preds(_pids, times, preds, requested_fields);
+		if (_rep == NULL)
+			_rep = &this->rep;
+		return get_raw_preds(_pids, times, preds, requested_fields, _rep);
 	}
 
 	int get_raw_preds(int *_pids, int *times, float *preds,
-		const vector<Effected_Field> &requested_fields) {
+		const vector<Effected_Field> &requested_fields, MedPidRepository *_rep) {
 
 		try {
 
 			try {
 				// run model to calculate predictions
 				if (!samples.idSamples.empty())
-					model.no_init_apply_partial(rep, samples, requested_fields);
+					model.no_init_apply_partial(*_rep, samples, requested_fields);
 			}
 			catch (...) {
 				fprintf(stderr, "Caught an exception in no_init_apply_partial\n");

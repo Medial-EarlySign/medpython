@@ -4,25 +4,10 @@
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
 extern MedLogger global_logger;
 
-//-------------------------------------------------------------------------------------------------------------------
-int InMemRepData::insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val)
-{
-	int sid = my_rep->sigs.sid(string(sig));
-	if (sid < 0) {
-		MERR("ERROR: InMemRepData: sig %s in not is signals file (did you read the file\?\?)\n", sig);
-		return -1;
-	}
-	return insertData(pid, sid, time_data, val_data, n_time, n_val);
-
-}
-
-
-//-------------------------------------------------------------------------------------------------------------------
-int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val)
-{
-
-	int n_time_ch = my_rep->sigs.Sid2Info[sid].n_time_channels;
-	int n_val_ch = my_rep->sigs.Sid2Info[sid].n_val_channels;
+int InMemRepData::insertData_to_buffer(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val, 
+	const MedSignals &sigs, map<pair<int, int>, pair<int, vector<char>>> &data) {
+	int n_time_ch = sigs.Sid2Info[sid].n_time_channels;
+	int n_val_ch = sigs.Sid2Info[sid].n_val_channels;
 
 	int n_elem_by_time = 0;
 	int n_elem_by_val = 0;
@@ -43,11 +28,11 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	}
 	int n_elem = max(n_elem_by_time, n_elem_by_val);
 
-	int len_bytes = my_rep->sigs.Sid2Info[sid].bytes_len;
+	int len_bytes = sigs.Sid2Info[sid].bytes_len;
 
 	vector<char> elem(len_bytes*n_elem);
 
-	int type = my_rep->sigs.Sid2Info[sid].type;
+	int type = sigs.Sid2Info[sid].type;
 
 	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
 	int *tdata = time_data;
@@ -59,7 +44,7 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	//MLOG("pid %d sid %d type %d len_bytes %d nelem %d\n", pid, sid, type, len_bytes, n_elem);
 	if (type == T_Generic) {
 		GenericSigVec gsv;
-		gsv.init(my_rep->sigs.Sid2Info[sid]);
+		gsv.init(sigs.Sid2Info[sid]);
 		gsv.set_data(&elem[0], n_elem);
 		for (int i = 0; i < n_elem; i++) {
 			gsv.Set(i, tdata, vdata);
@@ -93,6 +78,24 @@ int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, 
 	}
 
 	return 0;
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val)
+{
+	int sid = my_rep->sigs.sid(string(sig));
+	if (sid < 0) {
+		MERR("ERROR: InMemRepData: sig %s in not is signals file (did you read the file\?\?)\n", sig);
+		return -1;
+	}
+	return insertData(pid, sid, time_data, val_data, n_time, n_val);
+
+}
+
+//-------------------------------------------------------------------------------------------------------------------
+int InMemRepData::insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val)
+{
+	return InMemRepData::insertData_to_buffer(pid, sid, time_data, val_data, n_time, n_val, my_rep->sigs, data);
 }
 
 //-------------------------------------------------------------------------------------------------------------------
@@ -150,17 +153,20 @@ int InMemRepData::sortData()
 }
 
 //-------------------------------------------------------------------------------------------------------------------
-void * InMemRepData::get(int pid, int sid, int &len)
-{
+void *InMemRepData::get_from_buffer(int pid, int sid, int &len, const map<pair<int, int>, pair<int, vector<char>>> &data) {
 	pair<int, int> pid_sid(pid, sid);
 	if (data.find(pid_sid) == data.end()) {
 		len = 0;
 		return NULL;
 	}
 
-	len = data[pid_sid].first;
-	return (void *)&data[pid_sid].second[0];
+	len = data.at(pid_sid).first;
+	return (void *)&data.at(pid_sid).second[0];
+}
 
+void * InMemRepData::get(int pid, int sid, int &len)
+{
+	return InMemRepData::get_from_buffer(pid, sid, len, data);
 }
 
 void InMemRepData::erase_pid_data(int pid) {
