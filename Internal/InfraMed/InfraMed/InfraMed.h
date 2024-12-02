@@ -271,6 +271,8 @@ public:
 	// data can be insertred in any order and several times per pid/sid , different pids are supported too.
 	int insertData(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val);
 	int insertData(int pid, const char *sig, int *time_data, float *val_data, int n_time, int n_val);
+	static int insertData_to_buffer(int pid, int sid, int *time_data, float *val_data, int n_time, int n_val, 
+	const MedSignals &sigs, map<pair<int, int>, pair<int, vector<char>>> &data);
 
 	/// Erase pid data
 	void erase_pid_data(int pid);
@@ -284,6 +286,7 @@ public:
 	void clear() { data.clear(); }
 
 	// a repository get function to use with this type of data
+	static void *get_from_buffer(int pid, int sid, int &len,const map<pair<int, int>, pair<int, vector<char>>> &data);
 	void *get(int pid, int sid, int &len);
 
 	// debug and prints

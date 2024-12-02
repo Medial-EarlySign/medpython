@@ -311,6 +311,7 @@ public:
 	char *get_am_udi_di() { return  (char *)am_udi_di.c_str(); }
 	char *get_manfactor_date() { return (char *)am_manfactor_date.c_str(); }
 	char *get_am_version() { return  (char *)am_version.c_str(); }
+	virtual void show_rep_data(char **response) { *response = NULL; }
 
 	// set things
 	void set_type(int _type) { type = (AlgoMarkerType)_type; }
@@ -358,8 +359,13 @@ private:
 	bool is_loaded = false;
 
 	void get_jsons_locations(const char *data, vector<size_t> &j_start, vector<size_t> &j_len); // helper to split given string to jsons within it. Used in batch json mode.
-	int AddJsonData(int patient_id, json &j_data, vector<string> &messages);
+	int AddJsonData(int patient_id, json &j_data, vector<string> &messages, map<pair<int, int>, pair<int, vector<char>>> *data = NULL);
 	int rec_AddDataByType(int DataType, const char *data, vector<string> &messages);
+	void clear_patients_data(const vector<int> &pids);
+	int AddDataStr_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data);
+	int AddData_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, 
+	map<pair<int, int>, pair<int, vector<char>>> *data);
 public:
 	MedialInfraAlgoMarker() { set_type((int)AM_TYPE_MEDIAL_INFRA); add_supported_stype("Raw"); }
 
@@ -382,6 +388,8 @@ public:
 	string get_sig_unit(const string &sig, int val_channel) { return ma.get_rep().sigs.unit_of_measurement(sig, val_channel); }
 
 	string get_lib_code_version();
+
+	void show_rep_data(char **response);
 };
 
 //===============================================================================
@@ -503,6 +511,9 @@ extern "C" DLL_WORK_MODE void AM_API_Discovery(AlgoMarker *pAlgoMarker, char **r
 
 // Dispose of allocated memory
 extern "C" DLL_WORK_MODE void AM_API_Dispose(char *data);
+
+//Show memory:
+extern "C" DLL_WORK_MODE int AM_API_DebugRepMemory(AlgoMarker *pAlgoMarker, char **resp);
 
 //========================================================================================
 // Follows is a simple API to allow access to data repositories via c#

@@ -749,7 +749,20 @@ int AM_API_GetName(AlgoMarker *pAlgoMarker, char **name)
 }
 //-----------------------------------------------------------------------------------------------------------
 
+int AM_API_DebugRepMemory(AlgoMarker *pAlgoMarker, char **resp)
+{
+	try {
+		*resp = NULL;
+		if (pAlgoMarker == NULL)
+			return AM_FAIL_RC;
 
+		pAlgoMarker->show_rep_data(resp);
+		return AM_OK_RC;
+	}
+	catch (...) {
+		return AM_FAIL_RC;
+	}
+}
 
 //===========================================================================================================
 // DATA API Implementation
