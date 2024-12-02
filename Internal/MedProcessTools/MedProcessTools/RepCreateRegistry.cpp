@@ -404,6 +404,7 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 		int age = 1900 + med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Years, time) - byear;
 		int bpFlag = ((age >= 60 && usvs[bp_idx].Val(i, sys_ch) > 150) || (age < 60 && usvs[bp_idx].Val(i, sys_ch)  > 140) || usvs[bp_idx].Val(i, 1 - sys_ch) > 90) ? 1 : 0;
 		data.push_back({ med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Days, time) , bpFlag });
+		// cout << "BP" << i << " time " << time << " " << med_time_converter.convert_times(signal_time_units[bdate_idx], MedTime::Days, time) << " " << usvs[bp_idx].Val(i, 0) << " " << usvs[bp_idx].Val(i, 1) << " " << bpFlag << "\n";
 	}
 #pragma omp critical 
 	{
@@ -673,6 +674,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			if (i_val > 199.99f) severity = 4;  // 1 test enough to define diabetic
 
 			evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_GLUCOSE, i_val, severity));
+			// cout << "Glucose " << i_time << " " << i_val << " " << severity << "\n";
 		}
 	}
 
@@ -691,6 +693,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			if (i_val > 7.99f) severity = 4;  // 1 test enough to define diabetic
 
 			evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_HBA1C, i_val, severity));
+			// cout << "hba1c " << i_time << " " << i_val << " " << severity << "\n";
 		}
 	}
 
@@ -707,6 +710,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			if (dm_drug_lut.size() > 0 && dm_drug_lut[i_val]) {
 				int severity = 4; // currently the first diabetic drug usage makes you diabetic for life.... this is extreme, but given this, we only need the first.
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DRUG, 1, severity));
+				// cout << "Drug " << i_time << " " << severity << "\n";
 				break;
 			}
 
@@ -727,6 +731,7 @@ void RepCreateRegistry::dm_registry_apply(PidDynamicRec& rec, vector<int>& time_
 			if (dm_diagnoses_lut.size() > 0 && dm_diagnoses_lut[i_val]) {
 				int severity = dm_diagnoses_severity;
 				evs.push_back(RegistryEvent(i_time, REG_EVENT_DM_DIAGNOSES, 1, severity));
+				// cout << "Diagnosis " << i_time << " " << severity << "\n";
 				if (dm_diagnoses_severity >= 4) break;
 			}
 

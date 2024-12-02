@@ -721,6 +721,27 @@ bool get_KFRE8(
 //---------------------------------------------------------------------------------------------------------------------------
 float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity)
 {
+	// 2021 version
+	double eGFR_CKD_EPI = 142 * pow(0.9938, (double)age);
+
+	if (gender == 1) {
+		// Male
+		if (creatinine <= 0.9)
+			eGFR_CKD_EPI *= pow(creatinine / 0.9, -0.302);
+		else
+			eGFR_CKD_EPI *= pow(creatinine / 0.9, -1.200);
+	}
+	else {
+		// Female
+		if (creatinine <= 0.7)
+			eGFR_CKD_EPI *= pow(creatinine / 0.7, -0.241);
+		else
+			eGFR_CKD_EPI *= pow(creatinine / 0.7, -1.200);
+	}
+
+
+/* 2009 version, note that -0.441 was our typo, and should have been -0.411
+/--------------------------------------
 	double eGFR_CKD_EPI = pow(0.993, (double)age);
 
 	if (ethnicity == 1)
@@ -743,8 +764,11 @@ float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity)
 			eGFR_CKD_EPI *= pow(creatinine/0.7, -1.209);
 	}
 
+/--------------------------------------
+*/
 	return (float)eGFR_CKD_EPI;
 }
+
 
 //---------------------------------------------------------------------------------------------------------------------------
 float get_eGFR_MDRD(float age, float creatinine, int gender, int ethnicity)

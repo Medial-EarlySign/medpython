@@ -151,6 +151,5 @@ int RepFilterByChannel::_apply(PidDynamicRec& rec, vector<int>& time_points, vec
 		// pushing virtual data into rec (into orig version)
 		rec.set_version_universal_data(v_out_sid, iver, &v_times[0], &v_vals[0], final_size);
 	}
-
 	return 0;
 }
