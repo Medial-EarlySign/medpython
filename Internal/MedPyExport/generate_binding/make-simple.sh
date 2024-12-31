@@ -1,15 +1,19 @@
 #!/bin/bash
-
+set -e
 DIST_NAME=${1-unknown}
+PY_VERSION=$(python --version | awk '{print $2}' | awk -F. '{print $1 "." $2}')
+PY_VERSION_SHORT=$(python --version | awk '{print $2}' | awk -F. '{print $1 $2}')
+
 if [ $DIST_NAME == "unknown" ]; then
-	if [[ ${PYTHON_INCLUDE_DIR} == *"/python36/"* ]]; then DIST_NAME="medial-python36"
-	elif [[ ${PYTHON_INCLUDE_DIR} == *"/python38"* ]]; then DIST_NAME="medial-python38"
-	elif [[ ${PYTHON_INCLUDE_DIR} == *"/python310"* ]]; then 
-		DIST_NAME="medial-python310"
-		export CPATH=$CPATH:/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/
-		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python310/lib/python3.10/site-packages/numpy/core/include/
+	DIST_NAME="medial-python${PY_VERSION_SHORT}"
+	if [ -d "/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include" ]; then
+		export CPATH=$CPATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include/
+		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include/
+	elif [ -d "/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include" ]; then
+		export CPATH=$CPATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include/
+		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include/
 	else
-		echo "Unknown python version"
+		echo "Couldn't find numpy headers - does numpy installed for this python? python${PY_VERSION}"
 		exit -1
 	fi
 fi
@@ -24,13 +28,15 @@ STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release_new
 echo "STATIC_LIBS_TARGET=${STATIC_LIBS_TARGET}"
 
 
-source /nas1/Work/python-env/python310/bin/activate
+#source /nas1/Work/python-env/python310/bin/activate
 
 mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
 pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 
 cmake ../../../
 
+set +e
 version_txt=`get_git_status_text.py`
+set -e
 echo -e "Git version info:\n${version_txt}"
 touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
 
