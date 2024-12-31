@@ -2,6 +2,7 @@
 #define __GLOBAL_RNG_H__
 
 #include <random>
+#include <omp.h>
 
 class globalRNG
 {
@@ -10,11 +11,11 @@ public:
   static unsigned int rand30() { return ((getInstance()._rng() << 15) ^ getInstance()._rng()) & 0x4fffffff; };
   static void srand(std::minstd_rand::result_type val) { getInstance()._rng.seed(val); };
   static const std::minstd_rand::result_type max() { return getInstance()._rng.max(); };
-  static std::mt19937 &get_engine() { return getInstance()._rng_new; };
+  static std::mt19937 &get_engine() { return getInstance().random_gens[omp_get_thread_num()]; };
 
 private:
   std::minstd_rand _rng;
-  std::mt19937 _rng_new;
+  std::vector<std::mt19937> random_gens;
 
   static globalRNG &getInstance()
   {
@@ -22,7 +23,12 @@ private:
     return instance;
   }
 
-  globalRNG() : _rng(20150715), _rng_new(20150715) {}; // constructor
+  globalRNG() : _rng(20150715)
+  {
+    random_gens.resize(omp_get_max_threads());
+    for (size_t i = 0; i < random_gens.size(); ++i)
+      random_gens[i] = std::mt19937(20150715 + i);
+  }; // constructor
 
   globalRNG(globalRNG const &)
   {
