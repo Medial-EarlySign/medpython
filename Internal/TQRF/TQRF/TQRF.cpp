@@ -393,7 +393,7 @@ int Quantized_Feat::init_lists(const MedFeatures &medf, TQRF_Params &params)
 		lists[pid2list[pid]].push_back(i);
 	}
 
-	random_shuffle(lists[0].begin(), lists[0].end());
+	shuffle(lists[0].begin(), lists[0].end(), globalRNG::get_engine());
 
 	MLOG("TQRF: split with tuning_size=%f : list0: %d list1: %d overall: %d\n", params.tuning_size, lists[0].size(), lists[1].size(), medf.samples.size());
 
