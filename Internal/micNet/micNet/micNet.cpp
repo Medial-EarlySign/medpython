@@ -1830,7 +1830,7 @@ int micNet::get_batch_with_samp_ratio(MedMat<float> &y_train, int batch_len, vec
 			index_by_categ[(int)y_train(i, 0)].push_back(i);
 		}
 		for (int i = 0; i < params.n_categ; i++)
-			random_shuffle(index_by_categ[i].begin(), index_by_categ[i].end());
+			shuffle(index_by_categ[i].begin(), index_by_categ[i].end(), globalRNG::get_engine());
 
 
 		// making sure samp_ratio is given in probabilities

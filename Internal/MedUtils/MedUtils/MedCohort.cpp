@@ -3,6 +3,7 @@
 #include <Logger/Logger/Logger.h>
 #include <boost/algorithm/string.hpp>
 #include <MedUtils/MedUtils/MedGenUtils.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 #include <fstream>
 #include <algorithm>
 #include <fstream>
@@ -619,7 +620,7 @@ int MedCohort::create_samples(MedRepository& rep, SamplingParams &s_params, MedS
 				if (mis.samples.size() > s_params.max_samples_per_id) {
 					// randomizing
 					if (s_params.max_samples_per_id_method == "rand") {
-						random_shuffle(mis.samples.begin(), mis.samples.end());
+						shuffle(mis.samples.begin(), mis.samples.end(), globalRNG::get_engine());
 					}
 					// It is assumed that samples are ordered from last to first, so other s_params.max_samples_per_id_method = 'last' should do nothing before setting end iterator.
 					last_it = mis.samples.begin() + s_params.max_samples_per_id;
@@ -766,7 +767,7 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 					sort(dates_to_take.begin(), dates_to_take.end(), std::greater<int>());
 				}
 				if (s_params.max_samples_per_id_method == "rand") {
-					random_shuffle(dates_to_take.begin(), dates_to_take.end());
+					shuffle(dates_to_take.begin(), dates_to_take.end(), globalRNG::get_engine());
 				}
 			}
 

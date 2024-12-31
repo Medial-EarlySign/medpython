@@ -223,7 +223,7 @@ void MedClassifierPerformance::SplitsToComplete() {
 void MedClassifierPerformance::ShuffleSort() {
 
 	for (unsigned int i = 0; i < preds.size(); i++) {
-		random_shuffle(preds[i].begin(), preds[i].end(), rand_N_i64);
+		shuffle(preds[i].begin(), preds[i].end(), globalRNG::get_engine());
 		sort(preds[i].begin(), preds[i].end(), _PredsCompare());
 	}
 }

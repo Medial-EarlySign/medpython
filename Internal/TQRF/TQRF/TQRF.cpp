@@ -2340,7 +2340,7 @@ int TQRF_Forest::tune_betas(Quantized_Feat &qfeat)
 	// 4.1 : set the set of indexes we work with (into a new vector, allowing easy changes in the future)
 	vector<int> gd_idx = qfeat.lists[1];
 
-	random_shuffle(gd_idx.begin(), gd_idx.end());
+	shuffle(gd_idx.begin(), gd_idx.end(), globalRNG::get_engine());
 
 	MedMat<float> x;
 	qfeat.orig_medf->get_as_matrix(x, {}, gd_idx);

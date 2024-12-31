@@ -27,7 +27,7 @@ void get_rand_vector_no_repetitions(vector<int> &v, int N, int size)
 	for (int i = 0; i<N; i++)
 		w[i] = i;
 
-	random_shuffle(w.begin(), w.end());
+	shuffle(w.begin(), w.end(), globalRNG::get_engine());
 
 	v.resize(size);
 
@@ -48,7 +48,7 @@ void get_rand_splits(vector<int> &split, int nsplits, int size)
 	split.resize(size);
 	for (int i = 0; i<size; i++)
 		split[i] = i % nsplits;
-	random_shuffle(split.begin(), split.end());
+	shuffle(split.begin(), split.end(),globalRNG::get_engine());
 }
 
 void categorize_vec(vector<float> &in, vector<float> &bounds, vector<float> &out)

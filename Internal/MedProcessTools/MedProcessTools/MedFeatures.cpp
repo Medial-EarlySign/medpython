@@ -6,6 +6,7 @@
 #include <random>
 #include <omp.h>
 #include <MedIO/MedIO/MedIO.h>
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 
 #include <Logger/Logger/Logger.h>
 #define LOCAL_SECTION LOG_MEDFEAT
@@ -1297,7 +1298,7 @@ void  medial::process::match_by_general(MedFeatures &data_records, const vector<
 			continue;
 		}
 		unordered_set<int> seen_year_pid;
-		random_shuffle(list_label_groups[ind][grp].begin(), list_label_groups[ind][grp].end());
+		shuffle(list_label_groups[ind][grp].begin(), list_label_groups[ind][grp].end(), globalRNG::get_engine());
 		if (target_size > list_label_groups[ind][grp].size())
 			MERR("ERROR/BUG: try to shrink %d into %d\n"
 				, (int)list_label_groups[ind][grp].size(), target_size);
@@ -1673,7 +1674,7 @@ void get_filtered_row_ids(vector<MedSample>& samples, const vector<string>& grou
 	for (size_t i = 0; i < nGroups; i++) {
 		for (int j = 0; j < nClasses; j++) {
 			vector<int>& vec = indices[groups_v[i]][j];
-			random_shuffle(vec.begin(), vec.end());
+			shuffle(vec.begin(), vec.end(), globalRNG::get_engine());
 			filtered_row_ids.insert(filtered_row_ids.end(), vec.begin(), vec.begin() + (int)(0.5 + samplingRatios[i][j] * vec.size()));
 		}
 	}
@@ -1876,7 +1877,7 @@ void medial::process::match_to_prior(const vector<float> &outcome,
 			sub_sample_count = (1 - target_prior) * grp_inds[1 - grp_sel].size() / target_prior;
 		if (sub_sample_count > inds->size())
 			sub_sample_count = (int)inds->size();
-		random_shuffle(inds->begin(), inds->end());
+		shuffle(inds->begin(), inds->end(), globalRNG::get_engine());
 		inds->resize(sub_sample_count); //subsample in inds
 
 										//add fully groups
@@ -1986,7 +1987,7 @@ void medial::process::match_to_prior(MedFeatures &features,
 			sub_sample_count = (1 - target_prior) * grp_inds[1 - grp_sel].size() / target_prior;
 		if (sub_sample_count > inds->size())
 			sub_sample_count = (int)inds->size();
-		random_shuffle(inds->begin(), inds->end());
+		shuffle(inds->begin(), inds->end(), globalRNG::get_engine());
 		inds->resize(sub_sample_count); //subsample in inds
 
 										//add fully groups

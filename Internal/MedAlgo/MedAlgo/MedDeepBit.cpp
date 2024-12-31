@@ -1,4 +1,5 @@
 #include "MedDeepBit.h"
+#include <MedUtils/MedUtils/MedGlobalRNG.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
 
 //Initialization of the model
@@ -7,7 +8,7 @@ void MedDeepBit::init(float *x1, float *y1, int nsamples1, int nftrs1) {
 	vector<int> indexes(nsamples1);
 	for (int i = 0; i < nsamples1; i++)
 		indexes[i] = i;
-	random_shuffle(indexes.begin(), indexes.end());
+	shuffle(indexes.begin(), indexes.end(), globalRNG::get_engine());
 	vector<bool> is_train(nsamples1, true);
 	internal_test_nsamples = (int) ((double) nsamples1 / params.internal_test_ratio);
 	cout << "internal test size = " << internal_test_nsamples << endl;
