@@ -222,7 +222,7 @@ void createScatterHtmlGraph(const string &outPath, const vector<vector<pair<floa
 
 	content.replace(ind, 3, rep);
 	if (template_str.empty())
-		content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
+		content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"/nas1/Work/Graph_Infra/plotly-latest.min.js\"");
 
 	ofstream myfile;
 	cerr << "writing: [" << outPath << "]\n";
@@ -318,7 +318,7 @@ void createHtml3D(const string &outPath, const vector<vector<vector<float>>> &ve
 		rep += "'}, \n height: 800, \n    width: 1200 \n }; ";
 
 	content.replace(ind, 3, rep);
-	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"W:\\Graph_Infra\\plotly-latest.min.js\"");
+	content.replace(content.find("\"plotly-latest.min.js\""), 22, "\"/nas1/Work/Graph_Infra/plotly-latest.min.js\"");
 
 	ofstream myfile;
 	myfile.open(outPath);
