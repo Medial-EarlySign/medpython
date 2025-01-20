@@ -583,10 +583,10 @@ public:
 			string cohort = it.first;
 			if (rename_cohorts.find(cohort) != rename_cohorts.end())
 				cohort = rename_cohorts[cohort];
-			//Filter to take only "SCORE@" prefix
+			//Filter to take only "SCORE@" prefix - and SKIP missing values
 			map<string, float> &filt = mbr[cohort];
 			for (const auto &jt : it.second)
-				if (boost::starts_with(jt.first, "SCORE@") && boost::ends_with(jt.first, "_Mean"))
+				if (boost::starts_with(jt.first, "SCORE@") && boost::ends_with(jt.first, "_Mean") && jt.second != MED_MAT_MISSING_VALUE)
 					filt[jt.first.substr(6, jt.first.length() - 11)] = jt.second;
 		}
 
