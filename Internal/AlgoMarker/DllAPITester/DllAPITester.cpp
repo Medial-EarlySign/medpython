@@ -388,15 +388,15 @@ int get_preds_from_algomarker(AlgoMarker *am, const string &rep_conf, MedPidRepo
 	char *jreq = (char *)(js_request.c_str());
 	char *res_calc = NULL;
 
-	int calc_rc = DynAM::AM_API_CalculateByType(am, JSON_REQ_JSON_RESP,jreq, &res_calc);
+	int calc_rc = DYN(AM_API_CalculateByType(am, JSON_REQ_JSON_RESP,jreq, &res_calc));
 	MLOG("After CalculateByType: rc = %d\n", calc_rc);
 	string full_resp(res_calc);
 
-	DynAM::AM_API_Dispose(res_calc);
 	// go over reponses and pack them to a MesSample vector
 	nlohmann::json js_res= nlohmann::json::parse(full_resp);
 	MLOG("Got response len %zu with %zu responses\n", full_resp.length(), js_res["responses"].size());
 
+	DYN(AM_API_Dispose(res_calc));
 	
 	res.clear();
 	for (int i = 0; i < js_res["responses"].size(); i++)
@@ -414,7 +414,7 @@ int get_preds_from_algomarker(AlgoMarker *am, const string &rep_conf, MedPidRepo
 	}
 
 	printf("Clear data!\n");
-	DynAM::AM_API_ClearData(am);
+	DYN(AM_API_ClearData(am));
 	
 
 	MLOG("Finished getting preds from algomarker\n");
@@ -681,6 +681,7 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 									 vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
+	float MAX_TOL=1e-5;
 
 	int max_vals = 100000;
 	vector<long long> times(max_vals);
@@ -775,39 +776,43 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			t_add_data += _t_add_data.diff_sec();
 
 			// preparing a request
-			char *stypes[] = {"Raw"};
-			long long _timestamp = (long long)s.time;
+			stringstream ss;
+			ss << "{";
+			ss << "\"export\": { \"prediction\": \"pred_0\" }, " <<  "\"request_id\":\"Test\"," <<
+	 		" \"type\": \"request\", \"requests\": [";
+			ss << "{";
+			ss << "\"patient_id\": \"" << s.id << "\",";
+			ss << "\"time\": \"" << s.time << "\"";
+			ss << "}";
+			ss << + "]}";
+			string js_request = ss.str();
+			char *jreq = (char *)(js_request.c_str());
 
-			AMRequest *req;
-			int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &s.id, &_timestamp, 1, &req));
-			if (req == NULL)
-			{
-				MLOG("ERROR: Got a NULL request for pid %d time %d rc %d!!\n", s.id, s.time, req_create_rc);
-				return -1;
-			}
-
-			// create a response
-			AMResponses *resp;
-			DYN(AM_API_CreateResponses(&resp));
-
+			char *res_calc = NULL;
 			MedTimer _t_calculate;
 			_t_calculate.start();
-			DYN(AM_API_Calculate(am, req, resp)); // calculate
+			int calc_rc = DYN(AM_API_CalculateByType(am, JSON_REQ_JSON_RESP,jreq, &res_calc));
 			_t_calculate.take_curr_time();
 			t_calculate += _t_calculate.diff_sec();
-
-			int n_resp = DYN(AM_API_GetResponsesNum(resp));
+			MLOG("After CalculateByType: rc = %d\n", calc_rc);
+			string full_resp(res_calc);
 
 			// MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
+			nlohmann::json js_res = nlohmann::json::parse(full_resp);
+
+			DYN(AM_API_Dispose(res_calc));
+			MLOG("Got response len %zu with %zu responses\n", full_resp.length(), js_res["responses"].size());
 
 			// get scores
-			if (n_resp == 1)
+			if (js_res["responses"].size() == 1)
 			{
-				AMResponse *response;
-				int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, 0, &response));
+				vector<string> messages;
 				MedSample rs;
-				get_response_score_into_sample(response, resp_rc, rs);
+				parse_single_response_element(js_res["responses"][0], rs, messages);
 				res.push_back(rs);
+				if (print_msgs)
+				for (size_t j = 0; j < messages.size(); j++)
+					MLOG("Get message in patient %d, time %d: %s\n", s.id, s.time, messages[j].c_str());
 			}
 			else
 			{
@@ -816,19 +821,14 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 				rs.prediction.push_back((float)AM_UNDEFINED_VALUE);
 				res.push_back(rs);
 			}
-
-			if (print_msgs)
-				print_response_msgs(resp, s.id, s.time, msgs_stream);
-
-			// and now need to dispose responses and request
-			DYN(AM_API_DisposeRequest(req));
-			DYN(AM_API_DisposeResponses(resp));
+			
 			DYN(AM_API_ClearData(am)); // clearing data in algomarker
 
 			float pred = res.back().prediction[0];
 			float compare_pred = compare_res[n_tested].prediction[0];
 
-			if ((pred != (float)AM_UNDEFINED_VALUE) && (pred != compare_pred))
+			float diff_pred = abs(pred - compare_pred);
+			if ((pred != (float)AM_UNDEFINED_VALUE) && (diff_pred > MAX_TOL))
 			{
 				MLOG("ERROR Found: pid %d time %d : pred %f compared to %f ...\n", s.id, s.time, pred, compare_pred);
 			}
