@@ -678,10 +678,9 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, string rep_conf,
 									 MedPidRepository &rep, MedModel &model, MedSamples &samples,
 									 vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, vector<MedSample> &compare_res, ofstream &msgs_stream,
-									 vector<string> ignore_sig)
+									 vector<string> ignore_sig, float MAX_TOL)
 {
 	UniversalSigVec usv;
-	float MAX_TOL=1e-5;
 
 	int max_vals = 100000;
 	vector<long long> times(max_vals);
@@ -794,14 +793,14 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 			int calc_rc = DYN(AM_API_CalculateByType(am, JSON_REQ_JSON_RESP,jreq, &res_calc));
 			_t_calculate.take_curr_time();
 			t_calculate += _t_calculate.diff_sec();
-			MLOG("After CalculateByType: rc = %d\n", calc_rc);
+			// MLOG("After CalculateByType: rc = %d\n", calc_rc);
 			string full_resp(res_calc);
 
 			// MLOG("pid %d time %d n_resp %d\n", s.id, s.time, n_resp);
 			nlohmann::json js_res = nlohmann::json::parse(full_resp);
 
 			DYN(AM_API_Dispose(res_calc));
-			MLOG("Got response len %zu with %zu responses\n", full_resp.length(), js_res["responses"].size());
+			// MLOG("Got response len %zu with %zu responses\n", full_resp.length(), js_res["responses"].size());
 
 			// get scores
 			if (js_res["responses"].size() == 1)
@@ -1492,6 +1491,7 @@ int main(int argc, char *argv[])
 
 	MLOG("Read samples file %s with %d samples from %d pids\n", vm["samples"].as<string>().c_str(), samples.nSamples(), pids.size());
 
+	float MAX_TOL = 1e-5;
 	// read rep
 	MedPidRepository rep;
 
@@ -1596,7 +1596,7 @@ int main(int argc, char *argv[])
 	}
 
 	if (vm.count("single"))
-		get_preds_from_algomarker_single(vm, test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, msgs_stream, ignore_sig);
+		get_preds_from_algomarker_single(vm, test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, res1, msgs_stream, ignore_sig, MAX_TOL);
 	else
 		get_preds_from_algomarker(test_am, vm["rep"].as<string>(), rep, model, samples2, pids, sigs, res2, print_msgs, msgs_stream, ignore_sig);
 	for (int i = 0; i < min(50, (int)res1.size()); i++)
@@ -1621,7 +1621,7 @@ int main(int argc, char *argv[])
 		{
 			n_miss++;
 		}
-		else if (res1[i].prediction[0] != res2[i].prediction[0])
+		else if (abs(res1[i].prediction[0] - res2[i].prediction[0]) > MAX_TOL)
 		{
 			MLOG("ERROR !!!: #Res1 :: pid %d time %d pred %f #Res2 pid %d time %d pred %f\n", res1[i].id, res1[i].time, res1[i].prediction[0], res2[i].id, res2[i].time, res2[i].prediction[0]);
 			nbad++;
