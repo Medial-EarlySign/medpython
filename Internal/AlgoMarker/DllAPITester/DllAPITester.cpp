@@ -312,7 +312,29 @@ int get_response_score_into_sample(AMResponse *response, int resp_rc, MedSample 
 }
 
 //=================================================================================================================
-int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, int print_msgs, ofstream &msgs_stream, vector<string> ignore_sig)
+void parse_single_response_element(const nlohmann::json &element, MedSample &s, vector<string> &messages) {
+	if (element.find("patient_id") == element.end())
+		MTHROW_AND_ERR("Error: missing patient id in result\n");
+	if (element.find("time") == element.end())
+		MTHROW_AND_ERR("Error: missing time in result\n");
+	int pid = med_stoi(element["patient_id"].get<string>());
+	int time = med_stoi(element["time"].get<string>());
+	float pred = MED_MAT_MISSING_VALUE;
+	if (element.find("prediction") != element.end()) 
+		pred=med_stof(element["prediction"].get<string>());
+	s.id = pid;
+	s.time = time;
+	s.prediction = { pred };
+
+	//messages
+	if (element.find("messages") != element.end())  {
+		for (const auto &msg : element["messages"])
+			messages.push_back(msg.get<string>());
+	}
+}
+
+int get_preds_from_algomarker(AlgoMarker *am, const string &rep_conf, MedPidRepository &rep, MedModel &model, MedSamples &samples, 
+	vector<int> &pids, vector<string> &sigs, vector<MedSample> &res, int print_msgs, ofstream &msgs_stream, vector<string> ignore_sig)
 {
 	UniversalSigVec usv;
 
@@ -347,50 +369,53 @@ int get_preds_from_algomarker(AlgoMarker *am, string rep_conf, MedPidRepository 
 
 	MLOG("After AddData for all batch\n");
 	// finish rep loading
-	char *stypes[] = {"Raw"};
-	vector<int> _pids;
-	vector<long long> _timestamps;
 	vector<MedSample> _vsamp;
 	samples.export_to_sample_vec(_vsamp);
-	for (auto &s : _vsamp)
-	{
-		_pids.push_back(s.id);
-		_timestamps.push_back((long long)s.time);
-	}
-
+	
 	// prep request
-	AMRequest *req;
-	int req_create_rc = DYN(AM_API_CreateRequest("test_request", stypes, 1, &_pids[0], &_timestamps[0], (int)_pids.size(), &req));
-	if (req == NULL)
-		MLOG("ERROR: Got a NULL request rc = %d!!\n", req_create_rc);
-	AMResponses *resp;
+	stringstream ss;
+	ss << "{";
+	ss << "\"export\": { \"prediction\": \"pred_0\" }, " <<  "\"request_id\":\"Test\"," <<
+	 " \"type\": \"request\", \"requests\": [";
+	 for (auto &s : _vsamp) {
+		ss << "{";
+		ss << "\"patient_id\": \"" << s.id << "\",";
+		ss << "\"time\": \"" << s.time << "\"";
+		ss << "}";
+	 }
+	ss << + "]}";
+	string js_request = ss.str();
+	char *jreq = (char *)(js_request.c_str());
+	char *res_calc = NULL;
 
-	// calculate scores
-	MLOG("Before Calculate\n");
+	int calc_rc = DynAM::AM_API_CalculateByType(am, JSON_REQ_JSON_RESP,jreq, &res_calc);
+	MLOG("After CalculateByType: rc = %d\n", calc_rc);
+	string full_resp(res_calc);
 
-	DYN(AM_API_CreateResponses(&resp));
-	int calc_rc = DYN(AM_API_Calculate(am, req, resp));
-	MLOG("After Calculate: rc = %d\n", calc_rc);
-
+	DynAM::AM_API_Dispose(res_calc);
 	// go over reponses and pack them to a MesSample vector
-	int n_resp = DYN(AM_API_GetResponsesNum(resp));
-	MLOG("Got %d responses\n", n_resp);
+	nlohmann::json js_res= nlohmann::json::parse(full_resp);
+	MLOG("Got response len %zu with %zu responses\n", full_resp.length(), js_res["responses"].size());
+
+	
 	res.clear();
-	AMResponse *response;
-	for (int i = 0; i < n_resp; i++)
+	for (int i = 0; i < js_res["responses"].size(); i++)
 	{
+		const auto &js_element = js_res["responses"][i];
 		// MLOG("Getting response no. %d\n", i);
-		int resp_rc = DYN(AM_API_GetResponseAtIndex(resp, i, &response));
 		MedSample s;
-		get_response_score_into_sample(response, resp_rc, s);
+		vector<string> messages;
+		parse_single_response_element(js_element, s, messages);
 		res.push_back(s);
+		if (print_msgs) {
+			for (size_t j = 0; j < messages.size(); j++)
+				MLOG("Get message in patient %d, time %d: %s\n", s.id, s.time, messages[j].c_str());
+		}
 	}
 
-	if (print_msgs)
-		print_response_msgs(resp, 0, 0, msgs_stream);
-
-	DYN(AM_API_DisposeRequest(req));
-	DYN(AM_API_DisposeResponses(resp));
+	printf("Clear data!\n");
+	DynAM::AM_API_ClearData(am);
+	
 
 	MLOG("Finished getting preds from algomarker\n");
 	return 0;
@@ -647,7 +672,6 @@ void init_output_json(po::variables_map &vm, json &json_out, int pid, int time)
 		json_out["body"] += {"scoreOnDate", time};
 }
 
-#if 1
 //=================================================================================================================
 // same test, but running each point in a single mode, rather than batch on whole.
 //=================================================================================================================
@@ -843,7 +867,6 @@ int get_preds_from_algomarker_single(po::variables_map &vm, AlgoMarker *am, stri
 	MLOG("\nFinished getting preds from algomarker in a single manner\n");
 	return 0;
 }
-#endif
 
 //========================================================================================
 void save_sample_vec(vector<MedSample> sample_vec, const string &fname)
