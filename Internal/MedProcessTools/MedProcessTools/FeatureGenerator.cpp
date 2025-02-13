@@ -783,12 +783,12 @@ int GenderGenerator::init(map<string, string>& mapper) {
 
 	for (auto entry : mapper) {
 		string field = entry.first;
-		//! [SingletonGenerator::init]
+		//! [GenderGenerator::init]
 		if (field == "tags") boost::split(tags, entry.second, boost::is_any_of(","));
 		else if (field == "weights_generator") iGenerateWeights = med_stoi(entry.second);
 		else if (field != "fg_type")
-			MLOG("Unknown parameter \'%s\' for SingletonGenerator\n", field.c_str());
-		//! [SingletonGenerator::init]
+			MLOG("Unknown parameter \'%s\' for GenderGenerator\n", field.c_str());
+		//! [GenderGenerator::init]
 	}
 
 	// naming and required signals
