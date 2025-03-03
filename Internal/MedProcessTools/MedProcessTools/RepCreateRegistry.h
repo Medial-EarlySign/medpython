@@ -75,7 +75,7 @@ public:
 	vector<string> ht_dm_drugs = { "ATC_C09A____", "ATC_C09C____" }; ///< drugs indicative of HT, unless DM
 	vector<string> ht_extra_drugs = { "ATC_C07A_A__", "ATC_C07A_B__" }; ///< drugs indicative of HT, unless CHF/MI/AF.
 
-	int ht_drugs_gap = 90; ///< Gap (in days) from drug input to following indication
+	int ht_drugs_gap = 120; ///< Gap (in days) from drug input to following indication
 
 	RepCreateRegistry() { processor_type = REP_PROCESS_CREATE_REGISTRY; }
 	~RepCreateRegistry() {

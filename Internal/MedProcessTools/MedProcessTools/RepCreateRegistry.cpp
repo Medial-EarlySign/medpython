@@ -500,9 +500,6 @@ void RepCreateRegistry::ht_registry_apply(PidDynamicRec& rec, vector<int>& time_
 					}
 				}
 				else if (info == 3) { // Read Code. if last bp is normal, mark as unclear, otherwise, mark as HT
-					if (lastBP == 0)
-						bpStatus = 1;
-					else
 						bpStatus = 2;
 				}
 			}
