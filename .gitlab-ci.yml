@@ -22,7 +22,7 @@ build1:
   stage: build
   script:
     - echo "Do your build here"
-    - ssh git@node-01 'sh /nas1/UsersData/git/MR/Libs/document_code_server.sh'
+    - /nas1/UsersData/git/MR/Libs/document_code_server.sh
 
 test1:
   stage: test
