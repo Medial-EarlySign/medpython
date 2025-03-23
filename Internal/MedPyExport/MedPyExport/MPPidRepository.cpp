@@ -269,7 +269,7 @@ int MPPidRepository::_load_single_json(void *_js) {
 		patient_id = js["pid"].get<long long>();
 
 	if (patient_id < 0)
-		MTHROW_AND_ERR("Error patient_id wasn't provided, should be provided with number bugger than zero.\n");
+		MTHROW_AND_ERR("Error patient_id wasn't provided, should be provided with number bigger than zero.\n");
 
 	//MLOG("Loading pid %d\n", patient_id);
 
