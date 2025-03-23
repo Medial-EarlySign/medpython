@@ -389,6 +389,40 @@ void MPPidRepository::load_from_json(const std::string &json_file_path) {
 	}
 }
 
+void MPPidRepository::load_from_json_str(const std::string &json_content) {
+	switch_to_in_mem();
+	if (o->sigs.Sid2Info.empty())
+		MTHROW_AND_ERR("Error - please call init with repository config before\n");
+	json j_data;
+	try {
+		j_data = json::parse(json_content);
+	}
+	catch (json::parse_error &err) {
+		MTHROW_AND_ERR("Parsing error:\n%s", err.what());
+	}
+	catch (...) {
+		MTHROW_AND_ERR("Error bad json format\n");
+	}
+	json *js = &j_data;
+	data_load_sorted = false;
+
+	if (j_data.find("multiple") != j_data.end()) {
+		for (auto &p_js : j_data["multiple"])
+		{
+			js = &p_js;
+			if (p_js.find("body") != p_js.end())
+				js = &p_js["body"];
+			_load_single_json(js);
+		}
+	}
+	else { //single load
+		if (j_data.find("body") != j_data.end())
+			js = &j_data["body"];
+
+		_load_single_json(js);
+	}
+}
+
 void MPPidRepository::clear() {
 	if (!o->in_mem_mode_active())
 		o->clear();
