@@ -389,7 +389,7 @@ int MPPidRepository::_load_single_json(void *_js)
 						 patient_id);
 			else
 				snprintf(buf, sizeof(buf), "Bad format. Element should contain signals element as array");
-			MTHROW_AND_ERR(string(buf).c_str());
+			MTHROW_AND_ERR("%s", string(buf).c_str());
 			get_current_time(current_time);
 			MLOG("%s::%s\n", current_time.c_str(), buf);
 			good = false;
