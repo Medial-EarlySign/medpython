@@ -23,10 +23,17 @@ variables:
   GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
   # note that SONAR_TOKEN is transmitted to the environment through Gitlab CI
 
+build_doxygen:
+  stage: build
+  script:
+    - echo "Do your build here"
+    - /nas1/UsersData/git/MR/Libs/document_code_server.sh
+
 build:
   stage: build
   script:
     # prepare the build tree
+    - cd /nas1/UsersData/git/MR/Libs # Must be in here
     - mkdir -p ${BUILD_WRAPPER_OUT_DIR}
     - mkdir -p ${SONAR_USER_HOME}
     # - cp /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux $HOME/.sonar/ -R
@@ -43,20 +50,14 @@ build:
 sonarqube-check:
   stage: .post
   script:
-    - export ABS_BUILD_WRAPPER_OUT_DIR=$(realpath ${BUILD_WRAPPER_OUT_DIR})
+    # - export ABS_BUILD_WRAPPER_OUT_DIR=$(realpath ${BUILD_WRAPPER_OUT_DIR})
     - cd /nas1/UsersData/git/MR/Libs # Doxygen build will do the git pull - need to be in this directory since build process is not relative!
-    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${ABS_BUILD_WRAPPER_OUT_DIR}"
+    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
     # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
     # as build-wrapper does not generate a compile_commands.json file before sonarqube 10.6
   only:
     - merge_requests
     - master
-
-build_doxygen:
-  stage: build
-  script:
-    - echo "Do your build here"
-    - /nas1/UsersData/git/MR/Libs/document_code_server.sh
 
 test1:
   stage: test
