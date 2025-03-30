@@ -35,20 +35,11 @@ build:
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
   artifacts:
     paths:
-      - Linux/Release/libdyn_AlgoMarker.so
-  cache:
-    policy: pull-push
-    key: "${CI_COMMIT_SHORT_SHA}"
-    paths:
       - "${BUILD_WRAPPER_OUT_DIR}"
+      - Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
   stage: .post
-  cache:
-    policy: pull
-    key: "${CI_COMMIT_SHORT_SHA}"
-    paths:
-      - "${BUILD_WRAPPER_OUT_DIR}"
   script:
     - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
     # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
