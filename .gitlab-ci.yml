@@ -42,10 +42,10 @@ build:
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
   artifacts:
     paths:
-      - Internal/AlgoMarker/build/Release/compile_commands.json
-      - Internal/AlgoMarker/build/Release/build-wrapper-dump.json
-      - Internal/AlgoMarker/build/Release/build-wrapper.log
-      - Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
+      #- Internal/AlgoMarker/build/Release/compile_commands.json
+      #- Internal/AlgoMarker/build/Release/build-wrapper-dump.json
+      #- Internal/AlgoMarker/build/Release/build-wrapper.log
+      - /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
   stage: .post
