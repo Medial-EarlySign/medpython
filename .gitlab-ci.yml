@@ -12,13 +12,52 @@
 # you can delete this line if you're not using Docker
 # image: busybox:latest
 
-before_script:
-  - echo "Before script section"
+variables:
+  SONAR_SERVER_URL: http://node-01:7200
+  SONAR_SCANNER_VERSION: 5.0.1.3006 # Find the latest version in the "Linux" link on this page:
+                                    # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+  BUILD_WRAPPER_OUT_DIR: build/Release # Directory where build-wrapper output will be placed
+  SONAR_SCANNER_OPTS: "-server"
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+  SONAR_SCANNER_HOME: ${SONAR_USER_HOME}/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  # note that SONAR_TOKEN is transmitted to the environment through Gitlab CI
 
-after_script:
-  - echo "After script section"
+build:
+  stage: build
+  script:
+    # prepare the build tree
+    - mkdir -p ${BUILD_WRAPPER_OUT_DIR}
+    - mkdir -p ${SONAR_USER_HOME}
+    # - cp /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux $HOME/.sonar/ -R
+    # - cmake -S . -B build
+    # run the build inside the build wrapper
+    - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
+  artifacts:
+    paths:
+      - Linux/Release/libdyn_AlgoMarker.so
+  cache:
+    policy: pull-push
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - "${BUILD_WRAPPER_OUT_DIR}"
 
-build1:
+sonarqube-check:
+  stage: .post
+  cache:
+    policy: pull
+    key: "${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - "${BUILD_WRAPPER_OUT_DIR}"
+  script:
+    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
+    # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
+    # as build-wrapper does not generate a compile_commands.json file before sonarqube 10.6
+  only:
+    - merge_requests
+    - master
+
+build_doxygen:
   stage: build
   script:
     - echo "Do your build here"
@@ -29,12 +68,6 @@ test1:
   script:
     - echo "Do a test here"
     - echo "For example run a test suite"
-
-test2:
-  stage: test
-  script:
-    - echo "Do another parallel test here"
-    - echo "For example run a lint test"
 
 deploy1:
   stage: deploy
