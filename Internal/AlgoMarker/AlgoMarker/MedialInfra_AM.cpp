@@ -96,7 +96,9 @@ int MedialInfraAlgoMarker::Load(const char *config_f)
 	if (type_in_config_file != "MEDIAL_INFRA")
 		return AM_ERROR_LOAD_NON_MATCHING_TYPE;
 
-	if (strlen(get_name()) == 0)
+	size_t max_name_len = 5000;
+	size_t str_size = strnlen(get_name(), max_name_len);
+	if (str_size == 0 || str_size == max_name_len)
 	{
 		MERR("ERROR: Name is missing\n");
 		return AM_ERROR_LOAD_BAD_NAME;
@@ -179,9 +181,10 @@ int MedialInfraAlgoMarker::ClearData()
 //-----------------------------------------------------------------------------------
 // AddData() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddData_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, float* Values, 
-	map<pair<int, int>, pair<int, vector<char>>> *data) {
-		// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
+int MedialInfraAlgoMarker::AddData_data(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, float *Values,
+										map<pair<int, int>, pair<int, vector<char>>> *data)
+{
+	// At the moment MedialInfraAlgoMarker only loads timestamps given as ints.
 	// This may change in the future as needed.
 	int *i_times = NULL;
 	vector<int> times_int;
@@ -216,14 +219,15 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 {
 	MedRepository &rep = ma.get_rep();
 	map<pair<int, int>, pair<int, vector<char>>> *data = &rep.in_mem_rep.data;
-	return AddData_data(patient_id, signalName, TimeStamps_len, TimeStamps,Values_len , Values, data);
+	return AddData_data(patient_id, signalName, TimeStamps_len, TimeStamps, Values_len, Values, data);
 }
 
 //-----------------------------------------------------------------------------------
 // AddDatStr() - adding data for a signal with values and timestamps
 //-----------------------------------------------------------------------------------
-int MedialInfraAlgoMarker::AddDataStr_data(int patient_id, const char *signalName, int TimeStamps_len, long long* TimeStamps, int Values_len, char** Values, 
-	map<pair<int, int>, pair<int, vector<char>>> *data) {
+int MedialInfraAlgoMarker::AddDataStr_data(int patient_id, const char *signalName, int TimeStamps_len, long long *TimeStamps, int Values_len, char **Values,
+										   map<pair<int, int>, pair<int, vector<char>>> *data)
+{
 	vector<float> converted_Values;
 	vector<long long> final_tm;
 	final_tm.reserve(TimeStamps_len);
@@ -1121,26 +1125,27 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		}
 	}
 	MedPidRepository rep_copy;
-	if (has_load_data) {
-		rep_copy.sigs = rep->sigs; //Created a copy - TODO - smarter copy of all data by pointers, except data
+	if (has_load_data)
+	{
+		rep_copy.sigs = rep->sigs; // Created a copy - TODO - smarter copy of all data by pointers, except data
 		rep_copy.dict = rep->dict;
 		rep_copy.switch_to_in_mem_mode();
-		rep_copy.in_mem_rep.data = move(new_data); 
+		rep_copy.in_mem_rep.data = move(new_data);
 		rep_copy.in_mem_rep.sortData();
-		rep = &rep_copy; 
-		//Debug print new_data:
-		//for (auto &it : rep->in_mem_rep.data) {
+		rep = &rep_copy;
+		// Debug print new_data:
+		// for (auto &it : rep->in_mem_rep.data) {
 		//	MLOG("pid: %d, signal: %s, size: %zu\n", it.first.first, rep->sigs.name(it.first.second).c_str(),
 		//	it.second.second.size());
-		//}
-		
-		//Test get BDATE
-		//UniversalSigVec usv_gender;
-		//rep->uget(1, "BDATE", usv_gender);
-		//MLOG("Will print Gender, size: %d, in_mem=%d\n", usv_gender.len, int(rep->in_mem_mode_active()));
-		//for (size_t ii=0; ii< usv_gender.len; ++ii) {
+		// }
+
+		// Test get BDATE
+		// UniversalSigVec usv_gender;
+		// rep->uget(1, "BDATE", usv_gender);
+		// MLOG("Will print Gender, size: %d, in_mem=%d\n", usv_gender.len, int(rep->in_mem_mode_active()));
+		// for (size_t ii=0; ii< usv_gender.len; ++ii) {
 		//	MLOG("Gender = %f\n", usv_gender.Val(ii));
-		//}
+		// }
 	}
 	//	}
 
@@ -1164,7 +1169,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	// we also run the eligibility tests, keep the results, and make lists of all eligible points for scoring.
 	int n_points = (int)sample_reqs.size();
 	int tu = get_time_unit();
-	
+
 	vector<int> eligible_pids, eligible_timepoints;
 	unordered_map<unsigned long long, vector<int>> sample2ind; // conversion of each sample to all the ts that were mapped to it.
 	int n_failed = 0, n_bad = 0;
@@ -1611,7 +1616,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 	string current_time = "";
 
 	MedRepository &rep = ma.get_rep();
-	if (data == NULL) //default pointer to global rep
+	if (data == NULL) // default pointer to global rep
 		data = &rep.in_mem_rep.data;
 
 	bool good = true;
@@ -2472,22 +2477,24 @@ void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMar
 	js.push_back({"flag_result", flag});
 }
 
-void MedialInfraAlgoMarker::show_rep_data(char **response) {
+void MedialInfraAlgoMarker::show_rep_data(char **response)
+{
 	MedPidRepository &rep = ma.get_rep();
 	nlohmann::ordered_json js;
 	js["data"] = nlohmann::ordered_json::array();
 	unordered_map<int, unordered_set<string>> pid_to_signals;
-	for (auto & it : rep.in_mem_rep.data) {
-		const pair<int,int> &pid_sig = it.first;
+	for (auto &it : rep.in_mem_rep.data)
+	{
+		const pair<int, int> &pid_sig = it.first;
 		const string &sig_name = rep.sigs.name(pid_sig.second);
 		pid_to_signals[pid_sig.first].insert(sig_name);
 	}
-	for (auto &it: pid_to_signals)
+	for (auto &it : pid_to_signals)
 	{
 		vector<string> all_sigs(it.second.begin(), it.second.end());
-		js["data"] += {{ "pid", it.first }, 
-						{"signals", all_sigs }};	
+		js["data"] += {{"pid", it.first},
+					   {"signals", all_sigs}};
 	}
-	
+
 	json_to_char_ptr(js, response);
 }
