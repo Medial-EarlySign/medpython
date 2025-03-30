@@ -16,7 +16,7 @@ variables:
   SONAR_SERVER_URL: http://node-01:7200
   SONAR_SCANNER_VERSION: 5.0.1.3006 # Find the latest version in the "Linux" link on this page:
                                     # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
-  BUILD_WRAPPER_OUT_DIR: build/Release # Directory where build-wrapper output will be placed
+  BUILD_WRAPPER_OUT_DIR: Internal/AlgoMarker/build/Release # Directory where build-wrapper output will be placed
   SONAR_SCANNER_OPTS: "-server"
   SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
   SONAR_SCANNER_HOME: ${SONAR_USER_HOME}/sonar-scanner-$SONAR_SCANNER_VERSION-linux
@@ -35,7 +35,7 @@ build:
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
   artifacts:
     paths:
-      - build/Release
+      - Internal/AlgoMarker/build/Release
       - Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
