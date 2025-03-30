@@ -35,8 +35,8 @@ build:
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
   artifacts:
     paths:
-      - "${BUILD_WRAPPER_OUT_DIR}"
-      - Linux/Release/libdyn_AlgoMarker.so
+      - build/Release
+      - Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
   stage: .post
