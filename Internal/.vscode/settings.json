@@ -1,4 +1,12 @@
 {
     "C_Cpp.default.compilerPath": "/usr/bin/g++-11",
-    "cmake.ignoreCMakeListsMissing": true
+    "cmake.ignoreCMakeListsMissing": true,
+    "files.associations": {
+        "*.cpp": "cpp",
+        "string": "cpp",
+        "format": "cpp",
+        "*.ipp": "cpp",
+        "chrono": "cpp",
+        "vector": "cpp"
+    }
 }

@@ -8,6 +8,7 @@
 #include "RepCreateRegistry.h"
 #include "RepCategoryDescenders.h"
 #include "RepFilterByChannels.h"
+#include "RepClearSignalByDiag.h"
 #include <omp.h>
 #include <cmath>
 #include <iomanip>
@@ -68,6 +69,8 @@ RepProcessorTypes rep_processor_name_to_type(const string &processor_name)
 		return REP_PROCESS_FILTER_BY_CHANNELS;
 	else if (processor_name == "numeric_noiser" || processor_name == "noiser")
 		return REP_PROCESS_NUMERIC_NOISER;
+	else if (processor_name == "filter_by_diag")
+		return REP_PROCESS_FILTER_BY_DIAG;
 	else
 		return REP_PROCESS_LAST;
 }
@@ -98,6 +101,7 @@ void *RepProcessor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, RepReoderChannels);
 	CONDITIONAL_NEW_CLASS(dname, RepFilterByChannel);
 	CONDITIONAL_NEW_CLASS(dname, RepNumericNoiser);
+	CONDITIONAL_NEW_CLASS(dname, RepClearSignalByDiag);
 	MWARN("Warning in RepProcessor::new_polymorphic - Unsupported class %s\n", dname.c_str());
 	return NULL;
 }
@@ -176,6 +180,8 @@ RepProcessor *RepProcessor::make_processor(RepProcessorTypes processor_type)
 		return new RepFilterByChannel;
 	else if (processor_type == REP_PROCESS_NUMERIC_NOISER)
 		return new RepNumericNoiser;
+	else if (processor_type == REP_PROCESS_FILTER_BY_DIAG)
+		return new RepClearSignalByDiag;
 	else
 		return NULL;
 }

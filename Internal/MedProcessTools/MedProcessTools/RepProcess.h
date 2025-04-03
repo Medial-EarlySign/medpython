@@ -40,6 +40,7 @@ typedef enum {
 	REP_PROCESS_REODER_CHANNELS, ///< "reoder_channels" reorder signal channels. Creates RepReoderChannels
 	REP_PROCESS_FILTER_BY_CHANNELS, ///< "filter_channels" reorder signal channels. Creates RepFilterByChannel
 	REP_PROCESS_NUMERIC_NOISER, ///<"numeric_noiser" adds gaussian noise to value and uniform noise to time for numeric signal. Creates RepNumericNoiser
+	REP_PROCESS_FILTER_BY_DIAG, ///< "filter_by_diag". Creates RepClearSignalByDiag
 	REP_PROCESS_LAST
 } RepProcessorTypes;
 
