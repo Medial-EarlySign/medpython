@@ -12,29 +12,58 @@
 # you can delete this line if you're not using Docker
 # image: busybox:latest
 
-before_script:
-  - echo "Before script section"
+variables:
+  SONAR_SERVER_URL: http://node-01:7200
+  SONAR_SCANNER_VERSION: 5.0.1.3006 # Find the latest version in the "Linux" link on this page:
+                                    # https://docs.sonarqube.org/latest/analysis/scan/sonarscanner/
+  BUILD_WRAPPER_OUT_DIR: Internal/AlgoMarker/build/Release # Directory where build-wrapper output will be placed
+  SONAR_SCANNER_OPTS: "-server"
+  SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+  SONAR_SCANNER_HOME: ${SONAR_USER_HOME}/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+  GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  # note that SONAR_TOKEN is transmitted to the environment through Gitlab CI
 
-after_script:
-  - echo "After script section"
-
-build1:
+build_doxygen:
   stage: build
   script:
     - echo "Do your build here"
     - /nas1/UsersData/git/MR/Libs/document_code_server.sh
+
+build:
+  stage: build
+  script:
+    # prepare the build tree
+    - cd /nas1/UsersData/git/MR/Libs # Must be in here
+    - mkdir -p ${BUILD_WRAPPER_OUT_DIR}
+    - mkdir -p ${SONAR_USER_HOME}
+    # - cp /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux $HOME/.sonar/ -R
+    # - cmake -S . -B build
+    # run the build inside the build wrapper
+    - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
+  artifacts:
+    paths:
+      #- Internal/AlgoMarker/build/Release/compile_commands.json
+      #- Internal/AlgoMarker/build/Release/build-wrapper-dump.json
+      #- Internal/AlgoMarker/build/Release/build-wrapper.log
+      - /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
+
+sonarqube-check:
+  stage: .post
+  script:
+    # - export ABS_BUILD_WRAPPER_OUT_DIR=$(realpath ${BUILD_WRAPPER_OUT_DIR})
+    - cd /nas1/UsersData/git/MR/Libs # Doxygen build will do the git pull - need to be in this directory since build process is not relative!
+    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
+    # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
+    # as build-wrapper does not generate a compile_commands.json file before sonarqube 10.6
+  only:
+    - merge_requests
+    - master
 
 test1:
   stage: test
   script:
     - echo "Do a test here"
     - echo "For example run a test suite"
-
-test2:
-  stage: test
-  script:
-    - echo "Do another parallel test here"
-    - echo "For example run a lint test"
 
 deploy1:
   stage: deploy
