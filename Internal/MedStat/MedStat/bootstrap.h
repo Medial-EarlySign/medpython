@@ -302,6 +302,7 @@ public:
 	int score_min_samples; ///< score bin min sample count for speed up calculation. 0 means no limit
 	float score_resolution; ///< score resultion to contorl bining for speed up calculation. 0 means no binning resulotion
 	bool fix_label_to_binary; ///< If True will change label value to be binary 0,1 (default is True)
+	int min_score_quants_to_force_score_wp; ///< The minimal count of unique score to force fetching scores only by score cutoffs
 	Incident_Stats inc_stats; ///< the incedince data if provided for general population. look for Incident_Stats for more info
 
 	/// <summary>
@@ -317,6 +318,7 @@ public:
 		score_min_samples = 0;
 		fix_label_to_binary = true;
 		show_warns = true;
+		min_score_quants_to_force_score_wp = 10;
 	}
 	/// <summary>
 	/// Initializing each parameter from string in format: "parameter_name=value;...". \n
@@ -332,7 +334,7 @@ public:
 
 	double incidence_fix; ///< The final incidence calculation on the cohort (will be calcuated)
 	ADD_SERIALIZATION_FUNCS(working_point_FPR, working_point_SENS, working_point_PR, working_point_TOPN, working_point_Score, working_point_auc, use_score_working_points,
-		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats)
+		max_diff_working_point, score_bins, score_resolution, score_min_samples, fix_label_to_binary, show_warns, inc_stats, min_score_quants_to_force_score_wp)
 };
 
 /**

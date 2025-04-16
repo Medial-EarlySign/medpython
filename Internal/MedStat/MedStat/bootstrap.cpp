@@ -1262,13 +1262,14 @@ map<string, float> calc_multi_class(Lazy_Iterator *iterator, int thread_num, Mea
 
 map<string, float> calc_roc_measures_with_inc(Lazy_Iterator *iterator, int thread_num, Measurement_Params *function_params) {
 	map<string, float> res;
-	int max_qunt_vals = 10;
+	
 	bool censor_removed = true;
 	bool trunc_max = false;
 
 	ROC_Params *params = (ROC_Params *)function_params;
 	float max_diff_in_wp = params->max_diff_working_point;
 	float max_diff_in_wp_top_n = max_diff_in_wp;
+	int max_qunt_vals = params->min_score_quants_to_force_score_wp;
 
 	vector<int> topN_points = params->working_point_TOPN; //Working Top N points:
 	sort(topN_points.begin(), topN_points.end());
@@ -3346,6 +3347,8 @@ int ROC_Params::init(map<string, string>& map) {
 			parse_vector(param_value, working_point_auc);
 		else if (param_name == "show_warns")
 			show_warns = med_stoi(param_value) > 0;
+		else if (param_name == "min_score_quants_to_force_score_wp")
+			min_score_quants_to_force_score_wp = med_stoi(param_value);
 		//! [ROC_Params::init]
 		else
 			MTHROW_AND_ERR("Unknown paramter \"%s\" for ROC_Params\n", param_name.c_str());
