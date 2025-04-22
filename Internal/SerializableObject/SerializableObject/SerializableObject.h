@@ -117,7 +117,7 @@ namespace MedSerialize {																							\
 * To add automatic serialization to your class you can use the following macro with the list of the \n
 * variables to serialize inside your class. They all should be MedSerialize supported\n
 */
-//size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize(blob, __VA_ARGS__); }		\
+//size_t serialize(unsigned char *blob) { pre_serialization(); return MedSerialize::serialize(blob, __VA_ARGS__); }		
 
 #define ADD_SERIALIZATION_FUNCS(...)																\
 	virtual size_t get_size() { pre_serialization(); return MedSerialize::get_size_top(#__VA_ARGS__, __VA_ARGS__); }								\
