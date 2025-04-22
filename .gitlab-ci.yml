@@ -33,6 +33,7 @@ build:
   stage: build
   script:
     # prepare the build tree
+    - CURRENT_DIR_PATH=$(realpath .)
     - cd /nas1/UsersData/git/MR/Libs # Must be in here
     - mkdir -p ${BUILD_WRAPPER_OUT_DIR}
     - mkdir -p ${SONAR_USER_HOME}
@@ -40,12 +41,14 @@ build:
     # - cmake -S . -B build
     # run the build inside the build wrapper
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
+    - mkdir -p ${CURRENT_DIR_PATH}/Internal/AlgoMarker/Linux/Release
+    - cp /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so ${CURRENT_DIR_PATH}/Internal/AlgoMarker/Linux/Release
   artifacts:
     paths:
       #- Internal/AlgoMarker/build/Release/compile_commands.json
       #- Internal/AlgoMarker/build/Release/build-wrapper-dump.json
       #- Internal/AlgoMarker/build/Release/build-wrapper.log
-      - /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
+      - Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
   stage: .post

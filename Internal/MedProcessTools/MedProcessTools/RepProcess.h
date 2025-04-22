@@ -1739,7 +1739,7 @@ struct category_event_state {
 		if (time < c.time) return true;
 		if (time > c.time) return false;
 		if (type < c.type) return true;
-		if (type > c.type) return false;
+		//if (type > c.type) return false;
 		//if (end_time < c.end_time) return true;
 		return false;
 	}
