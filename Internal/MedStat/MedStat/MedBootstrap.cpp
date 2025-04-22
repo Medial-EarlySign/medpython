@@ -288,7 +288,9 @@ void medial::process::make_sim_time_window(
 			time_filter = filter_p[i];
 			break;
 		}
-
+	
+	if (time_filter.param_name == "")
+		MTHROW_AND_ERR("Cohort has no Time-Window, can't use make_sim_time_window\n");
 	//update: y_changed based on y
 	cp_info = additional_info; //a copy - i will change those each time
 	y_changed.insert(y_changed.end(), y.begin(), y.end());
