@@ -52,6 +52,7 @@ public:
 	int load_data = 0;
 	unordered_map<string, json_req_export> exports;
 	string flag_threshold = "";
+	float flag_threshold_numeric = MED_MAT_MISSING_VALUE;
 
 	int conv_time = -1;		// this one is calculated
 	int sanity_test_rc = 0; // calculated, keeping eligibility testing result
@@ -69,7 +70,7 @@ bool json_verify_key(json &js, const string &key, int verify_val_flag, const str
 bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
 int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
 void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
-					   const string &flag_threshold);
+					   const string &flag_threshold, float flag_threshold_numeric);
 
 //===========================================================================================================
 //===========================================================================================================
@@ -1358,7 +1359,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 				{
 					js.push_back({e.first, to_string(req_i.res->prediction[e.second.pred_channel])});
 					// Add Flag if configured:
-					add_flag_response(js, req_i.res->prediction[e.second.pred_channel], ma, req_i.flag_threshold);
+					add_flag_response(js, req_i.res->prediction[e.second.pred_channel], ma, req_i.flag_threshold, req_i.flag_threshold_numeric);
 				}
 				else
 					js.push_back({e.first, to_string(AM_UNDEFINED_VALUE)});
@@ -2402,6 +2403,13 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 				MTHROW_AND_ERR("Error in flag_threshold field - unsupported type, expecting string\n");
 			req_i.flag_threshold = jreq["flag_threshold"].get<string>();
 		}
+
+		if (json_verify_key(jreq, "flag_threshold_numeric", 0, ""))
+		{
+			if (!jreq["flag_threshold_numeric"].is_number())
+				MTHROW_AND_ERR("Error in flag_threshold_numeric field - unsupported type, expecting float\n");
+			req_i.flag_threshold_numeric = jreq["flag_threshold_numeric"].get<float>();
+		}
 	}
 	catch (...)
 	{
@@ -2458,20 +2466,24 @@ void Explainer_description_config::read_cfg_file(const string &file)
 }
 
 void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
-					   const string &flag_threshold)
+					   const string &flag_threshold, float flag_threshold_numeric)
 {
 	if (!ma.has_threshold_settings()) // No flag settings - do nothing
 		return;
 	js.push_back({"flag_threshold", flag_threshold});
 
 	string err_msg;
-	float cutoff = ma.fetch_threshold(flag_threshold, err_msg);
+	float cutoff = flag_threshold_numeric;
+	if (flag_threshold_numeric == MED_MAT_MISSING_VALUE) //If not given take from flag_threshold
+		cutoff = ma.fetch_threshold(flag_threshold, err_msg);
+
 	if (!err_msg.empty())
 	{
 		js.push_back({"flag_result", AM_UNDEFINED_VALUE});
 		add_to_json_array(js, "messages", err_msg);
 		return;
 	}
+	js.push_back({"flag_threshold_numeric", cutoff});
 	// All OK:
 	int flag = int(score >= cutoff);
 	js.push_back({"flag_result", flag});
