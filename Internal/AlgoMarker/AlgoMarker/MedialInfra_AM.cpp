@@ -68,7 +68,7 @@ void json_to_char_ptr(json &js, char **jarr);
 void json_to_char_ptr(nlohmann::ordered_json &js, char **jarr);
 bool json_verify_key(json &js, const string &key, int verify_val_flag, const string &val);
 bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_val_flag, const string &val);
-int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i);
+int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i, string &error_message);
 void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMarkerInternal &ma,
 					   const string &flag_threshold, float flag_threshold_numeric);
 
@@ -1087,9 +1087,10 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	vector<json_req_info> sample_reqs;
 
 	//	try {
-	if (json_parse_request(jreq, defaults, defaults) != 0)
+	string error_message_in_req;
+	if (json_parse_request(jreq, defaults, defaults, error_message_in_req) != 0)
 	{
-		add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the default request fields in request id " + request_id);
+		add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the default request fields in request id " + request_id + " " + error_message_in_req);
 		json_to_char_ptr(jresp, response);
 		return AM_FAIL_RC;
 	}
@@ -1106,9 +1107,9 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	for (auto &jreq_i : jreq["requests"])
 	{
 		json_req_info j_i;
-		if (json_parse_request(jreq_i, defaults, j_i) != 0)
+		if (json_parse_request(jreq_i, defaults, j_i, error_message_in_req) != 0)
 		{
-			add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the request fields in request id " + request_id);
+			add_to_json_array(jresp, "errors", "ERROR: general json error in parsing the request fields in request id " + request_id + " " + error_message_in_req);
 			json_to_char_ptr(jresp, response);
 			return AM_FAIL_RC;
 		}
@@ -2279,9 +2280,10 @@ bool json_verify_key(nlohmann::ordered_json &js, const string &key, int verify_v
 }
 
 //------------------------------------------------------------------------------------------
-int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i)
+int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i, string &error_message)
 {
 	req_i = defaults;
+	error_message = "";
 	// read defaults (if exist)
 	try
 	{
@@ -2294,7 +2296,10 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 				else if (jreq["patient_id"].is_number_integer())
 					req_i.sample_pid = jreq["patient_id"].get<int>();
 				else
+				{
+					error_message = "Error in patient_id field - unsupported type";
 					MTHROW_AND_ERR("Error in patient_id field - unsupported type\n");
+				}
 			}
 			else
 			{
@@ -2303,7 +2308,10 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 				else if (jreq["pid"].is_number_integer())
 					req_i.sample_pid = jreq["pid"].get<int>();
 				else
+				{
+					error_message = "Error in patient_id field - unsupported type";
 					MTHROW_AND_ERR("Error in pid field - unsupported type\n");
+				}
 			}
 		}
 
@@ -2316,7 +2324,10 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 				else if (jreq["scoreOnDate"].is_number_integer())
 					req_i.sample_time = jreq["scoreOnDate"].get<long long>();
 				else
+				{
+					error_message = "Error in scoreOnDate field - unsupported type";
 					MTHROW_AND_ERR("Error in scoreOnDate field - unsupported type\n");
+				}
 			}
 			else
 			{
@@ -2325,7 +2336,10 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 				else if (jreq["time"].is_number_integer())
 					req_i.sample_time = jreq["time"].get<long long>();
 				else
+				{
+					error_message = "Error in time field - unsupported type";
 					MTHROW_AND_ERR("Error in time field - unsupported type\n");
+				}
 			}
 		}
 
@@ -2336,7 +2350,10 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 			else if (jreq["load"].is_number_integer())
 				req_i.load_data = jreq["load"].get<int>();
 			else
+			{
+				error_message = "Error in load field - unsupported type";
 				MTHROW_AND_ERR("Error in load field - unsupported type\n");
+			}
 		}
 
 		if (json_verify_key(jreq, "export", 0, ""))
@@ -2399,15 +2416,19 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 
 		if (json_verify_key(jreq, "flag_threshold", 0, ""))
 		{
-			if (!jreq["flag_threshold"].is_string())
+			if (!jreq["flag_threshold"].is_string()) {
+				error_message = "Error in flag_threshold field - unsupported type, expecting string";
 				MTHROW_AND_ERR("Error in flag_threshold field - unsupported type, expecting string\n");
+			}
 			req_i.flag_threshold = jreq["flag_threshold"].get<string>();
 		}
 
 		if (json_verify_key(jreq, "flag_threshold_numeric", 0, ""))
 		{
-			if (!jreq["flag_threshold_numeric"].is_number())
+			if (!jreq["flag_threshold_numeric"].is_number()) {
+				error_message = "Error in flag_threshold_numeric field - unsupported type, expecting float";
 				MTHROW_AND_ERR("Error in flag_threshold_numeric field - unsupported type, expecting float\n");
+			}
 			req_i.flag_threshold_numeric = jreq["flag_threshold_numeric"].get<float>();
 		}
 	}
@@ -2474,7 +2495,7 @@ void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMar
 
 	string err_msg;
 	float cutoff = flag_threshold_numeric;
-	if (flag_threshold_numeric == MED_MAT_MISSING_VALUE) //If not given take from flag_threshold
+	if (flag_threshold_numeric == MED_MAT_MISSING_VALUE) // If not given take from flag_threshold
 		cutoff = ma.fetch_threshold(flag_threshold, err_msg);
 
 	if (!err_msg.empty())

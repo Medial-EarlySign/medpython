@@ -779,8 +779,8 @@ double medial::contingency_tables::calc_cmh_square_dist(const map<float, vector<
 			if (totCnt < 1 || R[0] == 0 || R[1] == 0 || C[0] == 0 || C[1] == 0)
 				continue;
 
-			up += (b - c) * (b - c); //Cochran–Mantel–Haenszel statistics
-			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran–Mantel–Haenszel statistics
+			up += (b - c) * (b - c); //Cochran Mantel Haenszel statistics
+			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran Mantel Haenszel statistics
 
 		}
 	if (gender_sorted2 != NULL)
@@ -800,13 +800,13 @@ double medial::contingency_tables::calc_cmh_square_dist(const map<float, vector<
 			if (totCnt < 1 || R[0] == 0 || R[1] == 0 || C[0] == 0 || C[1] == 0)
 				continue;
 
-			up += (b - c) * (b - c); //Cochran–Mantel–Haenszel statistics
-			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran–Mantel–Haenszel statistics
+			up += (b - c) * (b - c); //Cochran Mantel Haenszel statistics
+			down += C[0] * C[1] * R[0] * R[1] / totCnt / totCnt / (totCnt - 1); //Cochran Mantel Haenszel statistics
 		}
 	ok = false;
 	if (down > 0) {
 		ok = true;
-		regScore += up / down; //Cochran–Mantel–Haenszel statistics
+		regScore += up / down; //Cochran Mantel Haenszel statistics
 	}
 	return regScore;
 }
