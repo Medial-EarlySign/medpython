@@ -733,6 +733,7 @@ float get_eGFR_CKD_EPI(float age, float creatinine, int gender, int ethnicity)
 	}
 	else {
 		// Female
+		eGFR_CKD_EPI *= 1.012;
 		if (creatinine <= 0.7)
 			eGFR_CKD_EPI *= pow(creatinine / 0.7, -0.241);
 		else
