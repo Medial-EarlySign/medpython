@@ -33,6 +33,7 @@ build:
   stage: build
   script:
     # prepare the build tree
+    - CURRENT_DIR_PATH=$(realpath .)
     - cd /nas1/UsersData/git/MR/Libs # Must be in here
     - mkdir -p ${BUILD_WRAPPER_OUT_DIR}
     - mkdir -p ${SONAR_USER_HOME}
@@ -40,20 +41,22 @@ build:
     # - cmake -S . -B build
     # run the build inside the build wrapper
     - /nas1/Work/docker_images/sonarqube/sast/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir "${BUILD_WRAPPER_OUT_DIR}" Internal/AlgoMarker/full_build.sh
+    - mkdir -p ${CURRENT_DIR_PATH}/Internal/AlgoMarker/Linux/Release
+    - cp /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so ${CURRENT_DIR_PATH}/Internal/AlgoMarker/Linux/Release
   artifacts:
     paths:
       #- Internal/AlgoMarker/build/Release/compile_commands.json
       #- Internal/AlgoMarker/build/Release/build-wrapper-dump.json
       #- Internal/AlgoMarker/build/Release/build-wrapper.log
-      - /nas1/UsersData/git/MR/Libs/Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
+      - Internal/AlgoMarker/Linux/Release/libdyn_AlgoMarker.so
 
 sonarqube-check:
   stage: .post
   script:
     # - export ABS_BUILD_WRAPPER_OUT_DIR=$(realpath ${BUILD_WRAPPER_OUT_DIR})
     - cd /nas1/UsersData/git/MR/Libs # Doxygen build will do the git pull - need to be in this directory since build process is not relative!
-    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
-    # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
+    - /nas1/Work/docker_images/sonarqube/sast/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner --define sonar.host.url="${SONAR_SERVER_URL}" --define sonar.cfamily.compile-commands="${BUILD_WRAPPER_OUT_DIR}/compile_commands.json"
+    # if you are using using sonarqube 10.5 or earlier, replace sonar.cfamily.compile-commands with sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}" --define sonar.cfamily.build-wrapper-output="${BUILD_WRAPPER_OUT_DIR}"
     # as build-wrapper does not generate a compile_commands.json file before sonarqube 10.6
   only:
     - merge_requests

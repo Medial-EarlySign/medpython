@@ -904,8 +904,8 @@ void ConstantValueCalculator::fit_for_repository(MedPidRepository& rep, vector<p
 //.......................................................................................
 
 //.......................................................................................
-//mode 1 (https://en.wikipedia.org/wiki/Model_for_End-Stage_Liver_Disease): 3.78ªln[serum bilirubin (mg/dL)] + 11.2ªln[INR] + 9.57ªln[serum creatinine (mg/dL)] + 6.43
-//mode 2 (http://www.thecalculator.co/health/MELD-Na-Score-Calculator-846.html): MELD_mode1 ? Na ? [0.025 ª MELD_mode1 ª (140 ? Na)] + 140
+//mode 1 (https://en.wikipedia.org/wiki/Model_for_End-Stage_Liver_Disease): 3.78 ln[serum bilirubin (mg/dL)] + 11.2 ln[INR] + 9.57 ln[serum creatinine (mg/dL)] + 6.43
+//mode 2 (http://www.thecalculator.co/health/MELD-Na-Score-Calculator-846.html): MELD_mode1 ? Na ? [0.025  MELD_mode1  (140 ? Na)] + 140
 // mode2 := meld1 - na - 0.025F * meld1 * (140.0F - na) + 140.0F;
 // please use logCalculator with SumCalculator, for mode2 need also MultiplyCalculator
 
@@ -1099,10 +1099,10 @@ float calc_hosp_SOFA_renal(float x, float y, bool optimistic) {
 //.......................................................................................
 //return cardiovascular SOFA
 //x - mean arterial pressure (mmHg)
-//y - dopamine, vasopressor µg/kg/min
-//z - epinephrine, vasopressor µg/kg/min
-//u - norepinephrine, vasopressor µg/kg/min
-//v - dobutamine, vasopressor µg/kg/min
+//y - dopamine, vasopressor g/kg/min
+//z - epinephrine, vasopressor g/kg/min
+//u - norepinephrine, vasopressor g/kg/min
+//v - dobutamine, vasopressor g/kg/min
 //write new calculator
 float calc_hosp_SOFA_cardio(float x, float y, float z, float u, float v, bool optimistic) {
 	int s = 0;
