@@ -16,6 +16,11 @@
 #define PREDICTION_SOURCE_PREDICTIONS 4
 // #define AM_TIMING_LOGS
 
+// Load data stauts
+#define LOAD_DATA_STATUS_SUCC 0
+#define LOAD_DATA_STATUS_NON_FATAL 1
+#define LOAD_DATA_STATUS_FATAL 2
+
 class json_req_export
 {
 public:
@@ -1010,6 +1015,49 @@ void MedialInfraAlgoMarker::clear_patients_data(const vector<int> &pids)
 	}
 }
 
+int get_msg_status(const string &msg)
+{
+	int code = 0;
+	int end_idx = -1;
+	for (size_t i = 1; i < msg.length(); ++i)
+	{
+		if (msg[i] == ')')
+		{
+			end_idx = i;
+			break;
+		}
+	}
+	if (end_idx > 0)
+	{
+		try
+		{
+			code = stoi(msg.substr(1, end_idx - 1));
+		}
+		catch (...)
+		{
+			code = AM_DATA_BAD_FORMAT_FATAL;
+		}
+	}
+
+	return code;
+}
+
+bool is_fatal_load_message(const vector<string> &messages)
+{
+	bool fatal = false;
+	for (const string &msg : messages)
+	{
+		int message_status = get_msg_status(msg);
+		if (message_status == AM_DATA_BAD_FORMAT_FATAL)
+		{
+			fatal = true;
+			break;
+		}
+	}
+
+	return fatal;
+}
+
 //------------------------------------------------------------------------------------------
 // CalculateByType : alllows for a general json in -> json out API with many more options
 //------------------------------------------------------------------------------------------
@@ -1118,12 +1166,18 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, ""))
 		{
 			has_load_data = true;
+			int load_status = LOAD_DATA_STATUS_SUCC;
 			if (AddJsonData(j_i.sample_pid, jreq_i["data"], vec_messages, &new_data) != AM_OK_RC)
 			{
-				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
-				for (size_t i = 0; i < vec_messages.size(); ++i)
-					add_to_json_array(jresp, "errors", vec_messages[i]);
+				load_status = LOAD_DATA_STATUS_NON_FATAL;
+				if (is_fatal_load_message(vec_messages))
+					load_status = LOAD_DATA_STATUS_FATAL;
 			}
+			if (load_status == LOAD_DATA_STATUS_FATAL)
+				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
+			// Store error message anyway if has (also if successed)
+			for (size_t i = 0; i < vec_messages.size(); ++i)
+				add_to_json_array(jresp, "messages", vec_messages[i]);
 		}
 	}
 	MedPidRepository rep_copy;
@@ -1612,6 +1666,11 @@ void MedialInfraAlgoMarker::get_jsons_locations(const char *data, vector<size_t>
 	// MLOG("Read %d jsons from data string (debug info: counter = %d j = %ld)\n", j_start.size(), counter, j);
 }
 
+string construct_message(int code, const string &msg)
+{
+	return "(" + to_string(code) + ")" + msg;
+}
+
 //-----------------------------------------------------------------------------------
 int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<string> &messages, map<pair<int, int>, pair<int, vector<char>>> *data)
 {
@@ -1646,13 +1705,13 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 					}
 					catch (...)
 					{
-						messages.push_back("(330)Bad data json format - couldn't convert patient_id to integer");
+						messages.push_back(construct_message(AM_DATA_BAD_FORMAT_FATAL, "Bad data json format - couldn't convert patient_id to integer"));
 						return AM_FAIL_RC;
 					}
 				}
 				else
 				{
-					messages.push_back("(330)Bad data json format - patient_id suppose to be integer");
+					messages.push_back(construct_message(AM_DATA_BAD_FORMAT_FATAL, "Bad data json format - patient_id suppose to be integer"));
 					return AM_FAIL_RC;
 				}
 			}
@@ -1670,13 +1729,13 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 						}
 						catch (...)
 						{
-							messages.push_back("(330)Bad data json format - couldn't convert pid to integer");
+							messages.push_back(construct_message(AM_DATA_BAD_FORMAT_FATAL, "Bad data json format - couldn't convert pid to integer"));
 							return AM_FAIL_RC;
 						}
 					}
 					else
 					{
-						messages.push_back("(330)Bad data json format - pid suppose to be integer");
+						messages.push_back(construct_message(AM_DATA_BAD_FORMAT_FATAL, "Bad data json format - pid suppose to be integer"));
 						return AM_FAIL_RC;
 					}
 				}
@@ -1684,7 +1743,7 @@ int MedialInfraAlgoMarker::AddJsonData(int patient_id, json &j_data, vector<stri
 		}
 		if (patient_id <= 0)
 		{
-			messages.push_back("(330)Bad data json format - no patient_id was given");
+			messages.push_back(construct_message(AM_DATA_BAD_FORMAT_FATAL, "Bad data json format - no patient_id was given"));
 			return AM_FAIL_RC;
 		}
 
@@ -2416,7 +2475,8 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 
 		if (json_verify_key(jreq, "flag_threshold", 0, ""))
 		{
-			if (!jreq["flag_threshold"].is_string()) {
+			if (!jreq["flag_threshold"].is_string())
+			{
 				error_message = "Error in flag_threshold field - unsupported type, expecting string";
 				MTHROW_AND_ERR("Error in flag_threshold field - unsupported type, expecting string\n");
 			}
@@ -2425,7 +2485,8 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 
 		if (json_verify_key(jreq, "flag_threshold_numeric", 0, ""))
 		{
-			if (!jreq["flag_threshold_numeric"].is_number()) {
+			if (!jreq["flag_threshold_numeric"].is_number())
+			{
 				error_message = "Error in flag_threshold_numeric field - unsupported type, expecting float";
 				MTHROW_AND_ERR("Error in flag_threshold_numeric field - unsupported type, expecting float\n");
 			}
