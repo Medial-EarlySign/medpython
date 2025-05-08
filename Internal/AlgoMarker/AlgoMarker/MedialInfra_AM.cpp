@@ -2501,7 +2501,7 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 			{
 				try
 				{
-					req_i.flag_threshold_numeric = stoi(jreq["flag_threshold_numeric"].get<string>());
+					req_i.flag_threshold_numeric = stof(jreq["flag_threshold_numeric"].get<string>());
 				}
 				catch (...)
 				{
