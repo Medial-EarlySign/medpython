@@ -1152,6 +1152,8 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 	bool has_load_data = false;
 	MedPidRepository *rep = &ma.get_rep();
 	map<pair<int, int>, pair<int, vector<char>>> new_data;
+	vector<vector<string>> all_load_data_msgs(jreq["requests"].size());
+	int req_id = 0;
 	for (auto &jreq_i : jreq["requests"])
 	{
 		json_req_info j_i;
@@ -1162,7 +1164,7 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 			return AM_FAIL_RC;
 		}
 		sample_reqs.push_back(j_i);
-		vector<string> vec_messages;
+		vector<string> &vec_messages = all_load_data_msgs[req_id];
 		if (j_i.load_data && json_verify_key(jreq_i, "data", 0, ""))
 		{
 			has_load_data = true;
@@ -1174,11 +1176,14 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 					load_status = LOAD_DATA_STATUS_FATAL;
 			}
 			if (load_status == LOAD_DATA_STATUS_FATAL)
+			{
 				add_to_json_array(jresp, "errors", "ERROR: error when loading data for patient id " + to_string(j_i.sample_pid));
-			// Store error message anyway if has (also if successed)
-			for (size_t i = 0; i < vec_messages.size(); ++i)
-				add_to_json_array(jresp, "messages", vec_messages[i]);
+				// Store error message anyway if has (also if successed)
+				for (size_t i = 0; i < vec_messages.size(); ++i)
+					add_to_json_array(jresp, "errors", vec_messages[i]);
+			}
 		}
+		++req_id;
 	}
 	MedPidRepository rep_copy;
 	if (has_load_data)
@@ -1399,6 +1404,11 @@ int MedialInfraAlgoMarker::CalculateByType(int CalculateType, char *request, cha
 
 		js.push_back({"patient_id", to_string(req_i.sample_pid)});
 		js.push_back({"time", to_string(req_i.sample_time)});
+		// Store error message from loading if has
+		if (i < all_load_data_msgs.size())
+			for (size_t j = 0; j < all_load_data_msgs[i].size(); ++j)
+				add_to_json_array(js, "messages", all_load_data_msgs[i][j]);
+
 		if (req_i.sanity_caught_err)
 			add_to_json_array(js, "messages", "ERROR: sanity tests crashed");
 		if (req_i.sanity_res.size() > 0)
