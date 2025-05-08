@@ -2495,12 +2495,25 @@ int json_parse_request(json &jreq, json_req_info &defaults, json_req_info &req_i
 
 		if (json_verify_key(jreq, "flag_threshold_numeric", 0, ""))
 		{
-			if (!jreq["flag_threshold_numeric"].is_number())
+			if (jreq["flag_threshold_numeric"].is_number())
+				req_i.flag_threshold_numeric = jreq["flag_threshold_numeric"].get<float>();
+			else if (jreq["flag_threshold_numeric"].is_string())
+			{
+				try
+				{
+					req_i.flag_threshold_numeric = stoi(jreq["flag_threshold_numeric"].get<string>());
+				}
+				catch (...)
+				{
+					error_message = "Error in flag_threshold_numeric field - unsupported type, expecting float";
+					return -1;
+				}
+			}
+			else
 			{
 				error_message = "Error in flag_threshold_numeric field - unsupported type, expecting float";
 				MTHROW_AND_ERR("Error in flag_threshold_numeric field - unsupported type, expecting float\n");
 			}
-			req_i.flag_threshold_numeric = jreq["flag_threshold_numeric"].get<float>();
 		}
 	}
 	catch (...)
