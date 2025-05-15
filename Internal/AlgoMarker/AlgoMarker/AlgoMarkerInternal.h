@@ -624,13 +624,13 @@ public:
 		err_msg = "";
 		boost::split(tokens, threshold, boost::is_any_of("$"));
 		if (tokens.size() != 2) {
-			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold should contain $";
+			err_msg = "(" + to_string(AM_THRESHOLD_ERROR_NON_FATAL) + ")Error flag_threshold should contain $";
 			return MED_MAT_MISSING_VALUE;
 		}
 		mes_trim(tokens[0]);
 		mes_trim(tokens[1]);
 		if (mbr.find(tokens[0]) == mbr.end()) {
-			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't contain threshold settings for " + tokens[0];
+			err_msg = "(" + to_string(AM_THRESHOLD_ERROR_NON_FATAL) + ")Error flag_threshold doesn't contain threshold settings for " + tokens[0];
 			return MED_MAT_MISSING_VALUE;
 		}
 		const map<string, float> &fnd = mbr.at(tokens[0]);
@@ -638,7 +638,7 @@ public:
 		vector<string> meas_tokens;
 		boost::split(meas_tokens, tokens[1], boost::is_any_of("_"));
 		if (meas_tokens.size() != 2) {
-			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't should contain _ in the cutoff setting part";
+			err_msg = "(" + to_string(AM_THRESHOLD_ERROR_NON_FATAL) + ")Error flag_threshold doesn't should contain _ in the cutoff setting part";
 			return MED_MAT_MISSING_VALUE;
 		}
 		float num_val;
@@ -646,7 +646,7 @@ public:
 			num_val = stof(meas_tokens[1]);
 		}
 		catch (...) {
-			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold search cutoff isn't numeric";
+			err_msg = "(" + to_string(AM_THRESHOLD_ERROR_NON_FATAL) + ")Error flag_threshold search cutoff isn't numeric";
 			return MED_MAT_MISSING_VALUE;
 		}
 
@@ -675,7 +675,7 @@ public:
 		}
 
 		if (res == MED_MAT_MISSING_VALUE)
-			err_msg = "(" + to_string(AM_GENERAL_FATAL) + ")Error flag_threshold doesn't contain threshold for " + tokens[1];
+			err_msg = "(" + to_string(AM_THRESHOLD_ERROR_NON_FATAL) + ")Error flag_threshold doesn't contain threshold for " + tokens[1];
 		return res;
 	}
 };

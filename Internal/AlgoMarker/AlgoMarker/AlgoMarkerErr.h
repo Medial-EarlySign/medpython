@@ -12,6 +12,8 @@
 #define AM_DATA_BAD_STRUCTURE						332
 #define AM_DATA_GENERAL_ERROR						333
 #define AM_DATA_BAD_FORMAT_NON_FATAL				334
+
+#define AM_THRESHOLD_ERROR_NON_FATAL				392 //350
 #define AM_GENERAL_FATAL							392
 
 //=====================================================================
@@ -47,7 +49,6 @@
 #define AM_ERROR_ADD_DATA_FAILED					1201 //Only in old API - AddData, not AddDataByType
 #define AM_ERROR_DATA_JSON_PARSE					1202
 #define AM_ERROR_DATA_UNKNOWN_ADD_DATA_TYPE			1203 //Can't happen
-
 // Messages Codes For Responses - in old API Calculate
 #define AM_MSG_NULL_REQUEST							101
 #define AM_MSG_BAD_PREDICTION_POINT					102
