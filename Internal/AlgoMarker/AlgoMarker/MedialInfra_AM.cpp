@@ -2578,10 +2578,11 @@ void add_flag_response(nlohmann::ordered_json &js, float score, const MedAlgoMar
 
 	string err_msg;
 	float cutoff = flag_threshold_numeric;
-	if (flag_threshold_numeric == MED_MAT_MISSING_VALUE) // If not given take from flag_threshold
+	if (flag_threshold_numeric == MED_MAT_MISSING_VALUE)
+	{ // If not given take from flag_threshold
 		cutoff = ma.fetch_threshold(flag_threshold, err_msg);
-	else
 		js.push_back({"flag_threshold", flag_threshold});
+	}
 
 	if (!err_msg.empty())
 	{
