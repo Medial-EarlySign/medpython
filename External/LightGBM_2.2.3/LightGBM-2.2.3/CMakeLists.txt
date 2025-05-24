@@ -168,6 +168,7 @@ file(GLOB SOURCES
 
 add_executable(lightgbm src/main.cpp ${SOURCES})
 add_library(_lightgbm SHARED src/c_api.cpp src/lightgbm_R.cpp  ${SOURCES})
+add_library(_lightgbm_static STATIC src/c_api.cpp src/lightgbm_R.cpp  ${SOURCES})
 
 if(MSVC)
     set_target_properties(_lightgbm PROPERTIES OUTPUT_NAME "lib_lightgbm")
@@ -207,23 +208,27 @@ endif(USE_SWIG)
 if(USE_MPI)
   TARGET_LINK_LIBRARIES(lightgbm ${MPI_CXX_LIBRARIES})
   TARGET_LINK_LIBRARIES(_lightgbm ${MPI_CXX_LIBRARIES})
+   TARGET_LINK_LIBRARIES(_lightgbm_static ${MPI_CXX_LIBRARIES})
 endif(USE_MPI)
 
 if(USE_OPENMP)
     if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
         TARGET_LINK_LIBRARIES(lightgbm OpenMP::OpenMP_CXX)
         TARGET_LINK_LIBRARIES(_lightgbm OpenMP::OpenMP_CXX)
+        TARGET_LINK_LIBRARIES(_lightgbm_static OpenMP::OpenMP_CXX)
     endif()
 endif(USE_OPENMP)
 
 if(USE_GPU)
   TARGET_LINK_LIBRARIES(lightgbm ${OpenCL_LIBRARY} ${Boost_LIBRARIES})
   TARGET_LINK_LIBRARIES(_lightgbm ${OpenCL_LIBRARY} ${Boost_LIBRARIES})
+  TARGET_LINK_LIBRARIES(_lightgbm_static ${OpenCL_LIBRARY} ${Boost_LIBRARIES})
 endif(USE_GPU)
 
 if(USE_HDFS)
   TARGET_LINK_LIBRARIES(lightgbm ${HDFS_CXX_LIBRARIES})
   TARGET_LINK_LIBRARIES(_lightgbm ${HDFS_CXX_LIBRARIES})
+  TARGET_LINK_LIBRARIES(_lightgbm_static ${HDFS_CXX_LIBRARIES})
 endif(USE_HDFS)
 
 if(WIN32 AND (MINGW OR CYGWIN))
@@ -233,7 +238,7 @@ if(WIN32 AND (MINGW OR CYGWIN))
     TARGET_LINK_LIBRARIES(_lightgbm IPHLPAPI)
 endif()
 
-install(TARGETS lightgbm _lightgbm
+install(TARGETS lightgbm _lightgbm _lightgbm_static
         RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
         LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
         ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
