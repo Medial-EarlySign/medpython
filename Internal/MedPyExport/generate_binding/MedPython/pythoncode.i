@@ -128,7 +128,7 @@ ___fix_vecmap_iter()
 """
 External Methods in addition to api
 """
-def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True, regex_str = None):
+def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True, regex_str = None, regex_filter = ''):
     """get_sig(signame [, translate=True][, pids=None, float32to64=True][,regex_str = None]) -> Pandas DataFrame
          translate : If True, will decode categorical fields into a readable representation in Pandas
          pid : If list is provided, will load only pids from the given list
@@ -136,6 +136,7 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
          float32to64 : If True, will convert all float32 columns to float64
          free_signal : If True, will free signal memory as soon as it is loaded into export arrays
          regex_str :  string (if string, defualt column is 'val') or dictionary between column name (e.g, 'val') to regex string to filter
+         regex_filter :  string to filter categories paretns this match regex
     """
     import pandas as pd
     import numpy as np
@@ -144,7 +145,7 @@ def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to6
       use_all_pids = 1
       pids=list()
     if pids is None: pids=list()
-    df = self.export_to_numpy(sig_name_str, pids, use_all_pids, int(translate), int(free_signal))
+    df = self.export_to_numpy(sig_name_str, pids, use_all_pids, int(translate), int(free_signal), regex_filter)
     
 
     cat_dict = dict()

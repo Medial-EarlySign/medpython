@@ -98,7 +98,7 @@ public:
 #ifndef AM_API_FOR_CLIENT
 	MEDPY_DOC(export_to_numpy, "export_to_numpy(str_signame) -> SigExporter\n"
 	"  Returns the signal data represented as a list of numpy arrays, one for each field");
-	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig);
+	MPSigExporter export_to_numpy(string signame, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig, string filter_regex_str);
 
 	MEDPY_DOC(free, "free(signame) -> int\n"
 		"  Free the signal data specified by signame");

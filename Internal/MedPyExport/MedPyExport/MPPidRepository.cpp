@@ -116,9 +116,9 @@ std::vector<bool> MPPidRepository::get_lut_from_regex(int section_id, const std:
 }
 
 #ifndef AM_API_FOR_CLIENT
-MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int *pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig)
+MPSigExporter MPPidRepository::export_to_numpy(string signame, MEDPY_NP_INPUT(int *pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig, string filter_regex_str)
 {
-	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids, translate_flag, free_sig);
+	return MPSigExporter(*this, signame, pids_to_take, num_pids_to_take, use_all_pids, translate_flag, free_sig, filter_regex_str);
 }
 
 int MPPidRepository::free(string signame)

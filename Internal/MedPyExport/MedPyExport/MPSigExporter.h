@@ -19,6 +19,7 @@ class MPSigExporter {
 	void gen_cat_dict(const string& field_name, int channel);
 	std::vector<int> pids;
 	bool translate;
+	std::string filter_regex;
 	bool free_sig;
 public:
 	std::vector<std::string> keys() { return data_keys; }
@@ -27,7 +28,7 @@ public:
 	int sig_type = -1;
 	size_t record_count = 0;
 	bool record_count_updated = false;
-	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag);
+	MPSigExporter(MPPidRepository& rep, std::string signame_str, MEDPY_NP_INPUT(int* pids_to_take, unsigned long long num_pids_to_take), int use_all_pids, int translate_flag, int free_sig_flag, std::string filter_regex_str);
 	void update_record_count();
 	void get_all_data();
 	void clear() {
