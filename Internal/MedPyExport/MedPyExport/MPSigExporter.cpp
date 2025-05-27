@@ -77,7 +77,7 @@ void get_parents_for_code(int codeGroup, vector<int> &parents, int max_depth, co
 	parents.swap(fnal);
 }
 
-string get_code_name(int codeGroup, const string &regex_str, boost::regex &reg_pat, const map<int, vector<string>> &id_to_names, const map<int, vector<int>> &member2Sets)
+string get_code_name(int codeGroup, boost::regex &reg_pat, const map<int, vector<string>> &id_to_names, const map<int, vector<int>> &member2Sets)
 {
 	vector<int> codes;
 	get_parents_for_code(codeGroup, codes, 5, reg_pat, member2Sets, id_to_names);
@@ -238,6 +238,7 @@ void MPSigExporter::gen_cat_dict(const string &field_name, int channel)
 	if (!filter_regex.empty())
 	{
 		filter_reg = boost::regex(filter_regex);
+		printf("Activate regex complete match for \"%s\", dict size %zu\n", filter_regex.c_str(), o->dict.dict(section_id)->Member2Sets.size());
 	}
 	for (size_t i = 0; i < arr_sz; i++)
 	{
@@ -266,7 +267,7 @@ void MPSigExporter::gen_cat_dict(const string &field_name, int channel)
 				if (!filter_regex.empty())
 				{
 					// check filter or go to parent
-					cat_name = get_code_name(raw_val, filter_regex, filter_reg, Id2Names, o->dict.dict(section_id)->Member2Sets);
+					cat_name = get_code_name(raw_val, filter_reg, Id2Names, o->dict.dict(section_id)->Member2Sets);
 				}
 				category.push_back(cat_name);
 				translation_dict[raw_val] = category.size() - 1;
