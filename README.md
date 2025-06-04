@@ -207,9 +207,29 @@ The Links refere to MR_Wiki
 
 
 ## Installations
-There are 4 main components:
+Those are installation steps required for all tools and builds:
+### 1. Install Compiler and Build Tools (Ubuntu)
+To install the essential compiler and build tools, run:
+```bash
+sudo apt install binutils gcc g++ cmake make swig -y
+```
+### 2. Install OpenMP Support (Ubuntu)
+To enable OpenMP (used for parallel processing), install the following package:
+```bash
+sudo apt install libgomp1 -y
+```
+### 3. Install Boost Libraries (Ubuntu)
+To install the required Boost components, on Ubuntu 24.04 use:
+```bash
+sudo apt install libboost-system1.83-dev libboost-filesystem1.83-dev libboost-regex1.83-dev libboost-program-options1.83-dev -y
+```
+> [!NOTE] On Ubuntu 22.04, Boost version 1.74 is available and is also compatible.
+You may also choose to [download and compile Boost manually](https://www.boost.org/users/download/) if you prefer a different version. This project has been tested with Boost versions 1.67 through 1.85, and should work with other versions as well.
+
+### There are 4 components:
 1. AlgoMarker - please go to Internal/AlgoMarker and run "./full_build.sh" to create the algomarker shared library to pack a model for production
-2. Build python wrapper for this library. please execute Internal/MedPyExport/generate_binding/make-simple.sh
-3. Build tools and executables that uses this library, please go to MR_Tools for more info, how to compile tools with this library
-4. AlgoMarker Wrapper in c++ to expose the library as REST service. There is also an option to write it with python FastAPI and use the AlgoMarker library, but will also added an option to expose a server with a faster c++ library.
+   You might need to recompile Boost library with -fPIC and then edit the CMakeLists.txt "set(BOOST_ROOT "$ENV{HOME}/boost-pic-install")" to point to your Boost compiles home, please put the libs in "/libs"
+3. Build python wrapper for this library. please execute Internal/MedPyExport/generate_binding/make-simple.sh
+4. Build tools and executables that uses this library, please go to MR_Tools for more info, how to compile tools with this library
+5. AlgoMarker Wrapper in c++ to expose the library as REST service. There is also an option to write it with python FastAPI and use the AlgoMarker library, but will also added an option to expose a server with a faster c++ library.
 To do so, please go to MR_Tools and it will described there too
