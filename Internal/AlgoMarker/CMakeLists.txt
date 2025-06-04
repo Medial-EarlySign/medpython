@@ -69,7 +69,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/LightGBM_2.2.3/Li
 # Find Boost
 find_package(OpenMP REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS filesystem system regex program_options)  # Example components
+find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})  # Example components
 
 if (BOOST_ROOT)
     set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")

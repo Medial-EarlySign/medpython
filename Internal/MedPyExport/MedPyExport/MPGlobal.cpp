@@ -22,7 +22,7 @@ int MPRNG::max() { return globalRNG::max(); };
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_RAND_S
 
-#include "../Tools/MedProcessUtils/CommonLib/commonHeader.h"
+#include "CommonLib/CommonLib/commonHeader.h"
 
 void MPCommonLib::print_auc_performance(MPSamples &samples, MEDPY_NP_INPUT(int* folds, unsigned long long num_folds), string outFile) {
 	vector<int> folds_vec;

@@ -20,8 +20,8 @@ if [ $DIST_NAME == "unknown" ]; then
 	fi
 fi
 
-echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
-echo "(II) Python Library: '${PYTHON_LIBRARY}'"
+#echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
+#echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
 
 #STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release_new
@@ -34,9 +34,9 @@ set +e
 version_txt=$(date +'Build_On_%Y%m%d_%H:%M:%S')
 set -e
 echo -e "Git version info:\n${version_txt}"
-touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
+touch ${CURRENT_DIR}/../../MedUtils/MedUtils/MedGitVersion.h
 
-make -j ${nproc} -e GIT_HEAD_VERSION="$version_txt";
+make -j $(nproc) -e GIT_HEAD_VERSION="$version_txt";
 
 popd
 
