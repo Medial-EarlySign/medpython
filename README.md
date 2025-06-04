@@ -195,7 +195,7 @@ The Links refere to MR_Wiki
 </details>
 
 
-4. Comprehensive evaluation toolkit
+4. **Comprehensive evaluation toolkit**
     * [Bootstrap-based](/Medial%20Tools/bootstrap_app/) cohort analysis allows batch testing across thousands of user-defined subgroups (e.g., age 50–80, males only, prediction window of 365 days, COPD patients).
     * Automatically extracts AUC, ROC points at each 1% FPR increment, odds ratios, PPV/NPV, and applies incidence-rate adjustments or KPI weights
     * Includes explainability and fairness audits
@@ -227,9 +227,9 @@ sudo apt install libboost-system1.83-dev libboost-filesystem1.83-dev libboost-re
 You may also choose to [download and compile Boost manually](https://www.boost.org/users/download/) if you prefer a different version. This project has been tested with Boost versions 1.67 through 1.85, and should work with other versions as well.
 
 ### There are 4 components:
-1. AlgoMarker - please go to Internal/AlgoMarker and run "./full_build.sh" to create the algomarker shared library to pack a model for production
-   You might need to recompile Boost library with -fPIC and then edit the CMakeLists.txt "set(BOOST_ROOT "$ENV{HOME}/boost-pic-install")" to point to your Boost compiles home, please put the libs in "/libs"
-3. Build python wrapper for this library. please execute Internal/MedPyExport/generate_binding/make-simple.sh, before please make sure you have python3-dev headers, library and numpy installed: "sudo apt install python3-dev -y" in ubuntu
+1. AlgoMarker - please go to Internal/AlgoMarker and run ```./full_build.sh``` to create the algomarker shared library to pack a model for production
+   You might need to recompile Boost library with -fPIC and then edit the ```CMakeLists.txt``` "set(BOOST_ROOT "$ENV{HOME}/boost-pic-install")" to point to your Boost compiles home, please put the compiled libraries in "/libs" and the headers in /include
+3. Build python wrapper for this library. please execute ```Internal/MedPyExport/generate_binding/make-simple.sh```, before please make sure you have python3-dev headers, library and numpy installed: ```sudo apt install python3-dev -y``` in ubuntu
 4. Build tools and executables that uses this library, please go to MR_Tools for more info, how to compile tools with this library
 5. AlgoMarker Wrapper in c++ to expose the library as REST service. There is also an option to write it with python FastAPI and use the AlgoMarker library, but will also added an option to expose a server with a faster c++ library.
 To do so, please go to MR_Tools and it will described there too
