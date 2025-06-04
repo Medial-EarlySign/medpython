@@ -1,75 +1,96 @@
-cmake_minimum_required(VERSION 3.5)
-project(AlgoMarker VERSION 1.1.0 LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.14)
+project(AlgoMarker_Tools VERSION 1.1.0 LANGUAGES CXX)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
-#Release Flag settings - optimizations with no debug symbols (faster compile time)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -DSO_COMPILATION -Wall -Wno-unused-function -Wno-unknown-pragmas -Wno-comment -Wno-sign-compare -Wno-reorder -Wunused-variable -Wformat -Wparentheses -Wmissing-braces -Wreturn-type -Werror=return-type --std=c++17 -Wno-write-strings -Wuninitialized -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -ldl -Ofast -fomit-frame-pointer -fPIC -DHAVE_WORKING_ISFINITE")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -Wall -Wno-write-strings -Wno-sign-compare -Wno-reorder -Wno-unknown-pragmas -Wno-unused-function -ldl  --param inline-unit-growth=1000000 -msse4 -DHAVE_WORKING_ISFINITE -DSO_COMPILATION -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\""')
 
-#Debug symbols with performance information for tracking program execution times (but still in relase with optimizations, some debug info won't be available)
-#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -Wall -Wno-unused-function -Wno-unknown-pragmas -Wno-comment -Wno-sign-compare -Wno-reorder -Wunused-variable -Wformat -Wparentheses -Wmissing-braces -Wreturn-type -Werror=return-type --std=c++17 -Wno-write-strings -Wuninitialized -Wreturn-type -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -pg -g -ldl")
+set(BOOST_LIBS
+    regex
+    filesystem
+    system
+    program_options
+) # for certain version, you might need to add "atomic" also
 
-#Debug symbols (but still in relase with optimizations, some debug info won't be available)
-#set(CMAKE_CXX_FLAGS   "${CMAKE_CXX_FLAGS} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -Wall -Wno-unused-function -Wno-unknown-pragmas -Wno-comment -Wno-sign-compare -Wno-reorder -Wunused-variable -Wformat -Wparentheses -Wmissing-braces -Wreturn-type -Werror=return-type --std=c++17 -Wno-write-strings -Wuninitialized -Wreturn-type -fopenmp -msse2 -msse3 -msse4 -march=native --param inline-unit-growth=1000000 -Ofast -ldl -g")
+set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotly MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF micNet
+) #CommonLib if needed
 
-#for platform independent:
-#set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' -Wall -Wno-unused-function -Wno-unknown-pragmas -Wno-comment -Wno-sign-compare -Wno-reorder -Wunused-variable -Wformat -Wparentheses -Wmissing-braces -Wreturn-type -Werror=return-type --std=c++17 -Wno-write-strings -Wuninitialized -fopenmp -march=x86-64 -msse2 -msse3 -msse4 --param inline-unit-growth=1000000 -ldl -Ofast -fomit-frame-pointer -fPIC -DHAVE_WORKING_ISFINITE")
-#set(CMAKE_EXE_LINKER_FLAGS "-Wl,-Bstatic,--whole-archive -L$ENV{MR_ROOT}/Libs/Internal/AlgoMarker/LinuxSharedLib/Build/lib/ -lboost_regex -lboost_program_options -lboost_system -lboost_filesystem -lxgboost -lrabit -ldmlc -l_lightgbm -Wl,-no-whole-archive -Wl,-Bdynamic -licudata -licui18n -licuuc" CACHE INTERNAL "" FORCE)
+# Dynamic linking
+function(add_linking_flags TARGET_NAME)
+    set(BUILD_STATIC_LIB OFF CACHE BOOL "Build XGBoost as a dynamic library" FORCE)
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars DynAMWrapper AlgoMarker CommonTestingTools xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
+endfunction()
 
-# Build with older GlibC
-include_directories(SYSTEM /nas1/Work/Libs/Glibc_ubuntu_22.04/include)
-include_directories(SYSTEM /nas1/Work/Libs/Glibc_ubuntu_22.04/include/x86_64-linux-gnu)
-add_link_options( -L/nas1/Work/Libs/Glibc_ubuntu_22.04)
-# End Old glibc
+function(add_linking_flags_with_common TARGET_NAME)
+    set(BUILD_STATIC_LIB OFF CACHE BOOL "Build XGBoost as a dynamic library" FORCE)
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars CommonLib xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
+endfunction()
 
-# You may create a file named CMakeCustomize.txt to override CMake commands or change flags for a specific project
-#include(${CMAKE_CURRENT_SOURCE_DIR}/CMakeCustomize.txt OPTIONAL)
-#if(${CMAKELISTS_OVERRIDE})
-#  return()
-#endif()
+#Static linking
+function(add_linking_flags_static TARGET_NAME)
+    set(BOOST_STATIC_LIB_PATHS "")
+    foreach(lib IN LISTS BOOST_LIBS)
+	string(TOUPPER "${lib}" LIB_VAR)
 
-include_directories($ENV{MR_ROOT}/Libs)
-include_directories(SYSTEM /nas1/Work/Libs/Boost/boost_1_85_0)
-include_directories($ENV{MR_ROOT}/Libs/External)
-include_directories($ENV{MR_ROOT}/Libs/Internal)
+        find_library(BOOST_${LIB_VAR}_STATIC
+            NAMES "libboost_${lib}.a"
+        )
+
+        if(NOT BOOST_${LIB_VAR}_STATIC)
+            message(FATAL_ERROR "Could not find static Boost library: boost_${lib}.a")
+        endif()
+
+        list(APPEND BOOST_STATIC_LIB_PATHS ${BOOST_${LIB_VAR}_STATIC})
+    endforeach()
+
+    set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Bstatic,--whole-archive ${MEDIAL_INTERNAL_LIBS} Mars xgboost _lightgbm_static ${BOOST_STATIC_LIB_PATHS} -Wl,-no-whole-archive -Wl,-Bdynamic)
+
+endfunction()
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..//Internal)
 include_directories(${PROJECT_SOURCE_DIR})
-include_directories($ENV{MR_ROOT}/Libs/External/xgboost/src)
-include_directories($ENV{MR_ROOT}/Libs/External/xgboost/include)
-include_directories($ENV{MR_ROOT}/Libs/External/xgboost/rabit/include)
-include_directories($ENV{MR_ROOT}/Libs/External/xgboost/dmlc-core/include)
-include_directories($ENV{MR_ROOT}/Libs/External/LightGBM_2.2.3/LightGBM-2.2.3/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/src)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/rabit/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/dmlc-core/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/LightGBM_2.2.3/LightGBM-2.2.3/include)
+
+# Find Boost
+find_package(OpenMP REQUIRED)
+
+find_package(Boost REQUIRED COMPONENTS filesystem system regex program_options)  # Example components
+
+include_directories(${Boost_INCLUDE_DIRS})
+# Add Internal libraries
+foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/${mes_lib}/${mes_lib} ${mes_lib})
+endforeach()
+
+# External Libraries
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/Mars/Mars Mars)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost xgboost)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/LightGBM_2.2.3/LightGBM-2.2.3 _lightgbm)
 
 
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/InfraMed/InfraMed InfraMed)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/Logger/Logger Logger)
-add_subdirectory($ENV{MR_ROOT}/Libs/External/Mars/Mars Mars)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedAlgo/MedAlgo MedAlgo)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedEmbed/MedEmbed MedEmbed)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedIO/MedIO MedIO)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedMat/MedMat MedMat)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedPlotly/MedPlotly MedPlotly)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedProcessTools/MedProcessTools MedProcessTools)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedSparseMat/MedSparseMat MedSparseMat)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedSplit/MedSplit MedSplit)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedStat/MedStat MedStat)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedTime/MedTime MedTime)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/MedUtils/MedUtils MedUtils)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/QRF/QRF QRF)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/SerializableObject/SerializableObject SerializableObject)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/TQRF/TQRF TQRF)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/micNet/micNet micNet)
+# Or add each project:
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/DllAPITester DllAPITester)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/DynAMWrapper DynAMWrapper)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/CommonTestingTools CommonTestingTools)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/AMApiTester AMApiTester)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/StressTest StressTest)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/MemroyLeak_Test MemroyLeak_Test)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/TestLibSimple TestLibSimple)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/InternalAPITester InternalAPITester)
+add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal/AlgoMarker/AlgoMarker AlgoMarker)
 
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/DllAPITester DllAPITester)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/DynAMWrapper DynAMWrapper)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AMApiTester AMApiTester)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/SignalsSumAM SignalsSumAM)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/CommonTestingTools CommonTestingTools)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/ApplyTool ApplyTool)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/StressTest StressTest)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/MemroyLeak_Test MemroyLeak_Test)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AlpineCompitible AlpineCompitible)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/TestLibSimple TestLibSimple)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/InternalAPITester InternalAPITester)
-add_subdirectory($ENV{MR_ROOT}/Libs/Internal/AlgoMarker/AlgoMarker AlgoMarker)
-
-
+# Inside each project:
+#file(GLOB SRC_FILES
+#     "*.h"
+#     "*.cpp"
+#)
+#add_executable(Test ${SRC_FILES})
+#add_linking_flags_dynamic(Test)
+#add_linking_flags_static(Test)
