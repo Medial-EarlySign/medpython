@@ -70,6 +70,9 @@ find_package(OpenMP REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS filesystem system regex program_options)  # Example components
 
+if (BOOST_ROOT)
+    set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")
+endif()
 include_directories(${Boost_INCLUDE_DIRS})
 # Add Internal libraries
 foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)
