@@ -3,15 +3,17 @@ set -e
 DIST_NAME=${1-unknown}
 PY_VERSION=$(python --version | awk '{print $2}' | awk -F. '{print $1 "." $2}')
 PY_VERSION_SHORT=$(python --version | awk '{print $2}' | awk -F. '{print $1 $2}')
+CURRENT_DIR=$(realpath ${0%/*})
 
 if [ $DIST_NAME == "unknown" ]; then
 	DIST_NAME="medial-python${PY_VERSION_SHORT}"
-	if [ -d "/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include" ]; then
-		export CPATH=$CPATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include/
-		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/core/include/
-	elif [ -d "/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include" ]; then
-		export CPATH=$CPATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include/
-		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/nas1/Work/python-env/python${PY_VERSION_SHORT}/lib/python${PY_VERSION}/site-packages/numpy/_core/include/
+	NUMPY_PATH=$(python -c 'import numpy as np;import os; print(os.path.dirname(np.__file__))')
+	if [ -d "${NUMPY_PATH}/core/include" ]; then
+		export CPATH=$CPATH:${NUMPY_PATH}/core/include/
+		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${NUMPY_PATH}/core/include/
+	elif [ -d "${NUMPY_PATH}/_core/include" ]; then
+		export CPATH=$CPATH:${NUMPY_PATH}/_core/include/
+		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${NUMPY_PATH}/_core/include/
 	else
 		echo "Couldn't find numpy headers - does numpy installed for this python? python${PY_VERSION}"
 		exit -1
@@ -22,30 +24,24 @@ echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"
 echo "(II) Python Library: '${PYTHON_LIBRARY}'"
 echo "(II) Compiling Python distribution: '${DIST_NAME}'"
 
-#STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release
-STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release_new
+#STATIC_LIBS_TARGET=/nas1/Work/SharedLibs/linux/ubuntu/static_libs/Release_new
 
-echo "STATIC_LIBS_TARGET=${STATIC_LIBS_TARGET}"
-
-
-#source /nas1/Work/python-env/python310/bin/activate
-
-mkdir -p $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release
-pushd $MR_ROOT/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release 
+mkdir -p ${CURRENT_DIR}/CMakeBuild/Linux/Release
+pushd ${CURRENT_DIR}/CMakeBuild/Linux/Release 
 cmake ../../../
 
 set +e
-version_txt=`get_git_status_text.py`
+version_txt=$(date +'Build_On_%Y%m%d_%H:%M:%S')
 set -e
 echo -e "Git version info:\n${version_txt}"
 touch ${MR_ROOT}/Libs/Internal/MedUtils/MedUtils/MedGitVersion.h
 
-make -j 20 -e GIT_HEAD_VERSION="$version_txt";
+make -j ${nproc} -e GIT_HEAD_VERSION="$version_txt";
 
 popd
 
-NEW_RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/Release/${DIST_NAME}
-RELEASE_PATH=${MR_ROOT}/Libs/Internal/MedPyExport/generate_binding/CMakeBuild/Linux/Release/MedPython
+NEW_RELEASE_PATH=${CURRENT_DIR}/Release/${DIST_NAME}
+RELEASE_PATH=${CURRENT_DIR}/CMakeBuild/Linux/Release/MedPython
 mkdir -p ${NEW_RELEASE_PATH}
 cp ${RELEASE_PATH}/medpython.py ${RELEASE_PATH}/_medpython.so ${NEW_RELEASE_PATH}
 echo "from medpython import * ; import medpython as _med ; __doc__=_med.__doc__ ; __all__=_med.__all__ ;" > ${NEW_RELEASE_PATH}/med.py

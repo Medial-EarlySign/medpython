@@ -3,7 +3,7 @@ project(AlgoMarker_Tools VERSION 1.1.0 LANGUAGES CXX)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
-#set(BOOST_ROOT "$ENV{HOME}/boost-pic-install") #If you have compiled boost by yourself with -fPIC flag, please provide the path
+#set(BOOST_ROOT "$ENV{HOME}/boost-pic-install") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -Wall -Wno-write-strings -Wno-sign-compare -Wno-reorder -Wno-unknown-pragmas -Wno-unused-function -ldl  --param inline-unit-growth=1000000 -msse4 -DHAVE_WORKING_ISFINITE -DSO_COMPILATION -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\""')
 
@@ -20,12 +20,13 @@ set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotl
 # Dynamic linking
 function(add_linking_flags TARGET_NAME)
     set(BUILD_STATIC_LIB OFF CACHE BOOL "Build XGBoost as a dynamic library" FORCE)
+    if (BOOST_ROOT)
+        set(Boost_LIBRARIES "")
+        foreach(lib IN LISTS BOOST_LIBS)
+            list(APPEND Boost_LIBRARIES ${BOOST_ROOT}/lib/libboost_${lib}.so)
+        endforeach()
+    endif()
     target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars DynAMWrapper AlgoMarker CommonTestingTools xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
-endfunction()
-
-function(add_linking_flags_with_common TARGET_NAME)
-    set(BUILD_STATIC_LIB OFF CACHE BOOL "Build XGBoost as a dynamic library" FORCE)
-    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars CommonLib xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
 endfunction()
 
 #Static linking
@@ -33,7 +34,7 @@ function(add_linking_flags_static TARGET_NAME)
     set(BOOST_STATIC_LIB_PATHS "")
     set(Boost_USE_STATIC_LIBS ON)
     foreach(lib IN LISTS BOOST_LIBS)
-	string(TOUPPER "${lib}" LIB_VAR)
+	    string(TOUPPER "${lib}" LIB_VAR)
 
         if (NOT BOOST_ROOT)
             find_library(BOOST_${LIB_VAR}_STATIC
@@ -57,7 +58,7 @@ endfunction()
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../..//Internal)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../Internal)
 include_directories(${PROJECT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/src)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost/include)
