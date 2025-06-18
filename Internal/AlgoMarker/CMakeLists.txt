@@ -52,7 +52,7 @@ function(add_linking_flags_static TARGET_NAME)
     endforeach()
 
     set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
-    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Bstatic,--whole-archive ${MEDIAL_INTERNAL_LIBS} Mars xgboost _lightgbm_static ${BOOST_STATIC_LIB_PATHS} -Wl,-no-whole-archive -Wl,-Bdynamic)
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars -Wl,--end-group xgboost _lightgbm_static  ${BOOST_STATIC_LIB_PATHS} -Wl,-no-whole-archive -Wl,-Bdynamic)
 
 endfunction()
 
