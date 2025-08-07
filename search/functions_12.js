@@ -1,0 +1,11 @@
+var searchData=
+[
+  ['quantile_0',['Quantile',['../namespacexgboost_1_1common.html#a68dcf181a0f4f781a06d6ccc551c2366',1,'xgboost::common']]],
+  ['quantile_5floss_1',['quantile_loss',['../namespacequantile__regression.html#adb24652722383c0d4e6ac05bd592bf7e',1,'quantile_regression']]],
+  ['quantiledmatrix_2',['QuantileDMatrix',['../classml_1_1dmlc_1_1xgboost4j_1_1java_1_1QuantileDMatrix.html#a6beba980a1d6c7f912f37c9bb5e0b489',1,'ml::dmlc::xgboost4j::java::QuantileDMatrix']]],
+  ['quantilelearn_3',['quantilelearn',['../classRepBasicOutlierCleaner.html#a54d95b66833e089cebfe541774842624',1,'RepBasicOutlierCleaner::quantileLearn()'],['../classRepNbrsOutlierCleaner.html#a41b42a80303b3c6b8e2934bbde43740a',1,'RepNbrsOutlierCleaner::quantileLearn()'],['../classOutlierSampleFilter.html#a486ff30ee6b8ae423874b674773f4a15',1,'OutlierSampleFilter::quantileLearn()']]],
+  ['quaternion_4',['quaternion',['../classEigen_1_1Quaternion.html#abf659c4044ea281b399ca2e3420d710a',1,'Eigen::Quaternion::Quaternion()'],['../classEigen_1_1Quaternion.html#ad30f4da9a2c0c8dd95520ee8a6d14ef6',1,'Eigen::Quaternion::Quaternion(const Scalar &amp;w, const Scalar &amp;x, const Scalar &amp;y, const Scalar &amp;z)'],['../classEigen_1_1Quaternion.html#af8c298da20d235d1c8029b73acbef6f9',1,'Eigen::Quaternion::Quaternion(const Scalar *data)'],['../classEigen_1_1Quaternion.html#a4de48699237d2e80efd1dd418a3fa7c0',1,'Eigen::Quaternion::Quaternion(const QuaternionBase&lt; Derived &gt; &amp;other)'],['../classEigen_1_1Quaternion.html#a8a827dc86c80446a77eebba0e8a9e3e4',1,'Eigen::Quaternion::Quaternion(const AngleAxisType &amp;aa)'],['../classEigen_1_1Quaternion.html#aba694e0bbafcf5554b77cfe8ce69c14a',1,'Eigen::Quaternion::Quaternion(const MatrixBase&lt; Derived &gt; &amp;other)'],['../classEigen_1_1Quaternion.html#a966673475496b60ea5ccdd0ed07249da',1,'Eigen::Quaternion::Quaternion(const Quaternion&lt; OtherScalar, OtherOptions &gt; &amp;other)']]],
+  ['query_5',['Query',['../structxgboost_1_1common_1_1WQSummary.html#a01b5ba1ab8c0fd3a672b5bd89f3f25cf',1,'xgboost::common::WQSummary']]],
+  ['query_5fboundaries_6',['query_boundaries',['../classLightGBM_1_1Metadata.html#a93afffc2073d5aa697b70fb0f7c38960',1,'LightGBM::Metadata']]],
+  ['query_5fweights_7',['query_weights',['../classLightGBM_1_1Metadata.html#a46bab1c879c6310b92e22c5a77f951f5',1,'LightGBM::Metadata']]]
+];

@@ -1,0 +1,27 @@
+var searchData=
+[
+  ['gain_0',['gain',['../structLightGBM_1_1LightSplitInfo.html#a6a1c4b92ed8e4187c1ba00705745c919',1,'LightGBM::LightSplitInfo::gain'],['../structLightGBM_1_1SplitInfo.html#a22a6d03ddd187e0b4874160793ea5649',1,'LightGBM::SplitInfo::gain']]],
+  ['gbm_5f_1',['gbm_',['../classxgboost_1_1Learner.html#a88c9afc3623a122f7315f7cb3846192d',1,'xgboost::Learner']]],
+  ['gd_5fbatch_2',['gd_batch',['../classTQRF__Params.html#a4779f9d49bc3f8e12f9e824e155f66bc',1,'TQRF_Params']]],
+  ['gd_5fepochs_3',['gd_epochs',['../classTQRF__Params.html#a58bb3d281aaf4d28164e7db7cdad805a',1,'TQRF_Params']]],
+  ['gd_5flambda_4',['gd_lambda',['../classTQRF__Params.html#a05dfa132258037ccb2b12c929c676a2a',1,'TQRF_Params']]],
+  ['gd_5fmomentum_5',['gd_momentum',['../classTQRF__Params.html#a0c5fd41d70262de551768498cc112d1b',1,'TQRF_Params']]],
+  ['gd_5frate_6',['gd_rate',['../classTQRF__Params.html#ab54b42ad15d6356aaf361c293126448a',1,'TQRF_Params']]],
+  ['gen_5ftype_7',['gen_type',['../classShapleyExplainer.html#aee6855465712f870b6ffce29c8f84dc9',1,'ShapleyExplainer::gen_type'],['../classLimeExplainer.html#aca23c8bf560d670358a611535d084474',1,'LimeExplainer::gen_type'],['../classIterativeSetExplainer.html#aed1503caeecd7a9b13dcf363d98a4618',1,'IterativeSetExplainer::gen_type'],['../classPredictorImputer.html#ac12bfd9385f941b81fcc6547d8c91dfd',1,'PredictorImputer::gen_type']]],
+  ['gender_5fmask_8',['gender_mask',['../structSamplingParams.html#a35a43a98784f68aab9420d9fe2df3c51',1,'SamplingParams::gender_mask'],['../structIncidenceParams.html#a988d92776f0cbaae03a8dcca4e13ef71',1,'IncidenceParams::gender_mask']]],
+  ['genderid_9',['genderId',['../classGenderGenerator.html#a91b9d9b16286d054f840187768657474',1,'GenderGenerator']]],
+  ['generate_5fwith_5fcounts_10',['generate_with_counts',['../classCategoryDependencyGenerator.html#a02010205e4dcf6fa05f991be7eeb0917',1,'CategoryDependencyGenerator']]],
+  ['generator_5fargs_11',['generator_args',['../classPredictorImputer.html#abc851814e1f8bfa6c5743b405a55c90e',1,'PredictorImputer::generator_args'],['../classLimeExplainer.html#a9c0b0a8725b0fd1614cd38e5bedaeb6f',1,'LimeExplainer::generator_args'],['../classIterativeSetExplainer.html#af0c72727e7711c74903246acf318873a',1,'IterativeSetExplainer::generator_args'],['../classShapleyExplainer.html#acd1bdc1a7148820cd04f4c1d64a4422b',1,'ShapleyExplainer::generator_args']]],
+  ['generator_5ftype_12',['generator_type',['../classFeatureGenerator.html#a6a64d2725a66eee139cb8a33baf5b640',1,'FeatureGenerator']]],
+  ['generators_13',['generators',['../classMedModel.html#a5bed1faea559f0f4a6d1c54ae839fd72',1,'MedModel']]],
+  ['get_5fcol_14',['get_col',['../structMedLMParams.html#a947ec27ec69b036791fc2802ad332db6',1,'MedLMParams']]],
+  ['get_5fvalues_5fin_5frange_15',['get_values_in_range',['../classRepBasicRangeCleaner.html#ab0a2578c5f0948473350145e38541dd1',1,'RepBasicRangeCleaner']]],
+  ['global_5fserial_5fid_5fcnt_16',['global_serial_id_cnt',['../classMedFeatures.html#ac4576b555925eab79410ae32a97d8c12',1,'MedFeatures']]],
+  ['gradients_5f_17',['gradients_',['../classLightGBM_1_1GBDT.html#ad916303478daf25157b800fe67233f77',1,'LightGBM::GBDT::gradients_'],['../classLightGBM_1_1SerialTreeLearner.html#a0b52efc9fdeaff3412dca065978fee41',1,'LightGBM::SerialTreeLearner::gradients_']]],
+  ['group_5fby_5fsum_18',['group_by_sum',['../classExplainProcessings.html#a8d308e834de3a37eba7fc736a1929e31',1,'ExplainProcessings']]],
+  ['group_5ffeature_5fgen_5fmodel_19',['group_feature_gen_model',['../classFairnessPostProcessor.html#a3857d4176a74894382dca661569ba6d5',1,'FairnessPostProcessor']]],
+  ['group_5fptr_5f_20',['group_ptr_',['../classxgboost_1_1MetaInfo.html#a6bf4a9d4b2bee9d286384a0573c73020',1,'xgboost::MetaInfo']]],
+  ['group_5fto_5fsigs_21',['group_to_sigs',['../classIterativeFeatureSelector.html#ad9c9ba1df162b2acd893b47eef75046b',1,'IterativeFeatureSelector']]],
+  ['grouping_22',['grouping',['../classExplainProcessings.html#a6912dea6d1c4b0f95823d4fb62d09d51',1,'ExplainProcessings::grouping'],['../classResampleMissingProcessor.html#a0c38d04d768a9d07ae41b0f64aa1f3af',1,'ResampleMissingProcessor::grouping']]],
+  ['grouping_5fmode_23',['grouping_mode',['../classIterativeFeatureSelector.html#a085baa3f864173b372b2466b116bdca6',1,'IterativeFeatureSelector']]]
+];

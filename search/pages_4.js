@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['data_20iterator_20to_20load_20data_20from_20external_20memory_0',['Defining a Custom Data Iterator to Load Data from External Memory',['../md_External_2xgboost_2demo_2c-api_2external-memory_2README.html',1,'']]],
+  ['data_20set_1',['Wikipara data set',['../md_External_2vowpal__wabbit_2demo_2recall__tree_2wikipara_2README.html',1,'']]],
+  ['dataset_20with_20xgboost_2',['Understand your dataset with XGBoost',['../md_External_2xgboost_2doc_2R-package_2discoverYourData.html',1,'']]],
+  ['defining_20a_20custom_20data_20iterator_20to_20load_20data_20from_20external_20memory_3',['Defining a Custom Data Iterator to Load Data from External Memory',['../md_External_2xgboost_2demo_2c-api_2external-memory_2README.html',1,'']]],
+  ['demo_4',['demo',['../md_External_2vowpal__wabbit_2demo_2movielens_2README.html',1,'Low rank quadratic demo'],['../md_External_2vowpal__wabbit_2demo_2normalized_2README.html',1,'normalized online learning demo'],['../md_External_2vowpal__wabbit_2demo_2recall__tree_2README.html',1,'Recall tree demo']]],
+  ['demo_20for_20imagenet_5',['Recall tree demo for imagenet',['../md_External_2vowpal__wabbit_2demo_2recall__tree_2imagenet_2README.html',1,'']]],
+  ['demo_20for_20ltcb_6',['Recall tree demo for ltcb',['../md_External_2vowpal__wabbit_2demo_2recall__tree_2ltcb_2README.html',1,'']]],
+  ['demo_20for_20odp_7',['Recall tree demo for odp',['../md_External_2vowpal__wabbit_2demo_2recall__tree_2odp_2README.html',1,'']]],
+  ['dependencies_8',['Search for dependencies',['../md_External_2vowpal__wabbit_2demo_2dependencyparsing_2README.html',1,'']]],
+  ['deprecated_20list_9',['Deprecated List',['../deprecated.html',1,'']]],
+  ['directory_20contains_20the_20cpu_20network_20module_20for_20xgboost_20the_20library_20originates_20from_20a_20href_20https_3a_20github_20com_20dmlc_20rabit_20rabit_20a_10',['This directory contains the CPU network module for XGBoost.  The library originates from &lt;a href=&quot;https://github.com/dmlc/rabit&quot; &gt;RABIT&lt;/a&gt;',['../md_External_2xgboost_2rabit_2README.html',1,'']]],
+  ['distributed_20machine_20learning_20common_20codebase_11',['Distributed Machine Learning Common Codebase',['../md_External_2xgboost_2dmlc-core_2README.html',1,'']]],
+  ['distributed_20xgboost_20for_20scala_20java_12',['XGBoost4J: Distributed XGBoost for Scala/Java',['../md_External_2xgboost_2jvm-packages_2README.html',1,'']]],
+  ['distributed_20xgboost_20training_13',['Distributed XGBoost Training',['../md_External_2xgboost_2demo_2CLI_2distributed-training_2README.html',1,'']]],
+  ['dmlc_20core_20documentation_14',['DMLC-Core Documentation',['../md_External_2xgboost_2dmlc-core_2doc_2index.html',1,'']]],
+  ['dmlc_20core_20with_20cmake_15',['Using dmlc-core with CMake',['../md_External_2xgboost_2dmlc-core_2doc_2build.html',1,'']]],
+  ['dmlc_20rabit_20rabit_20a_16',['This directory contains the CPU network module for XGBoost.  The library originates from &lt;a href=&quot;https://github.com/dmlc/rabit&quot; &gt;RABIT&lt;/a&gt;',['../md_External_2xgboost_2rabit_2README.html',1,'']]],
+  ['dmlc_20tracker_17',['DMLC Tracker',['../md_External_2xgboost_2dmlc-core_2tracker_2README.html',1,'']]],
+  ['dmlc_20xgboost_18',['Contributors of DMLC/XGBoost',['../md_External_2xgboost_2CONTRIBUTORS.html',1,'']]],
+  ['dmlc_20yarn_20appmaster_19',['DMLC YARN AppMaster',['../md_External_2xgboost_2dmlc-core_2tracker_2yarn_2README.html',1,'']]],
+  ['docker_20',['Using LightGBM via Docker',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2README.html',1,'']]],
+  ['dockerfile_20for_20lightgbm_20gpu_20version_20with_20python_21',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
+  ['documentation_22',['documentation',['../md_External_2xgboost_2dmlc-core_2doc_2index.html',1,'DMLC-Core Documentation'],['../index.html',1,'Welcome To Medial Libs Documentation']]],
+  ['dom_23',['dom',['../md_External_2vowpal__wabbit_2rapidjson_2doc_2dom_8zh-cn.html',1,'DOM'],['../md_External_2vowpal__wabbit_2rapidjson_2doc_2dom.html',1,'DOM']]],
+  ['dpc_20based_20algorithm_20for_20tree_20construction_24',['DPC++-based Algorithm for Tree Construction',['../md_External_2xgboost_2plugin_2updater__oneapi_2README.html',1,'']]]
+];
