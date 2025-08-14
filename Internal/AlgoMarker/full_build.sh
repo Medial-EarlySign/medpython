@@ -3,7 +3,8 @@ set -e
 BLDDIR=$(realpath ${0%/*})
 pushd ${BLDDIR}
 
-version_txt=$(date +'Build_On_%Y%m%d_%H:%M:%S')
+GIT_COMMIT_HASH=$(git rev-parse HEAD)
+version_txt=$(date +'Commit_'${GIT_COMMIT_HASH}'_Build_On_%Y%m%d_%H:%M:%S')
 touch ${BLDDIR}/../MedUtils/MedUtils/MedGitVersion.h
 
 mkdir -p ${BLDDIR}/build/Release

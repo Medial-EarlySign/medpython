@@ -5,7 +5,7 @@ set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
 #set(BOOST_ROOT "$ENV{HOME}/boost-pic-install") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -Wall -Wno-write-strings -Wno-sign-compare -Wno-reorder -Wno-unknown-pragmas -Wno-unused-function -ldl  --param inline-unit-growth=1000000 -msse4 -DHAVE_WORKING_ISFINITE -DSO_COMPILATION -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\""')
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -Wall -Wno-write-strings -Wno-sign-compare -Wno-reorder -Wno-unknown-pragmas -Wno-unused-function -ldl  --param inline-unit-growth=1000000 -msse4 -DHAVE_WORKING_ISFINITE -DSO_COMPILATION -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"'")
 
 set(BOOST_LIBS
     regex

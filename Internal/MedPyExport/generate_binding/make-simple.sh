@@ -31,7 +31,8 @@ pushd ${CURRENT_DIR}/CMakeBuild/Linux/Release
 cmake ../../../
 
 set +e
-version_txt=$(date +'Build_On_%Y%m%d_%H:%M:%S')
+GIT_COMMIT_HASH=$(git rev-parse HEAD)
+version_txt=$(date +'Commit_'${GIT_COMMIT_HASH}'_Build_On_%Y%m%d_%H:%M:%S')
 set -e
 echo -e "Git version info:\n${version_txt}"
 touch ${CURRENT_DIR}/../../MedUtils/MedUtils/MedGitVersion.h
