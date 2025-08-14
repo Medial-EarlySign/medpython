@@ -26,7 +26,7 @@ function(add_linking_flags TARGET_NAME)
             list(APPEND Boost_LIBRARIES ${BOOST_ROOT}/lib/libboost_${lib}.so)
         endforeach()
     endif()
-    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars DynAMWrapper AlgoMarker CommonTestingTools xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} DynAMWrapper AlgoMarker CommonTestingTools xgboost _lightgbm  -Wl,--end-group  ${Boost_LIBRARIES} )
 endfunction()
 
 #Static linking
@@ -52,7 +52,7 @@ function(add_linking_flags_static TARGET_NAME)
     endforeach()
 
     set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
-    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} Mars -Wl,--end-group xgboost _lightgbm_static  ${BOOST_STATIC_LIB_PATHS} -Wl,-no-whole-archive -Wl,-Bdynamic)
+    target_link_libraries(${TARGET_NAME} ${ADDITIONAL_LINK_FLAGS} -Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} -Wl,--end-group xgboost _lightgbm_static  ${BOOST_STATIC_LIB_PATHS} -Wl,-no-whole-archive -Wl,-Bdynamic)
 
 endfunction()
 
@@ -81,7 +81,6 @@ foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)
 endforeach()
 
 # External Libraries
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/Mars/Mars Mars)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/xgboost xgboost)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../External/LightGBM_2.2.3/LightGBM-2.2.3 _lightgbm)
 

@@ -20,7 +20,6 @@
 #include <MedAlgo/MedAlgo/MedTQRF.h>
 #include <MedAlgo/MedAlgo/MedSVM.h>
 #include <MedAlgo/MedAlgo/MedBP.h>
-#include <MedAlgo/MedAlgo/MedMars.h>
 #include <MedAlgo/MedAlgo/MedKNN.h>
 #include <MedAlgo/MedAlgo/MedMultiClass.h>
 #include <MedUtils/MedUtils/MedGenUtils.h>
@@ -96,7 +95,6 @@ void *MedPredictor::new_polymorphic(string dname)
 	CONDITIONAL_NEW_CLASS(dname, MedGDLM);
 	CONDITIONAL_NEW_CLASS(dname, MedQRF);
 	CONDITIONAL_NEW_CLASS(dname, MedKNN);
-	CONDITIONAL_NEW_CLASS(dname, MedMars);
 	CONDITIONAL_NEW_CLASS(dname, MedBP);
 	CONDITIONAL_NEW_CLASS(dname, MedMultiClass);
 	CONDITIONAL_NEW_CLASS(dname, MedXGB);
@@ -132,8 +130,6 @@ MedPredictor * MedPredictor::make_predictor(MedPredictorTypes model_type) {
 		return new MedQRF;
 	else if (model_type == MODEL_KNN)
 		return new MedKNN;
-	else if (model_type == MODEL_MARS)
-		return new MedMars;
 	else if (model_type == MODEL_BP)
 		return new MedBP;
 	else if (model_type == MODEL_MULTI_CLASS)

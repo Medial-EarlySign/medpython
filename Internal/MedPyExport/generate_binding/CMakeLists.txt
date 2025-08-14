@@ -92,7 +92,6 @@ foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)
 endforeach()
 
 # External Libraries
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/Mars/Mars Mars)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/xgboost xgboost)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/LightGBM_2.2.3/LightGBM-2.2.3 _lightgbm)
 
