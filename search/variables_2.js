@@ -49,7 +49,7 @@ var searchData=
   ['conditional_5fchannel_46',['conditional_channel',['../classRangeFeatGenerator.html#a86668be7cd59d3cb0b5eca3074893e72',1,'RangeFeatGenerator']]],
   ['conditions_47',['conditions',['../classRegistrySignalAnd.html#ab2da2cbc5abd59eb0fadba66e17ad3d8',1,'RegistrySignalAnd']]],
   ['config_48',['config',['../classLightGBM_1_1FeatureMetainfo.html#a8d0104d52f74a427c4ff3c78bcea3eab',1,'LightGBM::FeatureMetainfo']]],
-  ['config_5f_49',['config_',['../classLightGBM_1_1SerialTreeLearner.html#adf12d2840d6e88f0829f5a6e1dc75151',1,'LightGBM::SerialTreeLearner::config_'],['../classLightGBM_1_1GBDT.html#a9cc30e25bd5db9ffca4e77c18e630b05',1,'LightGBM::GBDT::config_']]],
+  ['config_5f_49',['config_',['../classLightGBM_1_1GBDT.html#a9cc30e25bd5db9ffca4e77c18e630b05',1,'LightGBM::GBDT::config_'],['../classLightGBM_1_1SerialTreeLearner.html#adf12d2840d6e88f0829f5a6e1dc75151',1,'LightGBM::SerialTreeLearner::config_']]],
   ['conflict_5fmethod_50',['conflict_method',['../classLabelParams.html#a82c7e2fba58c2a77451b999e0800ff8c',1,'LabelParams']]],
   ['consideredrules_51',['consideredRules',['../classRepRuleBasedOutlierCleaner.html#aa1bedd513ae22bbe528874294c0b0610',1,'RepRuleBasedOutlierCleaner']]],
   ['constraints_52',['constraints',['../classFairnessPostProcessor.html#a48570d7c5971b1a9a885dfa1268682a3',1,'FairnessPostProcessor']]],
@@ -60,6 +60,5 @@ var searchData=
   ['ctx_5f_57',['ctx_',['../classxgboost_1_1Learner.html#ac36553baee5ca1310942cbabc5b33096',1,'xgboost::Learner']]],
   ['curr_5fptr_5f_58',['curr_ptr_',['../structrabit_1_1utils_1_1MemoryFixSizeBuffer.html#ad5cb3a950c03ca2990e087b920e4d059',1,'rabit::utils::MemoryFixSizeBuffer']]],
   ['current_5fdir_59',['CURRENT_DIR',['../namespacegeneralized__linear__model.html#a4980a99b2d5359dcbb340ae14e73c242',1,'generalized_linear_model']]],
-  ['cut_60',['cut',['../classxgboost_1_1GHistIndexMatrix.html#aed5d0bbd173ce5078dd5681283e167ec',1,'xgboost::GHistIndexMatrix']]],
-  ['cuts_61',['Cuts',['../classMedMars.html#ab0daadb000c172edde7ab0bd8568a03e',1,'MedMars']]]
+  ['cut_60',['cut',['../classxgboost_1_1GHistIndexMatrix.html#aed5d0bbd173ce5078dd5681283e167ec',1,'xgboost::GHistIndexMatrix']]]
 ];

@@ -123,14 +123,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span> </div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno"><a class="line" href="classEigen_1_1EigenSolver.html#aa140354e2f7d5ce34c6488c39e19f2c2">  104</a></span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Matrix&lt;ComplexScalar, RowsAtCompileTime, ColsAtCompileTime, Options, MaxRowsAtCompileTime, MaxColsAtCompileTime&gt;</a> <a class="code hl_typedef" href="classEigen_1_1EigenSolver.html#aa140354e2f7d5ce34c6488c39e19f2c2">EigenvectorsType</a>;</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span> </div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno"><a class="line" href="classEigen_1_1EigenSolver.html#a3af22d721a6401365881b2ef252d26aa">  113</a></span>    <a class="code hl_function" href="classEigen_1_1EigenSolver.html#a3af22d721a6401365881b2ef252d26aa">EigenSolver</a>() : m_eivec(), m_eivalues(), m_isInitialized(false), m_realSchur(), m_matT(), m_tmp() {}</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno"><a class="line" href="classEigen_1_1EigenSolver.html#a3af22d721a6401365881b2ef252d26aa">  113</a></span>    <a class="code hl_function" href="classEigen_1_1EigenSolver.html#a3af22d721a6401365881b2ef252d26aa">EigenSolver</a>() : m_eivec(), m_eivalues(), m_isInitialized(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>), m_realSchur(), m_matT(), m_tmp() {}</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
 <div class="foldopen" id="foldopen00121" data-start="{" data-end="}">
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno"><a class="line" href="classEigen_1_1EigenSolver.html#aa4edf56ecc178b277b75c13a2ca1089f">  121</a></span>    <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1EigenSolver.html#aa4edf56ecc178b277b75c13a2ca1089f">EigenSolver</a>(<a class="code hl_typedef" href="classEigen_1_1EigenSolver.html#a5bff6a6bc0efac67d52c60c2c3deb9ee">Index</a> size)</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>      : m_eivec(size, size),</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>        m_eivalues(size),</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>        m_isInitialized(false),</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>        m_eigenvectorsOk(false),</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>        m_isInitialized(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>        m_eigenvectorsOk(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>        m_realSchur(size),</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>        m_matT(size, size), </div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        m_tmp(size)</div>
@@ -142,8 +142,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00147" name="l00147"></a><span class="lineno"><a class="line" href="classEigen_1_1EigenSolver.html#a7e8ab3d89ea525af5f27f1a8e805fae1">  147</a></span>    <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1EigenSolver.html#a7e8ab3d89ea525af5f27f1a8e805fae1">EigenSolver</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">EigenBase&lt;InputType&gt;</a>&amp; matrix, <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">computeEigenvectors</a> = <span class="keyword">true</span>)</div>
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>      : m_eivec(matrix.rows(), matrix.cols()),</div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>        m_eivalues(matrix.cols()),</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>        m_isInitialized(false),</div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>        m_eigenvectorsOk(false),</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>        m_isInitialized(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>        m_eigenvectorsOk(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
 <div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>        m_realSchur(matrix.cols()),</div>
 <div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>        m_matT(matrix.rows(), matrix.cols()), </div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>        m_tmp(matrix.cols())</div>
@@ -575,7 +575,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 17:54:11 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 18:36:34 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

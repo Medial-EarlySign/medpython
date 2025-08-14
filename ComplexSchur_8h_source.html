@@ -129,8 +129,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>      : m_matT(size,size),</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>        m_matU(size,size),</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>        m_hess(size),</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>        m_isInitialized(false),</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>        m_matUisUptodate(false),</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>        m_isInitialized(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>        m_matUisUptodate(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>        m_maxIters(-1)</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>    {}</div>
 </div>
@@ -141,8 +141,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>      : m_matT(matrix.rows(),matrix.cols()),</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>        m_matU(matrix.rows(),matrix.cols()),</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>        m_hess(matrix.rows()),</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        m_isInitialized(false),</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>        m_matUisUptodate(false),</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        m_isInitialized(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>        m_matUisUptodate(<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>),</div>
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>        m_maxIters(-1)</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    {</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>      <a class="code hl_function" href="classEigen_1_1ComplexSchur.html#aedd7040c7b8b79aac600a70f50972602">compute</a>(matrix.derived(), computeU);</div>
@@ -315,7 +315,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span> </div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> MatrixType&gt;</div>
 <div class="foldopen" id="foldopen00365" data-start="{" data-end="};">
-<div class="line"><a id="l00365" name="l00365"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1complex__schur__reduce__to__hessenberg_3_01MatrixType_00_01false_01_4.html">  365</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1complex__schur__reduce__to__hessenberg.html">complex_schur_reduce_to_hessenberg</a>&lt;MatrixType, false&gt;</div>
+<div class="line"><a id="l00365" name="l00365"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1complex__schur__reduce__to__hessenberg_3_01MatrixType_00_01false_01_4.html">  365</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1complex__schur__reduce__to__hessenberg.html">complex_schur_reduce_to_hessenberg</a>&lt;MatrixType, <a class="code hl_class" href="classEigen_1_1Solve.html">false</a>&gt;</div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>{</div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<a class="code hl_class" href="classEigen_1_1Solve.html">ComplexSchur&lt;MatrixType&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">_this</a>, <span class="keyword">const</span> MatrixType&amp; matrix, <span class="keywordtype">bool</span> computeU)</div>
 <div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>  {</div>
@@ -437,7 +437,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 17:54:11 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 18:36:34 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

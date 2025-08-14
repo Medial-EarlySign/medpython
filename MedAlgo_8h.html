@@ -179,7 +179,7 @@ Functions</h2></td></tr>
 <tr class="memitem:aee2a59a8e463b01faf6c60f234016364" id="r_aee2a59a8e463b01faf6c60f234016364"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="MedAlgo_8h.html#aee2a59a8e463b01faf6c60f234016364">KMeans</a> (float *x, int nrows, int ncols, int K, float *<a class="el" href="classEigen_1_1Solve.html">centers</a>, int *<a class="el" href="classEigen_1_1Solve.html">clusters</a>, float *<a class="el" href="classEigen_1_1Solve.html">dists</a>)</td></tr>
 <tr class="memdesc:aee2a59a8e463b01faf6c60f234016364"><td class="mdescLeft">&#160;</td><td class="mdescRight">K-Means: x is input matrix(each row is sample N*M).  <br /></td></tr>
 <tr class="separator:aee2a59a8e463b01faf6c60f234016364"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5ea46b6557fa376a6f6686025ba83c1e" id="r_a5ea46b6557fa376a6f6686025ba83c1e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="MedAlgo_8h.html#a5ea46b6557fa376a6f6686025ba83c1e">KMeans</a> (float *x, int nrows, int ncols, int K, int max_iter, float *<a class="el" href="classEigen_1_1Solve.html">centers</a>, int *<a class="el" href="classEigen_1_1Solve.html">clusters</a>, float *<a class="el" href="classEigen_1_1Solve.html">dists</a>, bool <a class="el" href="classEigen_1_1Solve.html">verbose_print</a>=true)</td></tr>
+<tr class="memitem:a5ea46b6557fa376a6f6686025ba83c1e" id="r_a5ea46b6557fa376a6f6686025ba83c1e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="MedAlgo_8h.html#a5ea46b6557fa376a6f6686025ba83c1e">KMeans</a> (float *x, int nrows, int ncols, int K, int max_iter, float *<a class="el" href="classEigen_1_1Solve.html">centers</a>, int *<a class="el" href="classEigen_1_1Solve.html">clusters</a>, float *<a class="el" href="classEigen_1_1Solve.html">dists</a>, bool <a class="el" href="classEigen_1_1Solve.html">verbose_print</a>=<a class="el" href="classEigen_1_1Solve.html">true</a>)</td></tr>
 <tr class="memdesc:a5ea46b6557fa376a6f6686025ba83c1e"><td class="mdescLeft">&#160;</td><td class="mdescRight">K-Means: x is input matrix(each row is sample N*M).  <br /></td></tr>
 <tr class="separator:a5ea46b6557fa376a6f6686025ba83c1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aee15b7d65c42b6f18f60cf8302ac2d2d" id="r_aee15b7d65c42b6f18f60cf8302ac2d2d"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="MedAlgo_8h.html#aee15b7d65c42b6f18f60cf8302ac2d2d">MedPCA</a> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;<a class="el" href="classEigen_1_1Solve.html">pca_base</a>, vector&lt; float &gt; &amp;<a class="el" href="classEigen_1_1Solve.html">varsum</a>)</td></tr>
@@ -251,7 +251,7 @@ unordered_map&lt; int, string &gt;&#160;</td><td class="memItemRight" valign="bo
 </td></tr>
 <tr><td class="fieldname"><a id="ab3f9aacffd8e29e833677299133ac4f0adf8ddc523f09eb119c0420923c9c05b5" name="ab3f9aacffd8e29e833677299133ac4f0adf8ddc523f09eb119c0420923c9c05b5"></a>MODEL_BP&#160;</td><td class="fielddoc"><p>to_use:"BP" Neural Network Back Propagation - creates <a class="el" href="classMedBP.html">MedBP</a> </p>
 </td></tr>
-<tr><td class="fieldname"><a id="ab3f9aacffd8e29e833677299133ac4f0aead78b82292c42223a789c4bce0b64d9" name="ab3f9aacffd8e29e833677299133ac4f0aead78b82292c42223a789c4bce0b64d9"></a>MODEL_MARS&#160;</td><td class="fielddoc"><p>to_use:"mars" Multivariate Adaptive Regression Splines - creates <a class="el" href="classMedMars.html">MedMars</a> </p>
+<tr><td class="fieldname"><a id="ab3f9aacffd8e29e833677299133ac4f0aead78b82292c42223a789c4bce0b64d9" name="ab3f9aacffd8e29e833677299133ac4f0aead78b82292c42223a789c4bce0b64d9"></a>MODEL_MARS&#160;</td><td class="fielddoc"><p>to_use:"mars" Multivariate Adaptive Regression Splines - creates MedMars </p>
 </td></tr>
 <tr><td class="fieldname"><a id="ab3f9aacffd8e29e833677299133ac4f0a59baf53858526340916b0bace39afc17" name="ab3f9aacffd8e29e833677299133ac4f0a59baf53858526340916b0bace39afc17"></a>MODEL_GD_LINEAR&#160;</td><td class="fielddoc"><p>to_use:"gdlm" Gradient Descent/Full solution ridge - creates <a class="el" href="classMedGDLM.html">MedGDLM</a> </p>
 </td></tr>
@@ -411,7 +411,7 @@ unordered_map&lt; int, string &gt;&#160;</td><td class="memItemRight" valign="bo
           <td class="paramkey"></td>
           <td></td>
           <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>verbose_print</em> = <code>true</code>&#160;</td>
+          <td class="paramname"><em>verbose_print</em> = <code><a class="el" href="classEigen_1_1Solve.html">true</a></code>&#160;</td>
         </tr>
         <tr>
           <td></td>
@@ -570,7 +570,7 @@ unordered_map&lt; int, string &gt;&#160;</td><td class="memItemRight" valign="bo
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 18:36:58 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

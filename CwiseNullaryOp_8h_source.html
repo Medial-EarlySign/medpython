@@ -244,7 +244,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>  EIGEN_STATIC_ASSERT_VECTOR_ONLY(Derived)</div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>  EIGEN_STATIC_ASSERT_FIXED_SIZE(Derived)</div>
 <div class="foldopen" id="foldopen00261" data-start="{" data-end="}">
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#a040dec5c5a3525b649fb6e3a996bde6a">  261</a></span>  <a class="code hl_class" href="classEigen_1_1Solve.html">return</a> <a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase</a>&lt;Derived&gt;::NullaryExpr(Derived::SizeAtCompileTime, internal::linspaced_op&lt;Scalar,PacketScalar,false&gt;(<a class="code hl_class" href="classEigen_1_1Solve.html">low</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">high</a>,Derived::SizeAtCompileTime));</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#a040dec5c5a3525b649fb6e3a996bde6a">  261</a></span>  <a class="code hl_class" href="classEigen_1_1Solve.html">return</a> <a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase</a>&lt;Derived&gt;::NullaryExpr(Derived::SizeAtCompileTime, internal::linspaced_op&lt;Scalar,PacketScalar,<a class="code hl_class" href="classEigen_1_1Solve.html">false</a>&gt;(<a class="code hl_class" href="classEigen_1_1Solve.html">low</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">high</a>,Derived::SizeAtCompileTime));</div>
 <div class="foldopen" id="foldopen00262" data-start="{" data-end="}">
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#af64da0ae7a79293f9934ce5084654e77">  262</a></span>}</div>
 <div class="foldopen" id="foldopen00263" data-start="{" data-end="}">
@@ -553,7 +553,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span> </div>
 <div class="line"><a id="l00756" name="l00756"></a><span class="lineno">  756</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
 <div class="foldopen" id="foldopen00757" data-start="{" data-end="};">
-<div class="line"><a id="l00757" name="l00757"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1setIdentity__impl_3_01Derived_00_01true_01_4.html">  757</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1setIdentity__impl.html">setIdentity_impl</a>&lt;Derived, true&gt;</div>
+<div class="line"><a id="l00757" name="l00757"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1setIdentity__impl_3_01Derived_00_01true_01_4.html">  757</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1setIdentity__impl.html">setIdentity_impl</a>&lt;Derived, <a class="code hl_class" href="classEigen_1_1Solve.html">true</a>&gt;</div>
 <div class="line"><a id="l00758" name="l00758"></a><span class="lineno">  758</span>{</div>
 <div class="line"><a id="l00759" name="l00759"></a><span class="lineno">  759</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span>  <span class="keyword">static</span> EIGEN_STRONG_INLINE Derived&amp; run(Derived&amp; m)</div>
@@ -685,7 +685,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 17:53:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 18:36:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
