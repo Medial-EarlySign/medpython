@@ -113,11 +113,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>                   <span class="keywordtype">unsigned</span> num_parts) {</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  <a class="code hl_class" href="classdmlc_1_1InputSplit.html">InputSplit</a>* source = <a class="code hl_function" href="classdmlc_1_1InputSplit.html#a5ff5b80044f8b418f960fdedba2906c7">InputSplit::Create</a>(</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>      path.c_str(), part_index, num_parts, <span class="stringliteral">&quot;text&quot;</span>);</div>
-<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a> = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1LibSVMParser.html">LibSVMParser&lt;IndexType&gt;</a>(source, args, 2);</div>
+<div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *parser = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1LibSVMParser.html">LibSVMParser&lt;IndexType&gt;</a>(source, args, 2);</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="preprocessor">#if DMLC_ENABLE_STD_THREAD</span></div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>  <a class="code hl_struct" href="structparser.html">parser</a> = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ThreadedParser.html">ThreadedParser&lt;IndexType&gt;</a>(<a class="code hl_struct" href="structparser.html">parser</a>);</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>  parser = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ThreadedParser.html">ThreadedParser&lt;IndexType&gt;</a>(parser);</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>  <span class="keywordflow">return</span> <a class="code hl_struct" href="structparser.html">parser</a>;</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>  <span class="keywordflow">return</span> parser;</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>}</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> IndexType, <span class="keyword">typename</span> DType = real_t&gt;</div>
@@ -128,11 +128,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>                  <span class="keywordtype">unsigned</span> num_parts) {</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>  <a class="code hl_class" href="classdmlc_1_1InputSplit.html">InputSplit</a>* source = <a class="code hl_function" href="classdmlc_1_1InputSplit.html#a5ff5b80044f8b418f960fdedba2906c7">InputSplit::Create</a>(</div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>      path.c_str(), part_index, num_parts, <span class="stringliteral">&quot;text&quot;</span>);</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a> = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1LibFMParser.html">LibFMParser&lt;IndexType&gt;</a>(source, args, 2);</div>
+<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *parser = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1LibFMParser.html">LibFMParser&lt;IndexType&gt;</a>(source, args, 2);</div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="preprocessor">#if DMLC_ENABLE_STD_THREAD</span></div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  <a class="code hl_struct" href="structparser.html">parser</a> = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ThreadedParser.html">ThreadedParser&lt;IndexType&gt;</a>(<a class="code hl_struct" href="structparser.html">parser</a>);</div>
+<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  parser = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ThreadedParser.html">ThreadedParser&lt;IndexType&gt;</a>(parser);</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  <span class="keywordflow">return</span> <a class="code hl_struct" href="structparser.html">parser</a>;</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  <span class="keywordflow">return</span> parser;</div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>}</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> IndexType, <span class="keyword">typename</span> DType = real_t&gt;</div>
@@ -153,8 +153,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>                    <span class="keyword">const</span> std::map&lt;std::string, std::string&gt;&amp; args,</div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>                    <span class="keywordtype">unsigned</span> <span class="comment">/*part_index*/</span>,</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>                    <span class="keywordtype">unsigned</span> <span class="comment">/*num_parts*/</span>) {</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a> = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ParquetParser.html">ParquetParser&lt;IndexType&gt;</a>(path, args);</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>  <span class="keywordflow">return</span> <a class="code hl_struct" href="structparser.html">parser</a>;</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>  <a class="code hl_class" href="classdmlc_1_1data_1_1ParserImpl.html">ParserImpl&lt;IndexType&gt;</a> *parser = <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1ParquetParser.html">ParquetParser&lt;IndexType&gt;</a>(path, args);</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>  <span class="keywordflow">return</span> parser;</div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>}</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span> </div>
@@ -191,17 +191,17 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>            <span class="keyword">const</span> <span class="keywordtype">char</span> *type) {</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>  <span class="keyword">using namespace </span><a class="code hl_namespace" href="namespacestd.html">std</a>;</div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>  <a class="code hl_class" href="classdmlc_1_1io_1_1URISpec.html">io::URISpec</a> spec(uri_, part_index, num_parts);</div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  <a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a> = CreateParser_&lt;IndexType, DType&gt;</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  <a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *parser = CreateParser_&lt;IndexType, DType&gt;</div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>      (spec.<a class="code hl_variable" href="classdmlc_1_1io_1_1URISpec.html#ae576ab758c487e95eb09e72b6bc6fb65">uri</a>.c_str(), part_index, num_parts, type);</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>  <span class="keywordflow">if</span> (spec.<a class="code hl_variable" href="classdmlc_1_1io_1_1URISpec.html#a14e05d85813b6c482a2ddb655a9cd494">cache_file</a>.length() != 0) {</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span><span class="preprocessor">#if DMLC_ENABLE_STD_THREAD</span></div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    <span class="keywordflow">return</span> <span class="keyword">new</span> DiskRowIter&lt;IndexType, DType&gt;(<a class="code hl_struct" href="structparser.html">parser</a>, spec.<a class="code hl_variable" href="classdmlc_1_1io_1_1URISpec.html#a14e05d85813b6c482a2ddb655a9cd494">cache_file</a>.c_str(), <span class="keyword">true</span>);</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    <span class="keywordflow">return</span> <span class="keyword">new</span> DiskRowIter&lt;IndexType, DType&gt;(parser, spec.<a class="code hl_variable" href="classdmlc_1_1io_1_1URISpec.html#a14e05d85813b6c482a2ddb655a9cd494">cache_file</a>.c_str(), <span class="keyword">true</span>);</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span><span class="preprocessor">#else</span></div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>    LOG(FATAL) &lt;&lt; <span class="stringliteral">&quot;compile with c++0x or c++11 to enable cache file&quot;</span>;</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    <span class="keywordflow">return</span> NULL;</div>
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>  } <span class="keywordflow">else</span> {</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    <span class="keywordflow">return</span> <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">BasicRowIter&lt;IndexType, DType&gt;</a>(<a class="code hl_struct" href="structparser.html">parser</a>);</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    <span class="keywordflow">return</span> <span class="keyword">new</span> <a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">BasicRowIter&lt;IndexType, DType&gt;</a>(parser);</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>  }</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>}</div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
@@ -404,12 +404,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructdmlc_1_1data_1_1LibFMParserParam_html"><div class="ttname"><a href="structdmlc_1_1data_1_1LibFMParserParam.html">dmlc::data::LibFMParserParam</a></div><div class="ttdef"><b>Definition</b> libfm_parser.h:24</div></div>
 <div class="ttc" id="astructdmlc_1_1data_1_1LibSVMParserParam_html"><div class="ttname"><a href="structdmlc_1_1data_1_1LibSVMParserParam.html">dmlc::data::LibSVMParserParam</a></div><div class="ttdef"><b>Definition</b> libsvm_parser.h:24</div></div>
 <div class="ttc" id="astructdmlc_1_1data_1_1ParquetParserParam_html"><div class="ttname"><a href="structdmlc_1_1data_1_1ParquetParserParam.html">dmlc::data::ParquetParserParam</a></div><div class="ttdef"><b>Definition</b> parquet_parser.h:31</div></div>
-<div class="ttc" id="astructparser_html"><div class="ttname"><a href="structparser.html">parser</a></div><div class="ttdef"><b>Definition</b> parser.h:17</div></div>
 <div class="ttc" id="auri__spec_8h_html"><div class="ttname"><a href="uri__spec_8h.html">uri_spec.h</a></div><div class="ttdoc">common specification of sugars in URI string passed to dmlc Create functions such as local file cache</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

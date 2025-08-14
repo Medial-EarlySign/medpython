@@ -72,12 +72,12 @@ $(function() {
   <div class="headertitle"><div class="title">Medial EarlySign Libraries</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md672"></a> </p>
-<h1><a class="anchor" id="autotoc_md673"></a>
+<div class="textblock"><p><a class="anchor" id="autotoc_md519"></a> </p>
+<h1><a class="anchor" id="autotoc_md520"></a>
 Overview of Medial Infrastructure</h1>
 <p>Medial Infrastructure is designed to turn the Electronic Medical Record (EMR)—a complex, semi-structured time-series dataset—into a machine-learning-ready resource. Unlike images or free text, EMR data can be stored in countless formats, and its "labels" (the outcomes or targets you want to predict) aren’t always obvious. We address this by standardizing both the storage and the processing of time-series signals.</p>
 <p>The Links refere to MR_Wiki </p>
-<h1><a class="anchor" id="autotoc_md674"></a>
+<h1><a class="anchor" id="autotoc_md521"></a>
 Goals</h1>
 <ol type="1">
 <li><b><a class="el" href="classMedRepository.html">MedRepository</a>: a high-performance EMR time-series store</b><ul>
@@ -293,23 +293,23 @@ Click to expend</summary>
 </ul>
 </li>
 </ol>
-<h1><a class="anchor" id="autotoc_md675"></a>
+<h1><a class="anchor" id="autotoc_md522"></a>
 Installations</h1>
 <p>Those are installation steps required for all tools and builds: </p>
-<h2><a class="anchor" id="autotoc_md676"></a>
+<h2><a class="anchor" id="autotoc_md523"></a>
 1. Install Compiler and Build Tools (Ubuntu)</h2>
 <p>To install the essential compiler and build tools, run: </p><div class="fragment"><div class="line">sudo apt install binutils gcc g++ cmake make swig -y</div>
-</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md677"></a>
+</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md524"></a>
 2. Install OpenMP Support (Ubuntu)</h2>
 <p>To enable OpenMP (used for parallel processing), install the following package: </p><div class="fragment"><div class="line">sudo apt install libgomp1 -y</div>
-</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md678"></a>
+</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md525"></a>
 3. Install Boost Libraries (Ubuntu)</h2>
 <p>To install the required Boost components, on Ubuntu 24.04 use: </p><div class="fragment"><div class="line">sudo apt install libboost-system1.83-dev libboost-filesystem1.83-dev libboost-regex1.83-dev libboost-program-options1.83-dev -y</div>
 </div><!-- fragment --> <blockquote class="doxtable">
 <p>&zwj;[!NOTE] On Ubuntu 22.04, Boost version 1.74 is available and is also compatible. </p>
 </blockquote>
 <p>You may also choose to <a href="https://www.boost.org/users/download/">download and compile Boost manually</a> if you prefer a different version. This project has been tested with Boost versions 1.67 through 1.85, and should work with other versions as well.</p>
-<h2><a class="anchor" id="autotoc_md679"></a>
+<h2><a class="anchor" id="autotoc_md526"></a>
 There are 4 components:</h2>
 <ol type="1">
 <li><a class="el" href="classAlgoMarker.html">AlgoMarker</a> - please go to Internal/AlgoMarker and run <code>./full_build.sh</code> to create the algomarker shared library to pack a model for production You might need to recompile Boost library with -fPIC and then edit the <code>CMakeLists.txt</code> "set(BOOST_ROOT "$ENV{HOME}/boost-pic-install")" to point to your Boost compiles home, please put the compiled libraries in "/libs" and the headers in /include</li>
@@ -321,7 +321,7 @@ There are 4 components:</h2>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

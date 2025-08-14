@@ -123,7 +123,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span> </div>
 <div class="foldopen" id="foldopen00078" data-start="{" data-end="}">
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">   78</a></span>  <span class="keywordtype">void</span> <a class="code hl_function" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">AddBudget</a>(std::size_t key, <span class="keywordtype">int</span> threadid, <a class="code hl_variable" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> nelem = 1) {</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">   78</a></span>  <span class="keywordtype">void</span> <a class="code hl_function" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">AddBudget</a>(std::size_t key, <span class="keywordtype">int</span> threadid, SizeType nelem = 1) {</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    std::vector&lt;SizeType&gt; &amp;trptr = thread_rptr_[threadid];</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <span class="keywordtype">size_t</span> offset_key = is_row_major ? (key - base_row_offset_ - threadid*thread_displacement_)</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>                                     : (key - base_row_offset_);</div>
@@ -142,7 +142,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>        expected_rows += thread_rptr_[tid].size();</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>      }</div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>      <span class="comment">// initialize rptr to be beginning of each segment</span></div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>      <a class="code hl_variable" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> rptr_fill_value = rptr_.empty() ? 0 : rptr_.back();</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>      SizeType rptr_fill_value = rptr_.empty() ? 0 : rptr_.back();</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>      rptr_.resize(expected_rows + base_row_offset_ + 1, rptr_fill_value);</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span> </div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>      std::size_t count = 0;</div>
@@ -161,7 +161,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>      data_.resize(rptr_.back());  <span class="comment">// usage of empty allocator can help to improve performance</span></div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    } <span class="keywordflow">else</span> {</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>      <span class="comment">// set rptr to correct size</span></div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>      <a class="code hl_variable" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> rptr_fill_value = rptr_.empty() ? 0 : rptr_.back();</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>      SizeType rptr_fill_value = rptr_.empty() ? 0 : rptr_.back();</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>      <span class="keywordflow">for</span> (std::size_t tid = 0; tid &lt; thread_rptr_.size(); ++tid) {</div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>        <span class="keywordflow">if</span> (rptr_.size() &lt;= thread_rptr_[tid].size() + base_row_offset_) {</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>          rptr_.resize(thread_rptr_[tid].size() + base_row_offset_ + 1,</div>
@@ -192,7 +192,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno"><a class="line" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#af398171e8c7f7b0502e6da3e3eb0ecb1">  149</a></span>  <span class="keywordtype">void</span> <a class="code hl_function" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#af398171e8c7f7b0502e6da3e3eb0ecb1">Push</a>(std::size_t key, ValueType&amp;&amp; value, <span class="keywordtype">int</span> threadid) {</div>
 <div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>    <span class="keywordtype">size_t</span> offset_key = is_row_major ? (key - base_row_offset_ - threadid * thread_displacement_)</div>
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>                                     : (key - base_row_offset_);</div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    <a class="code hl_variable" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> &amp;rp = thread_rptr_[threadid][offset_key];</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    SizeType &amp;rp = thread_rptr_[threadid][offset_key];</div>
 <div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    data_[rp++] = std::move(value);</div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>  }</div>
 </div>
@@ -216,11 +216,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassxgboost_1_1common_1_1ParallelGroupBuilder_html_af398171e8c7f7b0502e6da3e3eb0ecb1"><div class="ttname"><a href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#af398171e8c7f7b0502e6da3e3eb0ecb1">xgboost::common::ParallelGroupBuilder::Push</a></div><div class="ttdeci">void Push(std::size_t key, ValueType &amp;&amp;value, int threadid)</div><div class="ttdoc">step 4: add data to the allocated space, the calls to this function should be exactly match previous ...</div><div class="ttdef"><b>Definition</b> group_data.h:149</div></div>
 <div class="ttc" id="ainclude_2xgboost_2base_8h_html"><div class="ttname"><a href="include_2xgboost_2base_8h.html">base.h</a></div><div class="ttdoc">Copyright 2015-2023 by XGBoost Contributors.</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
-<div class="ttc" id="arapidjson_8h_html_a5ed6e6e67250fadbd041127e6386dcb5"><div class="ttname"><a href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a></div><div class="ttdeci">RAPIDJSON_NAMESPACE_BEGIN typedef unsigned SizeType</div><div class="ttdoc">Size type (for string lengths, array sizes, etc.)</div><div class="ttdef"><b>Definition</b> rapidjson.h:380</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

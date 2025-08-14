@@ -106,7 +106,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>  <span class="keywordflow">return</span> -sum_grad / std::max(sum_hess, <span class="keyword">static_cast&lt;</span><span class="keywordtype">double</span><span class="keyword">&gt;</span>(<a class="code hl_variable" href="namespacexgboost.html#aff9beaf3ee1795e00336c284aa24359b">kRtEps</a>));</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>}</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1tree.html#a0fa8798eaa7a746905594837acfba105">FitStump</a>(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, MetaInfo <span class="keyword">const</span>&amp; info, HostDeviceVector&lt;GradientPair&gt; <span class="keyword">const</span>&amp; gpair,</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1tree.html#a0fa8798eaa7a746905594837acfba105">FitStump</a>(Context <span class="keyword">const</span>* ctx, MetaInfo <span class="keyword">const</span>&amp; info, HostDeviceVector&lt;GradientPair&gt; <span class="keyword">const</span>&amp; gpair,</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>              <a class="code hl_typedef" href="namespacexgboost.html#a84cb16830871681140a21cd37cba8f91">bst_target_t</a> n_targets, linalg::Vector&lt;float&gt;* out);</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>}  <span class="comment">// namespace tree</span></div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>}  <span class="comment">// namespace xgboost</span></div>
@@ -121,11 +121,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="anamespacexgboost_html_a84cb16830871681140a21cd37cba8f91"><div class="ttname"><a href="namespacexgboost.html#a84cb16830871681140a21cd37cba8f91">xgboost::bst_target_t</a></div><div class="ttdeci">std::uint32_t bst_target_t</div><div class="ttdoc">Type for indexing into output targets.</div><div class="ttdef"><b>Definition</b> base.h:118</div></div>
 <div class="ttc" id="anamespacexgboost_html_aff9beaf3ee1795e00336c284aa24359b"><div class="ttname"><a href="namespacexgboost.html#aff9beaf3ee1795e00336c284aa24359b">xgboost::kRtEps</a></div><div class="ttdeci">constexpr bst_float kRtEps</div><div class="ttdoc">small eps gap for minimum split decision.</div><div class="ttdef"><b>Definition</b> base.h:319</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -109,7 +109,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="keyword">typedef</span> EIGEN_DEFAULT_DENSE_INDEX_TYPE DenseIndex;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
-<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="keyword">typedef</span> EIGEN_DEFAULT_DENSE_INDEX_TYPE <a class="code hl_struct" href="structIndex.html">Index</a>;</div>
+<div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span><span class="keyword">typedef</span> EIGEN_DEFAULT_DENSE_INDEX_TYPE Index;</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span> </div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
@@ -144,8 +144,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>{</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    EIGEN_EMPTY_STRUCT_CTOR(<a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>)</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">explicit</span> <a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>(T v) { EIGEN_ONLY_USED_FOR_DEBUG(v); eigen_assert(v == T(<a class="code hl_class" href="classGenericValue.html">Value</a>)); }</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">static</span> T value() { <span class="keywordflow">return</span> T(<a class="code hl_class" href="classGenericValue.html">Value</a>); }</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">explicit</span> <a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>(T v) { EIGEN_ONLY_USED_FOR_DEBUG(v); eigen_assert(v == T(Value)); }</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">static</span> T value() { <span class="keywordflow">return</span> T(Value); }</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keywordtype">void</span> setValue(T) {}</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>};</div>
 </div>
@@ -167,8 +167,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>{</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    EIGEN_EMPTY_STRUCT_CTOR(<a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamicindex.html">variable_if_dynamicindex</a>)</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">explicit</span> <a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamicindex.html">variable_if_dynamicindex</a>(T v) { EIGEN_ONLY_USED_FOR_DEBUG(v); eigen_assert(v == T(<a class="code hl_class" href="classGenericValue.html">Value</a>)); }</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">static</span> T value() { <span class="keywordflow">return</span> T(<a class="code hl_class" href="classGenericValue.html">Value</a>); }</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">explicit</span> <a class="code hl_class" href="classEigen_1_1internal_1_1variable__if__dynamicindex.html">variable_if_dynamicindex</a>(T v) { EIGEN_ONLY_USED_FOR_DEBUG(v); eigen_assert(v == T(Value)); }</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">static</span> T value() { <span class="keywordflow">return</span> T(Value); }</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keywordtype">void</span> setValue(T) {}</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>};</div>
 </div>
@@ -645,13 +645,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span>};</div>
 </div>
 <div class="foldopen" id="foldopen00514" data-start="{" data-end="};">
-<div class="line"><a id="l00514" name="l00514"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1promote__storage__type_3_01A_00_01const_01A_01_4.html">  514</a></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> A&gt; <span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1promote__storage__type.html">promote_storage_type</a>&lt;A, const A&gt;</div>
+<div class="line"><a id="l00514" name="l00514"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1promote__storage__type_3_01A_00_01const_01A_01_4.html">  514</a></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> A&gt; <span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1promote__storage__type.html">promote_storage_type</a>&lt;A, <a class="code hl_class" href="classEigen_1_1Solve.html">const</a> A&gt;</div>
 <div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span>{</div>
 <div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>  <span class="keyword">typedef</span> A ret;</div>
 <div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span>};</div>
 </div>
 <div class="foldopen" id="foldopen00518" data-start="{" data-end="};">
-<div class="line"><a id="l00518" name="l00518"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1promote__storage__type_3_01const_01A_00_01A_01_4.html">  518</a></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> A&gt; <span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1promote__storage__type.html">promote_storage_type</a>&lt;const A, A&gt;</div>
+<div class="line"><a id="l00518" name="l00518"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1promote__storage__type_3_01const_01A_00_01A_01_4.html">  518</a></span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> A&gt; <span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1promote__storage__type.html">promote_storage_type</a>&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">const</a> A, A&gt;</div>
 <div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span>{</div>
 <div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span>  <span class="keyword">typedef</span> A ret;</div>
 <div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span>};</div>
@@ -846,7 +846,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassEigen_1_1internal_1_1no__assignment__operator_html"><div class="ttname"><a href="classEigen_1_1internal_1_1no__assignment__operator.html">Eigen::internal::no_assignment_operator</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:50</div></div>
 <div class="ttc" id="aclassEigen_1_1internal_1_1variable__if__dynamic_html"><div class="ttname"><a href="classEigen_1_1internal_1_1variable__if__dynamic.html">Eigen::internal::variable_if_dynamic</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:67</div></div>
 <div class="ttc" id="aclassEigen_1_1internal_1_1variable__if__dynamicindex_html"><div class="ttname"><a href="classEigen_1_1internal_1_1variable__if__dynamicindex.html">Eigen::internal::variable_if_dynamicindex</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:88</div></div>
-<div class="ttc" id="aclassGenericValue_html"><div class="ttname"><a href="classGenericValue.html">GenericValue</a></div><div class="ttdoc">Represents a JSON value. Use Value for UTF8 encoding and default allocator.</div><div class="ttdef"><b>Definition</b> document.h:544</div></div>
 <div class="ttc" id="agroup__enums_html_gga977c35041489176957795b184317f40ca0103672ae41005ab03b4176c765afd62"><div class="ttname"><a href="group__enums.html#gga977c35041489176957795b184317f40ca0103672ae41005ab03b4176c765afd62">Eigen::ColMajor</a></div><div class="ttdeci">@ ColMajor</div><div class="ttdoc">Storage order is column major (see TopicStorageOrders).</div><div class="ttdef"><b>Definition</b> Constants.h:320</div></div>
 <div class="ttc" id="agroup__enums_html_gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f"><div class="ttname"><a href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">Eigen::RowMajor</a></div><div class="ttdeci">@ RowMajor</div><div class="ttdoc">Storage order is row major (see TopicStorageOrders).</div><div class="ttdef"><b>Definition</b> Constants.h:322</div></div>
 <div class="ttc" id="agroup__enums_html_gga977c35041489176957795b184317f40cad0e7f67d40bcde3d41c12849b16ce6ea"><div class="ttname"><a href="group__enums.html#gga977c35041489176957795b184317f40cad0e7f67d40bcde3d41c12849b16ce6ea">Eigen::AutoAlign</a></div><div class="ttdeci">@ AutoAlign</div><div class="ttdoc">Align the matrix itself if it is vectorizable fixed-size.</div><div class="ttdef"><b>Definition</b> Constants.h:324</div></div>
@@ -907,11 +906,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1transfer__constness_html"><div class="ttname"><a href="structEigen_1_1internal_1_1transfer__constness.html">Eigen::internal::transfer_constness</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:374</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unpacket__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unpacket__traits.html">Eigen::internal::unpacket_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:119</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

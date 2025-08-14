@@ -105,7 +105,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespacexgboost.html">xgboost</a> {</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="comment">// forward declare dmatrix.</span></div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="keyword">class </span>DMatrix;</div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">struct </span><a class="code hl_struct" href="structContext.html">Context</a>;</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">struct </span>Context;</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span> </div>
 <div class="foldopen" id="foldopen00033" data-start="{" data-end="};">
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno"><a class="line" href="namespacexgboost.html#adf1bcb0b20f2739878e3359d2a77f757">   33</a></span><span class="keyword">enum class</span> <a class="code hl_enumeration" href="namespacexgboost.html#adf1bcb0b20f2739878e3359d2a77f757">DataType</a> : uint8_t {</div>
@@ -222,11 +222,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno"><a class="line" href="structxgboost_1_1Entry.html#a0a16a42cd5a47e23451fa7c18d57934c">  228</a></span>  <a class="code hl_define" href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a> <a class="code hl_function" href="structxgboost_1_1Entry.html#a0a16a42cd5a47e23451fa7c18d57934c">Entry</a>(<a class="code hl_typedef" href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">bst_feature_t</a> <a class="code hl_variable" href="structxgboost_1_1Entry.html#a5e092a92d707a09f214820188dc699de">index</a>, <a class="code hl_typedef" href="namespacexgboost.html#ae2457f4deeb4e193b927c42ccde0d392">bst_float</a> <a class="code hl_variable" href="structxgboost_1_1Entry.html#a9bfa6ed35569e6d3ac46aca2788f36b5">fvalue</a>) : <a class="code hl_variable" href="structxgboost_1_1Entry.html#a5e092a92d707a09f214820188dc699de">index</a>(<a class="code hl_variable" href="structxgboost_1_1Entry.html#a5e092a92d707a09f214820188dc699de">index</a>), <a class="code hl_variable" href="structxgboost_1_1Entry.html#a9bfa6ed35569e6d3ac46aca2788f36b5">fvalue</a>(<a class="code hl_variable" href="structxgboost_1_1Entry.html#a9bfa6ed35569e6d3ac46aca2788f36b5">fvalue</a>) {}</div>
 <div class="foldopen" id="foldopen00230" data-start="{" data-end="}">
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno"><a class="line" href="structxgboost_1_1Entry.html#afbf7d58943bbe65cf4bd6a7a6ea8dcb1">  230</a></span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="structxgboost_1_1Entry.html#afbf7d58943bbe65cf4bd6a7a6ea8dcb1">CmpValue</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structxgboost_1_1Entry.html">Entry</a>&amp; a, <span class="keyword">const</span> <a class="code hl_struct" href="structxgboost_1_1Entry.html">Entry</a>&amp; b) {</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keywordflow">return</span> a.fvalue &lt; b.fvalue;</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keywordflow">return</span> a.<a class="code hl_variable" href="structxgboost_1_1Entry.html#a9bfa6ed35569e6d3ac46aca2788f36b5">fvalue</a> &lt; b.<a class="code hl_variable" href="structxgboost_1_1Entry.html#a9bfa6ed35569e6d3ac46aca2788f36b5">fvalue</a>;</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>  }</div>
 </div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>  <span class="keyword">static</span> <span class="keywordtype">bool</span> CmpIndex(<a class="code hl_struct" href="structxgboost_1_1Entry.html">Entry</a> <span class="keyword">const</span>&amp; a, <a class="code hl_struct" href="structxgboost_1_1Entry.html">Entry</a> <span class="keyword">const</span>&amp; b) {</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keywordflow">return</span> a.index &lt; b.index;</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keywordflow">return</span> a.<a class="code hl_variable" href="structxgboost_1_1Entry.html#a5e092a92d707a09f214820188dc699de">index</a> &lt; b.<a class="code hl_variable" href="structxgboost_1_1Entry.html#a5e092a92d707a09f214820188dc699de">index</a>;</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>  }</div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>  <span class="keyword">inline</span> <span class="keywordtype">bool</span> operator==(<span class="keyword">const</span> <a class="code hl_function" href="structxgboost_1_1Entry.html#a0c22c8df316f1a23cadf46bb19d2f27e">Entry</a>&amp; other)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    <span class="keywordflow">return</span> (this-&gt;index == other.index &amp;&amp; this-&gt;fvalue == other.fvalue);</div>
@@ -556,32 +556,32 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span>}</div>
 <div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span> </div>
 <div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span><span class="keyword">inline</span> BatchSet&lt;SparsePage&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>*) {</div>
+<div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span><span class="keyword">inline</span> BatchSet&lt;SparsePage&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>*) {</div>
 <div class="line"><a id="l00683" name="l00683"></a><span class="lineno">  683</span>  <span class="keywordflow">return</span> GetRowBatches();</div>
 <div class="line"><a id="l00684" name="l00684"></a><span class="lineno">  684</span>}</div>
 <div class="line"><a id="l00685" name="l00685"></a><span class="lineno">  685</span> </div>
 <div class="line"><a id="l00686" name="l00686"></a><span class="lineno">  686</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span><span class="keyword">inline</span> BatchSet&lt;CSCPage&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx) {</div>
+<div class="line"><a id="l00687" name="l00687"></a><span class="lineno">  687</span><span class="keyword">inline</span> BatchSet&lt;CSCPage&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>* ctx) {</div>
 <div class="line"><a id="l00688" name="l00688"></a><span class="lineno">  688</span>  <span class="keywordflow">return</span> GetColumnBatches(ctx);</div>
 <div class="line"><a id="l00689" name="l00689"></a><span class="lineno">  689</span>}</div>
 <div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span> </div>
 <div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span><span class="keyword">inline</span> BatchSet&lt;SortedCSCPage&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx) {</div>
+<div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span><span class="keyword">inline</span> BatchSet&lt;SortedCSCPage&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>* ctx) {</div>
 <div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span>  <span class="keywordflow">return</span> GetSortedColumnBatches(ctx);</div>
 <div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span>}</div>
 <div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span> </div>
 <div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span><span class="keyword">inline</span> BatchSet&lt;EllpackPage&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
+<div class="line"><a id="l00697" name="l00697"></a><span class="lineno">  697</span><span class="keyword">inline</span> BatchSet&lt;EllpackPage&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
 <div class="line"><a id="l00698" name="l00698"></a><span class="lineno">  698</span>  <span class="keywordflow">return</span> GetEllpackBatches(ctx, param);</div>
 <div class="line"><a id="l00699" name="l00699"></a><span class="lineno">  699</span>}</div>
 <div class="line"><a id="l00700" name="l00700"></a><span class="lineno">  700</span> </div>
 <div class="line"><a id="l00701" name="l00701"></a><span class="lineno">  701</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span><span class="keyword">inline</span> BatchSet&lt;GHistIndexMatrix&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
+<div class="line"><a id="l00702" name="l00702"></a><span class="lineno">  702</span><span class="keyword">inline</span> BatchSet&lt;GHistIndexMatrix&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
 <div class="line"><a id="l00703" name="l00703"></a><span class="lineno">  703</span>  <span class="keywordflow">return</span> GetGradientIndex(ctx, param);</div>
 <div class="line"><a id="l00704" name="l00704"></a><span class="lineno">  704</span>}</div>
 <div class="line"><a id="l00705" name="l00705"></a><span class="lineno">  705</span> </div>
 <div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span><span class="keyword">template</span> &lt;&gt;</div>
-<div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span><span class="keyword">inline</span> BatchSet&lt;ExtSparsePage&gt; DMatrix::GetBatches(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
+<div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span><span class="keyword">inline</span> BatchSet&lt;ExtSparsePage&gt; DMatrix::GetBatches(Context <span class="keyword">const</span>* ctx, BatchParam <span class="keyword">const</span>&amp; param) {</div>
 <div class="line"><a id="l00708" name="l00708"></a><span class="lineno">  708</span>  <span class="keywordflow">return</span> GetExtBatches(ctx, param);</div>
 <div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span>}</div>
 <div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span>}  <span class="comment">// namespace xgboost</span></div>
@@ -696,7 +696,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_adf1bcb0b20f2739878e3359d2a77f757"><div class="ttname"><a href="namespacexgboost.html#adf1bcb0b20f2739878e3359d2a77f757">xgboost::DataType</a></div><div class="ttdeci">DataType</div><div class="ttdoc">data type accepted by xgboost interface</div><div class="ttdef"><b>Definition</b> data.h:33</div></div>
 <div class="ttc" id="anamespacexgboost_html_ae2457f4deeb4e193b927c42ccde0d392"><div class="ttname"><a href="namespacexgboost.html#ae2457f4deeb4e193b927c42ccde0d392">xgboost::bst_float</a></div><div class="ttdeci">float bst_float</div><div class="ttdoc">float type, used for storing statistics</div><div class="ttdef"><b>Definition</b> base.h:97</div></div>
 <div class="ttc" id="aserializer_8h_html"><div class="ttname"><a href="serializer_8h.html">serializer.h</a></div><div class="ttdoc">serializer template class that helps serialization. This file do not need to be directly used by most...</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 <div class="ttc" id="astructdmlc_1_1serializer_1_1Handler_html"><div class="ttname"><a href="structdmlc_1_1serializer_1_1Handler.html">dmlc::serializer::Handler</a></div><div class="ttdoc">generic serialization handler</div><div class="ttdef"><b>Definition</b> serializer.h:259</div></div>
 <div class="ttc" id="astructdmlc_1_1serializer_1_1Handler_html_a57ace2d259a78520ebdc38b9fb588420"><div class="ttname"><a href="structdmlc_1_1serializer_1_1Handler.html#a57ace2d259a78520ebdc38b9fb588420">dmlc::serializer::Handler::Write</a></div><div class="ttdeci">static void Write(Stream *strm, const T &amp;data)</div><div class="ttdoc">write data to stream</div><div class="ttdef"><b>Definition</b> serializer.h:265</div></div>
 <div class="ttc" id="astructdmlc_1_1serializer_1_1Handler_html_a9568ef43a657578f7b4017e6b33f3e6c"><div class="ttname"><a href="structdmlc_1_1serializer_1_1Handler.html#a9568ef43a657578f7b4017e6b33f3e6c">dmlc::serializer::Handler::Read</a></div><div class="ttdeci">static bool Read(Stream *strm, T *data)</div><div class="ttdoc">read data to stream</div><div class="ttdef"><b>Definition</b> serializer.h:283</div></div>
@@ -724,7 +723,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

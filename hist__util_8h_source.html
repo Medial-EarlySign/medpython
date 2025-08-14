@@ -157,8 +157,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    <span class="keywordflow">return</span> *<span class="keyword">this</span>;</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>  }</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  [[nodiscard]] <a class="code hl_typedef" href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">bst_bin_t</a> FeatureBins(<a class="code hl_typedef" href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">bst_feature_t</a> <a class="code hl_struct" href="structfeature.html">feature</a>)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="keywordflow">return</span> cut_ptrs_.ConstHostVector().at(<a class="code hl_struct" href="structfeature.html">feature</a> + 1) - cut_ptrs_.ConstHostVector()[<a class="code hl_struct" href="structfeature.html">feature</a>];</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  [[nodiscard]] <a class="code hl_typedef" href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">bst_bin_t</a> FeatureBins(<a class="code hl_typedef" href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">bst_feature_t</a> feature)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <span class="keywordflow">return</span> cut_ptrs_.ConstHostVector().at(feature + 1) - cut_ptrs_.ConstHostVector()[feature];</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>  }</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  std::vector&lt;uint32_t&gt; <span class="keyword">const</span>&amp; Ptrs()<span class="keyword">      const </span>{ <span class="keywordflow">return</span> cut_ptrs_.ConstHostVector();   }</div>
@@ -306,11 +306,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    <span class="keywordflow">return</span> <a class="code hl_struct" href="structxgboost_1_1common_1_1Index_1_1CompressBin.html">CompressBin&lt;T&gt;</a>{offsets};</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>  }</div>
 <div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span> </div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>  <a class="code hl_struct" href="structIndex.html">Index</a>() { SetBinTypeSize(binTypeSize_); }</div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>  Index() { SetBinTypeSize(binTypeSize_); }</div>
 <div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>  <a class="code hl_struct" href="structIndex.html">Index</a>(<a class="code hl_struct" href="structIndex.html">Index</a> <span class="keyword">const</span>&amp; i) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>  <a class="code hl_struct" href="structIndex.html">Index</a>&amp; operator=(<a class="code hl_struct" href="structIndex.html">Index</a> <span class="keyword">const</span>&amp; i) = <span class="keyword">delete</span>;</div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>  <a class="code hl_struct" href="structIndex.html">Index</a>(<a class="code hl_struct" href="structIndex.html">Index</a>&amp;&amp; i) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>  Index(Index <span class="keyword">const</span>&amp; i) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>  Index&amp; operator=(Index <span class="keyword">const</span>&amp; i) = <span class="keyword">delete</span>;</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>  Index(Index&amp;&amp; i) = <span class="keyword">delete</span>;</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno"><a class="line" href="classxgboost_1_1common_1_1Index.html#afd871f53088c2d234fe72509e57dfc1b">  260</a></span>  <a class="code hl_class" href="classxgboost_1_1common_1_1Index.html">Index</a>&amp; <a class="code hl_function" href="classxgboost_1_1common_1_1Index.html#afd871f53088c2d234fe72509e57dfc1b">operator=</a>(<a class="code hl_class" href="classxgboost_1_1common_1_1Index.html">Index</a>&amp;&amp; i) = <span class="keywordflow">default</span>;</div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span> </div>
@@ -680,8 +680,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_adefe925ef9d43e9f8ceb3bb051b7cf9f"><div class="ttname"><a href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">xgboost::bst_bin_t</a></div><div class="ttdeci">int32_t bst_bin_t</div><div class="ttdoc">Type for histogram bin index.</div><div class="ttdef"><b>Definition</b> base.h:103</div></div>
 <div class="ttc" id="aquantile_8h_html"><div class="ttname"><a href="quantile_8h.html">quantile.h</a></div><div class="ttdoc">Copyright 2014-2023 by XGBoost Contributors.</div></div>
 <div class="ttc" id="arow__set_8h_html"><div class="ttname"><a href="row__set_8h.html">row_set.h</a></div><div class="ttdoc">Copyright 2021-2023 by Contributors.</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
-<div class="ttc" id="astructfeature_html"><div class="ttname"><a href="structfeature.html">feature</a></div><div class="ttdef"><b>Definition</b> feature_group.h:9</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
 <div class="ttc" id="astructxgboost_1_1Entry_html"><div class="ttname"><a href="structxgboost_1_1Entry.html">xgboost::Entry</a></div><div class="ttdoc">Element from a sparse vector.</div><div class="ttdef"><b>Definition</b> data.h:216</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1Index_1_1CompressBin_html"><div class="ttname"><a href="structxgboost_1_1common_1_1Index_1_1CompressBin.html">xgboost::common::Index::CompressBin</a></div><div class="ttdef"><b>Definition</b> hist_util.h:238</div></div>
@@ -689,7 +687,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

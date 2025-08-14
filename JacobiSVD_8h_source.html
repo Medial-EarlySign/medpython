@@ -450,7 +450,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_3_01MatrixType_00_01QRPreconditioner_00_01false_01_4.html">  350</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real.html">svd_precondition_2x2_block_to_be_real</a>&lt;MatrixType, <a class="code hl_class" href="classEigen_1_1Solve.html">QRPreconditioner</a>, false&gt;</div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>{</div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiSVD&lt;MatrixType, QRPreconditioner&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>;</div>
-<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<span class="keyword">typename</span> SVD::WorkMatrixType&amp;, <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>&amp;, <a class="code hl_struct" href="structIndex.html">Index</a>, <a class="code hl_struct" href="structIndex.html">Index</a>) {}</div>
+<div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<span class="keyword">typename</span> SVD::WorkMatrixType&amp;, <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>&amp;, Index, Index) {}</div>
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>};</div>
 </div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span> </div>
@@ -461,7 +461,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiSVD&lt;MatrixType, QRPreconditioner&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>;</div>
 <div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> MatrixType::Scalar Scalar;</div>
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> MatrixType::RealScalar RealScalar;</div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<span class="keyword">typename</span> SVD::WorkMatrixType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">work_matrix</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">svd</a>, <a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<span class="keyword">typename</span> SVD::WorkMatrixType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">work_matrix</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">SVD</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">svd</a>, Index p, Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  {</div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>    <span class="keyword">using </span>std::sqrt;</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>    Scalar z;</div>
@@ -505,7 +505,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>};</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span> </div>
 <div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> MatrixType, <span class="keyword">typename</span> RealScalar, <span class="keyword">typename</span> Index&gt;</div>
-<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="keywordtype">void</span> real_2x2_jacobi_svd(<span class="keyword">const</span> MatrixType&amp; matrix, <a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> q,</div>
+<div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span><span class="keywordtype">void</span> real_2x2_jacobi_svd(<span class="keyword">const</span> MatrixType&amp; matrix, Index p, Index q,</div>
 <div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>                         JacobiRotation&lt;RealScalar&gt; *j_left,</div>
 <div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>                         JacobiRotation&lt;RealScalar&gt; *j_right)</div>
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>{</div>
@@ -584,7 +584,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span> </div>
 <div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span> </div>
 <div class="foldopen" id="foldopen00542" data-start="{" data-end="}">
-<div class="line"><a id="l00542" name="l00542"></a><span class="lineno"><a class="line" href="classEigen_1_1JacobiSVD.html#a5d9ea7c8f361337727260efd77ee03ac">  542</a></span>    <a class="code hl_function" href="classEigen_1_1JacobiSVD.html#a5d9ea7c8f361337727260efd77ee03ac">JacobiSVD</a>(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">computationOptions</a> = 0)</div>
+<div class="line"><a id="l00542" name="l00542"></a><span class="lineno"><a class="line" href="classEigen_1_1JacobiSVD.html#a5d9ea7c8f361337727260efd77ee03ac">  542</a></span>    <a class="code hl_function" href="classEigen_1_1JacobiSVD.html#a5d9ea7c8f361337727260efd77ee03ac">JacobiSVD</a>(Index rows, Index cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">computationOptions</a> = 0)</div>
 <div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>    {</div>
 <div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>      allocate(rows, cols, <a class="code hl_class" href="classEigen_1_1Solve.html">computationOptions</a>);</div>
 <div class="line"><a id="l00545" name="l00545"></a><span class="lineno">  545</span>    }</div>
@@ -613,7 +613,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>    <span class="keyword">using </span><a class="code hl_function" href="classEigen_1_1SVDBase.html#a30b89e24f42f1692079eea31b361d26a">Base::rank</a>;</div>
 <div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span> </div>
 <div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>    <span class="keywordtype">void</span> allocate(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">computationOptions</a>);</div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>    <span class="keywordtype">void</span> allocate(Index rows, Index cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">computationOptions</a>);</div>
 <div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span> </div>
 <div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>  <span class="keyword">protected</span>:</div>
 <div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>    <span class="keyword">using </span>Base::m_matrixU;</div>
@@ -646,7 +646,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00622" name="l00622"></a><span class="lineno">  622</span> </div>
 <div class="line"><a id="l00623" name="l00623"></a><span class="lineno">  623</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> MatrixType, <span class="keywordtype">int</span> QRPreconditioner&gt;</div>
-<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="keywordtype">void</span> JacobiSVD&lt;MatrixType, QRPreconditioner&gt;::allocate(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> computationOptions)</div>
+<div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="keywordtype">void</span> JacobiSVD&lt;MatrixType, QRPreconditioner&gt;::allocate(Index rows, Index cols, <span class="keywordtype">unsigned</span> <span class="keywordtype">int</span> computationOptions)</div>
 <div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>{</div>
 <div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span>  eigen_assert(rows &gt;= 0 &amp;&amp; cols &gt;= 0);</div>
 <div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span> </div>
@@ -741,9 +741,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00715" name="l00715"></a><span class="lineno">  715</span> </div>
 <div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span>    <span class="comment">// do a sweep: for all index pairs (p,q), perform SVD of the corresponding 2x2 sub-matrix</span></div>
 <div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span> </div>
-<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> p = 1; p &lt; m_diagSize; ++p)</div>
+<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>    <span class="keywordflow">for</span>(Index p = 1; p &lt; m_diagSize; ++p)</div>
 <div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span>    {</div>
-<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>      <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">q</a> &lt; p; ++<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
+<div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>      <span class="keywordflow">for</span>(Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">q</a> &lt; p; ++<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
 <div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span>      {</div>
 <div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span>        <span class="comment">// if this 2x2 sub-matrix is not diagonal already...</span></div>
 <div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>        <span class="comment">// notice that this comparison will evaluate to false if any NaN is involved, ensuring that NaN&#39;s don&#39;t</span></div>
@@ -774,7 +774,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00748" name="l00748"></a><span class="lineno">  748</span> </div>
 <div class="line"><a id="l00749" name="l00749"></a><span class="lineno">  749</span><span class="comment">  /*** step 3. The work matrix is now diagonal, so ensure it&#39;s positive so its diagonal entries are the singular values ***/</span></div>
 <div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span> </div>
-<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span>  <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; m_diagSize; ++i)</div>
+<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span>  <span class="keywordflow">for</span>(Index i = 0; i &lt; m_diagSize; ++i)</div>
 <div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span>  {</div>
 <div class="line"><a id="l00753" name="l00753"></a><span class="lineno">  753</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">RealScalar</a> a = abs(m_workMatrix.coeff(i,i));</div>
 <div class="line"><a id="l00754" name="l00754"></a><span class="lineno">  754</span>    m_singularValues.coeffRef(i) = a;</div>
@@ -786,9 +786,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span><span class="comment">  /*** step 4. Sort singular values in descending order and compute the number of nonzero singular values ***/</span></div>
 <div class="line"><a id="l00761" name="l00761"></a><span class="lineno">  761</span> </div>
 <div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>  m_nonzeroSingularValues = m_diagSize;</div>
-<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>  <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; m_diagSize; i++)</div>
+<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>  <span class="keywordflow">for</span>(Index i = 0; i &lt; m_diagSize; i++)</div>
 <div class="line"><a id="l00764" name="l00764"></a><span class="lineno">  764</span>  {</div>
-<div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span>    <a class="code hl_struct" href="structIndex.html">Index</a> pos;</div>
+<div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span>    Index pos;</div>
 <div class="line"><a id="l00766" name="l00766"></a><span class="lineno">  766</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">RealScalar</a> <a class="code hl_class" href="classEigen_1_1Solve.html">maxRemainingSingularValue</a> = m_singularValues.tail(m_diagSize-i).maxCoeff(&amp;pos);</div>
 <div class="line"><a id="l00767" name="l00767"></a><span class="lineno">  767</span>    <span class="keywordflow">if</span>(<a class="code hl_class" href="classEigen_1_1Solve.html">maxRemainingSingularValue</a> == <a class="code hl_class" href="classEigen_1_1Solve.html">RealScalar</a>(0))</div>
 <div class="line"><a id="l00768" name="l00768"></a><span class="lineno">  768</span>    {</div>
@@ -856,12 +856,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real_html"><div class="ttname"><a href="structEigen_1_1internal_1_1svd__precondition__2x2__block__to__be__real.html">Eigen::internal::svd_precondition_2x2_block_to_be_real</a></div><div class="ttdef"><b>Definition</b> JacobiSVD.h:21</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 <div class="ttc" id="astruct__Matrix_html"><div class="ttname"><a href="struct__Matrix.html">_Matrix</a></div><div class="ttdef"><b>Definition</b> inference.c:32</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:40 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:26 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

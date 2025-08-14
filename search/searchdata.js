@@ -1,19 +1,18 @@
 var indexSectionsWithContent =
 {
-  0: "!0123456789:_abcdefghijklmnopqrstuvwxyz~с一与中事作八其兼内及在基字安常循性总把教构标正比流特状生用符第简编范解输远风高",
-  1: "_abcdefghijklmnopqrstuvwxy",
-  2: "abcdefghijlmpqrstuvwx",
+  0: "0123456789:_abcdefghijklmnopqrstuvwxyz~с“”",
+  1: "_abcdefghijklmnopqrstuvwx",
+  2: "abcdefghijlmpqrstux",
   3: "abcdefghijlmopqrstux",
-  4: "!_abcdefghijklmnopqrstuvwxyz~",
+  4: "_abcdefghijklmnopqrstuvwxyz~",
   5: "abcdefghijklmnopqrstuvwxyz",
   6: "abcdefghijlmnopqrstuvwx",
   7: "abcdefgmopqrstv",
   8: "abcdefhiklmnoprstuvwz",
-  9: "acdefhijlmnoprstuvw",
-  10: "os",
-  11: "adlmnrsx",
-  12: "abcdefghlmprst",
-  13: "1abcdefghijklmnopqrstuvwxyz常性教流特编"
+  9: "os",
+  10: "adlmnsx",
+  11: "abcdefglmpst",
+  12: "1abcdefghijklmnoprstuvwxy"
 };
 
 var indexSectionNames =
@@ -27,11 +26,10 @@ var indexSectionNames =
   6: "typedefs",
   7: "enums",
   8: "enumvalues",
-  9: "properties",
-  10: "related",
-  11: "defines",
-  12: "groups",
-  13: "pages"
+  9: "related",
+  10: "defines",
+  11: "groups",
+  12: "pages"
 };
 
 var indexSectionLabels =
@@ -45,10 +43,9 @@ var indexSectionLabels =
   6: "Typedefs",
   7: "Enumerations",
   8: "Enumerator",
-  9: "Properties",
-  10: "Friends",
-  11: "Macros",
-  12: "Modules",
-  13: "Pages"
+  9: "Friends",
+  10: "Macros",
+  11: "Modules",
+  12: "Pages"
 };
 

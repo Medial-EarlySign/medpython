@@ -86,7 +86,7 @@ Public Types</h2></td></tr>
  }</td></tr>
 <tr class="separator:aafafcd81dceafd93ebc3e3265b6cfa18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb99389a9a8f596582e850af9e89317e" id="r_aeb99389a9a8f596582e850af9e89317e"><td class="memItemLeft" align="right" valign="top"><a id="aeb99389a9a8f596582e850af9e89317e" name="aeb99389a9a8f596582e850af9e89317e"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Lhs::template <a class="el" href="structConstNColsBlockXpr.html">ConstNColsBlockXpr</a>&lt; Dim &gt;<a class="el" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">::Type</a>&#160;</td><td class="memItemRight" valign="bottom"><b>LinearBlockConst</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> Lhs::template <a class="el" href="structConstNColsBlockXpr.html">ConstNColsBlockXpr</a>&lt; Dim &gt;::Type&#160;</td><td class="memItemRight" valign="bottom"><b>LinearBlockConst</b></td></tr>
 <tr class="separator:aeb99389a9a8f596582e850af9e89317e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f2a81d423781aa7487596fa72037117" id="r_a2f2a81d423781aa7487596fa72037117"><td class="memItemLeft" align="right" valign="top"><a id="a2f2a81d423781aa7487596fa72037117" name="a2f2a81d423781aa7487596fa72037117"></a>
 <a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1remove__const.html">remove_const</a>&lt; LinearBlockConst &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>LinearBlock</b></td></tr>
@@ -95,13 +95,13 @@ Public Types</h2></td></tr>
 <a class="el" href="classEigen_1_1Solve.html">typedef</a> Lhs::ConstColXpr&#160;</td><td class="memItemRight" valign="bottom"><b>ConstantColumn</b></td></tr>
 <tr class="separator:a8d92c5f8ff8b662f545631185ef9ca35"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acc234155d82f5ea0758b836ae197266e" id="r_acc234155d82f5ea0758b836ae197266e"><td class="memItemLeft" align="right" valign="top"><a id="acc234155d82f5ea0758b836ae197266e" name="acc234155d82f5ea0758b836ae197266e"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Replicate.html">Replicate</a>&lt; const ConstantColumn, 1, Cols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstantBlock</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Replicate.html">Replicate</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> ConstantColumn, 1, Cols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstantBlock</b></td></tr>
 <tr class="separator:acc234155d82f5ea0758b836ae197266e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a97831c144fe512df2f7b5ec49b84252a" id="r_a97831c144fe512df2f7b5ec49b84252a"><td class="memItemLeft" align="right" valign="top"><a id="a97831c144fe512df2f7b5ec49b84252a" name="a97831c144fe512df2f7b5ec49b84252a"></a>
 <a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Product.html">Product</a>&lt; LinearBlock, Rhs, LazyProduct &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>LinearProduct</b></td></tr>
 <tr class="separator:a97831c144fe512df2f7b5ec49b84252a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acdab4c8f423c31cb4dc99b94a5992ddc" id="r_acdab4c8f423c31cb4dc99b94a5992ddc"><td class="memItemLeft" align="right" valign="top"><a id="acdab4c8f423c31cb4dc99b94a5992ddc" name="acdab4c8f423c31cb4dc99b94a5992ddc"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1CwiseBinaryOp.html">CwiseBinaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__sum__op.html">internal::scalar_sum_op</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> Lhs::Scalar &gt;, const <a class="el" href="classEigen_1_1Solve.html">LinearProduct</a>, const <a class="el" href="classEigen_1_1Solve.html">ConstantBlock</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Xpr</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1CwiseBinaryOp.html">CwiseBinaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__sum__op.html">internal::scalar_sum_op</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> Lhs::Scalar &gt;, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">LinearProduct</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">ConstantBlock</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Xpr</b></td></tr>
 <tr class="separator:acdab4c8f423c31cb4dc99b94a5992ddc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -110,7 +110,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:11 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:42 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

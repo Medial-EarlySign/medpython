@@ -269,7 +269,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00651" name="l00651"></a><span class="lineno">  651</span>                                 bst_ulong len);</div>
 <div class="line"><a id="l00652" name="l00652"></a><span class="lineno">  652</span> </div>
 <div class="line"><a id="l00679" name="l00679"></a><span class="lineno">  679</span>XGB_DLL <span class="keywordtype">int</span> <a class="code hl_function" href="group__DMatrix.html#ga9a01c533622b9e4ccddffc8efd349203">XGDMatrixSetStrFeatureInfo</a>(<a class="code hl_typedef" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, <span class="keyword">const</span> <span class="keywordtype">char</span> *field,</div>
-<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span>                                       <span class="keyword">const</span> <span class="keywordtype">char</span> **<a class="code hl_struct" href="structfeatures.html">features</a>,</div>
+<div class="line"><a id="l00680" name="l00680"></a><span class="lineno">  680</span>                                       <span class="keyword">const</span> <span class="keywordtype">char</span> **features,</div>
 <div class="line"><a id="l00681" name="l00681"></a><span class="lineno">  681</span>                                       <span class="keyword">const</span> bst_ulong size);</div>
 <div class="line"><a id="l00682" name="l00682"></a><span class="lineno">  682</span> </div>
 <div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>XGB_DLL <span class="keywordtype">int</span> <a class="code hl_function" href="group__DMatrix.html#ga5a76ec8cda76c3486488c785b9f493bf">XGDMatrixGetStrFeatureInfo</a>(<a class="code hl_typedef" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, <span class="keyword">const</span> <span class="keywordtype">char</span> *field,</div>
@@ -425,7 +425,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l01452" name="l01452"></a><span class="lineno"> 1452</span>                                  <span class="keyword">const</span> <span class="keywordtype">char</span>*** out);</div>
 <div class="line"><a id="l01453" name="l01453"></a><span class="lineno"> 1453</span> </div>
 <div class="line"><a id="l01469" name="l01469"></a><span class="lineno"> 1469</span>XGB_DLL <span class="keywordtype">int</span> <a class="code hl_function" href="group__Booster.html#ga3b143bdef6166eaf08ff5789a22f7355">XGBoosterSetStrFeatureInfo</a>(BoosterHandle handle, <span class="keyword">const</span> <span class="keywordtype">char</span> *field,</div>
-<div class="line"><a id="l01470" name="l01470"></a><span class="lineno"> 1470</span>                                       <span class="keyword">const</span> <span class="keywordtype">char</span> **<a class="code hl_struct" href="structfeatures.html">features</a>,</div>
+<div class="line"><a id="l01470" name="l01470"></a><span class="lineno"> 1470</span>                                       <span class="keyword">const</span> <span class="keywordtype">char</span> **features,</div>
 <div class="line"><a id="l01471" name="l01471"></a><span class="lineno"> 1471</span>                                       <span class="keyword">const</span> bst_ulong size);</div>
 <div class="line"><a id="l01472" name="l01472"></a><span class="lineno"> 1472</span> </div>
 <div class="line"><a id="l01492" name="l01492"></a><span class="lineno"> 1492</span>XGB_DLL <span class="keywordtype">int</span> <a class="code hl_function" href="group__Booster.html#ga44cfccc5c16707e6a636b18f7caa8b1f">XGBoosterGetStrFeatureInfo</a>(BoosterHandle handle, <span class="keyword">const</span> <span class="keywordtype">char</span> *field,</div>
@@ -560,11 +560,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructXGBoostBatchCSR_html_a6e23628646a6f353152ba7145eaaf2cb"><div class="ttname"><a href="structXGBoostBatchCSR.html#a6e23628646a6f353152ba7145eaaf2cb">XGBoostBatchCSR::value</a></div><div class="ttdeci">float * value</div><div class="ttdoc">feature values</div><div class="ttdef"><b>Definition</b> c_api.h:360</div></div>
 <div class="ttc" id="astructXGBoostBatchCSR_html_aaa52c1649126c8b2d39340829014c1c6"><div class="ttname"><a href="structXGBoostBatchCSR.html#aaa52c1649126c8b2d39340829014c1c6">XGBoostBatchCSR::weight</a></div><div class="ttdeci">float * weight</div><div class="ttdoc">weight of each instance, can be NULL</div><div class="ttdef"><b>Definition</b> c_api.h:356</div></div>
 <div class="ttc" id="astructXGBoostBatchCSR_html_ad771d18813500bb53cd065e3672646ec"><div class="ttname"><a href="structXGBoostBatchCSR.html#ad771d18813500bb53cd065e3672646ec">XGBoostBatchCSR::size</a></div><div class="ttdeci">size_t size</div><div class="ttdoc">number of rows in the minibatch</div><div class="ttdef"><b>Definition</b> c_api.h:342</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

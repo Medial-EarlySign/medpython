@@ -150,7 +150,7 @@ template&lt;typename S &gt; </td></tr>
 <tr class="separator:aa624ed5802078c2013afc177f68d635b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac921b0b2f05ff09adf5b37a8d80ae7a0" id="r_ac921b0b2f05ff09adf5b37a8d80ae7a0"><td class="memTemplParams" colspan="2"><a id="ac921b0b2f05ff09adf5b37a8d80ae7a0" name="ac921b0b2f05ff09adf5b37a8d80ae7a0"></a>
 template&lt;typename... Index&gt; </td></tr>
-<tr class="memitem:ac921b0b2f05ff09adf5b37a8d80ae7a0"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::detail::IsAllIntegral</b> = <a class="el" href="structxgboost_1_1linalg_1_1detail_1_1Conjunction.html">Conjunction</a>&lt; std::is_integral&lt; std::remove_reference_t&lt; <a class="el" href="structIndex.html">Index</a> &gt; &gt;... &gt;</td></tr>
+<tr class="memitem:ac921b0b2f05ff09adf5b37a8d80ae7a0"><td class="memTemplItemLeft" align="right" valign="top">using&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::detail::IsAllIntegral</b> = <a class="el" href="structxgboost_1_1linalg_1_1detail_1_1Conjunction.html">Conjunction</a>&lt; std::is_integral&lt; std::remove_reference_t&lt; Index &gt; &gt;... &gt;</td></tr>
 <tr class="separator:ac921b0b2f05ff09adf5b37a8d80ae7a0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff63d4ff6b6a270f033ed723695a3045" id="r_aff63d4ff6b6a270f033ed723695a3045"><td class="memTemplParams" colspan="2"><a id="aff63d4ff6b6a270f033ed723695a3045" name="aff63d4ff6b6a270f033ed723695a3045"></a>
 template&lt;typename... Index&gt; </td></tr>
@@ -219,7 +219,7 @@ template&lt;typename T &gt; </td></tr>
 LINALG_HD int&#160;</td><td class="memItemRight" valign="bottom"><b>xgboost::linalg::detail::Popc</b> (uint32_t v)</td></tr>
 <tr class="separator:a41b2c1e4d9dc7f002666beeee2b4a45f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a043ec221f0e542d7da52f417b8a9b0" id="r_a6a043ec221f0e542d7da52f417b8a9b0"><td class="memItemLeft" align="right" valign="top"><a id="a6a043ec221f0e542d7da52f417b8a9b0" name="a6a043ec221f0e542d7da52f417b8a9b0"></a>
-LINALG_HD int&#160;</td><td class="memItemRight" valign="bottom"><b>xgboost::linalg::detail::Popc</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a> v)</td></tr>
+LINALG_HD int&#160;</td><td class="memItemRight" valign="bottom"><b>xgboost::linalg::detail::Popc</b> (uint64_t v)</td></tr>
 <tr class="separator:a6a043ec221f0e542d7da52f417b8a9b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab61c54ed903f30b3b2eae3372ab18622" id="r_ab61c54ed903f30b3b2eae3372ab18622"><td class="memTemplParams" colspan="2"><a id="ab61c54ed903f30b3b2eae3372ab18622" name="ab61c54ed903f30b3b2eae3372ab18622"></a>
 template&lt;std::size_t D, typename Head &gt; </td></tr>
@@ -333,17 +333,17 @@ template&lt;typename T , int32_t D&gt; </td></tr>
 <tr class="separator:acf1548c078e15130b49c459e114914f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf354dffd6373ca716114b0980109a7d" id="r_acf354dffd6373ca716114b0980109a7d"><td class="memTemplParams" colspan="2"><a id="acf354dffd6373ca716114b0980109a7d" name="acf354dffd6373ca716114b0980109a7d"></a>
 template&lt;typename T , typename... Index&gt; </td></tr>
-<tr class="memitem:acf354dffd6373ca716114b0980109a7d"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Empty</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, <a class="el" href="structIndex.html">Index</a> &amp;&amp;...index)</td></tr>
+<tr class="memitem:acf354dffd6373ca716114b0980109a7d"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Empty</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, Index &amp;&amp;...index)</td></tr>
 <tr class="memdesc:acf354dffd6373ca716114b0980109a7d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create an array without initialization. <br /></td></tr>
 <tr class="separator:acf354dffd6373ca716114b0980109a7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aafcd5932b55dec1fd7ac2fe5b6f8f597" id="r_aafcd5932b55dec1fd7ac2fe5b6f8f597"><td class="memTemplParams" colspan="2"><a id="aafcd5932b55dec1fd7ac2fe5b6f8f597" name="aafcd5932b55dec1fd7ac2fe5b6f8f597"></a>
 template&lt;typename T , typename... Index&gt; </td></tr>
-<tr class="memitem:aafcd5932b55dec1fd7ac2fe5b6f8f597"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Constant</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, T v, <a class="el" href="structIndex.html">Index</a> &amp;&amp;...index)</td></tr>
+<tr class="memitem:aafcd5932b55dec1fd7ac2fe5b6f8f597"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Constant</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, T v, Index &amp;&amp;...index)</td></tr>
 <tr class="memdesc:aafcd5932b55dec1fd7ac2fe5b6f8f597"><td class="mdescLeft">&#160;</td><td class="mdescRight">Create an array with value v. <br /></td></tr>
 <tr class="separator:aafcd5932b55dec1fd7ac2fe5b6f8f597"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac3423db016f875bf0d6d6402ced33fcd" id="r_ac3423db016f875bf0d6d6402ced33fcd"><td class="memTemplParams" colspan="2"><a id="ac3423db016f875bf0d6d6402ced33fcd" name="ac3423db016f875bf0d6d6402ced33fcd"></a>
 template&lt;typename T , typename... Index&gt; </td></tr>
-<tr class="memitem:ac3423db016f875bf0d6d6402ced33fcd"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Zeros</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, <a class="el" href="structIndex.html">Index</a> &amp;&amp;...index)</td></tr>
+<tr class="memitem:ac3423db016f875bf0d6d6402ced33fcd"><td class="memTemplItemLeft" align="right" valign="top">auto&#160;</td><td class="memTemplItemRight" valign="bottom"><b>xgboost::linalg::Zeros</b> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, Index &amp;&amp;...index)</td></tr>
 <tr class="memdesc:ac3423db016f875bf0d6d6402ced33fcd"><td class="mdescLeft">&#160;</td><td class="mdescRight">Like <code>np.zeros</code>, return a new array of given shape and type, filled with zeros. <br /></td></tr>
 <tr class="separator:ac3423db016f875bf0d6d6402ced33fcd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aabc7e4f8550008c80646f5dc9397be8a" id="r_aabc7e4f8550008c80646f5dc9397be8a"><td class="memTemplParams" colspan="2"><a id="aabc7e4f8550008c80646f5dc9397be8a" name="aabc7e4f8550008c80646f5dc9397be8a"></a>
@@ -405,7 +405,7 @@ template&lt;typename Fn , typename Tup &gt; </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

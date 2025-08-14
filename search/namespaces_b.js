@@ -11,8 +11,5 @@ var searchData=
   ['medial_3a_3asampling_8',['sampling',['../namespacemedial_1_1sampling.html',1,'medial']]],
   ['medial_3a_3asignal_5fhierarchy_9',['signal_hierarchy',['../namespacemedial_1_1signal__hierarchy.html',1,'medial']]],
   ['medial_3a_3asort_5fops_10',['sort_ops',['../namespacemedial_1_1sort__ops.html',1,'medial']]],
-  ['multioutput_5fregression_11',['multioutput_regression',['../namespacemultioutput__regression.html',1,'']]],
-  ['multiworldtesting_12',['MultiWorldTesting',['../namespaceMultiWorldTesting.html',1,'']]],
-  ['multiworldtesting_3a_3amultiaction_13',['MultiAction',['../namespaceMultiWorldTesting_1_1MultiAction.html',1,'MultiWorldTesting']]],
-  ['multiworldtesting_3a_3asingleaction_14',['SingleAction',['../namespaceMultiWorldTesting_1_1SingleAction.html',1,'MultiWorldTesting']]]
+  ['multioutput_5fregression_11',['multioutput_regression',['../namespacemultioutput__regression.html',1,'']]]
 ];

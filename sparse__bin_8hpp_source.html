@@ -420,9 +420,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span> </div>
 <div class="foldopen" id="foldopen00321" data-start="{" data-end="}">
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno"><a class="line" href="classLightGBM_1_1SparseBin.html#a675dcde85ff668ad9e2cc8d565138008">  321</a></span>  <span class="keywordtype">void</span> <a class="code hl_function" href="classLightGBM_1_1SparseBin.html#a675dcde85ff668ad9e2cc8d565138008">SaveBinaryToFile</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structLightGBM_1_1VirtualFileWriter.html">VirtualFileWriter</a>* writer)<span class="keyword"> const override </span>{</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    writer-&gt;Write(&amp;num_vals_, <span class="keyword">sizeof</span>(num_vals_));</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    writer-&gt;Write(deltas_.data(), <span class="keyword">sizeof</span>(uint8_t) * (num_vals_ + 1));</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    writer-&gt;Write(vals_.data(), <span class="keyword">sizeof</span>(VAL_T) * num_vals_);</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    writer-&gt;<a class="code hl_function" href="structLightGBM_1_1VirtualFileWriter.html#a0e253a0f30a51763a56a8ab1a73c9a03">Write</a>(&amp;num_vals_, <span class="keyword">sizeof</span>(num_vals_));</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    writer-&gt;<a class="code hl_function" href="structLightGBM_1_1VirtualFileWriter.html#a0e253a0f30a51763a56a8ab1a73c9a03">Write</a>(deltas_.data(), <span class="keyword">sizeof</span>(uint8_t) * (num_vals_ + 1));</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    writer-&gt;<a class="code hl_function" href="structLightGBM_1_1VirtualFileWriter.html#a0e253a0f30a51763a56a8ab1a73c9a03">Write</a>(vals_.data(), <span class="keyword">sizeof</span>(VAL_T) * num_vals_);</div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>  }</div>
 </div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span> </div>
@@ -587,10 +587,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespaceLightGBM_html_afd76be3a9063eee6e29988ae655e47f8"><div class="ttname"><a href="namespaceLightGBM.html#afd76be3a9063eee6e29988ae655e47f8">LightGBM::data_size_t</a></div><div class="ttdeci">int32_t data_size_t</div><div class="ttdoc">Type of data size, it is better to use signed type.</div><div class="ttdef"><b>Definition</b> meta.h:14</div></div>
 <div class="ttc" id="astructLightGBM_1_1HistogramBinEntry_html"><div class="ttname"><a href="structLightGBM_1_1HistogramBinEntry.html">LightGBM::HistogramBinEntry</a></div><div class="ttdoc">Store data for one histogram bin.</div><div class="ttdef"><b>Definition</b> bin.h:29</div></div>
 <div class="ttc" id="astructLightGBM_1_1VirtualFileWriter_html"><div class="ttname"><a href="structLightGBM_1_1VirtualFileWriter.html">LightGBM::VirtualFileWriter</a></div><div class="ttdoc">An interface for writing files from buffers.</div><div class="ttdef"><b>Definition</b> file_io.h:15</div></div>
+<div class="ttc" id="astructLightGBM_1_1VirtualFileWriter_html_a0e253a0f30a51763a56a8ab1a73c9a03"><div class="ttname"><a href="structLightGBM_1_1VirtualFileWriter.html#a0e253a0f30a51763a56a8ab1a73c9a03">LightGBM::VirtualFileWriter::Write</a></div><div class="ttdeci">virtual size_t Write(const void *data, size_t bytes) const =0</div><div class="ttdoc">Append buffer to file.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:41 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

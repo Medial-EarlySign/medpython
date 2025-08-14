@@ -115,10 +115,10 @@ Public Types</h2></td></tr>
 <a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; Scalar, ColsAtCompileTimeMinusOne, 1 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>SuperDiagVectorType</b></td></tr>
 <tr class="separator:ad7491c3ca1a7985168c2c2b1dafe4ddf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a159f80e8c094ea6b53082ac9446923a8" id="r_a159f80e8c094ea6b53082ac9446923a8"><td class="memItemLeft" align="right" valign="top"><a id="a159f80e8c094ea6b53082ac9446923a8" name="a159f80e8c094ea6b53082ac9446923a8"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; const MatrixType, const <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Diagonal.html">Diagonal</a>&lt; const MatrixType, 0 &gt;::ConjugateReturnType &gt;::type &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderUSequenceType</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Diagonal.html">Diagonal</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType, 0 &gt;::ConjugateReturnType &gt;::type &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderUSequenceType</b></td></tr>
 <tr class="separator:a159f80e8c094ea6b53082ac9446923a8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa93645d9dfab0b02287e8b66b4018007" id="r_aa93645d9dfab0b02287e8b66b4018007"><td class="memItemLeft" align="right" valign="top"><a id="aa93645d9dfab0b02287e8b66b4018007" name="aa93645d9dfab0b02287e8b66b4018007"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; const <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1Diagonal.html">Diagonal</a>&lt; const MatrixType, 1 &gt;, <a class="el" href="group__enums.html#ggaaf742ed5443cf27909aa88d5e955458ea329fc3a54ceb2b6e0e73b400998b8a82">OnTheRight</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderVSequenceType</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1Diagonal.html">Diagonal</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType, 1 &gt;, <a class="el" href="group__enums.html#ggaaf742ed5443cf27909aa88d5e955458ea329fc3a54ceb2b6e0e73b400998b8a82">OnTheRight</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderVSequenceType</b></td></tr>
 <tr class="separator:aa93645d9dfab0b02287e8b66b4018007"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
@@ -127,25 +127,25 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:aa37a7ca5f5e86e3efbc6907d03d89340"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor.  <br /></td></tr>
 <tr class="separator:aa37a7ca5f5e86e3efbc6907d03d89340"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0be89ad4d54df169e3607031e0284e20" id="r_a0be89ad4d54df169e3607031e0284e20"><td class="memItemLeft" align="right" valign="top"><a id="a0be89ad4d54df169e3607031e0284e20" name="a0be89ad4d54df169e3607031e0284e20"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>UpperBidiagonalization</b> (const MatrixType &amp;matrix)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>UpperBidiagonalization</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;matrix)</td></tr>
 <tr class="separator:a0be89ad4d54df169e3607031e0284e20"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a77c1a3dba999febcdd9aa3d8bdb7d8df" id="r_a77c1a3dba999febcdd9aa3d8bdb7d8df"><td class="memItemLeft" align="right" valign="top"><a id="a77c1a3dba999febcdd9aa3d8bdb7d8df" name="a77c1a3dba999febcdd9aa3d8bdb7d8df"></a>
-<a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">UpperBidiagonalization</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>compute</b> (const MatrixType &amp;matrix)</td></tr>
+<a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">UpperBidiagonalization</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;matrix)</td></tr>
 <tr class="separator:a77c1a3dba999febcdd9aa3d8bdb7d8df"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9899e0a0ee6bf4771fe4ef2d133e3e72" id="r_a9899e0a0ee6bf4771fe4ef2d133e3e72"><td class="memItemLeft" align="right" valign="top"><a id="a9899e0a0ee6bf4771fe4ef2d133e3e72" name="a9899e0a0ee6bf4771fe4ef2d133e3e72"></a>
-<a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">UpperBidiagonalization</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>computeUnblocked</b> (const MatrixType &amp;matrix)</td></tr>
+<a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">UpperBidiagonalization</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>computeUnblocked</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;matrix)</td></tr>
 <tr class="separator:a9899e0a0ee6bf4771fe4ef2d133e3e72"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a83401b2d6a388dd8a0ccc01e285abb7b" id="r_a83401b2d6a388dd8a0ccc01e285abb7b"><td class="memItemLeft" align="right" valign="top"><a id="a83401b2d6a388dd8a0ccc01e285abb7b" name="a83401b2d6a388dd8a0ccc01e285abb7b"></a>
-const MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>householder</b> () const</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>householder</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a83401b2d6a388dd8a0ccc01e285abb7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad02b11d2cc0e7510ede8fd992e082a08" id="r_ad02b11d2cc0e7510ede8fd992e082a08"><td class="memItemLeft" align="right" valign="top"><a id="ad02b11d2cc0e7510ede8fd992e082a08" name="ad02b11d2cc0e7510ede8fd992e082a08"></a>
-const <a class="el" href="classEigen_1_1internal_1_1BandMatrix.html">BidiagonalType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>bidiagonal</b> () const</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1internal_1_1BandMatrix.html">BidiagonalType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>bidiagonal</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:ad02b11d2cc0e7510ede8fd992e082a08"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a39887f7712de5be5a0487e9f6357b9da" id="r_a39887f7712de5be5a0487e9f6357b9da"><td class="memItemLeft" align="right" valign="top"><a id="a39887f7712de5be5a0487e9f6357b9da" name="a39887f7712de5be5a0487e9f6357b9da"></a>
-const <a class="el" href="classEigen_1_1Solve.html">HouseholderUSequenceType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>householderU</b> () const</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">HouseholderUSequenceType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>householderU</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a39887f7712de5be5a0487e9f6357b9da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6ab970ae51909e56ceb63a49e06fdc98" id="r_a6ab970ae51909e56ceb63a49e06fdc98"><td class="memItemLeft" align="right" valign="top"><a id="a6ab970ae51909e56ceb63a49e06fdc98" name="a6ab970ae51909e56ceb63a49e06fdc98"></a>
-const <a class="el" href="classEigen_1_1Solve.html">HouseholderVSequenceType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>householderV</b> ()</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">HouseholderVSequenceType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>householderV</b> ()</td></tr>
 <tr class="separator:a6ab970ae51909e56ceb63a49e06fdc98"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -170,7 +170,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_isInitialized</b></
 template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index <a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">Eigen::internal::UpperBidiagonalization</a>&lt; _MatrixType &gt;<a class="el" href="structIndex.html">::Index</a></td>
+          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index <a class="el" href="classEigen_1_1internal_1_1UpperBidiagonalization.html">Eigen::internal::UpperBidiagonalization</a>&lt; _MatrixType &gt;::Index</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -215,7 +215,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

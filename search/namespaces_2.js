@@ -12,14 +12,6 @@ var searchData=
   ['cpu_5fsurvival_9',['cpu_survival',['../namespacecpu__survival.html',1,'']]],
   ['cpu_5ftraining_10',['cpu_training',['../namespacecpu__training.html',1,'']]],
   ['cross_5fvalidation_11',['cross_validation',['../namespacecross__validation.html',1,'']]],
-  ['cs_5fleaktest_12',['cs_leaktest',['../namespacecs__leaktest.html',1,'']]],
-  ['cs_5ftest_13',['cs_test',['../namespacecs__test.html',1,'']]],
-  ['cs_5ftestcommon_14',['cs_testcommon',['../namespacecs__testcommon.html',1,'']]],
-  ['cs_5ftesthelp_15',['cs_testhelp',['../namespacecs__testhelp.html',1,'']]],
-  ['cs_5funittest_16',['cs_unittest',['../namespacecs__unittest.html',1,'']]],
-  ['cs_5funittest_3a_3acbadf_17',['cbadf',['../namespacecs__unittest_1_1cbadf.html',1,'cs_unittest']]],
-  ['cs_5funittest_5fnofriend_18',['cs_unittest_nofriend',['../namespacecs__unittest__nofriend.html',1,'']]],
-  ['cs_5fvw_19',['cs_vw',['../namespacecs__vw.html',1,'']]],
-  ['custom_5frmsle_20',['custom_rmsle',['../namespacecustom__rmsle.html',1,'']]],
-  ['custom_5fsoftmax_21',['custom_softmax',['../namespacecustom__softmax.html',1,'']]]
+  ['custom_5frmsle_12',['custom_rmsle',['../namespacecustom__rmsle.html',1,'']]],
+  ['custom_5fsoftmax_13',['custom_softmax',['../namespacecustom__softmax.html',1,'']]]
 ];

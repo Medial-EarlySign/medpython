@@ -122,7 +122,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="keyword">private</span>:</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>    <a class="code hl_class" href="classPredictiveModel.html">PredictiveModel</a> * _model;</div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>    vector&lt;PredictiveModel *&gt; _models_par;</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    double(*<a class="code hl_class" href="classloss__function.html">loss_function</a>)(<span class="keyword">const</span> vector&lt;double&gt; &amp;got, <span class="keyword">const</span> vector&lt;float&gt; &amp;y, <span class="keyword">const</span> vector&lt;float&gt; *weights);</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>    double(*loss_function)(<span class="keyword">const</span> vector&lt;double&gt; &amp;got, <span class="keyword">const</span> vector&lt;float&gt; &amp;y, <span class="keyword">const</span> vector&lt;float&gt; *weights);</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>    double(*step_loss_function)(<span class="keyword">const</span> vector&lt;double&gt; &amp;got, <span class="keyword">const</span> vector&lt;float&gt; &amp;y, <span class="keyword">const</span> vector&lt;double&gt; &amp;model_params, <span class="keyword">const</span> vector&lt;float&gt; *weights);</div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    <span class="keywordtype">float</span> _learning_rate;</div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>    <span class="keywordtype">bool</span> has_learing_rate;</div>
@@ -157,12 +157,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aclassPredictiveModel_html"><div class="ttname"><a href="classPredictiveModel.html">PredictiveModel</a></div><div class="ttdoc">Predictive Model is abstract class of predictor model which has parameters for GD or SGD uses it also...</div><div class="ttdef"><b>Definition</b> PredictiveModel.h:13</div></div>
 <div class="ttc" id="aclassSGD_html"><div class="ttname"><a href="classSGD.html">SGD</a></div><div class="ttdef"><b>Definition</b> SGD.h:11</div></div>
-<div class="ttc" id="aclassloss__function_html"><div class="ttname"><a href="classloss__function.html">loss_function</a></div><div class="ttdef"><b>Definition</b> loss_functions.h:14</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:29 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -104,7 +104,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span><span class="keyword">class </span>FeatureMap;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span><span class="keyword">class </span>ObjFunction;</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
-<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">struct </span><a class="code hl_struct" href="structContext.html">Context</a>;</div>
+<div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">struct </span>Context;</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="keyword">struct </span>LearnerModelParam;</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="keyword">struct </span>PredictionCacheEntry;</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
@@ -160,7 +160,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span> </div>
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>  <span class="keyword">virtual</span> <span class="keywordtype">void</span> FeatureScore(std::string <span class="keyword">const</span>&amp; importance_type,</div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>                            <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">common::Span&lt;int32_t const&gt;</a> trees,</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>                            std::vector&lt;bst_feature_t&gt;* <a class="code hl_struct" href="structfeatures.html">features</a>,</div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>                            std::vector&lt;bst_feature_t&gt;* features,</div>
 <div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>                            std::vector&lt;float&gt;* scores) <span class="keyword">const</span> = 0;</div>
 <div class="line"><a id="l00179" name="l00179"></a><span class="lineno"><a class="line" href="classxgboost_1_1GradientBooster.html#a6cc0007010572cace55a0ad949fe9298">  179</a></span>  <span class="keyword">virtual</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classxgboost_1_1GradientBooster.html#a6cc0007010572cace55a0ad949fe9298">UseGPU</a>() <span class="keyword">const</span> = 0;</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>  <span class="keyword">static</span> <a class="code hl_class" href="classxgboost_1_1GradientBooster.html">GradientBooster</a>* <a class="code hl_function" href="classxgboost_1_1GradientBooster.html#ad76cc39cdb0e567830b83743eb8a9c15">Create</a>(<span class="keyword">const</span> std::string&amp; name, <a class="code hl_struct" href="structxgboost_1_1Context.html">Context</a> <span class="keyword">const</span>* ctx,</div>
@@ -216,8 +216,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="anamespacexgboost_html_ac03273fae726fc98ccf4231b9211ea44"><div class="ttname"><a href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">xgboost::bst_layer_t</a></div><div class="ttdeci">std::int32_t bst_layer_t</div><div class="ttdoc">Type for indexing boosted layers.</div><div class="ttdef"><b>Definition</b> base.h:122</div></div>
 <div class="ttc" id="aregistry_8h_html"><div class="ttname"><a href="registry_8h.html">registry.h</a></div><div class="ttdoc">Registry utility that helps to build registry singletons.</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
 <div class="ttc" id="astructxgboost_1_1Configurable_html"><div class="ttname"><a href="structxgboost_1_1Configurable.html">xgboost::Configurable</a></div><div class="ttdef"><b>Definition</b> model.h:31</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
 <div class="ttc" id="astructxgboost_1_1GradientBoosterReg_html"><div class="ttname"><a href="structxgboost_1_1GradientBoosterReg.html">xgboost::GradientBoosterReg</a></div><div class="ttdoc">Registry entry for tree updater.</div><div class="ttdef"><b>Definition</b> gbm.h:198</div></div>
@@ -227,7 +225,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

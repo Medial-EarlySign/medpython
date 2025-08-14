@@ -184,16 +184,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>                   <a class="code hl_class" href="classxgboost_1_1linalg_1_1Tensor.html">linalg::Tensor&lt;float, 1&gt;</a>*) {</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>  common::AssertGPUSupport();</div>
 <div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>}</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="keyword">inline</span> <span class="keywordtype">void</span> Mean(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>*, linalg::VectorView&lt;float const&gt;, linalg::VectorView&lt;float&gt;) {</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span><span class="keyword">inline</span> <span class="keywordtype">void</span> Mean(Context <span class="keyword">const</span>*, linalg::VectorView&lt;float const&gt;, linalg::VectorView&lt;float&gt;) {</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>  common::AssertGPUSupport();</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>}</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span><span class="preprocessor">#endif  </span><span class="comment">// !defined(XGBOOST_USE_CUDA)</span></div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>}  <span class="comment">// namespace cuda_impl</span></div>
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1common.html#a9dd9f42e35e68036ece6a8155d9d6964">Median</a>(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, linalg::Tensor&lt;float, 2&gt; <span class="keyword">const</span>&amp; t,</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1common.html#a9dd9f42e35e68036ece6a8155d9d6964">Median</a>(Context <span class="keyword">const</span>* ctx, linalg::Tensor&lt;float, 2&gt; <span class="keyword">const</span>&amp; t,</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>            HostDeviceVector&lt;float&gt; <span class="keyword">const</span>&amp; weights, linalg::Tensor&lt;float, 1&gt;* out);</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span> </div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><span class="keywordtype">void</span> Mean(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, linalg::Vector&lt;float&gt; <span class="keyword">const</span>&amp; v, linalg::Vector&lt;float&gt;* out);</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span><span class="keywordtype">void</span> Mean(Context <span class="keyword">const</span>* ctx, linalg::Vector&lt;float&gt; <span class="keyword">const</span>&amp; v, linalg::Vector&lt;float&gt;* out);</div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>}  <span class="comment">// namespace common</span></div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>}  <span class="comment">// namespace xgboost</span></div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span><span class="preprocessor">#endif  </span><span class="comment">// XGBOOST_COMMON_STATS_H_</span></div>
@@ -206,13 +206,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_1_1common_html_a68dcf181a0f4f781a06d6ccc551c2366"><div class="ttname"><a href="namespacexgboost_1_1common.html#a68dcf181a0f4f781a06d6ccc551c2366">xgboost::common::Quantile</a></div><div class="ttdeci">float Quantile(Context const *ctx, double alpha, Iter const &amp;begin, Iter const &amp;end)</div><div class="ttdoc">Quantile using linear interpolation.</div><div class="ttdef"><b>Definition</b> stats.h:34</div></div>
 <div class="ttc" id="anamespacexgboost_1_1common_html_a9dd9f42e35e68036ece6a8155d9d6964"><div class="ttname"><a href="namespacexgboost_1_1common.html#a9dd9f42e35e68036ece6a8155d9d6964">xgboost::common::Median</a></div><div class="ttdeci">void Median(Context const *ctx, linalg::Tensor&lt; float, 2 &gt; const &amp;t, HostDeviceVector&lt; float &gt; const &amp;weights, linalg::Tensor&lt; float, 1 &gt; *out)</div><div class="ttdoc">Calculate medians for each column of the input matrix.</div><div class="ttdef"><b>Definition</b> stats.cc:20</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
 <div class="ttc" id="axgboost_2src_2common_2common_8h_html"><div class="ttname"><a href="xgboost_2src_2common_2common_8h.html">common.h</a></div><div class="ttdoc">Copyright 2015-2023 by XGBoost Contributors.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

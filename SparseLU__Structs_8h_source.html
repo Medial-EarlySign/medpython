@@ -166,28 +166,28 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  IndexVector lsub; <span class="comment">// Compressed row indices of L rectangular supernodes. </span></div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>  IndexVector xlusup; <span class="comment">// pointers to the beginning of each column in lusup</span></div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>  IndexVector xlsub; <span class="comment">// pointers to the beginning of each column in lsub</span></div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  <a class="code hl_struct" href="structIndex.html">Index</a>   nzlmax; <span class="comment">// Current max size of lsub</span></div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  <a class="code hl_struct" href="structIndex.html">Index</a>   nzlumax; <span class="comment">// Current max size of lusup</span></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  Index   nzlmax; <span class="comment">// Current max size of lsub</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  Index   nzlumax; <span class="comment">// Current max size of lusup</span></div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>  ScalarVector  ucol; <span class="comment">// nonzero values of U ordered by columns </span></div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>  IndexVector usub; <span class="comment">// row indices of U columns in ucol</span></div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  IndexVector xusub; <span class="comment">// Pointers to the beginning of each column of U in ucol </span></div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  <a class="code hl_struct" href="structIndex.html">Index</a>   nzumax; <span class="comment">// Current max size of ucol</span></div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  <a class="code hl_struct" href="structIndex.html">Index</a>   n; <span class="comment">// Number of columns in the matrix  </span></div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  <a class="code hl_struct" href="structIndex.html">Index</a>   num_expansions; </div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  Index   nzumax; <span class="comment">// Current max size of ucol</span></div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  Index   n; <span class="comment">// Number of columns in the matrix  </span></div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  Index   num_expansions; </div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>};</div>
 </div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="comment">// Values to set for performance</span></div>
 <div class="foldopen" id="foldopen00096" data-start="{" data-end="};">
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1perfvalues.html">   96</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1perfvalues.html">perfvalues</a> {</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  <a class="code hl_struct" href="structIndex.html">Index</a> panel_size; <span class="comment">// a panel consists of at most &lt;panel_size&gt; consecutive columns</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>  <a class="code hl_struct" href="structIndex.html">Index</a> relax; <span class="comment">// To control degree of relaxing supernodes. If the number of nodes (columns) </span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  Index panel_size; <span class="comment">// a panel consists of at most &lt;panel_size&gt; consecutive columns</span></div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>  Index relax; <span class="comment">// To control degree of relaxing supernodes. If the number of nodes (columns) </span></div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>                <span class="comment">// in a subtree of the elimination tree is less than relax, this subtree is considered </span></div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>                <span class="comment">// as one supernode regardless of the row structures of those columns</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>  <a class="code hl_struct" href="structIndex.html">Index</a> maxsuper; <span class="comment">// The maximum size for a supernode in complete LU</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rowblk; <span class="comment">// The minimum row dimension for 2-D blocking to be used;</span></div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>  <a class="code hl_struct" href="structIndex.html">Index</a> colblk; <span class="comment">// The minimum column dimension for 2-D blocking to be used;</span></div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>  <a class="code hl_struct" href="structIndex.html">Index</a> fillfactor; <span class="comment">// The estimated fills factors for L and U, compared with A</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>  Index maxsuper; <span class="comment">// The maximum size for a supernode in complete LU</span></div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>  Index rowblk; <span class="comment">// The minimum row dimension for 2-D blocking to be used;</span></div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>  Index colblk; <span class="comment">// The minimum column dimension for 2-D blocking to be used;</span></div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>  Index fillfactor; <span class="comment">// The estimated fills factors for L and U, compared with A</span></div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>}; </div>
 </div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span> </div>
@@ -197,11 +197,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_LU_STRUCTS</span></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1LU__GlobalLU__t_html"><div class="ttname"><a href="structEigen_1_1internal_1_1LU__GlobalLU__t.html">Eigen::internal::LU_GlobalLU_t</a></div><div class="ttdef"><b>Definition</b> SparseLU_Structs.h:77</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1perfvalues_html"><div class="ttname"><a href="structEigen_1_1internal_1_1perfvalues.html">Eigen::internal::perfvalues</a></div><div class="ttdef"><b>Definition</b> SparseLU_Structs.h:96</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:37 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

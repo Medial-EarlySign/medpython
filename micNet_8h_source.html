@@ -260,7 +260,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    <span class="keywordtype">int</span> weights_normalization_step(); <span class="comment">// step for a normalization layer</span></div>
 <div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span> </div>
 <div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span> </div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    <span class="keywordtype">void</span> <a class="code hl_struct" href="structprint.html">print</a>(<span class="keyword">const</span> <span class="keywordtype">string</span> &amp;prefix, <span class="keywordtype">int</span> i_state, <span class="keywordtype">int</span> i_in);</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    <span class="keywordtype">void</span> print(<span class="keyword">const</span> <span class="keywordtype">string</span> &amp;prefix, <span class="keywordtype">int</span> i_state, <span class="keywordtype">int</span> i_in);</div>
 <div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span> </div>
 <div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>    std::default_random_engine gen;</div>
 <div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span> </div>
@@ -447,7 +447,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>        fprintf(stderr, <span class="stringliteral">&quot;micNet deserialize init with %s\n&quot;</span>, init_str.c_str());</div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>        init_net(init_str);</div>
 <div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>        size += MedSerialize::deserialize(&amp;blob[size], nodes);</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;<a class="code hl_struct" href="structnode.html">node</a> : nodes) { <a class="code hl_struct" href="structnode.html">node</a>.my_net = <span class="keyword">this</span>; }</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;node : nodes) { node.my_net = <span class="keyword">this</span>; }</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>        <span class="keywordflow">return</span> size;</div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>    }</div>
 </div>
@@ -483,12 +483,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassmicNet_html_ab11cef58b922faebd265adf19473d810"><div class="ttname"><a href="classmicNet.html#ab11cef58b922faebd265adf19473d810">micNet::deserialize</a></div><div class="ttdeci">size_t deserialize(unsigned char *blob)</div><div class="ttdoc">Deserialiazing blob to object. returns number of bytes read.</div><div class="ttdef"><b>Definition</b> micNet.h:351</div></div>
 <div class="ttc" id="aclassmicNode_html"><div class="ttname"><a href="classmicNode.html">micNode</a></div><div class="ttdef"><b>Definition</b> micNet.h:68</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
-<div class="ttc" id="astructnode_html"><div class="ttname"><a href="structnode.html">node</a></div><div class="ttdef"><b>Definition</b> log_multi.cc:54</div></div>
-<div class="ttc" id="astructprint_html"><div class="ttname"><a href="structprint.html">print</a></div><div class="ttdef"><b>Definition</b> print.cc:6</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -90,22 +90,22 @@ Public Types</h2></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ab6ef495befcff2df21dcd72b23c63d8b" id="r_ab6ef495befcff2df21dcd72b23c63d8b"><td class="memItemLeft" align="right" valign="top"><a id="ab6ef495befcff2df21dcd72b23c63d8b" name="ab6ef495befcff2df21dcd72b23c63d8b"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>gemm_functor</b> (const Lhs &amp;lhs, const Rhs &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;dest, const Scalar &amp;<a class="el" href="classEigen_1_1Solve.html">actualAlpha</a>, <a class="el" href="classEigen_1_1Solve.html">BlockingType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">blocking</a>)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>gemm_functor</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Lhs &amp;lhs, <a class="el" href="classEigen_1_1Solve.html">const</a> Rhs &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;dest, <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;<a class="el" href="classEigen_1_1Solve.html">actualAlpha</a>, <a class="el" href="classEigen_1_1Solve.html">BlockingType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">blocking</a>)</td></tr>
 <tr class="separator:ab6ef495befcff2df21dcd72b23c63d8b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a10901ca9388438219a91c0968e8118d9" id="r_a10901ca9388438219a91c0968e8118d9"><td class="memItemLeft" align="right" valign="top"><a id="a10901ca9388438219a91c0968e8118d9" name="a10901ca9388438219a91c0968e8118d9"></a>
-<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>initParallelSession</b> (<a class="el" href="structIndex.html">Index</a> num_threads) const</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>initParallelSession</b> (Index num_threads) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a10901ca9388438219a91c0968e8118d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adf335ccd5e878cddf3145d890c888ccb" id="r_adf335ccd5e878cddf3145d890c888ccb"><td class="memItemLeft" align="right" valign="top"><a id="adf335ccd5e878cddf3145d890c888ccb" name="adf335ccd5e878cddf3145d890c888ccb"></a>
-<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="structIndex.html">Index</a> row, <a class="el" href="structIndex.html">Index</a> rows, <a class="el" href="structIndex.html">Index</a> col=0, <a class="el" href="structIndex.html">Index</a> cols=-1, <a class="el" href="structEigen_1_1internal_1_1GemmParallelInfo.html">GemmParallelInfo</a>&lt; <a class="el" href="structIndex.html">Index</a> &gt; *info=0) const</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (Index row, Index rows, Index col=0, Index cols=-1, <a class="el" href="structEigen_1_1internal_1_1GemmParallelInfo.html">GemmParallelInfo</a>&lt; Index &gt; *info=0) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:adf335ccd5e878cddf3145d890c888ccb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:ac6f8ffeaafe2b77482fb2823b873229a" id="r_ac6f8ffeaafe2b77482fb2823b873229a"><td class="memItemLeft" align="right" valign="top"><a id="ac6f8ffeaafe2b77482fb2823b873229a" name="ac6f8ffeaafe2b77482fb2823b873229a"></a>
-const Lhs &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_lhs</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> Lhs &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_lhs</b></td></tr>
 <tr class="separator:ac6f8ffeaafe2b77482fb2823b873229a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1dbea6badf09fbba36dc310601e31a77" id="r_a1dbea6badf09fbba36dc310601e31a77"><td class="memItemLeft" align="right" valign="top"><a id="a1dbea6badf09fbba36dc310601e31a77" name="a1dbea6badf09fbba36dc310601e31a77"></a>
-const Rhs &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_rhs</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">const</a> Rhs &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_rhs</b></td></tr>
 <tr class="separator:a1dbea6badf09fbba36dc310601e31a77"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0a5d7ecf3c8912fd58586b29f8649def" id="r_a0a5d7ecf3c8912fd58586b29f8649def"><td class="memItemLeft" align="right" valign="top"><a id="a0a5d7ecf3c8912fd58586b29f8649def" name="a0a5d7ecf3c8912fd58586b29f8649def"></a>
 <a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_dest</b></td></tr>
@@ -123,7 +123,7 @@ Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_actualAlpha</b></
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:11 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:42 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

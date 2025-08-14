@@ -187,7 +187,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  <span class="keyword">struct</span></div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>  {</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">union </span>{<span class="keywordtype">int</span> nnz;<span class="keywordtype">int</span> <a class="code hl_struct" href="structlda.html">lda</a>;};</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">union </span>{<span class="keywordtype">int</span> nnz;<span class="keywordtype">int</span> lda;};</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    <span class="keywordtype">void</span> *values;</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    <span class="keywordtype">int</span> *innerInd;</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>    <span class="keywordtype">int</span> *outerInd;</div>
@@ -355,7 +355,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>  eigen_assert((Flags&amp;<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>)==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a> &amp;&amp; sluMat.Stype == SLU_NR</div>
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>         || (Flags&amp;<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca0103672ae41005ab03b4176c765afd62">ColMajor</a>)==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca0103672ae41005ab03b4176c765afd62">ColMajor</a> &amp;&amp; sluMat.Stype == SLU_NC);</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> </div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>  <a class="code hl_struct" href="structIndex.html">Index</a> outerSize = (Flags&amp;<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>)==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a> ? sluMat.ncol : sluMat.nrow;</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>  Index outerSize = (Flags&amp;<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>)==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a> ? sluMat.ncol : sluMat.nrow;</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span> </div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>  <span class="keywordflow">return</span> MappedSparseMatrix&lt;Scalar,Flags,Index&gt;(</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    sluMat.nrow, sluMat.ncol, sluMat.storage.outerInd[outerSize],</div>
@@ -396,8 +396,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>      clearFactors();</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>    }</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>    </div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_matrix.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_matrix.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>    <span class="keyword">inline</span> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_matrix.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    <span class="keyword">inline</span> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_matrix.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    </div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno"><a class="line" href="classEigen_1_1SuperLUBase.html#a6113a39c2e8f993f9e76743132eb695a">  325</a></span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1Solve.html">superlu_options_t</a>&amp; <a class="code hl_function" href="classEigen_1_1SuperLUBase.html#a6113a39c2e8f993f9e76743132eb695a">options</a>() { <span class="keywordflow">return</span> m_sluOptions; }</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    </div>
@@ -428,7 +428,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>    </div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Stream&gt;</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>    <span class="keywordtype">void</span> dumpMemory(<a class="code hl_class" href="classrapidjson_1_1Stream.html">Stream</a>&amp; <span class="comment">/*s*/</span>)</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>    <span class="keywordtype">void</span> dumpMemory(Stream&amp; <span class="comment">/*s*/</span>)</div>
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>    {}</div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>    </div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  <span class="keyword">protected</span>:</div>
@@ -437,7 +437,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>    {</div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>      set_default_options(&amp;this-&gt;m_sluOptions);</div>
 <div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>      </div>
-<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>      <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> size = a.rows();</div>
+<div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>      <span class="keyword">const</span> Index size = a.rows();</div>
 <div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>      m_matrix = a;</div>
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>      m_sluA = internal::asSluMatrix(m_matrix);</div>
@@ -673,8 +673,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00624" name="l00624"></a><span class="lineno">  624</span><span class="keyword"></span>{</div>
 <div class="line"><a id="l00625" name="l00625"></a><span class="lineno">  625</span>  eigen_assert(m_factorizationIsOk &amp;&amp; <span class="stringliteral">&quot;The decomposition is not in a valid state for solving, you must first call either compute() or analyzePattern()/factorize()&quot;</span>);</div>
 <div class="line"><a id="l00626" name="l00626"></a><span class="lineno">  626</span> </div>
-<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> size = m_matrix.rows();</div>
-<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a> = b.cols();</div>
+<div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>  <span class="keyword">const</span> Index size = m_matrix.rows();</div>
+<div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>  <span class="keyword">const</span> Index <a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a> = b.cols();</div>
 <div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>  eigen_assert(size==b.rows());</div>
 <div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span> </div>
 <div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span>  m_sluOptions.Trans = <a class="code hl_class" href="classEigen_1_1Solve.html">NOTRANS</a>;</div>
@@ -739,7 +739,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00690" name="l00690"></a><span class="lineno">  690</span>    NCformat    *Ustore = <span class="keyword">static_cast&lt;</span>NCformat*<span class="keyword">&gt;</span>(m_sluU.Store);</div>
 <div class="line"><a id="l00691" name="l00691"></a><span class="lineno">  691</span>    Scalar      *SNptr;</div>
 <div class="line"><a id="l00692" name="l00692"></a><span class="lineno">  692</span> </div>
-<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span>    <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> size = m_matrix.rows();</div>
+<div class="line"><a id="l00693" name="l00693"></a><span class="lineno">  693</span>    <span class="keyword">const</span> Index size = m_matrix.rows();</div>
 <div class="line"><a id="l00694" name="l00694"></a><span class="lineno">  694</span>    m_l.resize(size,size);</div>
 <div class="line"><a id="l00695" name="l00695"></a><span class="lineno">  695</span>    m_l.resizeNonZeros(Lstore-&gt;nnz);</div>
 <div class="line"><a id="l00696" name="l00696"></a><span class="lineno">  696</span>    m_u.resize(size,size);</div>
@@ -1033,7 +1033,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassEigen_1_1SuperLU_html"><div class="ttname"><a href="classEigen_1_1SuperLU.html">Eigen::SuperLU</a></div><div class="ttdoc">A sparse direct LU factorization and solver based on the SuperLU library.</div><div class="ttdef"><b>Definition</b> SuperLUSupport.h:463</div></div>
 <div class="ttc" id="aclassEigen_1_1SuperLU_html_a0b5a5fbda1a1f368003c7c01021a4636"><div class="ttname"><a href="classEigen_1_1SuperLU.html#a0b5a5fbda1a1f368003c7c01021a4636">Eigen::SuperLU::factorize</a></div><div class="ttdeci">void factorize(const MatrixType &amp;matrix)</div><div class="ttdoc">Performs a numeric decomposition of matrix.</div><div class="ttdef"><b>Definition</b> SuperLUSupport.h:587</div></div>
 <div class="ttc" id="aclassEigen_1_1SuperLU_html_a493cdfada27415a6037b004ff974eace"><div class="ttname"><a href="classEigen_1_1SuperLU.html#a493cdfada27415a6037b004ff974eace">Eigen::SuperLU::analyzePattern</a></div><div class="ttdeci">void analyzePattern(const MatrixType &amp;matrix)</div><div class="ttdoc">Performs a symbolic decomposition on the sparcity of matrix.</div><div class="ttdef"><b>Definition</b> SuperLUSupport.h:498</div></div>
-<div class="ttc" id="aclassrapidjson_1_1Stream_html"><div class="ttname"><a href="classrapidjson_1_1Stream.html">Stream</a></div><div class="ttdoc">Concept for reading and writing characters.</div></div>
 <div class="ttc" id="agroup__enums_html_ga85fad7b87587764e5cf6b513a9e0ee5e"><div class="ttname"><a href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">Eigen::ComputationInfo</a></div><div class="ttdeci">ComputationInfo</div><div class="ttdoc">Enum for reporting the status of a computation.</div><div class="ttdef"><b>Definition</b> Constants.h:430</div></div>
 <div class="ttc" id="agroup__enums_html_gga0b06f085c10989918a1d641b40ab933eacf9ccb2016f8b9c0f3268f05a1e75821"><div class="ttname"><a href="group__enums.html#gga0b06f085c10989918a1d641b40ab933eacf9ccb2016f8b9c0f3268f05a1e75821">Eigen::SelfAdjoint</a></div><div class="ttdeci">@ SelfAdjoint</div><div class="ttdoc">Used in BandMatrix and SelfAdjointView to indicate that the matrix is self-adjoint.</div><div class="ttdef"><b>Definition</b> Constants.h:220</div></div>
 <div class="ttc" id="agroup__enums_html_gga0b06f085c10989918a1d641b40ab933eaf581029282d421eee5aae14238c6f749"><div class="ttname"><a href="group__enums.html#gga0b06f085c10989918a1d641b40ab933eaf581029282d421eee5aae14238c6f749">Eigen::Lower</a></div><div class="ttdeci">@ Lower</div><div class="ttdoc">View matrix as a lower triangular matrix.</div><div class="ttdef"><b>Definition</b> Constants.h:204</div></div>
@@ -1048,13 +1047,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1SluMatrixMapHelper_html"><div class="ttname"><a href="structEigen_1_1SluMatrixMapHelper.html">Eigen::SluMatrixMapHelper</a></div><div class="ttdef"><b>Definition</b> SuperLUSupport.h:80</div></div>
 <div class="ttc" id="astructEigen_1_1SluMatrix_html"><div class="ttname"><a href="structEigen_1_1SluMatrix.html">Eigen::SluMatrix</a></div><div class="ttdef"><b>Definition</b> SuperLUSupport.h:90</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1is__same_html"><div class="ttname"><a href="structEigen_1_1internal_1_1is__same.html">Eigen::internal::is_same</a></div><div class="ttdef"><b>Definition</b> Meta.h:39</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 <div class="ttc" id="astruct__Matrix_html"><div class="ttname"><a href="struct__Matrix.html">_Matrix</a></div><div class="ttdef"><b>Definition</b> inference.c:32</div></div>
-<div class="ttc" id="astructlda_html"><div class="ttname"><a href="structlda.html">lda</a></div><div class="ttdef"><b>Definition</b> lda_core.cc:54</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:39 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

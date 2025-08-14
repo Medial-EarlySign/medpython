@@ -123,8 +123,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>    : m_dec(dec), m_rhs(rhs), m_guess(guess)</div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  {}</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  </div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_dec.cols(); }</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhs.cols(); }</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_dec.cols(); }</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhs.cols(); }</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span> </div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Decomposition</a>&amp; dec()<span class="keyword">   const </span>{ <span class="keywordflow">return</span> m_dec; }</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">RhsType</a>&amp;       rhs()<span class="keyword">   const </span>{ <span class="keywordflow">return</span> m_rhs; }</div>
@@ -136,8 +136,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>  <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">GuessType</a>     &amp;m_guess;</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>  </div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="keyword">private</span>:</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  Scalar coeff(<a class="code hl_struct" href="structIndex.html">Index</a> row, <a class="code hl_struct" href="structIndex.html">Index</a> col) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  Scalar coeff(<a class="code hl_struct" href="structIndex.html">Index</a> i) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  Scalar coeff(Index row, Index col) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  Scalar coeff(Index i) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>};</div>
 </div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
@@ -188,11 +188,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1assign__op_html"><div class="ttname"><a href="structEigen_1_1internal_1_1assign__op.html">Eigen::internal::assign_op</a></div><div class="ttdef"><b>Definition</b> AssignmentFunctors.h:21</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1generic__xpr__base_html"><div class="ttname"><a href="structEigen_1_1internal_1_1generic__xpr__base.html">Eigen::internal::generic_xpr_base</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:445</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

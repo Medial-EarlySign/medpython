@@ -177,7 +177,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstore &lt;std::complex&lt;float&gt; &gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet4cf&amp; from) { EIGEN_DEBUG_ALIGNED_STORE pstore(&amp;numext::real_ref(*to), from.v); }</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstoreu&lt;std::complex&lt;float&gt; &gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet4cf&amp; from) { EIGEN_DEBUG_UNALIGNED_STORE pstoreu(&amp;numext::real_ref(*to), from.v); }</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4cf pgather&lt;std::complex&lt;float&gt;, Packet4cf&gt;(<span class="keyword">const</span> std::complex&lt;float&gt;* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4cf pgather&lt;std::complex&lt;float&gt;, Packet4cf&gt;(<span class="keyword">const</span> std::complex&lt;float&gt;* from, Index stride)</div>
 <div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>{</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  <span class="keywordflow">return</span> Packet4cf(_mm256_set_ps(std::imag(from[3*stride]), std::real(from[3*stride]),</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>                                 std::imag(from[2*stride]), std::real(from[2*stride]),</div>
@@ -185,7 +185,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>                                 std::imag(from[0*stride]), std::real(from[0*stride])));</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>}</div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span> </div>
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;float&gt;, Packet4cf&gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet4cf&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;float&gt;, Packet4cf&gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet4cf&amp; from, Index stride)</div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>{</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>  __m128 low = _mm256_extractf128_ps(from.v, 0);</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>  to[stride*0] = std::complex&lt;float&gt;(_mm_cvtss_f32(_mm_shuffle_ps(low, low, 0)),</div>
@@ -411,13 +411,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstore &lt;std::complex&lt;double&gt; &gt;(std::complex&lt;double&gt; *   to, <span class="keyword">const</span> Packet2cd&amp; from) { EIGEN_DEBUG_ALIGNED_STORE pstore((<span class="keywordtype">double</span>*)to, from.v); }</div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstoreu&lt;std::complex&lt;double&gt; &gt;(std::complex&lt;double&gt; *   to, <span class="keyword">const</span> Packet2cd&amp; from) { EIGEN_DEBUG_UNALIGNED_STORE pstoreu((<span class="keywordtype">double</span>*)to, from.v); }</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span> </div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2cd pgather&lt;std::complex&lt;double&gt;, Packet2cd&gt;(<span class="keyword">const</span> std::complex&lt;double&gt;* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2cd pgather&lt;std::complex&lt;double&gt;, Packet2cd&gt;(<span class="keyword">const</span> std::complex&lt;double&gt;* from, Index stride)</div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>{</div>
 <div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>  <span class="keywordflow">return</span> Packet2cd(_mm256_set_pd(std::imag(from[1*stride]), std::real(from[1*stride]),</div>
 <div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>                 std::imag(from[0*stride]), std::real(from[0*stride])));</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>}</div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span> </div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;double&gt;, Packet2cd&gt;(std::complex&lt;double&gt;* to, <span class="keyword">const</span> Packet2cd&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;double&gt;, Packet2cd&gt;(std::complex&lt;double&gt;* to, <span class="keyword">const</span> Packet2cd&amp; from, Index stride)</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>{</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>  __m128d low = _mm256_extractf128_pd(from.v, 0);</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>  to[stride*0] = std::complex&lt;double&gt;(_mm_cvtsd_f64(low), _mm_cvtsd_f64(_mm_shuffle_pd(low, low, 1)));</div>
@@ -586,11 +586,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1packet__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1packet__traits.html">Eigen::internal::packet_traits</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:90</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1palign__impl_html"><div class="ttname"><a href="structEigen_1_1internal_1_1palign__impl.html">Eigen::internal::palign_impl</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:505</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unpacket__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unpacket__traits.html">Eigen::internal::unpacket_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:119</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:53:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

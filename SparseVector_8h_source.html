@@ -151,10 +151,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>      Options = _Options</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    };</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    </div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> IsColVector ? m_size : 1; }</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> IsColVector ? 1 : m_size; }</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> innerSize()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_size; }</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> outerSize()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> 1; }</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    EIGEN_STRONG_INLINE Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> IsColVector ? m_size : 1; }</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    EIGEN_STRONG_INLINE Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> IsColVector ? 1 : m_size; }</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    EIGEN_STRONG_INLINE Index innerSize()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_size; }</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>    EIGEN_STRONG_INLINE Index outerSize()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> 1; }</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    EIGEN_STRONG_INLINE <span class="keyword">const</span> Scalar* valuePtr()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> &amp;m_data.value(0); }</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    EIGEN_STRONG_INLINE Scalar* valuePtr() { <span class="keywordflow">return</span> &amp;m_data.value(0); }</div>
@@ -170,25 +170,25 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1internal_1_1CompressedStorage.html">Storage</a>&amp; data() { <span class="keywordflow">return</span> m_data; }</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    <span class="keyword">inline</span> <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1internal_1_1CompressedStorage.html">Storage</a>&amp; data()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_data; }</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keyword">inline</span> Scalar coeff(<a class="code hl_struct" href="structIndex.html">Index</a> row, <a class="code hl_struct" href="structIndex.html">Index</a> col)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keyword">inline</span> Scalar coeff(Index row, Index col)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>      eigen_assert(IsColVector ? (col==0 &amp;&amp; row&gt;=0 &amp;&amp; row&lt;m_size) : (row==0 &amp;&amp; col&gt;=0 &amp;&amp; col&lt;m_size));</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      <span class="keywordflow">return</span> coeff(IsColVector ? row : col);</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    }</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    <span class="keyword">inline</span> Scalar coeff(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    <span class="keyword">inline</span> Scalar coeff(Index i)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>      eigen_assert(i&gt;=0 &amp;&amp; i&lt;m_size);</div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>      <span class="keywordflow">return</span> m_data.<a class="code hl_function" href="classEigen_1_1internal_1_1CompressedStorage.html#a0fe151c0217177fd43df764e8e0cdec2">at</a>(StorageIndex(i));</div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    }</div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(<a class="code hl_struct" href="structIndex.html">Index</a> row, <a class="code hl_struct" href="structIndex.html">Index</a> col)</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(Index row, Index col)</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    {</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>      eigen_assert(IsColVector ? (col==0 &amp;&amp; row&gt;=0 &amp;&amp; row&lt;m_size) : (row==0 &amp;&amp; col&gt;=0 &amp;&amp; col&lt;m_size));</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>      <span class="keywordflow">return</span> coeffRef(IsColVector ? row : col);</div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>    }</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span> </div>
 <div class="foldopen" id="foldopen00125" data-start="{" data-end="}">
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno"><a class="line" href="classEigen_1_1SparseVector.html#a6115473b2e7003fe8d69be82d77f18b5">  125</a></span>    <span class="keyword">inline</span> Scalar&amp; <a class="code hl_function" href="classEigen_1_1SparseVector.html#a6115473b2e7003fe8d69be82d77f18b5">coeffRef</a>(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno"><a class="line" href="classEigen_1_1SparseVector.html#a6115473b2e7003fe8d69be82d77f18b5">  125</a></span>    <span class="keyword">inline</span> Scalar&amp; <a class="code hl_function" href="classEigen_1_1SparseVector.html#a6115473b2e7003fe8d69be82d77f18b5">coeffRef</a>(Index i)</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    {</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>      eigen_assert(i&gt;=0 &amp;&amp; i&lt;m_size);</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>      <span class="keywordflow">return</span> m_data.<a class="code hl_function" href="classEigen_1_1internal_1_1CompressedStorage.html#aa2d24623b6558ccc226161015c03b5ec">atWithInsertion</a>(StorageIndex(i));</div>
@@ -202,54 +202,54 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> setZero() { m_data.clear(); }</div>
 <div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span> </div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno"><a class="line" href="classEigen_1_1SparseVector.html#aeaa74603bb1405f622726907795c9b5a">  139</a></span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1SparseVector.html#aeaa74603bb1405f622726907795c9b5a">nonZeros</a>()<span class="keyword"> const  </span>{ <span class="keywordflow">return</span> m_data.size(); }</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno"><a class="line" href="classEigen_1_1SparseVector.html#aeaa74603bb1405f622726907795c9b5a">  139</a></span>    <span class="keyword">inline</span> Index <a class="code hl_function" href="classEigen_1_1SparseVector.html#aeaa74603bb1405f622726907795c9b5a">nonZeros</a>()<span class="keyword"> const  </span>{ <span class="keywordflow">return</span> m_data.size(); }</div>
 <div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span> </div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> startVec(<a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> startVec(Index outer)</div>
 <div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>    {</div>
 <div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>      EIGEN_UNUSED_VARIABLE(outer);</div>
 <div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>      eigen_assert(outer==0);</div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>    }</div>
 <div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span> </div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keyword">inline</span> Scalar&amp; insertBackByOuterInner(<a class="code hl_struct" href="structIndex.html">Index</a> outer, <a class="code hl_struct" href="structIndex.html">Index</a> inner)</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keyword">inline</span> Scalar&amp; insertBackByOuterInner(Index outer, Index inner)</div>
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>    {</div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>      EIGEN_UNUSED_VARIABLE(outer);</div>
 <div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>      eigen_assert(outer==0);</div>
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>      <span class="keywordflow">return</span> insertBack(inner);</div>
 <div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    }</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    <span class="keyword">inline</span> Scalar&amp; insertBack(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    <span class="keyword">inline</span> Scalar&amp; insertBack(Index i)</div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>    {</div>
 <div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>      m_data.append(0, i);</div>
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>      <span class="keywordflow">return</span> m_data.value(m_data.size()-1);</div>
 <div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>    }</div>
 <div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>    </div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>    Scalar&amp; insertBackByOuterInnerUnordered(<a class="code hl_struct" href="structIndex.html">Index</a> outer, <a class="code hl_struct" href="structIndex.html">Index</a> inner)</div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>    Scalar&amp; insertBackByOuterInnerUnordered(Index outer, Index inner)</div>
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>    {</div>
 <div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>      EIGEN_UNUSED_VARIABLE(outer);</div>
 <div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>      eigen_assert(outer==0);</div>
 <div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>      <span class="keywordflow">return</span> insertBackUnordered(inner);</div>
 <div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    }</div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <span class="keyword">inline</span> Scalar&amp; insertBackUnordered(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <span class="keyword">inline</span> Scalar&amp; insertBackUnordered(Index i)</div>
 <div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    {</div>
 <div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>      m_data.append(0, i);</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>      <span class="keywordflow">return</span> m_data.value(m_data.size()-1);</div>
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>    }</div>
 <div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span> </div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    <span class="keyword">inline</span> Scalar&amp; insert(<a class="code hl_struct" href="structIndex.html">Index</a> row, <a class="code hl_struct" href="structIndex.html">Index</a> col)</div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>    <span class="keyword">inline</span> Scalar&amp; insert(Index row, Index col)</div>
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>    {</div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>      eigen_assert(IsColVector ? (col==0 &amp;&amp; row&gt;=0 &amp;&amp; row&lt;m_size) : (row==0 &amp;&amp; col&gt;=0 &amp;&amp; col&lt;m_size));</div>
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>      </div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>      <a class="code hl_struct" href="structIndex.html">Index</a> inner = IsColVector ? row : col;</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>      <a class="code hl_struct" href="structIndex.html">Index</a> outer = IsColVector ? col : row;</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>      <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> inner = IsColVector ? row : col;</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>      <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> outer = IsColVector ? col : row;</div>
 <div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>      EIGEN_ONLY_USED_FOR_DEBUG(outer);</div>
 <div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>      eigen_assert(outer==0);</div>
 <div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>      <span class="keywordflow">return</span> insert(inner);</div>
 <div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    }</div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    Scalar&amp; insert(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>    Scalar&amp; insert(Index i)</div>
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    {</div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>      eigen_assert(i&gt;=0 &amp;&amp; i&lt;m_size);</div>
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>      </div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>      <a class="code hl_struct" href="structIndex.html">Index</a> startId = 0;</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>      <a class="code hl_struct" href="structIndex.html">Index</a> p = <a class="code hl_struct" href="structIndex.html">Index</a>(m_data.size()) - 1;</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>      <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> startId = 0;</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>      <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> p = <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>(m_data.size()) - 1;</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>      <span class="comment">// TODO smart realloc</span></div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>      m_data.resize(p+2,1);</div>
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
@@ -264,7 +264,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>      <span class="keywordflow">return</span> m_data.value(p+1);</div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    }</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> reserve(<a class="code hl_struct" href="structIndex.html">Index</a> reserveSize) { m_data.reserve(reserveSize); }</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> reserve(Index reserveSize) { m_data.reserve(reserveSize); }</div>
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span> </div>
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> finalize() {}</div>
@@ -274,25 +274,25 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>      m_data.prune(reference,epsilon);</div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    }</div>
 <div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span> </div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    <span class="keywordtype">void</span> resize(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols)</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    <span class="keywordtype">void</span> resize(Index rows, Index cols)</div>
 <div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>    {</div>
 <div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>      eigen_assert((IsColVector ? cols : rows)==1 &amp;&amp; <span class="stringliteral">&quot;Outer dimension must equal 1&quot;</span>);</div>
 <div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>      resize(IsColVector ? rows : cols);</div>
 <div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>    }</div>
 <div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span> </div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    <span class="keywordtype">void</span> resize(<a class="code hl_struct" href="structIndex.html">Index</a> newSize)</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    <span class="keywordtype">void</span> resize(Index newSize)</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    {</div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>      m_size = newSize;</div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>      m_data.clear();</div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    }</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    <span class="keywordtype">void</span> resizeNonZeros(<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>) { m_data.resize(<a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>); }</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    <span class="keywordtype">void</span> resizeNonZeros(Index <a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>) { m_data.resize(<a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>); }</div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span> </div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    <span class="keyword">inline</span> SparseVector() : m_size(0) { check_template_parameters(); resize(0); }</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    <span class="keyword">explicit</span> <span class="keyword">inline</span> SparseVector(<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>) : m_size(0) { check_template_parameters(); resize(<a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>); }</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    <span class="keyword">explicit</span> <span class="keyword">inline</span> SparseVector(Index <a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>) : m_size(0) { check_template_parameters(); resize(<a class="code hl_function" href="classEigen_1_1SparseMatrixBase.html#a124bc57921775eb9aa2dfd9727e23472">size</a>); }</div>
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keyword">inline</span> SparseVector(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols) : m_size(0) { check_template_parameters(); resize(rows,cols); }</div>
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keyword">inline</span> SparseVector(Index rows, Index cols) : m_size(0) { check_template_parameters(); resize(rows,cols); }</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span> </div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherDerived&gt;</div>
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    <span class="keyword">inline</span> SparseVector(<span class="keyword">const</span> SparseMatrixBase&lt;OtherDerived&gt;&amp; other)</div>
@@ -353,7 +353,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span> </div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    <span class="keyword">friend</span> std::ostream &amp; operator &lt;&lt; (std::ostream &amp; s, <span class="keyword">const</span> SparseVector&amp; m)</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>    {</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i=0; i&lt;m.nonZeros(); ++i)</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>      <span class="keywordflow">for</span> (Index i=0; i&lt;m.nonZeros(); ++i)</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>        s &lt;&lt; <span class="stringliteral">&quot;(&quot;</span> &lt;&lt; m.m_data.value(i) &lt;&lt; <span class="stringliteral">&quot;,&quot;</span> &lt;&lt; m.m_data.index(i) &lt;&lt; <span class="stringliteral">&quot;) &quot;</span>;</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>      s &lt;&lt; std::endl;</div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>      <span class="keywordflow">return</span> s;</div>
@@ -365,31 +365,31 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span> </div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span> </div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    EIGEN_DEPRECATED <span class="keywordtype">void</span> startFill(<a class="code hl_struct" href="structIndex.html">Index</a> reserve)</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    EIGEN_DEPRECATED <span class="keywordtype">void</span> startFill(Index reserve)</div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    {</div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>      setZero();</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      m_data.reserve(reserve);</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>    }</div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span> </div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>    EIGEN_DEPRECATED Scalar&amp; fill(<a class="code hl_struct" href="structIndex.html">Index</a> r, <a class="code hl_struct" href="structIndex.html">Index</a> c)</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>    EIGEN_DEPRECATED Scalar&amp; fill(Index r, Index c)</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>    {</div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>      eigen_assert(r==0 || c==0);</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>      <span class="keywordflow">return</span> fill(IsColVector ? r : c);</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>    }</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span> </div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    EIGEN_DEPRECATED Scalar&amp; fill(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    EIGEN_DEPRECATED Scalar&amp; fill(Index i)</div>
 <div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    {</div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>      m_data.append(0, i);</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>      <span class="keywordflow">return</span> m_data.value(m_data.size()-1);</div>
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    }</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span> </div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    EIGEN_DEPRECATED Scalar&amp; fillrand(<a class="code hl_struct" href="structIndex.html">Index</a> r, <a class="code hl_struct" href="structIndex.html">Index</a> c)</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    EIGEN_DEPRECATED Scalar&amp; fillrand(Index r, Index c)</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    {</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>      eigen_assert(r==0 || c==0);</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>      <span class="keywordflow">return</span> fillrand(IsColVector ? r : c);</div>
 <div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    }</div>
 <div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span> </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    EIGEN_DEPRECATED Scalar&amp; fillrand(<a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    EIGEN_DEPRECATED Scalar&amp; fillrand(Index i)</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    {</div>
 <div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>      <span class="keywordflow">return</span> insert(i);</div>
 <div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    }</div>
@@ -413,7 +413,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>    }</div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>    </div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>    Storage m_data;</div>
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>    <a class="code hl_struct" href="structIndex.html">Index</a> m_size;</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>    <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> m_size;</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>};</div>
 </div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span> </div>
@@ -438,7 +438,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>    EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);</div>
 <div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>  }</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>  </div>
-<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>  <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <span class="keywordflow">return</span> m_matrix.nonZeros();</div>
 <div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>  }</div>
 <div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>  </div>
@@ -469,7 +469,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>    eigen_internal_assert(<a class="code hl_class" href="classEigen_1_1Solve.html">src</a>.outerSize()==<a class="code hl_class" href="classEigen_1_1Solve.html">src</a>.size());</div>
 <div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    <span class="keyword">typedef</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1evaluator.html">internal::evaluator&lt;Src&gt;</a> SrcEvaluatorType;</div>
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>    SrcEvaluatorType <a class="code hl_class" href="classEigen_1_1Solve.html">srcEval</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">src</a>);</div>
-<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=0; i&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">src</a>.size(); ++i)</div>
+<div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    <span class="keywordflow">for</span>(Index i=0; i&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">src</a>.size(); ++i)</div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>    {</div>
 <div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>      <span class="keyword">typename</span> SrcEvaluatorType::InnerIterator it(<a class="code hl_class" href="classEigen_1_1Solve.html">srcEval</a>, i);</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>      <span class="keywordflow">if</span>(it)</div>
@@ -514,6 +514,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:61</div></div>
 <div class="ttc" id="agroup__flags_html_gaed0244284da47a2b8661261431173caf"><div class="ttname"><a href="group__flags.html#gaed0244284da47a2b8661261431173caf">Eigen::CompressedAccessBit</a></div><div class="ttdeci">const unsigned int CompressedAccessBit</div><div class="ttdoc">Means that the underlying coefficients can be accessed through pointers to the sparse (un)compressed ...</div><div class="ttdef"><b>Definition</b> Constants.h:185</div></div>
 <div class="ttc" id="anamespacestd_html_ab5fa3119ddc434392ecca8849e2e08e1"><div class="ttname"><a href="namespacestd.html#ab5fa3119ddc434392ecca8849e2e08e1">std::swap</a></div><div class="ttdeci">NLOHMANN_BASIC_JSON_TPL_DECLARATION void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j1, nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j2) noexcept(//NOLINT(readability-inconsistent-declaration-parameter-name, cert-dcl58-cpp) is_nothrow_move_constructible&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value &amp;&amp;//NOLINT(misc-redundant-expression) is_nothrow_move_assignable&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value)</div><div class="ttdoc">exchanges the values of two JSON objects</div><div class="ttdef"><b>Definition</b> json.hpp:24418</div></div>
+<div class="ttc" id="astructEigen_1_1EigenBase_html_a554f30542cc2316add4b1ea0a492ff02"><div class="ttname"><a href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Eigen::EigenBase::Index</a></div><div class="ttdeci">Eigen::Index Index</div><div class="ttdoc">The interface type of indices.</div><div class="ttdef"><b>Definition</b> EigenBase.h:37</div></div>
 <div class="ttc" id="astructEigen_1_1MatrixXpr_html"><div class="ttname"><a href="structEigen_1_1MatrixXpr.html">Eigen::MatrixXpr</a></div><div class="ttdoc">The type used to identify a matrix expression.</div><div class="ttdef"><b>Definition</b> Constants.h:505</div></div>
 <div class="ttc" id="astructEigen_1_1NumTraits_html"><div class="ttname"><a href="structEigen_1_1NumTraits.html">Eigen::NumTraits</a></div><div class="ttdoc">Holds information about the various numeric (i.e.</div><div class="ttdef"><b>Definition</b> NumTraits.h:108</div></div>
 <div class="ttc" id="astructEigen_1_1Sparse_html"><div class="ttname"><a href="structEigen_1_1Sparse.html">Eigen::Sparse</a></div><div class="ttdoc">The type used to identify a general sparse storage.</div><div class="ttdef"><b>Definition</b> Constants.h:493</div></div>
@@ -521,11 +522,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1evaluator_html"><div class="ttname"><a href="structEigen_1_1internal_1_1evaluator.html">Eigen::internal::evaluator</a></div><div class="ttdef"><b>Definition</b> CoreEvaluators.h:82</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1sparse__vector__assign__selector_html"><div class="ttname"><a href="structEigen_1_1internal_1_1sparse__vector__assign__selector.html">Eigen::internal::sparse_vector_assign_selector</a></div><div class="ttdef"><b>Definition</b> SparseVector.h:59</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:36 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

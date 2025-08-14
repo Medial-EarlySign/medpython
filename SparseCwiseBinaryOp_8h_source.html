@@ -164,7 +164,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  {</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    </div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, Index outer)</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      : m_lhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_lhsImpl,outer), m_rhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_rhsImpl,outer), m_functor(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_functor)</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    {</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      this-&gt;operator++();</div>
@@ -202,8 +202,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">Scalar</a> value()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_value; }</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span> </div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>    EIGEN_STRONG_INLINE StorageIndex index()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_id; }</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> Lhs::IsRowMajor ? m_lhsIter.row() : index(); }</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> Lhs::IsRowMajor ? index() : m_lhsIter.col(); }</div>
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    EIGEN_STRONG_INLINE Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> Lhs::IsRowMajor ? m_lhsIter.row() : index(); }</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>    EIGEN_STRONG_INLINE Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> Lhs::IsRowMajor ? index() : m_lhsIter.col(); }</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span> </div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    EIGEN_STRONG_INLINE <span class="keyword">operator</span> bool()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_id&gt;=0; }</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span> </div>
@@ -231,7 +231,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>    EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);</div>
 <div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>  }</div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>  </div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>  <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keywordflow">return</span> m_lhsImpl.nonZerosEstimate() + m_rhsImpl.nonZerosEstimate();</div>
 <div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>  }</div>
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span> </div>
@@ -263,7 +263,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span>  {</div>
 <div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    </div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, Index outer)</div>
 <div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>      : m_lhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_lhsImpl,outer), m_rhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_rhsImpl,outer), m_functor(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_functor)</div>
 <div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    {</div>
 <div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>      <span class="keywordflow">while</span> (m_lhsIter &amp;&amp; m_rhsIter &amp;&amp; (m_lhsIter.index() != m_rhsIter.index()))</div>
@@ -292,8 +292,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">Scalar</a> value()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_functor(m_lhsIter.value(), m_rhsIter.value()); }</div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span> </div>
 <div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    EIGEN_STRONG_INLINE StorageIndex index()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.index(); }</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.row(); }</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.col(); }</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>    EIGEN_STRONG_INLINE Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.row(); }</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    EIGEN_STRONG_INLINE Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.col(); }</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span> </div>
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    EIGEN_STRONG_INLINE <span class="keyword">operator</span> bool()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> (m_lhsIter &amp;&amp; m_rhsIter); }</div>
 <div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span> </div>
@@ -319,7 +319,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>  }</div>
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>  </div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>  <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    <span class="keywordflow">return</span> (std::min)(m_lhsImpl.nonZerosEstimate(), m_rhsImpl.nonZerosEstimate());</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>  }</div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span> </div>
@@ -353,7 +353,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>    </div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, Index outer)</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>      : m_lhsEval(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_lhsImpl), m_rhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_rhsImpl,outer), m_functor(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_functor), m_outer(outer)</div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>    {}</div>
 <div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span> </div>
@@ -367,8 +367,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span><span class="keyword">    </span>{ <span class="keywordflow">return</span> m_functor(m_lhsEval.coeff(IsRowMajor?m_outer:m_rhsIter.index(),IsRowMajor?m_rhsIter.index():m_outer), m_rhsIter.value()); }</div>
 <div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
 <div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>    EIGEN_STRONG_INLINE StorageIndex index()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter.index(); }</div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter.row(); }</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter.col(); }</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    EIGEN_STRONG_INLINE Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter.row(); }</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>    EIGEN_STRONG_INLINE Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter.col(); }</div>
 <div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span> </div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>    EIGEN_STRONG_INLINE <span class="keyword">operator</span> bool()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_rhsIter; }</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    </div>
@@ -376,7 +376,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <span class="keyword">const</span> <a class="code hl_class" href="structEigen_1_1internal_1_1evaluator.html">LhsEvaluator</a> &amp;m_lhsEval;</div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">RhsIterator</a> m_rhsIter;</div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">BinaryOp</a>&amp; m_functor;</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> m_outer;</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keyword">const</span> Index m_outer;</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>  };</div>
 </div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>  </div>
@@ -395,7 +395,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);</div>
 <div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>  }</div>
 <div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>  </div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>  <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>    <span class="keywordflow">return</span> m_rhsImpl.nonZerosEstimate();</div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>  }</div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span> </div>
@@ -429,7 +429,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span> </div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    </div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1binary__evaluator.html">binary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>, Index outer)</div>
 <div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>      : m_lhsIter(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_lhsImpl,outer), m_rhsEval(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_rhsImpl), m_functor(<a class="code hl_class" href="classEigen_1_1Solve.html">aEval</a>.m_functor), m_outer(outer)</div>
 <div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    {}</div>
 <div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span> </div>
@@ -444,8 +444,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>                       m_rhsEval.coeff(IsRowMajor?m_outer:m_lhsIter.index(),IsRowMajor?m_lhsIter.index():m_outer)); }</div>
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span> </div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    EIGEN_STRONG_INLINE StorageIndex index()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.index(); }</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.row(); }</div>
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    EIGEN_STRONG_INLINE <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.col(); }</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    EIGEN_STRONG_INLINE Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.row(); }</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    EIGEN_STRONG_INLINE Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter.col(); }</div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span> </div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    EIGEN_STRONG_INLINE <span class="keyword">operator</span> bool()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_lhsIter; }</div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    </div>
@@ -453,7 +453,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">LhsIterator</a> m_lhsIter;</div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>    <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">evaluator&lt;Rhs&gt;</a> &amp;m_rhsEval;</div>
 <div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>    <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">BinaryOp</a>&amp; m_functor;</div>
-<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> m_outer;</div>
+<div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    <span class="keyword">const</span> Index m_outer;</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>  };</div>
 </div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>  </div>
@@ -472,7 +472,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>    EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);</div>
 <div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>  }</div>
 <div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>  </div>
-<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>  <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    <span class="keywordflow">return</span> m_lhsImpl.nonZerosEstimate();</div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>  }</div>
 <div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span> </div>
@@ -550,11 +550,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1is__same_html"><div class="ttname"><a href="structEigen_1_1internal_1_1is__same.html">Eigen::internal::is_same</a></div><div class="ttdef"><b>Definition</b> Meta.h:39</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1scalar__product__op_html"><div class="ttname"><a href="structEigen_1_1internal_1_1scalar__product__op.html">Eigen::internal::scalar_product_op</a></div><div class="ttdef"><b>Definition</b> BinaryFunctors.h:59</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

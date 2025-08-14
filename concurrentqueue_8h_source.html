@@ -1464,16 +1464,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l01385" name="l01385"></a><span class="lineno"> 1385</span> </div>
 <div class="line"><a id="l01386" name="l01386"></a><span class="lineno"> 1386</span>    FreeList &amp;operator=(FreeList <span class="keyword">const</span> &amp;) MOODYCAMEL_DELETE_FUNCTION;</div>
 <div class="line"><a id="l01387" name="l01387"></a><span class="lineno"> 1387</span> </div>
-<div class="line"><a id="l01388" name="l01388"></a><span class="lineno"> 1388</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> add(N *<a class="code hl_struct" href="structnode.html">node</a>) {</div>
+<div class="line"><a id="l01388" name="l01388"></a><span class="lineno"> 1388</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> add(N *node) {</div>
 <div class="line"><a id="l01389" name="l01389"></a><span class="lineno"> 1389</span><span class="preprocessor">#if MCDBGQ_NOLOCKFREE_FREELIST</span></div>
 <div class="line"><a id="l01390" name="l01390"></a><span class="lineno"> 1390</span>      debug::DebugLock lock(mutex);</div>
 <div class="line"><a id="l01391" name="l01391"></a><span class="lineno"> 1391</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l01392" name="l01392"></a><span class="lineno"> 1392</span>      <span class="comment">// We know that the should-be-on-freelist bit is 0 at this point, so it&#39;s safe to</span></div>
 <div class="line"><a id="l01393" name="l01393"></a><span class="lineno"> 1393</span>      <span class="comment">// set it using a fetch_add</span></div>
-<div class="line"><a id="l01394" name="l01394"></a><span class="lineno"> 1394</span>      <span class="keywordflow">if</span> (<a class="code hl_struct" href="structnode.html">node</a>-&gt;freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST, std::memory_order_acq_rel) == 0) {</div>
+<div class="line"><a id="l01394" name="l01394"></a><span class="lineno"> 1394</span>      <span class="keywordflow">if</span> (node-&gt;freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST, std::memory_order_acq_rel) == 0) {</div>
 <div class="line"><a id="l01395" name="l01395"></a><span class="lineno"> 1395</span>        <span class="comment">// Oh look! We were the last ones referencing this node, and we know</span></div>
 <div class="line"><a id="l01396" name="l01396"></a><span class="lineno"> 1396</span>        <span class="comment">// we want to add it to the free list, so let&#39;s do it!</span></div>
-<div class="line"><a id="l01397" name="l01397"></a><span class="lineno"> 1397</span>        add_knowing_refcount_is_zero(<a class="code hl_struct" href="structnode.html">node</a>);</div>
+<div class="line"><a id="l01397" name="l01397"></a><span class="lineno"> 1397</span>        add_knowing_refcount_is_zero(node);</div>
 <div class="line"><a id="l01398" name="l01398"></a><span class="lineno"> 1398</span>      }</div>
 <div class="line"><a id="l01399" name="l01399"></a><span class="lineno"> 1399</span>    }</div>
 <div class="line"><a id="l01400" name="l01400"></a><span class="lineno"> 1400</span> </div>
@@ -1522,7 +1522,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l01443" name="l01443"></a><span class="lineno"> 1443</span>    <a class="code hl_variable" href="namespacelogistic__regression.html#a95c480d50b25da5de78f160ff3e734fa">N</a> *head_unsafe()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> freeListHead.load(std::memory_order_relaxed); }</div>
 <div class="line"><a id="l01444" name="l01444"></a><span class="lineno"> 1444</span> </div>
 <div class="line"><a id="l01445" name="l01445"></a><span class="lineno"> 1445</span>   <span class="keyword">private</span>:</div>
-<div class="line"><a id="l01446" name="l01446"></a><span class="lineno"> 1446</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> add_knowing_refcount_is_zero(N *<a class="code hl_struct" href="structnode.html">node</a>) {</div>
+<div class="line"><a id="l01446" name="l01446"></a><span class="lineno"> 1446</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> add_knowing_refcount_is_zero(N *node) {</div>
 <div class="line"><a id="l01447" name="l01447"></a><span class="lineno"> 1447</span>      <span class="comment">// Since the refcount is zero, and nobody can increase it once it&#39;s zero (except us, and we run</span></div>
 <div class="line"><a id="l01448" name="l01448"></a><span class="lineno"> 1448</span>      <span class="comment">// only one copy of this method per node at a time, i.e. the single thread case), then we know</span></div>
 <div class="line"><a id="l01449" name="l01449"></a><span class="lineno"> 1449</span>      <span class="comment">// we can safely change the next pointer of the node; however, once the refcount is back above</span></div>
@@ -1533,12 +1533,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l01454" name="l01454"></a><span class="lineno"> 1454</span>      <span class="comment">// the next thread who puts the refcount back at zero (which could be us, hence the loop).</span></div>
 <div class="line"><a id="l01455" name="l01455"></a><span class="lineno"> 1455</span>      <span class="keyword">auto</span> head = freeListHead.load(std::memory_order_relaxed);</div>
 <div class="line"><a id="l01456" name="l01456"></a><span class="lineno"> 1456</span>      <span class="keywordflow">while</span> (<span class="keyword">true</span>) {</div>
-<div class="line"><a id="l01457" name="l01457"></a><span class="lineno"> 1457</span>        <a class="code hl_struct" href="structnode.html">node</a>-&gt;freeListNext.store(head, std::memory_order_relaxed);</div>
-<div class="line"><a id="l01458" name="l01458"></a><span class="lineno"> 1458</span>        <a class="code hl_struct" href="structnode.html">node</a>-&gt;freeListRefs.store(1, std::memory_order_release);</div>
-<div class="line"><a id="l01459" name="l01459"></a><span class="lineno"> 1459</span>        <span class="keywordflow">if</span> (!freeListHead.compare_exchange_strong(head, <a class="code hl_struct" href="structnode.html">node</a>, std::memory_order_release,</div>
+<div class="line"><a id="l01457" name="l01457"></a><span class="lineno"> 1457</span>        node-&gt;freeListNext.store(head, std::memory_order_relaxed);</div>
+<div class="line"><a id="l01458" name="l01458"></a><span class="lineno"> 1458</span>        node-&gt;freeListRefs.store(1, std::memory_order_release);</div>
+<div class="line"><a id="l01459" name="l01459"></a><span class="lineno"> 1459</span>        <span class="keywordflow">if</span> (!freeListHead.compare_exchange_strong(head, node, std::memory_order_release,</div>
 <div class="line"><a id="l01460" name="l01460"></a><span class="lineno"> 1460</span>                                                  std::memory_order_relaxed)) {</div>
 <div class="line"><a id="l01461" name="l01461"></a><span class="lineno"> 1461</span>          <span class="comment">// Hmm, the add failed, but we can only try again when the refcount goes back to zero</span></div>
-<div class="line"><a id="l01462" name="l01462"></a><span class="lineno"> 1462</span>          <span class="keywordflow">if</span> (<a class="code hl_struct" href="structnode.html">node</a>-&gt;freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST - 1, std::memory_order_release) ==</div>
+<div class="line"><a id="l01462" name="l01462"></a><span class="lineno"> 1462</span>          <span class="keywordflow">if</span> (node-&gt;freeListRefs.fetch_add(SHOULD_BE_ON_FREELIST - 1, std::memory_order_release) ==</div>
 <div class="line"><a id="l01463" name="l01463"></a><span class="lineno"> 1463</span>              1) {</div>
 <div class="line"><a id="l01464" name="l01464"></a><span class="lineno"> 1464</span>            <span class="keywordflow">continue</span>;</div>
 <div class="line"><a id="l01465" name="l01465"></a><span class="lineno"> 1465</span>          }</div>
@@ -3730,7 +3730,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l03667" name="l03667"></a><span class="lineno"> 3667</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T, <span class="keyword">typename</span> Traits&gt;</div>
 <div class="line"><a id="l03668" name="l03668"></a><span class="lineno"> 3668</span>ProducerToken::ProducerToken(BlockingConcurrentQueue&lt;T, Traits&gt; &amp;queue)</div>
 <div class="line"><a id="l03669" name="l03669"></a><span class="lineno"> 3669</span>  : producer(</div>
-<div class="line"><a id="l03670" name="l03670"></a><span class="lineno"> 3670</span>  reinterpret_cast&lt;ConcurrentQueue&lt;T, <a class="code hl_struct" href="structTraits.html">Traits</a>&gt; *&gt;(&amp;queue)-&gt;recycle_or_create_producer(true)) {</div>
+<div class="line"><a id="l03670" name="l03670"></a><span class="lineno"> 3670</span>  reinterpret_cast&lt;ConcurrentQueue&lt;T, Traits&gt; *&gt;(&amp;queue)-&gt;recycle_or_create_producer(true)) {</div>
 <div class="line"><a id="l03671" name="l03671"></a><span class="lineno"> 3671</span>  <span class="keywordflow">if</span> (producer != <span class="keyword">nullptr</span>) {</div>
 <div class="line"><a id="l03672" name="l03672"></a><span class="lineno"> 3672</span>    producer-&gt;token = <span class="keyword">this</span>;</div>
 <div class="line"><a id="l03673" name="l03673"></a><span class="lineno"> 3673</span>  }</div>
@@ -3784,12 +3784,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacelogistic__regression_html_a95c480d50b25da5de78f160ff3e734fa"><div class="ttname"><a href="namespacelogistic__regression.html#a95c480d50b25da5de78f160ff3e734fa">logistic_regression.N</a></div><div class="ttdeci">int N</div><div class="ttdoc">Simulate some binary data with a single categorical and single continuous predictor.</div><div class="ttdef"><b>Definition</b> logistic_regression.py:26</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
 <div class="ttc" id="anamespacestd_html_ab5fa3119ddc434392ecca8849e2e08e1"><div class="ttname"><a href="namespacestd.html#ab5fa3119ddc434392ecca8849e2e08e1">std::swap</a></div><div class="ttdeci">NLOHMANN_BASIC_JSON_TPL_DECLARATION void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j1, nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j2) noexcept(//NOLINT(readability-inconsistent-declaration-parameter-name, cert-dcl58-cpp) is_nothrow_move_constructible&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value &amp;&amp;//NOLINT(misc-redundant-expression) is_nothrow_move_assignable&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value)</div><div class="ttdoc">exchanges the values of two JSON objects</div><div class="ttdef"><b>Definition</b> json.hpp:24418</div></div>
-<div class="ttc" id="astructTraits_html"><div class="ttname"><a href="structTraits.html">Traits</a></div><div class="ttdef"><b>Definition</b> itoatest.cpp:27</div></div>
-<div class="ttc" id="astructnode_html"><div class="ttname"><a href="structnode.html">node</a></div><div class="ttdef"><b>Definition</b> log_multi.cc:54</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:55 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

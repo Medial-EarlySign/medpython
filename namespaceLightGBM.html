@@ -140,7 +140,7 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classLightGBM_1_1DART.html" title="DART algorithm implementation. including Training, prediction, bagging.">DART</a> algorithm implementation. including Training, prediction, bagging.  <a href="classLightGBM_1_1DART.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1DataParallelTreeLearner.html">DataParallelTreeLearner</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structData.html">Data</a> parallel learning algorithm. Workers use local data to construct histograms locally, then sync up global histograms. It is recommonded used when data is large or <a class="el" href="structfeature.html">feature</a> is small.  <a href="classLightGBM_1_1DataParallelTreeLearner.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data parallel learning algorithm. Workers use local data to construct histograms locally, then sync up global histograms. It is recommonded used when data is large or #feature is small.  <a href="classLightGBM_1_1DataParallelTreeLearner.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1DataPartition.html">DataPartition</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classLightGBM_1_1DataPartition.html" title="DataPartition is used to store the the partition of data on tree.">DataPartition</a> is used to store the the partition of data on tree.  <a href="classLightGBM_1_1DataPartition.html#details">More...</a><br /></td></tr>
@@ -174,7 +174,7 @@ Data Structures</h2></td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1FeatureMetainfo.html">FeatureMetainfo</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1FeatureParallelTreeLearner.html">FeatureParallelTreeLearner</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Feature parallel learning algorithm. Different machine will find best split on different features, then sync global best split It is recommonded used when data is small or <a class="el" href="structfeature.html">feature</a> is large.  <a href="classLightGBM_1_1FeatureParallelTreeLearner.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Feature parallel learning algorithm. Different machine will find best split on different features, then sync global best split It is recommonded used when data is small or #feature is large.  <a href="classLightGBM_1_1FeatureParallelTreeLearner.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1GammaDevianceMetric.html">GammaDevianceMetric</a></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -363,7 +363,7 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">An interface for writing files from buffers.  <a href="structLightGBM_1_1VirtualFileWriter.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1VotingParallelTreeLearner.html">VotingParallelTreeLearner</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Voting based data parallel learning algorithm. Like data parallel, but not aggregate histograms for all features. Here using voting to reduce features, and only aggregate histograms for selected features. When data is large and <a class="el" href="structfeature.html">feature</a> is large, you can use this to have better speed-up.  <a href="classLightGBM_1_1VotingParallelTreeLearner.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Voting based data parallel learning algorithm. Like data parallel, but not aggregate histograms for all features. Here using voting to reduce features, and only aggregate histograms for selected features. When data is large and #feature is large, you can use this to have better speed-up.  <a href="classLightGBM_1_1VotingParallelTreeLearner.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="typedef-members" name="typedef-members"></a>
@@ -387,13 +387,13 @@ typedef int32_t&#160;</td><td class="memItemRight" valign="bottom"><b>comm_size_
 using&#160;</td><td class="memItemRight" valign="bottom"><b>PredictFunction</b> = std::function&lt; void(const std::vector&lt; std::pair&lt; int, double &gt; &gt; &amp;, double *output)&gt;</td></tr>
 <tr class="separator:a1860df57487b8b97ae9d4ad984f6a586"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a443ed9bcad3b4fb973812b16cf19f01a" id="r_a443ed9bcad3b4fb973812b16cf19f01a"><td class="memItemLeft" align="right" valign="top"><a id="a443ed9bcad3b4fb973812b16cf19f01a" name="a443ed9bcad3b4fb973812b16cf19f01a"></a>
-typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>ReduceFunction</b>) (const char *<a class="el" href="structinput.html">input</a>, char *output, int type_size, comm_size_t array_size)</td></tr>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>ReduceFunction</b>) (const char *input, char *output, int type_size, comm_size_t array_size)</td></tr>
 <tr class="separator:a443ed9bcad3b4fb973812b16cf19f01a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a008c6fee3df6bccfdc1d5e3da754ccda" id="r_a008c6fee3df6bccfdc1d5e3da754ccda"><td class="memItemLeft" align="right" valign="top"><a id="a008c6fee3df6bccfdc1d5e3da754ccda" name="a008c6fee3df6bccfdc1d5e3da754ccda"></a>
-typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>ReduceScatterFunction</b>) (char *<a class="el" href="structinput.html">input</a>, comm_size_t input_size, int type_size, const comm_size_t *block_start, const comm_size_t *block_len, int num_block, char *output, comm_size_t output_size, const ReduceFunction &amp;reducer)</td></tr>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>ReduceScatterFunction</b>) (char *input, comm_size_t input_size, int type_size, const comm_size_t *block_start, const comm_size_t *block_len, int num_block, char *output, comm_size_t output_size, const ReduceFunction &amp;reducer)</td></tr>
 <tr class="separator:a008c6fee3df6bccfdc1d5e3da754ccda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9588a013b323c22d6c6bed17a5d9ba89" id="r_a9588a013b323c22d6c6bed17a5d9ba89"><td class="memItemLeft" align="right" valign="top"><a id="a9588a013b323c22d6c6bed17a5d9ba89" name="a9588a013b323c22d6c6bed17a5d9ba89"></a>
-typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>AllgatherFunction</b>) (char *<a class="el" href="structinput.html">input</a>, comm_size_t input_size, const comm_size_t *block_start, const comm_size_t *block_len, int num_block, char *output, comm_size_t output_size)</td></tr>
+typedef void(*&#160;</td><td class="memItemRight" valign="bottom"><b>AllgatherFunction</b>) (char *input, comm_size_t input_size, const comm_size_t *block_start, const comm_size_t *block_len, int num_block, char *output, comm_size_t output_size)</td></tr>
 <tr class="separator:a9588a013b323c22d6c6bed17a5d9ba89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="enum-members" name="enum-members"></a>
@@ -461,7 +461,7 @@ std::vector&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><
 std::vector&lt; double &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>FindBinWithZeroAsOneBin</b> (const double *distinct_values, const int *counts, int num_distinct_values, int max_bin, size_t total_sample_cnt, int min_data_in_bin)</td></tr>
 <tr class="separator:a33dfa33c01293db0968a74a76d954427"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a51628571af4fc4c45e8cd5b525ec7e2a" id="r_a51628571af4fc4c45e8cd5b525ec7e2a"><td class="memItemLeft" align="right" valign="top"><a id="a51628571af4fc4c45e8cd5b525ec7e2a" name="a51628571af4fc4c45e8cd5b525ec7e2a"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>GetBoostingType</b> (const std::unordered_map&lt; std::string, std::string &gt; &amp;params, std::string *<a class="el" href="structboosting.html">boosting</a>)</td></tr>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>GetBoostingType</b> (const std::unordered_map&lt; std::string, std::string &gt; &amp;params, std::string *boosting)</td></tr>
 <tr class="separator:a51628571af4fc4c45e8cd5b525ec7e2a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad3c7cef4c6edc24c6393a40826cfd3d7" id="r_ad3c7cef4c6edc24c6393a40826cfd3d7"><td class="memItemLeft" align="right" valign="top"><a id="ad3c7cef4c6edc24c6393a40826cfd3d7" name="ad3c7cef4c6edc24c6393a40826cfd3d7"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>GetObjectiveType</b> (const std::unordered_map&lt; std::string, std::string &gt; &amp;params, std::string *objective)</td></tr>
@@ -551,7 +551,7 @@ const size_t&#160;</td><td class="memItemRight" valign="bottom"><b>kNumFastIndex
 </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -86,13 +86,13 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aba579a983309a7601420d8a645bb4e3c" id="r_aba579a983309a7601420d8a645bb4e3c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#aba579a983309a7601420d8a645bb4e3c">ParallelGroupBuilder</a> (std::vector&lt; <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> &gt; *p_rptr, std::vector&lt; ValueType &gt; *p_data, size_t base_row_offset=0)</td></tr>
+<tr class="memitem:aba579a983309a7601420d8a645bb4e3c" id="r_aba579a983309a7601420d8a645bb4e3c"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#aba579a983309a7601420d8a645bb4e3c">ParallelGroupBuilder</a> (std::vector&lt; SizeType &gt; *p_rptr, std::vector&lt; ValueType &gt; *p_data, size_t base_row_offset=0)</td></tr>
 <tr class="memdesc:aba579a983309a7601420d8a645bb4e3c"><td class="mdescLeft">&#160;</td><td class="mdescRight">parallel group builder of data.  <br /></td></tr>
 <tr class="separator:aba579a983309a7601420d8a645bb4e3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a221b354fc61b81fb6660b2a9c278a046" id="r_a221b354fc61b81fb6660b2a9c278a046"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a221b354fc61b81fb6660b2a9c278a046">InitBudget</a> (std::size_t max_key, int nthread)</td></tr>
 <tr class="memdesc:a221b354fc61b81fb6660b2a9c278a046"><td class="mdescLeft">&#160;</td><td class="mdescRight">step 1: initialize the helper, with hint of number keys and thread used in the construction  <br /></td></tr>
 <tr class="separator:a221b354fc61b81fb6660b2a9c278a046"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8a7992ee3aa0988a8e1b424847fa8f71" id="r_a8a7992ee3aa0988a8e1b424847fa8f71"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">AddBudget</a> (std::size_t key, int threadid, <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> nelem=1)</td></tr>
+<tr class="memitem:a8a7992ee3aa0988a8e1b424847fa8f71" id="r_a8a7992ee3aa0988a8e1b424847fa8f71"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html#a8a7992ee3aa0988a8e1b424847fa8f71">AddBudget</a> (std::size_t key, int threadid, SizeType nelem=1)</td></tr>
 <tr class="memdesc:a8a7992ee3aa0988a8e1b424847fa8f71"><td class="mdescLeft">&#160;</td><td class="mdescRight">step 2: add budget to each key  <br /></td></tr>
 <tr class="separator:a8a7992ee3aa0988a8e1b424847fa8f71"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6926faca24dac13cf9564c293634bc86" id="r_a6926faca24dac13cf9564c293634bc86"><td class="memItemLeft" align="right" valign="top"><a id="a6926faca24dac13cf9564c293634bc86" name="a6926faca24dac13cf9564c293634bc86"></a>
@@ -104,7 +104,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>InitStorage</b> ()</t
 <tr class="separator:af398171e8c7f7b0502e6da3e3eb0ecb1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;typename ValueType, typename <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> = bst_ulong, bool is_row_major = false&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;typename ValueType, typename SizeType = bst_ulong, bool is_row_major = false&gt;<br />
 class xgboost::common::ParallelGroupBuilder&lt; ValueType, SizeType, is_row_major &gt;</div><p>multi-thread version of group builder </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -121,15 +121,15 @@ class xgboost::common::ParallelGroupBuilder&lt; ValueType, SizeType, is_row_majo
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>  = bst_ulong, bool is_row_major = false&gt; </div>
+template&lt;typename ValueType , typename SizeType  = bst_ulong, bool is_row_major = false&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>, is_row_major &gt;::ParallelGroupBuilder </td>
+          <td class="memname"><a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, SizeType, is_row_major &gt;::ParallelGroupBuilder </td>
           <td>(</td>
-          <td class="paramtype">std::vector&lt; <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a> &gt; *&#160;</td>
+          <td class="paramtype">std::vector&lt; SizeType &gt; *&#160;</td>
           <td class="paramname"><em>p_rptr</em>, </td>
         </tr>
         <tr>
@@ -161,7 +161,7 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramdir">[in,out]</td><td class="paramname">p_rptr</td><td>Row offsets for CSR matrix. </td></tr>
-    <tr><td class="paramdir">[in,out]</td><td class="paramname">p_data</td><td><a class="el" href="structData.html">Data</a> vector to populate </td></tr>
+    <tr><td class="paramdir">[in,out]</td><td class="paramname">p_data</td><td>Data vector to populate </td></tr>
     <tr><td class="paramdir"></td><td class="paramname">base_row_offset</td><td>(Optional) If the matrix we are building is already partially populated, use this to indicate the row index we are starting from. This saves considerable amounts of time/memory when incrementaly building. </td></tr>
   </table>
   </dd>
@@ -176,13 +176,13 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>  = bst_ulong, bool is_row_major = false&gt; </div>
+template&lt;typename ValueType , typename SizeType  = bst_ulong, bool is_row_major = false&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>, is_row_major &gt;::AddBudget </td>
+          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, SizeType, is_row_major &gt;::AddBudget </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -196,7 +196,7 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>&#160;</td>
+          <td class="paramtype">SizeType&#160;</td>
           <td class="paramname"><em>nelem</em> = <code>1</code>&#160;</td>
         </tr>
         <tr>
@@ -230,13 +230,13 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>  = bst_ulong, bool is_row_major = false&gt; </div>
+template&lt;typename ValueType , typename SizeType  = bst_ulong, bool is_row_major = false&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>, is_row_major &gt;::InitBudget </td>
+          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, SizeType, is_row_major &gt;::InitBudget </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>max_key</em>, </td>
@@ -277,13 +277,13 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>  = bst_ulong, bool is_row_major = false&gt; </div>
+template&lt;typename ValueType , typename SizeType  = bst_ulong, bool is_row_major = false&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, <a class="el" href="rapidjson_8h.html#a5ed6e6e67250fadbd041127e6386dcb5">SizeType</a>, is_row_major &gt;::Push </td>
+          <td class="memname">void <a class="el" href="classxgboost_1_1common_1_1ParallelGroupBuilder.html">xgboost::common::ParallelGroupBuilder</a>&lt; ValueType, SizeType, is_row_major &gt;::Push </td>
           <td>(</td>
           <td class="paramtype">std::size_t&#160;</td>
           <td class="paramname"><em>key</em>, </td>
@@ -331,7 +331,7 @@ template&lt;typename ValueType , typename <a class="el" href="rapidjson_8h.html#
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

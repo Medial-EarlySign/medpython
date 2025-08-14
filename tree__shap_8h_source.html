@@ -152,7 +152,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <span class="keywordtype">int</span> *children_left;</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>    <span class="keywordtype">int</span> *children_right;</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>    <span class="keywordtype">int</span> *children_default;</div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    <span class="keywordtype">int</span> *<a class="code hl_struct" href="structfeatures.html">features</a>;</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    <span class="keywordtype">int</span> *features;</div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    tfloat *thresholds;</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    tfloat *values;</div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    tfloat *node_sample_weights;</div>
@@ -164,7 +164,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>    <span class="keywordtype">bool</span> is_allocate;</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    <a class="code hl_struct" href="structTreeEnsemble.html">TreeEnsemble</a>();</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <a class="code hl_struct" href="structTreeEnsemble.html">TreeEnsemble</a>(<span class="keywordtype">int</span> *children_left, <span class="keywordtype">int</span> *children_right, <span class="keywordtype">int</span> *children_default, <span class="keywordtype">int</span> *<a class="code hl_struct" href="structfeatures.html">features</a>,</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <a class="code hl_struct" href="structTreeEnsemble.html">TreeEnsemble</a>(<span class="keywordtype">int</span> *children_left, <span class="keywordtype">int</span> *children_right, <span class="keywordtype">int</span> *children_default, <span class="keywordtype">int</span> *features,</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>        tfloat *thresholds, tfloat *values, tfloat *node_sample_weights,</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>        <span class="keywordtype">unsigned</span> max_depth, <span class="keywordtype">unsigned</span> tree_limit, tfloat base_offset,</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>        <span class="keywordtype">unsigned</span> max_nodes, <span class="keywordtype">unsigned</span> num_outputs);</div>
@@ -324,11 +324,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructNode_html"><div class="ttname"><a href="structNode.html">Node</a></div><div class="ttdef"><b>Definition</b> tree_shap.h:119</div></div>
 <div class="ttc" id="astructPathElement_html"><div class="ttname"><a href="structPathElement.html">PathElement</a></div><div class="ttdef"><b>Definition</b> tree_shap.h:108</div></div>
 <div class="ttc" id="astructTreeEnsemble_html"><div class="ttname"><a href="structTreeEnsemble.html">TreeEnsemble</a></div><div class="ttdef"><b>Definition</b> tree_shap.h:70</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:29 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -439,23 +439,23 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>  <span class="comment">// Copy row partitions into global cache for reuse in objective</span></div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Sampledp&gt;</div>
-<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>  <span class="keywordtype">void</span> LeafPartition(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, RegTree <span class="keyword">const</span>&amp; tree, RowSetCollection <span class="keyword">const</span>&amp; row_set,</div>
+<div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>  <span class="keywordtype">void</span> LeafPartition(Context <span class="keyword">const</span>* ctx, RegTree <span class="keyword">const</span>&amp; tree, RowSetCollection <span class="keyword">const</span>&amp; row_set,</div>
 <div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>                     std::vector&lt;bst_node_t&gt;* p_position, Sampledp sampledp)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>    <span class="keyword">auto</span>&amp; h_pos = *p_position;</div>
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    h_pos.resize(row_set.Data()-&gt;size(), std::numeric_limits&lt;bst_node_t&gt;::max());</div>
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span> </div>
 <div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>    <span class="keyword">auto</span> p_begin = row_set.Data()-&gt;data();</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>    ParallelFor(row_set.Size(), ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), [&amp;](<span class="keywordtype">size_t</span> i) {</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>    ParallelFor(row_set.Size(), ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), [&amp;](<span class="keywordtype">size_t</span> i) {</div>
 <div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>      auto const&amp; node = row_set[i];</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>      if (node.node_id &lt; 0) {</div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>        return;</div>
 <div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>      }</div>
-<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>      CHECK(tree.IsLeaf(<a class="code hl_struct" href="structnode.html">node</a>.node_id));</div>
-<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>      <span class="keywordflow">if</span> (<a class="code hl_struct" href="structnode.html">node</a>.begin) {  <span class="comment">// guard for empty node.</span></div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>        <span class="keywordtype">size_t</span> ptr_offset = <a class="code hl_struct" href="structnode.html">node</a>.end - p_begin;</div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>        CHECK_LE(ptr_offset, row_set.Data()-&gt;size()) &lt;&lt; <a class="code hl_struct" href="structnode.html">node</a>.node_id;</div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> idx = <a class="code hl_struct" href="structnode.html">node</a>.begin; idx != <a class="code hl_struct" href="structnode.html">node</a>.end; ++idx) {</div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>          h_pos[*idx] = sampledp(*idx) ? <a class="code hl_struct" href="structnode.html">~node</a>.node_id : <a class="code hl_struct" href="structnode.html">node</a>.node_id;</div>
+<div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>      CHECK(tree.IsLeaf(node.node_id));</div>
+<div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>      <span class="keywordflow">if</span> (node.begin) {  <span class="comment">// guard for empty node.</span></div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>        <span class="keywordtype">size_t</span> ptr_offset = node.end - p_begin;</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>        CHECK_LE(ptr_offset, row_set.Data()-&gt;size()) &lt;&lt; node.node_id;</div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>        <span class="keywordflow">for</span> (<span class="keyword">auto</span> idx = node.begin; idx != node.end; ++idx) {</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>          h_pos[*idx] = sampledp(*idx) ? ~node.node_id : node.node_id;</div>
 <div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>        }</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>      }</div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    });</div>
@@ -512,16 +512,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_a104d9973021f954f36fe72da36aedddb"><div class="ttname"><a href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">xgboost::bst_feature_t</a></div><div class="ttdeci">uint32_t bst_feature_t</div><div class="ttdoc">Type for data column (feature) index.</div><div class="ttdef"><b>Definition</b> base.h:101</div></div>
 <div class="ttc" id="anamespacexgboost_html_a22ad10d05e657d6d18e3fe5720ebe3da"><div class="ttname"><a href="namespacexgboost.html#a22ad10d05e657d6d18e3fe5720ebe3da">xgboost::get</a></div><div class="ttdeci">auto get(U &amp;json) -&gt; decltype(detail::GetImpl(*Cast&lt; T &gt;(&amp;json.GetValue())))&amp;</div><div class="ttdoc">Get Json value.</div><div class="ttdef"><b>Definition</b> json.h:585</div></div>
 <div class="ttc" id="anamespacexgboost_html_adefe925ef9d43e9f8ceb3bb051b7cf9f"><div class="ttname"><a href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">xgboost::bst_bin_t</a></div><div class="ttdeci">int32_t bst_bin_t</div><div class="ttdoc">Type for histogram bin index.</div><div class="ttdef"><b>Definition</b> base.h:103</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
-<div class="ttc" id="astructnode_html"><div class="ttname"><a href="structnode.html">node</a></div><div class="ttdef"><b>Definition</b> log_multi.cc:54</div></div>
 <div class="ttc" id="astructxgboost_1_1BitFieldContainer_html"><div class="ttname"><a href="structxgboost_1_1BitFieldContainer.html">xgboost::BitFieldContainer&lt; uint8_t, RBitsPolicy&lt; unsigned char &gt; &gt;</a></div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1PartitionBuilder_1_1BlockInfo_html"><div class="ttname"><a href="structxgboost_1_1common_1_1PartitionBuilder_1_1BlockInfo.html">xgboost::common::PartitionBuilder::BlockInfo</a></div><div class="ttdef"><b>Definition</b> partition_builder.h:391</div></div>
 <div class="ttc" id="atree__model_8h_html"><div class="ttname"><a href="tree__model_8h.html">tree_model.h</a></div><div class="ttdoc">Copyright 2014-2023 by Contributors.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

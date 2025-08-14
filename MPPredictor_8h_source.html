@@ -110,7 +110,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> SPECIFIC_GROUPS_MODELS;</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> SVM;</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> LINEAR_SGD;</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> <a class="code hl_namespace" href="namespaceVW.html">VW</a>;</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> VW;</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> TQRF;</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">string</span> <a class="code hl_class" href="classBART.html">BART</a>;</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>};</div>
@@ -150,8 +150,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="keyword">static</span> <a class="code hl_class" href="classMPPredictor.html">MPPredictor</a> make_predictor(<span class="keywordtype">string</span> model_type);</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keyword">static</span> <a class="code hl_class" href="classMPPredictor.html">MPPredictor</a> make_predictor(<span class="keywordtype">string</span> model_type, <span class="keywordtype">string</span> params);</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span> </div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    <span class="keywordtype">int</span> learn(<a class="code hl_class" href="classMPFeatures.html">MPFeatures</a>&amp; <a class="code hl_struct" href="structfeatures.html">features</a>);</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keywordtype">int</span> predict(<a class="code hl_class" href="classMPFeatures.html">MPFeatures</a>&amp; <a class="code hl_struct" href="structfeatures.html">features</a>);</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    <span class="keywordtype">int</span> learn(<a class="code hl_class" href="classMPFeatures.html">MPFeatures</a>&amp; features);</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keywordtype">int</span> predict(<a class="code hl_class" href="classMPFeatures.html">MPFeatures</a>&amp; features);</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span> </div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <span class="comment">// Write Predictor to File</span></div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <span class="keywordtype">void</span> write_predictor_to_file(<span class="keywordtype">string</span>&amp; outFile);</div>
@@ -281,12 +281,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassMPPredictor_html"><div class="ttname"><a href="classMPPredictor.html">MPPredictor</a></div><div class="ttdef"><b>Definition</b> MPPredictor.h:35</div></div>
 <div class="ttc" id="aclassMPSerializableObject_html"><div class="ttname"><a href="classMPSerializableObject.html">MPSerializableObject</a></div><div class="ttdef"><b>Definition</b> MPSerializableObject.h:8</div></div>
 <div class="ttc" id="aclassMedPredictor_html"><div class="ttname"><a href="classMedPredictor.html">MedPredictor</a></div><div class="ttdoc">Base Interface for predictor.</div><div class="ttdef"><b>Definition</b> MedAlgo.h:78</div></div>
-<div class="ttc" id="anamespaceVW_html"><div class="ttname"><a href="namespaceVW.html">VW</a></div><div class="ttdef"><b>Definition</b> CountingCheckpointPolicy.cs:10</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:58 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

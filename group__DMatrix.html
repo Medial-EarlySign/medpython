@@ -150,7 +150,7 @@ XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><b>XGImportArrowR
 <tr class="memitem:ga77946329a69f160981e2fa20c9f71f1b" id="r_ga77946329a69f160981e2fa20c9f71f1b"><td class="memItemLeft" align="right" valign="top">XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DMatrix.html#ga77946329a69f160981e2fa20c9f71f1b">XGDMatrixSetUIntInfo</a> (<a class="el" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, const char *field, const unsigned *array, <a class="el" href="namespacexgboost.html#aa90608d24714034e3824898fbed9361b">bst_ulong</a> len)</td></tr>
 <tr class="memdesc:ga77946329a69f160981e2fa20c9f71f1b"><td class="mdescLeft">&#160;</td><td class="mdescRight">set uint32 vector to a content in info  <br /></td></tr>
 <tr class="separator:ga77946329a69f160981e2fa20c9f71f1b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ga9a01c533622b9e4ccddffc8efd349203" id="r_ga9a01c533622b9e4ccddffc8efd349203"><td class="memItemLeft" align="right" valign="top">XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DMatrix.html#ga9a01c533622b9e4ccddffc8efd349203">XGDMatrixSetStrFeatureInfo</a> (<a class="el" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, const char *field, const char **<a class="el" href="structfeatures.html">features</a>, const <a class="el" href="namespacexgboost.html#aa90608d24714034e3824898fbed9361b">bst_ulong</a> size)</td></tr>
+<tr class="memitem:ga9a01c533622b9e4ccddffc8efd349203" id="r_ga9a01c533622b9e4ccddffc8efd349203"><td class="memItemLeft" align="right" valign="top">XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DMatrix.html#ga9a01c533622b9e4ccddffc8efd349203">XGDMatrixSetStrFeatureInfo</a> (<a class="el" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, const char *field, const char **features, const <a class="el" href="namespacexgboost.html#aa90608d24714034e3824898fbed9361b">bst_ulong</a> size)</td></tr>
 <tr class="memdesc:ga9a01c533622b9e4ccddffc8efd349203"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set string encoded information of all features.  <br /></td></tr>
 <tr class="separator:ga9a01c533622b9e4ccddffc8efd349203"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ga5a76ec8cda76c3486488c785b9f493bf" id="r_ga5a76ec8cda76c3486488c785b9f493bf"><td class="memItemLeft" align="right" valign="top">XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="group__DMatrix.html#ga5a76ec8cda76c3486488c785b9f493bf">XGDMatrixGetStrFeatureInfo</a> (<a class="el" href="group__Library.html#ga79787d32dbf589626a850cd9cd34dbe6">DMatrixHandle</a> handle, const char *field, <a class="el" href="namespacexgboost.html#aa90608d24714034e3824898fbed9361b">bst_ulong</a> *size, const char ***out_features)</td></tr>
@@ -1023,8 +1023,8 @@ XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><b>XGImportArrowR
     <tr><td class="paramname">handle</td><td>the handle to the DMatrix </td></tr>
     <tr><td class="paramname">config</td><td>JSON configuration string. At the moment it should be an empty document, preserved for future use. </td></tr>
     <tr><td class="paramname">out_indptr</td><td>indptr of output CSR matrix. </td></tr>
-    <tr><td class="paramname">out_indices</td><td><a class="el" href="structColumn.html">Column</a> index of output CSR matrix. </td></tr>
-    <tr><td class="paramname">out_data</td><td><a class="el" href="structData.html">Data</a> value of CSR matrix.</td></tr>
+    <tr><td class="paramname">out_indices</td><td>Column index of output CSR matrix. </td></tr>
+    <tr><td class="paramname">out_data</td><td>Data value of CSR matrix.</td></tr>
   </table>
   </dd>
 </dl>
@@ -1132,7 +1132,7 @@ XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><b>XGImportArrowR
     <tr><td class="paramname">handle</td><td>the handle to the DMatrix </td></tr>
     <tr><td class="paramname">config</td><td>JSON configuration string. At the moment it should be an empty document, preserved for future use.</td></tr>
     <tr><td class="paramname">out_indptr</td><td>indptr of output CSC matrix represented by a JSON encoded __(cuda_)array_interface__. </td></tr>
-    <tr><td class="paramname">out_data</td><td><a class="el" href="structData.html">Data</a> value of CSC matrix represented by a JSON encoded __(cuda_)array_interface__. </td></tr>
+    <tr><td class="paramname">out_data</td><td>Data value of CSC matrix represented by a JSON encoded __(cuda_)array_interface__. </td></tr>
   </table>
   </dd>
 </dl>
@@ -1194,18 +1194,17 @@ XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><b>XGImportArrowR
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>0 when success, -1 when failure happens</dd></dl>
 <div class="fragment"><div class="line"><span class="keywordtype">char</span> <span class="keyword">const</span> **c_out_features = NULL;</div>
-<div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">bst_ulong</a> out_size = 0;</div>
+<div class="line">bst_ulong out_size = 0;</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// Asumming the feature names are already set by `XGDMatrixSetStrFeatureInfo`.</span></div>
 <div class="line"><a class="code hl_function" href="group__DMatrix.html#ga5a76ec8cda76c3486488c785b9f493bf">XGDMatrixGetStrFeatureInfo</a>(handle, <span class="stringliteral">&quot;feature_name&quot;</span>, &amp;out_size,</div>
 <div class="line">                           &amp;c_out_features)</div>
 <div class="line"> </div>
-<div class="line"><span class="keywordflow">for</span> (<a class="code hl_class" href="classEigen_1_1Solve.html">bst_ulong</a> i = 0; i &lt; out_size; ++i) {</div>
+<div class="line"><span class="keywordflow">for</span> (bst_ulong i = 0; i &lt; out_size; ++i) {</div>
 <div class="line">  <span class="comment">// Here we are simply printing the string.  Copy it out if the feature name is</span></div>
 <div class="line">  <span class="comment">// useful after printing.</span></div>
 <div class="line">  printf(<span class="stringliteral">&quot;feature %lu: %s\n&quot;</span>, i, c_out_features[i]);</div>
 <div class="line">}</div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
 <div class="ttc" id="agroup__DMatrix_html_ga5a76ec8cda76c3486488c785b9f493bf"><div class="ttname"><a href="group__DMatrix.html#ga5a76ec8cda76c3486488c785b9f493bf">XGDMatrixGetStrFeatureInfo</a></div><div class="ttdeci">XGB_DLL int XGDMatrixGetStrFeatureInfo(DMatrixHandle handle, const char *field, bst_ulong *size, const char ***out_features)</div><div class="ttdoc">Get string encoded information of all features.</div><div class="ttdef"><b>Definition</b> c_api.cc:647</div></div>
 </div><!-- fragment --> 
 </div>
@@ -1869,7 +1868,7 @@ XGB_DLL int&#160;</td><td class="memItemRight" valign="bottom"><b>XGImportArrowR
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

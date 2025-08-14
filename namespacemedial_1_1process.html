@@ -84,11 +84,11 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
-<tr class="memitem:ab28b8696972d6035acde37b54ce92853" id="r_ab28b8696972d6035acde37b54ce92853"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemedial_1_1process.html#ab28b8696972d6035acde37b54ce92853">split_feature_to_bins</a> (const <a class="el" href="classBinSettings.html">BinSettings</a> &amp;setting, vector&lt; float &gt; &amp;<a class="el" href="structfeature.html">feature</a>, const vector&lt; int &gt; &amp;sel_indexes, vector&lt; float &gt; &amp;y)</td></tr>
+<tr class="memitem:ab28b8696972d6035acde37b54ce92853" id="r_ab28b8696972d6035acde37b54ce92853"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemedial_1_1process.html#ab28b8696972d6035acde37b54ce92853">split_feature_to_bins</a> (const <a class="el" href="classBinSettings.html">BinSettings</a> &amp;setting, vector&lt; float &gt; &amp;feature, const vector&lt; int &gt; &amp;sel_indexes, vector&lt; float &gt; &amp;y)</td></tr>
 <tr class="memdesc:ab28b8696972d6035acde37b54ce92853"><td class="mdescLeft">&#160;</td><td class="mdescRight">splits feature to bin using setting  <br /></td></tr>
 <tr class="separator:ab28b8696972d6035acde37b54ce92853"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afee703f7ae6a7341376b724990d27715" id="r_afee703f7ae6a7341376b724990d27715"><td class="memItemLeft" align="right" valign="top"><a id="afee703f7ae6a7341376b724990d27715" name="afee703f7ae6a7341376b724990d27715"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>normalize_feature_to_uniform</b> (const <a class="el" href="classBinSettings.html">BinSettings</a> &amp;setting, vector&lt; float &gt; &amp;<a class="el" href="structfeature.html">feature</a>)</td></tr>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>normalize_feature_to_uniform</b> (const <a class="el" href="classBinSettings.html">BinSettings</a> &amp;setting, vector&lt; float &gt; &amp;feature)</td></tr>
 <tr class="memdesc:afee703f7ae6a7341376b724990d27715"><td class="mdescLeft">&#160;</td><td class="mdescRight">normalize feature to be between [0-1] but also change the distribution of values to be uniform <br /></td></tr>
 <tr class="separator:afee703f7ae6a7341376b724990d27715"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a96ca4828b7f481327779c782926c0b16" id="r_a96ca4828b7f481327779c782926c0b16"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemedial_1_1process.html#a96ca4828b7f481327779c782926c0b16">compare_populations</a> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;population1, const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;population2, const string &amp;name1, const string &amp;name2, const string &amp;output_file, const string &amp;predictor_type=&quot;&quot;, const string &amp;predictor_init=&quot;&quot;, int nfolds=5, int max_learn=0)</td></tr>
@@ -143,10 +143,10 @@ double&#160;</td><td class="memItemRight" valign="bottom"><b>match_to_prior</b> 
 <tr class="memdesc:a76a4c30403a89fc4838ffd2e7ea097d9"><td class="mdescLeft">&#160;</td><td class="mdescRight">does matching to specific prior for <a class="el" href="classMedSamples.html" title="MedSamples represent a collection of samples per different id   The data is conatined in a vector of ...">MedSamples</a> <br /></td></tr>
 <tr class="separator:a76a4c30403a89fc4838ffd2e7ea097d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6bb7c4ae2dc526aa86e5047b1be2c6f9" id="r_a6bb7c4ae2dc526aa86e5047b1be2c6f9"><td class="memItemLeft" align="right" valign="top"><a id="a6bb7c4ae2dc526aa86e5047b1be2c6f9" name="a6bb7c4ae2dc526aa86e5047b1be2c6f9"></a>
-double&#160;</td><td class="memItemRight" valign="bottom"><b>match_to_prior</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>, float target_prior, vector&lt; int &gt; &amp;sel_idx)</td></tr>
+double&#160;</td><td class="memItemRight" valign="bottom"><b>match_to_prior</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features, float target_prior, vector&lt; int &gt; &amp;sel_idx)</td></tr>
 <tr class="memdesc:a6bb7c4ae2dc526aa86e5047b1be2c6f9"><td class="mdescLeft">&#160;</td><td class="mdescRight">does matching to specific prior for <a class="el" href="classMedFeatures.html" title="A class for holding features data as a virtual matrix">MedFeatures</a> <br /></td></tr>
 <tr class="separator:a6bb7c4ae2dc526aa86e5047b1be2c6f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7f23dbeff8ca7e2b085ecdb22fe88e1" id="r_ad7f23dbeff8ca7e2b085ecdb22fe88e1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemedial_1_1process.html#ad7f23dbeff8ca7e2b085ecdb22fe88e1">match_to_prior</a> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>, const vector&lt; string &gt; &amp;group_values, float target_prior, vector&lt; int &gt; &amp;sel_idx, bool print_verbose=true)</td></tr>
+<tr class="memitem:ad7f23dbeff8ca7e2b085ecdb22fe88e1" id="r_ad7f23dbeff8ca7e2b085ecdb22fe88e1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacemedial_1_1process.html#ad7f23dbeff8ca7e2b085ecdb22fe88e1">match_to_prior</a> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features, const vector&lt; string &gt; &amp;group_values, float target_prior, vector&lt; int &gt; &amp;sel_idx, bool print_verbose=true)</td></tr>
 <tr class="memdesc:ad7f23dbeff8ca7e2b085ecdb22fe88e1"><td class="mdescLeft">&#160;</td><td class="mdescRight">does matching to specific target_prior.  <br /></td></tr>
 <tr class="separator:ad7f23dbeff8ca7e2b085ecdb22fe88e1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a696722371418ef97d7cf1e02760f3256" id="r_a696722371418ef97d7cf1e02760f3256"><td class="memItemLeft" align="right" valign="top"><a id="a696722371418ef97d7cf1e02760f3256" name="a696722371418ef97d7cf1e02760f3256"></a>
@@ -462,7 +462,7 @@ template&lt;class T &gt; </td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

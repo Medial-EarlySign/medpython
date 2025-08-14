@@ -166,7 +166,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>  </div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00119" data-start="{" data-end="}">
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno"><a class="line" href="classEigen_1_1Block.html#ab45272f7223731c9a61937e55795c728">  119</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1Block.html#ab45272f7223731c9a61937e55795c728">Block</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> i) : <a class="code hl_class" href="classEigen_1_1Solve.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,i)</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno"><a class="line" href="classEigen_1_1Block.html#ab45272f7223731c9a61937e55795c728">  119</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1Block.html#ab45272f7223731c9a61937e55795c728">Block</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index i) : <a class="code hl_class" href="classEigen_1_1Solve.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,i)</div>
 <div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    {</div>
 <div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>      eigen_assert( (i&gt;=0) &amp;&amp; (</div>
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>          ((<a class="code hl_class" href="classEigen_1_1Solve.html">BlockRows</a>==1) &amp;&amp; (<a class="code hl_class" href="classEigen_1_1Solve.html">BlockCols</a>==XprType::ColsAtCompileTime) &amp;&amp; i&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.rows())</div>
@@ -176,7 +176,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span> </div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00129" data-start="{" data-end="}">
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="classEigen_1_1Block.html#afdf396b628ef3874414bbfc4ebd72ab4">  129</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1Block.html#afdf396b628ef3874414bbfc4ebd72ab4">Block</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol)</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno"><a class="line" href="classEigen_1_1Block.html#afdf396b628ef3874414bbfc4ebd72ab4">  129</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1Block.html#afdf396b628ef3874414bbfc4ebd72ab4">Block</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index startRow, Index startCol)</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>      : <a class="code hl_class" href="classEigen_1_1Solve.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, startRow, startCol)</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    {</div>
 <div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>      EIGEN_STATIC_ASSERT(RowsAtCompileTime!=Dynamic &amp;&amp; ColsAtCompileTime!=Dynamic,THIS_METHOD_IS_ONLY_FOR_FIXED_SIZE)</div>
@@ -188,8 +188,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00140" data-start="{" data-end="}">
 <div class="line"><a id="l00140" name="l00140"></a><span class="lineno"><a class="line" href="classEigen_1_1Block.html#a09e495968e1c52a5838bfd102978e09e">  140</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1Block.html#a09e495968e1c52a5838bfd102978e09e">Block</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,</div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>          <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol,</div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>          <a class="code hl_struct" href="structIndex.html">Index</a> blockRows, <a class="code hl_struct" href="structIndex.html">Index</a> blockCols)</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>          Index startRow, Index startCol,</div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>          Index blockRows, Index blockCols)</div>
 <div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>      : <a class="code hl_class" href="classEigen_1_1Solve.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, startRow, startCol, blockRows, blockCols)</div>
 <div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>    {</div>
 <div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>      eigen_assert((RowsAtCompileTime==Dynamic || RowsAtCompileTime==blockRows)</div>
@@ -213,10 +213,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a> <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Base</a>;</div>
 <div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>    EIGEN_INHERIT_ASSIGNMENT_OPERATORS(<a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>)</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> i) : <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,i) {}</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol) : <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, startRow, startCol) {}</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index i) : <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,i) {}</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index startRow, Index startCol) : <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, startRow, startCol) {}</div>
 <div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol, <a class="code hl_struct" href="structIndex.html">Index</a> blockRows, <a class="code hl_struct" href="structIndex.html">Index</a> blockCols)</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1BlockImpl.html">BlockImpl</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index startRow, Index startCol, Index blockRows, Index blockCols)</div>
 <div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>      : <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">Impl</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, startRow, startCol, blockRows, blockCols) {}</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>};</div>
 </div>
@@ -239,7 +239,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    </div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00188" data-start="{" data-end="}">
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense.html#af68c0eafb607bb884cfe507bee39052e">  188</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense.html#af68c0eafb607bb884cfe507bee39052e">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense.html#af68c0eafb607bb884cfe507bee39052e">  188</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense.html#af68c0eafb607bb884cfe507bee39052e">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index i)</div>
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>      : m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>),</div>
 <div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>        <span class="comment">// It is a row if and only if BlockRows==1 and BlockCols==XprType::ColsAtCompileTime,</span></div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>        <span class="comment">// and it is a column if and only if BlockRows==XprType::RowsAtCompileTime and BlockCols==1,</span></div>
@@ -254,7 +254,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span> </div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00203" data-start="{" data-end="}">
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense.html#aa77daae8d8aef85ce9445cfd23363cbf">  203</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense.html#aa77daae8d8aef85ce9445cfd23363cbf">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol)</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense.html#aa77daae8d8aef85ce9445cfd23363cbf">  203</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense.html#aa77daae8d8aef85ce9445cfd23363cbf">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index startRow, Index startCol)</div>
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>      : m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>), m_startRow(startRow), m_startCol(startCol),</div>
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>                    m_blockRows(<a class="code hl_class" href="classEigen_1_1Solve.html">BlockRows</a>), m_blockCols(<a class="code hl_class" href="classEigen_1_1Solve.html">BlockCols</a>)</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>    {}</div>
@@ -263,18 +263,18 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00211" data-start="{" data-end="}">
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense.html#a187c7918e6f200bf1d7d9a9c2f608547">  211</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense.html#a187c7918e6f200bf1d7d9a9c2f608547">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>          <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol,</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>          <a class="code hl_struct" href="structIndex.html">Index</a> blockRows, <a class="code hl_struct" href="structIndex.html">Index</a> blockCols)</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>          Index startRow, Index startCol,</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>          Index blockRows, Index blockCols)</div>
 <div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>      : m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>), m_startRow(startRow), m_startCol(startCol),</div>
 <div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>                    m_blockRows(blockRows), m_blockCols(blockCols)</div>
 <div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    {}</div>
 </div>
 <div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span> </div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_blockRows.value(); }</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_blockCols.value(); }</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_blockRows.value(); }</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_blockCols.value(); }</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span> </div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(<a class="code hl_struct" href="structIndex.html">Index</a> rowId, <a class="code hl_struct" href="structIndex.html">Index</a> colId)</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(Index rowId, Index colId)</div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    {</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>      EIGEN_STATIC_ASSERT_LVALUE(XprType)</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>      <span class="keywordflow">return</span> m_xpr.const_cast_derived()</div>
@@ -282,20 +282,20 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    }</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keyword">inline</span> <span class="keyword">const</span> Scalar&amp; coeffRef(<a class="code hl_struct" href="structIndex.html">Index</a> rowId, <a class="code hl_struct" href="structIndex.html">Index</a> colId)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keyword">inline</span> <span class="keyword">const</span> Scalar&amp; coeffRef(Index rowId, Index colId)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>      <span class="keywordflow">return</span> m_xpr.derived()</div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>               .coeffRef(rowId + m_startRow.value(), colId + m_startCol.value());</div>
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    }</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span> </div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    EIGEN_STRONG_INLINE <span class="keyword">const</span> CoeffReturnType coeff(<a class="code hl_struct" href="structIndex.html">Index</a> rowId, <a class="code hl_struct" href="structIndex.html">Index</a> colId)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    EIGEN_STRONG_INLINE <span class="keyword">const</span> CoeffReturnType coeff(Index rowId, Index colId)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>      <span class="keywordflow">return</span> m_xpr.coeff(rowId + m_startRow.value(), colId + m_startCol.value());</div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    }</div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(<a class="code hl_struct" href="structIndex.html">Index</a> index)</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    <span class="keyword">inline</span> Scalar&amp; coeffRef(Index index)</div>
 <div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>    {</div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>      EIGEN_STATIC_ASSERT_LVALUE(XprType)</div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>      <span class="keywordflow">return</span> m_xpr.const_cast_derived()</div>
@@ -304,7 +304,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    }</div>
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span> </div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    <span class="keyword">inline</span> <span class="keyword">const</span> Scalar&amp; coeffRef(<a class="code hl_struct" href="structIndex.html">Index</a> index)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    <span class="keyword">inline</span> <span class="keyword">const</span> Scalar&amp; coeffRef(Index index)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>      <span class="keywordflow">return</span> m_xpr.const_cast_derived()</div>
 <div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>             .coeffRef(m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),</div>
@@ -312,7 +312,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>    }</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>    <span class="keyword">inline</span> <span class="keyword">const</span> CoeffReturnType coeff(<a class="code hl_struct" href="structIndex.html">Index</a> index)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>    <span class="keyword">inline</span> <span class="keyword">const</span> CoeffReturnType coeff(Index index)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>      <span class="keywordflow">return</span> m_xpr</div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>             .coeff(m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),</div>
@@ -320,21 +320,21 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>    }</div>
 <div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span> </div>
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> LoadMode&gt;</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    <span class="keyword">inline</span> PacketScalar packet(<a class="code hl_struct" href="structIndex.html">Index</a> rowId, <a class="code hl_struct" href="structIndex.html">Index</a> colId)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    <span class="keyword">inline</span> PacketScalar packet(Index rowId, Index colId)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>      <span class="keywordflow">return</span> m_xpr.template packet&lt;Unaligned&gt;</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>              (rowId + m_startRow.value(), colId + m_startCol.value());</div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    }</div>
 <div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span> </div>
 <div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>    <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> LoadMode&gt;</div>
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> writePacket(<a class="code hl_struct" href="structIndex.html">Index</a> rowId, <a class="code hl_struct" href="structIndex.html">Index</a> colId, <span class="keyword">const</span> PacketScalar&amp; val)</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> writePacket(Index rowId, Index colId, <span class="keyword">const</span> PacketScalar&amp; val)</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>    {</div>
 <div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>      m_xpr.const_cast_derived().template writePacket&lt;Unaligned&gt;</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>              (rowId + m_startRow.value(), colId + m_startCol.value(), val);</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    }</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span> </div>
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> LoadMode&gt;</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <span class="keyword">inline</span> PacketScalar packet(<a class="code hl_struct" href="structIndex.html">Index</a> index)<span class="keyword"> const</span></div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <span class="keyword">inline</span> PacketScalar packet(Index index)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>      <span class="keywordflow">return</span> m_xpr.template packet&lt;Unaligned&gt;</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>              (m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),</div>
@@ -342,7 +342,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>    }</div>
 <div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span> </div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>    <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> LoadMode&gt;</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> writePacket(<a class="code hl_struct" href="structIndex.html">Index</a> index, <span class="keyword">const</span> PacketScalar&amp; val)</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> writePacket(Index index, <span class="keyword">const</span> PacketScalar&amp; val)</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    {</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>      m_xpr.const_cast_derived().template writePacket&lt;Unaligned&gt;</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>         (m_startRow.value() + (RowsAtCompileTime == 1 ? 0 : index),</div>
@@ -351,8 +351,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span> </div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="preprocessor">    #ifdef EIGEN_PARSED_BY_DOXYGEN</span></div>
 <div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keyword">const</span> Scalar* data() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> innerStride() <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> outerStride() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Index innerStride() <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Index outerStride() <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span><span class="preprocessor">    #endif</span></div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span> </div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    EIGEN_DEVICE_FUNC</div>
@@ -401,7 +401,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    </div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00349" data-start="{" data-end="}">
-<div class="line"><a id="l00349" name="l00349"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a72b340bbcd3acefc375e7a5eacd790f5">  349</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a72b340bbcd3acefc375e7a5eacd790f5">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> i)</div>
+<div class="line"><a id="l00349" name="l00349"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a72b340bbcd3acefc375e7a5eacd790f5">  349</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a72b340bbcd3acefc375e7a5eacd790f5">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index i)</div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>      : <a class="code hl_class" href="classEigen_1_1Solve.html">Base</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.data() + i * (    ((<a class="code hl_class" href="classEigen_1_1Solve.html">BlockRows</a>==1) &amp;&amp; (<a class="code hl_class" href="classEigen_1_1Solve.html">BlockCols</a>==XprType::ColsAtCompileTime) &amp;&amp; (!XprTypeIsRowMajor)) </div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>                                || ((<a class="code hl_class" href="classEigen_1_1Solve.html">BlockRows</a>==XprType::RowsAtCompileTime) &amp;&amp; (<a class="code hl_class" href="classEigen_1_1Solve.html">BlockCols</a>==1) &amp;&amp; ( XprTypeIsRowMajor)) ? <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.innerStride() : <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.outerStride()),</div>
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>             <a class="code hl_class" href="classEigen_1_1Solve.html">BlockRows</a>==1 ? 1 : <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.rows(),</div>
@@ -414,7 +414,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span> </div>
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00362" data-start="{" data-end="}">
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#aaa47737cd19396275d5bcb6d9520e49f">  362</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#aaa47737cd19396275d5bcb6d9520e49f">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol)</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#aaa47737cd19396275d5bcb6d9520e49f">  362</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#aaa47737cd19396275d5bcb6d9520e49f">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, Index startRow, Index startCol)</div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>      : <a class="code hl_class" href="classEigen_1_1Solve.html">Base</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.data()+<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.innerStride()*(XprTypeIsRowMajor?startCol:startRow) + <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.outerStride()*(XprTypeIsRowMajor?startRow:startCol)),</div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>)</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span>    {</div>
@@ -425,8 +425,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00372" data-start="{" data-end="}">
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a9e2d1e641a5000ca0c10b1eaeab84adf">  372</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a9e2d1e641a5000ca0c10b1eaeab84adf">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>,</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>          <a class="code hl_struct" href="structIndex.html">Index</a> startRow, <a class="code hl_struct" href="structIndex.html">Index</a> startCol,</div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>          <a class="code hl_struct" href="structIndex.html">Index</a> blockRows, <a class="code hl_struct" href="structIndex.html">Index</a> blockCols)</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span>          Index startRow, Index startCol,</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>          Index blockRows, Index blockCols)</div>
 <div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>      : <a class="code hl_class" href="classEigen_1_1Solve.html">Base</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.data()+<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.innerStride()*(XprTypeIsRowMajor?startCol:startRow) + <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>.outerStride()*(XprTypeIsRowMajor?startRow:startCol), blockRows, blockCols),</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>        m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>)</div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>    {</div>
@@ -442,7 +442,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>      </div>
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00389" data-start="{" data-end="}">
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a91fea2e027a3b057b5f70ab52a1a24b7">  389</a></span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a91fea2e027a3b057b5f70ab52a1a24b7">innerStride</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a91fea2e027a3b057b5f70ab52a1a24b7">  389</a></span>    <span class="keyword">inline</span> Index <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#a91fea2e027a3b057b5f70ab52a1a24b7">innerStride</a>()<span class="keyword"> const</span></div>
 <div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>      <span class="keywordflow">return</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;BlockType&gt;::HasSameStorageOrderAsXprType</a></div>
 <div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>             ? m_xpr.innerStride()</div>
@@ -452,7 +452,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span> </div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="foldopen" id="foldopen00398" data-start="{" data-end="}">
-<div class="line"><a id="l00398" name="l00398"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#ac6f37b9a06897f0891fcd7b65ce2800e">  398</a></span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#ac6f37b9a06897f0891fcd7b65ce2800e">outerStride</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00398" name="l00398"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#ac6f37b9a06897f0891fcd7b65ce2800e">  398</a></span>    <span class="keyword">inline</span> Index <a class="code hl_function" href="classEigen_1_1internal_1_1BlockImpl__dense_3_01XprType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_00_01true_01_4.html#ac6f37b9a06897f0891fcd7b65ce2800e">outerStride</a>()<span class="keyword"> const</span></div>
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="keyword">    </span>{</div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>      <span class="keywordflow">return</span> m_outerStride;</div>
 <div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>    }</div>
@@ -466,7 +466,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span> </div>
 <div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span><span class="preprocessor">    #ifndef EIGEN_PARSED_BY_DOXYGEN</span></div>
 <div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
-<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <span class="keyword">const</span> Scalar* data, <a class="code hl_struct" href="structIndex.html">Index</a> blockRows, <a class="code hl_struct" href="structIndex.html">Index</a> blockCols)</div>
+<div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1internal_1_1BlockImpl__dense.html">BlockImpl_dense</a>(XprType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>, <span class="keyword">const</span> Scalar* data, Index blockRows, Index blockCols)</div>
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>      : Base(data, blockRows, blockCols), m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>)</div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>    {</div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>      init();</div>
@@ -483,7 +483,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span>    }</div>
 <div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span> </div>
 <div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span>    <span class="keyword">typename</span> XprType::Nested m_xpr;</div>
-<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>    <a class="code hl_struct" href="structIndex.html">Index</a> m_outerStride;</div>
+<div class="line"><a id="l00429" name="l00429"></a><span class="lineno">  429</span>    Index m_outerStride;</div>
 <div class="line"><a id="l00430" name="l00430"></a><span class="lineno">  430</span>};</div>
 </div>
 <div class="line"><a id="l00431" name="l00431"></a><span class="lineno">  431</span> </div>
@@ -520,11 +520,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1outer__stride__at__compile__time_html"><div class="ttname"><a href="structEigen_1_1internal_1_1outer__stride__at__compile__time.html">Eigen::internal::outer_stride_at_compile_time</a></div><div class="ttdef"><b>Definition</b> DenseCoeffsBase.h:643</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:11 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:53:58 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

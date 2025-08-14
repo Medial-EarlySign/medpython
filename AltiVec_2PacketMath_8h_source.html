@@ -344,7 +344,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>  a3 = vec_splat(a3, 3);</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>}</div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span> </div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4f pgather&lt;float, Packet4f&gt;(<span class="keyword">const</span> <span class="keywordtype">float</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4f pgather&lt;float, Packet4f&gt;(<span class="keyword">const</span> <span class="keywordtype">float</span>* from, Index stride)</div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>{</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>  <span class="keywordtype">float</span> EIGEN_ALIGN16 af[4];</div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>  af[0] = from[0*stride];</div>
@@ -353,7 +353,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>  af[3] = from[3*stride];</div>
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span> <span class="keywordflow">return</span> pload&lt;Packet4f&gt;(af);</div>
 <div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>}</div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4i pgather&lt;int, Packet4i&gt;(<span class="keyword">const</span> <span class="keywordtype">int</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4i pgather&lt;int, Packet4i&gt;(<span class="keyword">const</span> <span class="keywordtype">int</span>* from, Index stride)</div>
 <div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>{</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>  <span class="keywordtype">int</span> EIGEN_ALIGN16 ai[4];</div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>  ai[0] = from[0*stride];</div>
@@ -362,7 +362,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>  ai[3] = from[3*stride];</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> <span class="keywordflow">return</span> pload&lt;Packet4i&gt;(ai);</div>
 <div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>}</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;float, Packet4f&gt;(<span class="keywordtype">float</span>* to, <span class="keyword">const</span> Packet4f&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;float, Packet4f&gt;(<span class="keywordtype">float</span>* to, <span class="keyword">const</span> Packet4f&amp; from, Index stride)</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>{</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>  <span class="keywordtype">float</span> EIGEN_ALIGN16 af[4];</div>
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>  pstore&lt;float&gt;(af, from);</div>
@@ -371,7 +371,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>  to[2*stride] = af[2];</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>  to[3*stride] = af[3];</div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>}</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;int, Packet4i&gt;(<span class="keywordtype">int</span>* to, <span class="keyword">const</span> Packet4i&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;int, Packet4i&gt;(<span class="keywordtype">int</span>* to, <span class="keyword">const</span> Packet4i&amp; from, Index stride)</div>
 <div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>{</div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>  <span class="keywordtype">int</span> EIGEN_ALIGN16 ai[4];</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>  pstore&lt;int&gt;((<span class="keywordtype">int</span> *)ai, from);</div>
@@ -889,14 +889,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>  a2 = vec_splat_dbl(a3, 0);</div>
 <div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span>  a3 = vec_splat_dbl(a3, 1);</div>
 <div class="line"><a id="l00800" name="l00800"></a><span class="lineno">  800</span>}</div>
-<div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2d pgather&lt;double, Packet2d&gt;(<span class="keyword">const</span> <span class="keywordtype">double</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00801" name="l00801"></a><span class="lineno">  801</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2d pgather&lt;double, Packet2d&gt;(<span class="keyword">const</span> <span class="keywordtype">double</span>* from, Index stride)</div>
 <div class="line"><a id="l00802" name="l00802"></a><span class="lineno">  802</span>{</div>
 <div class="line"><a id="l00803" name="l00803"></a><span class="lineno">  803</span>  <span class="keywordtype">double</span> EIGEN_ALIGN16 af[2];</div>
 <div class="line"><a id="l00804" name="l00804"></a><span class="lineno">  804</span>  af[0] = from[0*stride];</div>
 <div class="line"><a id="l00805" name="l00805"></a><span class="lineno">  805</span>  af[1] = from[1*stride];</div>
 <div class="line"><a id="l00806" name="l00806"></a><span class="lineno">  806</span> <span class="keywordflow">return</span> pload&lt;Packet2d&gt;(af);</div>
 <div class="line"><a id="l00807" name="l00807"></a><span class="lineno">  807</span>}</div>
-<div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;double, Packet2d&gt;(<span class="keywordtype">double</span>* to, <span class="keyword">const</span> Packet2d&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00808" name="l00808"></a><span class="lineno">  808</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;double, Packet2d&gt;(<span class="keywordtype">double</span>* to, <span class="keyword">const</span> Packet2d&amp; from, Index stride)</div>
 <div class="line"><a id="l00809" name="l00809"></a><span class="lineno">  809</span>{</div>
 <div class="line"><a id="l00810" name="l00810"></a><span class="lineno">  810</span>  <span class="keywordtype">double</span> EIGEN_ALIGN16 af[2];</div>
 <div class="line"><a id="l00811" name="l00811"></a><span class="lineno">  811</span>  pstore&lt;double&gt;(af, from);</div>
@@ -1034,11 +1034,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1packet__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1packet__traits.html">Eigen::internal::packet_traits</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:90</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1palign__impl_html"><div class="ttname"><a href="structEigen_1_1internal_1_1palign__impl.html">Eigen::internal::palign_impl</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:505</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unpacket__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unpacket__traits.html">Eigen::internal::unpacket_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:119</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:53:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

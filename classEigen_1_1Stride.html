@@ -106,12 +106,12 @@ Public Member Functions</h2></td></tr>
 <tr class="memdesc:ab769b5a97db488b06bf305f4ab970189"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor allowing to pass the strides at runtime. <br /></td></tr>
 <tr class="separator:ab769b5a97db488b06bf305f4ab970189"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a052fed680cf28ea284714be591bfbf86" id="r_a052fed680cf28ea284714be591bfbf86"><td class="memItemLeft" align="right" valign="top"><a id="a052fed680cf28ea284714be591bfbf86" name="a052fed680cf28ea284714be591bfbf86"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Stride</b> (const <a class="el" href="classEigen_1_1Stride.html">Stride</a> &amp;other)</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Stride</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Stride.html">Stride</a> &amp;other)</td></tr>
 <tr class="memdesc:a052fed680cf28ea284714be591bfbf86"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. <br /></td></tr>
 <tr class="separator:a052fed680cf28ea284714be591bfbf86"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a261eede5809599db183b49bc274f8a07" id="r_a261eede5809599db183b49bc274f8a07"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Stride.html#a96c2dfb0ce43fd8e19adcdf6094f5f63">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1Stride.html#a261eede5809599db183b49bc274f8a07">outer</a> () const</td></tr>
+<tr class="memitem:a261eede5809599db183b49bc274f8a07" id="r_a261eede5809599db183b49bc274f8a07"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Stride.html#a96c2dfb0ce43fd8e19adcdf6094f5f63">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1Stride.html#a261eede5809599db183b49bc274f8a07">outer</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a261eede5809599db183b49bc274f8a07"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a24579b0e941cebef474c666e6d936b3b" id="r_a24579b0e941cebef474c666e6d936b3b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Stride.html#a96c2dfb0ce43fd8e19adcdf6094f5f63">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1Stride.html#a24579b0e941cebef474c666e6d936b3b">inner</a> () const</td></tr>
+<tr class="memitem:a24579b0e941cebef474c666e6d936b3b" id="r_a24579b0e941cebef474c666e6d936b3b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Stride.html#a96c2dfb0ce43fd8e19adcdf6094f5f63">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1Stride.html#a24579b0e941cebef474c666e6d936b3b">inner</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a24579b0e941cebef474c666e6d936b3b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -149,7 +149,7 @@ class Eigen::Stride&lt; _OuterStrideAtCompileTime, _InnerStrideAtCompileTime &gt
 template&lt;int _OuterStrideAtCompileTime, int _InnerStrideAtCompileTime&gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index <a class="el" href="classEigen_1_1Stride.html">Eigen::Stride</a>&lt; <a class="el" href="classEigen_1_1Solve.html">_OuterStrideAtCompileTime</a>, <a class="el" href="classEigen_1_1Solve.html">_InnerStrideAtCompileTime</a> &gt;<a class="el" href="structIndex.html">::Index</a></td>
+          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index <a class="el" href="classEigen_1_1Stride.html">Eigen::Stride</a>&lt; <a class="el" href="classEigen_1_1Solve.html">_OuterStrideAtCompileTime</a>, <a class="el" href="classEigen_1_1Solve.html">_InnerStrideAtCompileTime</a> &gt;::Index</td>
         </tr>
       </table>
 </div><div class="memdoc">
@@ -220,7 +220,7 @@ template&lt;int _OuterStrideAtCompileTime, int _InnerStrideAtCompileTime&gt; </d
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:08 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:40 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

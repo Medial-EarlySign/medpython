@@ -79,9 +79,9 @@ $(function() {
 <li>Auto generation of human readable docstrings on parameters.</li>
 <li>Serialization and de-serialization into JSON and <code>std::map&lt;std::string, std::string&gt;</code>.</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md303"></a>
+<h1><a class="anchor" id="autotoc_md136"></a>
 Use Parameter Module</h1>
-<h2><a class="anchor" id="autotoc_md304"></a>
+<h2><a class="anchor" id="autotoc_md137"></a>
 Declare the Parameter</h2>
 <p>In the dmlc parameter module, every parameter can be declared as a structure. This means you can easily access these fields as they normally are efficiently. For example, it is very common to write </p><div class="fragment"><div class="line"> ++</div>
 <div class="line">weight -= param.learning_rate * gradient;</div>
@@ -118,7 +118,7 @@ Declare the Parameter</h2>
 <li>It is possible to define enumeration types, in this case activation. User is only allowed to set <code>sigmoid</code> or <code>relu</code> into the activation field, and they will be mapped into 1 and 2 separately.</li>
 <li>The <code>describe</code> function adds a description on the field, which is used to generate human readable docstring.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md305"></a>
+<h2><a class="anchor" id="autotoc_md138"></a>
 Set the Parameters</h2>
 <p>After we declared the parameters, we can declare this structure as normal structure. Except that the <code><a class="el" href="structMyParam.html">MyParam</a></code> structure now comes with a few member functions to make parameter manipulation easy. To set the parameters from external data source, we can use the <code>Init</code> function. </p><div class="fragment"><div class="line"> ++</div>
 <div class="line"><span class="keywordtype">int</span> main() {</div>
@@ -133,23 +133,23 @@ Set the Parameters</h2>
 <div class="line">   <span class="keywordflow">return</span> 0;</div>
 <div class="line">}</div>
 </div><!-- fragment --><p> After the <code>Init</code> function is called, the <code>param</code> will be filled with the specified key values in <code>param_data</code>. More importantly, the <code>Init</code> function will do automatic checking of parameter range and throw an <code>dmlc::ParamError</code> with detailed error message if things went wrong.</p>
-<h2><a class="anchor" id="autotoc_md306"></a>
+<h2><a class="anchor" id="autotoc_md139"></a>
 Generate Human Readable Docstrings</h2>
 <p>Another useful feature of the parameter module is to get an human readable docstring of the parameter. This is helpful when we are creating language binding such as python and R, and we can use it to generate docstring of foreign language interface.</p>
 <p>The following code obtains the dostring of <code><a class="el" href="structMyParam.html">MyParam</a></code>. </p><div class="fragment"><div class="line"> ++</div>
 <div class="line">std::string docstring = MyParam::__DOC__();</div>
 </div><!-- fragment --><p>We also provide a more structured way to access the detail of the fields(name, default value, detailed description) via </p><div class="fragment"><div class="line"> ++</div>
 <div class="line">std::vector&lt;dmlc::ParamFieldInfo&gt; fields = MyParam::__FIELDS__();</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md307"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md140"></a>
 Serialization of Parameters</h2>
 <p>One of the most common way to serialize the parameter is to convert it back to representation of <code>std::map&lt;string, string&gt;</code> by using the following code. </p><div class="fragment"><div class="line"> ++</div>
 <div class="line">std::map&lt;string, string&gt; dict = param.__DICT__();</div>
 </div><!-- fragment --><p> The <code>std::map&lt;string, string&gt;</code> can further be serialized easily. This way of serialization is more device and platform(32/64 bit) agnostic. However, this is not very compact, and recommended only used to serialize the general parameters set by the user.</p>
 <p>Direct serialization and loading of JSON format is also support.</p>
-<h2><a class="anchor" id="autotoc_md308"></a>
+<h2><a class="anchor" id="autotoc_md141"></a>
 Play with an Example</h2>
 <p>We provide an example program <a href="https://github.com/dmlc/dmlc-core/blob/main/example/parameter.cc">parameter.cc</a>, to demonstrate the usage mentioned above, and allow you to play with it and get sense of what is going on.</p>
-<h1><a class="anchor" id="autotoc_md309"></a>
+<h1><a class="anchor" id="autotoc_md142"></a>
 How does it work</h1>
 <p>Hope you like the parameter module so far. In this section, we will explain how does it work. Making such parameter module in <code>C++</code> is not easy. Because this basically means some way of reflection &ndash; getting the information of fields in a structure out, which is not supported by <code>C++</code>.</p>
 <p>Consider the following program, how do the Init function know the location of <code>num_hidden</code>, and set it correctly in <code>Init</code> function?</p>
@@ -225,7 +225,7 @@ How does it work</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

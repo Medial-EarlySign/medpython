@@ -138,9 +138,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    }</div>
 </div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    </div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="classEigen_1_1IncompleteCholesky.html#a4780a83266c871782595081021268b5a">   88</a></span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1IncompleteCholesky.html#a4780a83266c871782595081021268b5a">rows</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_L.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="classEigen_1_1IncompleteCholesky.html#a4780a83266c871782595081021268b5a">   88</a></span>    Index <a class="code hl_function" href="classEigen_1_1IncompleteCholesky.html#a4780a83266c871782595081021268b5a">rows</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_L.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>    </div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno"><a class="line" href="classEigen_1_1IncompleteCholesky.html#a0d66a1c8e340617e7ff404e63186fedb">   91</a></span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1IncompleteCholesky.html#a0d66a1c8e340617e7ff404e63186fedb">cols</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_L.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno"><a class="line" href="classEigen_1_1IncompleteCholesky.html#a0d66a1c8e340617e7ff404e63186fedb">   91</a></span>    Index <a class="code hl_function" href="classEigen_1_1IncompleteCholesky.html#a0d66a1c8e340617e7ff404e63186fedb">cols</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_L.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    </div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
 <div class="foldopen" id="foldopen00102" data-start="{" data-end="}">
@@ -212,7 +212,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>    PermutationType m_perm; </div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>  <span class="keyword">private</span>:</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> updateList(<a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;const VectorIx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">colPtr</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;VectorIx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">rowIdx</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;VectorSx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">vals</a>, <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a>&amp; col, <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">jk</a>, VectorIx&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">firstElt</a>, VectorList&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">listCol</a>); </div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keyword">inline</span> <span class="keywordtype">void</span> updateList(<a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;const VectorIx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">colPtr</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;VectorIx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">rowIdx</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;VectorSx&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">vals</a>, <span class="keyword">const</span> Index&amp; col, <span class="keyword">const</span> Index&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">jk</a>, VectorIx&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">firstElt</a>, VectorList&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">listCol</a>); </div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>}; </div>
 </div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span> </div>
@@ -238,8 +238,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>    m_L.template selfadjointView&lt;Lower&gt;() = mat.template selfadjointView&lt;_UpLo&gt;();</div>
 <div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>  }</div>
 <div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>  </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  <a class="code hl_struct" href="structIndex.html">Index</a> n = m_L.cols(); </div>
-<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>  <a class="code hl_struct" href="structIndex.html">Index</a> nnz = m_L.nonZeros();</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  Index n = m_L.cols(); </div>
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>  Index nnz = m_L.nonZeros();</div>
 <div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>  Map&lt;VectorSx&gt; vals(m_L.valuePtr(), nnz);         <span class="comment">//values</span></div>
 <div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>  Map&lt;VectorIx&gt; rowIdx(m_L.innerIndexPtr(), nnz);  <span class="comment">//Row indices</span></div>
 <div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>  Map&lt;VectorIx&gt; colPtr( m_L.outerIndexPtr(), n+1); <span class="comment">// Pointer to the beginning of each row</span></div>
@@ -255,8 +255,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>  <span class="comment">// Computes the scaling factors </span></div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>  m_scale.resize(n);</div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>  m_scale.setZero();</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; n; j++)</div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k = colPtr[j]; k &lt; colPtr[j+1]; k++)</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>  <span class="keywordflow">for</span> (Index j = 0; j &lt; n; j++)</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    <span class="keywordflow">for</span> (Index k = colPtr[j]; k &lt; colPtr[j+1]; k++)</div>
 <div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>    {</div>
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>      m_scale(j) += numext::abs2(vals(k));</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>      <span class="keywordflow">if</span>(rowIdx[k]!=j)</div>
@@ -265,7 +265,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>  </div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>  m_scale = m_scale.cwiseSqrt().cwiseSqrt();</div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span> </div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; n; ++j)</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>  <span class="keywordflow">for</span> (Index j = 0; j &lt; n; ++j)</div>
 <div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    <span class="keywordflow">if</span>(m_scale(j)&gt;(std::numeric_limits&lt;RealScalar&gt;::min)())</div>
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>      m_scale(j) = RealScalar(1)/m_scale(j);</div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    <span class="keywordflow">else</span></div>
@@ -275,9 +275,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>  </div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>  <span class="comment">// Scale and compute the shift for the matrix </span></div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>  RealScalar mindiag = NumTraits&lt;RealScalar&gt;::highest();</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; n; j++)</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  <span class="keywordflow">for</span> (Index j = 0; j &lt; n; j++)</div>
 <div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>  {</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k = colPtr[j]; k &lt; colPtr[j+1]; k++)</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    <span class="keywordflow">for</span> (Index k = colPtr[j]; k &lt; colPtr[j+1]; k++)</div>
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>      vals[k] *= (m_scale(j)*m_scale(rowIdx[k]));</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    eigen_internal_assert(rowIdx[colPtr[j]]==j &amp;&amp; <span class="stringliteral">&quot;IncompleteCholesky: only the lower triangular part must be stored&quot;</span>);</div>
 <div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    mindiag = numext::mini(numext::real(vals[colPtr[j]]), mindiag);</div>
@@ -288,17 +288,17 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>    shift = m_initialShift - mindiag;</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>  <span class="comment">// Apply the shift to the diagonal elements of the matrix</span></div>
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; n; j++)</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>  <span class="keywordflow">for</span> (Index j = 0; j &lt; n; j++)</div>
 <div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    vals[colPtr[j]] += shift;</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>  </div>
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>  <span class="comment">// jki version of the Cholesky factorization </span></div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j=0; j &lt; n; ++j)</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>  <span class="keywordflow">for</span> (Index j=0; j &lt; n; ++j)</div>
 <div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>  {  </div>
 <div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    <span class="comment">// Left-looking factorization of the j-th column</span></div>
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    <span class="comment">// First, load the j-th column into col_vals </span></div>
 <div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    Scalar diag = vals[colPtr[j]];  <span class="comment">// It is assumed that only the lower part is stored</span></div>
 <div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>    col_nnz = 0;</div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = colPtr[j] + 1; i &lt; colPtr[j+1]; i++)</div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keywordflow">for</span> (Index i = colPtr[j] + 1; i &lt; colPtr[j+1]; i++)</div>
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>    {</div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>      StorageIndex l = rowIdx[i];</div>
 <div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>      col_vals(col_nnz) = vals[i];</div>
@@ -311,12 +311,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>      <span class="comment">// Browse all previous columns that will update column j</span></div>
 <div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>      <span class="keywordflow">for</span>(k = listCol[j].begin(); k != listCol[j].end(); k++) </div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>      {</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>        <a class="code hl_struct" href="structIndex.html">Index</a> jk = firstElt(*k); <span class="comment">// First element to use in the column </span></div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>        Index jk = firstElt(*k); <span class="comment">// First element to use in the column </span></div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>        eigen_internal_assert(rowIdx[jk]==j);</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>        Scalar v_j_jk = numext::conj(vals[jk]);</div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>        </div>
 <div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>        jk += 1; </div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>        <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = jk; i &lt; colPtr[*k+1]; i++)</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>        <span class="keywordflow">for</span> (Index i = jk; i &lt; colPtr[*k+1]; i++)</div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>        {</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>          StorageIndex l = rowIdx[i];</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>          <span class="keywordflow">if</span>(col_pattern[l]&lt;0)</div>
@@ -342,9 +342,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>    </div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    RealScalar rdiag = sqrt(numext::real(diag));</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>    vals[colPtr[j]] = rdiag;</div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k = 0; k&lt;col_nnz; ++k)</div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>    <span class="keywordflow">for</span> (Index k = 0; k&lt;col_nnz; ++k)</div>
 <div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>    {</div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>      <a class="code hl_struct" href="structIndex.html">Index</a> i = col_irow[k];</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>      Index i = col_irow[k];</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>      <span class="comment">//Scale</span></div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>      col_vals(k) /= rdiag;</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>      <span class="comment">//Update the remaining diagonals with col_vals</span></div>
@@ -352,13 +352,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>    }</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    <span class="comment">// Select the largest p elements</span></div>
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    <span class="comment">// p is the original number of elements in the column (without the diagonal)</span></div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    <a class="code hl_struct" href="structIndex.html">Index</a> p = colPtr[j+1] - colPtr[j] - 1 ; </div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    Index p = colPtr[j+1] - colPtr[j] - 1 ; </div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    Ref&lt;VectorSx&gt; cvals = col_vals.head(col_nnz);</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    Ref&lt;VectorIx&gt; cirow = col_irow.head(col_nnz);</div>
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    internal::QuickSplit(cvals,cirow, p); </div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    <span class="comment">// Insert the largest p elements in the matrix</span></div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    <a class="code hl_struct" href="structIndex.html">Index</a> cpt = 0; </div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = colPtr[j]+1; i &lt; colPtr[j+1]; i++)</div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    Index cpt = 0; </div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    <span class="keywordflow">for</span> (Index i = colPtr[j]+1; i &lt; colPtr[j+1]; i++)</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    {</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>      vals[i] = col_vals(cpt); </div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>      rowIdx[i] = col_irow(cpt);</div>
@@ -367,7 +367,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>      cpt++; </div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    }</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    <span class="comment">// Get the first smallest row index and put it after the diagonal element</span></div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <a class="code hl_struct" href="structIndex.html">Index</a> jk = colPtr(j)+1;</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    Index jk = colPtr(j)+1;</div>
 <div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    updateList(colPtr,rowIdx,vals,j,jk,firstElt,listCol); </div>
 <div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>  }</div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>  m_factorizationIsOk = <span class="keyword">true</span>; </div>
@@ -375,12 +375,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>}</div>
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Scalar, <span class="keywordtype">int</span> _UpLo, <span class="keyword">typename</span> OrderingType&gt;</div>
-<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="keyword">inline</span> <span class="keywordtype">void</span> IncompleteCholesky&lt;Scalar,_UpLo, OrderingType&gt;::updateList(Ref&lt;const VectorIx&gt; colPtr, Ref&lt;VectorIx&gt; rowIdx, Ref&lt;VectorSx&gt; vals, <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a>&amp; col, <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a>&amp; jk, VectorIx&amp; firstElt, VectorList&amp; listCol)</div>
+<div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span><span class="keyword">inline</span> <span class="keywordtype">void</span> IncompleteCholesky&lt;Scalar,_UpLo, OrderingType&gt;::updateList(Ref&lt;const VectorIx&gt; colPtr, Ref&lt;VectorIx&gt; rowIdx, Ref&lt;VectorSx&gt; vals, <span class="keyword">const</span> Index&amp; col, <span class="keyword">const</span> Index&amp; jk, VectorIx&amp; firstElt, VectorList&amp; listCol)</div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>{</div>
 <div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>  <span class="keywordflow">if</span> (jk &lt; colPtr(col+1) )</div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>  {</div>
-<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    <a class="code hl_struct" href="structIndex.html">Index</a> p = colPtr(col+1) - jk;</div>
-<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    <a class="code hl_struct" href="structIndex.html">Index</a> minpos; </div>
+<div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>    Index p = colPtr(col+1) - jk;</div>
+<div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>    Index minpos; </div>
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>    rowIdx.segment(jk,p).minCoeff(&amp;minpos);</div>
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    minpos += jk;</div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>    <span class="keywordflow">if</span> (rowIdx(minpos) != rowIdx(jk))</div>
@@ -422,11 +422,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="agroup__enums_html_gga85fad7b87587764e5cf6b513a9e0ee5ea1c6e20706575a629b27a105f07f1883b"><div class="ttname"><a href="group__enums.html#gga85fad7b87587764e5cf6b513a9e0ee5ea1c6e20706575a629b27a105f07f1883b">Eigen::NumericalIssue</a></div><div class="ttdeci">@ NumericalIssue</div><div class="ttdoc">The provided data did not satisfy the prerequisites.</div><div class="ttdef"><b>Definition</b> Constants.h:434</div></div>
 <div class="ttc" id="agroup__enums_html_gga85fad7b87587764e5cf6b513a9e0ee5ea671a2aeb0f527802806a441d58a80fcf"><div class="ttname"><a href="group__enums.html#gga85fad7b87587764e5cf6b513a9e0ee5ea671a2aeb0f527802806a441d58a80fcf">Eigen::Success</a></div><div class="ttdeci">@ Success</div><div class="ttdoc">Computation was successful.</div><div class="ttdef"><b>Definition</b> Constants.h:432</div></div>
 <div class="ttc" id="anamespacestd_html_ab5fa3119ddc434392ecca8849e2e08e1"><div class="ttname"><a href="namespacestd.html#ab5fa3119ddc434392ecca8849e2e08e1">std::swap</a></div><div class="ttdeci">NLOHMANN_BASIC_JSON_TPL_DECLARATION void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j1, nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j2) noexcept(//NOLINT(readability-inconsistent-declaration-parameter-name, cert-dcl58-cpp) is_nothrow_move_constructible&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value &amp;&amp;//NOLINT(misc-redundant-expression) is_nothrow_move_assignable&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value)</div><div class="ttdoc">exchanges the values of two JSON objects</div><div class="ttdef"><b>Definition</b> json.hpp:24418</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

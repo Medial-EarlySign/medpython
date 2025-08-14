@@ -108,8 +108,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> remove_all&lt;Lhs&gt;::type::StorageIndex StorageIndex;</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>  <span class="comment">// make sure to call innerSize/outerSize since we fake the storage order.</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows = lhs.innerSize();</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols = rhs.outerSize();</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>  Index rows = lhs.innerSize();</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>  Index cols = rhs.outerSize();</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>  <span class="comment">//Index size = lhs.outerSize();</span></div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  eigen_assert(lhs.outerSize() == rhs.innerSize());</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span> </div>
@@ -131,11 +131,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>  <span class="comment">// the product of a rhs column with the lhs is X+Y where X is the average number of non zero</span></div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>  <span class="comment">// per column of the lhs.</span></div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  <span class="comment">// Therefore, we have nnz(lhs*rhs) = nnz(lhs) + nnz(rhs)</span></div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  <a class="code hl_struct" href="structIndex.html">Index</a> estimated_nnz_prod = lhsEval.nonZerosEstimate() + rhsEval.nonZerosEstimate();</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  Index estimated_nnz_prod = lhsEval.nonZerosEstimate() + rhsEval.nonZerosEstimate();</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  res.reserve(estimated_nnz_prod);</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>  <span class="keywordtype">double</span> ratioColRes = double(estimated_nnz_prod)/double(lhs.rows()*rhs.cols());</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j=0; j&lt;cols; ++j)</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>  <span class="keywordflow">for</span> (Index j=0; j&lt;cols; ++j)</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  {</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>    <span class="comment">// FIXME:</span></div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <span class="comment">//double ratioColRes = (double(rhs.innerVector(j).nonZeros()) + double(lhs.nonZeros())/double(lhs.cols()))/double(lhs.rows());</span></div>
@@ -300,11 +300,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="agroup__enums_html_gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f"><div class="ttname"><a href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">Eigen::RowMajor</a></div><div class="ttdeci">@ RowMajor</div><div class="ttdoc">Storage order is row major (see TopicStorageOrders).</div><div class="ttdef"><b>Definition</b> Constants.h:322</div></div>
 <div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:61</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1sparse__sparse__product__with__pruning__selector_html"><div class="ttname"><a href="structEigen_1_1internal_1_1sparse__sparse__product__with__pruning__selector.html">Eigen::internal::sparse_sparse_product_with_pruning_selector</a></div><div class="ttdef"><b>Definition</b> SparseSparseProductWithPruning.h:83</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:35 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:21 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

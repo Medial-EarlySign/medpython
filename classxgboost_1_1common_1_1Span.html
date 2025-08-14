@@ -229,7 +229,7 @@ class xgboost::common::Span&lt; T, Extent &gt;</div><p>span class implementation
 <p>ISO uses functions/structs from std library, which might be not available in CUDA. Initializing from std::array is not supported.</p>
 <p>ISO uses constexpr extensively, which is not possible with limitation of C++11. ISO uses C++14/17 features, which is not available here. ISO doesn't concern about CUDA.</p>
 <p>ISO uses std::terminate(), Span&lt;T&gt; uses dmlc LOG and customized CUDA logging.</p>
-<p>Limitations: <a class="el" href="structWith.html">With</a> thrust: It's not adviced to initialize <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> with host_vector directly, since host_vector::data() is a host function. It's not possible to initialize <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> with device_vector directly, since device_vector::data() returns a wrapped pointer. It's unclear that what kind of thrust algorithm can be used without memory error. See the test case "GPUSpan.WithTrust"</p>
+<p>Limitations: With thrust: It's not adviced to initialize <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> with host_vector directly, since host_vector::data() is a host function. It's not possible to initialize <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> with device_vector directly, since device_vector::data() returns a wrapped pointer. It's unclear that what kind of thrust algorithm can be used without memory error. See the test case "GPUSpan.WithTrust"</p>
 <p>Pass iterator to kernel: Not possible. Use subspan instead.</p>
 <p>The underlying <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> in SpanIterator is a pointer, but CUDA pass kernel parameter by value. If we were to hold a <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a> value instead of a pointer, the following snippet will crash, violating the safety purpose of <a class="el" href="classxgboost_1_1common_1_1Span.html" title="span class implementation, based on ISO++20 span&lt;T&gt;. The interface should be the same.">Span</a>:</p>
 <div class="fragment"><div class="line"><a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;float&gt;</a> span {arr_a};</div>
@@ -281,7 +281,7 @@ template&lt;std::size_t Offset, std::size_t Count = dynamic_extent&gt; </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

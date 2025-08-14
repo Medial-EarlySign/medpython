@@ -82,7 +82,7 @@ $(function() {
 <p>A static class that contains some collective communication algorithm.  
  <a href="classLightGBM_1_1Network.html#details">More...</a></p>
 
-<p><code>#include &lt;<a class="el" href="LightGBM__2_82_83_2LightGBM-2_82_83_2include_2LightGBM_2network_8h_source.html">network.h</a>&gt;</code></p>
+<p><code>#include &lt;<a class="el" href="network_8h_source.html">network.h</a>&gt;</code></p>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
@@ -105,19 +105,19 @@ static int&#160;</td><td class="memItemRight" valign="bottom"><b>rank</b> ()</td
 static int&#160;</td><td class="memItemRight" valign="bottom"><b>num_machines</b> ()</td></tr>
 <tr class="memdesc:a8b1dc827f6f1c1ce0b38ecae431d1e2e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get total number of machines. <br /></td></tr>
 <tr class="separator:a8b1dc827f6f1c1ce0b38ecae431d1e2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a26b6d2821cae7218f4f8755cf746cd22" id="r_a26b6d2821cae7218f4f8755cf746cd22"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a26b6d2821cae7218f4f8755cf746cd22">Allreduce</a> (char *<a class="el" href="structinput.html">input</a>, comm_size_t input_size, int type_size, char *output, const ReduceFunction &amp;reducer)</td></tr>
+<tr class="memitem:a26b6d2821cae7218f4f8755cf746cd22" id="r_a26b6d2821cae7218f4f8755cf746cd22"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a26b6d2821cae7218f4f8755cf746cd22">Allreduce</a> (char *input, comm_size_t input_size, int type_size, char *output, const ReduceFunction &amp;reducer)</td></tr>
 <tr class="memdesc:a26b6d2821cae7218f4f8755cf746cd22"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform all_reduce. if data size is small, will perform AllreduceByAllGather, else with call ReduceScatter followed allgather.  <br /></td></tr>
 <tr class="separator:a26b6d2821cae7218f4f8755cf746cd22"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22b4b6e6ca0c6ba6ecdd45233121cc03" id="r_a22b4b6e6ca0c6ba6ecdd45233121cc03"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a22b4b6e6ca0c6ba6ecdd45233121cc03">AllreduceByAllGather</a> (char *<a class="el" href="structinput.html">input</a>, comm_size_t input_size, int type_size, char *output, const ReduceFunction &amp;reducer)</td></tr>
+<tr class="memitem:a22b4b6e6ca0c6ba6ecdd45233121cc03" id="r_a22b4b6e6ca0c6ba6ecdd45233121cc03"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a22b4b6e6ca0c6ba6ecdd45233121cc03">AllreduceByAllGather</a> (char *input, comm_size_t input_size, int type_size, char *output, const ReduceFunction &amp;reducer)</td></tr>
 <tr class="memdesc:a22b4b6e6ca0c6ba6ecdd45233121cc03"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform all_reduce by using all_gather. it can be use to reduce communication time when data is small.  <br /></td></tr>
 <tr class="separator:a22b4b6e6ca0c6ba6ecdd45233121cc03"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeedcb033469ecc92a05cf843b149072e" id="r_aeedcb033469ecc92a05cf843b149072e"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#aeedcb033469ecc92a05cf843b149072e">Allgather</a> (char *<a class="el" href="structinput.html">input</a>, comm_size_t send_size, char *output)</td></tr>
+<tr class="memitem:aeedcb033469ecc92a05cf843b149072e" id="r_aeedcb033469ecc92a05cf843b149072e"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#aeedcb033469ecc92a05cf843b149072e">Allgather</a> (char *input, comm_size_t send_size, char *output)</td></tr>
 <tr class="memdesc:aeedcb033469ecc92a05cf843b149072e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performing all_gather by using bruck algorithm. Communication times is O(log(n)), and communication cost is O(send_size * number_machine) It can be used when all nodes have same input size.  <br /></td></tr>
 <tr class="separator:aeedcb033469ecc92a05cf843b149072e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4d5e593dd82b49534f100eb8bf4008e0" id="r_a4d5e593dd82b49534f100eb8bf4008e0"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a4d5e593dd82b49534f100eb8bf4008e0">Allgather</a> (char *<a class="el" href="structinput.html">input</a>, const comm_size_t *block_start, const comm_size_t *block_len, char *output, comm_size_t all_size)</td></tr>
+<tr class="memitem:a4d5e593dd82b49534f100eb8bf4008e0" id="r_a4d5e593dd82b49534f100eb8bf4008e0"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#a4d5e593dd82b49534f100eb8bf4008e0">Allgather</a> (char *input, const comm_size_t *block_start, const comm_size_t *block_len, char *output, comm_size_t all_size)</td></tr>
 <tr class="memdesc:a4d5e593dd82b49534f100eb8bf4008e0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performing all_gather by using bruck algorithm. Communication times is O(log(n)), and communication cost is O(all_size) It can be used when nodes have different input size.  <br /></td></tr>
 <tr class="separator:a4d5e593dd82b49534f100eb8bf4008e0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ae657ab173f05fc034645e637c9e04e89" id="r_ae657ab173f05fc034645e637c9e04e89"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#ae657ab173f05fc034645e637c9e04e89">ReduceScatter</a> (char *<a class="el" href="structinput.html">input</a>, comm_size_t input_size, int type_size, const comm_size_t *block_start, const comm_size_t *block_len, char *output, comm_size_t output_size, const ReduceFunction &amp;reducer)</td></tr>
+<tr class="memitem:ae657ab173f05fc034645e637c9e04e89" id="r_ae657ab173f05fc034645e637c9e04e89"><td class="memItemLeft" align="right" valign="top">static void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Network.html#ae657ab173f05fc034645e637c9e04e89">ReduceScatter</a> (char *input, comm_size_t input_size, int type_size, const comm_size_t *block_start, const comm_size_t *block_len, char *output, comm_size_t output_size, const ReduceFunction &amp;reducer)</td></tr>
 <tr class="memdesc:ae657ab173f05fc034645e637c9e04e89"><td class="mdescLeft">&#160;</td><td class="mdescRight">Perform reduce scatter by using recursive halving algorithm. Communication times is O(log(n)), and communication cost is O(input_size)  <br /></td></tr>
 <tr class="separator:ae657ab173f05fc034645e637c9e04e89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae4473c6661ecb712756ad1bfbedde4a8" id="r_ae4473c6661ecb712756ad1bfbedde4a8"><td class="memTemplParams" colspan="2"><a id="ae4473c6661ecb712756ad1bfbedde4a8" name="ae4473c6661ecb712756ad1bfbedde4a8"></a>
@@ -512,13 +512,13 @@ template&lt;class T &gt; </td></tr>
 </div>
 </div>
 <hr/>The documentation for this class was generated from the following files:<ul>
-<li>External/LightGBM_2.2.3/LightGBM-2.2.3/include/LightGBM/<a class="el" href="LightGBM__2_82_83_2LightGBM-2_82_83_2include_2LightGBM_2network_8h_source.html">network.h</a></li>
+<li>External/LightGBM_2.2.3/LightGBM-2.2.3/include/LightGBM/<a class="el" href="network_8h_source.html">network.h</a></li>
 <li>External/LightGBM_2.2.3/LightGBM-2.2.3/src/network/<b>network.cpp</b></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

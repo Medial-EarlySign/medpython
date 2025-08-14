@@ -95,7 +95,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">public</span>:</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span>    <a class="code hl_class" href="classPredictiveModel.html">PredictiveModel</a>(<span class="keywordtype">string</span> name); </div>
-<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    <span class="keyword">virtual</span> <span class="keywordtype">double</span> predict(<span class="keyword">const</span> vector&lt;float&gt; &amp;<a class="code hl_struct" href="structinput.html">input</a>) <span class="keyword">const</span> = 0;</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>    <span class="keyword">virtual</span> <span class="keywordtype">double</span> predict(<span class="keyword">const</span> vector&lt;float&gt; &amp;input) <span class="keyword">const</span> = 0;</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>    <span class="keyword">virtual</span> subGradientFunction <a class="code hl_function" href="classPredictiveModel.html#ad99eb7e08776643ca0ea41d163f6666b">getSubGradients</a>();</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>    <span class="keyword">virtual</span> <span class="keywordtype">void</span> predict(<span class="keyword">const</span> vector&lt;vector&lt;float&gt;&gt; &amp;inputs, vector&lt;double&gt; &amp;preds) <span class="keyword">const</span>; </div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno"><a class="line" href="classPredictiveModel.html#af6237a89d2abcbf3c9dadd3f92d4026f">   20</a></span>    <span class="keyword">virtual</span> <span class="keywordtype">void</span> <a class="code hl_function" href="classPredictiveModel.html#af6237a89d2abcbf3c9dadd3f92d4026f">print</a>(<span class="keyword">const</span> vector&lt;string&gt; &amp;signalNames) <span class="keyword">const</span> = 0; </div>
@@ -116,11 +116,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassPredictiveModel_html_ad99eb7e08776643ca0ea41d163f6666b"><div class="ttname"><a href="classPredictiveModel.html#ad99eb7e08776643ca0ea41d163f6666b">PredictiveModel::getSubGradients</a></div><div class="ttdeci">virtual subGradientFunction getSubGradients()</div><div class="ttdoc">Subgradient function to calc directly the gradient descent.</div><div class="ttdef"><b>Definition</b> PredictiveModel.cpp:35</div></div>
 <div class="ttc" id="aclassPredictiveModel_html_af6237a89d2abcbf3c9dadd3f92d4026f"><div class="ttname"><a href="classPredictiveModel.html#af6237a89d2abcbf3c9dadd3f92d4026f">PredictiveModel::print</a></div><div class="ttdeci">virtual void print(const vector&lt; string &gt; &amp;signalNames) const =0</div><div class="ttdoc">print model to stdout</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
-<div class="ttc" id="astructinput_html"><div class="ttname"><a href="structinput.html">input</a></div><div class="ttdef"><b>Definition</b> search_generate.cc:200</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:29 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

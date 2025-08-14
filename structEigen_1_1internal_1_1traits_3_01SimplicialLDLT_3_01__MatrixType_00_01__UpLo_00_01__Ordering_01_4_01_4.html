@@ -101,19 +101,19 @@ Public Types</h2></td></tr>
 <a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1SparseMatrix.html">SparseMatrix</a>&lt; Scalar, <a class="el" href="group__enums.html#gga977c35041489176957795b184317f40ca0103672ae41005ab03b4176c765afd62">ColMajor</a>, StorageIndex &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>CholMatrixType</b></td></tr>
 <tr class="separator:a126e58b0017f9ab748fa1660c63e8335"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7901e6a8ad47b88fabc8b12d01e764b4" id="r_a7901e6a8ad47b88fabc8b12d01e764b4"><td class="memItemLeft" align="right" valign="top"><a id="a7901e6a8ad47b88fabc8b12d01e764b4" name="a7901e6a8ad47b88fabc8b12d01e764b4"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1TriangularView.html">TriangularView</a>&lt; const <a class="el" href="classEigen_1_1SparseMatrix.html">CholMatrixType</a>, <a class="el" href="group__enums.html#gga0b06f085c10989918a1d641b40ab933ea8f40b928c10a71ba03e5f75ad2a72fda">Eigen::UnitLower</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixL</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1TriangularView.html">TriangularView</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1SparseMatrix.html">CholMatrixType</a>, <a class="el" href="group__enums.html#gga0b06f085c10989918a1d641b40ab933ea8f40b928c10a71ba03e5f75ad2a72fda">Eigen::UnitLower</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixL</b></td></tr>
 <tr class="separator:a7901e6a8ad47b88fabc8b12d01e764b4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b9837dfaa2b3fba26afd6576a0fd3f7" id="r_a0b9837dfaa2b3fba26afd6576a0fd3f7"><td class="memItemLeft" align="right" valign="top"><a id="a0b9837dfaa2b3fba26afd6576a0fd3f7" name="a0b9837dfaa2b3fba26afd6576a0fd3f7"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1TriangularView.html">TriangularView</a>&lt; const <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">CholMatrixType::AdjointReturnType</a>, <a class="el" href="group__enums.html#gga0b06f085c10989918a1d641b40ab933eadd28224d7ea92689930be73c1b50b0ad">Eigen::UnitUpper</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixU</b></td></tr>
+<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1TriangularView.html">TriangularView</a>&lt; <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">CholMatrixType::AdjointReturnType</a>, <a class="el" href="group__enums.html#gga0b06f085c10989918a1d641b40ab933eadd28224d7ea92689930be73c1b50b0ad">Eigen::UnitUpper</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixU</b></td></tr>
 <tr class="separator:a0b9837dfaa2b3fba26afd6576a0fd3f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a719f994340cc13aa62370967bc335205" id="r_a719f994340cc13aa62370967bc335205"><td class="memItemLeft" align="right" valign="top"><a id="a719f994340cc13aa62370967bc335205" name="a719f994340cc13aa62370967bc335205"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">MatrixL</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getL</b> (const MatrixType &amp;m)</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">MatrixL</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getL</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;m)</td></tr>
 <tr class="separator:a719f994340cc13aa62370967bc335205"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a86a7981a576e4f288e74248b80380078" id="r_a86a7981a576e4f288e74248b80380078"><td class="memItemLeft" align="right" valign="top"><a id="a86a7981a576e4f288e74248b80380078" name="a86a7981a576e4f288e74248b80380078"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">MatrixU</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getU</b> (const MatrixType &amp;m)</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">MatrixU</a>&#160;</td><td class="memItemRight" valign="bottom"><b>getU</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;m)</td></tr>
 <tr class="separator:a86a7981a576e4f288e74248b80380078"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -122,7 +122,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:45 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

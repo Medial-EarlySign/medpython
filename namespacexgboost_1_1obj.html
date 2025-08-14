@@ -206,8 +206,8 @@ template&lt;bool unbiased, typename Delta &gt; </td></tr>
 <tr class="memitem:a64e711fe092dccaa1df29a10d4112172" id="r_a64e711fe092dccaa1df29a10d4112172"><td class="memItemLeft" align="right" valign="top"><a id="a64e711fe092dccaa1df29a10d4112172" name="a64e711fe092dccaa1df29a10d4112172"></a>
 <a class="el" href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a> <a class="el" href="namespacexgboost.html#ac50c0fcafa07ba8258d195d19ae9454d">GradientPair</a>&#160;</td><td class="memItemRight" valign="bottom"><b>Repulse</b> (<a class="el" href="namespacexgboost.html#ac50c0fcafa07ba8258d195d19ae9454d">GradientPair</a> pg)</td></tr>
 <tr class="separator:a64e711fe092dccaa1df29a10d4112172"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad16fa2ba83d25a0ed9a4069700cc1850" id="r_ad16fa2ba83d25a0ed9a4069700cc1850"><td class="memTemplParams" colspan="2">template&lt;typename <a class="el" href="structVdbeOp.html">Op</a> &gt; </td></tr>
-<tr class="memitem:ad16fa2ba83d25a0ed9a4069700cc1850"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacexgboost_1_1obj.html#ad16fa2ba83d25a0ed9a4069700cc1850">MakePairs</a> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, std::int32_t iter, std::shared_ptr&lt; <a class="el" href="classxgboost_1_1ltr_1_1RankingCache.html">ltr::RankingCache</a> &gt; const cache, <a class="el" href="namespacexgboost.html#a11f2b5fd9fb8266d23e5a40480cf412c">bst_group_t</a> g, <a class="el" href="namespacexgboost_1_1linalg.html#ad0d21c401e55df6b52d3c1f253b5f4cf">linalg::VectorView</a>&lt; float const &gt; g_label, <a class="el" href="classxgboost_1_1common_1_1Span.html">common::Span</a>&lt; std::size_t const &gt; g_rank, <a class="el" href="structVdbeOp.html">Op</a> op)</td></tr>
+<tr class="memitem:ad16fa2ba83d25a0ed9a4069700cc1850" id="r_ad16fa2ba83d25a0ed9a4069700cc1850"><td class="memTemplParams" colspan="2">template&lt;typename Op &gt; </td></tr>
+<tr class="memitem:ad16fa2ba83d25a0ed9a4069700cc1850"><td class="memTemplItemLeft" align="right" valign="top">void&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacexgboost_1_1obj.html#ad16fa2ba83d25a0ed9a4069700cc1850">MakePairs</a> (<a class="el" href="structxgboost_1_1Context.html">Context</a> const *ctx, std::int32_t iter, std::shared_ptr&lt; <a class="el" href="classxgboost_1_1ltr_1_1RankingCache.html">ltr::RankingCache</a> &gt; const cache, <a class="el" href="namespacexgboost.html#a11f2b5fd9fb8266d23e5a40480cf412c">bst_group_t</a> g, <a class="el" href="namespacexgboost_1_1linalg.html#ad0d21c401e55df6b52d3c1f253b5f4cf">linalg::VectorView</a>&lt; float const &gt; g_label, <a class="el" href="classxgboost_1_1common_1_1Span.html">common::Span</a>&lt; std::size_t const &gt; g_rank, Op op)</td></tr>
 <tr class="separator:ad16fa2ba83d25a0ed9a4069700cc1850"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7e64d03d998737b2892441059e590168" id="r_a7e64d03d998737b2892441059e590168"><td class="memItemLeft" align="right" valign="top"><a id="a7e64d03d998737b2892441059e590168" name="a7e64d03d998737b2892441059e590168"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTRY_FILE_TAG</b> (multiclass_obj)</td></tr>
@@ -292,7 +292,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>TestNDCGJsonIO</b> (<
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;typename <a class="el" href="structVdbeOp.html">Op</a> &gt; </div>
+template&lt;typename Op &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">void xgboost::obj::MakePairs </td>
@@ -333,7 +333,7 @@ template&lt;typename <a class="el" href="structVdbeOp.html">Op</a> &gt; </div>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="structVdbeOp.html">Op</a>&#160;</td>
+          <td class="paramtype">Op&#160;</td>
           <td class="paramname"><em>op</em>&#160;</td>
         </tr>
         <tr>
@@ -408,7 +408,7 @@ template&lt;typename <a class="el" href="structVdbeOp.html">Op</a> &gt; </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:49 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

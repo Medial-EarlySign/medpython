@@ -55,13 +55,11 @@ var searchData=
   ['constraints_52',['constraints',['../classFairnessPostProcessor.html#a48570d7c5971b1a9a885dfa1268682a3',1,'FairnessPostProcessor']]],
   ['contain_5feval_5fmetrics_53',['contain_eval_metrics',['../structxgboost_1_1LearnerModelParamLegacy.html#af625d58c31a5e4e064fb238e5f670da6',1,'xgboost::LearnerModelParamLegacy']]],
   ['contain_5fextra_5fattrs_54',['contain_extra_attrs',['../structxgboost_1_1LearnerModelParamLegacy.html#a4c6517375d7008d33fbf155d60dc4d38',1,'xgboost::LearnerModelParamLegacy']]],
-  ['contextualbandit_55',['ContextualBandit',['../classVW_1_1abstract.html#a69638d8238d1a49b4646438c333d61f1',1,'VW::abstract']]],
-  ['contributer_5fgroup_5fname_56',['contributer_group_name',['../classExplainer__record__config.html#a5bf39ef4a5466967683bfb402b020ba9',1,'Explainer_record_config']]],
-  ['control_5fweight_5fdown_5fsample_57',['control_weight_down_sample',['../classCalibrator.html#a8cde47c6e07dbdafc02ce721376d38f7',1,'Calibrator']]],
-  ['costsensitive_58',['CostSensitive',['../classVW_1_1abstract.html#ac6f4f08eb1ed73578fb10300ffb6653f',1,'VW::abstract']]],
-  ['ctx_5f_59',['ctx_',['../classxgboost_1_1Learner.html#ac36553baee5ca1310942cbabc5b33096',1,'xgboost::Learner']]],
-  ['curr_5fptr_5f_60',['curr_ptr_',['../structrabit_1_1utils_1_1MemoryFixSizeBuffer.html#ad5cb3a950c03ca2990e087b920e4d059',1,'rabit::utils::MemoryFixSizeBuffer']]],
-  ['current_5fdir_61',['CURRENT_DIR',['../namespacegeneralized__linear__model.html#a4980a99b2d5359dcbb340ae14e73c242',1,'generalized_linear_model']]],
-  ['cut_62',['cut',['../classxgboost_1_1GHistIndexMatrix.html#aed5d0bbd173ce5078dd5681283e167ec',1,'xgboost::GHistIndexMatrix']]],
-  ['cuts_63',['Cuts',['../classMedMars.html#ab0daadb000c172edde7ab0bd8568a03e',1,'MedMars']]]
+  ['contributer_5fgroup_5fname_55',['contributer_group_name',['../classExplainer__record__config.html#a5bf39ef4a5466967683bfb402b020ba9',1,'Explainer_record_config']]],
+  ['control_5fweight_5fdown_5fsample_56',['control_weight_down_sample',['../classCalibrator.html#a8cde47c6e07dbdafc02ce721376d38f7',1,'Calibrator']]],
+  ['ctx_5f_57',['ctx_',['../classxgboost_1_1Learner.html#ac36553baee5ca1310942cbabc5b33096',1,'xgboost::Learner']]],
+  ['curr_5fptr_5f_58',['curr_ptr_',['../structrabit_1_1utils_1_1MemoryFixSizeBuffer.html#ad5cb3a950c03ca2990e087b920e4d059',1,'rabit::utils::MemoryFixSizeBuffer']]],
+  ['current_5fdir_59',['CURRENT_DIR',['../namespacegeneralized__linear__model.html#a4980a99b2d5359dcbb340ae14e73c242',1,'generalized_linear_model']]],
+  ['cut_60',['cut',['../classxgboost_1_1GHistIndexMatrix.html#aed5d0bbd173ce5078dd5681283e167ec',1,'xgboost::GHistIndexMatrix']]],
+  ['cuts_61',['Cuts',['../classMedMars.html#ab0daadb000c172edde7ab0bd8568a03e',1,'MedMars']]]
 ];

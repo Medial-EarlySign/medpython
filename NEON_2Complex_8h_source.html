@@ -195,7 +195,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstore &lt;std::complex&lt;float&gt; &gt;(std::complex&lt;float&gt; *   to, <span class="keyword">const</span> Packet2cf&amp; from) { EIGEN_DEBUG_ALIGNED_STORE pstore((<span class="keywordtype">float</span>*)to, from.v); }</div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstoreu&lt;std::complex&lt;float&gt; &gt;(std::complex&lt;float&gt; *   to, <span class="keyword">const</span> Packet2cf&amp; from) { EIGEN_DEBUG_UNALIGNED_STORE pstoreu((<span class="keywordtype">float</span>*)to, from.v); }</div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2cf pgather&lt;std::complex&lt;float&gt;, Packet2cf&gt;(<span class="keyword">const</span> std::complex&lt;float&gt;* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2cf pgather&lt;std::complex&lt;float&gt;, Packet2cf&gt;(<span class="keyword">const</span> std::complex&lt;float&gt;* from, Index stride)</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>{</div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>  Packet4f res = pset1&lt;Packet4f&gt;(0.f);</div>
 <div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>  res = vsetq_lane_f32(std::real(from[0*stride]), res, 0);</div>
@@ -205,7 +205,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>  <span class="keywordflow">return</span> Packet2cf(res);</div>
 <div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>}</div>
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span> </div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;float&gt;, Packet2cf&gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet2cf&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;float&gt;, Packet2cf&gt;(std::complex&lt;float&gt;* to, <span class="keyword">const</span> Packet2cf&amp; from, Index stride)</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>{</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>  to[stride*0] = std::complex&lt;float&gt;(vgetq_lane_f32(from.v, 0), vgetq_lane_f32(from.v, 1));</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>  to[stride*1] = std::complex&lt;float&gt;(vgetq_lane_f32(from.v, 2), vgetq_lane_f32(from.v, 3));</div>
@@ -446,7 +446,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span> </div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> prefetch&lt;std::complex&lt;double&gt; &gt;(<span class="keyword">const</span> std::complex&lt;double&gt; *   addr) { EIGEN_ARM_PREFETCH((<span class="keywordtype">double</span> *)addr); }</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet1cd pgather&lt;std::complex&lt;double&gt;, Packet1cd&gt;(<span class="keyword">const</span> std::complex&lt;double&gt;* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet1cd pgather&lt;std::complex&lt;double&gt;, Packet1cd&gt;(<span class="keyword">const</span> std::complex&lt;double&gt;* from, Index stride)</div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>{</div>
 <div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>  Packet2d res = pset1&lt;Packet2d&gt;(0.0);</div>
 <div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>  res = vsetq_lane_f64(std::real(from[0*stride]), res, 0);</div>
@@ -454,7 +454,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span>  <span class="keywordflow">return</span> Packet1cd(res);</div>
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>}</div>
 <div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span> </div>
-<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;double&gt;, Packet1cd&gt;(std::complex&lt;double&gt;* to, <span class="keyword">const</span> Packet1cd&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;std::complex&lt;double&gt;, Packet1cd&gt;(std::complex&lt;double&gt;* to, <span class="keyword">const</span> Packet1cd&amp; from, Index stride)</div>
 <div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>{</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>  to[stride*0] = std::complex&lt;double&gt;(vgetq_lane_f64(from.v, 0), vgetq_lane_f64(from.v, 1));</div>
 <div class="line"><a id="l00377" name="l00377"></a><span class="lineno">  377</span>}</div>
@@ -549,11 +549,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00466" name="l00466"></a><span class="lineno">  466</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_COMPLEX_NEON_H</span></div>
 <div class="ttc" id="agroup__enums_html_gga8d24e44d67308e6b78f63e44d563c530ad0b140cd97bc74365b51843d28379655"><div class="ttname"><a href="group__enums.html#gga8d24e44d67308e6b78f63e44d563c530ad0b140cd97bc74365b51843d28379655">Eigen::Aligned16</a></div><div class="ttdeci">@ Aligned16</div><div class="ttdoc">Data pointer is aligned on a 16 bytes boundary.</div><div class="ttdef"><b>Definition</b> Constants.h:230</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:53:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

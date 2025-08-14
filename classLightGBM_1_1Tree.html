@@ -94,10 +94,10 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:ab086a23590566fa2616a5c75ad2b8cde" id="r_ab086a23590566fa2616a5c75ad2b8cde"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#ab086a23590566fa2616a5c75ad2b8cde">Tree</a> (const char *str, size_t *used_len)</td></tr>
 <tr class="memdesc:ab086a23590566fa2616a5c75ad2b8cde"><td class="mdescLeft">&#160;</td><td class="mdescRight">Construtor, from a string.  <br /></td></tr>
 <tr class="separator:ab086a23590566fa2616a5c75ad2b8cde"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad5ea2feebfb24dad94d2ab4d5dcbaa0c" id="r_ad5ea2feebfb24dad94d2ab4d5dcbaa0c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#ad5ea2feebfb24dad94d2ab4d5dcbaa0c">Split</a> (int leaf, int <a class="el" href="structfeature.html">feature</a>, int real_feature, uint32_t threshold_bin, double threshold_double, double left_value, double right_value, int left_cnt, int right_cnt, float gain, MissingType missing_type, bool default_left)</td></tr>
+<tr class="memitem:ad5ea2feebfb24dad94d2ab4d5dcbaa0c" id="r_ad5ea2feebfb24dad94d2ab4d5dcbaa0c"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#ad5ea2feebfb24dad94d2ab4d5dcbaa0c">Split</a> (int leaf, int feature, int real_feature, uint32_t threshold_bin, double threshold_double, double left_value, double right_value, int left_cnt, int right_cnt, float gain, MissingType missing_type, bool default_left)</td></tr>
 <tr class="memdesc:ad5ea2feebfb24dad94d2ab4d5dcbaa0c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performing a split on tree leaves.  <br /></td></tr>
 <tr class="separator:ad5ea2feebfb24dad94d2ab4d5dcbaa0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a827a21bfc65ebc6eebf3e118549b4d6a" id="r_a827a21bfc65ebc6eebf3e118549b4d6a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#a827a21bfc65ebc6eebf3e118549b4d6a">SplitCategorical</a> (int leaf, int <a class="el" href="structfeature.html">feature</a>, int real_feature, const uint32_t *threshold_bin, int num_threshold_bin, const uint32_t *threshold, int num_threshold, double left_value, double right_value, int left_cnt, int right_cnt, float gain, MissingType missing_type)</td></tr>
+<tr class="memitem:a827a21bfc65ebc6eebf3e118549b4d6a" id="r_a827a21bfc65ebc6eebf3e118549b4d6a"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#a827a21bfc65ebc6eebf3e118549b4d6a">SplitCategorical</a> (int leaf, int feature, int real_feature, const uint32_t *threshold_bin, int num_threshold_bin, const uint32_t *threshold, int num_threshold, double left_value, double right_value, int left_cnt, int right_cnt, float gain, MissingType missing_type)</td></tr>
 <tr class="memdesc:a827a21bfc65ebc6eebf3e118549b4d6a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performing a split on tree leaves, with categorical feature.  <br /></td></tr>
 <tr class="separator:a827a21bfc65ebc6eebf3e118549b4d6a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa180878a6842eaf182bbe4232818553a" id="r_aa180878a6842eaf182bbe4232818553a"><td class="memItemLeft" align="right" valign="top"><a id="aa180878a6842eaf182bbe4232818553a" name="aa180878a6842eaf182bbe4232818553a"></a>
@@ -145,7 +145,7 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>split_feature</b> (int
 double&#160;</td><td class="memItemRight" valign="bottom"><b>split_gain</b> (int split_idx) const</td></tr>
 <tr class="separator:a0157588a4be3db6ffff0b91825f9eadd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab07d49f03905d1f822d9c649954bd917" id="r_ab07d49f03905d1f822d9c649954bd917"><td class="memItemLeft" align="right" valign="top"><a id="ab07d49f03905d1f822d9c649954bd917" name="ab07d49f03905d1f822d9c649954bd917"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>data_count</b> (int <a class="el" href="structnode.html">node</a>) const</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>data_count</b> (int node) const</td></tr>
 <tr class="memdesc:ab07d49f03905d1f822d9c649954bd917"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get the number of data points that fall at or below this node. <br /></td></tr>
 <tr class="separator:ab07d49f03905d1f822d9c649954bd917"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ac4d7ac22bf7deb918ed25ca399f9af" id="r_a8ac4d7ac22bf7deb918ed25ca399f9af"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classLightGBM_1_1Tree.html#a8ac4d7ac22bf7deb918ed25ca399f9af">Shrinkage</a> (double rate)</td></tr>
@@ -185,13 +185,13 @@ static bool&#160;</td><td class="memItemRight" valign="bottom"><b>IsZero</b> (do
 static bool&#160;</td><td class="memItemRight" valign="bottom"><b>GetDecisionType</b> (int8_t decision_type, int8_t mask)</td></tr>
 <tr class="separator:ace1b5731cf104364b4a251ab23f273e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3ec3c1068a275641cedbc81f32763af1" id="r_a3ec3c1068a275641cedbc81f32763af1"><td class="memItemLeft" align="right" valign="top"><a id="a3ec3c1068a275641cedbc81f32763af1" name="a3ec3c1068a275641cedbc81f32763af1"></a>
-static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetDecisionType</b> (int8_t *decision_type, bool <a class="el" href="structinput.html">input</a>, int8_t mask)</td></tr>
+static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetDecisionType</b> (int8_t *decision_type, bool input, int8_t mask)</td></tr>
 <tr class="separator:a3ec3c1068a275641cedbc81f32763af1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a18f95f746d151255bfdce1cfb60708e4" id="r_a18f95f746d151255bfdce1cfb60708e4"><td class="memItemLeft" align="right" valign="top"><a id="a18f95f746d151255bfdce1cfb60708e4" name="a18f95f746d151255bfdce1cfb60708e4"></a>
 static int8_t&#160;</td><td class="memItemRight" valign="bottom"><b>GetMissingType</b> (int8_t decision_type)</td></tr>
 <tr class="separator:a18f95f746d151255bfdce1cfb60708e4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3a83bf9c7f82d2406ea2b80ccdb59620" id="r_a3a83bf9c7f82d2406ea2b80ccdb59620"><td class="memItemLeft" align="right" valign="top"><a id="a3a83bf9c7f82d2406ea2b80ccdb59620" name="a3a83bf9c7f82d2406ea2b80ccdb59620"></a>
-static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetMissingType</b> (int8_t *decision_type, int8_t <a class="el" href="structinput.html">input</a>)</td></tr>
+static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetMissingType</b> (int8_t *decision_type, int8_t input)</td></tr>
 <tr class="separator:a3a83bf9c7f82d2406ea2b80ccdb59620"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -522,9 +522,9 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetMissingType
 <p>Performing a split on tree leaves. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">leaf</td><td><a class="el" href="structIndex.html">Index</a> of leaf to be split </td></tr>
-    <tr><td class="paramname">feature</td><td><a class="el" href="structIndex.html">Index</a> of feature; the converted index after removing useless features </td></tr>
-    <tr><td class="paramname">real_feature</td><td><a class="el" href="structIndex.html">Index</a> of feature, the original index on data </td></tr>
+    <tr><td class="paramname">leaf</td><td>Index of leaf to be split </td></tr>
+    <tr><td class="paramname">feature</td><td>Index of feature; the converted index after removing useless features </td></tr>
+    <tr><td class="paramname">real_feature</td><td>Index of feature, the original index on data </td></tr>
     <tr><td class="paramname">threshold_bin</td><td>Threshold(bin) of split </td></tr>
     <tr><td class="paramname">threshold_double</td><td>Threshold on feature value </td></tr>
     <tr><td class="paramname">left_value</td><td>Model Left child output </td></tr>
@@ -636,9 +636,9 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetMissingType
 <p>Performing a split on tree leaves, with categorical feature. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">leaf</td><td><a class="el" href="structIndex.html">Index</a> of leaf to be split </td></tr>
-    <tr><td class="paramname">feature</td><td><a class="el" href="structIndex.html">Index</a> of feature; the converted index after removing useless features </td></tr>
-    <tr><td class="paramname">real_feature</td><td><a class="el" href="structIndex.html">Index</a> of feature, the original index on data </td></tr>
+    <tr><td class="paramname">leaf</td><td>Index of leaf to be split </td></tr>
+    <tr><td class="paramname">feature</td><td>Index of feature; the converted index after removing useless features </td></tr>
+    <tr><td class="paramname">real_feature</td><td>Index of feature, the original index on data </td></tr>
     <tr><td class="paramname">threshold_bin</td><td>Threshold(bin) of split, use bitset to represent </td></tr>
     <tr><td class="paramname">num_threshold_bin</td><td>size of threshold_bin </td></tr>
     <tr><td class="paramname">threshold</td><td>Thresholds of real feature value, use bitset to represent </td></tr>
@@ -662,7 +662,7 @@ static void&#160;</td><td class="memItemRight" valign="bottom"><b>SetMissingType
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

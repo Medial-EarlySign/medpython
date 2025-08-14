@@ -101,7 +101,7 @@ static int32_t&#160;</td><td class="memItemRight" valign="bottom"><b>Log2Pow5</b
 static int32_t&#160;</td><td class="memItemRight" valign="bottom"><b>CeilLog2Pow5</b> (const int32_t e)</td></tr>
 <tr class="separator:afb23e5beb593967873b65eecbe613685"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af35326b57e5730c3074f789afd6ddec1" id="r_af35326b57e5730c3074f789afd6ddec1"><td class="memItemLeft" align="right" valign="top"><a id="af35326b57e5730c3074f789afd6ddec1" name="af35326b57e5730c3074f789afd6ddec1"></a>
-static uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>MulShift</b> (const uint32_t x, const <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> y, const int32_t shift) noexcept(true)</td></tr>
+static uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>MulShift</b> (const uint32_t x, const uint64_t y, const int32_t shift) noexcept(true)</td></tr>
 <tr class="separator:af35326b57e5730c3074f789afd6ddec1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1f80ab66d24ffae49a26597e2efd8ea3" id="r_a1f80ab66d24ffae49a26597e2efd8ea3"><td class="memItemLeft" align="right" valign="top"><a id="a1f80ab66d24ffae49a26597e2efd8ea3" name="a1f80ab66d24ffae49a26597e2efd8ea3"></a>
 static uint32_t&#160;</td><td class="memItemRight" valign="bottom"><b>MulPow5InvDivPow2</b> (const uint32_t m, const uint32_t q, const int32_t j) noexcept(true)</td></tr>
@@ -124,12 +124,12 @@ Static Public Attributes</h2></td></tr>
 <tr class="memitem:aa3fda1892d7f152bc225d0ee49947f49" id="r_aa3fda1892d7f152bc225d0ee49947f49"><td class="memItemLeft" align="right" valign="top"><a id="aa3fda1892d7f152bc225d0ee49947f49" name="aa3fda1892d7f152bc225d0ee49947f49"></a>
 uint32_t static constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>kFloatPow5InvBitcount</b> = 59</td></tr>
 <tr class="separator:aa3fda1892d7f152bc225d0ee49947f49"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7eca6aa6eafd5098c8667f10bc4c5f99" id="r_a7eca6aa6eafd5098c8667f10bc4c5f99"><td class="memItemLeft" align="right" valign="top">static constexpr <a class="el" href="classEigen_1_1Solve.html">uint64_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1detail_1_1RyuPowLogUtils.html#a7eca6aa6eafd5098c8667f10bc4c5f99">kFloatPow5InvSplit</a> [55]</td></tr>
+<tr class="memitem:a7eca6aa6eafd5098c8667f10bc4c5f99" id="r_a7eca6aa6eafd5098c8667f10bc4c5f99"><td class="memItemLeft" align="right" valign="top">static constexpr uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1detail_1_1RyuPowLogUtils.html#a7eca6aa6eafd5098c8667f10bc4c5f99">kFloatPow5InvSplit</a> [55]</td></tr>
 <tr class="separator:a7eca6aa6eafd5098c8667f10bc4c5f99"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4667fe0449b301a1a7e5b4009f0c2c64" id="r_a4667fe0449b301a1a7e5b4009f0c2c64"><td class="memItemLeft" align="right" valign="top"><a id="a4667fe0449b301a1a7e5b4009f0c2c64" name="a4667fe0449b301a1a7e5b4009f0c2c64"></a>
 uint32_t static constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>kFloatPow5Bitcount</b> = 61</td></tr>
 <tr class="separator:a4667fe0449b301a1a7e5b4009f0c2c64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aba7e2ddaaf5900a2b07796e17f86dc63" id="r_aba7e2ddaaf5900a2b07796e17f86dc63"><td class="memItemLeft" align="right" valign="top">static constexpr <a class="el" href="classEigen_1_1Solve.html">uint64_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1detail_1_1RyuPowLogUtils.html#aba7e2ddaaf5900a2b07796e17f86dc63">kFloatPow5Split</a> [47]</td></tr>
+<tr class="memitem:aba7e2ddaaf5900a2b07796e17f86dc63" id="r_aba7e2ddaaf5900a2b07796e17f86dc63"><td class="memItemLeft" align="right" valign="top">static constexpr uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1detail_1_1RyuPowLogUtils.html#aba7e2ddaaf5900a2b07796e17f86dc63">kFloatPow5Split</a> [47]</td></tr>
 <tr class="separator:aba7e2ddaaf5900a2b07796e17f86dc63"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <h2 class="groupheader">Field Documentation</h2>
@@ -143,7 +143,7 @@ uint32_t static constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> xgboost::detail::RyuPowLogUtils::kFloatPow5InvSplit</td>
+          <td class="memname">constexpr uint64_t xgboost::detail::RyuPowLogUtils::kFloatPow5InvSplit</td>
         </tr>
       </table>
   </td>
@@ -185,7 +185,7 @@ uint32_t static constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">constexpr <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> xgboost::detail::RyuPowLogUtils::kFloatPow5Split</td>
+          <td class="memname">constexpr uint64_t xgboost::detail::RyuPowLogUtils::kFloatPow5Split</td>
         </tr>
       </table>
   </td>
@@ -220,7 +220,7 @@ uint32_t static constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:49 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -79,9 +79,9 @@ $(function() {
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
 <tr class="memitem:ade48e48f5edac2fc66af2148e2126d0d" id="r_ade48e48f5edac2fc66af2148e2126d0d"><td class="memItemLeft" align="right" valign="top"><a id="ade48e48f5edac2fc66af2148e2126d0d" name="ade48e48f5edac2fc66af2148e2126d0d"></a>
-da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>using_dask_matrix</b> (Client <a class="el" href="structclient.html">client</a>, da.Array X, da.Array y)</td></tr>
+da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>using_dask_matrix</b> (Client client, da.Array X, da.Array y)</td></tr>
 <tr class="separator:ade48e48f5edac2fc66af2148e2126d0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a62457cf1ddb75ed5cd7aad6049acbb40" id="r_a62457cf1ddb75ed5cd7aad6049acbb40"><td class="memItemLeft" align="right" valign="top">da.Array&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegpu__training.html#a62457cf1ddb75ed5cd7aad6049acbb40">using_quantile_device_dmatrix</a> (Client <a class="el" href="structclient.html">client</a>, da.Array X, da.Array y)</td></tr>
+<tr class="memitem:a62457cf1ddb75ed5cd7aad6049acbb40" id="r_a62457cf1ddb75ed5cd7aad6049acbb40"><td class="memItemLeft" align="right" valign="top">da.Array&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacegpu__training.html#a62457cf1ddb75ed5cd7aad6049acbb40">using_quantile_device_dmatrix</a> (Client client, da.Array X, da.Array y)</td></tr>
 <tr class="separator:a62457cf1ddb75ed5cd7aad6049acbb40"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
@@ -105,10 +105,10 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>n</b> = 100</td></tr>
 &#160;</td><td class="memItemRight" valign="bottom"><b>y</b> = da.random.random(size=(m,), chunks=10000)</td></tr>
 <tr class="separator:a94d0720afea80ce9b94fdd0e5693b8a5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2da9856972b4e1a76fb4acbe4e7ec16f" id="r_a2da9856972b4e1a76fb4acbe4e7ec16f"><td class="memItemLeft" align="right" valign="top"><a id="a2da9856972b4e1a76fb4acbe4e7ec16f" name="a2da9856972b4e1a76fb4acbe4e7ec16f"></a>
-da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>from_ddqdm</b> = <a class="el" href="namespacegpu__training.html#a62457cf1ddb75ed5cd7aad6049acbb40">using_quantile_device_dmatrix</a>(<a class="el" href="structclient.html">client</a>, X, y)</td></tr>
+da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>from_ddqdm</b> = <a class="el" href="namespacegpu__training.html#a62457cf1ddb75ed5cd7aad6049acbb40">using_quantile_device_dmatrix</a>(client, X, y)</td></tr>
 <tr class="separator:a2da9856972b4e1a76fb4acbe4e7ec16f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a751c86aba9613b56f356dc9fd4b21ebf" id="r_a751c86aba9613b56f356dc9fd4b21ebf"><td class="memItemLeft" align="right" valign="top"><a id="a751c86aba9613b56f356dc9fd4b21ebf" name="a751c86aba9613b56f356dc9fd4b21ebf"></a>
-da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>from_dmatrix</b> = using_dask_matrix(<a class="el" href="structclient.html">client</a>, X, y)</td></tr>
+da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>from_dmatrix</b> = using_dask_matrix(client, X, y)</td></tr>
 <tr class="separator:a751c86aba9613b56f356dc9fd4b21ebf"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
@@ -155,7 +155,7 @@ da.Array&#160;</td><td class="memItemRight" valign="bottom"><b>from_dmatrix</b> 
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

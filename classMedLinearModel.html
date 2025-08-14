@@ -110,7 +110,7 @@ subGradientFunction&#160;</td><td class="memItemRight" valign="bottom"><b>getSub
 subGradientFunction&#160;</td><td class="memItemRight" valign="bottom"><b>getSubGradientsSvm</b> ()</td></tr>
 <tr class="memdesc:a415c49fd316101f6ad31e618419c0039"><td class="mdescLeft">&#160;</td><td class="mdescRight">Subgradient of svm loss function. <br /></td></tr>
 <tr class="separator:a415c49fd316101f6ad31e618419c0039"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab9638c0c9b58bff1c51da57a62121153" id="r_ab9638c0c9b58bff1c51da57a62121153"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#ab9638c0c9b58bff1c51da57a62121153">predict</a> (const vector&lt; float &gt; &amp;<a class="el" href="structinput.html">input</a>) const</td></tr>
+<tr class="memitem:ab9638c0c9b58bff1c51da57a62121153" id="r_ab9638c0c9b58bff1c51da57a62121153"><td class="memItemLeft" align="right" valign="top">double&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#ab9638c0c9b58bff1c51da57a62121153">predict</a> (const vector&lt; float &gt; &amp;input) const</td></tr>
 <tr class="separator:ab9638c0c9b58bff1c51da57a62121153"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a51d06d4708de806067c4d013a8908687" id="r_a51d06d4708de806067c4d013a8908687"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#a51d06d4708de806067c4d013a8908687">predict</a> (const vector&lt; vector&lt; float &gt; &gt; &amp;inputs, vector&lt; double &gt; &amp;preds) const</td></tr>
 <tr class="memdesc:a51d06d4708de806067c4d013a8908687"><td class="mdescLeft">&#160;</td><td class="mdescRight">virtual to allow more efficeint implemention  <br /></td></tr>
@@ -126,7 +126,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>set_normalization</b>
 <tr class="memdesc:af87f229c4584ba5e155ba9ff02bdea68"><td class="mdescLeft">&#160;</td><td class="mdescRight">Normalization. <br /></td></tr>
 <tr class="separator:af87f229c4584ba5e155ba9ff02bdea68"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a09d7ddabd853fa31c73d006a9b58e8f1" id="r_a09d7ddabd853fa31c73d006a9b58e8f1"><td class="memItemLeft" align="right" valign="top"><a id="a09d7ddabd853fa31c73d006a9b58e8f1" name="a09d7ddabd853fa31c73d006a9b58e8f1"></a>
-void&#160;</td><td class="memItemRight" valign="bottom"><b>apply_normalization</b> (vector&lt; vector&lt; float &gt; &gt; &amp;<a class="el" href="structinput.html">input</a>) const</td></tr>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>apply_normalization</b> (vector&lt; vector&lt; float &gt; &gt; &amp;input) const</td></tr>
 <tr class="memdesc:a09d7ddabd853fa31c73d006a9b58e8f1"><td class="mdescLeft">&#160;</td><td class="mdescRight">apply Normalization <br /></td></tr>
 <tr class="separator:a09d7ddabd853fa31c73d006a9b58e8f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab19ac25cdba0c6be1f0ba8f1f19d00fe" id="r_ab19ac25cdba0c6be1f0ba8f1f19d00fe"><td class="memItemLeft" align="right" valign="top"><a id="ab19ac25cdba0c6be1f0ba8f1f19d00fe" name="ab19ac25cdba0c6be1f0ba8f1f19d00fe"></a>
@@ -138,7 +138,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>get_normalization</b>
 <tr class="memitem:abd515dbdd92596c1b4438f0366002cda" id="r_abd515dbdd92596c1b4438f0366002cda"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#abd515dbdd92596c1b4438f0366002cda">Predict</a> (float *x, float *&amp;preds, int nsamples, int nftrs) const</td></tr>
 <tr class="memdesc:abd515dbdd92596c1b4438f0366002cda"><td class="mdescLeft">&#160;</td><td class="mdescRight">Predict should be implemented for each model.  <br /></td></tr>
 <tr class="separator:abd515dbdd92596c1b4438f0366002cda"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a46d4b5538bb7eacbf7ce054acfa8300d" id="r_a46d4b5538bb7eacbf7ce054acfa8300d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#a46d4b5538bb7eacbf7ce054acfa8300d">calc_feature_importance</a> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *<a class="el" href="structfeatures.html">features</a>)</td></tr>
+<tr class="memitem:a46d4b5538bb7eacbf7ce054acfa8300d" id="r_a46d4b5538bb7eacbf7ce054acfa8300d"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedLinearModel.html#a46d4b5538bb7eacbf7ce054acfa8300d">calc_feature_importance</a> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *features)</td></tr>
 <tr class="separator:a46d4b5538bb7eacbf7ce054acfa8300d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classMedPredictor"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classMedPredictor')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classMedPredictor.html">MedPredictor</a></td></tr>
 <tr class="memitem:a9e470ab91cba5ee073942247afcf6357 inherit pub_methods_classMedPredictor" id="r_a9e470ab91cba5ee073942247afcf6357"><td class="memItemLeft" align="right" valign="top">
@@ -195,13 +195,13 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (vector&lt
 int&#160;</td><td class="memItemRight" valign="bottom"><b>threaded_predict</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds, int nthreads) const</td></tr>
 <tr class="separator:ac34b3b74f79859ba3f1b92a9c0186a3a inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79cfaa9e574b82f6a82dbfbfdbfb4a81 inherit pub_methods_classMedPredictor" id="r_a79cfaa9e574b82f6a82dbfbfdbfb4a81"><td class="memItemLeft" align="right" valign="top">
-int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>)</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features)</td></tr>
 <tr class="separator:a79cfaa9e574b82f6a82dbfbfdbfb4a81 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1049387e5cd4dfbbc686ce892337c1b7 inherit pub_methods_classMedPredictor" id="r_a1049387e5cd4dfbbc686ce892337c1b7"><td class="memItemLeft" align="right" valign="top">
-int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>, vector&lt; string &gt; &amp;names)</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features, vector&lt; string &gt; &amp;names)</td></tr>
 <tr class="separator:a1049387e5cd4dfbbc686ce892337c1b7 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cd7565ee026599f53902abeeabf078d inherit pub_methods_classMedPredictor" id="r_a7cd7565ee026599f53902abeeabf078d"><td class="memItemLeft" align="right" valign="top">
-virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>) const</td></tr>
+virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features) const</td></tr>
 <tr class="separator:a7cd7565ee026599f53902abeeabf078d inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd85e157d4b8fa20e8aa91a94e9fde2e inherit pub_methods_classMedPredictor" id="r_acd85e157d4b8fa20e8aa91a94e9fde2e"><td class="memItemLeft" align="right" valign="top">
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance</b> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params)</td></tr>
@@ -244,7 +244,7 @@ virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_singl
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_single</b> (const vector&lt; double &gt; &amp;x, vector&lt; double &gt; &amp;preds) const</td></tr>
 <tr class="separator:a472d0aa7e8a09f6329e346bb6983e2f5 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0dc5192dcc8e9a5067b1cd3ff1432a7 inherit pub_methods_classMedPredictor" id="r_ac0dc5192dcc8e9a5067b1cd3ff1432a7"><td class="memItemLeft" align="right" valign="top">
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance_shap</b> (vector&lt; float &gt; &amp;features_importance_scores, string &amp;importance_type, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *<a class="el" href="structfeatures.html">features</a>)</td></tr>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance_shap</b> (vector&lt; float &gt; &amp;features_importance_scores, string &amp;importance_type, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *features)</td></tr>
 <tr class="separator:ac0dc5192dcc8e9a5067b1cd3ff1432a7 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae42bde52e23febbb78b25d36d0fe6d1d inherit pub_methods_classMedPredictor" id="r_ae42bde52e23febbb78b25d36d0fe6d1d"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedPredictor.html#ae42bde52e23febbb78b25d36d0fe6d1d">new_polymorphic</a> (string derived_class_name)</td></tr>
 <tr class="memdesc:ae42bde52e23febbb78b25d36d0fe6d1d inherit pub_methods_classMedPredictor"><td class="mdescLeft">&#160;</td><td class="mdescRight">for polymorphic classes that want to be able to serialize/deserialize a pointer * to the derived class given its type one needs to implement this function to return a new to the derived class given its type (as in my_type)  <br /></td></tr>
@@ -331,11 +331,11 @@ virtual string&#160;</td><td class="memItemRight" valign="bottom"><b>object_json
 Data Fields</h2></td></tr>
 <tr class="memitem:a3e045e9e0121927b3eaa103c6392c10d" id="r_a3e045e9e0121927b3eaa103c6392c10d"><td class="memItemLeft" align="right" valign="top"><a id="a3e045e9e0121927b3eaa103c6392c10d" name="a3e045e9e0121927b3eaa103c6392c10d"></a>
 double(*&#160;</td><td class="memItemRight" valign="bottom"><b>loss_function</b> )(const vector&lt; double &gt; &amp;got, const vector&lt; float &gt; &amp;y, const vector&lt; float &gt; *weights)</td></tr>
-<tr class="memdesc:a3e045e9e0121927b3eaa103c6392c10d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The custom <a class="el" href="classloss__function.html">loss_function</a>. <br /></td></tr>
+<tr class="memdesc:a3e045e9e0121927b3eaa103c6392c10d"><td class="mdescLeft">&#160;</td><td class="mdescRight">The custom loss_function. <br /></td></tr>
 <tr class="separator:a3e045e9e0121927b3eaa103c6392c10d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6abb71d44b7d31f5a087dc84a3cd88af" id="r_a6abb71d44b7d31f5a087dc84a3cd88af"><td class="memItemLeft" align="right" valign="top"><a id="a6abb71d44b7d31f5a087dc84a3cd88af" name="a6abb71d44b7d31f5a087dc84a3cd88af"></a>
 double(*&#160;</td><td class="memItemRight" valign="bottom"><b>loss_function_step</b> )(const vector&lt; double &gt; &amp;, const vector&lt; float &gt; &amp;, const vector&lt; double &gt; &amp;, const vector&lt; float &gt; *)</td></tr>
-<tr class="memdesc:a6abb71d44b7d31f5a087dc84a3cd88af"><td class="mdescLeft">&#160;</td><td class="mdescRight">The custom <a class="el" href="classloss__function.html">loss_function</a> step for sgd. <br /></td></tr>
+<tr class="memdesc:a6abb71d44b7d31f5a087dc84a3cd88af"><td class="mdescLeft">&#160;</td><td class="mdescRight">The custom loss_function step for sgd. <br /></td></tr>
 <tr class="separator:a6abb71d44b7d31f5a087dc84a3cd88af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af1d904ea857540a527f07aadd5675d53" id="r_af1d904ea857540a527f07aadd5675d53"><td class="memItemLeft" align="right" valign="top"><a id="af1d904ea857540a527f07aadd5675d53" name="af1d904ea857540a527f07aadd5675d53"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>sample_count</b></td></tr>
@@ -598,21 +598,21 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 <div class="line">            <a class="code hl_variable" href="classMedLinearModel.html#aca332f77b8421c4ba68c551984ba8f29">min_cat</a> = stoi(it-&gt;second);</div>
 <div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (it-&gt;first == <span class="stringliteral">&quot;loss_function&quot;</span>) {</div>
 <div class="line">            <span class="keywordflow">if</span> (it-&gt;second == <span class="stringliteral">&quot;rmse&quot;</span>) {</div>
-<div class="line">                <a class="code hl_class" href="classloss__function.html">loss_function</a> = _linear_loss_target_rmse;</div>
+<div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a3e045e9e0121927b3eaa103c6392c10d">loss_function</a> = _linear_loss_target_rmse;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a6abb71d44b7d31f5a087dc84a3cd88af">loss_function_step</a> = _linear_loss_step_rmse;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#aca332f77b8421c4ba68c551984ba8f29">min_cat</a> = 0; <span class="comment">//regression</span></div>
 <div class="line">            }</div>
 <div class="line">            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (it-&gt;second == <span class="stringliteral">&quot;auc&quot;</span>) {</div>
-<div class="line">                <a class="code hl_class" href="classloss__function.html">loss_function</a> = _linear_loss_target_auc;</div>
+<div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a3e045e9e0121927b3eaa103c6392c10d">loss_function</a> = _linear_loss_target_auc;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a6abb71d44b7d31f5a087dc84a3cd88af">loss_function_step</a> = _linear_loss_step_auc;</div>
 <div class="line">            }</div>
 <div class="line">            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (it-&gt;second == <span class="stringliteral">&quot;svm&quot;</span>) {</div>
-<div class="line">                <a class="code hl_class" href="classloss__function.html">loss_function</a> = _linear_loss_target_svm;</div>
+<div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a3e045e9e0121927b3eaa103c6392c10d">loss_function</a> = _linear_loss_target_svm;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a6abb71d44b7d31f5a087dc84a3cd88af">loss_function_step</a> = _linear_loss_step_svm;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#ad197fc82834f97cb698bf2e41945d50e">print_auc</a> = <span class="keyword">true</span>;</div>
 <div class="line">            }</div>
 <div class="line">            <span class="keywordflow">else</span> <span class="keywordflow">if</span> (it-&gt;second == <span class="stringliteral">&quot;work_point&quot;</span>) {</div>
-<div class="line">                <a class="code hl_class" href="classloss__function.html">loss_function</a> = _linear_loss_target_work_point;</div>
+<div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a3e045e9e0121927b3eaa103c6392c10d">loss_function</a> = _linear_loss_target_work_point;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#a6abb71d44b7d31f5a087dc84a3cd88af">loss_function_step</a> = _linear_loss_step_work_point;</div>
 <div class="line">                <a class="code hl_variable" href="classMedLinearModel.html#ad197fc82834f97cb698bf2e41945d50e">print_auc</a> = <span class="keyword">true</span>;</div>
 <div class="line">            }</div>
@@ -622,6 +622,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 <div class="line">        <span class="keywordflow">else</span></div>
 <div class="line">            <span class="keywordflow">throw</span> invalid_argument(<span class="stringliteral">&quot;MedLinearModel::set_params - Unknown parameter \&quot;&quot;</span> + it-&gt;first + <span class="stringliteral">&quot;\&quot;&quot;</span>);</div>
 <div class="ttc" id="aclassMedLinearModel_html_a3a67a8d8d06fefbf18512f087461ad58"><div class="ttname"><a href="classMedLinearModel.html#a3a67a8d8d06fefbf18512f087461ad58">MedLinearModel::poly_degree</a></div><div class="ttdeci">int poly_degree</div><div class="ttdoc">add polynom degree</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:44</div></div>
+<div class="ttc" id="aclassMedLinearModel_html_a3e045e9e0121927b3eaa103c6392c10d"><div class="ttname"><a href="classMedLinearModel.html#a3e045e9e0121927b3eaa103c6392c10d">MedLinearModel::loss_function</a></div><div class="ttdeci">double(* loss_function)(const vector&lt; double &gt; &amp;got, const vector&lt; float &gt; &amp;y, const vector&lt; float &gt; *weights)</div><div class="ttdoc">The custom loss_function.</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:34</div></div>
 <div class="ttc" id="aclassMedLinearModel_html_a6abb71d44b7d31f5a087dc84a3cd88af"><div class="ttname"><a href="classMedLinearModel.html#a6abb71d44b7d31f5a087dc84a3cd88af">MedLinearModel::loss_function_step</a></div><div class="ttdeci">double(* loss_function_step)(const vector&lt; double &gt; &amp;, const vector&lt; float &gt; &amp;, const vector&lt; double &gt; &amp;, const vector&lt; float &gt; *)</div><div class="ttdoc">The custom loss_function step for sgd.</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:36</div></div>
 <div class="ttc" id="aclassMedLinearModel_html_a943550b8894e19022ca4b64f4515ecce"><div class="ttname"><a href="classMedLinearModel.html#a943550b8894e19022ca4b64f4515ecce">MedLinearModel::print_steps</a></div><div class="ttdeci">int print_steps</div><div class="ttdoc">how many prints for learn to print</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:42</div></div>
 <div class="ttc" id="aclassMedLinearModel_html_ac1f6d84c2d0cc2cb0dbf29662019d613"><div class="ttname"><a href="classMedLinearModel.html#ac1f6d84c2d0cc2cb0dbf29662019d613">MedLinearModel::norm_l1</a></div><div class="ttdeci">bool norm_l1</div><div class="ttdoc">The blocking norm should be n1 or n2?</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:41</div></div>
@@ -633,7 +634,6 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 <div class="ttc" id="aclassMedLinearModel_html_adbdfc959954d4206a7f542a069d1b256"><div class="ttname"><a href="classMedLinearModel.html#adbdfc959954d4206a7f542a069d1b256">MedLinearModel::print_model</a></div><div class="ttdeci">bool print_model</div><div class="ttdoc">If true will print model coeff in the end.</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:43</div></div>
 <div class="ttc" id="aclassMedLinearModel_html_adc4407cdf181dba4755c06f1fce150f9"><div class="ttname"><a href="classMedLinearModel.html#adc4407cdf181dba4755c06f1fce150f9">MedLinearModel::normalize</a></div><div class="ttdeci">bool normalize</div><div class="ttdoc">iof true will do internal method for normalizing</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:47</div></div>
 <div class="ttc" id="aclassMedLinearModel_html_af1d904ea857540a527f07aadd5675d53"><div class="ttname"><a href="classMedLinearModel.html#af1d904ea857540a527f07aadd5675d53">MedLinearModel::sample_count</a></div><div class="ttdeci">int sample_count</div><div class="ttdoc">The sample count of sgd.</div><div class="ttdef"><b>Definition</b> MedLinearModel.h:37</div></div>
-<div class="ttc" id="aclassloss__function_html"><div class="ttname"><a href="classloss__function.html">loss_function</a></div><div class="ttdef"><b>Definition</b> loss_functions.h:14</div></div>
 </div><!-- fragment --> 
 <p>Reimplemented from <a class="el" href="classMedPredictor.html#a40d77d17640b3ed631a5838151a3bbca">MedPredictor</a>.</p>
 
@@ -886,7 +886,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:00 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

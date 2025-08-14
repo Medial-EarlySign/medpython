@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['handling_0',['RapidJSON error handling',['../group__RAPIDJSON__ERRORS.html',1,'']]]
+  ['library_0',['Library',['../group__Library.html',1,'']]]
 ];

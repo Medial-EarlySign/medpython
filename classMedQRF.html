@@ -114,7 +114,7 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a21cc99f95174ce478dc9f032da7c2fb9" id="r_a21cc99f95174ce478dc9f032da7c2fb9"><td class="memItemLeft" align="right" valign="top"><a id="a21cc99f95174ce478dc9f032da7c2fb9" name="a21cc99f95174ce478dc9f032da7c2fb9"></a>
 void&#160;</td><td class="memItemRight" valign="bottom"><b>printTrees</b> (const vector&lt; string &gt; &amp;modelSignalNames, const string &amp;outputPath) const</td></tr>
 <tr class="separator:a21cc99f95174ce478dc9f032da7c2fb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab553a6db13b545156bdfb0c31b2d58c6" id="r_ab553a6db13b545156bdfb0c31b2d58c6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedQRF.html#ab553a6db13b545156bdfb0c31b2d58c6">calc_feature_importance</a> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *<a class="el" href="structfeatures.html">features</a>)</td></tr>
+<tr class="memitem:ab553a6db13b545156bdfb0c31b2d58c6" id="r_ab553a6db13b545156bdfb0c31b2d58c6"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedQRF.html#ab553a6db13b545156bdfb0c31b2d58c6">calc_feature_importance</a> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *features)</td></tr>
 <tr class="separator:ab553a6db13b545156bdfb0c31b2d58c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9c5e280449072357b51f6e4f2ac92bb4" id="r_a9c5e280449072357b51f6e4f2ac92bb4"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedQRF.html#a9c5e280449072357b51f6e4f2ac92bb4">n_preds_per_sample</a> () const</td></tr>
 <tr class="memdesc:a9c5e280449072357b51f6e4f2ac92bb4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of predictions per sample. typically 1 - but some models return several per sample (for example a probability vector)  <br /></td></tr>
@@ -170,13 +170,13 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (vector&lt
 int&#160;</td><td class="memItemRight" valign="bottom"><b>threaded_predict</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds, int nthreads) const</td></tr>
 <tr class="separator:ac34b3b74f79859ba3f1b92a9c0186a3a inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79cfaa9e574b82f6a82dbfbfdbfb4a81 inherit pub_methods_classMedPredictor" id="r_a79cfaa9e574b82f6a82dbfbfdbfb4a81"><td class="memItemLeft" align="right" valign="top">
-int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>)</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features)</td></tr>
 <tr class="separator:a79cfaa9e574b82f6a82dbfbfdbfb4a81 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1049387e5cd4dfbbc686ce892337c1b7 inherit pub_methods_classMedPredictor" id="r_a1049387e5cd4dfbbc686ce892337c1b7"><td class="memItemLeft" align="right" valign="top">
-int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>, vector&lt; string &gt; &amp;names)</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>learn</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features, vector&lt; string &gt; &amp;names)</td></tr>
 <tr class="separator:a1049387e5cd4dfbbc686ce892337c1b7 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7cd7565ee026599f53902abeeabf078d inherit pub_methods_classMedPredictor" id="r_a7cd7565ee026599f53902abeeabf078d"><td class="memItemLeft" align="right" valign="top">
-virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="structfeatures.html">features</a>) const</td></tr>
+virtual int&#160;</td><td class="memItemRight" valign="bottom"><b>predict</b> (<a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;features) const</td></tr>
 <tr class="separator:a7cd7565ee026599f53902abeeabf078d inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acd85e157d4b8fa20e8aa91a94e9fde2e inherit pub_methods_classMedPredictor" id="r_acd85e157d4b8fa20e8aa91a94e9fde2e"><td class="memItemLeft" align="right" valign="top">
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance</b> (vector&lt; float &gt; &amp;features_importance_scores, const string &amp;general_params)</td></tr>
@@ -213,7 +213,7 @@ template&lt;class T , class L &gt; </td></tr>
 virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_single</b> (const vector&lt; double &gt; &amp;x, vector&lt; double &gt; &amp;preds) const</td></tr>
 <tr class="separator:a472d0aa7e8a09f6329e346bb6983e2f5 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0dc5192dcc8e9a5067b1cd3ff1432a7 inherit pub_methods_classMedPredictor" id="r_ac0dc5192dcc8e9a5067b1cd3ff1432a7"><td class="memItemLeft" align="right" valign="top">
-virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance_shap</b> (vector&lt; float &gt; &amp;features_importance_scores, string &amp;importance_type, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *<a class="el" href="structfeatures.html">features</a>)</td></tr>
+virtual void&#160;</td><td class="memItemRight" valign="bottom"><b>calc_feature_importance_shap</b> (vector&lt; float &gt; &amp;features_importance_scores, string &amp;importance_type, const <a class="el" href="classMedFeatures.html">MedFeatures</a> *features)</td></tr>
 <tr class="separator:ac0dc5192dcc8e9a5067b1cd3ff1432a7 inherit pub_methods_classMedPredictor"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae42bde52e23febbb78b25d36d0fe6d1d inherit pub_methods_classMedPredictor" id="r_ae42bde52e23febbb78b25d36d0fe6d1d"><td class="memItemLeft" align="right" valign="top">void *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classMedPredictor.html#ae42bde52e23febbb78b25d36d0fe6d1d">new_polymorphic</a> (string derived_class_name)</td></tr>
 <tr class="memdesc:ae42bde52e23febbb78b25d36d0fe6d1d inherit pub_methods_classMedPredictor"><td class="mdescLeft">&#160;</td><td class="mdescRight">for polymorphic classes that want to be able to serialize/deserialize a pointer * to the derived class given its type one needs to implement this function to return a new to the derived class given its type (as in my_type)  <br /></td></tr>
@@ -829,7 +829,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:00 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:32 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

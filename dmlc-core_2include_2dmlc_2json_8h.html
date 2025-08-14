@@ -120,7 +120,7 @@ Namespaces</h2></td></tr>
 Macros</h2></td></tr>
 <tr class="memitem:a0b36bb83f1a151a7d76d36fe50ed9391" id="r_a0b36bb83f1a151a7d76d36fe50ed9391"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="dmlc-core_2include_2dmlc_2json_8h.html#a0b36bb83f1a151a7d76d36fe50ed9391">DMLC_JSON_ENABLE_ANY_VAR_DEF</a>(KeyName)</td></tr>
 <tr class="separator:a0b36bb83f1a151a7d76d36fe50ed9391"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a31d781e5a925c9f547984887cc0167ef" id="r_a31d781e5a925c9f547984887cc0167ef"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="dmlc-core_2include_2dmlc_2json_8h.html#a31d781e5a925c9f547984887cc0167ef">DMLC_JSON_ENABLE_ANY</a>(<a class="el" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a>,  KeyName)</td></tr>
+<tr class="memitem:a31d781e5a925c9f547984887cc0167ef" id="r_a31d781e5a925c9f547984887cc0167ef"><td class="memItemLeft" align="right" valign="top">#define&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="dmlc-core_2include_2dmlc_2json_8h.html#a31d781e5a925c9f547984887cc0167ef">DMLC_JSON_ENABLE_ANY</a>(Type,  KeyName)</td></tr>
 <tr class="memdesc:a31d781e5a925c9f547984887cc0167ef"><td class="mdescLeft">&#160;</td><td class="mdescRight">Macro to enable save/load JSON of dmlc:: whose actual type is Type. Any type will be saved as json array [KeyName, content].  <br /></td></tr>
 <tr class="separator:a31d781e5a925c9f547984887cc0167ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
@@ -138,7 +138,7 @@ Macros</h2></td></tr>
           <td class="memname">#define DMLC_JSON_ENABLE_ANY</td>
           <td>(</td>
           <td class="paramtype">&#160;</td>
-          <td class="paramname"><a class="el" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a>, </td>
+          <td class="paramname">Type, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
@@ -154,8 +154,7 @@ Macros</h2></td></tr>
       </table>
 </div><div class="memdoc">
 <b>Value:</b><div class="fragment"><div class="line">  DMLC_STR_CONCAT(DMLC_JSON_ENABLE_ANY_VAR_DEF(KeyName), __COUNTER__) = \</div>
-<div class="line">    ::dmlc::json::AnyJSONManager::Global()-&gt;EnableType&lt;<a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a>&gt;(#KeyName) \</div>
-<div class="ttc" id="arapidjson_8h_html_a1d1cfd8ffb84e947f82999c682b666a7"><div class="ttname"><a href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a></div><div class="ttdeci">Type</div><div class="ttdoc">Type of JSON value.</div><div class="ttdef"><b>Definition</b> rapidjson.h:604</div></div>
+<div class="line">    ::dmlc::json::AnyJSONManager::Global()-&gt;EnableType&lt;Type&gt;(#KeyName) \</div>
 </div><!-- fragment -->
 <p>Macro to enable save/load JSON of dmlc:: whose actual type is Type. Any type will be saved as json array [KeyName, content]. </p>
 <dl class="params"><dt>Parameters</dt><dd>
@@ -191,7 +190,7 @@ Macros</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

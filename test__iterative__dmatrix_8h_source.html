@@ -94,7 +94,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespacexgboost.html">xgboost</a> {</div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="keyword">namespace </span>data {</div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Page, <span class="keyword">typename</span> Iter, <span class="keyword">typename</span> Cuts&gt;</div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keywordtype">void</span> TestRefDMatrix(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, Cuts&amp;&amp; get_cuts) {</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keywordtype">void</span> TestRefDMatrix(Context <span class="keyword">const</span>* ctx, Cuts&amp;&amp; get_cuts) {</div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span>  <span class="keywordtype">int</span> n_bins = 256;</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>  Iter iter(0.3, 2048);</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  <span class="keyword">auto</span> m = std::make_shared&lt;IterativeDMatrix&gt;(&amp;iter, iter.Proxy(), <span class="keyword">nullptr</span>, Reset, Next,</div>
@@ -143,11 +143,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>}  <span class="comment">// namespace xgboost</span></div>
 <div class="ttc" id="acontext_8h_html"><div class="ttname"><a href="context_8h.html">context.h</a></div><div class="ttdoc">Copyright 2014-2023, XGBoost Contributors.</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -207,7 +207,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>}</div>
 <div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span> </div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>;</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="keyword">struct </span>Handler;</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span> </div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span><span class="keyword">struct </span>NumberHandler {</div>
@@ -242,7 +242,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    <span class="keywordtype">int</span> tid = lua_abs_index(L, index);</div>
 <div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>    lua_pushnil(L);</div>
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    <span class="keywordflow">while</span> (lua_next(L, -2)) {</div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>      ret[<a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;K&gt;::Get</a>(L, -2, s)] = <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;V&gt;::Pop</a>(L, -1, s);</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>      ret[Handler&lt;K&gt;::Get(L, -2, s)] = Handler&lt;V&gt;::Pop(L, -1, s);</div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>      lua_pop(L, 1);</div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>    }</div>
 <div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>    lua_settop(L, tid);</div>
@@ -251,8 +251,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00352" name="l00352"></a><span class="lineno">  352</span>  <span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">void</span> Push(lua_State* L, <span class="keyword">const</span> ContainerType&amp; v) {</div>
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>    lua_createtable(L, v.size(), 0);</div>
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>    <span class="keywordflow">for</span> (<span class="keyword">const</span> <span class="keyword">auto</span>&amp; kv : v) {</div>
-<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>      <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;K&gt;::Push</a>(L, kv.first);</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>      <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;V&gt;::Push</a>(L, kv.second);</div>
+<div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>      Handler&lt;K&gt;::Push(L, kv.first);</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>      Handler&lt;V&gt;::Push(L, kv.second);</div>
 <div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>      lua_settable(L, -3);</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>    }</div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>  }</div>
@@ -262,14 +262,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>};</div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span> </div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a></div>
+<div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span><span class="keyword">struct </span>Handler</div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>    : <span class="keyword">public</span> std::conditional&lt;std::is_arithmetic&lt;T&gt;::value,</div>
 <div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>                              NumberHandler&lt;T&gt;,</div>
 <div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>                              UndefinedHandler&gt;::type {</div>
 <div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>};</div>
 <div class="line"><a id="l00371" name="l00371"></a><span class="lineno">  371</span> </div>
 <div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::<a class="code hl_enumvalue" href="namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21">string</a>&gt; {</div>
+<div class="line"><a id="l00373" name="l00373"></a><span class="lineno">  373</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::<a class="code hl_enumvalue" href="namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21">string</a>&gt; {</div>
 <div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>  <span class="keyword">static</span> <span class="keyword">inline</span> std::string Get(lua_State* L, <span class="keywordtype">int</span> index, LuaState* s) {</div>
 <div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    CHECK_EQ(lua_type(L, index), LUA_TSTRING);</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    <span class="keywordflow">return</span> std::string(lua_tostring(L, index));</div>
@@ -280,7 +280,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>};</div>
 <div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
 <div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::vector&lt;T&gt; &gt; {</div>
+<div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::vector&lt;T&gt; &gt; {</div>
 <div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>  <span class="keyword">static</span> <span class="keyword">inline</span> std::vector&lt;T&gt; Get(lua_State* L, <span class="keywordtype">int</span> index, LuaState* s) {</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    std::vector&lt;T&gt; ret;</div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    CHECK(lua_istable(L, index))</div>
@@ -289,9 +289,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>    <span class="keywordtype">int</span> tid = lua_abs_index(L, index);</div>
 <div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>    lua_pushnil(L);</div>
 <div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>    <span class="keywordflow">while</span> (lua_next(L, tid)) {</div>
-<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>      CHECK_EQ(<a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;size_t&gt;::Get</a>(L, -2, s), ret.size() + 1)</div>
+<div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>      CHECK_EQ(Handler&lt;size_t&gt;::Get(L, -2, s), ret.size() + 1)</div>
 <div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>          &lt;&lt; <span class="stringliteral">&quot;Target table is not an array&quot;</span>;</div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>      ret.push_back(<a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;T&gt;::Get</a>(L, -1, s));</div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span>      ret.push_back(Handler&lt;T&gt;::Get(L, -1, s));</div>
 <div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>      lua_pop(L, 1);</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span>    }</div>
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>    lua_settop(L, tid);</div>
@@ -300,19 +300,19 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>  <span class="keyword">static</span> <span class="keyword">inline</span> <span class="keywordtype">void</span> Push(lua_State* L, <span class="keyword">const</span> std::vector&lt;T&gt;&amp; v) {</div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>    lua_createtable(L, v.size(), 0);</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; v.size(); ++i) {</div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>      <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;T&gt;::Push</a>(L, v[i]);</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>      Handler&lt;T&gt;::Push(L, v[i]);</div>
 <div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>      lua_rawseti(L, -2, i + 1);</div>
 <div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>    }</div>
 <div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>  }</div>
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>};</div>
 <div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span> </div>
 <div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> K, <span class="keyword">typename</span> V&gt;</div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::unordered_map&lt;K, V&gt; &gt;</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::unordered_map&lt;K, V&gt; &gt;</div>
 <div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>    : <span class="keyword">public</span> MapHandler&lt;std::unordered_map&lt;K, V&gt; &gt; {</div>
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>};</div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span> </div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;LuaRef&gt; {</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="keyword">struct </span>Handler&lt;LuaRef&gt; {</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>  <span class="keyword">static</span> <span class="keyword">inline</span> LuaRef Get(lua_State* L, <span class="keywordtype">int</span> index, LuaState* s) {</div>
 <div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>    LuaRef ret;</div>
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>    lua_pushvalue(L, index);</div>
@@ -332,7 +332,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span>};</div>
 <div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span> </div>
 <div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::nullptr_t&gt; {</div>
+<div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::nullptr_t&gt; {</div>
 <div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>  <span class="keyword">static</span> <span class="keyword">inline</span> LuaRef Get(lua_State* L, <span class="keywordtype">int</span> index, LuaState* s) {</div>
 <div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>    LOG(FATAL) &lt;&lt; <span class="stringliteral">&quot;not supported&quot;</span>;</div>
 <div class="line"><a id="l00439" name="l00439"></a><span class="lineno">  439</span>    <span class="keywordflow">return</span> LuaRef();</div>
@@ -347,7 +347,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00448" name="l00448"></a><span class="lineno">  448</span>  lua_State* L;</div>
 <div class="line"><a id="l00449" name="l00449"></a><span class="lineno">  449</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="line"><a id="l00450" name="l00450"></a><span class="lineno">  450</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> operator()(<span class="keyword">const</span> T&amp; v)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span>    <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;T&gt;::Push</a>(L, v);</div>
+<div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span>    Handler&lt;T&gt;::Push(L, v);</div>
 <div class="line"><a id="l00452" name="l00452"></a><span class="lineno">  452</span>  }</div>
 <div class="line"><a id="l00453" name="l00453"></a><span class="lineno">  453</span>};</div>
 <div class="line"><a id="l00454" name="l00454"></a><span class="lineno">  454</span> </div>
@@ -669,7 +669,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassdmlc_1_1LuaState_html_ae76399cb24c8a82c491947f304ede429"><div class="ttname"><a href="classdmlc_1_1LuaState.html#ae76399cb24c8a82c491947f304ede429">dmlc::LuaState::LuaState</a></div><div class="ttdeci">LuaState()</div><div class="ttdoc">constructor</div></div>
 <div class="ttc" id="aclassdmlc_1_1ThreadLocalStore_html"><div class="ttname"><a href="classdmlc_1_1ThreadLocalStore.html">dmlc::ThreadLocalStore</a></div><div class="ttdoc">A threadlocal store to store threadlocal variables. Will return a thread local singleton of type T.</div><div class="ttdef"><b>Definition</b> thread_local.h:35</div></div>
 <div class="ttc" id="aclassdmlc_1_1ThreadLocalStore_html_a9349b269e6a44cdb0d512692b353cf8e"><div class="ttname"><a href="classdmlc_1_1ThreadLocalStore.html#a9349b269e6a44cdb0d512692b353cf8e">dmlc::ThreadLocalStore::Get</a></div><div class="ttdeci">static T * Get()</div><div class="ttdef"><b>Definition</b> thread_local.h:38</div></div>
-<div class="ttc" id="aclassrapidjson_1_1Handler_html"><div class="ttname"><a href="classrapidjson_1_1Handler.html">Handler</a></div><div class="ttdoc">Concept for receiving events from GenericReader upon parsing. The functions return true if no error o...</div></div>
 <div class="ttc" id="ainclude_2xgboost_2logging_8h_html"><div class="ttname"><a href="include_2xgboost_2logging_8h.html">logging.h</a></div><div class="ttdoc">defines console logging options for xgboost. Use to enforce unified print behavior.</div></div>
 <div class="ttc" id="alua_8h_html"><div class="ttname"><a href="lua_8h.html">lua.h</a></div><div class="ttdoc">C++11 header only interface to easily interact with Lua and Torch. This code is evolved from torch pl...</div></div>
 <div class="ttc" id="anamespacedetail_html_a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21"><div class="ttname"><a href="namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21">detail::value_t::string</a></div><div class="ttdeci">@ string</div><div class="ttdoc">string value</div></div>
@@ -683,7 +682,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:55 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

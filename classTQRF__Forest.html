@@ -97,14 +97,14 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>init_from_string</b> (
 <tr class="memitem:af5cc4bff83d09220985a5dc75fd22fdf" id="r_af5cc4bff83d09220985a5dc75fd22fdf"><td class="memItemLeft" align="right" valign="top"><a id="af5cc4bff83d09220985a5dc75fd22fdf" name="af5cc4bff83d09220985a5dc75fd22fdf"></a>
 <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>init_tables</b> (<a class="el" href="classQuantized__Feat.html">Quantized_Feat</a> &amp;<a class="el" href="classEigen_1_1Solve.html">qfeat</a>)</td></tr>
 <tr class="separator:af5cc4bff83d09220985a5dc75fd22fdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a341060e04941d559bab6526b531a1ac9" id="r_a341060e04941d559bab6526b531a1ac9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classTQRF__Forest.html#a341060e04941d559bab6526b531a1ac9">Train</a> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="classEigen_1_1Solve.html">medf</a>, const <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;Y)</td></tr>
+<tr class="memitem:a341060e04941d559bab6526b531a1ac9" id="r_a341060e04941d559bab6526b531a1ac9"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classTQRF__Forest.html#a341060e04941d559bab6526b531a1ac9">Train</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="classEigen_1_1Solve.html">medf</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;Y)</td></tr>
 <tr class="memdesc:a341060e04941d559bab6526b531a1ac9"><td class="mdescLeft">&#160;</td><td class="mdescRight">The basic train matrix for TQRF is <a class="el" href="classMedFeatures.html" title="A class for holding features data as a virtual matrix">MedFeatures</a> (!!) the reason is that it contains everything in one place: that is: the X features, the Y outcome, the weights and the samples for each row.  <br /></td></tr>
 <tr class="separator:a341060e04941d559bab6526b531a1ac9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ad90cd09e6b6f479eb6f84aa4ec5a41" id="r_a9ad90cd09e6b6f479eb6f84aa4ec5a41"><td class="memItemLeft" align="right" valign="top"><a id="a9ad90cd09e6b6f479eb6f84aa4ec5a41" name="a9ad90cd09e6b6f479eb6f84aa4ec5a41"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>Train</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;medf)</td></tr>
 <tr class="separator:a9ad90cd09e6b6f479eb6f84aa4ec5a41"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b264bed144be870358b93ac89d42829" id="r_a9b264bed144be870358b93ac89d42829"><td class="memItemLeft" align="right" valign="top"><a id="a9b264bed144be870358b93ac89d42829" name="a9b264bed144be870358b93ac89d42829"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>Train_AdaBoost</b> (const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="classEigen_1_1Solve.html">medf</a>, const <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;Y)</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>Train_AdaBoost</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;<a class="el" href="classEigen_1_1Solve.html">medf</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;Y)</td></tr>
 <tr class="separator:a9b264bed144be870358b93ac89d42829"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a38ad8dddc9b67fc23e00a5ef8813df01" id="r_a38ad8dddc9b67fc23e00a5ef8813df01"><td class="memItemLeft" align="right" valign="top"><a id="a38ad8dddc9b67fc23e00a5ef8813df01" name="a38ad8dddc9b67fc23e00a5ef8813df01"></a>
 int&#160;</td><td class="memItemRight" valign="bottom"><b>update_counts</b> (vector&lt; vector&lt; float &gt; &gt; &amp;<a class="el" href="classEigen_1_1Solve.html">sample_counts</a>, <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, <a class="el" href="classQuantized__Feat.html">Quantized_Feat</a> &amp;qf, int <a class="el" href="classEigen_1_1Solve.html">zero_counts</a>, int round)</td></tr>
@@ -117,14 +117,14 @@ int&#160;</td><td class="memItemRight" valign="bottom"><b>tune_betas</b> (<a cla
 int&#160;</td><td class="memItemRight" valign="bottom"><b>solve_betas_gd</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;C, <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;S, vector&lt; float &gt; &amp;b)</td></tr>
 <tr class="separator:a39f312ed40b2d50d63cfa423ca4dcab2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeb9144f42f4d606705bece2d8a06035f" id="r_aeb9144f42f4d606705bece2d8a06035f"><td class="memItemLeft" align="right" valign="top"><a id="aeb9144f42f4d606705bece2d8a06035f" name="aeb9144f42f4d606705bece2d8a06035f"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>Predict</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds) const</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>Predict</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="memdesc:aeb9144f42f4d606705bece2d8a06035f"><td class="mdescLeft">&#160;</td><td class="mdescRight">However - the basic predict for this model is <a class="el" href="classMedMat.html">MedMat</a> !! , as here it is much simpler : we only need to find the terminal nodes in the trees and calculate our scores. <br /></td></tr>
 <tr class="separator:aeb9144f42f4d606705bece2d8a06035f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a30637826d0e1d94cabe2c285969faa10" id="r_a30637826d0e1d94cabe2c285969faa10"><td class="memItemLeft" align="right" valign="top"><a id="a30637826d0e1d94cabe2c285969faa10" name="a30637826d0e1d94cabe2c285969faa10"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>n_preds_per_sample</b> () const</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>n_preds_per_sample</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a30637826d0e1d94cabe2c285969faa10"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8e63a8af2ca01cdd47822db297fa419d" id="r_a8e63a8af2ca01cdd47822db297fa419d"><td class="memItemLeft" align="right" valign="top"><a id="a8e63a8af2ca01cdd47822db297fa419d" name="a8e63a8af2ca01cdd47822db297fa419d"></a>
-int&#160;</td><td class="memItemRight" valign="bottom"><b>Predict_Categorial</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds) const</td></tr>
+int&#160;</td><td class="memItemRight" valign="bottom"><b>Predict_Categorial</b> (<a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;x, vector&lt; float &gt; &amp;preds) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
 <tr class="separator:a8e63a8af2ca01cdd47822db297fa419d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a048b86f22d17d175743497a735737c5e" id="r_a048b86f22d17d175743497a735737c5e"><td class="memItemLeft" align="right" valign="top"><a id="a048b86f22d17d175743497a735737c5e" name="a048b86f22d17d175743497a735737c5e"></a>
 <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>print_average_bagging</b> (int <a class="el" href="classEigen_1_1Solve.html">_n_time_slices</a>, int <a class="el" href="classEigen_1_1Solve.html">_n_categ</a>)</td></tr>
@@ -202,10 +202,10 @@ virtual string&#160;</td><td class="memItemRight" valign="bottom"><b>object_json
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:abfeb66c4bb669220920d354e9f7b16cd" id="r_abfeb66c4bb669220920d354e9f7b16cd"><td class="memItemLeft" align="right" valign="top"><a id="abfeb66c4bb669220920d354e9f7b16cd" name="abfeb66c4bb669220920d354e9f7b16cd"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>get_tree_type</b> (const string &amp;str)</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">static</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>get_tree_type</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> string &amp;str)</td></tr>
 <tr class="separator:abfeb66c4bb669220920d354e9f7b16cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae95d24bb388a34864ec5e213a765ce11" id="r_ae95d24bb388a34864ec5e213a765ce11"><td class="memItemLeft" align="right" valign="top"><a id="ae95d24bb388a34864ec5e213a765ce11" name="ae95d24bb388a34864ec5e213a765ce11"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>get_missing_value_method</b> (const string &amp;str)</td></tr>
+<a class="el" href="classEigen_1_1Solve.html">static</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>get_missing_value_method</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> string &amp;str)</td></tr>
 <tr class="separator:ae95d24bb388a34864ec5e213a765ce11"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
@@ -263,13 +263,13 @@ vector&lt; float &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>beta
         <tr>
           <td class="memname">int TQRF_Forest::Train </td>
           <td>(</td>
-          <td class="paramtype">const <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedFeatures.html">MedFeatures</a> &amp;&#160;</td>
           <td class="paramname"><em>medf</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">const <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classMedMat.html">MedMat</a>&lt; float &gt; &amp;&#160;</td>
           <td class="paramname"><em>Y</em>&#160;</td>
         </tr>
         <tr>
@@ -292,7 +292,7 @@ vector&lt; float &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>beta
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:01 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:32 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -316,7 +316,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>}</div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span> </div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Index, <span class="keyword">typename</span> Func&gt;</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="keywordtype">void</span> ParallelFor(<a class="code hl_struct" href="structIndex.html">Index</a> size, int32_t n_threads, Func fn) {</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span><span class="keywordtype">void</span> ParallelFor(Index size, int32_t n_threads, Func fn) {</div>
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>  ParallelFor(size, n_threads, Sched::Static(), fn);</div>
 <div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>}</div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span> </div>
@@ -389,13 +389,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_1_1common_html_a9f60a50b4af013fffa6568ae854287b7"><div class="ttname"><a href="namespacexgboost_1_1common.html#a9f60a50b4af013fffa6568ae854287b7">xgboost::common::DefaultMaxThreads</a></div><div class="ttdeci">std::int32_t constexpr DefaultMaxThreads()</div><div class="ttdoc">Constant that can be used for initializing static thread local memory.</div><div class="ttdef"><b>Definition</b> threading_utils.h:310</div></div>
 <div class="ttc" id="anamespacexgboost_html_a3d09e19ecd9f0b14d629d50b16f51ada"><div class="ttname"><a href="namespacexgboost.html#a3d09e19ecd9f0b14d629d50b16f51ada">xgboost::omp_ulong</a></div><div class="ttdeci">dmlc::omp_ulong omp_ulong</div><div class="ttdoc">define unsigned long for openmp loop</div><div class="ttdef"><b>Definition</b> base.h:322</div></div>
 <div class="ttc" id="aomp_8h_html"><div class="ttname"><a href="omp_8h.html">omp.h</a></div><div class="ttdoc">header to handle OpenMP compatibility issues</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1Sched_html"><div class="ttname"><a href="structxgboost_1_1common_1_1Sched.html">xgboost::common::Sched</a></div><div class="ttdoc">OpenMP schedule.</div><div class="ttdef"><b>Definition</b> threading_utils.h:167</div></div>
 <div class="ttc" id="axgboost_2dmlc-core_2include_2dmlc_2common_8h_html"><div class="ttname"><a href="xgboost_2dmlc-core_2include_2dmlc_2common_8h.html">common.h</a></div><div class="ttdoc">defines some common utility function.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

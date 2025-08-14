@@ -9,10 +9,9 @@ var searchData=
   ['_5f_5fttostringhelperfast_3c_20t_2c_20true_2c_20false_20_3e_6',['__TToStringHelperFast&lt; T, true, false &gt;',['../structLightGBM_1_1Common_1_1____TToStringHelperFast_3_01T_00_01true_00_01false_01_4.html',1,'LightGBM::Common']]],
   ['_5fcvbooster_7',['_CVBooster',['../classlightgbm_1_1engine_1_1__CVBooster.html',1,'lightgbm::engine']]],
   ['_5fdataiter_8',['_DataIter',['../struct__DataIter.html',1,'']]],
-  ['_5fht_9',['_ht',['../structHash_1_1__ht.html',1,'Hash']]],
-  ['_5finnerpredictor_10',['_InnerPredictor',['../classlightgbm_1_1basic_1_1__InnerPredictor.html',1,'lightgbm::basic']]],
-  ['_5fmatrix_11',['_Matrix',['../struct__Matrix.html',1,'']]],
-  ['_5fpackedbooster_12',['_PackedBooster',['../classxgboost_1_1training_1_1__PackedBooster.html',1,'xgboost::training']]],
-  ['_5fproxydmatrix_13',['_ProxyDMatrix',['../classxgboost_1_1core_1_1__ProxyDMatrix.html',1,'xgboost::core']]],
-  ['_5ftempfile_14',['_TempFile',['../classlightgbm_1_1basic_1_1__TempFile.html',1,'lightgbm::basic']]]
+  ['_5finnerpredictor_9',['_InnerPredictor',['../classlightgbm_1_1basic_1_1__InnerPredictor.html',1,'lightgbm::basic']]],
+  ['_5fmatrix_10',['_Matrix',['../struct__Matrix.html',1,'']]],
+  ['_5fpackedbooster_11',['_PackedBooster',['../classxgboost_1_1training_1_1__PackedBooster.html',1,'xgboost::training']]],
+  ['_5fproxydmatrix_12',['_ProxyDMatrix',['../classxgboost_1_1core_1_1__ProxyDMatrix.html',1,'xgboost::core']]],
+  ['_5ftempfile_13',['_TempFile',['../classlightgbm_1_1basic_1_1__TempFile.html',1,'lightgbm::basic']]]
 ];

@@ -114,7 +114,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> Base::Scalar Scalar;</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> Base::StorageIndex StorageIndex;</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span> </div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZeros()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> derived().nestedExpression().nonZeros(); }</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>    <span class="keyword">inline</span> <a class="code hl_typedef" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> nonZeros()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> derived().nestedExpression().nonZeros(); }</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>    </div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>    <span class="keyword">inline</span> <span class="keyword">const</span> Scalar* valuePtr()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> derived().nestedExpression().valuePtr(); }</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>    <span class="keyword">inline</span> <span class="keyword">const</span> StorageIndex* innerIndexPtr()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> derived().nestedExpression().innerIndexPtr(); }</div>
@@ -150,7 +150,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Transpose&lt;ArgType&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">XprType</a>;</div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    </div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> nonZerosEstimate()<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    <span class="keyword">inline</span> Index nonZerosEstimate()<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>      <span class="keywordflow">return</span> m_argImpl.nonZerosEstimate();</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    }</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span> </div>
@@ -158,12 +158,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1unary__evaluator_3_01Transpose_3_01ArgType_01_4_00_01IteratorBased_01_4_1_1InnerIterator.html">   67</a></span>    <span class="keyword">class </span><a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a> : <span class="keyword">public</span> EvalIterator</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    {</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>      EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>      EIGEN_STRONG_INLINE <a class="code hl_class" href="classEigen_1_1InnerIterator.html">InnerIterator</a>(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>, Index outer)</div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>        : EvalIterator(<a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>.m_argImpl,outer)</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>      {}</div>
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>      </div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>      <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalIterator::col(); }</div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>      <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalIterator::row(); }</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>      Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalIterator::col(); }</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>      Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalIterator::row(); }</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    };</div>
 </div>
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    </div>
@@ -171,12 +171,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1unary__evaluator_3_01Transpose_3_01ArgType_01_4_00_01IteratorBased_01_4_1_1ReverseInnerIterator.html">   78</a></span>    <span class="keyword">class </span>ReverseInnerIterator : <span class="keyword">public</span> EvalReverseIterator</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    {</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      EIGEN_STRONG_INLINE ReverseInnerIterator(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>, <a class="code hl_struct" href="structIndex.html">Index</a> outer)</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      EIGEN_STRONG_INLINE ReverseInnerIterator(<span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>, Index outer)</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>        : EvalReverseIterator(<a class="code hl_class" href="classEigen_1_1Solve.html">unaryOp</a>.m_argImpl,outer)</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      {}</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>      </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>      <a class="code hl_struct" href="structIndex.html">Index</a> row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalReverseIterator::col(); }</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>      <a class="code hl_struct" href="structIndex.html">Index</a> col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalReverseIterator::row(); }</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>      Index row()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalReverseIterator::col(); }</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>      Index col()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> EvalReverseIterator::row(); }</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>    };</div>
 </div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>    </div>
@@ -205,16 +205,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassEigen_1_1Transpose_html"><div class="ttname"><a href="classEigen_1_1Transpose.html">Eigen::Transpose</a></div><div class="ttdoc">Expression of the transpose of a matrix.</div><div class="ttdef"><b>Definition</b> Transpose.h:55</div></div>
 <div class="ttc" id="aclassEigen_1_1internal_1_1SparseTransposeImpl_html"><div class="ttname"><a href="classEigen_1_1internal_1_1SparseTransposeImpl.html">Eigen::internal::SparseTransposeImpl</a></div><div class="ttdef"><b>Definition</b> SparseTranspose.h:19</div></div>
 <div class="ttc" id="agroup__flags_html_gaed0244284da47a2b8661261431173caf"><div class="ttname"><a href="group__flags.html#gaed0244284da47a2b8661261431173caf">Eigen::CompressedAccessBit</a></div><div class="ttdeci">const unsigned int CompressedAccessBit</div><div class="ttdoc">Means that the underlying coefficients can be accessed through pointers to the sparse (un)compressed ...</div><div class="ttdef"><b>Definition</b> Constants.h:185</div></div>
+<div class="ttc" id="astructEigen_1_1EigenBase_html_a554f30542cc2316add4b1ea0a492ff02"><div class="ttname"><a href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Eigen::EigenBase::Index</a></div><div class="ttdeci">Eigen::Index Index</div><div class="ttdoc">The interface type of indices.</div><div class="ttdef"><b>Definition</b> EigenBase.h:37</div></div>
 <div class="ttc" id="astructEigen_1_1Sparse_html"><div class="ttname"><a href="structEigen_1_1Sparse.html">Eigen::Sparse</a></div><div class="ttdoc">The type used to identify a general sparse storage.</div><div class="ttdef"><b>Definition</b> Constants.h:493</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1IteratorBased_html"><div class="ttname"><a href="structEigen_1_1internal_1_1IteratorBased.html">Eigen::internal::IteratorBased</a></div><div class="ttdef"><b>Definition</b> Constants.h:528</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1evaluator__base_html"><div class="ttname"><a href="structEigen_1_1internal_1_1evaluator__base.html">Eigen::internal::evaluator_base</a></div><div class="ttdef"><b>Definition</b> CoreEvaluators.h:101</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1evaluator_html"><div class="ttname"><a href="structEigen_1_1internal_1_1evaluator.html">Eigen::internal::evaluator</a></div><div class="ttdef"><b>Definition</b> CoreEvaluators.h:82</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unary__evaluator_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unary__evaluator.html">Eigen::internal::unary_evaluator</a></div><div class="ttdef"><b>Definition</b> CoreEvaluators.h:56</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:36 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:21 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

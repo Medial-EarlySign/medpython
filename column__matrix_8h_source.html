@@ -298,7 +298,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
 <div class="foldopen" id="foldopen00249" data-start="{" data-end="}">
 <div class="line"><a id="l00249" name="l00249"></a><span class="lineno"><a class="line" href="classxgboost_1_1common_1_1ColumnMatrix.html#acd3f2345b43c9ffde4ced68520534d56">  249</a></span>  <span class="keywordtype">void</span> <a class="code hl_function" href="classxgboost_1_1common_1_1ColumnMatrix.html#acd3f2345b43c9ffde4ced68520534d56">InitFromGHist</a>(<a class="code hl_struct" href="structxgboost_1_1Context.html">Context</a> <span class="keyword">const</span>* ctx, <a class="code hl_class" href="classxgboost_1_1GHistIndexMatrix.html">GHistIndexMatrix</a> <span class="keyword">const</span>&amp; gmat) {</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    <span class="keyword">auto</span> n_threads = ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>();</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    <span class="keyword">auto</span> n_threads = ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>();</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    <span class="keywordflow">if</span> (!any_missing_) {</div>
 <div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>      <span class="comment">// row index is compressed, we need to dispatch it.</span></div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>      <a class="code hl_function" href="namespacexgboost_1_1common.html#a1e296882977c5568b710182a8aa09926">DispatchBinType</a>(gmat.<a class="code hl_variable" href="classxgboost_1_1GHistIndexMatrix.html#a72dbc488244e44667c33ddcf01af68d1">index</a>.GetBinTypeSize(), [&amp;, size = gmat.Size(), n_threads = n_threads,</div>
@@ -509,12 +509,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_adefe925ef9d43e9f8ceb3bb051b7cf9f"><div class="ttname"><a href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">xgboost::bst_bin_t</a></div><div class="ttdeci">int32_t bst_bin_t</div><div class="ttdoc">Type for histogram bin index.</div><div class="ttdef"><b>Definition</b> base.h:103</div></div>
 <div class="ttc" id="astructxgboost_1_1BitFieldContainer_html"><div class="ttname"><a href="structxgboost_1_1BitFieldContainer.html">xgboost::BitFieldContainer&lt; uint32_t, LBitsPolicy&lt; uint32_t &gt; &gt;</a></div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 <div class="ttc" id="astructxgboost_1_1data_1_1IsValidFunctor_html"><div class="ttname"><a href="structxgboost_1_1data_1_1IsValidFunctor.html">xgboost.data::IsValidFunctor</a></div><div class="ttdef"><b>Definition</b> adapter.h:88</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -8,6 +8,6 @@ var searchData=
   ['inneriterator_5',['InnerIterator',['../classEigen_1_1DenseBase.html#a4dc102b445d8fb48a28dfcd22323f649',1,'Eigen::DenseBase']]],
   ['inst_6',['Inst',['../classxgboost_1_1SparsePage.html#abab98be7e31f501f15638aea03020010',1,'xgboost::SparsePage']]],
   ['isometrytransformtype_7',['IsometryTransformType',['../classEigen_1_1Translation.html#ad3ac890d85420ba78e16dab1983d1a80',1,'Eigen::Translation']]],
-  ['iterator_8',['iterator',['../classbasic__json.html#ae206a491161d043f8efaa1330f1ccf97',1,'basic_json::iterator'],['../classGenericMemberIterator.html#ad1cf1ecf6210b47906c9f179c893a8b8',1,'GenericMemberIterator::Iterator']]],
+  ['iterator_8',['iterator',['../classbasic__json.html#ae206a491161d043f8efaa1330f1ccf97',1,'basic_json']]],
   ['iterator_5fcategory_9',['iterator_category',['../classdetail_1_1iter__impl.html#a8fa317aaddc3dc7c58264e52e295c43e',1,'detail::iter_impl']]]
 ];

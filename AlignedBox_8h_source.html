@@ -129,7 +129,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span> </div>
 <div class="foldopen" id="foldopen00068" data-start="{" data-end="}">
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#ade9f3bc760956c19d9c087b3a9cd6389">   68</a></span>  <span class="keyword">inline</span> <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#ade9f3bc760956c19d9c087b3a9cd6389">AlignedBox</a>(<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>) : m_min(<a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>), m_max(<a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>)</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#ade9f3bc760956c19d9c087b3a9cd6389">   68</a></span>  <span class="keyword">inline</span> <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#ade9f3bc760956c19d9c087b3a9cd6389">AlignedBox</a>(<a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>) : m_min(<a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>), m_max(<a class="code hl_class" href="classEigen_1_1Solve.html">_dim</a>)</div>
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>  { <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a16bc3e6779107a091f08e4cb7e36e793">setEmpty</a>(); }</div>
 </div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
@@ -144,7 +144,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span> </div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>  <a class="code hl_class" href="classEigen_1_1AlignedBox.html">~AlignedBox</a>() {}</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">   84</a></span>  <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> AmbientDimAtCompileTime==Dynamic ? m_min.size() : <a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a>(AmbientDimAtCompileTime); }</div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">   84</a></span>  <span class="keyword">inline</span> <a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> AmbientDimAtCompileTime==Dynamic ? m_min.size() : <a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a>(AmbientDimAtCompileTime); }</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span> </div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#a37b401dd265c942c9ef2db1e2b1e56e5">   87</a></span>  <span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a37b401dd265c942c9ef2db1e2b1e56e5">isNull</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a2d994551368f0d06876a31dccb26de59">isEmpty</a>(); }</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
@@ -194,8 +194,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span> </div>
 <div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>    <a class="code hl_class" href="classEigen_1_1Matrix.html">VectorType</a> res;</div>
 <div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span> </div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">mult</a> = 1;</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> d=0; d&lt;<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>(); ++d)</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    <a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">mult</a> = 1;</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    <span class="keywordflow">for</span>(<a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> d=0; d&lt;<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>(); ++d)</div>
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>    {</div>
 <div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>      <span class="keywordflow">if</span>( <a class="code hl_class" href="classEigen_1_1Solve.html">mult</a> &amp; <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a09619d632dd6979e9d09738493221d55">corner</a> ) res[d] = m_max[d];</div>
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>      <span class="keywordflow">else</span>                res[d] = m_min[d];</div>
@@ -209,7 +209,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00164" name="l00164"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#adff08c9965ec5348e38b25d9bb41e9de">  164</a></span>  <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1Matrix.html">VectorType</a> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#adff08c9965ec5348e38b25d9bb41e9de">sample</a>()<span class="keyword"> const</span></div>
 <div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span><span class="keyword">  </span>{</div>
 <div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <a class="code hl_class" href="classEigen_1_1Matrix.html">VectorType</a> r(<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>());</div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> d=0; d&lt;<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>(); ++d)</div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    <span class="keywordflow">for</span>(<a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> d=0; d&lt;<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a5301115f222e591b38cc1ebed36856e1">dim</a>(); ++d)</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    {</div>
 <div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>      <span class="keywordflow">if</span>(!ScalarTraits::IsInteger)</div>
 <div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>      {</div>
@@ -234,12 +234,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span> </div>
 <div class="foldopen" id="foldopen00189" data-start="{" data-end="}">
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#a013a78bb0e9ac3a27dc1e604435288fb">  189</a></span>  <span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a013a78bb0e9ac3a27dc1e604435288fb">contains</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1AlignedBox.html">AlignedBox</a>&amp; b)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keyword">  </span>{ <span class="keywordflow">return</span> (m_min.array()&lt;=(b.min)().array()).all() &amp;&amp; ((b.max)().array()&lt;=m_max.array()).all(); }</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keyword">  </span>{ <span class="keywordflow">return</span> (m_min.array()&lt;=(b.<a class="code hl_function" href="classEigen_1_1AlignedBox.html#ada130f5075f3ea0b480444b6ba5dc96c">min</a>)().array()).all() &amp;&amp; ((b.<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a7dd6cdd39a327b7a723d965999fcde5d">max</a>)().array()&lt;=m_max.array()).all(); }</div>
 </div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span> </div>
 <div class="foldopen" id="foldopen00194" data-start="{" data-end="}">
 <div class="line"><a id="l00194" name="l00194"></a><span class="lineno"><a class="line" href="classEigen_1_1AlignedBox.html#a0bdea9a9410af7ad6f63ce71a2f59443">  194</a></span>  <span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1AlignedBox.html#a0bdea9a9410af7ad6f63ce71a2f59443">intersects</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1AlignedBox.html">AlignedBox</a>&amp; b)<span class="keyword"> const</span></div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="keyword">  </span>{ <span class="keywordflow">return</span> (m_min.array()&lt;=(b.max)().array()).all() &amp;&amp; ((b.min)().array()&lt;=m_max.array()).all(); }</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span><span class="keyword">  </span>{ <span class="keywordflow">return</span> (m_min.array()&lt;=(b.<a class="code hl_function" href="classEigen_1_1AlignedBox.html#a7dd6cdd39a327b7a723d965999fcde5d">max</a>)().array()).all() &amp;&amp; ((b.<a class="code hl_function" href="classEigen_1_1AlignedBox.html#ada130f5075f3ea0b480444b6ba5dc96c">min</a>)().array()&lt;=m_max.array()).all(); }</div>
 </div>
 <div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span> </div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
@@ -348,7 +348,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>  <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::nested_eval&lt;Derived,2*AmbientDim&gt;::type</a> p(<a class="code hl_class" href="classEigen_1_1Solve.html">a_p</a>.derived());</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>  Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">dist2</a>(0);</div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>  Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">aux</a>;</div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k=0; k&lt;dim(); ++k)</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>  <span class="keywordflow">for</span> (<a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> k=0; k&lt;dim(); ++k)</div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>  {</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>    <span class="keywordflow">if</span>( m_min[k] &gt; p[k] )</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>    {</div>
@@ -371,7 +371,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="keyword"></span>{</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>  Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">dist2</a>(0);</div>
 <div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>  Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">aux</a>;</div>
-<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>  <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k=0; k&lt;dim(); ++k)</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>  <span class="keywordflow">for</span> (<a class="code hl_typedef" href="classEigen_1_1AlignedBox.html#a774ef355da13d6bee6a6e7244c15231a">Index</a> k=0; k&lt;dim(); ++k)</div>
 <div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>  {</div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>    <span class="keywordflow">if</span>( m_min[k] &gt; b.m_max[k] )</div>
 <div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    {</div>
@@ -455,11 +455,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1NumTraits_html"><div class="ttname"><a href="structEigen_1_1NumTraits.html">Eigen::NumTraits&lt; Scalar &gt;</a></div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1cast__return__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1cast__return__type.html">Eigen::internal::cast_return_type</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:500</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:26 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:12 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

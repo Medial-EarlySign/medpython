@@ -386,23 +386,23 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span> </div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    {</div>
 <div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>      <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;const float&gt;</a> s {arr};</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>      <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;const byte&gt;</a> <a class="code hl_struct" href="structbs.html">bs</a> = as_bytes(s);</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size() == s.size_bytes(), status_);</div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<a class="code hl_struct" href="structbs.html">bs</a>.data()) ==</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>      <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;const byte&gt;</a> bs = as_bytes(s);</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>      SPAN_ASSERT_TRUE(bs.size() == s.size_bytes(), status_);</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(bs.data()) ==</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>                       <span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(s.data()),</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>                       status_);</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    }</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span> </div>
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    {</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;float&gt;</a> s;</div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>      <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;const byte&gt;</a> <a class="code hl_struct" href="structbs.html">bs</a> = as_bytes(s);</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size() == s.size(), status_);</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size() == 0, status_);</div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size_bytes() == 0, status_);</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<a class="code hl_struct" href="structbs.html">bs</a>.data()) ==</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>      <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;const byte&gt;</a> bs = as_bytes(s);</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>      SPAN_ASSERT_TRUE(bs.size() == s.size(), status_);</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>      SPAN_ASSERT_TRUE(bs.size() == 0, status_);</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>      SPAN_ASSERT_TRUE(bs.size_bytes() == 0, status_);</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(bs.data()) ==</div>
 <div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>                       <span class="keyword">static_cast&lt;</span><span class="keyword">const </span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(s.data()),</div>
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>                       status_);</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.data() == <span class="keyword">nullptr</span>, status_);</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>      SPAN_ASSERT_TRUE(bs.data() == <span class="keyword">nullptr</span>, status_);</div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    }</div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>  }</div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>};</div>
@@ -423,21 +423,21 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span> </div>
 <div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>    {</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;float&gt;</a> s;</div>
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;byte&gt;</a> <a class="code hl_struct" href="structbs.html">bs</a> = as_writable_bytes(s);</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size() == s.size(), status_);</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size_bytes() == s.size_bytes(), status_);</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size() == 0, status_);</div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.size_bytes() == 0, status_);</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>      SPAN_ASSERT_TRUE(<a class="code hl_struct" href="structbs.html">bs</a>.data() == <span class="keyword">nullptr</span>, status_);</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<a class="code hl_struct" href="structbs.html">bs</a>.data()) ==</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;byte&gt;</a> bs = as_writable_bytes(s);</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>      SPAN_ASSERT_TRUE(bs.size() == s.size(), status_);</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>      SPAN_ASSERT_TRUE(bs.size_bytes() == s.size_bytes(), status_);</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>      SPAN_ASSERT_TRUE(bs.size() == 0, status_);</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>      SPAN_ASSERT_TRUE(bs.size_bytes() == 0, status_);</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>      SPAN_ASSERT_TRUE(bs.data() == <span class="keyword">nullptr</span>, status_);</div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(bs.data()) ==</div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>                       <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(s.data()), status_);</div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    }</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span> </div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    {</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;float&gt;</a> s { arr };</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;byte&gt;</a> <a class="code hl_struct" href="structbs.html">bs</a> { as_writable_bytes(s) };</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>      SPAN_ASSERT_TRUE(s.size_bytes() == <a class="code hl_struct" href="structbs.html">bs</a>.size_bytes(), status_);</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(<a class="code hl_struct" href="structbs.html">bs</a>.data()) ==</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">Span&lt;byte&gt;</a> bs { as_writable_bytes(s) };</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>      SPAN_ASSERT_TRUE(s.size_bytes() == bs.size_bytes(), status_);</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>      SPAN_ASSERT_TRUE(<span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(bs.data()) ==</div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>                       <span class="keyword">static_cast&lt;</span><span class="keywordtype">void</span>*<span class="keyword">&gt;</span>(s.data()), status_);</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    }</div>
 <div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>  }</div>
@@ -453,7 +453,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="ainclude_2xgboost_2base_8h_html"><div class="ttname"><a href="include_2xgboost_2base_8h.html">base.h</a></div><div class="ttdoc">Copyright 2015-2023 by XGBoost Contributors.</div></div>
 <div class="ttc" id="ainclude_2xgboost_2base_8h_html_aa33073da721ea3d200c808d1bf4b6099"><div class="ttname"><a href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a></div><div class="ttdeci">#define XGBOOST_DEVICE</div><div class="ttdoc">Tag function as usable by device.</div><div class="ttdef"><b>Definition</b> base.h:64</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
-<div class="ttc" id="astructbs_html"><div class="ttname"><a href="structbs.html">bs</a></div><div class="ttdef"><b>Definition</b> bs.cc:23</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1TestAsBytes_html"><div class="ttname"><a href="structxgboost_1_1common_1_1TestAsBytes.html">xgboost::common::TestAsBytes</a></div><div class="ttdef"><b>Definition</b> test_span.h:273</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1TestAsWritableBytes_html"><div class="ttname"><a href="structxgboost_1_1common_1_1TestAsWritableBytes.html">xgboost::common::TestAsWritableBytes</a></div><div class="ttdef"><b>Definition</b> test_span.h:308</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1TestAssignment_html"><div class="ttname"><a href="structxgboost_1_1common_1_1TestAssignment.html">xgboost::common::TestAssignment</a></div><div class="ttdef"><b>Definition</b> test_span.h:44</div></div>
@@ -469,7 +468,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

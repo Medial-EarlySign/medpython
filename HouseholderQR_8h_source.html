@@ -122,7 +122,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00069" name="l00069"></a><span class="lineno"><a class="line" href="classEigen_1_1HouseholderQR.html#a974adb10a0e066057aeb3b360df68380">   69</a></span>    <a class="code hl_function" href="classEigen_1_1HouseholderQR.html#a974adb10a0e066057aeb3b360df68380">HouseholderQR</a>() : m_qr(), m_hCoeffs(), m_temp(), m_isInitialized(false) {}</div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
 <div class="foldopen" id="foldopen00077" data-start="{" data-end="}">
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno"><a class="line" href="classEigen_1_1HouseholderQR.html#a1087457610c53e1574de521a51de0cd3">   77</a></span>    <a class="code hl_function" href="classEigen_1_1HouseholderQR.html#a1087457610c53e1574de521a51de0cd3">HouseholderQR</a>(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols)</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno"><a class="line" href="classEigen_1_1HouseholderQR.html#a1087457610c53e1574de521a51de0cd3">   77</a></span>    <a class="code hl_function" href="classEigen_1_1HouseholderQR.html#a1087457610c53e1574de521a51de0cd3">HouseholderQR</a>(Index rows, Index cols)</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>      : m_qr(rows, cols),</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>        m_hCoeffs((<a class="code hl_namespace" href="namespacestd.html">std</a>::min)(rows,cols)),</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>        m_temp(cols),</div>
@@ -176,8 +176,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00183" data-start="{" data-end="}">
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno"><a class="line" href="classEigen_1_1HouseholderQR.html#af61b6dbef34fc51c825182b16dc43ca1">  183</a></span>    <span class="keyword">typename</span> MatrixType::RealScalar <a class="code hl_function" href="classEigen_1_1HouseholderQR.html#af61b6dbef34fc51c825182b16dc43ca1">logAbsDeterminant</a>() <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span> </div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_qr.rows(); }</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_qr.cols(); }</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    <span class="keyword">inline</span> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_qr.rows(); }</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    <span class="keyword">inline</span> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_qr.cols(); }</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    </div>
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno"><a class="line" href="classEigen_1_1HouseholderQR.html#a0e140bdf5fb504220cafe78e2fab96f6">  192</a></span>    <span class="keyword">const</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">HCoeffsType</a>&amp; <a class="code hl_function" href="classEigen_1_1HouseholderQR.html#a0e140bdf5fb504220cafe78e2fab96f6">hCoeffs</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_hCoeffs; }</div>
 <div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    </div>
@@ -229,9 +229,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>{</div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> MatrixQR::Scalar Scalar;</div>
 <div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> MatrixQR::RealScalar RealScalar;</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.rows();</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols();</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>  <a class="code hl_struct" href="structIndex.html">Index</a> size = (std::min)(rows,cols);</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>  Index rows = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.rows();</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>  Index cols = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols();</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>  Index size = (std::min)(rows,cols);</div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span> </div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>  eigen_assert(hCoeffs.size() == size);</div>
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span> </div>
@@ -243,10 +243,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">tempData</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">tempVector</a>.data();</div>
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>  }</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span> </div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>  <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> k = 0; k &lt; size; ++k)</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>  <span class="keywordflow">for</span>(Index k = 0; k &lt; size; ++k)</div>
 <div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>  {</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    <a class="code hl_struct" href="structIndex.html">Index</a> remainingRows = rows - k;</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    <a class="code hl_struct" href="structIndex.html">Index</a> remainingCols = cols - k - 1;</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    Index remainingRows = rows - k;</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    Index remainingCols = cols - k - 1;</div>
 <div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span> </div>
 <div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>    RealScalar beta;</div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>    mat.col(k).tail(remainingRows).makeHouseholderInPlace(hCoeffs.coeffRef(k), beta);</div>
@@ -265,15 +265,15 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00271" name="l00271"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1householder__qr__inplace__blocked.html">  271</a></span><span class="keyword">struct</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1householder__qr__inplace__blocked.html">householder_qr_inplace_blocked</a></div>
 <div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>{</div>
 <div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>  <span class="comment">// This is specialized for MKL-supported Scalar types in HouseholderQR_MKL.h</span></div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<a class="code hl_class" href="classEigen_1_1Solve.html">MatrixQR</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">HCoeffs</a>&amp; hCoeffs, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">maxBlockSize</a>=32,</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>  <span class="keyword">static</span> <span class="keywordtype">void</span> run(<a class="code hl_class" href="classEigen_1_1Solve.html">MatrixQR</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">HCoeffs</a>&amp; hCoeffs, Index <a class="code hl_class" href="classEigen_1_1Solve.html">maxBlockSize</a>=32,</div>
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>      <span class="keyword">typename</span> MatrixQR::Scalar* <a class="code hl_class" href="classEigen_1_1Solve.html">tempData</a> = 0)</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>  {</div>
 <div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> MatrixQR::Scalar Scalar;</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Block&lt;MatrixQR,Dynamic,Dynamic&gt;</a> BlockType;</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span> </div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    <a class="code hl_struct" href="structIndex.html">Index</a> rows = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.rows();</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <a class="code hl_struct" href="structIndex.html">Index</a> cols = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols();</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <a class="code hl_struct" href="structIndex.html">Index</a> size = (std::min)(rows, cols);</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    Index rows = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.rows();</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    Index cols = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols();</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    Index size = (std::min)(rows, cols);</div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span> </div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Matrix&lt;Scalar,Dynamic,1,ColMajor,MatrixQR::MaxColsAtCompileTime,1&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">TempType</a>;</div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">TempType</a> <a class="code hl_class" href="classEigen_1_1Solve.html">tempVector</a>;</div>
@@ -283,14 +283,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">tempData</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">tempVector</a>.data();</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>    }</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span> </div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">blockSize</a> = (std::min)(<a class="code hl_class" href="classEigen_1_1Solve.html">maxBlockSize</a>,size);</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    Index <a class="code hl_class" href="classEigen_1_1Solve.html">blockSize</a> = (std::min)(<a class="code hl_class" href="classEigen_1_1Solve.html">maxBlockSize</a>,size);</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span> </div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <a class="code hl_struct" href="structIndex.html">Index</a> k = 0;</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    Index k = 0;</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    <span class="keywordflow">for</span> (k = 0; k &lt; size; k += <a class="code hl_class" href="classEigen_1_1Solve.html">blockSize</a>)</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    {</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_struct" href="structbs.html">bs</a> = (std::min)(size-k,<a class="code hl_class" href="classEigen_1_1Solve.html">blockSize</a>);  <span class="comment">// actual size of the block</span></div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">tcols</a> = cols - k - <a class="code hl_struct" href="structbs.html">bs</a>;              <span class="comment">// trailing columns</span></div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">brows</a> = rows-k;                     <span class="comment">// rows of the block</span></div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">bs</a> = (std::min)(size-k,<a class="code hl_class" href="classEigen_1_1Solve.html">blockSize</a>);  <span class="comment">// actual size of the block</span></div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">tcols</a> = cols - k - <a class="code hl_class" href="classEigen_1_1Solve.html">bs</a>;              <span class="comment">// trailing columns</span></div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">brows</a> = rows-k;                     <span class="comment">// rows of the block</span></div>
 <div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span> </div>
 <div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>      <span class="comment">// partition the matrix:</span></div>
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>      <span class="comment">//        A00 | A01 | A02</span></div>
@@ -300,14 +300,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>      <span class="comment">// and update [A21^T A22^T]^T using level 3 operations.</span></div>
 <div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>      <span class="comment">// Finally, the algorithm continue on A22</span></div>
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span> </div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>      BlockType <a class="code hl_class" href="classEigen_1_1Solve.html">A11_21</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.block(k,k,<a class="code hl_class" href="classEigen_1_1Solve.html">brows</a>,<a class="code hl_struct" href="structbs.html">bs</a>);</div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">Block&lt;HCoeffs,Dynamic,1&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">hCoeffsSegment</a> = hCoeffs.segment(k,<a class="code hl_struct" href="structbs.html">bs</a>);</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>      BlockType <a class="code hl_class" href="classEigen_1_1Solve.html">A11_21</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.block(k,k,<a class="code hl_class" href="classEigen_1_1Solve.html">brows</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">bs</a>);</div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">Block&lt;HCoeffs,Dynamic,1&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">hCoeffsSegment</a> = hCoeffs.segment(k,<a class="code hl_class" href="classEigen_1_1Solve.html">bs</a>);</div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span> </div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      householder_qr_inplace_unblocked(<a class="code hl_class" href="classEigen_1_1Solve.html">A11_21</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">hCoeffsSegment</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">tempData</a>);</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span> </div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>      <span class="keywordflow">if</span>(<a class="code hl_class" href="classEigen_1_1Solve.html">tcols</a>)</div>
 <div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>      {</div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>        BlockType <a class="code hl_class" href="classEigen_1_1Solve.html">A21_22</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.block(k,k+<a class="code hl_struct" href="structbs.html">bs</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">brows</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">tcols</a>);</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>        BlockType <a class="code hl_class" href="classEigen_1_1Solve.html">A21_22</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.block(k,k+<a class="code hl_class" href="classEigen_1_1Solve.html">bs</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">brows</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">tcols</a>);</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>        apply_block_householder_on_the_left(<a class="code hl_class" href="classEigen_1_1Solve.html">A21_22</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">A11_21</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">hCoeffsSegment</a>, <span class="keyword">false</span>); <span class="comment">// false == backward</span></div>
 <div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>      }</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>    }</div>
@@ -322,7 +322,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> RhsType, <span class="keyword">typename</span> DstType&gt;</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span><span class="keywordtype">void</span> <a class="code hl_class" href="classEigen_1_1HouseholderQR.html">HouseholderQR&lt;_MatrixType&gt;::_solve_impl</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="code hl_class" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="code hl_class" href="classEigen_1_1Solve.html">dst</a>)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span><span class="keyword"></span>{</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> rank = (std::min)(rows(), cols());</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>  <span class="keyword">const</span> Index rank = (std::min)(rows(), cols());</div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>  eigen_assert(rhs.rows() == rows());</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span> </div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>  <span class="keyword">typename</span> RhsType::PlainObject c(rhs);</div>
@@ -349,10 +349,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>{</div>
 <div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>  check_template_parameters();</div>
 <div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>  </div>
-<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows = matrix.rows();</div>
-<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols = matrix.cols();</div>
+<div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>  Index rows = matrix.rows();</div>
+<div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>  Index cols = matrix.cols();</div>
 <div class="foldopen" id="foldopen00364" data-start="{" data-end="}">
-<div class="line"><a id="l00364" name="l00364"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#a9a9377aab1cea26db5f25bab7e682f8f">  364</a></span>  <a class="code hl_struct" href="structIndex.html">Index</a> size = (std::min)(rows,cols);</div>
+<div class="line"><a id="l00364" name="l00364"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#a9a9377aab1cea26db5f25bab7e682f8f">  364</a></span>  Index size = (std::min)(rows,cols);</div>
 <div class="line"><a id="l00365" name="l00365"></a><span class="lineno">  365</span> </div>
 <div class="line"><a id="l00366" name="l00366"></a><span class="lineno">  366</span>  m_qr = matrix.derived();</div>
 <div class="line"><a id="l00367" name="l00367"></a><span class="lineno">  367</span>  m_hCoeffs.resize(size);</div>
@@ -402,12 +402,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1householder__qr__inplace__blocked_html"><div class="ttname"><a href="structEigen_1_1internal_1_1householder__qr__inplace__blocked.html">Eigen::internal::householder_qr_inplace_blocked</a></div><div class="ttdef"><b>Definition</b> HouseholderQR.h:272</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
-<div class="ttc" id="astructbs_html"><div class="ttname"><a href="structbs.html">bs</a></div><div class="ttdef"><b>Definition</b> bs.cc:23</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -6,6 +6,5 @@ var searchData=
   ['test_5fpredict_3',['test_predict',['../namespacetest__predict.html',1,'']]],
   ['test_5fr_5fpackage_4',['test_r_package',['../namespacetest__r__package.html',1,'']]],
   ['test_5futils_5',['test_utils',['../namespacetest__utils.html',1,'']]],
-  ['trainset0002dat_6',['TrainSet0002Dat',['../namespaceTrainSet0002Dat.html',1,'']]],
-  ['tree_5fshap_7',['tree_shap',['../namespacetree__shap.html',1,'']]]
+  ['tree_5fshap_6',['tree_shap',['../namespacetree__shap.html',1,'']]]
 ];

@@ -220,10 +220,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>  }</div>
 <div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span> </div>
 <div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>  ~GHistIndexMatrix();</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>  GHistIndexMatrix(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, DMatrix* x, bst_bin_t max_bins_per_feat,</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>  GHistIndexMatrix(Context <span class="keyword">const</span>* ctx, DMatrix* x, bst_bin_t max_bins_per_feat,</div>
 <div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>                   <span class="keywordtype">double</span> sparse_thresh, <span class="keywordtype">bool</span> sorted_sketch, common::Span&lt;float const&gt; hess = {});</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>  GHistIndexMatrix(MetaInfo <span class="keyword">const</span>&amp; info, common::HistogramCuts&amp;&amp; cuts, bst_bin_t max_bin_per_feat);</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>  GHistIndexMatrix(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, MetaInfo <span class="keyword">const</span>&amp; info, EllpackPage <span class="keyword">const</span>&amp; page,</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>  GHistIndexMatrix(Context <span class="keyword">const</span>* ctx, MetaInfo <span class="keyword">const</span>&amp; info, EllpackPage <span class="keyword">const</span>&amp; page,</div>
 <div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>                   BatchParam <span class="keyword">const</span>&amp; p);</div>
 <div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span> </div>
 <div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>  GHistIndexMatrix(SparsePage <span class="keyword">const</span>&amp; page, common::Span&lt;FeatureType const&gt; ft,</div>
@@ -232,21 +232,21 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>  GHistIndexMatrix();  <span class="comment">// also for ext mem, empty ctor so that we can read the cache back.</span></div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Batch&gt;</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>  <span class="keywordtype">void</span> PushAdapterBatch(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, <span class="keywordtype">size_t</span> rbegin, <span class="keywordtype">size_t</span> prev_sum, Batch <span class="keyword">const</span>&amp; batch,</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>  <span class="keywordtype">void</span> PushAdapterBatch(Context <span class="keyword">const</span>* ctx, <span class="keywordtype">size_t</span> rbegin, <span class="keywordtype">size_t</span> prev_sum, Batch <span class="keyword">const</span>&amp; batch,</div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>                        <span class="keywordtype">float</span> missing, common::Span&lt;FeatureType const&gt; ft, <span class="keywordtype">double</span> sparse_thresh,</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>                        <span class="keywordtype">size_t</span> n_samples_total) {</div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>    <span class="keyword">auto</span> n_bins_total = cut.TotalBins();</div>
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>    hit_count_tloc_.clear();</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    hit_count_tloc_.resize(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>() * n_bins_total, 0);</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>    hit_count_tloc_.resize(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>() * n_bins_total, 0);</div>
 <div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span> </div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keyword">auto</span> n_threads = ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>();</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keyword">auto</span> n_threads = ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>();</div>
 <div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    <span class="keyword">auto</span> valid_counts = GetRowCounts(batch, missing, n_threads);</div>
 <div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span> </div>
 <div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>    <span class="keyword">auto</span> it = common::MakeIndexTransformIter([&amp;](<span class="keywordtype">size_t</span> ridx) { <span class="keywordflow">return</span> valid_counts[ridx]; });</div>
 <div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>    common::PartialSum(n_threads, it, it + batch.Size(), prev_sum, row_ptr.begin() + rbegin);</div>
 <div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>    <span class="keyword">auto</span> is_valid = data::IsValidFunctor{missing};</div>
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span> </div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    PushBatchImpl(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), batch, rbegin, is_valid, ft);</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    PushBatchImpl(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), batch, rbegin, is_valid, ft);</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span> </div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    <span class="keywordflow">if</span> (rbegin + batch.Size() == n_samples_total) {</div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>      <span class="comment">// finished</span></div>
@@ -257,7 +257,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
 <div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>  <span class="comment">// Call ColumnMatrix::PushBatch</span></div>
 <div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Batch&gt;</div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  <span class="keywordtype">void</span> PushAdapterBatchColumns(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, Batch <span class="keyword">const</span>&amp; batch, <span class="keywordtype">float</span> missing,</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  <span class="keywordtype">void</span> PushAdapterBatchColumns(Context <span class="keyword">const</span>* ctx, Batch <span class="keyword">const</span>&amp; batch, <span class="keywordtype">float</span> missing,</div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>                               <span class="keywordtype">size_t</span> rbegin);</div>
 <div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span> </div>
 <div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>  <span class="keywordtype">void</span> ResizeIndex(<span class="keyword">const</span> <span class="keywordtype">size_t</span> n_index, <span class="keyword">const</span> <span class="keywordtype">bool</span> isDense);</div>
@@ -367,12 +367,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_a49401dd6cdcdd3525bc6e612c080d0c7"><div class="ttname"><a href="namespacexgboost.html#a49401dd6cdcdd3525bc6e612c080d0c7">xgboost::bst_omp_uint</a></div><div class="ttdeci">dmlc::omp_uint bst_omp_uint</div><div class="ttdoc">define unsigned int for openmp loop</div><div class="ttdef"><b>Definition</b> base.h:324</div></div>
 <div class="ttc" id="anamespacexgboost_html_ab13a672920dbd3cea80e4302227fd261"><div class="ttname"><a href="namespacexgboost.html#ab13a672920dbd3cea80e4302227fd261">xgboost::bst_row_t</a></div><div class="ttdeci">std::size_t bst_row_t</div><div class="ttdoc">Type for data row index.</div><div class="ttdef"><b>Definition</b> base.h:110</div></div>
 <div class="ttc" id="anamespacexgboost_html_adefe925ef9d43e9f8ceb3bb051b7cf9f"><div class="ttname"><a href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">xgboost::bst_bin_t</a></div><div class="ttdeci">int32_t bst_bin_t</div><div class="ttdoc">Type for histogram bin index.</div><div class="ttdef"><b>Definition</b> base.h:103</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

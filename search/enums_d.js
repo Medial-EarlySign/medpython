@@ -6,5 +6,5 @@ var searchData=
   ['timewindowmode_3',['TimeWindowMode',['../MedEnums_8h.html#a69fd9194ed57f77bdd0bcc8fe9769441',1,'MedEnums.h']]],
   ['token_5ftype_4',['token_type',['../classdetail_1_1lexer__base.html#add65fa7a85aa15052963809fbcc04540',1,'detail::lexer_base']]],
   ['transformtraits_5',['TransformTraits',['../group__enums.html#gaee59a86102f150923b0cac6d4ff05107',1,'Eigen']]],
-  ['type_6',['type',['../classxgboost_1_1FeatureMap.html#a3b531c2db313055b34a3ddd40d8a35f3',1,'xgboost::FeatureMap::Type'],['../rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7',1,'Type:&#160;rapidjson.h']]]
+  ['type_6',['Type',['../classxgboost_1_1FeatureMap.html#a3b531c2db313055b34a3ddd40d8a35f3',1,'xgboost::FeatureMap']]]
 ];

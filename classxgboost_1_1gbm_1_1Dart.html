@@ -101,8 +101,8 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a859bef1e18a8ea53088866c46610c578" id="r_a859bef1e18a8ea53088866c46610c578"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1Dart.html#a859bef1e18a8ea53088866c46610c578">Configure</a> (const Args &amp;cfg) override</td></tr>
 <tr class="memdesc:a859bef1e18a8ea53088866c46610c578"><td class="mdescLeft">&#160;</td><td class="mdescRight">Set the configuration of gradient boosting. User must call configure once before InitModel and Training.  <br /></td></tr>
 <tr class="separator:a859bef1e18a8ea53088866c46610c578"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abba0c3685ef5f17bf00362cba516c1c1" id="r_abba0c3685ef5f17bf00362cba516c1c1"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1Dart.html#abba0c3685ef5f17bf00362cba516c1c1">Slice</a> (int32_t layer_begin, int32_t layer_end, int32_t step, <a class="el" href="classxgboost_1_1GradientBooster.html">GradientBooster</a> *out, bool *out_of_bound) const final</td></tr>
-<tr class="memdesc:abba0c3685ef5f17bf00362cba516c1c1"><td class="mdescLeft">&#160;</td><td class="mdescRight">Slice a model using boosting index.  <br /></td></tr>
+<tr class="memitem:abba0c3685ef5f17bf00362cba516c1c1" id="r_abba0c3685ef5f17bf00362cba516c1c1"><td class="memItemLeft" align="right" valign="top"><a id="abba0c3685ef5f17bf00362cba516c1c1" name="abba0c3685ef5f17bf00362cba516c1c1"></a>
+void&#160;</td><td class="memItemRight" valign="bottom"><b>Slice</b> (int32_t layer_begin, int32_t layer_end, int32_t step, <a class="el" href="classxgboost_1_1GradientBooster.html">GradientBooster</a> *out, bool *out_of_bound) const final</td></tr>
 <tr class="separator:abba0c3685ef5f17bf00362cba516c1c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeae9d09364fa5e64157d02575e28c3b8" id="r_aeae9d09364fa5e64157d02575e28c3b8"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1Dart.html#aeae9d09364fa5e64157d02575e28c3b8">SaveModel</a> (<a class="el" href="classxgboost_1_1Json.html">Json</a> *p_out) const override</td></tr>
 <tr class="memdesc:aeae9d09364fa5e64157d02575e28c3b8"><td class="mdescLeft">&#160;</td><td class="mdescRight">saves the model config to a JSON object  <br /></td></tr>
@@ -195,7 +195,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>PredictBatchImpl</b> 
 <tr class="memitem:a98024f482098da0a3c50bdd177b6dacb inherit pub_methods_classxgboost_1_1gbm_1_1GBTree" id="r_a98024f482098da0a3c50bdd177b6dacb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1GBTree.html#a98024f482098da0a3c50bdd177b6dacb">InplacePredict</a> (std::shared_ptr&lt; <a class="el" href="classxgboost_1_1DMatrix.html">DMatrix</a> &gt; p_m, float missing, <a class="el" href="structxgboost_1_1PredictionCacheEntry.html">PredictionCacheEntry</a> *out_preds, <a class="el" href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">bst_layer_t</a> layer_begin, <a class="el" href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">bst_layer_t</a> layer_end) const override</td></tr>
 <tr class="memdesc:a98024f482098da0a3c50bdd177b6dacb inherit pub_methods_classxgboost_1_1gbm_1_1GBTree"><td class="mdescLeft">&#160;</td><td class="mdescRight">Inplace prediction.  <br /></td></tr>
 <tr class="separator:a98024f482098da0a3c50bdd177b6dacb inherit pub_methods_classxgboost_1_1gbm_1_1GBTree"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af8541c8d0754c82d6a6fa1a5b7beb42f inherit pub_methods_classxgboost_1_1gbm_1_1GBTree" id="r_af8541c8d0754c82d6a6fa1a5b7beb42f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1GBTree.html#af8541c8d0754c82d6a6fa1a5b7beb42f">FeatureScore</a> (std::string const &amp;importance_type, <a class="el" href="classxgboost_1_1common_1_1Span.html">common::Span</a>&lt; int32_t const &gt; trees, std::vector&lt; <a class="el" href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">bst_feature_t</a> &gt; *<a class="el" href="structfeatures.html">features</a>, std::vector&lt; float &gt; *scores) const override</td></tr>
+<tr class="memitem:af8541c8d0754c82d6a6fa1a5b7beb42f inherit pub_methods_classxgboost_1_1gbm_1_1GBTree" id="r_af8541c8d0754c82d6a6fa1a5b7beb42f"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1gbm_1_1GBTree.html#af8541c8d0754c82d6a6fa1a5b7beb42f">FeatureScore</a> (std::string const &amp;importance_type, <a class="el" href="classxgboost_1_1common_1_1Span.html">common::Span</a>&lt; int32_t const &gt; trees, std::vector&lt; <a class="el" href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">bst_feature_t</a> &gt; *features, std::vector&lt; float &gt; *scores) const override</td></tr>
 <tr class="separator:af8541c8d0754c82d6a6fa1a5b7beb42f inherit pub_methods_classxgboost_1_1gbm_1_1GBTree"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca30951ff3e6c5855bea6baafee1251e inherit pub_methods_classxgboost_1_1gbm_1_1GBTree" id="r_aca30951ff3e6c5855bea6baafee1251e"><td class="memItemLeft" align="right" valign="top">
 void&#160;</td><td class="memItemRight" valign="bottom"><b>PredictInstance</b> (const <a class="el" href="classxgboost_1_1SparsePage.html#abab98be7e31f501f15638aea03020010">SparsePage::Inst</a> &amp;inst, std::vector&lt; <a class="el" href="namespacexgboost.html#ae2457f4deeb4e193b927c42ccde0d392">bst_float</a> &gt; *out_preds, uint32_t layer_begin, uint32_t layer_end) override</td></tr>
@@ -900,79 +900,13 @@ Additional Inherited Members</h2></td></tr>
 
 </div>
 </div>
-<a id="abba0c3685ef5f17bf00362cba516c1c1" name="abba0c3685ef5f17bf00362cba516c1c1"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abba0c3685ef5f17bf00362cba516c1c1">&#9670;&#160;</a></span>Slice()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname">void xgboost::gbm::Dart::Slice </td>
-          <td>(</td>
-          <td class="paramtype">int32_t&#160;</td>
-          <td class="paramname">, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int32_t&#160;</td>
-          <td class="paramname">, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">int32_t&#160;</td>
-          <td class="paramname">, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype"><a class="el" href="classxgboost_1_1GradientBooster.html">GradientBooster</a> *&#160;</td>
-          <td class="paramname">, </td>
-        </tr>
-        <tr>
-          <td class="paramkey"></td>
-          <td></td>
-          <td class="paramtype">bool *&#160;</td>
-          <td class="paramname">&#160;</td>
-        </tr>
-        <tr>
-          <td></td>
-          <td>)</td>
-          <td></td><td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">final</span><span class="mlabel">virtual</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Slice a model using boosting index. </p>
-<p>The slice m:n indicates taking all trees that were fit during the boosting rounds m, (m+1), (m+2), ..., (n-1). </p><dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">begin</td><td>Beginning of boosted tree layer used for prediction. </td></tr>
-    <tr><td class="paramname">end</td><td>End of booster layer. 0 means do not limit trees. </td></tr>
-    <tr><td class="paramname">out</td><td>Output gradient booster </td></tr>
-  </table>
-  </dd>
-</dl>
-
-<p>Reimplemented from <a class="el" href="classxgboost_1_1GradientBooster.html#af66b38bbffbf023ac6062557fcbb8844">xgboost::GradientBooster</a>.</p>
-
-</div>
-</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
 <li>External/xgboost/src/gbm/<a class="el" href="gbtree_8cc.html">gbtree.cc</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:49 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

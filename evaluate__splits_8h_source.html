@@ -361,7 +361,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>    <span class="comment">// Gather all the cat_bits.</span></div>
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    <span class="keyword">auto</span> gathered = <a class="code hl_function" href="namespacexgboost_1_1collective.html#aef2c0f96cbd697cfea5e434cf4b65a27">collective::AllgatherV</a>(cat_bits, cat_bits_sizes);</div>
 <div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span> </div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    common::ParallelFor(num_entries * world, ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), [&amp;] (<span class="keyword">auto</span> i) {</div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    common::ParallelFor(num_entries * world, ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), [&amp;] (<span class="keyword">auto</span> i) {</div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>      <span class="comment">// Copy the cat_bits back into all expand entries.</span></div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      all_entries[i].split.cat_bits.resize(gathered.sizes[i]);</div>
 <div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>      std::copy_n(gathered.result.cbegin() + gathered.offsets[i], gathered.sizes[i],</div>
@@ -375,19 +375,19 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>  <span class="keywordtype">void</span> EvaluateSplits(<span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1tree_1_1BoundedHistCollection.html">BoundedHistCollection</a> &amp;hist, <a class="code hl_class" href="classxgboost_1_1common_1_1HistogramCuts.html">common::HistogramCuts</a> <span class="keyword">const</span> &amp;cut,</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>                      <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">common::Span&lt;FeatureType const&gt;</a> feature_types, <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1RegTree.html">RegTree</a> &amp;tree,</div>
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>                      std::vector&lt;CPUExpandEntry&gt; *p_entries) {</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    <span class="keyword">auto</span> n_threads = ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>();</div>
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>    <span class="keyword">auto</span> n_threads = ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>();</div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <span class="keyword">auto</span>&amp; entries = *p_entries;</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    <span class="comment">// All nodes are on the same level, so we can store the shared ptr.</span></div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    std::vector&lt;std::shared_ptr&lt;HostDeviceVector&lt;bst_feature_t&gt;&gt;&gt; <a class="code hl_struct" href="structfeatures.html">features</a>(</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    std::vector&lt;std::shared_ptr&lt;HostDeviceVector&lt;bst_feature_t&gt;&gt;&gt; features(</div>
 <div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>        entries.size());</div>
 <div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> nidx_in_set = 0; nidx_in_set &lt; entries.size(); ++nidx_in_set) {</div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>      <span class="keyword">auto</span> nidx = entries[nidx_in_set].nid;</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>      <a class="code hl_struct" href="structfeatures.html">features</a>[nidx_in_set] =</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>      features[nidx_in_set] =</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>          column_sampler_-&gt;GetFeatureSet(tree.<a class="code hl_function" href="classxgboost_1_1RegTree.html#af5f8b7a283bafec9835c0c6580967761">GetDepth</a>(nidx));</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    }</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    CHECK(!<a class="code hl_struct" href="structfeatures.html">features</a>.empty());</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    CHECK(!features.empty());</div>
 <div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    <span class="keyword">const</span> <span class="keywordtype">size_t</span> grain_size =</div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>        std::max&lt;size_t&gt;(1, <a class="code hl_struct" href="structfeatures.html">features</a>.front()-&gt;Size() / n_threads);</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>        std::max&lt;size_t&gt;(1, features.front()-&gt;Size() / n_threads);</div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    <a class="code hl_class" href="classxgboost_1_1common_1_1BlockedSpace2d.html">common::BlockedSpace2d</a> space(entries.size(), [&amp;](<span class="keywordtype">size_t</span> nidx_in_set) {</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>      return features[nidx_in_set]-&gt;Size();</div>
 <div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    }, grain_size);</div>
@@ -407,7 +407,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00353" name="l00353"></a><span class="lineno">  353</span>      <span class="keyword">auto</span> best = &amp;entry-&gt;split;</div>
 <div class="line"><a id="l00354" name="l00354"></a><span class="lineno">  354</span>      <span class="keyword">auto</span> nidx = entry-&gt;nid;</div>
 <div class="line"><a id="l00355" name="l00355"></a><span class="lineno">  355</span>      <span class="keyword">auto</span> histogram = hist[nidx];</div>
-<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>      <span class="keyword">auto</span> features_set = <a class="code hl_struct" href="structfeatures.html">features</a>[nidx_in_set]-&gt;ConstHostSpan();</div>
+<div class="line"><a id="l00356" name="l00356"></a><span class="lineno">  356</span>      <span class="keyword">auto</span> features_set = features[nidx_in_set]-&gt;ConstHostSpan();</div>
 <div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>      <span class="keywordflow">for</span> (<span class="keyword">auto</span> fidx_in_set = r.begin(); fidx_in_set &lt; r.end(); fidx_in_set++) {</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>        <span class="keyword">auto</span> fidx = features_set[fidx_in_set];</div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>        <span class="keywordtype">bool</span> is_cat = common::IsCat(feature_types, fidx);</div>
@@ -590,8 +590,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span> </div>
 <div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>    <span class="keyword">auto</span> n_targets = hist.size();</div>
 <div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>    <span class="keyword">auto</span> weight = linalg::Empty&lt;float&gt;(ctx_, 2, n_targets);</div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>    <span class="keyword">auto</span> left_weight = weight.<a class="code hl_function" href="classxgboost_1_1linalg_1_1TensorView.html#a9c0b5320c90c36889713ac4701fb114a">Slice</a>(0, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>    <span class="keyword">auto</span> right_weight = weight.<a class="code hl_function" href="classxgboost_1_1linalg_1_1TensorView.html#a9c0b5320c90c36889713ac4701fb114a">Slice</a>(1, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>    <span class="keyword">auto</span> left_weight = weight.Slice(0, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>    <span class="keyword">auto</span> right_weight = weight.Slice(1, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
 <div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span> </div>
 <div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>    <span class="keywordflow">for</span> (<a class="code hl_typedef" href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">bst_bin_t</a> i = ibegin; i != iend; i += d_step) {</div>
 <div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>      <span class="keywordflow">for</span> (<a class="code hl_typedef" href="namespacexgboost.html#a84cb16830871681140a21cd37cba8f91">bst_target_t</a> t = 0; t &lt; n_targets; ++t) {</div>
@@ -656,7 +656,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>    <span class="keyword">auto</span> <span class="keyword">const</span> total_entries = num_entries * world;</div>
 <div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>    <span class="keyword">auto</span> <span class="keyword">const</span> gradients_per_entry = num_gradients / num_entries;</div>
 <div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>    <span class="keyword">auto</span> <span class="keyword">const</span> gradients_per_side = gradients_per_entry / 2;</div>
-<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>    common::ParallelFor(total_entries, ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), [&amp;] (<span class="keyword">auto</span> i) {</div>
+<div class="line"><a id="l00608" name="l00608"></a><span class="lineno">  608</span>    common::ParallelFor(total_entries, ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), [&amp;] (<span class="keyword">auto</span> i) {</div>
 <div class="line"><a id="l00609" name="l00609"></a><span class="lineno">  609</span>      <span class="comment">// Copy the cat_bits back into all expand entries.</span></div>
 <div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>      all_entries[i].split.cat_bits.resize(gathered_cat_bits.sizes[i]);</div>
 <div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span>      std::copy_n(gathered_cat_bits.result.cbegin() + gathered_cat_bits.offsets[i],</div>
@@ -678,16 +678,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00627" name="l00627"></a><span class="lineno">  627</span>  <span class="keywordtype">void</span> EvaluateSplits(<a class="code hl_class" href="classxgboost_1_1RegTree.html">RegTree</a> <span class="keyword">const</span> &amp;tree, <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">common::Span&lt;const BoundedHistCollection *&gt;</a> hist,</div>
 <div class="line"><a id="l00628" name="l00628"></a><span class="lineno">  628</span>                      <a class="code hl_class" href="classxgboost_1_1common_1_1HistogramCuts.html">common::HistogramCuts</a> <span class="keyword">const</span> &amp;cut, std::vector&lt;MultiExpandEntry&gt; *p_entries) {</div>
 <div class="line"><a id="l00629" name="l00629"></a><span class="lineno">  629</span>    <span class="keyword">auto</span> &amp;entries = *p_entries;</div>
-<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>    std::vector&lt;std::shared_ptr&lt;HostDeviceVector&lt;bst_feature_t&gt;&gt;&gt; <a class="code hl_struct" href="structfeatures.html">features</a>(entries.size());</div>
+<div class="line"><a id="l00630" name="l00630"></a><span class="lineno">  630</span>    std::vector&lt;std::shared_ptr&lt;HostDeviceVector&lt;bst_feature_t&gt;&gt;&gt; features(entries.size());</div>
 <div class="line"><a id="l00631" name="l00631"></a><span class="lineno">  631</span> </div>
 <div class="line"><a id="l00632" name="l00632"></a><span class="lineno">  632</span>    <span class="keywordflow">for</span> (std::size_t nidx_in_set = 0; nidx_in_set &lt; entries.size(); ++nidx_in_set) {</div>
 <div class="line"><a id="l00633" name="l00633"></a><span class="lineno">  633</span>      <span class="keyword">auto</span> nidx = entries[nidx_in_set].nid;</div>
-<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>      <a class="code hl_struct" href="structfeatures.html">features</a>[nidx_in_set] = column_sampler_-&gt;GetFeatureSet(tree.<a class="code hl_function" href="classxgboost_1_1RegTree.html#af5f8b7a283bafec9835c0c6580967761">GetDepth</a>(nidx));</div>
+<div class="line"><a id="l00634" name="l00634"></a><span class="lineno">  634</span>      features[nidx_in_set] = column_sampler_-&gt;GetFeatureSet(tree.<a class="code hl_function" href="classxgboost_1_1RegTree.html#af5f8b7a283bafec9835c0c6580967761">GetDepth</a>(nidx));</div>
 <div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>    }</div>
-<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>    CHECK(!<a class="code hl_struct" href="structfeatures.html">features</a>.empty());</div>
+<div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span>    CHECK(!features.empty());</div>
 <div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span> </div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>    std::int32_t n_threads = ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>();</div>
-<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>    std::size_t <span class="keyword">const</span> grain_size = std::max&lt;std::size_t&gt;(1, <a class="code hl_struct" href="structfeatures.html">features</a>.front()-&gt;Size() / n_threads);</div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span>    std::int32_t n_threads = ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>();</div>
+<div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>    std::size_t <span class="keyword">const</span> grain_size = std::max&lt;std::size_t&gt;(1, features.front()-&gt;Size() / n_threads);</div>
 <div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>    <a class="code hl_class" href="classxgboost_1_1common_1_1BlockedSpace2d.html">common::BlockedSpace2d</a> space(</div>
 <div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>        entries.size(), [&amp;](std::size_t nidx_in_set) { return features[nidx_in_set]-&gt;Size(); },</div>
 <div class="line"><a id="l00642" name="l00642"></a><span class="lineno">  642</span>        grain_size);</div>
@@ -707,7 +707,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00656" name="l00656"></a><span class="lineno">  656</span>      <span class="keywordflow">for</span> (<span class="keyword">auto</span> t_hist : hist) {</div>
 <div class="line"><a id="l00657" name="l00657"></a><span class="lineno">  657</span>        node_hist.emplace_back((*t_hist)[entry-&gt;nid]);</div>
 <div class="line"><a id="l00658" name="l00658"></a><span class="lineno">  658</span>      }</div>
-<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span>      <span class="keyword">auto</span> features_set = <a class="code hl_struct" href="structfeatures.html">features</a>[nidx_in_set]-&gt;ConstHostSpan();</div>
+<div class="line"><a id="l00659" name="l00659"></a><span class="lineno">  659</span>      <span class="keyword">auto</span> features_set = features[nidx_in_set]-&gt;ConstHostSpan();</div>
 <div class="line"><a id="l00660" name="l00660"></a><span class="lineno">  660</span> </div>
 <div class="line"><a id="l00661" name="l00661"></a><span class="lineno">  661</span>      <span class="keywordflow">for</span> (<span class="keyword">auto</span> fidx_in_set = r.begin(); fidx_in_set &lt; r.end(); fidx_in_set++) {</div>
 <div class="line"><a id="l00662" name="l00662"></a><span class="lineno">  662</span>        <span class="keyword">auto</span> fidx = features_set[fidx_in_set];</div>
@@ -766,12 +766,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00715" name="l00715"></a><span class="lineno">  715</span>    <span class="keyword">auto</span> base_weight = weight.Slice(0, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
 <div class="line"><a id="l00716" name="l00716"></a><span class="lineno">  716</span>    CalcWeight(*param_, parent_sum, base_weight);</div>
 <div class="line"><a id="l00717" name="l00717"></a><span class="lineno">  717</span> </div>
-<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>    <span class="keyword">auto</span> left_weight = weight.<a class="code hl_function" href="classxgboost_1_1linalg_1_1TensorView.html#a9c0b5320c90c36889713ac4701fb114a">Slice</a>(1, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
+<div class="line"><a id="l00718" name="l00718"></a><span class="lineno">  718</span>    <span class="keyword">auto</span> left_weight = weight.Slice(1, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
 <div class="line"><a id="l00719" name="l00719"></a><span class="lineno">  719</span>    <span class="keyword">auto</span> left_sum =</div>
 <div class="line"><a id="l00720" name="l00720"></a><span class="lineno">  720</span>        <a class="code hl_function" href="namespacexgboost_1_1linalg.html#a321009592af5ae6c52a0e3f7ecd16819">linalg::MakeVec</a>(candidate.split.left_sum.data(), candidate.split.left_sum.size());</div>
 <div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span>    CalcWeight(*param_, left_sum, param_-&gt;learning_rate, left_weight);</div>
 <div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span> </div>
-<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>    <span class="keyword">auto</span> right_weight = weight.<a class="code hl_function" href="classxgboost_1_1linalg_1_1TensorView.html#a9c0b5320c90c36889713ac4701fb114a">Slice</a>(2, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
+<div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>    <span class="keyword">auto</span> right_weight = weight.Slice(2, <a class="code hl_function" href="namespacexgboost_1_1linalg.html#ad2795f04421e612ef62f2c8bb1cea811">linalg::All</a>());</div>
 <div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span>    <span class="keyword">auto</span> right_sum =</div>
 <div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span>        <a class="code hl_function" href="namespacexgboost_1_1linalg.html#a321009592af5ae6c52a0e3f7ecd16819">linalg::MakeVec</a>(candidate.split.right_sum.data(), candidate.split.right_sum.size());</div>
 <div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span>    CalcWeight(*param_, right_sum, param_-&gt;learning_rate, right_weight);</div>
@@ -826,8 +826,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00779" name="l00779"></a><span class="lineno">  779</span>  <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;part : partitioner) {</div>
 <div class="line"><a id="l00780" name="l00780"></a><span class="lineno">  780</span>    CHECK_EQ(part.Size(), n_nodes);</div>
 <div class="line"><a id="l00781" name="l00781"></a><span class="lineno">  781</span>    <a class="code hl_class" href="classxgboost_1_1common_1_1BlockedSpace2d.html">common::BlockedSpace2d</a> space(</div>
-<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span>        part.Size(), [&amp;](<span class="keywordtype">size_t</span> <a class="code hl_struct" href="structnode.html">node</a>) { return part[node].Size(); }, 1024);</div>
-<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span>    common::ParallelFor2d(space, ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), [&amp;](<a class="code hl_typedef" href="namespacexgboost.html#a1e0027a7b65dda23e5149b540d9b4c4e">bst_node_t</a> nidx, <a class="code hl_class" href="classxgboost_1_1common_1_1Range1d.html">common::Range1d</a> r) {</div>
+<div class="line"><a id="l00782" name="l00782"></a><span class="lineno">  782</span>        part.Size(), [&amp;](<span class="keywordtype">size_t</span> node) { return part[node].Size(); }, 1024);</div>
+<div class="line"><a id="l00783" name="l00783"></a><span class="lineno">  783</span>    common::ParallelFor2d(space, ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), [&amp;](<a class="code hl_typedef" href="namespacexgboost.html#a1e0027a7b65dda23e5149b540d9b4c4e">bst_node_t</a> nidx, <a class="code hl_class" href="classxgboost_1_1common_1_1Range1d.html">common::Range1d</a> r) {</div>
 <div class="line"><a id="l00784" name="l00784"></a><span class="lineno">  784</span>      if (!tree[nidx].IsDeleted() &amp;&amp; tree[nidx].IsLeaf()) {</div>
 <div class="line"><a id="l00785" name="l00785"></a><span class="lineno">  785</span>        auto const &amp;rowset = part[nidx];</div>
 <div class="line"><a id="l00786" name="l00786"></a><span class="lineno">  786</span>        auto leaf_value = tree[nidx].LeafValue();</div>
@@ -841,7 +841,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00794" name="l00794"></a><span class="lineno">  794</span> </div>
 <div class="line"><a id="l00795" name="l00795"></a><span class="lineno">  795</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Partitioner&gt;</div>
-<div class="line"><a id="l00796" name="l00796"></a><span class="lineno">  796</span><span class="keywordtype">void</span> UpdatePredictionCacheImpl(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span> *ctx, RegTree <span class="keyword">const</span> *p_last_tree,</div>
+<div class="line"><a id="l00796" name="l00796"></a><span class="lineno">  796</span><span class="keywordtype">void</span> UpdatePredictionCacheImpl(Context <span class="keyword">const</span> *ctx, RegTree <span class="keyword">const</span> *p_last_tree,</div>
 <div class="line"><a id="l00797" name="l00797"></a><span class="lineno">  797</span>                               std::vector&lt;Partitioner&gt; <span class="keyword">const</span> &amp;partitioner,</div>
 <div class="line"><a id="l00798" name="l00798"></a><span class="lineno">  798</span>                               linalg::MatrixView&lt;float&gt; out_preds) {</div>
 <div class="line"><a id="l00799" name="l00799"></a><span class="lineno">  799</span>  CHECK_GT(out_preds.Size(), 0U);</div>
@@ -862,8 +862,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00814" name="l00814"></a><span class="lineno">  814</span>  <span class="keywordflow">for</span> (<span class="keyword">auto</span> &amp;part : partitioner) {</div>
 <div class="line"><a id="l00815" name="l00815"></a><span class="lineno">  815</span>    CHECK_EQ(part.Size(), n_nodes);</div>
 <div class="line"><a id="l00816" name="l00816"></a><span class="lineno">  816</span>    common::BlockedSpace2d space(</div>
-<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span>        part.Size(), [&amp;](<span class="keywordtype">size_t</span> <a class="code hl_struct" href="structnode.html">node</a>) { return part[node].Size(); }, 1024);</div>
-<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span>    common::ParallelFor2d(space, ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), [&amp;](bst_node_t nidx, common::Range1d r) {</div>
+<div class="line"><a id="l00817" name="l00817"></a><span class="lineno">  817</span>        part.Size(), [&amp;](<span class="keywordtype">size_t</span> node) { return part[node].Size(); }, 1024);</div>
+<div class="line"><a id="l00818" name="l00818"></a><span class="lineno">  818</span>    common::ParallelFor2d(space, ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), [&amp;](bst_node_t nidx, common::Range1d r) {</div>
 <div class="line"><a id="l00819" name="l00819"></a><span class="lineno">  819</span>      if (tree.IsLeaf(nidx)) {</div>
 <div class="line"><a id="l00820" name="l00820"></a><span class="lineno">  820</span>        auto const &amp;rowset = part[nidx];</div>
 <div class="line"><a id="l00821" name="l00821"></a><span class="lineno">  821</span>        auto leaf_value = mttree-&gt;LeafValue(nidx);</div>
@@ -924,12 +924,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_a84cb16830871681140a21cd37cba8f91"><div class="ttname"><a href="namespacexgboost.html#a84cb16830871681140a21cd37cba8f91">xgboost::bst_target_t</a></div><div class="ttdeci">std::uint32_t bst_target_t</div><div class="ttdoc">Type for indexing into output targets.</div><div class="ttdef"><b>Definition</b> base.h:118</div></div>
 <div class="ttc" id="anamespacexgboost_html_adefe925ef9d43e9f8ceb3bb051b7cf9f"><div class="ttname"><a href="namespacexgboost.html#adefe925ef9d43e9f8ceb3bb051b7cf9f">xgboost::bst_bin_t</a></div><div class="ttdeci">int32_t bst_bin_t</div><div class="ttdoc">Type for histogram bin index.</div><div class="ttdef"><b>Definition</b> base.h:103</div></div>
 <div class="ttc" id="anamespacexgboost_html_ae2457f4deeb4e193b927c42ccde0d392"><div class="ttname"><a href="namespacexgboost.html#ae2457f4deeb4e193b927c42ccde0d392">xgboost::bst_float</a></div><div class="ttdeci">float bst_float</div><div class="ttdoc">float type, used for storing statistics</div><div class="ttdef"><b>Definition</b> base.h:97</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
-<div class="ttc" id="astructnode_html"><div class="ttname"><a href="structnode.html">node</a></div><div class="ttdef"><b>Definition</b> log_multi.cc:54</div></div>
 <div class="ttc" id="astructxgboost_1_1BitFieldContainer_html"><div class="ttname"><a href="structxgboost_1_1BitFieldContainer.html">xgboost::BitFieldContainer&lt; uint32_t, LBitsPolicy&lt; uint32_t &gt; &gt;</a></div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 <div class="ttc" id="astructxgboost_1_1tree_1_1CPUExpandEntry_html"><div class="ttname"><a href="structxgboost_1_1tree_1_1CPUExpandEntry.html">xgboost::tree::CPUExpandEntry</a></div><div class="ttdef"><b>Definition</b> expand_entry.h:34</div></div>
 <div class="ttc" id="astructxgboost_1_1tree_1_1MultiExpandEntry_html"><div class="ttname"><a href="structxgboost_1_1tree_1_1MultiExpandEntry.html">xgboost::tree::MultiExpandEntry</a></div><div class="ttdef"><b>Definition</b> expand_entry.h:85</div></div>
 <div class="ttc" id="astructxgboost_1_1tree_1_1SplitEntryContainer_html"><div class="ttname"><a href="structxgboost_1_1tree_1_1SplitEntryContainer.html">xgboost::tree::SplitEntryContainer&lt; GradStats &gt;</a></div></div>
@@ -942,7 +939,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

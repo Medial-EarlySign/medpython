@@ -111,13 +111,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1gemm__pack__lhs.html">   28</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1gemm__pack__lhs.html">gemm_pack_lhs</a>;</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span> </div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span><span class="keyword">template</span>&lt;</div>
-<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  <span class="keyword">typename</span> <a class="code hl_struct" href="structIndex.html">Index</a>,</div>
+<div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  <span class="keyword">typename</span> Index,</div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span>  <span class="keyword">typename</span> LhsScalar, <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">LhsStorageOrder</a>, <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ConjugateLhs</a>,</div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span>  <span class="keyword">typename</span> RhsScalar, <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">RhsStorageOrder</a>, <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ConjugateRhs</a>,</div>
 <div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span>  <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ResStorageOrder</a>&gt;</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1general__matrix__matrix__product.html">   35</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1general__matrix__matrix__product.html">general_matrix_matrix_product</a>;</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span> </div>
-<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> <a class="code hl_struct" href="structIndex.html">Index</a>,</div>
+<div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Index,</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span>         <span class="keyword">typename</span> LhsScalar, <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">LhsMapper</a>, <span class="keywordtype">int</span> <a class="code hl_class" href="classEigen_1_1Solve.html">LhsStorageOrder</a>, <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ConjugateLhs</a>,</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span>         <span class="keyword">typename</span> RhsScalar, <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">RhsMapper</a>, <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ConjugateRhs</a>, <span class="keywordtype">int</span> Version=Specialized&gt;</div>
 <div class="line"><a id="l00040" name="l00040"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1general__matrix__vector__product.html">   40</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1general__matrix__vector__product.html">general_matrix_vector_product</a>;</div>
@@ -229,16 +229,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>  <span class="keyword">public</span>:</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1internal_1_1BlasVectorMapper.html">BlasVectorMapper</a>(Scalar *data) : m_data(data) {}</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span> </div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>  EIGEN_ALWAYS_INLINE Scalar operator()(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>  EIGEN_ALWAYS_INLINE Scalar operator()(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>    <span class="keywordflow">return</span> m_data[i];</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>  }</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Packet, <span class="keywordtype">int</span> AlignmentType&gt;</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>  EIGEN_ALWAYS_INLINE Packet load(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>  EIGEN_ALWAYS_INLINE Packet load(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;Packet, AlignmentType&gt;</a>(m_data + i);</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>  }</div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>  <span class="keyword">template</span> &lt;<span class="keyword">typename</span> Packet&gt;</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>  <span class="keywordtype">bool</span> aligned(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>  <span class="keywordtype">bool</span> aligned(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>    <span class="keywordflow">return</span> (<span class="keywordtype">size_t</span>(m_data+i)%<span class="keyword">sizeof</span>(Packet))==0;</div>
 <div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>  }</div>
 <div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span> </div>
@@ -260,19 +260,19 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>    internal::prefetch(&amp;<span class="keyword">operator</span>()(i));</div>
 <div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>  }</div>
 <div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span> </div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>  EIGEN_ALWAYS_INLINE Scalar&amp; operator()(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span>  EIGEN_ALWAYS_INLINE Scalar&amp; operator()(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span>    <span class="keywordflow">return</span> m_data[i];</div>
 <div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span>  }</div>
 <div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span> </div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>  EIGEN_ALWAYS_INLINE Packet loadPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>  EIGEN_ALWAYS_INLINE Packet loadPacket(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;Packet, AlignmentType&gt;</a>(m_data + i);</div>
 <div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>  }</div>
 <div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span> </div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>  EIGEN_ALWAYS_INLINE HalfPacket loadHalfPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>  EIGEN_ALWAYS_INLINE HalfPacket loadHalfPacket(Index i)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;HalfPacket, AlignmentType&gt;</a>(m_data + i);</div>
 <div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>  }</div>
 <div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span> </div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>  EIGEN_ALWAYS_INLINE <span class="keywordtype">void</span> storePacket(<a class="code hl_struct" href="structIndex.html">Index</a> i, <span class="keyword">const</span> Packet &amp;p)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>  EIGEN_ALWAYS_INLINE <span class="keywordtype">void</span> storePacket(Index i, <span class="keyword">const</span> Packet &amp;p)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">pstoret&lt;Scalar, Packet, AlignmentType&gt;</a>(m_data + i, p);</div>
 <div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>  }</div>
 <div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span> </div>
@@ -292,49 +292,49 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">BlasLinearMapper&lt;Scalar, Index, AlignmentType&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">LinearMapper</a>;</div>
 <div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">BlasVectorMapper&lt;Scalar, Index&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">VectorMapper</a>;</div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span> </div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1internal_1_1blas__data__mapper.html">blas_data_mapper</a>(Scalar* data, <a class="code hl_struct" href="structIndex.html">Index</a> stride) : m_data(data), m_stride(stride) {}</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1internal_1_1blas__data__mapper.html">blas_data_mapper</a>(Scalar* data, Index stride) : m_data(data), m_stride(stride) {}</div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span> </div>
 <div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">blas_data_mapper&lt;Scalar, Index, StorageOrder, AlignmentType&gt;</a></div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>  getSubMapper(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">blas_data_mapper&lt;Scalar, Index, StorageOrder, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, j), m_stride);</div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span>  getSubMapper(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">blas_data_mapper&lt;Scalar, Index, StorageOrder, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>), m_stride);</div>
 <div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>  }</div>
 <div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span> </div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">LinearMapper</a> getLinearMapper(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">LinearMapper</a>(&amp;<span class="keyword">operator</span>()(i, j));</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">LinearMapper</a> getLinearMapper(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">LinearMapper</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>));</div>
 <div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>  }</div>
 <div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span> </div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">VectorMapper</a> getVectorMapper(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">VectorMapper</a>(&amp;<span class="keyword">operator</span>()(i, j));</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">VectorMapper</a> getVectorMapper(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">VectorMapper</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>));</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>  }</div>
 <div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span> </div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span> </div>
 <div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>  EIGEN_ALWAYS_INLINE Scalar&amp; operator()(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    <span class="keywordflow">return</span> m_data[StorageOrder==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a> ? j + i*m_stride : i + j*m_stride];</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>  EIGEN_ALWAYS_INLINE Scalar&amp; operator()(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    <span class="keywordflow">return</span> m_data[StorageOrder==<a class="code hl_enumvalue" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a> ? <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> + i*m_stride : i + <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>*m_stride];</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>  }</div>
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>  EIGEN_ALWAYS_INLINE Packet loadPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;Packet, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, j));</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>  EIGEN_ALWAYS_INLINE Packet loadPacket(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;Packet, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>));</div>
 <div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>  }</div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span> </div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>  EIGEN_ALWAYS_INLINE HalfPacket loadHalfPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;HalfPacket, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, j));</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>  EIGEN_ALWAYS_INLINE HalfPacket loadHalfPacket(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">ploadt&lt;HalfPacket, AlignmentType&gt;</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>));</div>
 <div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>  }</div>
 <div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
 <div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> SubPacket&gt;</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  EIGEN_ALWAYS_INLINE <span class="keywordtype">void</span> scatterPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">SubPacket</a> &amp;p)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">pscatter&lt;Scalar, SubPacket&gt;</a>(&amp;<span class="keyword">operator</span>()(i, j), p, m_stride);</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  EIGEN_ALWAYS_INLINE <span class="keywordtype">void</span> scatterPacket(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">SubPacket</a> &amp;p)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">pscatter&lt;Scalar, SubPacket&gt;</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>), p, m_stride);</div>
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>  }</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span> </div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> SubPacket&gt;</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">SubPacket</a> gatherPacket(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">pgather&lt;Scalar, SubPacket&gt;</a>(&amp;<span class="keyword">operator</span>()(i, j), m_stride);</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">SubPacket</a> gatherPacket(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">pgather&lt;Scalar, SubPacket&gt;</a>(&amp;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>), m_stride);</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>  }</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span> </div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> stride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_stride; }</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>  <span class="keyword">const</span> Index stride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_stride; }</div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>  <span class="keyword">const</span> Scalar* data()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_data; }</div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>  <a class="code hl_struct" href="structIndex.html">Index</a> firstAligned(<a class="code hl_struct" href="structIndex.html">Index</a> size)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>  Index firstAligned(Index size)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keywordflow">if</span> (<span class="keywordtype">size_t</span>(m_data)%<span class="keyword">sizeof</span>(Scalar)) {</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>      <span class="keywordflow">return</span> -1;</div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>    }</div>
@@ -343,7 +343,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span> </div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>  <span class="keyword">protected</span>:</div>
 <div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>  Scalar* EIGEN_RESTRICT m_data;</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> m_stride;</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>  <span class="keyword">const</span> Index m_stride;</div>
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>};</div>
 </div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span> </div>
@@ -352,10 +352,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00243" data-start="{" data-end="};">
 <div class="line"><a id="l00243" name="l00243"></a><span class="lineno"><a class="line" href="classEigen_1_1internal_1_1const__blas__data__mapper.html">  243</a></span><span class="keyword">class </span><a class="code hl_class" href="classEigen_1_1internal_1_1const__blas__data__mapper.html">const_blas_data_mapper</a> : <span class="keyword">public</span> <a class="code hl_class" href="classEigen_1_1internal_1_1blas__data__mapper.html">blas_data_mapper</a>&lt;const Scalar, Index, StorageOrder&gt; {</div>
 <div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1internal_1_1const__blas__data__mapper.html">const_blas_data_mapper</a>(<span class="keyword">const</span> Scalar *data, <a class="code hl_struct" href="structIndex.html">Index</a> stride) : <a class="code hl_class" href="classEigen_1_1Solve.html">blas_data_mapper&lt;const Scalar, Index, StorageOrder&gt;</a>(data, stride) {}</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1internal_1_1const__blas__data__mapper.html">const_blas_data_mapper</a>(<span class="keyword">const</span> Scalar *data, Index stride) : <a class="code hl_class" href="classEigen_1_1Solve.html">blas_data_mapper&lt;const Scalar, Index, StorageOrder&gt;</a>(data, stride) {}</div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span> </div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">const_blas_data_mapper&lt;Scalar, Index, StorageOrder&gt;</a> getSubMapper(<a class="code hl_struct" href="structIndex.html">Index</a> i, <a class="code hl_struct" href="structIndex.html">Index</a> j)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">const_blas_data_mapper&lt;Scalar, Index, StorageOrder&gt;</a>(&amp;(this-&gt;<span class="keyword">operator</span>()(i, j)), this-&gt;m_stride);</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  EIGEN_ALWAYS_INLINE <a class="code hl_class" href="classEigen_1_1Solve.html">const_blas_data_mapper&lt;Scalar, Index, StorageOrder&gt;</a> getSubMapper(Index i, Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">const_blas_data_mapper&lt;Scalar, Index, StorageOrder&gt;</a>(&amp;(this-&gt;<span class="keyword">operator</span>()(i, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)), this-&gt;m_stride);</div>
 <div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>  }</div>
 <div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>};</div>
 </div>
@@ -462,7 +462,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span> </div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
 <div class="foldopen" id="foldopen00343" data-start="{" data-end="};">
-<div class="line"><a id="l00343" name="l00343"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1blas__traits_3_01const_01T_01_4.html">  343</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1blas__traits.html">blas_traits</a>&lt;const T&gt;</div>
+<div class="line"><a id="l00343" name="l00343"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1blas__traits_3_01const_01T_01_4.html">  343</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1blas__traits.html">blas_traits</a>&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">const</a> T&gt;</div>
 <div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>     : <a class="code hl_struct" href="structEigen_1_1internal_1_1blas__traits.html">blas_traits</a>&lt;T&gt;</div>
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>{};</div>
 </div>
@@ -521,11 +521,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1scalar__opposite__op_html"><div class="ttname"><a href="structEigen_1_1internal_1_1scalar__opposite__op.html">Eigen::internal::scalar_opposite_op</a></div><div class="ttdef"><b>Definition</b> UnaryFunctors.h:22</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

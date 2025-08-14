@@ -152,9 +152,8 @@ Functions</h2></td></tr>
 <p>Perform in-place allreduce. This function is NOT thread-safe. </p>
 <p>Example Usage: the following code gives sum of the result </p><div class="fragment"><div class="line">vector&lt;int&gt; data(10);</div>
 <div class="line">...</div>
-<div class="line">Allreduce(&amp;data[0], data.size(), DataType:kInt32, <a class="code hl_struct" href="structVdbeOp.html">Op</a>::kSum);</div>
+<div class="line">Allreduce(&amp;data[0], data.size(), DataType:kInt32, Op::kSum);</div>
 <div class="line">...</div>
-<div class="ttc" id="astructVdbeOp_html"><div class="ttname"><a href="structVdbeOp.html">VdbeOp</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:15573</div></div>
 </div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">send_receive_buffer</td><td>Buffer for both sending and receiving data. </td></tr>
@@ -421,7 +420,7 @@ Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:31 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

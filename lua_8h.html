@@ -126,9 +126,9 @@ Namespaces</h2></td></tr>
 <div class="line"><span class="comment">// vectors converts automatically to lua table.</span></div>
 <div class="line"><span class="keyword">auto</span> tbl = lua-&gt;<a class="code hl_function" href="classdmlc_1_1LuaState.html#a33446cb9b59326e0e7746bcf7cf46330">Convert</a>(std::vector&lt;int&gt;{1,2,3});</div>
 <div class="line"><span class="comment">// use eval to get lua reference, this is a function</span></div>
-<div class="line"><span class="keyword">auto</span> <a class="code hl_struct" href="structprint.html">print</a> = lua-&gt;<a class="code hl_function" href="classdmlc_1_1LuaState.html#a0d19f8d8507c33502ce4c00e1b1e5134">Eval</a>(<span class="stringliteral">&quot;return function(x) print(x) end&quot;</span>);</div>
+<div class="line"><span class="keyword">auto</span> print = lua-&gt;<a class="code hl_function" href="classdmlc_1_1LuaState.html#a0d19f8d8507c33502ce4c00e1b1e5134">Eval</a>(<span class="stringliteral">&quot;return function(x) print(x) end&quot;</span>);</div>
 <div class="line"><span class="comment">// lua function can be directly called from c++, arguments are converted.</span></div>
-<div class="line"><a class="code hl_struct" href="structprint.html">print</a>(100);</div>
+<div class="line">print(100);</div>
 <div class="line"> </div>
 <div class="line"><span class="comment">// set field in the table.</span></div>
 <div class="line">tbl.SetField(<span class="stringliteral">&quot;square&quot;</span>, lua-&gt;<a class="code hl_function" href="classdmlc_1_1LuaState.html#a0d19f8d8507c33502ce4c00e1b1e5134">Eval</a>(<span class="stringliteral">&quot;return function(x) x*x end&quot;</span>));</div>
@@ -138,11 +138,10 @@ Namespaces</h2></td></tr>
 <div class="ttc" id="aclassdmlc_1_1LuaState_html_a0d19f8d8507c33502ce4c00e1b1e5134"><div class="ttname"><a href="classdmlc_1_1LuaState.html#a0d19f8d8507c33502ce4c00e1b1e5134">dmlc::LuaState::Eval</a></div><div class="ttdeci">LuaRef Eval(const char *lua_code)</div><div class="ttdoc">evaluate a piece of lua code, return the first result.</div></div>
 <div class="ttc" id="aclassdmlc_1_1LuaState_html_a33446cb9b59326e0e7746bcf7cf46330"><div class="ttname"><a href="classdmlc_1_1LuaState.html#a33446cb9b59326e0e7746bcf7cf46330">dmlc::LuaState::Convert</a></div><div class="ttdeci">LuaRef Convert(const T &amp;value)</div><div class="ttdoc">convert a C++ type to lua type</div></div>
 <div class="ttc" id="aclassdmlc_1_1LuaState_html_a43ac97af901f9312e534b76113af47ef"><div class="ttname"><a href="classdmlc_1_1LuaState.html#a43ac97af901f9312e534b76113af47ef">dmlc::LuaState::ThreadLocalState</a></div><div class="ttdeci">static LuaState * ThreadLocalState()</div></div>
-<div class="ttc" id="astructprint_html"><div class="ttname"><a href="structprint.html">print</a></div><div class="ttdef"><b>Definition</b> print.cc:6</div></div>
 </div><!-- fragment --> </div></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:59 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:30 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

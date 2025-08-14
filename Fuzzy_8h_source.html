@@ -106,9 +106,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>  <span class="keyword">static</span> <span class="keywordtype">bool</span> run(<span class="keyword">const</span> Derived&amp; x, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">OtherDerived</a>&amp; y, <span class="keyword">const</span> <span class="keyword">typename</span> Derived::RealScalar&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">prec</a>)</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>  {</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::nested_eval&lt;Derived,2&gt;::type</a> nested(x);</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>    <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::nested_eval&lt;Derived,2&gt;::type</a> <a class="code hl_class" href="classEigen_1_1Solve.html">nested</a>(x);</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::nested_eval&lt;OtherDerived,2&gt;::type</a> <a class="code hl_class" href="classEigen_1_1Solve.html">otherNested</a>(y);</div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keywordflow">return</span> (nested - <a class="code hl_class" href="classEigen_1_1Solve.html">otherNested</a>).cwiseAbs2().sum() &lt;= <a class="code hl_class" href="classEigen_1_1Solve.html">prec</a> * <a class="code hl_class" href="classEigen_1_1Solve.html">prec</a> * numext::mini(nested.cwiseAbs2().sum(), <a class="code hl_class" href="classEigen_1_1Solve.html">otherNested</a>.cwiseAbs2().sum());</div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>    <span class="keywordflow">return</span> (<a class="code hl_class" href="classEigen_1_1Solve.html">nested</a> - <a class="code hl_class" href="classEigen_1_1Solve.html">otherNested</a>).cwiseAbs2().sum() &lt;= <a class="code hl_class" href="classEigen_1_1Solve.html">prec</a> * <a class="code hl_class" href="classEigen_1_1Solve.html">prec</a> * numext::mini(<a class="code hl_class" href="classEigen_1_1Solve.html">nested</a>.cwiseAbs2().sum(), <a class="code hl_class" href="classEigen_1_1Solve.html">otherNested</a>.cwiseAbs2().sum());</div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>  }</div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>};</div>
 </div>
@@ -223,7 +223,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:01 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

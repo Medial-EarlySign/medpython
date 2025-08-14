@@ -188,7 +188,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    <span class="keywordflow">return</span> std::map&lt;std::string, std::string&gt;(vec.begin(), vec.end());</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>  }</div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> Save(<a class="code hl_class" href="classdmlc_1_1JSONWriter.html">dmlc::JSONWriter</a> *writer)<span class="keyword"> const </span>{</div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>    writer-&gt;Write(this-&gt;__DICT__());</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>    writer-&gt;<a class="code hl_function" href="classdmlc_1_1JSONWriter.html#ac16c9b279f64512117fdefb2ede8662d">Write</a>(this-&gt;__DICT__());</div>
 <div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>  }</div>
 <div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> Load(<a class="code hl_class" href="classdmlc_1_1JSONReader.html">dmlc::JSONReader</a> *reader) {</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    std::map&lt;std::string, std::string&gt; kwargs;</div>
@@ -574,7 +574,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00767" name="l00767"></a><span class="lineno">  767</span><span class="keyword">class </span>FieldEntry :</div>
 <div class="line"><a id="l00768" name="l00768"></a><span class="lineno">  768</span>      <span class="keyword">public</span> IfThenElseType&lt;dmlc::is_arithmetic&lt;DType&gt;::value,</div>
 <div class="line"><a id="l00769" name="l00769"></a><span class="lineno">  769</span>                            FieldEntryNumeric&lt;FieldEntry&lt;DType&gt;, DType&gt;,</div>
-<div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span>                            FieldEntryBase&lt;FieldEntry&lt;DType&gt;, DType&gt; &gt;<a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">::Type</a> {</div>
+<div class="line"><a id="l00770" name="l00770"></a><span class="lineno">  770</span>                            FieldEntryBase&lt;FieldEntry&lt;DType&gt;, DType&gt; &gt;::Type {</div>
 <div class="line"><a id="l00771" name="l00771"></a><span class="lineno">  771</span>};</div>
 <div class="line"><a id="l00772" name="l00772"></a><span class="lineno">  772</span> </div>
 <div class="line"><a id="l00773" name="l00773"></a><span class="lineno">  773</span><span class="comment">// specialize define for int(enum)</span></div>
@@ -960,6 +960,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassdmlc_1_1JSONReader_html"><div class="ttname"><a href="classdmlc_1_1JSONReader.html">dmlc::JSONReader</a></div><div class="ttdoc">Lightweight JSON Reader to read any STL compositions and structs. The user need to know the schema of...</div><div class="ttdef"><b>Definition</b> json.h:44</div></div>
 <div class="ttc" id="aclassdmlc_1_1JSONReader_html_a74487e106bca0cc16b676f539f69a4bf"><div class="ttname"><a href="classdmlc_1_1JSONReader.html#a74487e106bca0cc16b676f539f69a4bf">dmlc::JSONReader::Read</a></div><div class="ttdeci">void Read(ValueType *out_value)</div><div class="ttdoc">Read next ValueType.</div></div>
 <div class="ttc" id="aclassdmlc_1_1JSONWriter_html"><div class="ttname"><a href="classdmlc_1_1JSONWriter.html">dmlc::JSONWriter</a></div><div class="ttdoc">Lightweight json to write any STL compositions.</div><div class="ttdef"><b>Definition</b> json.h:190</div></div>
+<div class="ttc" id="aclassdmlc_1_1JSONWriter_html_ac16c9b279f64512117fdefb2ede8662d"><div class="ttname"><a href="classdmlc_1_1JSONWriter.html#ac16c9b279f64512117fdefb2ede8662d">dmlc::JSONWriter::Write</a></div><div class="ttdeci">void Write(const ValueType &amp;value)</div><div class="ttdoc">Write value to json.</div></div>
 <div class="ttc" id="ainclude_2xgboost_2logging_8h_html"><div class="ttname"><a href="include_2xgboost_2logging_8h.html">logging.h</a></div><div class="ttdoc">defines console logging options for xgboost. Use to enforce unified print behavior.</div></div>
 <div class="ttc" id="anamespacedetail_html_a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21"><div class="ttname"><a href="namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632ab45cffe084dd3d20d928bee85e7b0f21">detail::value_t::string</a></div><div class="ttdeci">@ string</div><div class="ttdoc">string value</div></div>
 <div class="ttc" id="anamespacedmlc_html"><div class="ttname"><a href="namespacedmlc.html">dmlc</a></div><div class="ttdoc">namespace for dmlc</div><div class="ttdef"><b>Definition</b> array_view.h:12</div></div>
@@ -972,14 +973,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
 <div class="ttc" id="aoptional_8h_html"><div class="ttname"><a href="optional_8h.html">optional.h</a></div><div class="ttdoc">Container to hold optional data.</div></div>
 <div class="ttc" id="arabit_2include_2rabit_2base_8h_html"><div class="ttname"><a href="rabit_2include_2rabit_2base_8h.html">base.h</a></div><div class="ttdoc">Macros common to all headers.</div></div>
-<div class="ttc" id="arapidjson_8h_html_a1d1cfd8ffb84e947f82999c682b666a7"><div class="ttname"><a href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a></div><div class="ttdeci">Type</div><div class="ttdoc">Type of JSON value.</div><div class="ttdef"><b>Definition</b> rapidjson.h:604</div></div>
 <div class="ttc" id="astrtonum_8h_html"><div class="ttname"><a href="strtonum_8h.html">strtonum.h</a></div><div class="ttdoc">A faster implementation of strtof and strtod.</div></div>
 <div class="ttc" id="astructdmlc_1_1Error_html"><div class="ttname"><a href="structdmlc_1_1Error.html">dmlc::Error</a></div><div class="ttdoc">exception class that will be thrown by default logger if DMLC_LOG_FATAL_THROW == 1</div><div class="ttdef"><b>Definition</b> logging.h:29</div></div>
 <div class="ttc" id="atype__traits_8h_html"><div class="ttname"><a href="type__traits_8h.html">type_traits.h</a></div><div class="ttdoc">type traits information header</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

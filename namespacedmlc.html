@@ -215,7 +215,7 @@ Data Structures</h2></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">a block of data, containing several rows in sparse matrix This is useful for (streaming-sxtyle) algorithms that scans through rows of data examples include: <a class="el" href="classSGD.html">SGD</a>, GD, L-BFGS, kmeans  <a href="structdmlc_1_1RowBlock.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classdmlc_1_1RowBlockIter.html">RowBlockIter</a></td></tr>
-<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structData.html">Data</a> structure that holds the data <a class="el" href="classdmlc_1_1Row.html" title="one row of training instance">Row</a> block iterator interface that gets RowBlocks Difference between <a class="el" href="classdmlc_1_1RowBlockIter.html" title="Data structure that holds the data Row block iterator interface that gets RowBlocks Difference betwee...">RowBlockIter</a> and <a class="el" href="classdmlc_1_1Parser.html" title="parser interface that parses input data used to load dmlc data format into your own data format Diffe...">Parser</a>: <a class="el" href="classdmlc_1_1RowBlockIter.html" title="Data structure that holds the data Row block iterator interface that gets RowBlocks Difference betwee...">RowBlockIter</a> caches the data internally that can be used to iterate the dataset multiple times, <a class="el" href="classdmlc_1_1Parser.html" title="parser interface that parses input data used to load dmlc data format into your own data format Diffe...">Parser</a> holds very limited internal state and was usually used to read data only once.  <a href="classdmlc_1_1RowBlockIter.html#details">More...</a><br /></td></tr>
+<tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">Data structure that holds the data <a class="el" href="classdmlc_1_1Row.html" title="one row of training instance">Row</a> block iterator interface that gets RowBlocks Difference between <a class="el" href="classdmlc_1_1RowBlockIter.html" title="Data structure that holds the data Row block iterator interface that gets RowBlocks Difference betwee...">RowBlockIter</a> and <a class="el" href="classdmlc_1_1Parser.html" title="parser interface that parses input data used to load dmlc data format into your own data format Diffe...">Parser</a>: <a class="el" href="classdmlc_1_1RowBlockIter.html" title="Data structure that holds the data Row block iterator interface that gets RowBlocks Difference betwee...">RowBlockIter</a> caches the data internally that can be used to iterate the dataset multiple times, <a class="el" href="classdmlc_1_1Parser.html" title="parser interface that parses input data used to load dmlc data format into your own data format Diffe...">Parser</a> holds very limited internal state and was usually used to read data only once.  <a href="classdmlc_1_1RowBlockIter.html#details">More...</a><br /></td></tr>
 <tr class="separator:"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:"><td class="memItemLeft" align="right" valign="top">class &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classdmlc_1_1SeekStream.html">SeekStream</a></td></tr>
 <tr class="memdesc:"><td class="mdescLeft">&#160;</td><td class="mdescRight">interface of i/o stream that support seek  <a href="classdmlc_1_1SeekStream.html#details">More...</a><br /></td></tr>
@@ -324,13 +324,13 @@ typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryRe
 typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; uint32_t, int64_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg32int64</b></td></tr>
 <tr class="separator:a2e975627c588ce278066bbbffc0cdb39"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac4eda68a297ecf9e19ad1aa1cc5ddd4c" id="r_ac4eda68a297ecf9e19ad1aa1cc5ddd4c"><td class="memItemLeft" align="right" valign="top"><a id="ac4eda68a297ecf9e19ad1aa1cc5ddd4c" name="ac4eda68a297ecf9e19ad1aa1cc5ddd4c"></a>
-typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64flt</b></td></tr>
+typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; uint64_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64flt</b></td></tr>
 <tr class="separator:ac4eda68a297ecf9e19ad1aa1cc5ddd4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad3a60e8d7e97e09831c42b15c092b9a3" id="r_ad3a60e8d7e97e09831c42b15c092b9a3"><td class="memItemLeft" align="right" valign="top"><a id="ad3a60e8d7e97e09831c42b15c092b9a3" name="ad3a60e8d7e97e09831c42b15c092b9a3"></a>
-typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, int32_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64int32</b></td></tr>
+typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; uint64_t, int32_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64int32</b></td></tr>
 <tr class="separator:ad3a60e8d7e97e09831c42b15c092b9a3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b509dd8e68b288802959e6291053aa4" id="r_a6b509dd8e68b288802959e6291053aa4"><td class="memItemLeft" align="right" valign="top"><a id="a6b509dd8e68b288802959e6291053aa4" name="a6b509dd8e68b288802959e6291053aa4"></a>
-typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, int64_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64int64</b></td></tr>
+typedef <a class="el" href="structdmlc_1_1ParserFactoryReg.html">ParserFactoryReg</a>&lt; uint64_t, int64_t &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Reg64int64</b></td></tr>
 <tr class="separator:a6b509dd8e68b288802959e6291053aa4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
@@ -450,7 +450,7 @@ template&lt;typename X , typename Y &gt; </td></tr>
 <tr class="memitem:ae5d2f93a1b7b7683df3c674e0c3d1863"><td class="memTemplItemLeft" align="right" valign="top">UnsignedIntType&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#ae5d2f93a1b7b7683df3c674e0c3d1863">ParseUnsignedInt</a> (const char *nptr, char **endptr, int base)</td></tr>
 <tr class="memdesc:ae5d2f93a1b7b7683df3c674e0c3d1863"><td class="mdescLeft">&#160;</td><td class="mdescRight">A fast string-to-integer convertor, for unsigned integers TODO: the current version supports only base &lt;= 10.  <br /></td></tr>
 <tr class="separator:ae5d2f93a1b7b7683df3c674e0c3d1863"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac63dcf48b6a8ec204720a121f01477e9" id="r_ac63dcf48b6a8ec204720a121f01477e9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">uint64_t</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#ac63dcf48b6a8ec204720a121f01477e9">strtoull</a> (const char *nptr, char **endptr, int base)</td></tr>
+<tr class="memitem:ac63dcf48b6a8ec204720a121f01477e9" id="r_ac63dcf48b6a8ec204720a121f01477e9"><td class="memItemLeft" align="right" valign="top">uint64_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#ac63dcf48b6a8ec204720a121f01477e9">strtoull</a> (const char *nptr, char **endptr, int base)</td></tr>
 <tr class="memdesc:ac63dcf48b6a8ec204720a121f01477e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">A faster implementation of <a class="el" href="namespacedmlc.html#ac63dcf48b6a8ec204720a121f01477e9" title="A faster implementation of strtoull(). See documentation of std::strtoull() for more information....">strtoull()</a>. See documentation of std::strtoull() for more information. Note that this function does not check for overflow. TODO: the current version supports only base &lt;= 10.  <br /></td></tr>
 <tr class="separator:ac63dcf48b6a8ec204720a121f01477e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a46a57f902842152f71261ab44e887017" id="r_a46a57f902842152f71261ab44e887017"><td class="memItemLeft" align="right" valign="top">long&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#a46a57f902842152f71261ab44e887017">atol</a> (const char *p)</td></tr>
@@ -471,11 +471,11 @@ template&lt;typename X , typename Y &gt; </td></tr>
 <tr class="separator:aad1cfbbeeb3029867e8b8aa0278ac311"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1bd2f744b450d3a7a06fd4e4276f667" id="r_ac1bd2f744b450d3a7a06fd4e4276f667"><td class="memTemplParams" colspan="2">template&lt;typename T1 , typename T2 &gt; </td></tr>
 <tr class="memitem:ac1bd2f744b450d3a7a06fd4e4276f667"><td class="memTemplItemLeft" align="right" valign="top">int&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#ac1bd2f744b450d3a7a06fd4e4276f667">ParsePair</a> (const char *begin, const char *end, const char **endptr, T1 &amp;v1, T2 &amp;v2)</td></tr>
-<tr class="memdesc:ac1bd2f744b450d3a7a06fd4e4276f667"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structParse.html">Parse</a> colon seperated pair v1[:v2].  <br /></td></tr>
+<tr class="memdesc:ac1bd2f744b450d3a7a06fd4e4276f667"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse colon seperated pair v1[:v2].  <br /></td></tr>
 <tr class="separator:ac1bd2f744b450d3a7a06fd4e4276f667"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ade27d0fd3a6c3e57a64e225a78e56ced" id="r_ade27d0fd3a6c3e57a64e225a78e56ced"><td class="memTemplParams" colspan="2">template&lt;typename T1 , typename T2 , typename T3 &gt; </td></tr>
 <tr class="memitem:ade27d0fd3a6c3e57a64e225a78e56ced"><td class="memTemplItemLeft" align="right" valign="top">int&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#ade27d0fd3a6c3e57a64e225a78e56ced">ParseTriple</a> (const char *begin, const char *end, const char **endptr, T1 &amp;v1, T2 &amp;v2, T3 &amp;v3)</td></tr>
-<tr class="memdesc:ade27d0fd3a6c3e57a64e225a78e56ced"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="structParse.html">Parse</a> colon seperated triple v1:v2[:v3].  <br /></td></tr>
+<tr class="memdesc:ade27d0fd3a6c3e57a64e225a78e56ced"><td class="mdescLeft">&#160;</td><td class="mdescRight">Parse colon seperated triple v1:v2[:v3].  <br /></td></tr>
 <tr class="separator:ade27d0fd3a6c3e57a64e225a78e56ced"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3af1c5a5f5dd3a6741693071f85d67ce" id="r_a3af1c5a5f5dd3a6741693071f85d67ce"><td class="memTemplParams" colspan="2">template&lt;typename Duration , typename TimerFunction &gt; </td></tr>
 <tr class="memitem:a3af1c5a5f5dd3a6741693071f85d67ce"><td class="memTemplItemLeft" align="right" valign="top">bool&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="namespacedmlc.html#a3af1c5a5f5dd3a6741693071f85d67ce">CreateTimer</a> (const std::string &amp;timer_name, const Duration &amp;duration, <a class="el" href="classdmlc_1_1ThreadGroup.html">ThreadGroup</a> *owner, TimerFunction timer_function)</td></tr>
@@ -514,31 +514,31 @@ string&#160;</td><td class="memItemRight" valign="bottom"><b>MakeProtoStringValu
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint32_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libsvm, data::CreateLibSVMParser&lt; uint32_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:af5b31ada79e297f8333c5c53c8d0a26e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b7fa1b37ad7089cdf28713a60259045" id="r_a9b7fa1b37ad7089cdf28713a60259045"><td class="memItemLeft" align="right" valign="top"><a id="a9b7fa1b37ad7089cdf28713a60259045" name="a9b7fa1b37ad7089cdf28713a60259045"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libsvm, data::CreateLibSVMParser&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint64_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libsvm, data::CreateLibSVMParser&lt; uint64_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:a9b7fa1b37ad7089cdf28713a60259045"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7a1a7e239c9a82fb685b4d373b060a12" id="r_a7a1a7e239c9a82fb685b4d373b060a12"><td class="memItemLeft" align="right" valign="top"><a id="a7a1a7e239c9a82fb685b4d373b060a12" name="a7a1a7e239c9a82fb685b4d373b060a12"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint32_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libfm, data::CreateLibFMParser&lt; uint32_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:a7a1a7e239c9a82fb685b4d373b060a12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2035b485c344df84dba56cada624d79" id="r_af2035b485c344df84dba56cada624d79"><td class="memItemLeft" align="right" valign="top"><a id="af2035b485c344df84dba56cada624d79" name="af2035b485c344df84dba56cada624d79"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libfm, data::CreateLibFMParser&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint64_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, libfm, data::CreateLibFMParser&lt; uint64_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:af2035b485c344df84dba56cada624d79"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a72fa5f21e6b3c5005feda88dc997113d" id="r_a72fa5f21e6b3c5005feda88dc997113d"><td class="memItemLeft" align="right" valign="top"><a id="a72fa5f21e6b3c5005feda88dc997113d" name="a72fa5f21e6b3c5005feda88dc997113d"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint32_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, csv, data::CreateCSVParser&lt; uint32_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:a72fa5f21e6b3c5005feda88dc997113d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a51d5bd0050ba9394d4bd3cc5e54464b8" id="r_a51d5bd0050ba9394d4bd3cc5e54464b8"><td class="memItemLeft" align="right" valign="top"><a id="a51d5bd0050ba9394d4bd3cc5e54464b8" name="a51d5bd0050ba9394d4bd3cc5e54464b8"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, csv, data::CreateCSVParser&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint64_t, <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a>, csv, data::CreateCSVParser&lt; uint64_t __DMLC_COMMA <a class="el" href="namespacedmlc.html#ab23d78846b42ebd3a436e3bc295b73f4">real_t</a> &gt;)</td></tr>
 <tr class="separator:a51d5bd0050ba9394d4bd3cc5e54464b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ea5d8c8febfa13ed4d872d0ab63ce4c" id="r_a0ea5d8c8febfa13ed4d872d0ab63ce4c"><td class="memItemLeft" align="right" valign="top"><a id="a0ea5d8c8febfa13ed4d872d0ab63ce4c" name="a0ea5d8c8febfa13ed4d872d0ab63ce4c"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint32_t, int32_t, csv, data::CreateCSVParser&lt; uint32_t __DMLC_COMMA int32_t &gt;)</td></tr>
 <tr class="separator:a0ea5d8c8febfa13ed4d872d0ab63ce4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab6ea6f924169ad7bb1a89fa550aa51bc" id="r_ab6ea6f924169ad7bb1a89fa550aa51bc"><td class="memItemLeft" align="right" valign="top"><a id="ab6ea6f924169ad7bb1a89fa550aa51bc" name="ab6ea6f924169ad7bb1a89fa550aa51bc"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, int32_t, csv, data::CreateCSVParser&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> __DMLC_COMMA int32_t &gt;)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint64_t, int32_t, csv, data::CreateCSVParser&lt; uint64_t __DMLC_COMMA int32_t &gt;)</td></tr>
 <tr class="separator:ab6ea6f924169ad7bb1a89fa550aa51bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9e188fb1749962f92b859429cedc2b45" id="r_a9e188fb1749962f92b859429cedc2b45"><td class="memItemLeft" align="right" valign="top"><a id="a9e188fb1749962f92b859429cedc2b45" name="a9e188fb1749962f92b859429cedc2b45"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint32_t, int64_t, csv, data::CreateCSVParser&lt; uint32_t __DMLC_COMMA int64_t &gt;)</td></tr>
 <tr class="separator:a9e188fb1749962f92b859429cedc2b45"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0907b9c33f300a8a81733ea2ea563a59" id="r_a0907b9c33f300a8a81733ea2ea563a59"><td class="memItemLeft" align="right" valign="top"><a id="a0907b9c33f300a8a81733ea2ea563a59" name="a0907b9c33f300a8a81733ea2ea563a59"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (<a class="el" href="classEigen_1_1Solve.html">uint64_t</a>, int64_t, csv, data::CreateCSVParser&lt; <a class="el" href="classEigen_1_1Solve.html">uint64_t</a> __DMLC_COMMA int64_t &gt;)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>DMLC_REGISTER_DATA_PARSER</b> (uint64_t, int64_t, csv, data::CreateCSVParser&lt; uint64_t __DMLC_COMMA int64_t &gt;)</td></tr>
 <tr class="separator:a0907b9c33f300a8a81733ea2ea563a59"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a75f66704982a81caf9c74ddef4833391" id="r_a75f66704982a81caf9c74ddef4833391"><td class="memItemLeft" align="right" valign="top"><a id="a75f66704982a81caf9c74ddef4833391" name="a75f66704982a81caf9c74ddef4833391"></a>
 char *&#160;</td><td class="memItemRight" valign="bottom"><b>FindNextRecordIOHead</b> (char *begin, char *end)</td></tr>
@@ -1371,7 +1371,7 @@ template&lt;typename T1 , typename T2 &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p><a class="el" href="structParse.html">Parse</a> colon seperated pair v1[:v2]. </p>
+<p>Parse colon seperated pair v1[:v2]. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">begin</td><td>pointer to string </td></tr>
@@ -1514,7 +1514,7 @@ template&lt;typename T1 , typename T2 , typename T3 &gt; </div>
 </table>
 </div><div class="memdoc">
 
-<p><a class="el" href="structParse.html">Parse</a> colon seperated triple v1:v2[:v3]. </p>
+<p>Parse colon seperated triple v1:v2[:v3]. </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">begin</td><td>pointer to string </td></tr>
@@ -1988,7 +1988,7 @@ template&lt;typename T &gt; </div>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">uint64_t</a> dmlc::strtoull </td>
+          <td class="memname">uint64_t dmlc::strtoull </td>
           <td>(</td>
           <td class="paramtype">const char *&#160;</td>
           <td class="paramname"><em>nptr</em>, </td>
@@ -2094,7 +2094,7 @@ template&lt;typename T &gt; </div>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:02 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

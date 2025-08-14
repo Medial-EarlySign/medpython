@@ -97,10 +97,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00024" data-start="{" data-end="};">
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno"><a class="line" href="classdmlc_1_1data_1_1BasicRowIter.html">   24</a></span><span class="keyword">class </span><a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">BasicRowIter</a>: <span class="keyword">public</span> <a class="code hl_class" href="classdmlc_1_1RowBlockIter.html">RowBlockIter</a>&lt;IndexType, DType&gt; {</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>  <span class="keyword">explicit</span> <a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">BasicRowIter</a>(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a>)</div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>  <span class="keyword">explicit</span> <a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">BasicRowIter</a>(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *parser)</div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>      : at_head_(<span class="keyword">true</span>) {</div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    this-&gt;Init(<a class="code hl_struct" href="structparser.html">parser</a>);</div>
-<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">delete</span> <a class="code hl_struct" href="structparser.html">parser</a>;</div>
+<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span>    this-&gt;Init(parser);</div>
+<div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span>    <span class="keyword">delete</span> parser;</div>
 <div class="line"><a id="l00030" name="l00030"></a><span class="lineno">   30</span>  }</div>
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span>  <span class="keyword">virtual</span> <a class="code hl_class" href="classdmlc_1_1data_1_1BasicRowIter.html">~BasicRowIter</a>() {}</div>
 <div class="foldopen" id="foldopen00032" data-start="{" data-end="}">
@@ -137,19 +137,19 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>  <span class="comment">// back end data</span></div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <a class="code hl_struct" href="structdmlc_1_1data_1_1RowBlockContainer.html">RowBlockContainer&lt;IndexType, DType&gt;</a> data_;</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  <span class="comment">// initialize</span></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> Init(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a>);</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> Init(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *parser);</div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>};</div>
 </div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> IndexType, <span class="keyword">typename</span> DType&gt;</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="keyword">inline</span> <span class="keywordtype">void</span> BasicRowIter&lt;IndexType, DType&gt;::Init(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *<a class="code hl_struct" href="structparser.html">parser</a>) {</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="keyword">inline</span> <span class="keywordtype">void</span> BasicRowIter&lt;IndexType, DType&gt;::Init(<a class="code hl_class" href="classdmlc_1_1Parser.html">Parser&lt;IndexType, DType&gt;</a> *parser) {</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>  data_.Clear();</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>  <span class="keywordtype">double</span> tstart = <a class="code hl_function" href="namespacedmlc.html#ac6607ababd562edcce61938343ae0db6">GetTime</a>();</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>  <span class="keywordtype">size_t</span> bytes_expect = 10UL &lt;&lt; 20UL;</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  <span class="keywordflow">while</span> (<a class="code hl_struct" href="structparser.html">parser</a>-&gt;Next()) {</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    data_.Push(<a class="code hl_struct" href="structparser.html">parser</a>-&gt;Value());</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>  <span class="keywordflow">while</span> (parser-&gt;Next()) {</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    data_.Push(parser-&gt;Value());</div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keywordtype">double</span> tdiff = <a class="code hl_function" href="namespacedmlc.html#ac6607ababd562edcce61938343ae0db6">GetTime</a>() - tstart;</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <span class="keywordtype">size_t</span> bytes_read  = <a class="code hl_struct" href="structparser.html">parser</a>-&gt;BytesRead();</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    <span class="keywordtype">size_t</span> bytes_read  = parser-&gt;BytesRead();</div>
 <div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <span class="keywordflow">if</span> (bytes_read &gt;= bytes_expect) {</div>
 <div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>      bytes_read = bytes_read &gt;&gt; 20UL;</div>
 <div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>      LOG(INFO) &lt;&lt; bytes_read &lt;&lt; <span class="stringliteral">&quot;MB read,&quot;</span></div>
@@ -160,7 +160,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  row_ = data_.GetBlock();</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  <span class="keywordtype">double</span> tdiff = <a class="code hl_function" href="namespacedmlc.html#ac6607ababd562edcce61938343ae0db6">GetTime</a>() - tstart;</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>  LOG(INFO) &lt;&lt; <span class="stringliteral">&quot;finish reading at &quot;</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>            &lt;&lt; (<a class="code hl_struct" href="structparser.html">parser</a>-&gt;BytesRead() &gt;&gt; 20UL) / tdiff</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>            &lt;&lt; (parser-&gt;BytesRead() &gt;&gt; 20UL) / tdiff</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>            &lt;&lt; <span class="stringliteral">&quot; MB/sec&quot;</span>;</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>}</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>}  <span class="comment">// namespace data</span></div>
@@ -182,11 +182,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="arow__block_8h_html"><div class="ttname"><a href="row__block_8h.html">row_block.h</a></div><div class="ttdoc">additional data structure to support RowBlock data structure</div></div>
 <div class="ttc" id="astructdmlc_1_1RowBlock_html"><div class="ttname"><a href="structdmlc_1_1RowBlock.html">dmlc::RowBlock</a></div><div class="ttdoc">a block of data, containing several rows in sparse matrix This is useful for (streaming-sxtyle) algor...</div><div class="ttdef"><b>Definition</b> data.h:175</div></div>
 <div class="ttc" id="astructdmlc_1_1data_1_1RowBlockContainer_html"><div class="ttname"><a href="structdmlc_1_1data_1_1RowBlockContainer.html">dmlc::data::RowBlockContainer</a></div><div class="ttdoc">dynamic data structure that holds a row block of data</div><div class="ttdef"><b>Definition</b> row_block.h:27</div></div>
-<div class="ttc" id="astructparser_html"><div class="ttname"><a href="structparser.html">parser</a></div><div class="ttdef"><b>Definition</b> parser.h:17</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:55 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

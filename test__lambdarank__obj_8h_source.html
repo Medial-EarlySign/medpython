@@ -99,9 +99,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="preprocessor">#include &quot;../helpers.h&quot;</span>                             <span class="comment">// for EmptyDMatrix</span></div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span> </div>
 <div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespacexgboost_1_1obj.html">xgboost::obj</a> {</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keywordtype">void</span> TestMAPStat(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx);</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span><span class="keywordtype">void</span> TestMAPStat(Context <span class="keyword">const</span>* ctx);</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">inline</span> <span class="keywordtype">void</span> TestNDCGJsonIO(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx) {</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">inline</span> <span class="keywordtype">void</span> TestNDCGJsonIO(Context <span class="keyword">const</span>* ctx) {</div>
 <div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>  std::unique_ptr&lt;xgboost::ObjFunction&gt; obj{<a class="code hl_function" href="classxgboost_1_1ObjFunction.html#aab95537cdf28d066c16f1648af5ff199">ObjFunction::Create</a>(<span class="stringliteral">&quot;rank:ndcg&quot;</span>, ctx)};</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>  obj-&gt;Configure(Args{});</div>
@@ -116,13 +116,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span>            std::to_string(ltr::LambdaRankParam::NotSet()));</div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span>}</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
-<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="keywordtype">void</span> TestNDCGGPair(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx);</div>
+<div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span><span class="keywordtype">void</span> TestNDCGGPair(Context <span class="keyword">const</span>* ctx);</div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span> </div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keywordtype">void</span> TestUnbiasedNDCG(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx);</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keywordtype">void</span> TestUnbiasedNDCG(Context <span class="keyword">const</span>* ctx);</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span> </div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="keywordtype">void</span> TestMAPGPair(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx);</div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="keywordtype">void</span> TestMAPGPair(Context <span class="keyword">const</span>* ctx);</div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1obj.html#a0e7416fea0830620de5cc365f9eb9907">InitMakePairTest</a>(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, MetaInfo* out_info, HostDeviceVector&lt;float&gt;* out_predt);</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keywordtype">void</span> <a class="code hl_function" href="namespacexgboost_1_1obj.html#a0e7416fea0830620de5cc365f9eb9907">InitMakePairTest</a>(Context <span class="keyword">const</span>* ctx, MetaInfo* out_info, HostDeviceVector&lt;float&gt;* out_predt);</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>}  <span class="comment">// namespace xgboost::obj</span></div>
 <div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span><span class="preprocessor">#endif  </span><span class="comment">// XGBOOST_OBJECTIVE_TEST_LAMBDARANK_OBJ_H_</span></div>
 <div class="ttc" id="aclassxgboost_1_1ObjFunction_html_aab95537cdf28d066c16f1648af5ff199"><div class="ttname"><a href="classxgboost_1_1ObjFunction.html#aab95537cdf28d066c16f1648af5ff199">xgboost::ObjFunction::Create</a></div><div class="ttdeci">static ObjFunction * Create(const std::string &amp;name, Context const *ctx)</div><div class="ttdoc">Create an objective function according to name.</div><div class="ttdef"><b>Definition</b> objective.cc:20</div></div>
@@ -132,11 +132,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_1_1obj_html"><div class="ttname"><a href="namespacexgboost_1_1obj.html">xgboost::obj</a></div><div class="ttdoc">Copyright 2022-2023 by XGBoost contributors.</div><div class="ttdef"><b>Definition</b> custom_obj.cc:13</div></div>
 <div class="ttc" id="anamespacexgboost_1_1obj_html_a0e7416fea0830620de5cc365f9eb9907"><div class="ttname"><a href="namespacexgboost_1_1obj.html#a0e7416fea0830620de5cc365f9eb9907">xgboost::obj::InitMakePairTest</a></div><div class="ttdeci">void InitMakePairTest(Context const *ctx, MetaInfo *out_info, HostDeviceVector&lt; float &gt; *out_predt)</div><div class="ttdoc">Initialize test data for make pair tests.</div><div class="ttdef"><b>Definition</b> test_lambdarank_obj.cc:148</div></div>
 <div class="ttc" id="aobjective_8h_html"><div class="ttname"><a href="objective_8h.html">objective.h</a></div><div class="ttdoc">Copyright 2014-2023 by XGBoost Contributors.</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

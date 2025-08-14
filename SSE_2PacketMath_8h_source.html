@@ -471,32 +471,32 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstoreu&lt;float&gt;(<span class="keywordtype">float</span>*   to, <span class="keyword">const</span> Packet4f&amp; from) { EIGEN_DEBUG_UNALIGNED_STORE _mm_storeu_ps(to, from); }</div>
 <div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE <span class="keywordtype">void</span> pstoreu&lt;int&gt;(<span class="keywordtype">int</span>*       to, <span class="keyword">const</span> Packet4i&amp; from) { EIGEN_DEBUG_UNALIGNED_STORE _mm_storeu_si128(<span class="keyword">reinterpret_cast&lt;</span>__m128i*<span class="keyword">&gt;</span>(to), from); }</div>
 <div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span> </div>
-<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4f pgather&lt;float, Packet4f&gt;(<span class="keyword">const</span> <span class="keywordtype">float</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4f pgather&lt;float, Packet4f&gt;(<span class="keyword">const</span> <span class="keywordtype">float</span>* from, Index stride)</div>
 <div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>{</div>
 <div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span> <span class="keywordflow">return</span> _mm_set_ps(from[3*stride], from[2*stride], from[1*stride], from[0*stride]);</div>
 <div class="line"><a id="l00394" name="l00394"></a><span class="lineno">  394</span>}</div>
-<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2d pgather&lt;double, Packet2d&gt;(<span class="keyword">const</span> <span class="keywordtype">double</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet2d pgather&lt;double, Packet2d&gt;(<span class="keyword">const</span> <span class="keywordtype">double</span>* from, Index stride)</div>
 <div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span>{</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span> <span class="keywordflow">return</span> _mm_set_pd(from[1*stride], from[0*stride]);</div>
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span>}</div>
-<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4i pgather&lt;int, Packet4i&gt;(<span class="keyword">const</span> <span class="keywordtype">int</span>* from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Packet4i pgather&lt;int, Packet4i&gt;(<span class="keyword">const</span> <span class="keywordtype">int</span>* from, Index stride)</div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>{</div>
 <div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span> <span class="keywordflow">return</span> _mm_set_epi32(from[3*stride], from[2*stride], from[1*stride], from[0*stride]);</div>
 <div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span> }</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span> </div>
-<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;float, Packet4f&gt;(<span class="keywordtype">float</span>* to, <span class="keyword">const</span> Packet4f&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;float, Packet4f&gt;(<span class="keywordtype">float</span>* to, <span class="keyword">const</span> Packet4f&amp; from, Index stride)</div>
 <div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>{</div>
 <div class="line"><a id="l00406" name="l00406"></a><span class="lineno">  406</span>  to[stride*0] = _mm_cvtss_f32(from);</div>
 <div class="line"><a id="l00407" name="l00407"></a><span class="lineno">  407</span>  to[stride*1] = _mm_cvtss_f32(_mm_shuffle_ps(from, from, 1));</div>
 <div class="line"><a id="l00408" name="l00408"></a><span class="lineno">  408</span>  to[stride*2] = _mm_cvtss_f32(_mm_shuffle_ps(from, from, 2));</div>
 <div class="line"><a id="l00409" name="l00409"></a><span class="lineno">  409</span>  to[stride*3] = _mm_cvtss_f32(_mm_shuffle_ps(from, from, 3));</div>
 <div class="line"><a id="l00410" name="l00410"></a><span class="lineno">  410</span>}</div>
-<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;double, Packet2d&gt;(<span class="keywordtype">double</span>* to, <span class="keyword">const</span> Packet2d&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00411" name="l00411"></a><span class="lineno">  411</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;double, Packet2d&gt;(<span class="keywordtype">double</span>* to, <span class="keyword">const</span> Packet2d&amp; from, Index stride)</div>
 <div class="line"><a id="l00412" name="l00412"></a><span class="lineno">  412</span>{</div>
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span>  to[stride*0] = _mm_cvtsd_f64(from);</div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>  to[stride*1] = _mm_cvtsd_f64(_mm_shuffle_pd(from, from, 1));</div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>}</div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;int, Packet4i&gt;(<span class="keywordtype">int</span>* to, <span class="keyword">const</span> Packet4i&amp; from, <a class="code hl_struct" href="structIndex.html">Index</a> stride)</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span><span class="keyword">template</span>&lt;&gt; EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <span class="keywordtype">void</span> pscatter&lt;int, Packet4i&gt;(<span class="keywordtype">int</span>* to, <span class="keyword">const</span> Packet4i&amp; from, Index stride)</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>{</div>
 <div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>  to[stride*0] = _mm_cvtsi128_si32(from);</div>
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>  to[stride*1] = _mm_cvtsi128_si32(_mm_shuffle_epi32(from, 1));</div>
@@ -575,13 +575,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00490" name="l00490"></a><span class="lineno">  490</span> </div>
 <div class="line"><a id="l00491" name="l00491"></a><span class="lineno">  491</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE Packet4f pabs(<span class="keyword">const</span> Packet4f&amp; a)</div>
 <div class="line"><a id="l00492" name="l00492"></a><span class="lineno">  492</span>{</div>
-<div class="line"><a id="l00493" name="l00493"></a><span class="lineno">  493</span>  <span class="keyword">const</span> Packet4f mask = <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_castsi128_ps</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">_mm_setr_epi32</a>(0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF));</div>
-<div class="line"><a id="l00494" name="l00494"></a><span class="lineno">  494</span>  <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_and_ps</a>(a,mask);</div>
+<div class="line"><a id="l00493" name="l00493"></a><span class="lineno">  493</span>  <span class="keyword">const</span> Packet4f <a class="code hl_class" href="classEigen_1_1Solve.html">mask</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_castsi128_ps</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">_mm_setr_epi32</a>(0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF,0x7FFFFFFF));</div>
+<div class="line"><a id="l00494" name="l00494"></a><span class="lineno">  494</span>  <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_and_ps</a>(a,<a class="code hl_class" href="classEigen_1_1Solve.html">mask</a>);</div>
 <div class="line"><a id="l00495" name="l00495"></a><span class="lineno">  495</span>}</div>
 <div class="line"><a id="l00496" name="l00496"></a><span class="lineno">  496</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE Packet2d pabs(<span class="keyword">const</span> Packet2d&amp; a)</div>
 <div class="line"><a id="l00497" name="l00497"></a><span class="lineno">  497</span>{</div>
-<div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span>  <span class="keyword">const</span> Packet2d mask = <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_castsi128_pd</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">_mm_setr_epi32</a>(0xFFFFFFFF,0x7FFFFFFF,0xFFFFFFFF,0x7FFFFFFF));</div>
-<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span>  <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_and_pd</a>(a,mask);</div>
+<div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span>  <span class="keyword">const</span> Packet2d <a class="code hl_class" href="classEigen_1_1Solve.html">mask</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_castsi128_pd</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">_mm_setr_epi32</a>(0xFFFFFFFF,0x7FFFFFFF,0xFFFFFFFF,0x7FFFFFFF));</div>
+<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span>  <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">_mm_and_pd</a>(a,<a class="code hl_class" href="classEigen_1_1Solve.html">mask</a>);</div>
 <div class="line"><a id="l00500" name="l00500"></a><span class="lineno">  500</span>}</div>
 <div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span><span class="keyword">template</span>&lt;&gt; EIGEN_STRONG_INLINE Packet4i pabs(<span class="keyword">const</span> Packet4i&amp; a)</div>
 <div class="line"><a id="l00502" name="l00502"></a><span class="lineno">  502</span>{</div>
@@ -967,11 +967,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1palign__impl_html"><div class="ttname"><a href="structEigen_1_1internal_1_1palign__impl.html">Eigen::internal::palign_impl</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:505</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1protate__impl_html"><div class="ttname"><a href="structEigen_1_1internal_1_1protate__impl.html">Eigen::internal::protate_impl</a></div><div class="ttdef"><b>Definition</b> GenericPacketMath.h:341</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unpacket__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unpacket__traits.html">Eigen::internal::unpacket_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:119</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:53:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

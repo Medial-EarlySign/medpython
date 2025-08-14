@@ -142,7 +142,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Ref&lt;const MatrixType&gt;</a> <a class="code hl_class" href="classEigen_1_1Ref.html">ActualMatrixType</a>;</div>
 <div class="foldopen" id="foldopen00055" data-start="{" data-end="};">
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1generic__matrix__wrapper_3_01MatrixType_00_01false_01_4_1_1ConstSelfAdjointViewReturnType.html">   55</a></span>  <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> UpLo&gt; <span class="keyword">struct </span>ConstSelfAdjointViewReturnType {</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> ActualMatrixType::template ConstSelfAdjointViewReturnType&lt;UpLo&gt;::Type <a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a>;</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> ActualMatrixType::template ConstSelfAdjointViewReturnType&lt;UpLo&gt;::Type Type;</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  };</div>
 </div>
 <div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span> </div>
@@ -196,7 +196,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00104" data-start="{" data-end="};">
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1generic__matrix__wrapper_3_01MatrixType_00_01true_01_4_1_1ConstSelfAdjointViewReturnType.html">  104</a></span>  <span class="keyword">template</span>&lt;<span class="keywordtype">int</span> UpLo&gt; <span class="keyword">struct </span>ConstSelfAdjointViewReturnType</div>
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>  {</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keyword">typedef</span> ActualMatrixType <a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a>;</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    <span class="keyword">typedef</span> ActualMatrixType Type;</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>  };</div>
 </div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
@@ -312,9 +312,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>  }</div>
 </div>
 <div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span> </div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> matrix().rows(); }</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>  Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> matrix().rows(); }</div>
 <div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span> </div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> matrix().cols(); }</div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>  Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> matrix().cols(); }</div>
 <div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span> </div>
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#acb442c19b5858d6b9be813dd7d36cc62">  258</a></span>  RealScalar <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#acb442c19b5858d6b9be813dd7d36cc62">tolerance</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_tolerance; }</div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>  </div>
@@ -331,14 +331,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#a640bfaf268c64f35ac3996beece46021">  275</a></span>  <span class="keyword">const</span> Preconditioner&amp; <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#a640bfaf268c64f35ac3996beece46021">preconditioner</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_preconditioner; }</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> </div>
 <div class="foldopen" id="foldopen00281" data-start="{" data-end="}">
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#a168a74c8dceb6233b220031fdd756ba0">  281</a></span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#a168a74c8dceb6233b220031fdd756ba0">maxIterations</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#a168a74c8dceb6233b220031fdd756ba0">  281</a></span>  Index <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#a168a74c8dceb6233b220031fdd756ba0">maxIterations</a>()<span class="keyword"> const</span></div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span><span class="keyword">  </span>{</div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    <span class="keywordflow">return</span> (m_maxIterations&lt;0) ? 2*matrix().cols() : m_maxIterations;</div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>  }</div>
 </div>
 <div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>  </div>
 <div class="foldopen" id="foldopen00289" data-start="{" data-end="}">
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#a1bbaf86b7df6d54e78ced4da6ed2dac1">  289</a></span>  Derived&amp; <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#a1bbaf86b7df6d54e78ced4da6ed2dac1">setMaxIterations</a>(<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">maxIters</a>)</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#a1bbaf86b7df6d54e78ced4da6ed2dac1">  289</a></span>  Derived&amp; <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#a1bbaf86b7df6d54e78ced4da6ed2dac1">setMaxIterations</a>(Index <a class="code hl_class" href="classEigen_1_1Solve.html">maxIters</a>)</div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>  {</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>    m_maxIterations = <a class="code hl_class" href="classEigen_1_1Solve.html">maxIters</a>;</div>
 <div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    <span class="keywordflow">return</span> derived();</div>
@@ -346,7 +346,7 @@ $(document).ready(function() { init_codefold(0); });
 </div>
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span> </div>
 <div class="foldopen" id="foldopen00296" data-start="{" data-end="}">
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#ae778dd098bd5e6655625b20b1e9f15da">  296</a></span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#ae778dd098bd5e6655625b20b1e9f15da">iterations</a>()<span class="keyword"> const</span></div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno"><a class="line" href="classEigen_1_1IterativeSolverBase.html#ae778dd098bd5e6655625b20b1e9f15da">  296</a></span>  Index <a class="code hl_function" href="classEigen_1_1IterativeSolverBase.html#ae778dd098bd5e6655625b20b1e9f15da">iterations</a>()<span class="keyword"> const</span></div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span><span class="keyword">  </span>{</div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    eigen_assert(m_isInitialized &amp;&amp; <span class="stringliteral">&quot;ConjugateGradient is not initialized.&quot;</span>);</div>
 <div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="keywordflow">return</span> m_iterations;</div>
@@ -385,14 +385,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span><span class="keyword">  </span>{</div>
 <div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>    eigen_assert(rows()==b.rows());</div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>    </div>
-<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a> = b.cols();</div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <a class="code hl_struct" href="structIndex.html">Index</a> size = b.rows();</div>
+<div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    Index <a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a> = b.cols();</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    Index size = b.rows();</div>
 <div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">Eigen::Matrix&lt;DestScalar,Dynamic,1&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">tb</a>(size);</div>
 <div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">Eigen::Matrix&lt;DestScalar,Dynamic,1&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">tx</a>(cols());</div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>    <span class="comment">// We do not directly fill dest because sparse expressions have to be free of aliasing issue.</span></div>
 <div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>    <span class="comment">// For non square least-square problems, b and dest might not have the same size whereas they might alias each-other.</span></div>
 <div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">SparseMatrix&lt;DestScalar,DestOptions,DestIndex&gt;</a> tmp(cols(),<a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a>);</div>
-<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> k=0; k&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a>; ++k)</div>
+<div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>    <span class="keywordflow">for</span>(Index k=0; k&lt;<a class="code hl_class" href="classEigen_1_1Solve.html">rhsCols</a>; ++k)</div>
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    {</div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">tb</a> = b.col(k);</div>
 <div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">tx</a> = derived().solve(<a class="code hl_class" href="classEigen_1_1Solve.html">tb</a>);</div>
@@ -428,11 +428,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00378" name="l00378"></a><span class="lineno">  378</span>  MatrixWrapper m_matrixWrapper;</div>
 <div class="line"><a id="l00379" name="l00379"></a><span class="lineno">  379</span>  Preconditioner m_preconditioner;</div>
 <div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span> </div>
-<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>  <a class="code hl_struct" href="structIndex.html">Index</a> m_maxIterations;</div>
+<div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>  Index m_maxIterations;</div>
 <div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>  RealScalar m_tolerance;</div>
 <div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>  </div>
 <div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>  <span class="keyword">mutable</span> RealScalar m_error;</div>
-<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>  <span class="keyword">mutable</span> <a class="code hl_struct" href="structIndex.html">Index</a> m_iterations;</div>
+<div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>  <span class="keyword">mutable</span> Index m_iterations;</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>  <span class="keyword">mutable</span> <a class="code hl_enumeration" href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">ComputationInfo</a> m_info;</div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>  <span class="keyword">mutable</span> <span class="keywordtype">bool</span> m_analysisIsOk, m_factorizationIsOk;</div>
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>};</div>
@@ -462,15 +462,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassEigen_1_1SparseSolverBase_html"><div class="ttname"><a href="classEigen_1_1SparseSolverBase.html">Eigen::SparseSolverBase</a></div><div class="ttdoc">A base class for sparse solvers.</div><div class="ttdef"><b>Definition</b> SparseSolverBase.h:54</div></div>
 <div class="ttc" id="aclassEigen_1_1internal_1_1generic__matrix__wrapper_html"><div class="ttname"><a href="classEigen_1_1internal_1_1generic__matrix__wrapper.html">Eigen::internal::generic_matrix_wrapper</a></div><div class="ttdef"><b>Definition</b> IterativeSolverBase.h:47</div></div>
 <div class="ttc" id="agroup__enums_html_ga85fad7b87587764e5cf6b513a9e0ee5e"><div class="ttname"><a href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">Eigen::ComputationInfo</a></div><div class="ttdeci">ComputationInfo</div><div class="ttdoc">Enum for reporting the status of a computation.</div><div class="ttdef"><b>Definition</b> Constants.h:430</div></div>
-<div class="ttc" id="arapidjson_8h_html_a1d1cfd8ffb84e947f82999c682b666a7"><div class="ttname"><a href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a></div><div class="ttdeci">Type</div><div class="ttdoc">Type of JSON value.</div><div class="ttdef"><b>Definition</b> rapidjson.h:604</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1is__ref__compatible__impl_html"><div class="ttname"><a href="structEigen_1_1internal_1_1is__ref__compatible__impl.html">Eigen::internal::is_ref_compatible_impl</a></div><div class="ttdef"><b>Definition</b> IterativeSolverBase.h:19</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1is__ref__compatible_html"><div class="ttname"><a href="structEigen_1_1internal_1_1is__ref__compatible.html">Eigen::internal::is_ref_compatible</a></div><div class="ttdef"><b>Definition</b> IterativeSolverBase.h:42</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -118,11 +118,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span>}</div>
 <div class="line"><a id="l00038" name="l00038"></a><span class="lineno">   38</span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Iter, <span class="keyword">typename</span> Comp&gt;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keywordtype">void</span> StableSort(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp &amp;&amp;comp) {</div>
-<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>  <span class="keywordflow">if</span> (ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>() &gt; 1) {</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><span class="keywordtype">void</span> StableSort(Context <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp &amp;&amp;comp) {</div>
+<div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>  <span class="keywordflow">if</span> (ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>() &gt; 1) {</div>
 <div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span><span class="preprocessor">#if defined(GCC_HAS_PARALLEL)</span></div>
 <div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>    __gnu_parallel::stable_sort(begin, end, comp,</div>
-<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>                                __gnu_parallel::default_parallel_tag(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>()));</div>
+<div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>                                __gnu_parallel::default_parallel_tag(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>()));</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="preprocessor">#else</span></div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    <span class="comment">// the only stable sort is radix sort for msvc ppl.</span></div>
 <div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>    std::stable_sort(begin, end, comp);</div>
@@ -133,15 +133,15 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>}</div>
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span> </div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="keyword">template</span> &lt;<span class="keyword">typename</span> Iter, <span class="keyword">typename</span> Comp&gt;</div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keywordtype">void</span> Sort(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp comp) {</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">if</span> (ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>() &gt; 1) {</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keywordtype">void</span> Sort(Context <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp comp) {</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">if</span> (ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>() &gt; 1) {</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span><span class="preprocessor">#if defined(GCC_HAS_PARALLEL)</span></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    __gnu_parallel::sort(begin, end, comp, __gnu_parallel::default_parallel_tag(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>()));</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    __gnu_parallel::sort(begin, end, comp, __gnu_parallel::default_parallel_tag(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>()));</div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="preprocessor">#elif defined(MSVC_HAS_PARALLEL)</span></div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>    <span class="keyword">auto</span> n = std::distance(begin, end);</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="comment">// use chunk size as hint to number of threads. No local policy/scheduler input with the</span></div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    <span class="comment">// concurrency module.</span></div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    std::size_t chunk_size = n / ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>();</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>    std::size_t chunk_size = n / ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>();</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="comment">// 2048 is the default of msvc ppl as of v2022.</span></div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    chunk_size = std::max(chunk_size, <span class="keyword">static_cast&lt;</span>std::size_t<span class="keyword">&gt;</span>(2048));</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    concurrency::parallel_sort(begin, end, comp, chunk_size);</div>
@@ -155,7 +155,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>template &lt;typename Idx, typename Iter, typename V = typename std::iterator_traits&lt;Iter&gt;::value_type,</div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>          <span class="keyword">typename</span> Comp = std::less&lt;V&gt;&gt;</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>std::vector&lt;Idx&gt; ArgSort(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp comp = std::less&lt;V&gt;{}) {</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>std::vector&lt;Idx&gt; ArgSort(Context <span class="keyword">const</span> *ctx, Iter begin, Iter end, Comp comp = std::less&lt;V&gt;{}) {</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  CHECK(ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a8ce6a162d793216b43367e1d12fec98e">IsCPU</a>());</div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>  <span class="keyword">auto</span> n = std::distance(begin, end);</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>  std::vector&lt;Idx&gt; result(n);</div>
@@ -178,13 +178,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="preprocessor">#endif  </span><span class="comment">// XGBOOST_COMMON_ALGORITHM_H_</span></div>
 <div class="ttc" id="acontext_8h_html"><div class="ttname"><a href="context_8h.html">context.h</a></div><div class="ttdoc">Copyright 2014-2023, XGBoost Contributors.</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html_a8ce6a162d793216b43367e1d12fec98e"><div class="ttname"><a href="structxgboost_1_1Context.html#a8ce6a162d793216b43367e1d12fec98e">xgboost::Context::IsCPU</a></div><div class="ttdeci">bool IsCPU() const</div><div class="ttdoc">Is XGBoost running on CPU?</div><div class="ttdef"><b>Definition</b> context.h:133</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

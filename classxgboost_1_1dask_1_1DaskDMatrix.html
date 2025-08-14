@@ -95,10 +95,10 @@ Inheritance diagram for xgboost.dask.DaskDMatrix:</div>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a96e1805a3daa251ae3d0c089bd4204b2" id="r_a96e1805a3daa251ae3d0c089bd4204b2"><td class="memItemLeft" align="right" valign="top"><a id="a96e1805a3daa251ae3d0c089bd4204b2" name="a96e1805a3daa251ae3d0c089bd4204b2"></a>
-None&#160;</td><td class="memItemRight" valign="bottom"><b>__init__</b> (self, &quot;distributed.Client&quot; <a class="el" href="structclient.html">client</a>, _DataT data, Optional[_DaskCollection] label=None, *Optional[_DaskCollection] weight=None, Optional[_DaskCollection] base_margin=None, Optional[float] missing=None, bool silent=False, Optional[FeatureNames] feature_names=None, Optional[FeatureTypes] feature_types=None, Optional[_DaskCollection] group=None, Optional[_DaskCollection] qid=None, Optional[_DaskCollection] label_lower_bound=None, Optional[_DaskCollection] label_upper_bound=None, Optional[_DaskCollection] feature_weights=None, bool enable_categorical=False)</td></tr>
+None&#160;</td><td class="memItemRight" valign="bottom"><b>__init__</b> (self, &quot;distributed.Client&quot; client, _DataT data, Optional[_DaskCollection] label=None, *Optional[_DaskCollection] weight=None, Optional[_DaskCollection] base_margin=None, Optional[float] missing=None, bool silent=False, Optional[FeatureNames] feature_names=None, Optional[FeatureTypes] feature_types=None, Optional[_DaskCollection] group=None, Optional[_DaskCollection] qid=None, Optional[_DaskCollection] label_lower_bound=None, Optional[_DaskCollection] label_upper_bound=None, Optional[_DaskCollection] feature_weights=None, bool enable_categorical=False)</td></tr>
 <tr class="separator:a96e1805a3daa251ae3d0c089bd4204b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a26b8360ab3fded7c7dcbd947ed7db359" id="r_a26b8360ab3fded7c7dcbd947ed7db359"><td class="memItemLeft" align="right" valign="top"><a id="a26b8360ab3fded7c7dcbd947ed7db359" name="a26b8360ab3fded7c7dcbd947ed7db359"></a>
-<a class="el" href="classGenerator.html">Generator</a>&#160;</td><td class="memItemRight" valign="bottom"><b>__await__</b> (self)</td></tr>
+Generator&#160;</td><td class="memItemRight" valign="bottom"><b>__await__</b> (self)</td></tr>
 <tr class="separator:a26b8360ab3fded7c7dcbd947ed7db359"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4f8801f702159389817194073c8c585e" id="r_a4f8801f702159389817194073c8c585e"><td class="memItemLeft" align="right" valign="top">int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1dask_1_1DaskDMatrix.html#a4f8801f702159389817194073c8c585e">num_col</a> (self)</td></tr>
 <tr class="separator:a4f8801f702159389817194073c8c585e"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -132,7 +132,7 @@ Data Fields</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:a27181d0f733453844524b69c1d82b6ac" id="r_a27181d0f733453844524b69c1d82b6ac"><td class="memItemLeft" align="right" valign="top">&quot;DaskDMatrix&quot;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1dask_1_1DaskDMatrix.html#a27181d0f733453844524b69c1d82b6ac">_map_local_data</a> (self, &quot;distributed.Client&quot; <a class="el" href="structclient.html">client</a>, _DataT data, Optional[_DaskCollection] label=None, Optional[_DaskCollection] weights=None, Optional[_DaskCollection] base_margin=None, Optional[_DaskCollection] qid=None, Optional[_DaskCollection] feature_weights=None, Optional[_DaskCollection] label_lower_bound=None, Optional[_DaskCollection] label_upper_bound=None)</td></tr>
+<tr class="memitem:a27181d0f733453844524b69c1d82b6ac" id="r_a27181d0f733453844524b69c1d82b6ac"><td class="memItemLeft" align="right" valign="top">&quot;DaskDMatrix&quot;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1dask_1_1DaskDMatrix.html#a27181d0f733453844524b69c1d82b6ac">_map_local_data</a> (self, &quot;distributed.Client&quot; client, _DataT data, Optional[_DaskCollection] label=None, Optional[_DaskCollection] weights=None, Optional[_DaskCollection] base_margin=None, Optional[_DaskCollection] qid=None, Optional[_DaskCollection] feature_weights=None, Optional[_DaskCollection] label_lower_bound=None, Optional[_DaskCollection] label_upper_bound=None)</td></tr>
 <tr class="separator:a27181d0f733453844524b69c1d82b6ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6bcbe9c03b093529b9da479eb1b10ba2" id="r_a6bcbe9c03b093529b9da479eb1b10ba2"><td class="memItemLeft" align="right" valign="top">Dict[str, Any]&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classxgboost_1_1dask_1_1DaskDMatrix.html#a6bcbe9c03b093529b9da479eb1b10ba2">_create_fn_args</a> (self, str worker_addr)</td></tr>
 <tr class="separator:a6bcbe9c03b093529b9da479eb1b10ba2"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -321,7 +321,7 @@ number of columns
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

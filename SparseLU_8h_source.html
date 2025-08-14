@@ -159,8 +159,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    } </div>
 </div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>    </div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_mat.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_mat.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    <span class="keyword">inline</span> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_mat.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#a7cecdfd0e1c0f2f4b53e29d3aaa0cccd">rows</a>(); }</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <span class="keyword">inline</span> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_mat.<a class="code hl_function" href="classEigen_1_1SparseMatrix.html#aa692a3b7fa8752d52fbf29132f022bf2">cols</a>(); }</div>
 <div class="foldopen" id="foldopen00135" data-start="{" data-end="}">
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno"><a class="line" href="classEigen_1_1SparseLU.html#afff3bd506cd78172e5219c707562729f">  135</a></span>    <span class="keywordtype">void</span> <a class="code hl_function" href="classEigen_1_1SparseLU.html#afff3bd506cd78172e5219c707562729f">isSymmetric</a>(<span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1Solve.html">sym</a>)</div>
 <div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>    {</div>
@@ -233,16 +233,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>      X.resize(B.rows(),B.cols());</div>
 <div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span> </div>
 <div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>      <span class="comment">// this ugly const_cast_derived() helps to detect aliasing when applying the permutations</span></div>
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>      <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; B.cols(); ++j)</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>        X.col(j) = <a class="code hl_function" href="classEigen_1_1SparseLU.html#abae9898724d4a3a79b85c85a4af7251d">rowsPermutation</a>() * B.const_cast_derived().col(j);</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>      <span class="keywordflow">for</span>(Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; B.cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>        X.col(<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) = <a class="code hl_function" href="classEigen_1_1SparseLU.html#abae9898724d4a3a79b85c85a4af7251d">rowsPermutation</a>() * B.const_cast_derived().col(<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>);</div>
 <div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>      </div>
 <div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>      <span class="comment">//Forward substitution with L</span></div>
 <div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>      this-&gt;<a class="code hl_function" href="classEigen_1_1SparseLU.html#a4f00118ca89df6528b41169dc4fe2f5d">matrixL</a>().solveInPlace(X);</div>
 <div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>      this-&gt;<a class="code hl_function" href="classEigen_1_1SparseLU.html#aed9923a511defdeb00b729880d1c8c1d">matrixU</a>().solveInPlace(X);</div>
 <div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>      </div>
 <div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>      <span class="comment">// Permute back the solution </span></div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; B.cols(); ++j)</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>        X.col(j) = <a class="code hl_function" href="classEigen_1_1SparseLU.html#a0af5167311511098d0c2c2b0d3055a8c">colsPermutation</a>().<a class="code hl_function" href="classEigen_1_1PermutationBase.html#adb9af427f317202366c2832876064eb3">inverse</a>() * X.col(j);</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; B.cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>        X.col(<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) = <a class="code hl_function" href="classEigen_1_1SparseLU.html#a0af5167311511098d0c2c2b0d3055a8c">colsPermutation</a>().inverse() * X.col(<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>);</div>
 <div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>      </div>
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>      <span class="keywordflow">return</span> <span class="keyword">true</span>; </div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    }</div>
@@ -256,11 +256,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>      Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = Scalar(1.);</div>
 <div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>      <span class="comment">// Note that the diagonal blocks of U are stored in supernodes,</span></div>
 <div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span>      <span class="comment">// which are available in the  L part :)</span></div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; this-&gt;cols(); ++j)</div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; this-&gt;cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>      {</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, j); it; ++it)</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>); it; ++it)</div>
 <div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>        {</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>          <span class="keywordflow">if</span>(it.index() == j)</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>          <span class="keywordflow">if</span>(it.index() == <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>          {</div>
 <div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>            <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> *= abs(it.value());</div>
 <div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>            <span class="keywordflow">break</span>;</div>
@@ -279,12 +279,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span> </div>
 <div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>      eigen_assert(m_factorizationIsOk &amp;&amp; <span class="stringliteral">&quot;The matrix should be factorized first.&quot;</span>);</div>
 <div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>      Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = Scalar(0.);</div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; this-&gt;cols(); ++j)</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; this-&gt;cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span>      {</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, j); it; ++it)</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>); it; ++it)</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>        {</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>          <span class="keywordflow">if</span>(it.row() &lt; j) <span class="keywordflow">continue</span>;</div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>          <span class="keywordflow">if</span>(it.row() == j)</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>          <span class="keywordflow">if</span>(it.row() &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) <span class="keywordflow">continue</span>;</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>          <span class="keywordflow">if</span>(it.row() == <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>          {</div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>            <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> += log(abs(it.value()));</div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>            <span class="keywordflow">break</span>;</div>
@@ -300,14 +300,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    {</div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>      eigen_assert(m_factorizationIsOk &amp;&amp; <span class="stringliteral">&quot;The matrix should be factorized first.&quot;</span>);</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>      <span class="comment">// Initialize with the determinant of the row matrix</span></div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = 1;</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = 1;</div>
 <div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>      <span class="comment">// Note that the diagonal blocks of U are stored in supernodes,</span></div>
 <div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>      <span class="comment">// which are available in the  L part :)</span></div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; this-&gt;cols(); ++j)</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; this-&gt;cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>      {</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, j); it; ++it)</div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>); it; ++it)</div>
 <div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>        {</div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>          <span class="keywordflow">if</span>(it.index() == j)</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>          <span class="keywordflow">if</span>(it.index() == <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>          {</div>
 <div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span>            <span class="keywordflow">if</span>(it.value()&lt;0)</div>
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>              <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = -<a class="code hl_class" href="classEigen_1_1Solve.html">det</a>;</div>
@@ -329,11 +329,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span>      Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> = Scalar(1.);</div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>      <span class="comment">// Note that the diagonal blocks of U are stored in supernodes,</span></div>
 <div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span>      <span class="comment">// which are available in the  L part :)</span></div>
-<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; this-&gt;cols(); ++j)</div>
+<div class="line"><a id="l00344" name="l00344"></a><span class="lineno">  344</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; this-&gt;cols(); ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span>      {</div>
-<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, j); it; ++it)</div>
+<div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>        <span class="keywordflow">for</span> (<span class="keyword">typename</span> SCMatrix::InnerIterator it(m_Lstore, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>); it; ++it)</div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>        {</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>          <span class="keywordflow">if</span>(it.index() == j)</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>          <span class="keywordflow">if</span>(it.index() == <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>          {</div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>            <a class="code hl_class" href="classEigen_1_1Solve.html">det</a> *= it.value();</div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>            <span class="keywordflow">break</span>;</div>
@@ -375,8 +375,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>    <span class="comment">// values for performance </span></div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    internal::perfvalues m_perfv;</div>
 <div class="line"><a id="l00388" name="l00388"></a><span class="lineno">  388</span>    RealScalar m_diagpivotthresh; <span class="comment">// Specifies the threshold used for a diagonal entry to be an acceptable pivot</span></div>
-<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>    <a class="code hl_struct" href="structIndex.html">Index</a> m_nnzL, m_nnzU; <span class="comment">// Nonzeros in L and U factors</span></div>
-<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>    <a class="code hl_struct" href="structIndex.html">Index</a> m_detPermR, m_detPermC; <span class="comment">// Determinants of the permutation matrices</span></div>
+<div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span>    Index m_nnzL, m_nnzU; <span class="comment">// Nonzeros in L and U factors</span></div>
+<div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span>    Index m_detPermR, m_detPermC; <span class="comment">// Determinants of the permutation matrices</span></div>
 <div class="line"><a id="l00391" name="l00391"></a><span class="lineno">  391</span>  <span class="keyword">private</span>:</div>
 <div class="line"><a id="l00392" name="l00392"></a><span class="lineno">  392</span>    <span class="comment">// Disable copy constructor </span></div>
 <div class="line"><a id="l00393" name="l00393"></a><span class="lineno">  393</span>    SparseLU (<span class="keyword">const</span> SparseLU&amp; );</div>
@@ -413,7 +413,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00432" name="l00432"></a><span class="lineno">  432</span>      IndexVector::Map(outerIndexPtr, <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols()+1) = IndexVector::Map(m_mat.outerIndexPtr(),<a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols()+1);</div>
 <div class="line"><a id="l00433" name="l00433"></a><span class="lineno">  433</span>    </div>
 <div class="line"><a id="l00434" name="l00434"></a><span class="lineno">  434</span>    <span class="comment">// Apply the permutation and compute the nnz per column.</span></div>
-<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols(); i++)</div>
+<div class="line"><a id="l00435" name="l00435"></a><span class="lineno">  435</span>    <span class="keywordflow">for</span> (Index i = 0; i &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">mat</a>.cols(); i++)</div>
 <div class="line"><a id="l00436" name="l00436"></a><span class="lineno">  436</span>    {</div>
 <div class="line"><a id="l00437" name="l00437"></a><span class="lineno">  437</span>      m_mat.outerIndexPtr()[m_perm_c.indices()(i)] = outerIndexPtr[i];</div>
 <div class="line"><a id="l00438" name="l00438"></a><span class="lineno">  438</span>      m_mat.innerNonZeroPtr()[m_perm_c.indices()(i)] = outerIndexPtr[i+1] - outerIndexPtr[i];</div>
@@ -432,14 +432,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00451" name="l00451"></a><span class="lineno">  451</span>      </div>
 <div class="line"><a id="l00452" name="l00452"></a><span class="lineno">  452</span>   </div>
 <div class="line"><a id="l00453" name="l00453"></a><span class="lineno">  453</span>    <span class="comment">// Renumber etree in postorder </span></div>
-<div class="line"><a id="l00454" name="l00454"></a><span class="lineno">  454</span>    <a class="code hl_struct" href="structIndex.html">Index</a> m = m_mat.cols(); </div>
+<div class="line"><a id="l00454" name="l00454"></a><span class="lineno">  454</span>    Index m = m_mat.cols(); </div>
 <div class="line"><a id="l00455" name="l00455"></a><span class="lineno">  455</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">iwork</a>.resize(m+1);</div>
-<div class="line"><a id="l00456" name="l00456"></a><span class="lineno">  456</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; m; ++i) <a class="code hl_class" href="classEigen_1_1Solve.html">iwork</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">post</a>(i)) = <a class="code hl_class" href="classEigen_1_1Solve.html">post</a>(m_etree(i));</div>
+<div class="line"><a id="l00456" name="l00456"></a><span class="lineno">  456</span>    <span class="keywordflow">for</span> (Index i = 0; i &lt; m; ++i) <a class="code hl_class" href="classEigen_1_1Solve.html">iwork</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">post</a>(i)) = <a class="code hl_class" href="classEigen_1_1Solve.html">post</a>(m_etree(i));</div>
 <div class="line"><a id="l00457" name="l00457"></a><span class="lineno">  457</span>    m_etree = <a class="code hl_class" href="classEigen_1_1Solve.html">iwork</a>;</div>
 <div class="line"><a id="l00458" name="l00458"></a><span class="lineno">  458</span>    </div>
 <div class="line"><a id="l00459" name="l00459"></a><span class="lineno">  459</span>    <span class="comment">// Postmultiply A*Pc by post, i.e reorder the matrix according to the postorder of the etree</span></div>
 <div class="line"><a id="l00460" name="l00460"></a><span class="lineno">  460</span>    <a class="code hl_class" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> <a class="code hl_class" href="classEigen_1_1Solve.html">post_perm</a>(m); </div>
-<div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; m; i++) </div>
+<div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span>    <span class="keywordflow">for</span> (Index i = 0; i &lt; m; i++) </div>
 <div class="line"><a id="l00462" name="l00462"></a><span class="lineno">  462</span>      <a class="code hl_class" href="classEigen_1_1Solve.html">post_perm</a>.indices()(i) = <a class="code hl_class" href="classEigen_1_1Solve.html">post</a>(i); </div>
 <div class="line"><a id="l00463" name="l00463"></a><span class="lineno">  463</span>        </div>
 <div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span>    <span class="comment">// Combine the two permutations : postorder the permutation for future use</span></div>
@@ -481,10 +481,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>    <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span>    {</div>
 <div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span>      StorageIndex* <a class="code hl_class" href="classEigen_1_1Solve.html">outerIndexPtr_t</a> = <span class="keyword">new</span> StorageIndex[matrix.cols()+1];</div>
-<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span>      <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt;= matrix.cols(); i++) <a class="code hl_class" href="classEigen_1_1Solve.html">outerIndexPtr_t</a>[i] = m_mat.outerIndexPtr()[i];</div>
+<div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span>      <span class="keywordflow">for</span>(Index i = 0; i &lt;= matrix.cols(); i++) <a class="code hl_class" href="classEigen_1_1Solve.html">outerIndexPtr_t</a>[i] = m_mat.outerIndexPtr()[i];</div>
 <div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span>      outerIndexPtr = <a class="code hl_class" href="classEigen_1_1Solve.html">outerIndexPtr_t</a>;</div>
 <div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span>    }</div>
-<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> i = 0; i &lt; matrix.cols(); i++)</div>
+<div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>    <span class="keywordflow">for</span> (Index i = 0; i &lt; matrix.cols(); i++)</div>
 <div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span>    {</div>
 <div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span>      m_mat.outerIndexPtr()[m_perm_c.indices()(i)] = outerIndexPtr[i];</div>
 <div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>      m_mat.innerNonZeroPtr()[m_perm_c.indices()(i)] = outerIndexPtr[i+1] - outerIndexPtr[i];</div>
@@ -497,13 +497,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00532" name="l00532"></a><span class="lineno">  532</span>    <span class="keywordflow">for</span>(StorageIndex i = 0; i &lt; matrix.cols(); ++i) m_perm_c.indices()(i) = i;</div>
 <div class="line"><a id="l00533" name="l00533"></a><span class="lineno">  533</span>  }</div>
 <div class="line"><a id="l00534" name="l00534"></a><span class="lineno">  534</span>  </div>
-<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>  <a class="code hl_struct" href="structIndex.html">Index</a> m = m_mat.rows();</div>
-<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>  <a class="code hl_struct" href="structIndex.html">Index</a> n = m_mat.cols();</div>
-<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>  <a class="code hl_struct" href="structIndex.html">Index</a> nnz = m_mat.nonZeros();</div>
-<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">maxpanel</a> = m_perfv.panel_size * m;</div>
+<div class="line"><a id="l00535" name="l00535"></a><span class="lineno">  535</span>  Index m = m_mat.rows();</div>
+<div class="line"><a id="l00536" name="l00536"></a><span class="lineno">  536</span>  Index n = m_mat.cols();</div>
+<div class="line"><a id="l00537" name="l00537"></a><span class="lineno">  537</span>  Index nnz = m_mat.nonZeros();</div>
+<div class="line"><a id="l00538" name="l00538"></a><span class="lineno">  538</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">maxpanel</a> = m_perfv.panel_size * m;</div>
 <div class="line"><a id="l00539" name="l00539"></a><span class="lineno">  539</span>  <span class="comment">// Allocate working storage common to the factor routines</span></div>
-<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">lwork</a> = 0;</div>
-<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>  <a class="code hl_struct" href="structIndex.html">Index</a> info = Base::memInit(m, n, nnz, <a class="code hl_class" href="classEigen_1_1Solve.html">lwork</a>, m_perfv.fillfactor, m_perfv.panel_size, m_glu); </div>
+<div class="line"><a id="l00540" name="l00540"></a><span class="lineno">  540</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">lwork</a> = 0;</div>
+<div class="line"><a id="l00541" name="l00541"></a><span class="lineno">  541</span>  Index info = Base::memInit(m, n, nnz, <a class="code hl_class" href="classEigen_1_1Solve.html">lwork</a>, m_perfv.fillfactor, m_perfv.panel_size, m_glu); </div>
 <div class="line"><a id="l00542" name="l00542"></a><span class="lineno">  542</span>  <span class="keywordflow">if</span> (info) </div>
 <div class="line"><a id="l00543" name="l00543"></a><span class="lineno">  543</span>  {</div>
 <div class="line"><a id="l00544" name="l00544"></a><span class="lineno">  544</span>    m_lastError = <span class="stringliteral">&quot;UNABLE TO ALLOCATE WORKING MEMORY\n\n&quot;</span> ;</div>
@@ -546,22 +546,22 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>  m_detPermR = 1; <span class="comment">// Record the determinant of the row permutation</span></div>
 <div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span>  </div>
 <div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span>  m_glu.supno(0) = emptyIdxLU; m_glu.xsup.setConstant(0);</div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>  m_glu.xsup(0) = m_glu.xlsub(0) = m_glu.xusub(0) = m_glu.xlusup(0) = <a class="code hl_struct" href="structIndex.html">Index</a>(0);</div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span>  m_glu.xsup(0) = m_glu.xlsub(0) = m_glu.xusub(0) = m_glu.xlusup(0) = Index(0);</div>
 <div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>  </div>
 <div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>  <span class="comment">// Work on one &#39;panel&#39; at a time. A panel is one of the following :</span></div>
 <div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>  <span class="comment">//  (a) a relaxed supernode at the bottom of the etree, or</span></div>
 <div class="line"><a id="l00588" name="l00588"></a><span class="lineno">  588</span>  <span class="comment">//  (b) panel_size contiguous columns, &lt;panel_size&gt; defined by the user</span></div>
-<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>; </div>
+<div class="line"><a id="l00589" name="l00589"></a><span class="lineno">  589</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>; </div>
 <div class="line"><a id="l00590" name="l00590"></a><span class="lineno">  590</span>  <a class="code hl_class" href="classEigen_1_1Matrix.html">IndexVector</a> <a class="code hl_class" href="classEigen_1_1Solve.html">panel_histo</a>(n);</div>
-<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">pivrow</a>; <span class="comment">// Pivotal row number in the original row matrix</span></div>
-<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">nseg1</a>; <span class="comment">// Number of segments in U-column above panel row jcol</span></div>
-<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">nseg</a>; <span class="comment">// Number of segments in each U-column </span></div>
-<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>  <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">irep</a>; </div>
-<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>  <a class="code hl_struct" href="structIndex.html">Index</a> i, k, <a class="code hl_class" href="classEigen_1_1Solve.html">jj</a>; </div>
+<div class="line"><a id="l00591" name="l00591"></a><span class="lineno">  591</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">pivrow</a>; <span class="comment">// Pivotal row number in the original row matrix</span></div>
+<div class="line"><a id="l00592" name="l00592"></a><span class="lineno">  592</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">nseg1</a>; <span class="comment">// Number of segments in U-column above panel row jcol</span></div>
+<div class="line"><a id="l00593" name="l00593"></a><span class="lineno">  593</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">nseg</a>; <span class="comment">// Number of segments in each U-column </span></div>
+<div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>  Index <a class="code hl_class" href="classEigen_1_1Solve.html">irep</a>; </div>
+<div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>  Index i, k, <a class="code hl_class" href="classEigen_1_1Solve.html">jj</a>; </div>
 <div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span>  <span class="keywordflow">for</span> (<a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> &lt; n; )</div>
 <div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span>  {</div>
 <div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>    <span class="comment">// Adjust panel size so that a panel won&#39;t overlap with the next relaxed snode. </span></div>
-<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>    <a class="code hl_struct" href="structIndex.html">Index</a> panel_size = m_perfv.panel_size; <span class="comment">// upper bound on panel width</span></div>
+<div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>    Index panel_size = m_perfv.panel_size; <span class="comment">// upper bound on panel width</span></div>
 <div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>    <span class="keywordflow">for</span> (k = <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> + 1; k &lt; (std::min)(<a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>+panel_size, n); k++)</div>
 <div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>    {</div>
 <div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>      <span class="keywordflow">if</span> (<a class="code hl_class" href="classEigen_1_1Solve.html">relax_end</a>(k) != emptyIdxLU) </div>
@@ -673,8 +673,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00706" name="l00706"></a><span class="lineno">  706</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> MappedSupernodalType::Scalar Scalar;</div>
 <div class="line"><a id="l00707" name="l00707"></a><span class="lineno">  707</span>  <span class="keyword">explicit</span> <a class="code hl_struct" href="structEigen_1_1SparseLUMatrixLReturnType.html">SparseLUMatrixLReturnType</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MappedSupernodalType</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">mapL</a>) : m_mapL(<a class="code hl_class" href="classEigen_1_1Solve.html">mapL</a>)</div>
 <div class="line"><a id="l00708" name="l00708"></a><span class="lineno">  708</span>  { }</div>
-<div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows() { <span class="keywordflow">return</span> m_mapL.rows(); }</div>
-<div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols() { <span class="keywordflow">return</span> m_mapL.cols(); }</div>
+<div class="line"><a id="l00709" name="l00709"></a><span class="lineno">  709</span>  Index rows() { <span class="keywordflow">return</span> m_mapL.rows(); }</div>
+<div class="line"><a id="l00710" name="l00710"></a><span class="lineno">  710</span>  Index cols() { <span class="keywordflow">return</span> m_mapL.cols(); }</div>
 <div class="line"><a id="l00711" name="l00711"></a><span class="lineno">  711</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Dest&gt;</div>
 <div class="line"><a id="l00712" name="l00712"></a><span class="lineno">  712</span>  <span class="keywordtype">void</span> solveInPlace( <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Dest&gt;</a> &amp;X)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00713" name="l00713"></a><span class="lineno">  713</span><span class="keyword">  </span>{</div>
@@ -692,44 +692,44 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span>  <a class="code hl_struct" href="structEigen_1_1SparseLUMatrixUReturnType.html">SparseLUMatrixUReturnType</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixLType</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">mapL</a>, <span class="keyword">const</span> MatrixUType&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">mapU</a>)</div>
 <div class="line"><a id="l00724" name="l00724"></a><span class="lineno">  724</span>  : m_mapL(<a class="code hl_class" href="classEigen_1_1Solve.html">mapL</a>),m_mapU(<a class="code hl_class" href="classEigen_1_1Solve.html">mapU</a>)</div>
 <div class="line"><a id="l00725" name="l00725"></a><span class="lineno">  725</span>  { }</div>
-<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span>  <a class="code hl_struct" href="structIndex.html">Index</a> rows() { <span class="keywordflow">return</span> m_mapL.rows(); }</div>
-<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span>  <a class="code hl_struct" href="structIndex.html">Index</a> cols() { <span class="keywordflow">return</span> m_mapL.cols(); }</div>
+<div class="line"><a id="l00726" name="l00726"></a><span class="lineno">  726</span>  Index rows() { <span class="keywordflow">return</span> m_mapL.rows(); }</div>
+<div class="line"><a id="l00727" name="l00727"></a><span class="lineno">  727</span>  Index cols() { <span class="keywordflow">return</span> m_mapL.cols(); }</div>
 <div class="line"><a id="l00728" name="l00728"></a><span class="lineno">  728</span> </div>
 <div class="line"><a id="l00729" name="l00729"></a><span class="lineno">  729</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Dest&gt;   <span class="keywordtype">void</span> solveInPlace(<a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Dest&gt;</a> &amp;X)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00730" name="l00730"></a><span class="lineno">  730</span><span class="keyword">  </span>{</div>
-<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span>    <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a> = X.cols();</div>
-<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span>    <a class="code hl_struct" href="structIndex.html">Index</a> n    = X.rows();</div>
+<div class="line"><a id="l00731" name="l00731"></a><span class="lineno">  731</span>    Index <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a> = X.cols();</div>
+<div class="line"><a id="l00732" name="l00732"></a><span class="lineno">  732</span>    Index n    = X.rows();</div>
 <div class="line"><a id="l00733" name="l00733"></a><span class="lineno">  733</span>    <span class="comment">// Backward solve with U</span></div>
-<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span>    <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> k = m_mapL.nsuper(); k &gt;= 0; k--)</div>
+<div class="line"><a id="l00734" name="l00734"></a><span class="lineno">  734</span>    <span class="keywordflow">for</span> (Index k = m_mapL.nsuper(); k &gt;= 0; k--)</div>
 <div class="line"><a id="l00735" name="l00735"></a><span class="lineno">  735</span>    {</div>
-<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a> = m_mapL.supToCol()[k];</div>
-<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_struct" href="structlda.html">lda</a> = m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>+1] - m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>]; <span class="comment">// leading dimension</span></div>
-<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a> = m_mapL.supToCol()[k+1] - <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>;</div>
-<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span>      <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a> = m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>];</div>
+<div class="line"><a id="l00736" name="l00736"></a><span class="lineno">  736</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a> = m_mapL.supToCol()[k];</div>
+<div class="line"><a id="l00737" name="l00737"></a><span class="lineno">  737</span>      Index lda = m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>+1] - m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>]; <span class="comment">// leading dimension</span></div>
+<div class="line"><a id="l00738" name="l00738"></a><span class="lineno">  738</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a> = m_mapL.supToCol()[k+1] - <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>;</div>
+<div class="line"><a id="l00739" name="l00739"></a><span class="lineno">  739</span>      Index <a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a> = m_mapL.colIndexPtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>];</div>
 <div class="line"><a id="l00740" name="l00740"></a><span class="lineno">  740</span> </div>
 <div class="line"><a id="l00741" name="l00741"></a><span class="lineno">  741</span>      <span class="keywordflow">if</span> (<a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a> == 1)</div>
 <div class="line"><a id="l00742" name="l00742"></a><span class="lineno">  742</span>      {</div>
-<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>        <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>; j++)</div>
+<div class="line"><a id="l00743" name="l00743"></a><span class="lineno">  743</span>        <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>++)</div>
 <div class="line"><a id="l00744" name="l00744"></a><span class="lineno">  744</span>        {</div>
-<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span>          X(<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>, j) /= m_mapL.valuePtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a>];</div>
+<div class="line"><a id="l00745" name="l00745"></a><span class="lineno">  745</span>          X(<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) /= m_mapL.valuePtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a>];</div>
 <div class="line"><a id="l00746" name="l00746"></a><span class="lineno">  746</span>        }</div>
 <div class="line"><a id="l00747" name="l00747"></a><span class="lineno">  747</span>      }</div>
 <div class="line"><a id="l00748" name="l00748"></a><span class="lineno">  748</span>      <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00749" name="l00749"></a><span class="lineno">  749</span>      {</div>
-<div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span>        <a class="code hl_class" href="classEigen_1_1Solve.html">Map&lt;const Matrix&lt;Scalar,Dynamic,Dynamic, ColMajor&gt;</a>, 0, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a> &gt; A( &amp;(m_mapL.valuePtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a>]), <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a>(<a class="code hl_struct" href="structlda.html">lda</a>) );</div>
-<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span>        <a class="code hl_class" href="classEigen_1_1Solve.html">Map&lt; Matrix&lt;Scalar,Dynamic,Dynamic, ColMajor&gt;</a>, 0, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a> &gt; U (&amp;(X(<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>,0)), <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a>(n) );</div>
-<div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span>        U = A.template <a class="code hl_class" href="classEigen_1_1Solve.html">triangularView&lt;Upper&gt;</a>().solve(U);</div>
+<div class="line"><a id="l00750" name="l00750"></a><span class="lineno">  750</span>        <a class="code hl_class" href="classEigen_1_1Solve.html">Map&lt;const Matrix&lt;Scalar,Dynamic,Dynamic, ColMajor&gt;</a>, 0, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a> &gt; A( &amp;(m_mapL.valuePtr()[<a class="code hl_class" href="classEigen_1_1Solve.html">luptr</a>]), <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a>(lda) );</div>
+<div class="line"><a id="l00751" name="l00751"></a><span class="lineno">  751</span>        <a class="code hl_class" href="classEigen_1_1Solve.html">Map&lt; Matrix&lt;Scalar,Dynamic,Dynamic, ColMajor&gt;</a>, 0, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a> &gt; <a class="code hl_class" href="classEigen_1_1Solve.html">U</a> (&amp;(X(<a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>,0)), <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">OuterStride&lt;&gt;</a>(n) );</div>
+<div class="line"><a id="l00752" name="l00752"></a><span class="lineno">  752</span>        <a class="code hl_class" href="classEigen_1_1Solve.html">U</a> = A.template <a class="code hl_class" href="classEigen_1_1Solve.html">triangularView&lt;Upper&gt;</a>().solve(<a class="code hl_class" href="classEigen_1_1Solve.html">U</a>);</div>
 <div class="line"><a id="l00753" name="l00753"></a><span class="lineno">  753</span>      }</div>
 <div class="line"><a id="l00754" name="l00754"></a><span class="lineno">  754</span> </div>
-<div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span>      <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> j = 0; j &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>; ++j)</div>
+<div class="line"><a id="l00755" name="l00755"></a><span class="lineno">  755</span>      <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> = 0; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a> &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">nrhs</a>; ++<a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00756" name="l00756"></a><span class="lineno">  756</span>      {</div>
-<div class="line"><a id="l00757" name="l00757"></a><span class="lineno">  757</span>        <span class="keywordflow">for</span> (<a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>; <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a> + <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>; <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>++)</div>
+<div class="line"><a id="l00757" name="l00757"></a><span class="lineno">  757</span>        <span class="keywordflow">for</span> (Index <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> = <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a>; <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a> &lt; <a class="code hl_class" href="classEigen_1_1Solve.html">fsupc</a> + <a class="code hl_class" href="classEigen_1_1Solve.html">nsupc</a>; <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>++)</div>
 <div class="line"><a id="l00758" name="l00758"></a><span class="lineno">  758</span>        {</div>
 <div class="line"><a id="l00759" name="l00759"></a><span class="lineno">  759</span>          <span class="keyword">typename</span> MatrixUType::InnerIterator it(m_mapU, <a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>);</div>
 <div class="line"><a id="l00760" name="l00760"></a><span class="lineno">  760</span>          <span class="keywordflow">for</span> ( ; it; ++it)</div>
 <div class="line"><a id="l00761" name="l00761"></a><span class="lineno">  761</span>          {</div>
-<div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>            <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">irow</a> = it.index();</div>
-<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>            X(<a class="code hl_class" href="classEigen_1_1Solve.html">irow</a>, j) -= X(<a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>, j) * it.value();</div>
+<div class="line"><a id="l00762" name="l00762"></a><span class="lineno">  762</span>            Index <a class="code hl_class" href="classEigen_1_1Solve.html">irow</a> = it.index();</div>
+<div class="line"><a id="l00763" name="l00763"></a><span class="lineno">  763</span>            X(<a class="code hl_class" href="classEigen_1_1Solve.html">irow</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) -= X(<a class="code hl_class" href="classEigen_1_1Solve.html">jcol</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>) * it.value();</div>
 <div class="line"><a id="l00764" name="l00764"></a><span class="lineno">  764</span>          }</div>
 <div class="line"><a id="l00765" name="l00765"></a><span class="lineno">  765</span>        }</div>
 <div class="line"><a id="l00766" name="l00766"></a><span class="lineno">  766</span>      }</div>
@@ -744,7 +744,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00774" name="l00774"></a><span class="lineno">  774</span> </div>
 <div class="line"><a id="l00775" name="l00775"></a><span class="lineno">  775</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="aclassEigen_1_1Matrix_html"><div class="ttname"><a href="classEigen_1_1Matrix.html">Eigen::Matrix&lt; Scalar, Dynamic, 1 &gt;</a></div></div>
-<div class="ttc" id="aclassEigen_1_1PermutationBase_html_adb9af427f317202366c2832876064eb3"><div class="ttname"><a href="classEigen_1_1PermutationBase.html#adb9af427f317202366c2832876064eb3">Eigen::PermutationBase::inverse</a></div><div class="ttdeci">InverseReturnType inverse() const</div><div class="ttdef"><b>Definition</b> PermutationMatrix.h:197</div></div>
 <div class="ttc" id="aclassEigen_1_1PermutationMatrix_html"><div class="ttname"><a href="classEigen_1_1PermutationMatrix.html">Eigen::PermutationMatrix&lt; Dynamic, Dynamic, StorageIndex &gt;</a></div></div>
 <div class="ttc" id="aclassEigen_1_1PlainObjectBase_html_ab8b732ae4d45271b2532978ee13210d1"><div class="ttname"><a href="classEigen_1_1PlainObjectBase.html#ab8b732ae4d45271b2532978ee13210d1">Eigen::PlainObjectBase::setZero</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC Derived &amp; setZero(Index size)</div><div class="ttdoc">Resizes to the given size, and sets all coefficients in this expression to zero.</div><div class="ttdef"><b>Definition</b> CwiseNullaryOp.h:520</div></div>
 <div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
@@ -778,12 +777,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:61</div></div>
 <div class="ttc" id="astructEigen_1_1SparseLUMatrixLReturnType_html"><div class="ttname"><a href="structEigen_1_1SparseLUMatrixLReturnType.html">Eigen::SparseLUMatrixLReturnType</a></div><div class="ttdef"><b>Definition</b> SparseLU.h:705</div></div>
 <div class="ttc" id="astructEigen_1_1SparseLUMatrixUReturnType_html"><div class="ttname"><a href="structEigen_1_1SparseLUMatrixUReturnType.html">Eigen::SparseLUMatrixUReturnType</a></div><div class="ttdef"><b>Definition</b> SparseLU.h:721</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
-<div class="ttc" id="astructlda_html"><div class="ttname"><a href="structlda.html">lda</a></div><div class="ttdef"><b>Definition</b> lda_core.cc:54</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:37 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

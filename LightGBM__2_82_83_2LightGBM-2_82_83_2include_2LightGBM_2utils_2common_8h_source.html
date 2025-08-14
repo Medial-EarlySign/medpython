@@ -281,14 +281,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>    <span class="comment">// Get digits after decimal point, if any.</span></div>
 <div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>    <span class="keywordflow">if</span> (*p == <span class="charliteral">&#39;.&#39;</span>) {</div>
 <div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>      <span class="keywordtype">double</span> right = 0.0;</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>      <span class="keywordtype">int</span> <a class="code hl_struct" href="structnn.html">nn</a> = 0;</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>      <span class="keywordtype">int</span> nn = 0;</div>
 <div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>      ++p;</div>
 <div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>      <span class="keywordflow">while</span> (*p &gt;= <span class="charliteral">&#39;0&#39;</span> &amp;&amp; *p &lt;= <span class="charliteral">&#39;9&#39;</span>) {</div>
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>        right = (*p - <span class="charliteral">&#39;0&#39;</span>) + right * 10.0;</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>        ++<a class="code hl_struct" href="structnn.html">nn</a>;</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>        ++nn;</div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>        ++p;</div>
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span>      }</div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>      value += right / Pow(10.0, <a class="code hl_struct" href="structnn.html">nn</a>);</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span>      value += right / Pow(10.0, nn);</div>
 <div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span>    }</div>
 <div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span> </div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span>    <span class="comment">// Handle exponent, if any.</span></div>
@@ -687,14 +687,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00594" name="l00594"></a><span class="lineno">  594</span>  }</div>
 <div class="line"><a id="l00595" name="l00595"></a><span class="lineno">  595</span>}</div>
 <div class="line"><a id="l00596" name="l00596"></a><span class="lineno">  596</span> </div>
-<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span><span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Softmax(<span class="keyword">const</span> <span class="keywordtype">double</span>* <a class="code hl_struct" href="structinput.html">input</a>, <span class="keywordtype">double</span>* output, <span class="keywordtype">int</span> len) {</div>
-<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>  <span class="keywordtype">double</span> wmax = <a class="code hl_struct" href="structinput.html">input</a>[0];</div>
+<div class="line"><a id="l00597" name="l00597"></a><span class="lineno">  597</span><span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Softmax(<span class="keyword">const</span> <span class="keywordtype">double</span>* input, <span class="keywordtype">double</span>* output, <span class="keywordtype">int</span> len) {</div>
+<div class="line"><a id="l00598" name="l00598"></a><span class="lineno">  598</span>  <span class="keywordtype">double</span> wmax = input[0];</div>
 <div class="line"><a id="l00599" name="l00599"></a><span class="lineno">  599</span>  <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 1; i &lt; len; ++i) {</div>
-<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>    wmax = std::max(<a class="code hl_struct" href="structinput.html">input</a>[i], wmax);</div>
+<div class="line"><a id="l00600" name="l00600"></a><span class="lineno">  600</span>    wmax = std::max(input[i], wmax);</div>
 <div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>  }</div>
 <div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>  <span class="keywordtype">double</span> wsum = 0.0f;</div>
 <div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>  <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; len; ++i) {</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>    output[i] = std::exp(<a class="code hl_struct" href="structinput.html">input</a>[i] - wmax);</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>    output[i] = std::exp(input[i] - wmax);</div>
 <div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>    wsum += output[i];</div>
 <div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>  }</div>
 <div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>  <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; len; ++i) {</div>
@@ -703,10 +703,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00610" name="l00610"></a><span class="lineno">  610</span>}</div>
 <div class="line"><a id="l00611" name="l00611"></a><span class="lineno">  611</span> </div>
 <div class="line"><a id="l00612" name="l00612"></a><span class="lineno">  612</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>std::vector&lt;const T*&gt; ConstPtrInVectorWrapper(<span class="keyword">const</span> std::vector&lt;std::unique_ptr&lt;T&gt;&gt;&amp; <a class="code hl_struct" href="structinput.html">input</a>) {</div>
+<div class="line"><a id="l00613" name="l00613"></a><span class="lineno">  613</span>std::vector&lt;const T*&gt; ConstPtrInVectorWrapper(<span class="keyword">const</span> std::vector&lt;std::unique_ptr&lt;T&gt;&gt;&amp; input) {</div>
 <div class="line"><a id="l00614" name="l00614"></a><span class="lineno">  614</span>  std::vector&lt;const T*&gt; ret;</div>
-<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; <a class="code hl_struct" href="structinput.html">input</a>.size(); ++i) {</div>
-<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    ret.push_back(<a class="code hl_struct" href="structinput.html">input</a>.at(i).get());</div>
+<div class="line"><a id="l00615" name="l00615"></a><span class="lineno">  615</span>  <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; input.size(); ++i) {</div>
+<div class="line"><a id="l00616" name="l00616"></a><span class="lineno">  616</span>    ret.push_back(input.at(i).get());</div>
 <div class="line"><a id="l00617" name="l00617"></a><span class="lineno">  617</span>  }</div>
 <div class="line"><a id="l00618" name="l00618"></a><span class="lineno">  618</span>  <span class="keywordflow">return</span> ret;</div>
 <div class="line"><a id="l00619" name="l00619"></a><span class="lineno">  619</span>}</div>
@@ -976,12 +976,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructLightGBM_1_1Common_1_1____StringToTHelperFast_html"><div class="ttname"><a href="structLightGBM_1_1Common_1_1____StringToTHelperFast.html">LightGBM::Common::__StringToTHelperFast</a></div><div class="ttdef"><b>Definition</b> common.h:504</div></div>
 <div class="ttc" id="astructLightGBM_1_1Common_1_1____StringToTHelper_html"><div class="ttname"><a href="structLightGBM_1_1Common_1_1____StringToTHelper.html">LightGBM::Common::__StringToTHelper</a></div><div class="ttdef"><b>Definition</b> common.h:460</div></div>
 <div class="ttc" id="astructLightGBM_1_1Common_1_1____TToStringHelperFast_html"><div class="ttname"><a href="structLightGBM_1_1Common_1_1____TToStringHelperFast.html">LightGBM::Common::__TToStringHelperFast</a></div><div class="ttdef"><b>Definition</b> common.h:397</div></div>
-<div class="ttc" id="astructinput_html"><div class="ttname"><a href="structinput.html">input</a></div><div class="ttdef"><b>Definition</b> search_generate.cc:200</div></div>
-<div class="ttc" id="astructnn_html"><div class="ttname"><a href="structnn.html">nn</a></div><div class="ttdef"><b>Definition</b> nn.cc:24</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

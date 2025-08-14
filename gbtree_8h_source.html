@@ -292,7 +292,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>                      <a class="code hl_typedef" href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">bst_layer_t</a> layer_begin, <a class="code hl_typedef" href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">bst_layer_t</a> layer_end) <span class="keyword">const override</span>;</div>
 <div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span> </div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>  <span class="keywordtype">void</span> FeatureScore(std::string <span class="keyword">const</span>&amp; importance_type, <a class="code hl_class" href="classxgboost_1_1common_1_1Span.html">common::Span&lt;int32_t const&gt;</a> trees,</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>                    std::vector&lt;bst_feature_t&gt;* <a class="code hl_struct" href="structfeatures.html">features</a>,</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>                    std::vector&lt;bst_feature_t&gt;* features,</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>                    std::vector&lt;float&gt;* scores)<span class="keyword"> const override </span>{</div>
 <div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    <span class="comment">// Because feature with no importance doesn&#39;t appear in the return value so</span></div>
 <div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    <span class="comment">// we need to set up another pair of vectors to store the values during</span></div>
@@ -312,8 +312,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>        CHECK_LE(idx, total_n_trees) &lt;&lt; <span class="stringliteral">&quot;Invalid tree index.&quot;</span>;</div>
 <div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>        <span class="keyword">auto</span> <span class="keyword">const</span>&amp; p_tree = model_.<a class="code hl_variable" href="structxgboost_1_1gbm_1_1GBTreeModel.html#afb0fe7cf0016cae938dbc37c2de0d0f4">trees</a>[idx];</div>
 <div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>        p_tree-&gt;WalkTree([&amp;](<a class="code hl_typedef" href="namespacexgboost.html#a1e0027a7b65dda23e5149b540d9b4c4e">bst_node_t</a> nidx) {</div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>          <span class="keyword">auto</span> <span class="keyword">const</span>&amp; <a class="code hl_struct" href="structnode.html">node</a> = (*p_tree)[nidx];</div>
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>          <span class="keywordflow">if</span> (!<a class="code hl_struct" href="structnode.html">node</a>.IsLeaf()) {</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>          <span class="keyword">auto</span> <span class="keyword">const</span>&amp; node = (*p_tree)[nidx];</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>          <span class="keywordflow">if</span> (!node.IsLeaf()) {</div>
 <div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>            split_counts[node.SplitIndex()]++;</div>
 <div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span>            fn(p_tree, nidx, node.SplitIndex());</div>
 <div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>          }</div>
@@ -346,11 +346,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>      }</div>
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>    }</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> </div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    <a class="code hl_struct" href="structfeatures.html">features</a>-&gt;clear();</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    features-&gt;clear();</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>    scores-&gt;clear();</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    <span class="keywordflow">for</span> (<span class="keywordtype">size_t</span> i = 0; i &lt; split_counts.size(); ++i) {</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>      <span class="keywordflow">if</span> (split_counts[i] != 0) {</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>        <a class="code hl_struct" href="structfeatures.html">features</a>-&gt;push_back(i);</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>        features-&gt;push_back(i);</div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>        scores-&gt;push_back(gain_map[i]);</div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>      }</div>
 <div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    }</div>
@@ -397,7 +397,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00323" data-start="{" data-end="}">
 <div class="line"><a id="l00323" name="l00323"></a><span class="lineno"><a class="line" href="classxgboost_1_1gbm_1_1GBTree.html#aa14b1c7f3bbb8bce5e9963325013750d">  323</a></span>  [[nodiscard]] std::vector&lt;std::string&gt; <a class="code hl_function" href="classxgboost_1_1gbm_1_1GBTree.html#aa14b1c7f3bbb8bce5e9963325013750d">DumpModel</a>(<span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1FeatureMap.html">FeatureMap</a>&amp; fmap, <span class="keywordtype">bool</span> with_stats,</div>
 <div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span>                                                   std::string format)<span class="keyword"> const override </span>{</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <span class="keywordflow">return</span> model_.DumpModel(fmap, with_stats, this-&gt;ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">Threads</a>(), format);</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <span class="keywordflow">return</span> model_.DumpModel(fmap, with_stats, this-&gt;ctx_-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">Threads</a>(), format);</div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>  }</div>
 </div>
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span> </div>
@@ -480,10 +480,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_html_ac03273fae726fc98ccf4231b9211ea44"><div class="ttname"><a href="namespacexgboost.html#ac03273fae726fc98ccf4231b9211ea44">xgboost::bst_layer_t</a></div><div class="ttdeci">std::int32_t bst_layer_t</div><div class="ttdoc">Type for indexing boosted layers.</div><div class="ttdef"><b>Definition</b> base.h:122</div></div>
 <div class="ttc" id="aomp_8h_html"><div class="ttname"><a href="omp_8h.html">omp.h</a></div><div class="ttdoc">header to handle OpenMP compatibility issues</div></div>
 <div class="ttc" id="apredictor_8h_html"><div class="ttname"><a href="predictor_8h.html">predictor.h</a></div><div class="ttdoc">Copyright 2017-2023 by Contributors.</div></div>
-<div class="ttc" id="astructfeatures_html"><div class="ttname"><a href="structfeatures.html">features</a></div><div class="ttdoc">the core definition of a set of features.</div><div class="ttdef"><b>Definition</b> feature_group.h:206</div></div>
-<div class="ttc" id="astructnode_html"><div class="ttname"><a href="structnode.html">node</a></div><div class="ttdef"><b>Definition</b> log_multi.cc:54</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html"><div class="ttname"><a href="structxgboost_1_1Context.html">xgboost::Context</a></div><div class="ttdoc">Runtime context for XGBoost.</div><div class="ttdef"><b>Definition</b> context.h:84</div></div>
-<div class="ttc" id="astructxgboost_1_1Context_html_a5d9d1dcba9dc32b17f59b2da6748b7eb"><div class="ttname"><a href="structxgboost_1_1Context.html#a5d9d1dcba9dc32b17f59b2da6748b7eb">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
+<div class="ttc" id="astructxgboost_1_1Context_html_a58c756e9b8977ee1096d52a9ccd3acaa"><div class="ttname"><a href="structxgboost_1_1Context.html#a58c756e9b8977ee1096d52a9ccd3acaa">xgboost::Context::Threads</a></div><div class="ttdeci">std::int32_t Threads() const</div><div class="ttdoc">Returns the automatically chosen number of threads based on the nthread parameter and the system sett...</div><div class="ttdef"><b>Definition</b> context.cc:203</div></div>
 <div class="ttc" id="astructxgboost_1_1LearnerModelParam_html"><div class="ttname"><a href="structxgboost_1_1LearnerModelParam.html">xgboost::LearnerModelParam</a></div><div class="ttdoc">Basic model parameters, used to describe the booster.</div><div class="ttdef"><b>Definition</b> learner.h:291</div></div>
 <div class="ttc" id="astructxgboost_1_1LearnerModelParam_html_afdf708e7778dfefd97380f5433e4a286"><div class="ttname"><a href="structxgboost_1_1LearnerModelParam.html#afdf708e7778dfefd97380f5433e4a286">xgboost::LearnerModelParam::num_feature</a></div><div class="ttdeci">bst_feature_t num_feature</div><div class="ttdoc">The number of features.</div><div class="ttdef"><b>Definition</b> learner.h:303</div></div>
 <div class="ttc" id="astructxgboost_1_1PredictionCacheEntry_html"><div class="ttname"><a href="structxgboost_1_1PredictionCacheEntry.html">xgboost::PredictionCacheEntry</a></div><div class="ttdoc">Contains pointer to input matrix and associated cached predictions.</div><div class="ttdef"><b>Definition</b> predictor.h:30</div></div>
@@ -505,7 +503,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

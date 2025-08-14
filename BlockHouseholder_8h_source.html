@@ -131,13 +131,13 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> TriangularFactorType,<span class="keyword">typename</span> VectorsType,<span class="keyword">typename</span> CoeffsType&gt;</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="keywordtype">void</span> make_block_householder_triangular_factor(TriangularFactorType&amp; triFactor, <span class="keyword">const</span> VectorsType&amp; vectors, <span class="keyword">const</span> CoeffsType&amp; hCoeffs)</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>{</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">const</span> <a class="code hl_struct" href="structIndex.html">Index</a> nbVecs = vectors.cols();</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">const</span> Index nbVecs = vectors.cols();</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>  eigen_assert(triFactor.rows() == nbVecs &amp;&amp; triFactor.cols() == nbVecs &amp;&amp; vectors.rows()&gt;=nbVecs);</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i = nbVecs-1; i &gt;=0 ; --i)</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">for</span>(Index i = nbVecs-1; i &gt;=0 ; --i)</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  {</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <a class="code hl_struct" href="structIndex.html">Index</a> rs = vectors.rows() - i - 1;</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    <a class="code hl_struct" href="structIndex.html">Index</a> rt = nbVecs-i-1;</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    Index rs = vectors.rows() - i - 1;</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    Index rt = nbVecs-i-1;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="keywordflow">if</span>(rt&gt;0)</div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    {</div>
@@ -156,7 +156,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="keywordtype">void</span> apply_block_householder_on_the_left(MatrixType&amp; mat, <span class="keyword">const</span> VectorsType&amp; vectors, <span class="keyword">const</span> CoeffsType&amp; hCoeffs, <span class="keywordtype">bool</span> forward)</div>
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>{</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>  <span class="keyword">enum</span> { TFactorSize = MatrixType::ColsAtCompileTime };</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  <a class="code hl_struct" href="structIndex.html">Index</a> nbVecs = vectors.cols();</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  Index nbVecs = vectors.cols();</div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>  <a class="code hl_struct" href="struct__Matrix.html">Matrix&lt;typename MatrixType::Scalar, TFactorSize, TFactorSize, RowMajor&gt;</a> T(nbVecs,nbVecs);</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>  </div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  <span class="keywordflow">if</span>(forward) make_block_householder_triangular_factor(T, vectors, hCoeffs);</div>
@@ -177,12 +177,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>} <span class="comment">// end namespace Eigen</span></div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_BLOCK_HOUSEHOLDER_H</span></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 <div class="ttc" id="astruct__Matrix_html"><div class="ttname"><a href="struct__Matrix.html">_Matrix</a></div><div class="ttdef"><b>Definition</b> inference.c:32</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -195,8 +195,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>  }</div>
 </div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>  <span class="keywordtype">void</span> ConvertOutput(<span class="keyword">const</span> <span class="keywordtype">double</span>* <a class="code hl_struct" href="structinput.html">input</a>, <span class="keywordtype">double</span>* output)<span class="keyword"> const override </span>{</div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    Common::Softmax(<a class="code hl_struct" href="structinput.html">input</a>, output, num_class_);</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>  <span class="keywordtype">void</span> ConvertOutput(<span class="keyword">const</span> <span class="keywordtype">double</span>* input, <span class="keywordtype">double</span>* output)<span class="keyword"> const override </span>{</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>    Common::Softmax(input, output, num_class_);</div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>  }</div>
 <div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span> </div>
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>  <span class="keyword">const</span> <span class="keywordtype">char</span>* GetName()<span class="keyword"> const override </span>{</div>
@@ -299,9 +299,9 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    <span class="keywordflow">return</span> <span class="stringliteral">&quot;multiclassova&quot;</span>;</div>
 <div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>  }</div>
 <div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span> </div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>  <span class="keywordtype">void</span> ConvertOutput(<span class="keyword">const</span> <span class="keywordtype">double</span>* <a class="code hl_struct" href="structinput.html">input</a>, <span class="keywordtype">double</span>* output)<span class="keyword"> const override </span>{</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>  <span class="keywordtype">void</span> ConvertOutput(<span class="keyword">const</span> <span class="keywordtype">double</span>* input, <span class="keywordtype">double</span>* output)<span class="keyword"> const override </span>{</div>
 <div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; num_class_; ++i) {</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>      output[i] = 1.0f / (1.0f + std::exp(-sigmoid_ * <a class="code hl_struct" href="structinput.html">input</a>[i]));</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>      output[i] = 1.0f / (1.0f + std::exp(-sigmoid_ * input[i]));</div>
 <div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    }</div>
 <div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>  }</div>
 <div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span> </div>
@@ -357,11 +357,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespaceLightGBM_html_af311447cc6f103c5921f423363aa5821"><div class="ttname"><a href="namespaceLightGBM.html#af311447cc6f103c5921f423363aa5821">LightGBM::label_t</a></div><div class="ttdeci">float label_t</div><div class="ttdoc">Type of metadata, include weight and label.</div><div class="ttdef"><b>Definition</b> meta.h:33</div></div>
 <div class="ttc" id="anamespaceLightGBM_html_afd76be3a9063eee6e29988ae655e47f8"><div class="ttname"><a href="namespaceLightGBM.html#afd76be3a9063eee6e29988ae655e47f8">LightGBM::data_size_t</a></div><div class="ttdeci">int32_t data_size_t</div><div class="ttdoc">Type of data size, it is better to use signed type.</div><div class="ttdef"><b>Definition</b> meta.h:14</div></div>
 <div class="ttc" id="astructLightGBM_1_1Config_html"><div class="ttname"><a href="structLightGBM_1_1Config.html">LightGBM::Config</a></div><div class="ttdef"><b>Definition</b> config.h:27</div></div>
-<div class="ttc" id="astructinput_html"><div class="ttname"><a href="structinput.html">input</a></div><div class="ttdef"><b>Definition</b> search_generate.cc:200</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:41 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

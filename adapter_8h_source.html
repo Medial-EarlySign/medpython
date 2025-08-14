@@ -785,7 +785,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00720" data-start="{" data-end="};">
 <div class="line"><a id="l00720" name="l00720"></a><span class="lineno"><a class="line" href="classxgboost_1_1data_1_1FileAdapter.html">  720</a></span><span class="keyword">class </span><a class="code hl_class" href="classxgboost_1_1data_1_1FileAdapter.html">FileAdapter</a> : <a class="code hl_class" href="classdmlc_1_1DataIter.html">dmlc::DataIter</a>&lt;FileAdapterBatch&gt; {</div>
 <div class="line"><a id="l00721" name="l00721"></a><span class="lineno">  721</span> <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span>  <span class="keyword">explicit</span> <a class="code hl_class" href="classxgboost_1_1data_1_1FileAdapter.html">FileAdapter</a>(<a class="code hl_class" href="classdmlc_1_1Parser.html">dmlc::Parser&lt;uint32_t&gt;</a>* <a class="code hl_struct" href="structparser.html">parser</a>) : parser_(<a class="code hl_struct" href="structparser.html">parser</a>) {}</div>
+<div class="line"><a id="l00722" name="l00722"></a><span class="lineno">  722</span>  <span class="keyword">explicit</span> <a class="code hl_class" href="classxgboost_1_1data_1_1FileAdapter.html">FileAdapter</a>(<a class="code hl_class" href="classdmlc_1_1Parser.html">dmlc::Parser&lt;uint32_t&gt;</a>* parser) : parser_(parser) {}</div>
 <div class="line"><a id="l00723" name="l00723"></a><span class="lineno">  723</span> </div>
 <div class="line"><a id="l00724" name="l00724"></a><span class="lineno"><a class="line" href="classxgboost_1_1data_1_1FileAdapter.html#a268ac9c3a617bf88f0a29835fd9568f4">  724</a></span>  <span class="keyword">const</span> <a class="code hl_class" href="classxgboost_1_1data_1_1FileAdapterBatch.html">FileAdapterBatch</a>&amp; <a class="code hl_function" href="classxgboost_1_1data_1_1FileAdapter.html#a268ac9c3a617bf88f0a29835fd9568f4">Value</a>()<span class="keyword"> const override </span>{ <span class="keywordflow">return</span> *batch_.get(); }</div>
 <div class="foldopen" id="foldopen00725" data-start="{" data-end="}">
@@ -1402,7 +1402,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructdmlc_1_1RowBlock_html_a86aca0fbba3d80711b55d97c69065a1d"><div class="ttname"><a href="structdmlc_1_1RowBlock.html#a86aca0fbba3d80711b55d97c69065a1d">dmlc::RowBlock::qid</a></div><div class="ttdeci">const uint64_t * qid</div><div class="ttdoc">With qid: array[size] session id of each instance, otherwise nullptr.</div><div class="ttdef"><b>Definition</b> data.h:185</div></div>
 <div class="ttc" id="astructdmlc_1_1RowBlock_html_a8b1ae1de1eecc081042944ba180023b7"><div class="ttname"><a href="structdmlc_1_1RowBlock.html#a8b1ae1de1eecc081042944ba180023b7">dmlc::RowBlock::field</a></div><div class="ttdeci">const IndexType * field</div><div class="ttdoc">field id</div><div class="ttdef"><b>Definition</b> data.h:187</div></div>
 <div class="ttc" id="astructdmlc_1_1RowBlock_html_ae3c81282e6a2531aaaa9f9ec94a8ab80"><div class="ttname"><a href="structdmlc_1_1RowBlock.html#ae3c81282e6a2531aaaa9f9ec94a8ab80">dmlc::RowBlock::offset</a></div><div class="ttdeci">const size_t * offset</div><div class="ttdoc">array[size+1], row pointer to beginning of each rows</div><div class="ttdef"><b>Definition</b> data.h:179</div></div>
-<div class="ttc" id="astructparser_html"><div class="ttname"><a href="structparser.html">parser</a></div><div class="ttdef"><b>Definition</b> parser.h:17</div></div>
 <div class="ttc" id="astructxgboost_1_1Entry_html"><div class="ttname"><a href="structxgboost_1_1Entry.html">xgboost::Entry</a></div><div class="ttdoc">Element from a sparse vector.</div><div class="ttdef"><b>Definition</b> data.h:216</div></div>
 <div class="ttc" id="astructxgboost_1_1HostSparsePageView_html"><div class="ttname"><a href="structxgboost_1_1HostSparsePageView.html">xgboost::HostSparsePageView</a></div><div class="ttdef"><b>Definition</b> data.h:310</div></div>
 <div class="ttc" id="astructxgboost_1_1StringView_html"><div class="ttname"><a href="structxgboost_1_1StringView.html">xgboost::StringView</a></div><div class="ttdef"><b>Definition</b> string_view.h:15</div></div>
@@ -1415,7 +1414,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

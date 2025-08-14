@@ -188,8 +188,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen00130" data-start="{" data-end="}">
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno"><a class="line" href="classEigen_1_1Rotation2D.html#ab9ceb217d03c6a2a6438be37a3ccd855">  130</a></span>  <span class="keyword">inline</span> <a class="code hl_class" href="classEigen_1_1Rotation2D.html">Rotation2D</a> <a class="code hl_function" href="classEigen_1_1Rotation2D.html#ab9ceb217d03c6a2a6438be37a3ccd855">slerp</a>(<span class="keyword">const</span> <a class="code hl_typedef" href="classEigen_1_1Rotation2D.html#ac20c665ece0f197a712a2a39ae72e4e4">Scalar</a>&amp; t, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Rotation2D.html">Rotation2D</a>&amp; other)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="keyword">  </span>{</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    <a class="code hl_typedef" href="classEigen_1_1Rotation2D.html#ac20c665ece0f197a712a2a39ae72e4e4">Scalar</a> dist = <a class="code hl_function" href="classEigen_1_1Rotation2D.html#a4628b82c613b7b85010afd45ea0477a2">Rotation2D</a>(other.m_angle-m_angle).<a class="code hl_function" href="classEigen_1_1Rotation2D.html#ac648b9217d9f7ba4ee7a1a91aec8e46f">smallestAngle</a>();</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1Rotation2D.html#a4628b82c613b7b85010afd45ea0477a2">Rotation2D</a>(m_angle + dist*t);</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>    <a class="code hl_typedef" href="classEigen_1_1Rotation2D.html#ac20c665ece0f197a712a2a39ae72e4e4">Scalar</a> <a class="code hl_class" href="classEigen_1_1Solve.html">dist</a> = <a class="code hl_function" href="classEigen_1_1Rotation2D.html#a4628b82c613b7b85010afd45ea0477a2">Rotation2D</a>(other.m_angle-m_angle).smallestAngle();</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>    <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1Rotation2D.html#a4628b82c613b7b85010afd45ea0477a2">Rotation2D</a>(m_angle + <a class="code hl_class" href="classEigen_1_1Solve.html">dist</a>*t);</div>
 <div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>  }</div>
 </div>
 <div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
@@ -276,7 +276,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

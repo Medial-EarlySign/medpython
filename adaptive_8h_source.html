@@ -165,16 +165,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>  <span class="keywordflow">return</span> y_idx;</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>}</div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keywordtype">void</span> UpdateTreeLeafDevice(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, common::Span&lt;bst_node_t const&gt; position,</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keywordtype">void</span> UpdateTreeLeafDevice(Context <span class="keyword">const</span>* ctx, common::Span&lt;bst_node_t const&gt; position,</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>                          std::int32_t group_idx, MetaInfo <span class="keyword">const</span>&amp; info, <span class="keywordtype">float</span> learning_rate,</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>                          HostDeviceVector&lt;float&gt; <span class="keyword">const</span>&amp; predt, <span class="keywordtype">float</span> alpha, RegTree* p_tree);</div>
 <div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keywordtype">void</span> UpdateTreeLeafHost(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, std::vector&lt;bst_node_t&gt; <span class="keyword">const</span>&amp; position,</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keywordtype">void</span> UpdateTreeLeafHost(Context <span class="keyword">const</span>* ctx, std::vector&lt;bst_node_t&gt; <span class="keyword">const</span>&amp; position,</div>
 <div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>                        std::int32_t group_idx, MetaInfo <span class="keyword">const</span>&amp; info, <span class="keywordtype">float</span> learning_rate,</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>                        HostDeviceVector&lt;float&gt; <span class="keyword">const</span>&amp; predt, <span class="keywordtype">float</span> alpha, RegTree* p_tree);</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>}  <span class="comment">// namespace detail</span></div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="keyword">inline</span> <span class="keywordtype">void</span> UpdateTreeLeaf(<a class="code hl_struct" href="structContext.html">Context</a> <span class="keyword">const</span>* ctx, HostDeviceVector&lt;bst_node_t&gt; <span class="keyword">const</span>&amp; position,</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="keyword">inline</span> <span class="keywordtype">void</span> UpdateTreeLeaf(Context <span class="keyword">const</span>* ctx, HostDeviceVector&lt;bst_node_t&gt; <span class="keyword">const</span>&amp; position,</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>                           std::int32_t group_idx, MetaInfo <span class="keyword">const</span>&amp; info, <span class="keywordtype">float</span> learning_rate,</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>                           HostDeviceVector&lt;float&gt; <span class="keyword">const</span>&amp; predt, <span class="keywordtype">float</span> alpha, RegTree* p_tree) {</div>
 <div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>  <span class="keywordflow">if</span> (ctx-&gt;<a class="code hl_function" href="structxgboost_1_1Context.html#a8ce6a162d793216b43367e1d12fec98e">IsCPU</a>()) {</div>
@@ -197,13 +197,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacexgboost_1_1collective_html_afac6c30268fe94d7bb5cc06110417ff3"><div class="ttname"><a href="namespacexgboost_1_1collective.html#afac6c30268fe94d7bb5cc06110417ff3">xgboost::collective::GlobalMax</a></div><div class="ttdeci">T GlobalMax(MetaInfo const &amp;info, T value)</div><div class="ttdoc">Find the global max of the given value across all workers.</div><div class="ttdef"><b>Definition</b> aggregator.h:72</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="anamespacexgboost_html_a11f2b5fd9fb8266d23e5a40480cf412c"><div class="ttname"><a href="namespacexgboost.html#a11f2b5fd9fb8266d23e5a40480cf412c">xgboost::bst_group_t</a></div><div class="ttdeci">std::uint32_t bst_group_t</div><div class="ttdoc">Type for ranking group index.</div><div class="ttdef"><b>Definition</b> base.h:114</div></div>
-<div class="ttc" id="astructContext_html"><div class="ttname"><a href="structContext.html">Context</a></div><div class="ttdef"><b>Definition</b> parse_example_json.h:932</div></div>
 <div class="ttc" id="astructxgboost_1_1Context_html_a8ce6a162d793216b43367e1d12fec98e"><div class="ttname"><a href="structxgboost_1_1Context.html#a8ce6a162d793216b43367e1d12fec98e">xgboost::Context::IsCPU</a></div><div class="ttdeci">bool IsCPU() const</div><div class="ttdoc">Is XGBoost running on CPU?</div><div class="ttdef"><b>Definition</b> context.h:133</div></div>
 <div class="ttc" id="atree__model_8h_html"><div class="ttname"><a href="tree__model_8h.html">tree_model.h</a></div><div class="ttdoc">Copyright 2014-2023 by Contributors.</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

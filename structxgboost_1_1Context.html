@@ -102,13 +102,13 @@ Public Member Functions</h2></td></tr>
 template&lt;typename Container &gt; </td></tr>
 <tr class="memitem:af1ee49e3ee0f9d2eec2ceae35285bd74"><td class="memTemplItemLeft" align="right" valign="top">Args&#160;</td><td class="memTemplItemRight" valign="bottom"><b>UpdateAllowUnknown</b> (Container const &amp;kwargs)</td></tr>
 <tr class="separator:af1ee49e3ee0f9d2eec2ceae35285bd74"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1edafac5b902f7818349e15a474117cb" id="r_a1edafac5b902f7818349e15a474117cb"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1Context.html#a1edafac5b902f7818349e15a474117cb">ConfigureGpuId</a> (bool require_gpu)</td></tr>
-<tr class="memdesc:a1edafac5b902f7818349e15a474117cb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure the parameter &lsquo;gpu_id&rsquo;.  <br /></td></tr>
-<tr class="separator:a1edafac5b902f7818349e15a474117cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5d9d1dcba9dc32b17f59b2da6748b7eb" id="r_a5d9d1dcba9dc32b17f59b2da6748b7eb"><td class="memItemLeft" align="right" valign="top"><a id="a5d9d1dcba9dc32b17f59b2da6748b7eb" name="a5d9d1dcba9dc32b17f59b2da6748b7eb"></a>
+<tr class="memitem:a3c19756b5e39cd2257551ee630fe5fdc" id="r_a3c19756b5e39cd2257551ee630fe5fdc"><td class="memItemLeft" align="right" valign="top">void&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1Context.html#a3c19756b5e39cd2257551ee630fe5fdc">ConfigureGpuId</a> (bool require_gpu)</td></tr>
+<tr class="memdesc:a3c19756b5e39cd2257551ee630fe5fdc"><td class="mdescLeft">&#160;</td><td class="mdescRight">Configure the parameter &lsquo;gpu_id&rsquo;.  <br /></td></tr>
+<tr class="separator:a3c19756b5e39cd2257551ee630fe5fdc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a58c756e9b8977ee1096d52a9ccd3acaa" id="r_a58c756e9b8977ee1096d52a9ccd3acaa"><td class="memItemLeft" align="right" valign="top"><a id="a58c756e9b8977ee1096d52a9ccd3acaa" name="a58c756e9b8977ee1096d52a9ccd3acaa"></a>
 std::int32_t&#160;</td><td class="memItemRight" valign="bottom"><b>Threads</b> () const</td></tr>
-<tr class="memdesc:a5d9d1dcba9dc32b17f59b2da6748b7eb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the automatically chosen number of threads based on the <code>nthread</code> parameter and the system settting. <br /></td></tr>
-<tr class="separator:a5d9d1dcba9dc32b17f59b2da6748b7eb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memdesc:a58c756e9b8977ee1096d52a9ccd3acaa"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the automatically chosen number of threads based on the <code>nthread</code> parameter and the system settting. <br /></td></tr>
+<tr class="separator:a58c756e9b8977ee1096d52a9ccd3acaa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ce6a162d793216b43367e1d12fec98e" id="r_a8ce6a162d793216b43367e1d12fec98e"><td class="memItemLeft" align="right" valign="top"><a id="a8ce6a162d793216b43367e1d12fec98e" name="a8ce6a162d793216b43367e1d12fec98e"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>IsCPU</b> () const</td></tr>
 <tr class="memdesc:a8ce6a162d793216b43367e1d12fec98e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Is XGBoost running on CPU? <br /></td></tr>
@@ -128,10 +128,10 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>IsCUDA</b> () const</
 std::string&#160;</td><td class="memItemRight" valign="bottom"><b>DeviceName</b> () const</td></tr>
 <tr class="memdesc:a3868a996275a93f7ee75a0558b08084f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Name of the current device. <br /></td></tr>
 <tr class="separator:a3868a996275a93f7ee75a0558b08084f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a06519e72bc2659750f6e1aa5119fe5b0" id="r_a06519e72bc2659750f6e1aa5119fe5b0"><td class="memItemLeft" align="right" valign="top"><a id="a06519e72bc2659750f6e1aa5119fe5b0" name="a06519e72bc2659750f6e1aa5119fe5b0"></a>
+<tr class="memitem:aa0b3620466a2287db6956da1e37b0251" id="r_aa0b3620466a2287db6956da1e37b0251"><td class="memItemLeft" align="right" valign="top"><a id="aa0b3620466a2287db6956da1e37b0251" name="aa0b3620466a2287db6956da1e37b0251"></a>
 CUDAContext const *&#160;</td><td class="memItemRight" valign="bottom"><b>CUDACtx</b> () const</td></tr>
-<tr class="memdesc:a06519e72bc2659750f6e1aa5119fe5b0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a CUDA device context for allocator and stream. <br /></td></tr>
-<tr class="separator:a06519e72bc2659750f6e1aa5119fe5b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memdesc:aa0b3620466a2287db6956da1e37b0251"><td class="mdescLeft">&#160;</td><td class="mdescRight">Get a CUDA device context for allocator and stream. <br /></td></tr>
+<tr class="separator:aa0b3620466a2287db6956da1e37b0251"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7f260de8d36f9fbc4b441666dc48cf15" id="r_a7f260de8d36f9fbc4b441666dc48cf15"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structxgboost_1_1Context.html">Context</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structxgboost_1_1Context.html#a7f260de8d36f9fbc4b441666dc48cf15">MakeCUDA</a> (<a class="el" href="namespacexgboost.html#a90343e8bb7e0438922f05bb616f14ceb">bst_d_ordinal_t</a> ordinal=0) const</td></tr>
 <tr class="memdesc:a7f260de8d36f9fbc4b441666dc48cf15"><td class="mdescLeft">&#160;</td><td class="mdescRight">Make a CUDA context based on the current context.  <br /></td></tr>
 <tr class="separator:a7f260de8d36f9fbc4b441666dc48cf15"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -184,12 +184,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>validate_parameters</
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-attribs" name="pub-static-attribs"></a>
 Static Public Attributes</h2></td></tr>
-<tr class="memitem:ad39e71927ac35f31974d5c30e809ae09" id="r_ad39e71927ac35f31974d5c30e809ae09"><td class="memItemLeft" align="right" valign="top"><a id="ad39e71927ac35f31974d5c30e809ae09" name="ad39e71927ac35f31974d5c30e809ae09"></a>
+<tr class="memitem:afb4fc5e763a6a18c4b5a067ad5c85766" id="r_afb4fc5e763a6a18c4b5a067ad5c85766"><td class="memItemLeft" align="right" valign="top"><a id="afb4fc5e763a6a18c4b5a067ad5c85766" name="afb4fc5e763a6a18c4b5a067ad5c85766"></a>
 static <a class="el" href="namespacexgboost.html#a90343e8bb7e0438922f05bb616f14ceb">bst_d_ordinal_t</a> constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>kCpuId</b> = -1</td></tr>
-<tr class="separator:ad39e71927ac35f31974d5c30e809ae09"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a349ee9d092a48feecfc73afed6c08c7f" id="r_a349ee9d092a48feecfc73afed6c08c7f"><td class="memItemLeft" align="right" valign="top"><a id="a349ee9d092a48feecfc73afed6c08c7f" name="a349ee9d092a48feecfc73afed6c08c7f"></a>
+<tr class="separator:afb4fc5e763a6a18c4b5a067ad5c85766"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a26f23a346a0d6426310b3ab1b2afb6cb" id="r_a26f23a346a0d6426310b3ab1b2afb6cb"><td class="memItemLeft" align="right" valign="top"><a id="a26f23a346a0d6426310b3ab1b2afb6cb" name="a26f23a346a0d6426310b3ab1b2afb6cb"></a>
 static std::int64_t constexpr&#160;</td><td class="memItemRight" valign="bottom"><b>kDefaultSeed</b> = 0</td></tr>
-<tr class="separator:a349ee9d092a48feecfc73afed6c08c7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a26f23a346a0d6426310b3ab1b2afb6cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="inherited" name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
@@ -202,14 +202,14 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>initialised_</b></td>
 <div class="textblock"><p>Runtime context for XGBoost. </p>
 <p>Contains information like threads and device. </p>
 </div><h2 class="groupheader">Member Function Documentation</h2>
-<a id="a1edafac5b902f7818349e15a474117cb" name="a1edafac5b902f7818349e15a474117cb"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1edafac5b902f7818349e15a474117cb">&#9670;&#160;</a></span>ConfigureGpuId()</h2>
+<a id="a3c19756b5e39cd2257551ee630fe5fdc" name="a3c19756b5e39cd2257551ee630fe5fdc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3c19756b5e39cd2257551ee630fe5fdc">&#9670;&#160;</a></span>ConfigureGpuId()</h2>
 
 <div class="memitem">
 <div class="memproto">
       <table class="memname">
         <tr>
-          <td class="memname">void <a class="el" href="structxgboost_1_1Context.html">Context</a>&lt; audit &gt;::ConfigureGpuId </td>
+          <td class="memname">void xgboost::Context::ConfigureGpuId </td>
           <td>(</td>
           <td class="paramtype">bool&#160;</td>
           <td class="paramname"><em>require_gpu</em></td><td>)</td>
@@ -297,7 +297,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>initialised_</b></td>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:37:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

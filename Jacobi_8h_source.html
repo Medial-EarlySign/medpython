@@ -125,7 +125,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno"><a class="line" href="classEigen_1_1JacobiRotation.html#a89c8ea615f8fa77ddd5810a1e5fde4da">   62</a></span>    <a class="code hl_class" href="classEigen_1_1JacobiRotation.html">JacobiRotation</a> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#a89c8ea615f8fa77ddd5810a1e5fde4da">adjoint</a>()<span class="keyword"> const </span>{ <span class="keyword">using </span>numext::conj; <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#a38fec2c4da529ef3d05ff37b848b4227">JacobiRotation</a>(<a class="code hl_class" href="classEigen_1_1Solve.html">conj</a>(m_c), -m_s); }</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span> </div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#a69076401f22e883dc76b6ff9074ac669">makeJacobi</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Derived&gt;</a>&amp;, <a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>);</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#a69076401f22e883dc76b6ff9074ac669">makeJacobi</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Derived&gt;</a>&amp;, Index p, Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>);</div>
 <div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#a69076401f22e883dc76b6ff9074ac669">makeJacobi</a>(<span class="keyword">const</span> RealScalar&amp; x, <span class="keyword">const</span> Scalar&amp; y, <span class="keyword">const</span> RealScalar&amp; z);</div>
 <div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span> </div>
 <div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    <span class="keywordtype">void</span> <a class="code hl_function" href="classEigen_1_1JacobiRotation.html#af73c81e9cc139b7e0d877ce553b02ec0">makeGivens</a>(<span class="keyword">const</span> Scalar&amp; p, <span class="keyword">const</span> Scalar&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>, Scalar* z=0);</div>
@@ -153,16 +153,16 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>  }</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>  <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>  {</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    RealScalar tau = (x-z)/(RealScalar(2)*abs(y));</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    RealScalar w = sqrt(numext::abs2(tau) + RealScalar(1));</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    RealScalar <a class="code hl_class" href="classEigen_1_1Solve.html">tau</a> = (x-z)/(RealScalar(2)*abs(y));</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    RealScalar w = sqrt(numext::abs2(<a class="code hl_class" href="classEigen_1_1Solve.html">tau</a>) + RealScalar(1));</div>
 <div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>    RealScalar t;</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    <span class="keywordflow">if</span>(tau&gt;RealScalar(0))</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>    <span class="keywordflow">if</span>(<a class="code hl_class" href="classEigen_1_1Solve.html">tau</a>&gt;RealScalar(0))</div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>    {</div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>      t = RealScalar(1) / (tau + w);</div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>      t = RealScalar(1) / (<a class="code hl_class" href="classEigen_1_1Solve.html">tau</a> + w);</div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    }</div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    {</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      t = RealScalar(1) / (tau - w);</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      t = RealScalar(1) / (<a class="code hl_class" href="classEigen_1_1Solve.html">tau</a> - w);</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    }</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    RealScalar <a class="code hl_class" href="classEigen_1_1Solve.html">sign_t</a> = t &gt; RealScalar(0) ? RealScalar(1) : RealScalar(-1);</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    RealScalar n = RealScalar(1) / sqrt(numext::abs2(t)+RealScalar(1));</div>
@@ -176,7 +176,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Scalar&gt;</div>
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
 <div class="foldopen" id="foldopen00126" data-start="{" data-end="}">
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno"><a class="line" href="classEigen_1_1JacobiRotation.html#a69076401f22e883dc76b6ff9074ac669">  126</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1JacobiRotation.html">JacobiRotation&lt;Scalar&gt;::makeJacobi</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Derived&gt;</a>&amp; m, <a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno"><a class="line" href="classEigen_1_1JacobiRotation.html#a69076401f22e883dc76b6ff9074ac669">  126</a></span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_class" href="classEigen_1_1JacobiRotation.html">JacobiRotation&lt;Scalar&gt;::makeJacobi</a>(<span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">MatrixBase&lt;Derived&gt;</a>&amp; m, Index p, Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>{</div>
 <div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>  <span class="keywordflow">return</span> makeJacobi(numext::real(m.coeff(p,p)), m.coeff(p,<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>), numext::real(m.coeff(<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>,<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>)));</div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>}</div>
@@ -303,36 +303,36 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
 <div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherScalar&gt;</div>
 <div class="foldopen" id="foldopen00277" data-start="{" data-end="}">
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#ae669131f6e18f7e8f06fae271754f435">  277</a></span><span class="keyword">inline</span> <span class="keywordtype">void</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">MatrixBase&lt;Derived&gt;::applyOnTheLeft</a>(<a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; j)</div>
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#ae669131f6e18f7e8f06fae271754f435">  277</a></span><span class="keyword">inline</span> <span class="keywordtype">void</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">MatrixBase&lt;Derived&gt;::applyOnTheLeft</a>(Index p, Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>{</div>
 <div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>  RowXpr x(this-&gt;row(p));</div>
 <div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>  RowXpr y(this-&gt;row(<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>));</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>  internal::apply_rotation_in_the_plane(x, y, j);</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>  internal::apply_rotation_in_the_plane(x, y, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>);</div>
 <div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>}</div>
 </div>
 <div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span> </div>
 <div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
 <div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherScalar&gt;</div>
 <div class="foldopen" id="foldopen00292" data-start="{" data-end="}">
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#aa07f741c86219601664433777827bf1c">  292</a></span><span class="keyword">inline</span> <span class="keywordtype">void</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">MatrixBase&lt;Derived&gt;::applyOnTheRight</a>(<a class="code hl_struct" href="structIndex.html">Index</a> p, <a class="code hl_struct" href="structIndex.html">Index</a> <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; j)</div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno"><a class="line" href="classEigen_1_1MatrixBase.html#aa07f741c86219601664433777827bf1c">  292</a></span><span class="keyword">inline</span> <span class="keywordtype">void</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">MatrixBase&lt;Derived&gt;::applyOnTheRight</a>(Index p, Index <a class="code hl_class" href="classEigen_1_1Solve.html">q</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>{</div>
 <div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>  ColXpr x(this-&gt;col(p));</div>
 <div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>  ColXpr y(this-&gt;col(<a class="code hl_class" href="classEigen_1_1Solve.html">q</a>));</div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>  internal::apply_rotation_in_the_plane(x, y, j.transpose());</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>  internal::apply_rotation_in_the_plane(x, y, <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>.transpose());</div>
 <div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>}</div>
 </div>
 <div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span> </div>
 <div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> VectorX, <span class="keyword">typename</span> VectorY, <span class="keyword">typename</span> OtherScalar&gt;</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="keywordtype">void</span> <span class="comment">/*EIGEN_DONT_INLINE*/</span> apply_rotation_in_the_plane(<a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;VectorX&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr_x</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;VectorY&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr_y</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; j)</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span><span class="keywordtype">void</span> <span class="comment">/*EIGEN_DONT_INLINE*/</span> apply_rotation_in_the_plane(<a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;VectorX&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr_x</a>, <a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;VectorY&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">xpr_y</a>, <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">JacobiRotation&lt;OtherScalar&gt;</a>&amp; <a class="code hl_class" href="classEigen_1_1Solve.html">j</a>)</div>
 <div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>{</div>
 <div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> VectorX::Scalar Scalar;</div>
 <div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>  <span class="keyword">enum</span> { PacketSize = packet_traits&lt;Scalar&gt;::size };</div>
 <div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> packet_traits&lt;Scalar&gt;::type Packet;</div>
 <div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>  eigen_assert(xpr_x.size() == xpr_y.size());</div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>  <a class="code hl_struct" href="structIndex.html">Index</a> size = xpr_x.size();</div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>  <a class="code hl_struct" href="structIndex.html">Index</a> incrx = xpr_x.derived().innerStride();</div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>  <a class="code hl_struct" href="structIndex.html">Index</a> incry = xpr_y.derived().innerStride();</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>  Index size = xpr_x.size();</div>
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>  Index incrx = xpr_x.derived().innerStride();</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>  Index incry = xpr_y.derived().innerStride();</div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span> </div>
 <div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>  Scalar* EIGEN_RESTRICT x = &amp;xpr_x.derived().coeffRef(0);</div>
 <div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>  Scalar* EIGEN_RESTRICT y = &amp;xpr_y.derived().coeffRef(0);</div>
@@ -351,14 +351,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <span class="comment">// both vectors are sequentially stored in memory =&gt; vectorization</span></div>
 <div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    <span class="keyword">enum</span> { Peeling = 2 };</div>
 <div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span> </div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    <a class="code hl_struct" href="structIndex.html">Index</a> alignedStart = internal::first_default_aligned(y, size);</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    <a class="code hl_struct" href="structIndex.html">Index</a> alignedEnd = alignedStart + ((size-alignedStart)/PacketSize)*PacketSize;</div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    Index alignedStart = internal::first_default_aligned(y, size);</div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    Index alignedEnd = alignedStart + ((size-alignedStart)/PacketSize)*PacketSize;</div>
 <div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span> </div>
 <div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    <span class="keyword">const</span> Packet pc = pset1&lt;Packet&gt;(c);</div>
 <div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    <span class="keyword">const</span> Packet ps = pset1&lt;Packet&gt;(s);</div>
 <div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    conj_helper&lt;Packet,Packet,NumTraits&lt;Scalar&gt;::IsComplex,<span class="keyword">false</span>&gt; pcj;</div>
 <div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span> </div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=0; i&lt;alignedStart; ++i)</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    <span class="keywordflow">for</span>(Index i=0; i&lt;alignedStart; ++i)</div>
 <div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>    {</div>
 <div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>      Scalar xi = x[i];</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>      Scalar yi = y[i];</div>
@@ -371,7 +371,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00345" name="l00345"></a><span class="lineno">  345</span> </div>
 <div class="line"><a id="l00346" name="l00346"></a><span class="lineno">  346</span>    <span class="keywordflow">if</span>(internal::first_default_aligned(x, size)==alignedStart)</div>
 <div class="line"><a id="l00347" name="l00347"></a><span class="lineno">  347</span>    {</div>
-<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>      <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=alignedStart; i&lt;alignedEnd; i+=PacketSize)</div>
+<div class="line"><a id="l00348" name="l00348"></a><span class="lineno">  348</span>      <span class="keywordflow">for</span>(Index i=alignedStart; i&lt;alignedEnd; i+=PacketSize)</div>
 <div class="line"><a id="l00349" name="l00349"></a><span class="lineno">  349</span>      {</div>
 <div class="line"><a id="l00350" name="l00350"></a><span class="lineno">  350</span>        Packet xi = pload&lt;Packet&gt;(px);</div>
 <div class="line"><a id="l00351" name="l00351"></a><span class="lineno">  351</span>        Packet yi = pload&lt;Packet&gt;(py);</div>
@@ -383,8 +383,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00357" name="l00357"></a><span class="lineno">  357</span>    }</div>
 <div class="line"><a id="l00358" name="l00358"></a><span class="lineno">  358</span>    <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00359" name="l00359"></a><span class="lineno">  359</span>    {</div>
-<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>      <a class="code hl_struct" href="structIndex.html">Index</a> peelingEnd = alignedStart + ((size-alignedStart)/(Peeling*PacketSize))*(Peeling*PacketSize);</div>
-<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>      <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=alignedStart; i&lt;peelingEnd; i+=Peeling*PacketSize)</div>
+<div class="line"><a id="l00360" name="l00360"></a><span class="lineno">  360</span>      Index peelingEnd = alignedStart + ((size-alignedStart)/(Peeling*PacketSize))*(Peeling*PacketSize);</div>
+<div class="line"><a id="l00361" name="l00361"></a><span class="lineno">  361</span>      <span class="keywordflow">for</span>(Index i=alignedStart; i&lt;peelingEnd; i+=Peeling*PacketSize)</div>
 <div class="line"><a id="l00362" name="l00362"></a><span class="lineno">  362</span>      {</div>
 <div class="line"><a id="l00363" name="l00363"></a><span class="lineno">  363</span>        Packet xi   = ploadu&lt;Packet&gt;(px);</div>
 <div class="line"><a id="l00364" name="l00364"></a><span class="lineno">  364</span>        Packet xi1  = ploadu&lt;Packet&gt;(px+PacketSize);</div>
@@ -406,7 +406,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>      }</div>
 <div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span>    }</div>
 <div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span> </div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=alignedEnd; i&lt;size; ++i)</div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    <span class="keywordflow">for</span>(Index i=alignedEnd; i&lt;size; ++i)</div>
 <div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span>    {</div>
 <div class="line"><a id="l00385" name="l00385"></a><span class="lineno">  385</span>      Scalar xi = x[i];</div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span>      Scalar yi = y[i];</div>
@@ -425,7 +425,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span>    conj_helper&lt;Packet,Packet,NumTraits&lt;Scalar&gt;::IsComplex,<span class="keyword">false</span>&gt; pcj;</div>
 <div class="line"><a id="l00400" name="l00400"></a><span class="lineno">  400</span>    Scalar* EIGEN_RESTRICT px = x;</div>
 <div class="line"><a id="l00401" name="l00401"></a><span class="lineno">  401</span>    Scalar* EIGEN_RESTRICT py = y;</div>
-<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=0; i&lt;size; i+=PacketSize)</div>
+<div class="line"><a id="l00402" name="l00402"></a><span class="lineno">  402</span>    <span class="keywordflow">for</span>(Index i=0; i&lt;size; i+=PacketSize)</div>
 <div class="line"><a id="l00403" name="l00403"></a><span class="lineno">  403</span>    {</div>
 <div class="line"><a id="l00404" name="l00404"></a><span class="lineno">  404</span>      Packet xi = pload&lt;Packet&gt;(px);</div>
 <div class="line"><a id="l00405" name="l00405"></a><span class="lineno">  405</span>      Packet yi = pload&lt;Packet&gt;(py);</div>
@@ -439,7 +439,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00413" name="l00413"></a><span class="lineno">  413</span><span class="comment">  /*** non-vectorized path ***/</span></div>
 <div class="line"><a id="l00414" name="l00414"></a><span class="lineno">  414</span>  <span class="keywordflow">else</span></div>
 <div class="line"><a id="l00415" name="l00415"></a><span class="lineno">  415</span>  {</div>
-<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>    <span class="keywordflow">for</span>(<a class="code hl_struct" href="structIndex.html">Index</a> i=0; i&lt;size; ++i)</div>
+<div class="line"><a id="l00416" name="l00416"></a><span class="lineno">  416</span>    <span class="keywordflow">for</span>(Index i=0; i&lt;size; ++i)</div>
 <div class="line"><a id="l00417" name="l00417"></a><span class="lineno">  417</span>    {</div>
 <div class="line"><a id="l00418" name="l00418"></a><span class="lineno">  418</span>      Scalar xi = *x;</div>
 <div class="line"><a id="l00419" name="l00419"></a><span class="lineno">  419</span>      Scalar yi = *y;</div>
@@ -471,11 +471,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1conditional_html"><div class="ttname"><a href="structEigen_1_1internal_1_1conditional.html">Eigen::internal::conditional</a></div><div class="ttdef"><b>Definition</b> Meta.h:34</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1false__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1false__type.html">Eigen::internal::false_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:31</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

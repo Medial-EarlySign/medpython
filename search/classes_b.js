@@ -8,10 +8,9 @@ var searchData=
   ['kernel_5fretval_5fbase_5',['kernel_retval_base',['../structEigen_1_1internal_1_1kernel__retval__base.html',1,'Eigen::internal']]],
   ['kernel_5fretval_5fbase_3c_20fullpivlu_3c_20_5fmatrixtype_20_3e_20_3e_6',['kernel_retval_base&lt; FullPivLU&lt; _MatrixType &gt; &gt;',['../structEigen_1_1internal_1_1kernel__retval__base.html',1,'Eigen::internal']]],
   ['key_7',['Key',['../structxgboost_1_1DMatrixCache_1_1Key.html',1,'xgboost::DMatrixCache']]],
-  ['keyinfo_8',['KeyInfo',['../structKeyInfo.html',1,'']]],
-  ['keyrule_9',['KeyRule',['../classKeyRule.html',1,'']]],
-  ['kfrecalculator_10',['KfreCalculator',['../classKfreCalculator.html',1,'']]],
-  ['knn_5fexplainer_11',['KNN_Explainer',['../classKNN__Explainer.html',1,'']]],
-  ['kpsmokinggenerator_12',['KpSmokingGenerator',['../classKpSmokingGenerator.html',1,'']]],
-  ['kullbackleiblerdivergence_13',['KullbackLeiblerDivergence',['../classLightGBM_1_1KullbackLeiblerDivergence.html',1,'LightGBM']]]
+  ['keyrule_8',['KeyRule',['../classKeyRule.html',1,'']]],
+  ['kfrecalculator_9',['KfreCalculator',['../classKfreCalculator.html',1,'']]],
+  ['knn_5fexplainer_10',['KNN_Explainer',['../classKNN__Explainer.html',1,'']]],
+  ['kpsmokinggenerator_11',['KpSmokingGenerator',['../classKpSmokingGenerator.html',1,'']]],
+  ['kullbackleiblerdivergence_12',['KullbackLeiblerDivergence',['../classLightGBM_1_1KullbackLeiblerDivergence.html',1,'LightGBM']]]
 ];

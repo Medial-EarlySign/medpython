@@ -242,10 +242,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    EIGEN_DEVICE_FUNC</div>
 <div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(<span class="keyword">const</span> Scalar *<a class="code hl_function" href="classEigen_1_1PlainObjectBase.html#a322d4d48cc285b60e0dff100db522342">data</a>);</div>
 <div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span> </div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    EIGEN_STRONG_INLINE <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(<a class="code hl_struct" href="structIndex.html">Index</a> dim);</div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    EIGEN_STRONG_INLINE <span class="keyword">explicit</span> <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(Index dim);</div>
 <div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(<span class="keyword">const</span> Scalar&amp; x);</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span>    EIGEN_DEVICE_FUNC</div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(<a class="code hl_struct" href="structIndex.html">Index</a> rows, <a class="code hl_struct" href="structIndex.html">Index</a> cols);</div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span>    <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(Index rows, Index cols);</div>
 <div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span>    </div>
 <div class="line"><a id="l00342" name="l00342"></a><span class="lineno">  342</span>    <a class="code hl_function" href="classEigen_1_1Matrix.html#a11f852d66fa55b2aed12aa22da807a6b">Matrix</a>(<span class="keyword">const</span> Scalar&amp; x, <span class="keyword">const</span> Scalar&amp; y);</div>
 <div class="line"><a id="l00343" name="l00343"></a><span class="lineno">  343</span><span class="preprocessor">    #endif</span></div>
@@ -289,8 +289,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00380" name="l00380"></a><span class="lineno">  380</span>    { }</div>
 </div>
 <div class="line"><a id="l00381" name="l00381"></a><span class="lineno">  381</span> </div>
-<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> innerStride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> 1; }</div>
-<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> <a class="code hl_struct" href="structIndex.html">Index</a> outerStride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> this-&gt;innerSize(); }</div>
+<div class="line"><a id="l00382" name="l00382"></a><span class="lineno">  382</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">inline</span> Index innerStride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> 1; }</div>
+<div class="line"><a id="l00383" name="l00383"></a><span class="lineno">  383</span>    EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Index outerStride()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> this-&gt;innerSize(); }</div>
 <div class="line"><a id="l00384" name="l00384"></a><span class="lineno">  384</span> </div>
 <div class="line"><a id="l00386" name="l00386"></a><span class="lineno">  386</span> </div>
 <div class="line"><a id="l00387" name="l00387"></a><span class="lineno">  387</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherDerived&gt;</div>
@@ -379,12 +379,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="astructEigen_1_1internal_1_1size__at__compile__time_html"><div class="ttname"><a href="structEigen_1_1internal_1_1size__at__compile__time.html">Eigen::internal::size_at_compile_time</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:222</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1unpacket__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1unpacket__traits.html">Eigen::internal::unpacket_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:119</div></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 <div class="ttc" id="astruct__Matrix_html"><div class="ttname"><a href="struct__Matrix.html">_Matrix</a></div><div class="ttdef"><b>Definition</b> inference.c:32</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:02 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

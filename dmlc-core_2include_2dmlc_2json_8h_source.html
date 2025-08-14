@@ -264,7 +264,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00389" name="l00389"></a><span class="lineno">  389</span><span class="keyword">namespace </span>json {</div>
 <div class="line"><a id="l00390" name="l00390"></a><span class="lineno">  390</span> </div>
 <div class="line"><a id="l00395" name="l00395"></a><span class="lineno">  395</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>;</div>
+<div class="line"><a id="l00396" name="l00396"></a><span class="lineno">  396</span><span class="keyword">struct </span>Handler;</div>
 <div class="line"><a id="l00397" name="l00397"></a><span class="lineno">  397</span> </div>
 <div class="line"><a id="l00398" name="l00398"></a><span class="lineno">  398</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> ValueType&gt;</div>
 <div class="line"><a id="l00399" name="l00399"></a><span class="lineno">  399</span><span class="keyword">struct </span>NumericHandler {</div>
@@ -293,7 +293,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00422" name="l00422"></a><span class="lineno">  422</span>    reader-&gt;BeginArray();</div>
 <div class="line"><a id="l00423" name="l00423"></a><span class="lineno">  423</span>    <span class="keywordflow">while</span> (reader-&gt;NextArrayItem()) {</div>
 <div class="line"><a id="l00424" name="l00424"></a><span class="lineno">  424</span>      ElemType value;</div>
-<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>      <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;ElemType&gt;::Read</a>(reader, &amp;value);</div>
+<div class="line"><a id="l00425" name="l00425"></a><span class="lineno">  425</span>      Handler&lt;ElemType&gt;::Read(reader, &amp;value);</div>
 <div class="line"><a id="l00426" name="l00426"></a><span class="lineno">  426</span>      array-&gt;insert(array-&gt;end(), value);</div>
 <div class="line"><a id="l00427" name="l00427"></a><span class="lineno">  427</span>    }</div>
 <div class="line"><a id="l00428" name="l00428"></a><span class="lineno">  428</span>  }</div>
@@ -332,7 +332,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00461" name="l00461"></a><span class="lineno">  461</span>};</div>
 <div class="line"><a id="l00462" name="l00462"></a><span class="lineno">  462</span> </div>
 <div class="line"><a id="l00463" name="l00463"></a><span class="lineno">  463</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::string&gt; {</div>
+<div class="line"><a id="l00464" name="l00464"></a><span class="lineno">  464</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::string&gt; {</div>
 <div class="line"><a id="l00465" name="l00465"></a><span class="lineno">  465</span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Write(JSONWriter *writer, <span class="keyword">const</span> std::string &amp;value) {</div>
 <div class="line"><a id="l00466" name="l00466"></a><span class="lineno">  466</span>    writer-&gt;WriteString(value);</div>
 <div class="line"><a id="l00467" name="l00467"></a><span class="lineno">  467</span>  }</div>
@@ -342,11 +342,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00471" name="l00471"></a><span class="lineno">  471</span>};</div>
 <div class="line"><a id="l00472" name="l00472"></a><span class="lineno">  472</span> </div>
 <div class="line"><a id="l00473" name="l00473"></a><span class="lineno">  473</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00474" name="l00474"></a><span class="lineno">  474</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::vector&lt;T&gt; &gt; : <span class="keyword">public</span> ArrayHandler&lt;std::vector&lt;T&gt; &gt; {</div>
+<div class="line"><a id="l00474" name="l00474"></a><span class="lineno">  474</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::vector&lt;T&gt; &gt; : <span class="keyword">public</span> ArrayHandler&lt;std::vector&lt;T&gt; &gt; {</div>
 <div class="line"><a id="l00475" name="l00475"></a><span class="lineno">  475</span>};</div>
 <div class="line"><a id="l00476" name="l00476"></a><span class="lineno">  476</span> </div>
 <div class="line"><a id="l00477" name="l00477"></a><span class="lineno">  477</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> K, <span class="keyword">typename</span> V&gt;</div>
-<div class="line"><a id="l00478" name="l00478"></a><span class="lineno">  478</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::pair&lt;K, V&gt; &gt; {</div>
+<div class="line"><a id="l00478" name="l00478"></a><span class="lineno">  478</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::pair&lt;K, V&gt; &gt; {</div>
 <div class="line"><a id="l00479" name="l00479"></a><span class="lineno">  479</span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Write(JSONWriter *writer, <span class="keyword">const</span> std::pair&lt;K, V&gt; &amp;kv) {</div>
 <div class="line"><a id="l00480" name="l00480"></a><span class="lineno">  480</span>    writer-&gt;BeginArray();</div>
 <div class="line"><a id="l00481" name="l00481"></a><span class="lineno">  481</span>    writer-&gt;WriteArrayItem(kv.first);</div>
@@ -357,42 +357,42 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00486" name="l00486"></a><span class="lineno">  486</span>    reader-&gt;BeginArray();</div>
 <div class="line"><a id="l00487" name="l00487"></a><span class="lineno">  487</span>    CHECK(reader-&gt;NextArrayItem())</div>
 <div class="line"><a id="l00488" name="l00488"></a><span class="lineno">  488</span>        &lt;&lt; <span class="stringliteral">&quot;Expect array of length 2&quot;</span>;</div>
-<div class="line"><a id="l00489" name="l00489"></a><span class="lineno">  489</span>    <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;K&gt;::Read</a>(reader, &amp;(kv-&gt;first));</div>
+<div class="line"><a id="l00489" name="l00489"></a><span class="lineno">  489</span>    Handler&lt;K&gt;::Read(reader, &amp;(kv-&gt;first));</div>
 <div class="line"><a id="l00490" name="l00490"></a><span class="lineno">  490</span>    CHECK(reader-&gt;NextArrayItem())</div>
 <div class="line"><a id="l00491" name="l00491"></a><span class="lineno">  491</span>        &lt;&lt; <span class="stringliteral">&quot;Expect array of length 2&quot;</span>;</div>
-<div class="line"><a id="l00492" name="l00492"></a><span class="lineno">  492</span>    <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;V&gt;::Read</a>(reader, &amp;(kv-&gt;second));</div>
+<div class="line"><a id="l00492" name="l00492"></a><span class="lineno">  492</span>    Handler&lt;V&gt;::Read(reader, &amp;(kv-&gt;second));</div>
 <div class="line"><a id="l00493" name="l00493"></a><span class="lineno">  493</span>    CHECK(!reader-&gt;NextArrayItem())</div>
 <div class="line"><a id="l00494" name="l00494"></a><span class="lineno">  494</span>        &lt;&lt; <span class="stringliteral">&quot;Expect array of length 2&quot;</span>;</div>
 <div class="line"><a id="l00495" name="l00495"></a><span class="lineno">  495</span>  }</div>
 <div class="line"><a id="l00496" name="l00496"></a><span class="lineno">  496</span>};</div>
 <div class="line"><a id="l00497" name="l00497"></a><span class="lineno">  497</span> </div>
 <div class="line"><a id="l00498" name="l00498"></a><span class="lineno">  498</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::list&lt;T&gt; &gt; : <span class="keyword">public</span> ArrayHandler&lt;std::list&lt;T&gt; &gt; {</div>
+<div class="line"><a id="l00499" name="l00499"></a><span class="lineno">  499</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::list&lt;T&gt; &gt; : <span class="keyword">public</span> ArrayHandler&lt;std::list&lt;T&gt; &gt; {</div>
 <div class="line"><a id="l00500" name="l00500"></a><span class="lineno">  500</span>};</div>
 <div class="line"><a id="l00501" name="l00501"></a><span class="lineno">  501</span> </div>
 <div class="line"><a id="l00502" name="l00502"></a><span class="lineno">  502</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> V&gt;</div>
-<div class="line"><a id="l00503" name="l00503"></a><span class="lineno">  503</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::map&lt;std::string, V&gt; &gt; : <span class="keyword">public</span> MapHandler&lt;std::map&lt;std::string, V&gt; &gt; {</div>
+<div class="line"><a id="l00503" name="l00503"></a><span class="lineno">  503</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::map&lt;std::string, V&gt; &gt; : <span class="keyword">public</span> MapHandler&lt;std::map&lt;std::string, V&gt; &gt; {</div>
 <div class="line"><a id="l00504" name="l00504"></a><span class="lineno">  504</span>};</div>
 <div class="line"><a id="l00505" name="l00505"></a><span class="lineno">  505</span> </div>
 <div class="line"><a id="l00506" name="l00506"></a><span class="lineno">  506</span><span class="preprocessor">#if DMLC_USE_CXX11</span></div>
 <div class="line"><a id="l00507" name="l00507"></a><span class="lineno">  507</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> V&gt;</div>
-<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::unordered_map&lt;std::string, V&gt; &gt;</div>
+<div class="line"><a id="l00508" name="l00508"></a><span class="lineno">  508</span><span class="keyword">struct </span>Handler&lt;<a class="code hl_namespace" href="namespacestd.html">std</a>::unordered_map&lt;std::string, V&gt; &gt;</div>
 <div class="line"><a id="l00509" name="l00509"></a><span class="lineno">  509</span>    : <span class="keyword">public</span> MapHandler&lt;std::unordered_map&lt;std::string, V&gt; &gt; {</div>
 <div class="line"><a id="l00510" name="l00510"></a><span class="lineno">  510</span>};</div>
 <div class="line"><a id="l00511" name="l00511"></a><span class="lineno">  511</span><span class="preprocessor">#endif  </span><span class="comment">// DMLC_USE_CXX11</span></div>
 <div class="line"><a id="l00512" name="l00512"></a><span class="lineno">  512</span> </div>
 <div class="line"><a id="l00513" name="l00513"></a><span class="lineno">  513</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a> {</div>
+<div class="line"><a id="l00514" name="l00514"></a><span class="lineno">  514</span><span class="keyword">struct </span>Handler {</div>
 <div class="line"><a id="l00515" name="l00515"></a><span class="lineno">  515</span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Write(JSONWriter *writer, <span class="keyword">const</span> T &amp;data) {</div>
 <div class="line"><a id="l00516" name="l00516"></a><span class="lineno">  516</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_struct" href="structdmlc_1_1IfThenElseType.html">dmlc::IfThenElseType&lt;dmlc::is_arithmetic&lt;T&gt;::value</a>,</div>
 <div class="line"><a id="l00517" name="l00517"></a><span class="lineno">  517</span>                                          NumericHandler&lt;T&gt;,</div>
-<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span>                                          CommonJSONSerializer&lt;T&gt; &gt;<a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">::Type</a> THandler;</div>
+<div class="line"><a id="l00518" name="l00518"></a><span class="lineno">  518</span>                                          CommonJSONSerializer&lt;T&gt; &gt;::Type THandler;</div>
 <div class="line"><a id="l00519" name="l00519"></a><span class="lineno">  519</span>    THandler::Write(writer, data);</div>
 <div class="line"><a id="l00520" name="l00520"></a><span class="lineno">  520</span>  }</div>
 <div class="line"><a id="l00521" name="l00521"></a><span class="lineno">  521</span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Read(JSONReader *reader, T *data) {</div>
 <div class="line"><a id="l00522" name="l00522"></a><span class="lineno">  522</span>    <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_struct" href="structdmlc_1_1IfThenElseType.html">dmlc::IfThenElseType&lt;dmlc::is_arithmetic&lt;T&gt;::value</a>,</div>
 <div class="line"><a id="l00523" name="l00523"></a><span class="lineno">  523</span>                                          NumericHandler&lt;T&gt;,</div>
-<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span>                                          CommonJSONSerializer&lt;T&gt; &gt;<a class="code hl_enumeration" href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">::Type</a> THandler;</div>
+<div class="line"><a id="l00524" name="l00524"></a><span class="lineno">  524</span>                                          CommonJSONSerializer&lt;T&gt; &gt;::Type THandler;</div>
 <div class="line"><a id="l00525" name="l00525"></a><span class="lineno">  525</span>    THandler::Read(reader, data);</div>
 <div class="line"><a id="l00526" name="l00526"></a><span class="lineno">  526</span>  }</div>
 <div class="line"><a id="l00527" name="l00527"></a><span class="lineno">  527</span>};</div>
@@ -445,14 +445,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00574" name="l00574"></a><span class="lineno">  574</span>  };</div>
 <div class="line"><a id="l00575" name="l00575"></a><span class="lineno">  575</span> </div>
 <div class="line"><a id="l00576" name="l00576"></a><span class="lineno">  576</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>  <span class="keyword">friend</span> <span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>;</div>
+<div class="line"><a id="l00577" name="l00577"></a><span class="lineno">  577</span>  <span class="keyword">friend</span> <span class="keyword">struct </span>Handler;</div>
 <div class="line"><a id="l00578" name="l00578"></a><span class="lineno">  578</span> </div>
 <div class="line"><a id="l00579" name="l00579"></a><span class="lineno">  579</span>  std::unordered_map&lt;std::type_index, std::string&gt; type_name_;</div>
 <div class="line"><a id="l00580" name="l00580"></a><span class="lineno">  580</span>  std::unordered_map&lt;std::string, Entry&gt; type_map_;</div>
 <div class="line"><a id="l00581" name="l00581"></a><span class="lineno">  581</span>};</div>
 <div class="line"><a id="l00582" name="l00582"></a><span class="lineno">  582</span> </div>
 <div class="line"><a id="l00583" name="l00583"></a><span class="lineno">  583</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="keyword">struct </span><a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler</a>&lt;any&gt; {</div>
+<div class="line"><a id="l00584" name="l00584"></a><span class="lineno">  584</span><span class="keyword">struct </span>Handler&lt;any&gt; {</div>
 <div class="line"><a id="l00585" name="l00585"></a><span class="lineno">  585</span>  <span class="keyword">inline</span> <span class="keyword">static</span> <span class="keywordtype">void</span> Write(JSONWriter *writer, <span class="keyword">const</span> any &amp;data) {</div>
 <div class="line"><a id="l00586" name="l00586"></a><span class="lineno">  586</span>    std::unordered_map&lt;std::type_index, std::string&gt;&amp;</div>
 <div class="line"><a id="l00587" name="l00587"></a><span class="lineno">  587</span>        nmap = AnyJSONManager::Global()-&gt;type_name_;</div>
@@ -472,7 +472,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00601" name="l00601"></a><span class="lineno">  601</span>    std::string type_name;</div>
 <div class="line"><a id="l00602" name="l00602"></a><span class="lineno">  602</span>    reader-&gt;BeginArray();</div>
 <div class="line"><a id="l00603" name="l00603"></a><span class="lineno">  603</span>    CHECK(reader-&gt;NextArrayItem()) &lt;&lt; <span class="stringliteral">&quot;invalid any json format&quot;</span>;</div>
-<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>    <a class="code hl_class" href="classrapidjson_1_1Handler.html">Handler&lt;std::string&gt;::Read</a>(reader, &amp;type_name);</div>
+<div class="line"><a id="l00604" name="l00604"></a><span class="lineno">  604</span>    Handler&lt;std::string&gt;::Read(reader, &amp;type_name);</div>
 <div class="line"><a id="l00605" name="l00605"></a><span class="lineno">  605</span>    std::unordered_map&lt;std::string, AnyJSONManager::Entry&gt;&amp;</div>
 <div class="line"><a id="l00606" name="l00606"></a><span class="lineno">  606</span>        tmap = AnyJSONManager::Global()-&gt;type_map_;</div>
 <div class="line"><a id="l00607" name="l00607"></a><span class="lineno">  607</span>    <span class="keyword">auto</span> it = tmap.find(type_name);</div>
@@ -880,20 +880,18 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassdmlc_1_1JSONWriter_html_afa99c852fcbec2a8728a260c284d811c"><div class="ttname"><a href="classdmlc_1_1JSONWriter.html#afa99c852fcbec2a8728a260c284d811c">dmlc::JSONWriter::WriteObjectKeyValue</a></div><div class="ttdeci">void WriteObjectKeyValue(const std::string &amp;key, const ValueType &amp;value)</div><div class="ttdoc">Write key value pair in the object.</div></div>
 <div class="ttc" id="aclassdmlc_1_1JSONWriter_html_afc18656cb3d4f2db16f094453567e51a"><div class="ttname"><a href="classdmlc_1_1JSONWriter.html#afc18656cb3d4f2db16f094453567e51a">dmlc::JSONWriter::WriteString</a></div><div class="ttdeci">void WriteString(const std::string &amp;s)</div><div class="ttdoc">Write a string that can contain escape characters.</div></div>
 <div class="ttc" id="aclassdmlc_1_1optional_html"><div class="ttname"><a href="classdmlc_1_1optional.html">dmlc::optional</a></div><div class="ttdoc">Is not constructible or convertible from any expression of type (possibly const) dmlc::optional&lt;U&gt;,...</div><div class="ttdef"><b>Definition</b> optional.h:76</div></div>
-<div class="ttc" id="aclassrapidjson_1_1Handler_html"><div class="ttname"><a href="classrapidjson_1_1Handler.html">Handler</a></div><div class="ttdoc">Concept for receiving events from GenericReader upon parsing. The functions return true if no error o...</div></div>
 <div class="ttc" id="ainclude_2xgboost_2logging_8h_html"><div class="ttname"><a href="include_2xgboost_2logging_8h.html">logging.h</a></div><div class="ttdoc">defines console logging options for xgboost. Use to enforce unified print behavior.</div></div>
 <div class="ttc" id="anamespacedmlc_html"><div class="ttname"><a href="namespacedmlc.html">dmlc</a></div><div class="ttdoc">namespace for dmlc</div><div class="ttdef"><b>Definition</b> array_view.h:12</div></div>
 <div class="ttc" id="anamespacedmlc_html_a52dcf01c9ba22be9b08e455194fb2ab3"><div class="ttname"><a href="namespacedmlc.html#a52dcf01c9ba22be9b08e455194fb2ab3">dmlc::isspace</a></div><div class="ttdeci">bool isspace(char c)</div><div class="ttdoc">Inline implementation of isspace(). Tests whether the given character is a whitespace letter.</div><div class="ttdef"><b>Definition</b> strtonum.h:26</div></div>
 <div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
 <div class="ttc" id="arabit_2include_2rabit_2base_8h_html"><div class="ttname"><a href="rabit_2include_2rabit_2base_8h.html">base.h</a></div><div class="ttdoc">Macros common to all headers.</div></div>
-<div class="ttc" id="arapidjson_8h_html_a1d1cfd8ffb84e947f82999c682b666a7"><div class="ttname"><a href="rapidjson_8h.html#a1d1cfd8ffb84e947f82999c682b666a7">Type</a></div><div class="ttdeci">Type</div><div class="ttdoc">Type of JSON value.</div><div class="ttdef"><b>Definition</b> rapidjson.h:604</div></div>
 <div class="ttc" id="astructdmlc_1_1IfThenElseType_html"><div class="ttname"><a href="structdmlc_1_1IfThenElseType.html">dmlc::IfThenElseType</a></div><div class="ttdoc">template to select type based on condition For example, IfThenElseType&lt;true, int, float&gt;::Type will g...</div><div class="ttdef"><b>Definition</b> type_traits.h:123</div></div>
 <div class="ttc" id="astructdmlc_1_1is__pod_html"><div class="ttname"><a href="structdmlc_1_1is__pod.html">dmlc::is_pod</a></div><div class="ttdoc">whether a type is pod type</div><div class="ttdef"><b>Definition</b> type_traits.h:21</div></div>
 <div class="ttc" id="atype__traits_8h_html"><div class="ttname"><a href="type__traits_8h.html">type_traits.h</a></div><div class="ttdoc">type traits information header</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:56 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

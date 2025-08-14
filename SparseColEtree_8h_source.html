@@ -119,10 +119,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Index, <span class="keyword">typename</span> IndexVector&gt;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><a class="code hl_struct" href="structIndex.html">Index</a> etree_find (<a class="code hl_struct" href="structIndex.html">Index</a> i, IndexVector&amp; pp)</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>Index etree_find (Index i, IndexVector&amp; pp)</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>{</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>  <a class="code hl_struct" href="structIndex.html">Index</a> p = pp(i); <span class="comment">// Parent </span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>  <a class="code hl_struct" href="structIndex.html">Index</a> gp = pp(p); <span class="comment">// Grand parent </span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>  Index p = pp(i); <span class="comment">// Parent </span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>  Index gp = pp(p); <span class="comment">// Grand parent </span></div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>  <span class="keywordflow">while</span> (gp != p) </div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>  {</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    pp(i) = gp; <span class="comment">// Parent pointer on find path is changed to former grand parent</span></div>
@@ -156,7 +156,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <span class="keywordflow">if</span>(perm) pcol  = perm[col];</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="keywordflow">for</span> (<span class="keyword">typename</span> MatrixType::InnerIterator it(mat, pcol); it; ++it)</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    { </div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      <a class="code hl_struct" href="structIndex.html">Index</a> row = it.row();</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      Index row = it.row();</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>      firstRowElt(row) = (std::min)(firstRowElt(row), col);</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    }</div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  }</div>
@@ -178,7 +178,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keywordflow">if</span>(perm) pcol  = perm[col];</div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    <span class="keywordflow">for</span> (<span class="keyword">typename</span> MatrixType::InnerIterator it(mat, pcol); it||!found_diag; ++it)</div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    { <span class="comment">//  A sequence of interleaved find and union is performed </span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      <a class="code hl_struct" href="structIndex.html">Index</a> i = col;</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      Index i = col;</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>      <span class="keywordflow">if</span>(it) i = it.index();</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>      <span class="keywordflow">if</span> (i == col) found_diag = <span class="keyword">true</span>;</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>      </div>
@@ -270,11 +270,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>} <span class="comment">// end namespace Eigen</span></div>
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="preprocessor">#endif </span><span class="comment">// SPARSE_COLETREE_H</span></div>
-<div class="ttc" id="astructIndex_html"><div class="ttname"><a href="structIndex.html">Index</a></div><div class="ttdef"><b>Definition</b> sqlite3.c:17947</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 7 2025 10:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Aug 14 2025 17:54:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

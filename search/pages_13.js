@@ -1,21 +1,15 @@
 var searchData=
 [
-  ['sax_0',['sax',['../md_External_2vowpal__wabbit_2rapidjson_2doc_2sax.html',1,'SAX'],['../md_External_2vowpal__wabbit_2rapidjson_2doc_2sax_8zh-cn.html',1,'SAX']]],
-  ['scala_20java_1',['XGBoost4J: Distributed XGBoost for Scala/Java',['../md_External_2xgboost_2jvm-packages_2README.html',1,'']]],
-  ['scalable_20gbm_2',['XGBoost R Package for Scalable GBM',['../md_External_2xgboost_2R-package_2README.html',1,'']]],
-  ['schema_3',['schema',['../md_External_2vowpal__wabbit_2rapidjson_2doc_2schema.html',1,'Schema'],['../md_External_2vowpal__wabbit_2rapidjson_2doc_2schema_8zh-cn.html',1,'Schema']]],
-  ['scripts_20for_20vowpal_20wabbit_4',['R scripts for vowpal wabbit',['../md_External_2vowpal__wabbit_2R_2rscripts__readme.html',1,'']]],
-  ['search_20for_20dependencies_5',['Search for dependencies',['../md_External_2vowpal__wabbit_2demo_2dependencyparsing_2README.html',1,'']]],
-  ['searn_20for_20entity_20relation_20recognition_6',['Searn for Entity Relation Recognition',['../md_External_2vowpal__wabbit_2demo_2entityrelation_2README.html',1,'']]],
-  ['security_20policy_7',['Security Policy',['../md_External_2xgboost_2SECURITY.html',1,'']]],
-  ['set_8',['Wikipara data set',['../md_External_2vowpal__wabbit_2demo_2recall__tree_2wikipara_2README.html',1,'']]],
-  ['source_20code_20of_20conduct_9',['Microsoft Open Source Code of Conduct',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2CODE__OF__CONDUCT.html',1,'']]],
-  ['src_20https_3a_20xgboost_20ai_20images_20logo_20xgboost_20logo_20svg_20width_20135_20extreme_20gradient_20boosting_10',['&lt;img src=&quot;https://xgboost.ai/images/logo/xgboost-logo.svg&quot; width=135/&gt;  eXtreme Gradient Boosting',['../md_External_2xgboost_2README.html',1,'']]],
-  ['stream_11',['Stream',['../md_External_2vowpal__wabbit_2rapidjson_2doc_2stream.html',1,'']]],
-  ['structure_20for_20machine_20learning_12',['Parameter Structure for Machine Learning',['../md_External_2xgboost_2dmlc-core_2doc_2parameter.html',1,'']]],
-  ['summary_13',['Summary',['../md_External_2vowpal__wabbit_2java_2README.html',1,'']]],
-  ['support_20of_20federated_20xgboost_20using_20nvflare_14',['Experimental Support of Federated XGBoost using NVFlare',['../md_External_2xgboost_2demo_2nvflare_2README.html',1,'']]],
-  ['support_20of_20horizontal_20federated_20xgboost_20using_20nvflare_15',['Experimental Support of Horizontal Federated XGBoost using NVFlare',['../md_External_2xgboost_2demo_2nvflare_2horizontal_2README.html',1,'']]],
-  ['support_20of_20vertical_20federated_20xgboost_20using_20nvflare_16',['Experimental Support of Vertical Federated XGBoost using NVFlare',['../md_External_2xgboost_2demo_2nvflare_2vertical_2README.html',1,'']]],
-  ['svg_20width_20135_20extreme_20gradient_20boosting_17',['&lt;img src=&quot;https://xgboost.ai/images/logo/xgboost-logo.svg&quot; width=135/&gt;  eXtreme Gradient Boosting',['../md_External_2xgboost_2README.html',1,'']]]
+  ['table_20list_20of_20key_20modifications_20of_20lightgbm_0',['Table/List of Key Modifications of LightGBM',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docs_2Key-Events.html',1,'']]],
+  ['the_20cpu_20network_20module_20for_20xgboost_20the_20library_20originates_20from_20a_20href_20https_3a_20github_20com_20dmlc_20rabit_20rabit_20a_1',['This directory contains the CPU network module for XGBoost.  The library originates from &lt;a href=&quot;https://github.com/dmlc/rabit&quot; &gt;RABIT&lt;/a&gt;',['../md_External_2xgboost_2rabit_2README.html',1,'']]],
+  ['third_20party_20libraries_20and_20licenses_2',['Third-Party Libraries and Licenses',['../md_LICENCE.html',1,'']]],
+  ['this_20directory_20contains_20the_20cpu_20network_20module_20for_20xgboost_20the_20library_20originates_20from_20a_20href_20https_3a_20github_20com_20dmlc_20rabit_20rabit_20a_3',['This directory contains the CPU network module for XGBoost.  The library originates from &lt;a href=&quot;https://github.com/dmlc/rabit&quot; &gt;RABIT&lt;/a&gt;',['../md_External_2xgboost_2rabit_2README.html',1,'']]],
+  ['to_20load_20data_20from_20external_20memory_4',['Defining a Custom Data Iterator to Load Data from External Memory',['../md_External_2xgboost_2demo_2c-api_2external-memory_2README.html',1,'']]],
+  ['to_20medial_20libs_20documentation_5',['Welcome To Medial Libs Documentation',['../index.html',1,'']]],
+  ['to_20rank_6',['Learning to rank',['../md_External_2xgboost_2demo_2rank_2README.html',1,'']]],
+  ['todo_20list_7',['Todo List',['../todo.html',1,'']]],
+  ['tracker_8',['DMLC Tracker',['../md_External_2xgboost_2dmlc-core_2tracker_2README.html',1,'']]],
+  ['training_9',['Distributed XGBoost Training',['../md_External_2xgboost_2demo_2CLI_2distributed-training_2README.html',1,'']]],
+  ['tree_20construction_10',['DPC++-based Algorithm for Tree Construction',['../md_External_2xgboost_2plugin_2updater__oneapi_2README.html',1,'']]],
+  ['tutorial_11',['XGBoost R Tutorial',['../md_External_2xgboost_2doc_2R-package_2xgboostPresentation.html',1,'']]]
 ];

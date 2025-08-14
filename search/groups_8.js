@@ -1,4 +1,4 @@
 var searchData=
 [
-  ['library_0',['Library',['../group__Library.html',1,'']]]
+  ['matrix_20typedefs_0',['Global matrix typedefs',['../group__matrixtypedefs.html',1,'']]]
 ];
