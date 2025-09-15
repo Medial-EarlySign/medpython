@@ -72,7 +72,7 @@ $(function() {
   <div class="headertitle"><div class="title">XGBoost R Tutorial</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><h1><a class="anchor" id="autotoc_md170"></a>
+<div class="textblock"><h1><a class="anchor" id="autotoc_md171"></a>
 Introduction</h1>
 <p><b>XGBoost</b> is short for e**X**treme **G**radient **Boost**ing package.</p>
 <p>The purpose of this Vignette is to show you how to use <b>XGBoost</b> to build a model and make predictions.</p>
@@ -96,9 +96,9 @@ Introduction</h1>
 <li>Sparsity: it accepts <em>sparse</em> input for both <em>tree booster</em> and <em>linear booster</em>, and is optimized for <em>sparse</em> input ;</li>
 <li>Customization: it supports customized objective functions and evaluation functions.</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md171"></a>
+<h1><a class="anchor" id="autotoc_md172"></a>
 Installation</h1>
-<h2><a class="anchor" id="autotoc_md172"></a>
+<h2><a class="anchor" id="autotoc_md173"></a>
 GitHub version</h2>
 <p>For weekly updated version (highly recommended), install from <em>GitHub</em>:</p>
 <div class="fragment"><div class="line">install.packages(&quot;drat&quot;, repos=&quot;https://cran.rstudio.com&quot;)</div>
@@ -107,20 +107,20 @@ GitHub version</h2>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;<em>Windows</em> users will need to install <a href="http://cran.r-project.org/bin/windows/Rtools/">Rtools</a> first. </p>
 </blockquote>
-<h2><a class="anchor" id="autotoc_md173"></a>
+<h2><a class="anchor" id="autotoc_md174"></a>
 CRAN version</h2>
 <p>The version 0.4-2 is on CRAN, and you can install it by:</p>
 <div class="fragment"><div class="line">install.packages(&quot;xgboost&quot;)</div>
 </div><!-- fragment --><p>Formerly available versions can be obtained from the CRAN <a href="http://cran.r-project.org/src/contrib/Archive/xgboost">archive</a></p>
-<h1><a class="anchor" id="autotoc_md174"></a>
+<h1><a class="anchor" id="autotoc_md175"></a>
 Learning</h1>
 <p>For the purpose of this tutorial we will load <b>XGBoost</b> package.</p>
 <div class="fragment"><div class="line">require(xgboost)</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md175"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md176"></a>
 Dataset presentation</h2>
 <p>In this example, we are aiming to predict whether a mushroom can be eaten or not (like in many tutorials, example data are the same as you will use on in your every day life :-).</p>
 <p>Mushroom data is cited from UCI Machine Learning Repository. @Bache+Lichman:2013.</p>
-<h2><a class="anchor" id="autotoc_md176"></a>
+<h2><a class="anchor" id="autotoc_md177"></a>
 Dataset loading</h2>
 <p>We will load the <code>agaricus</code> datasets embedded with the package and will link them to variables.</p>
 <p>The datasets are already split in:</p>
@@ -162,10 +162,10 @@ Dataset loading</h2>
 </div><!-- fragment --><div class="fragment"><div class="line">## [1] &quot;dgCMatrix&quot;</div>
 </div><!-- fragment --><div class="fragment"><div class="line">class(train$label)</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [1] &quot;numeric&quot;</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md177"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md178"></a>
 Basic Training using XGBoost</h2>
 <p>This step is the most critical part of the process for the quality of our model.</p>
-<h3><a class="anchor" id="autotoc_md178"></a>
+<h3><a class="anchor" id="autotoc_md179"></a>
 Basic training</h3>
 <p>We are using the <code>train</code> data. As explained above, both <code>data</code> and <code>label</code> are stored in a <code>list</code>.</p>
 <p>In a <em>sparse</em> matrix, cells containing <code>0</code> are not stored in memory. Therefore, in a dataset mainly made of <code>0</code>, memory size is reduced. It is very common to have such a dataset.</p>
@@ -182,22 +182,22 @@ Basic training</h3>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;The more complex the relationship between your features and your <code>label</code> is, the more passes you need. </p>
 </blockquote>
-<h3><a class="anchor" id="autotoc_md179"></a>
+<h3><a class="anchor" id="autotoc_md180"></a>
 Parameter variations</h3>
-<h4><a class="anchor" id="autotoc_md180"></a>
+<h4><a class="anchor" id="autotoc_md181"></a>
 Dense matrix</h4>
 <p>Alternatively, you can put your dataset in a <em>dense</em> matrix, i.e. a basic <b>R</b> matrix.</p>
 <div class="fragment"><div class="line">bstDense &lt;- xgboost(data = as.matrix(train$data), label = train$label, max.depth = 2, eta = 1, nthread = 2, nrounds = 2, objective = &quot;binary:logistic&quot;)</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [0]  train-error:0.046522</div>
 <div class="line">## [1]  train-error:0.022263</div>
-</div><!-- fragment --><h4><a class="anchor" id="autotoc_md181"></a>
+</div><!-- fragment --><h4><a class="anchor" id="autotoc_md182"></a>
 xgb.DMatrix</h4>
 <p><b>XGBoost</b> offers a way to group them in a <code>xgb.DMatrix</code>. You can even add other meta data in it. This will be useful for the most advanced features we will discover later.</p>
 <div class="fragment"><div class="line">dtrain &lt;- xgb.DMatrix(data = train$data, label = train$label)</div>
 <div class="line">bstDMatrix &lt;- xgboost(data = dtrain, max.depth = 2, eta = 1, nthread = 2, nrounds = 2, objective = &quot;binary:logistic&quot;)</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [0]  train-error:0.046522</div>
 <div class="line">## [1]  train-error:0.022263</div>
-</div><!-- fragment --><h4><a class="anchor" id="autotoc_md182"></a>
+</div><!-- fragment --><h4><a class="anchor" id="autotoc_md183"></a>
 Verbose option</h4>
 <p><b>XGBoost</b> has several features to help you view the learning progress internally. The purpose is to help you to set the best parameters, which is the key of your model quality.</p>
 <p>One of the simplest way to see the training progress is to set the <code>verbose</code> option (see below for more advanced techniques).</p>
@@ -213,9 +213,9 @@ Verbose option</h4>
 <div class="line">## [0]  train-error:0.046522</div>
 <div class="line">## [11:41:01] amalgamation/../src/tree/updater_prune.cc:74: tree pruning end, 1 roots, 4 extra nodes, 0 pruned nodes, max_depth=2</div>
 <div class="line">## [1]  train-error:0.022263</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md183"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md184"></a>
 Basic prediction using XGBoost</h1>
-<h1><a class="anchor" id="autotoc_md184"></a>
+<h1><a class="anchor" id="autotoc_md185"></a>
 Perform the prediction</h1>
 <p>The purpose of the model we have built is to classify new data. As explained before, we will use the <code>test</code> dataset for this step.</p>
 <div class="fragment"><div class="line">pred &lt;- predict(bst, test$data)</div>
@@ -227,7 +227,7 @@ Perform the prediction</h1>
 <div class="line">print(head(pred))</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [1] 0.28583017 0.92392391 0.28583017 0.28583017 0.05169873 0.92392391</div>
 </div><!-- fragment --><p>These numbers doesn't look like <em>binary classification</em> <code>{0,1}</code>. We need to perform a simple transformation before being able to use these results.</p>
-<h1><a class="anchor" id="autotoc_md185"></a>
+<h1><a class="anchor" id="autotoc_md186"></a>
 Transform the regression in a binary classification</h1>
 <p>The only thing that <b>XGBoost</b> does is a <em>regression</em>. <b>XGBoost</b> is using <code>label</code> vector to build its <em>regression</em> model.</p>
 <p>How can we use a <em>regression</em> model to perform a binary classification?</p>
@@ -235,7 +235,7 @@ Transform the regression in a binary classification</h1>
 <div class="fragment"><div class="line">prediction &lt;- as.numeric(pred &gt; 0.5)</div>
 <div class="line">print(head(prediction))</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [1] 0 1 0 0 0 1</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md186"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md187"></a>
 Measuring model performance</h1>
 <p>To measure the model performance, we will compute a simple metric, the <em>average error</em>.</p>
 <div class="fragment"><div class="line">err &lt;- mean(as.numeric(pred &gt; 0.5) != test$label)</div>
@@ -253,15 +253,15 @@ Measuring model performance</h1>
 <p>The most important thing to remember is that <b>to do a classification, you just do a regression to the</b> <code>label</code> <b>and then apply a threshold</b>.</p>
 <p><em>Multiclass</em> classification works in a similar way.</p>
 <p>This metric is <b>0.02</b> and is pretty low: our yummly mushroom model works well!</p>
-<h1><a class="anchor" id="autotoc_md187"></a>
+<h1><a class="anchor" id="autotoc_md188"></a>
 Advanced features</h1>
 <p>Most of the features below have been implemented to help you to improve your model by offering a better understanding of its content.</p>
-<h2><a class="anchor" id="autotoc_md188"></a>
+<h2><a class="anchor" id="autotoc_md189"></a>
 Dataset preparation</h2>
 <p>For the following advanced features, we need to put data in <code>xgb.DMatrix</code> as explained above.</p>
 <div class="fragment"><div class="line">dtrain &lt;- xgb.DMatrix(data = train$data, label=train$label)</div>
 <div class="line">dtest &lt;- xgb.DMatrix(data = test$data, label=test$label)</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md189"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md190"></a>
 Measure learning progress with xgb.train</h2>
 <p>Both <code>xgboost</code> (simple) and <code>xgb.train</code> (advanced) functions train models.</p>
 <p>One of the special features of <code>xgb.train</code> is the capacity to follow the progress of the learning after each round. Because of the way boosting works, there is a time when having too many rounds lead to overfitting. You can see this feature as a cousin of a cross-validation method. The following techniques will help you to avoid overfitting or optimizing the learning time in stopping it as soon as possible.</p>
@@ -285,7 +285,7 @@ Measure learning progress with xgb.train</h2>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;<code>eval.metric</code> allows us to monitor two new metrics for each round, <code>logloss</code> and <code>error</code>. </p>
 </blockquote>
-<h2><a class="anchor" id="autotoc_md190"></a>
+<h2><a class="anchor" id="autotoc_md191"></a>
 Linear boosting</h2>
 <p>Until now, all the learnings we have performed were based on boosting trees. <b>XGBoost</b> implements a second algorithm, based on linear boosting. The only difference with the previous command is <code>booster = "gblinear"</code> parameter (and removing <code>eta</code> parameter).</p>
 <div class="fragment"><div class="line">bst &lt;- xgb.train(data=dtrain, booster = &quot;gblinear&quot;, nthread = 2, nrounds=2, watchlist=watchlist, eval.metric = &quot;error&quot;, eval.metric = &quot;logloss&quot;, objective = &quot;binary:logistic&quot;)</div>
@@ -293,9 +293,9 @@ Linear boosting</h2>
 <div class="line">## [1]  train-error:0.004146    train-logloss:0.069885  test-error:0.003724 test-logloss:0.068081</div>
 </div><!-- fragment --><p>In this specific case, <em>linear boosting</em> gets slightly better performance metrics than a decision tree based algorithm.</p>
 <p>In simple cases, this will happen because there is nothing better than a linear algorithm to catch a linear link. However, decision trees are much better to catch a non linear link between predictors and outcome. Because there is no silver bullet, we advise you to check both algorithms with your own datasets to have an idea of what to use.</p>
-<h2><a class="anchor" id="autotoc_md191"></a>
+<h2><a class="anchor" id="autotoc_md192"></a>
 Manipulating xgb.DMatrix</h2>
-<h3><a class="anchor" id="autotoc_md192"></a>
+<h3><a class="anchor" id="autotoc_md193"></a>
 Save / Load</h3>
 <p>Like saving models, <code>xgb.DMatrix</code> object (which groups both dataset and outcome) can also be saved using <code>xgb.DMatrix.save</code> function.</p>
 <div class="fragment"><div class="line">xgb.DMatrix.save(dtrain, &quot;dtrain.buffer&quot;)</div>
@@ -306,7 +306,7 @@ Save / Load</h3>
 </div><!-- fragment --><div class="fragment"><div class="line">bst &lt;- xgb.train(data=dtrain2, max.depth=2, eta=1, nthread = 2, nrounds=2, watchlist=watchlist, objective = &quot;binary:logistic&quot;)</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [0]  train-error:0.046522    test-error:0.042831</div>
 <div class="line">## [1]  train-error:0.022263    test-error:0.021726</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md193"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md194"></a>
 Information extraction</h3>
 <p>Information can be extracted from an <code>xgb.DMatrix</code> using <code>getinfo</code> function. Hereafter we will extract <code>label</code> data.</p>
 <div class="fragment"><div class="line">label = getinfo(dtest, &quot;label&quot;)</div>
@@ -314,13 +314,13 @@ Information extraction</h3>
 <div class="line">err &lt;- as.numeric(sum(as.integer(pred &gt; 0.5) != label))/length(label)</div>
 <div class="line">print(paste(&quot;test-error=&quot;, err))</div>
 </div><!-- fragment --><div class="fragment"><div class="line">## [1] &quot;test-error= 0.0217256362507759&quot;</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md194"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md195"></a>
 View feature importance/influence from the learnt model</h2>
 <p>Feature importance is similar to R gbm package's relative influence (rel.inf).</p>
 <div class="fragment"><div class="line">importance_matrix &lt;- xgb.importance(model = bst)</div>
 <div class="line">print(importance_matrix)</div>
 <div class="line">xgb.plot.importance(importance_matrix = importance_matrix)</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md195"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md196"></a>
 View the trees from a model</h3>
 <p>You can dump the tree you learned using <code>xgb.dump</code> into a text file.</p>
 <div class="fragment"><div class="line">xgb.dump(bst, with_stats = TRUE)</div>
@@ -343,7 +343,7 @@ View the trees from a model</h3>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;if you provide a path to <code>fname</code> parameter you can save the trees to your hard drive. </p>
 </blockquote>
-<h3><a class="anchor" id="autotoc_md196"></a>
+<h3><a class="anchor" id="autotoc_md197"></a>
 Save and load models</h3>
 <p>Maybe your dataset is big, and it takes time to train a model on it? May be you are not a big fan of losing time in redoing the same task again and again? In these very rare cases, you will want to save your model and load it when required.</p>
 <p>Helpfully for you, <b>XGBoost</b> implements such functions.</p>
@@ -381,13 +381,13 @@ Save and load models</h3>
 </div><!-- fragment --><blockquote class="doxtable">
 <p>&zwj;Again <code>0</code>? It seems that <code>XGBoost</code> works pretty well! </p>
 </blockquote>
-<h1><a class="anchor" id="autotoc_md197"></a>
+<h1><a class="anchor" id="autotoc_md198"></a>
 References</h1>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

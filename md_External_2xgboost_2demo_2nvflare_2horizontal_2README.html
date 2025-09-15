@@ -72,8 +72,8 @@ $(function() {
   <div class="headertitle"><div class="title">Experimental Support of Horizontal Federated XGBoost using NVFlare</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md108"></a> This directory contains a demo of Horizontal Federated Learning using <a href="https://nvidia.github.io/NVFlare/">NVFlare</a>.</p>
-<h1><a class="anchor" id="autotoc_md109"></a>
+<div class="textblock"><p><a class="anchor" id="autotoc_md109"></a> This directory contains a demo of Horizontal Federated Learning using <a href="https://nvidia.github.io/NVFlare/">NVFlare</a>.</p>
+<h1><a class="anchor" id="autotoc_md110"></a>
 Training with CPU only</h1>
 <p>To run the demo, first build XGBoost with the federated learning plugin enabled (see the <a class="el" href="md_External_2xgboost_2plugin_2federated_2README.html">README</a>).</p>
 <p>Install NVFlare (note that currently NVFlare only supports Python 3.8): </p><div class="fragment"><div class="line">pip install nvflare</div>
@@ -107,7 +107,7 @@ Training with CPU only</h1>
 </div><!-- fragment --><p>Once the training finishes, the model file should be written into <code>/tmp/nvlfare/poc/site-1/${job_id}/test.model.json</code> and <code>/tmp/nvflare/poc/site-2/${job_id}/test.model.json</code> respectively, where <code>job_id</code> is the UUID printed out when we ran <code>submit_job</code>.</p>
 <p>Finally, shutdown everything from the admin CLI, using <code>admin</code> as password: </p><div class="fragment"><div class="line">shutdown client</div>
 <div class="line">shutdown server</div>
-</div><!-- fragment --><h1><a class="anchor" id="autotoc_md110"></a>
+</div><!-- fragment --><h1><a class="anchor" id="autotoc_md111"></a>
 Training with GPUs</h1>
 <p>To demo with Federated Learning using GPUs, make sure your machine has at least 2 GPUs. Build XGBoost with the federated learning plugin enabled along with CUDA, but with NCCL turned off (see the README).</p>
 <p>Modify <code>config/config_fed_client.json</code> and set <code>use_gpus</code> to <code>true</code>, then repeat the steps above. </p>
@@ -115,7 +115,7 @@ Training with GPUs</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

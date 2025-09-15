@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Medial EarlySign  Libraries</title>
+<title>Medial Code Documentation: Medial EarlySign Libraries</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -72,256 +72,52 @@ $(function() {
   <div class="headertitle"><div class="title">Medial EarlySign Libraries</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md519"></a> </p>
-<h1><a class="anchor" id="autotoc_md520"></a>
+<div class="textblock"><p><a class="anchor" id="autotoc_md506"></a> </p>
+<h1><a class="anchor" id="autotoc_md507"></a>
 Overview of Medial Infrastructure</h1>
-<p>Medial Infrastructure is designed to turn the Electronic Medical Record (EMR)—a complex, semi-structured time-series dataset—into a machine-learning-ready resource. Unlike images or free text, EMR data can be stored in countless formats, and its "labels" (the outcomes or targets you want to predict) aren’t always obvious. We address this by standardizing both the storage and the processing of time-series signals.</p>
-<p>The Links refere to MR_Wiki </p>
-<h1><a class="anchor" id="autotoc_md521"></a>
-Goals</h1>
-<ol type="1">
-<li><b><a class="el" href="classMedRepository.html">MedRepository</a>: a high-performance EMR time-series store</b><ul>
-<li>Fast retrieval of any patient’s full record or a specific signal across all patients.</li>
-<li>[Unified representation](Generic%20(Universal)%20Signal%20Vectors): each signal consists of zero or more time channels plus zero or more value channels, all tied to a patient ID.<ul>
-<li>Static example: "Birth year" → no time channels, one value channel.</li>
-<li>Single-time example: "Hemoglobin" → one time channel (test date), one value channel (numeric result).</li>
-<li>Interval example: "Hospitalization" → two time channels (admission and discharge dates).</li>
+<p>This is an infrastructure developed by Medial EarlySign to streamline the creation of predictive models using EMR data for clinical applications. Existing tools often fall short for clinical use many Python libraries are not optimized for sparse time series analysis, leading to high memory consumption and, in some cases, performance that is 10–100 times slower than necessary.</p>
+<p>Medial Infrastructure is designed to turn the Electronic Medical Record (EMR)-a complex, semi-structured time-series dataset, into a machine-learning-ready resource. Unlike images or free text, EMR data can be stored in countless formats, and its "labels" (the outcomes or targets you want to predict) aren’t always obvious. We address this by standardizing both the storage and the processing of time-series signals. We can think about this infrastructure as "TensorFlow" of medical data machine learning.</p>
+<h2><a class="anchor" id="autotoc_md508"></a>
+Main contributers from recent years:</h2>
+<ul>
+<li><a href="https://www.linkedin.com/in/avi-shoshan-a684933b/">Avi Shoshan</a></li>
+<li><a href="https://www.linkedin.com/in/yaron-kinar-il/">Yaron Kinar</a></li>
+<li><a href="https://www.linkedin.com/in/lanyado/">Alon Lanyado</a></li>
 </ul>
-</li>
-<li><b>Hierarchical support for categorical medical ontologies</b><ul>
-<li>Enables seamless integration and translation between different systems when working with a frozen model or algorithm.</li>
-<li>Example: A query for ICD-10 codes starting with "J" (respiratory diseases) will also automatically map to corresponding categories in systems like Epic. When dictionary of mapping between ICD and Epic is added, no need to change the model.</li>
-<li>Ontology mappings are managed by <a href="InfraMed%20Library%20page/MedDictionary">MedDictionary</a>, which supports many-to-many hierarchical relationships across coding systems.</li>
+<h2><a class="anchor" id="autotoc_md509"></a>
+Challenges</h2>
+<ul>
+<li><b>Variety of Questions</b>: Risk prediction (e.g., cancer, CKD), compliance, diagnostics, treatment recommendations</li>
+<li><b>Medical Data Complexity</b>: Temporal irregularity, high dimensionality (&gt;100k categories), sparse signals, multiple data types</li>
+<li><b>Retrospective Data Issues</b>: Noise, bias, spurious patterns, policy sensitivity</li>
 </ul>
-</li>
+<h2><a class="anchor" id="autotoc_md510"></a>
+Goals</h2>
+<ul>
+<li>Avoid reinventing common methodologies each project. Sometimes complicated code/logic with debugging</li>
+<li>Maintain shareable, versioned, regulatory‑compliant pipelines</li>
+<li>Facilitate reproducible transfer from research to product</li>
+<li>Provide end-to-end support: data import → analysis → productization</li>
 </ul>
-</li>
-<li><b>Modular processing pipeline (sklearn-style)</b><ul>
-<li><b><a href="Rep%20Processors%20Practical%20Guide/">Rep Processors</a></b>: Clean or derive “raw” virtual signals, while preventing leakage of future data<ul>
-<li>Example: Outlier cleaner that omits values only when abnormality is detected by future readings (e.g., a hemoglobin value on 2023-Feb-04 flagged only by a 2023-May-21 test remains until after May 21).</li>
-<li>Example: Virtual BMI signal computed from weight/height, or imputed when only two of three inputs exist</li>
+<h2><a class="anchor" id="autotoc_md511"></a>
+Platform Requirements</h2>
+<ul>
+<li><b>Performance</b>: Ultra-efficient in memory &amp; time (&gt;100x compare to native python pandas in some cases, mainly in preprocessing)</li>
+<li><b>Extensibility</b>: Rich APIs, configurable pipelines, support new data types</li>
+<li><b>Minimal Rewriting &amp; Ease Of Usage</b>: JSON‑driven configs, unified codebase, python API to the C library</li>
+<li><b>Comprehensive</b>: From "raw" data to model deployment</li>
+<li><b>Reproducible &amp; Versioned</b>: Track data, code, models, and parameters</li>
 </ul>
-</li>
-<li><b><a href="MedProcessTools%20Library/FeatureGenerator/">Feature Generators</a></b>: Convert cleaned signals into predictive features.<ul>
-<li>Examples:<ul>
-<li>"Last hemoglobin in past 365 days"</li>
-<li>"Hemoglobin slope over three years"</li>
-<li>"COPD diagnosis code during any emergency admission in last three years"</li>
+<h1><a class="anchor" id="autotoc_md512"></a>
+Documentation</h1>
+<p>Please refer to <a href="https://medial-earlysign.github.io/MR_WIKI/">MR_WIKI</a> for full documentation</p><ul>
+<li><a href="https://medial-earlysign.github.io/MR_WIKI/Installation/">Installation</a> </li>
 </ul>
-</li>
-</ul>
-</li>
-<li><b><a href="Feature%20Generator%20Practical%20Guide/">Feature Processors</a></b>: Operate on the feature matrix—imputation, selection, PCA, etc.</li>
-<li><b><a href="MedAlgo%20Library/">Predictors/Classifiers</a></b>: <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a>, XGBoost, or custom algorithms.</li>
-<li><b><a href="PostProcessors%20Practical%20Guide/">Post-processing</a></b>: Score calibration, explainability layers, fairness adjustments, etc.</li>
-</ul>
-</li>
-<li><b>JSON-driven pipeline configuration</b> - Define every processor, feature generator, and model step in a single JSON file. [Json Format](<a class="el" href="classMedModel.html" title="A model = repCleaner + featureGenerator + featureProcessor + MedPredictor.">MedModel</a>%20json%20format) Example json for training a model:</li>
-</ol>
-<details >
-<summary >
-Click to expend</summary>
-<p></p>
-<div class="fragment"><div class="line">{</div>
-<div class="line"> &quot;model_json_version&quot;: &quot;2&quot;,</div>
-<div class="line"> &quot;serialize_learning_set&quot;: &quot;0&quot;,</div>
-<div class="line"> &quot;model_actions&quot;: [</div>
-<div class="line">     &quot;json:full_rep_processors.json&quot;, // Import a json from current folder with other componenets - in this case, outlier cleaners, signal panel completers, etc.</div>
-<div class="line"> // Features</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;age&quot;</div>
-<div class="line">     },</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;gender&quot;</div>
-<div class="line">     },</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;unified_smoking&quot;,</div>
-<div class="line">         &quot;tags&quot;: &quot;smoking&quot;,</div>
-<div class="line">         &quot;smoking_features&quot;: &quot;Current_Smoker, Ex_Smoker, Unknown_Smoker, Never_Smoker, Passive_Smoker, Smok_Days_Since_Quitting , Smok_Pack_Years_Max, Smok_Pack_Years_Last,Smoking_Years,Smoking_Intensity&quot;</div>
-<div class="line">     },</div>
-<div class="line">     // Cancers in Dx</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;basic&quot;,</div>
-<div class="line">         &quot;type&quot;: &quot;category_set&quot;,</div>
-<div class="line">         &quot;window&quot;: [</div>
-<div class="line">             &quot;win_from=0;win_to=10950&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;time_unit&quot;: &quot;Days&quot;,</div>
-<div class="line">         &quot;sets&quot;: [</div>
-<div class="line">             &quot;ICD9_CODE:140-149,ICD9_CODE:150-159,ICD9_CODE:160-165,ICD9_CODE:170,ICD9_CODE:171,ICD9_CODE:172,ICD9_CODE:174,ICD9_CODE:175,ICD9_CODE:176,ICD9_CODE:179-189,ICD9_CODE:200-208,ICD9_CODE:209.0,ICD9_CODE:209.1,ICD9_CODE:209.2,ICD9_CODE:290.3,ICD9_CODE:230-234&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;signal&quot;: &quot;ICD9_Diagnosis&quot;,</div>
-<div class="line">         &quot;in_set_name&quot;: &quot;Cancers&quot;</div>
-<div class="line">     },</div>
-<div class="line"> // Statistical features - will take: last, average, min, max, etc. for each time window: 0-180, 0-365. 365-730, 0-1095 prior prediction day in days and for each signal: Hemoglobin, WBC...</div>
-<div class="line"> // In total will create: 8*4*4 = 128 features</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;basic&quot;,</div>
-<div class="line">         &quot;type&quot;: [</div>
-<div class="line">             &quot;last&quot;,</div>
-<div class="line">             &quot;last_delta&quot;,</div>
-<div class="line">             &quot;avg&quot;,</div>
-<div class="line">             &quot;max&quot;,</div>
-<div class="line">             &quot;min&quot;,</div>
-<div class="line">             &quot;std&quot;,</div>
-<div class="line">             &quot;slope&quot;,</div>
-<div class="line">             &quot;range_width&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;window&quot;: [</div>
-<div class="line">             &quot;win_from=0;win_to=180&quot;,</div>
-<div class="line">             &quot;win_from=0;win_to=365&quot;,</div>
-<div class="line">             &quot;win_from=365;win_to=730&quot;,</div>
-<div class="line">             &quot;win_from=0;win_to=1095&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;time_unit&quot;: &quot;Days&quot;,</div>
-<div class="line">         &quot;tags&quot;: &quot;labs_and_measurements,need_imputer,need_norm&quot;,</div>
-<div class="line">         &quot;signal&quot;: [</div>
-<div class="line">             &quot;Hemoglobin&quot;,</div>
-<div class="line">             &quot;WBC&quot;,</div>
-<div class="line">             &quot;Platelets&quot;,</div>
-<div class="line">             &quot;Albumin&quot;</div>
-<div class="line">         ]</div>
-<div class="line">     },</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;basic&quot;,</div>
-<div class="line">         &quot;type&quot;: [</div>
-<div class="line">             &quot;last_time&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;window&quot;: [</div>
-<div class="line">             &quot;win_from=0;win_to=180&quot;,</div>
-<div class="line">             &quot;win_from=0;win_to=365&quot;,</div>
-<div class="line">             &quot;win_from=365;win_to=730&quot;,</div>
-<div class="line">             &quot;win_from=0;win_to=1095&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;time_unit&quot;: &quot;Days&quot;,</div>
-<div class="line">         &quot;tags&quot;: &quot;labs_and_measurements,need_imputer,need_norm&quot;,</div>
-<div class="line">         //Take only panels - to remove repititions:</div>
-<div class="line">         &quot;signal&quot;: [</div>
-<div class="line">             &quot;BMI&quot;,</div>
-<div class="line">             &quot;Creatinine&quot;,</div>
-<div class="line">             &quot;WBC&quot;,</div>
-<div class="line">             &quot;Cholesterol&quot;,</div>
-<div class="line">             &quot;Glucose&quot;,</div>
-<div class="line">             &quot;Hemoglobin&quot;,</div>
-<div class="line">             &quot;Albumin&quot;</div>
-<div class="line">         ]</div>
-<div class="line">     },</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;feat_generator&quot;,</div>
-<div class="line">         &quot;fg_type&quot;: &quot;category_depend&quot;,</div>
-<div class="line">         &quot;signal&quot;: &quot;DIAGNOSIS&quot;,</div>
-<div class="line">         &quot;window&quot;: [</div>
-<div class="line">             &quot;win_from=0;win_to=10950;tags=numeric.win_0_10950&quot;,</div>
-<div class="line">             &quot;win_from=0;win_to=365;tags=numeric.win_0_365&quot;</div>
-<div class="line">         ],</div>
-<div class="line">         &quot;time_unit_win&quot;: &quot;Days&quot;,</div>
-<div class="line">         &quot;regex_filter&quot;: &quot;ICD10_CODE:.*&quot;,</div>
-<div class="line">         &quot;min_age&quot;: &quot;40&quot;,</div>
-<div class="line">         &quot;max_age&quot;: &quot;90&quot;,</div>
-<div class="line">         &quot;age_bin&quot;: &quot;5&quot;,</div>
-<div class="line">         &quot;min_code_cnt&quot;: &quot;200&quot;,</div>
-<div class="line">         &quot;fdr&quot;: &quot;0.01&quot;,</div>
-<div class="line">         &quot;lift_below&quot;: &quot;0.7&quot;,</div>
-<div class="line">         &quot;lift_above&quot;: &quot;1.3&quot;,</div>
-<div class="line">         &quot;stat_metric&quot;: &quot;mcnemar&quot;,</div>
-<div class="line">         &quot;max_depth&quot;: &quot;50&quot;,</div>
-<div class="line">         &quot;max_parents&quot;: &quot;100&quot;,</div>
-<div class="line">         &quot;use_fixed_lift&quot;: &quot;1&quot;,</div>
-<div class="line">         &quot;sort_by_chi&quot;: &quot;1&quot;,</div>
-<div class="line">         &quot;verbose&quot;: &quot;1&quot;,</div>
-<div class="line">         &quot;take_top&quot;: &quot;50&quot;</div>
-<div class="line">     },</div>
-<div class="line">     // Feature selector to remove features with 99.9% same value, there are other options, like lasso, by model importance, etc.</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;fp_set&quot;,</div>
-<div class="line">         &quot;members&quot;: [</div>
-<div class="line">             {</div>
-<div class="line">                 &quot;fp_type&quot;: &quot;remove_deg&quot;,</div>
-<div class="line">                 &quot;percentage&quot;: &quot;0.999&quot;</div>
-<div class="line">             }</div>
-<div class="line">         ]</div>
-<div class="line">     },</div>
-<div class="line">     // Imputer - simple choise of choosing median value by stratifying to age, gender and smoking status - will commit for all features with &quot;need_imputer&quot; tag</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;fp_set&quot;,</div>
-<div class="line">         &quot;members&quot;: [</div>
-<div class="line">             {</div>
-<div class="line">                 &quot;fp_type&quot;: &quot;imputer&quot;,</div>
-<div class="line">                 &quot;strata&quot;: &quot;Age,40,100,5:Gender,1,2,1:Current_Smoker,0,1,1:Ex_Smoker,0,1,1&quot;,</div>
-<div class="line">                 &quot;moment_type&quot;: &quot;median&quot;,</div>
-<div class="line">                 &quot;tag&quot;: &quot;need_imputer&quot;,</div>
-<div class="line">                 &quot;duplicate&quot;: &quot;1&quot;</div>
-<div class="line">             }</div>
-<div class="line">         ]</div>
-<div class="line">     },</div>
-<div class="line">     // Normalizer - will commit for all features with &quot;need_imputer&quot; tag</div>
-<div class="line">     {</div>
-<div class="line">         &quot;action_type&quot;: &quot;fp_set&quot;,</div>
-<div class="line">         &quot;members&quot;: [</div>
-<div class="line">             {</div>
-<div class="line">                 &quot;fp_type&quot;: &quot;normalizer&quot;,</div>
-<div class="line">                 &quot;resolution_only&quot;: &quot;0&quot;,</div>
-<div class="line">                 &quot;resolution&quot;: &quot;5&quot;,</div>
-<div class="line">                 &quot;tag&quot;: &quot;need_norm&quot;,</div>
-<div class="line">                 &quot;duplicate&quot;: &quot;1&quot;</div>
-<div class="line">             }</div>
-<div class="line">         ]</div>
-<div class="line">     }</div>
-<div class="line"> ],</div>
-<div class="line"> &quot;predictor&quot;: &quot;xgb&quot;,</div>
-<div class="line"> &quot;predictor_params&quot;: &quot;tree_method=auto;booster=gbtree;objective=binary:logistic;eta=0.050;alpha=0.000;lambda=0.010;gamma=0.010;max_depth=6;colsample_bytree=0.800;colsample_bylevel=1.000;min_child_weight=10;num_round=200;subsample=0.800&quot; }</div>
-</div><!-- fragment --><p></p>
-</details>
-<ol type="1">
-<li><b>Comprehensive evaluation toolkit</b><ul>
-<li><a href="/Medial%20Tools/bootstrap_app/">Bootstrap-based</a> cohort analysis allows batch testing across thousands of user-defined subgroups (e.g., age 50–80, males only, prediction window of 365 days, COPD patients).</li>
-<li>Automatically extracts AUC, ROC points at each 1% FPR increment, odds ratios, PPV/NPV, and applies incidence-rate adjustments or KPI weights</li>
-<li>Includes explainability and fairness audits</li>
-</ul>
-</li>
-<li><b>Unified API wrapper for production deployment</b><ul>
-<li>Ready for productization out of the box, no need to reinvent integration or design a new interface each time. See <a href="AlgoMarkers/">AlgoMarker</a></li>
-<li>Packages the entire end-to-end pipeline (raw time-series ingestion through inference) into a single, stable SDK.</li>
-<li>Core infrastructure implemented in C++ for performance and portability, with a lightweight <a href="/Python">Python wrapper</a> for seamless integration.</li>
-<li>Although powered by C++, the team mainly uses and maintains workflows via the Python SDK, ensuring rapid development and minimal friction. Experienced user might use the C++ API more often, since the python interface is more limited.</li>
-</ul>
-</li>
-</ol>
-<h1><a class="anchor" id="autotoc_md522"></a>
-Installations</h1>
-<p>Those are installation steps required for all tools and builds: </p>
-<h2><a class="anchor" id="autotoc_md523"></a>
-1. Install Compiler and Build Tools (Ubuntu)</h2>
-<p>To install the essential compiler and build tools, run: </p><div class="fragment"><div class="line">sudo apt install binutils gcc g++ cmake make swig -y</div>
-</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md524"></a>
-2. Install OpenMP Support (Ubuntu)</h2>
-<p>To enable OpenMP (used for parallel processing), install the following package: </p><div class="fragment"><div class="line">sudo apt install libgomp1 -y</div>
-</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md525"></a>
-3. Install Boost Libraries (Ubuntu)</h2>
-<p>To install the required Boost components, on Ubuntu 24.04 use: </p><div class="fragment"><div class="line">sudo apt install libboost-system1.83-dev libboost-filesystem1.83-dev libboost-regex1.83-dev libboost-program-options1.83-dev -y</div>
-</div><!-- fragment --> <blockquote class="doxtable">
-<p>&zwj;[!NOTE] On Ubuntu 22.04, Boost version 1.74 is available and is also compatible. </p>
-</blockquote>
-<p>You may also choose to <a href="https://www.boost.org/users/download/">download and compile Boost manually</a> if you prefer a different version. This project has been tested with Boost versions 1.67 through 1.85, and should work with other versions as well.</p>
-<h2><a class="anchor" id="autotoc_md526"></a>
-There are 4 components:</h2>
-<ol type="1">
-<li><a class="el" href="classAlgoMarker.html">AlgoMarker</a> - please go to Internal/AlgoMarker and run <code>./full_build.sh</code> to create the algomarker shared library to pack a model for production You might need to recompile Boost library with -fPIC and then edit the <code>CMakeLists.txt</code> "set(BOOST_ROOT "$ENV{HOME}/boost-pic-install")" to point to your Boost compiles home, please put the compiled libraries in "/libs" and the headers in /include</li>
-<li>Build python wrapper for this library. please execute <code>Internal/MedPyExport/generate_binding/make-simple.sh</code>, before please make sure you have python3-dev headers, library and numpy installed: <code>sudo apt install python3-dev -y</code> in ubuntu</li>
-<li>Build tools and executables that uses this library, please go to MR_Tools for more info, how to compile tools with this library</li>
-<li><a class="el" href="classAlgoMarker.html">AlgoMarker</a> Wrapper in c++ to expose the library as REST service. There is also an option to write it with python FastAPI and use the <a class="el" href="classAlgoMarker.html">AlgoMarker</a> library, but will also added an option to expose a server with a faster c++ library. To do so, please go to MR_Tools and it will described there too </li>
-</ol>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

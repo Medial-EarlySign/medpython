@@ -72,8 +72,8 @@ $(function() {
   <div class="headertitle"><div class="title">Understand your dataset with XGBoost</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md150"></a> </p>
-<h1><a class="anchor" id="autotoc_md151"></a>
+<div class="textblock"><p><a class="anchor" id="autotoc_md151"></a> </p>
+<h1><a class="anchor" id="autotoc_md152"></a>
 Introduction</h1>
 <p>The purpose of this vignette is to show you how to use <b>XGBoost</b> to discover and understand your own dataset better.</p>
 <p>This vignette is not about predicting anything (see <a href="https://github.com/dmlc/xgboost/blob/master/R-package/vignettes/xgboostPresentation.Rmd">XGBoost presentation</a>). We will explain how to use <b>XGBoost</b> to highlight the <em>link</em> between the <em>features</em> of your data and the <em>outcome</em>.</p>
@@ -86,9 +86,9 @@ if (!require('vcd')) {
 </pre> <blockquote class="doxtable">
 <p>&zwj;<b>VCD</b> package is used for one of its embedded dataset only. </p>
 </blockquote>
-<h1><a class="anchor" id="autotoc_md152"></a>
+<h1><a class="anchor" id="autotoc_md153"></a>
 Preparation of the dataset</h1>
-<h2><a class="anchor" id="autotoc_md153"></a>
+<h2><a class="anchor" id="autotoc_md154"></a>
 Numeric v.s. categorical variables</h2>
 <p><b>XGBoost</b> manages only <code>numeric</code> vectors.</p>
 <p>What to do when you have <em>categorical</em> data?</p>
@@ -98,9 +98,9 @@ Numeric v.s. categorical variables</h2>
 <p>Type <code>?factor</code> in the console for more information. </p>
 </blockquote>
 <p>To answer the question above we will convert <em>categorical</em> variables to <code>numeric</code> ones.</p>
-<h2><a class="anchor" id="autotoc_md154"></a>
+<h2><a class="anchor" id="autotoc_md155"></a>
 Conversion from categorical to numeric variables</h2>
-<h3><a class="anchor" id="autotoc_md155"></a>
+<h3><a class="anchor" id="autotoc_md156"></a>
 Looking at the raw data</h3>
 <p>+In this Vignette we will see how to transform a <em>dense</em> <code>data.frame</code> (<em>dense</em> = the majority of the matrix is non-zero) with <em>categorical</em> variables to a very <em>sparse</em> matrix (<em>sparse</em> = lots of zero entries in the matrix) of <code>numeric</code> features.</p>
 <p>The method we are going to see is usually called <a href="https://en.wikipedia.org/wiki/One-hot">one-hot encoding</a>.</p>
@@ -135,10 +135,10 @@ df &lt;- data.table(Arthritis, keep.rownames = FALSE)
 <li>these values are ordered (unlike <code>factor</code>). Here these ordered values are: <code>Marked &gt; Some &gt; None</code> </li>
 </ul>
 </blockquote>
-<h3><a class="anchor" id="autotoc_md156"></a>
+<h3><a class="anchor" id="autotoc_md157"></a>
 Creation of new features based on old ones</h3>
 <p>We will add some new <em>categorical</em> features to see if it helps.</p>
-<h4><a class="anchor" id="autotoc_md157"></a>
+<h4><a class="anchor" id="autotoc_md158"></a>
 Grouping per 10 years</h4>
 <p>For the first features we create groups of age by rounding the real age.</p>
 <p>Note that we transform it to <code>factor</code> so the algorithm treats these age groups as independent values.</p>
@@ -151,7 +151,7 @@ Grouping per 10 years</h4>
 ## 4: 17   Treated Male  32   Marked          3
 ## 5: 36   Treated Male  46   Marked          5
 ## 6: 23   Treated Male  58   Marked          6
-</pre> <h4><a class="anchor" id="autotoc_md158"></a>
+</pre> <h4><a class="anchor" id="autotoc_md159"></a>
 Randomly split into two groups</h4>
 <p>The following is an even stronger simplification of the real age with an arbitrary split at 30 years old. I choose this value <b>based on nothing</b>. We will see later if simplifying the information based on arbitrary values is a good strategy (you may already have an idea of how well it will work…). </p><pre class="fragment">head(df[, AgeCat := as.factor(ifelse(Age &gt; 30, "Old", "Young"))])
 
@@ -162,18 +162,18 @@ Randomly split into two groups</h4>
 ## 4: 17   Treated Male  32   Marked          3    Old
 ## 5: 36   Treated Male  46   Marked          5    Old
 ## 6: 23   Treated Male  58   Marked          6    Old
-</pre> <h4><a class="anchor" id="autotoc_md159"></a>
+</pre> <h4><a class="anchor" id="autotoc_md160"></a>
 Risks in adding correlated features</h4>
 <p>These new features are highly correlated to the <code>Age</code> feature because they are simple transformations of this feature.</p>
 <p>For many machine learning algorithms, using correlated features is not a good idea. It may sometimes make prediction less accurate, and most of the time make interpretation of the model almost impossible. GLM, for instance, assumes that the features are uncorrelated.</p>
 <p>Fortunately, decision tree algorithms (including boosted trees) are very robust to these features. Therefore we don’t have to do anything to manage this situation.</p>
-<h4><a class="anchor" id="autotoc_md160"></a>
+<h4><a class="anchor" id="autotoc_md161"></a>
 Cleaning data</h4>
 <p>We remove ID as there is nothing to learn from this feature (it would just add some noise). </p><pre class="fragment">df[, ID := NULL]
 </pre><p> We will list the different values for the column <code>Treatment</code>: </p><pre class="fragment">levels(df[, Treatment])
 
 ## [1] "Placebo" "Treated"
-</pre> <h3><a class="anchor" id="autotoc_md161"></a>
+</pre> <h3><a class="anchor" id="autotoc_md162"></a>
 Encoding categorical features</h3>
 <p>Next step, we will transform the categorical data to dummy variables. Several encoding methods exist, e.g., <a href="https://en.wikipedia.org/wiki/One-hot">one-hot encoding</a> is a common approach. We will use the <a href="https://stats.oarc.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/">dummy contrast coding</a> which is popular because it produces “full rank” encoding (also see <a href="http://appliedpredictivemodeling.com/blog/2013/10/23/the-basics-of-encoding-categorical-data-for-predictive-models">this blog post by Max Kuhn</a>).</p>
 <p>The purpose is to transform each value of each <em>categorical</em> feature into a <em>binary</em> feature <code>{0, 1}</code>.</p>
@@ -205,7 +205,7 @@ head(sparse_matrix)
 <li>set <code>Y</code> to <code>1</code> for rows where <code>Improved == Marked</code> is <code>TRUE</code> ;</li>
 <li>return <code>Y</code> vector.</li>
 </ol>
-<h1><a class="anchor" id="autotoc_md162"></a>
+<h1><a class="anchor" id="autotoc_md163"></a>
 Build the model</h1>
 <p>The code below is very usual. For more information, you can look at the documentation of <code>xgboost</code> function (or at the vignette <a href="https://github.com/dmlc/xgboost/blob/master/R-package/vignettes/xgboostPresentation.Rmd">XGBoost presentation</a>). </p><pre class="fragment">bst &lt;- xgboost(data = sparse_matrix, label = output_vector, max_depth = 4,
                eta = 1, nthread = 2, nrounds = 10, objective = "binary:logistic")
@@ -222,11 +222,11 @@ Build the model</h1>
 ## [10] train-logloss:0.334465
 </pre><p> You can see some <code>train-logloss: 0.XXXXX</code> lines followed by a number. It decreases. Each line shows how well the model explains the data. Lower is better.</p>
 <p>A small value for training error may be a symptom of <a href="https://en.wikipedia.org/wiki/Overfitting">overfitting</a>, meaning the model will not accurately predict unseen values.</p>
-<h1><a class="anchor" id="autotoc_md163"></a>
-Feature importance</h1>
 <h1><a class="anchor" id="autotoc_md164"></a>
+Feature importance</h1>
+<h1><a class="anchor" id="autotoc_md165"></a>
 Measure feature importance</h1>
-<h2><a class="anchor" id="autotoc_md165"></a>
+<h2><a class="anchor" id="autotoc_md166"></a>
 Build the feature importance data.table</h2>
 <p>Remember, each binary column corresponds to a single value of one of <em>categorical</em> features. </p><pre class="fragment">importance &lt;- xgb.importance(feature_names = colnames(sparse_matrix), model = bst)
 head(importance)
@@ -245,7 +245,7 @@ head(importance)
 <p><code>Gain</code> is the improvement in accuracy brought by a feature to the branches it is on. The idea is that before adding a new split on a feature X to the branch there were some wrongly classified elements; after adding the split on this feature, there are two new branches, and each of these branches is more accurate (one branch saying if your observation is on this branch then it should be classified as <code>1</code>, and the other branch saying the exact opposite).</p>
 <p><code>Cover</code> is related to the second order derivative (or Hessian) of the loss function with respect to a particular variable; thus, a large value indicates a variable has a large potential impact on the loss function and so is important.</p>
 <p><code>Frequency</code> is a simpler way to measure the <code>Gain</code>. It just counts the number of times a feature is used in all generated trees. You should not use it (unless you know why you want to use it).</p>
-<h2><a class="anchor" id="autotoc_md166"></a>
+<h2><a class="anchor" id="autotoc_md167"></a>
 Plotting the feature importance</h2>
 <p>All these things are nice, but it would be even better to plot the results. </p><pre class="fragment">xgb.plot.importance(importance_matrix = importance)
 </pre><p> <img src="discoverYourData_files/figure-markdown_strict/unnamed-chunk-12-1.png" alt="" style="display: block; margin: auto;" class="inline"/></p>
@@ -260,7 +260,7 @@ Plotting the feature importance</h2>
 <li>Gender;</li>
 <li>Our generated feature AgeDiscret. We can see that its contribution is very low.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md167"></a>
+<h2><a class="anchor" id="autotoc_md168"></a>
 Do these results make sense?</h2>
 <p>Let’s check some <b>Chi2</b> between each of these features and the label.</p>
 <p>Higher <b>Chi2</b> means better correlation. </p><pre class="fragment">c2 &lt;- chisq.test(df$Age, output_vector)
@@ -290,14 +290,14 @@ print(c2)
 </pre><p> The perfectly random split we did between young and old at 30 years old has a low correlation of <b>2.36</b>. This suggests that, for the particular illness we are studying, the age at which someone is vulnerable to this disease is likely very different from 30.</p>
 <p>Moral of the story: don’t let your <em>gut</em> lower the quality of your model.</p>
 <p>In <em>data science</em>, there is the word <em>science</em> :-)</p>
-<h1><a class="anchor" id="autotoc_md168"></a>
+<h1><a class="anchor" id="autotoc_md169"></a>
 Conclusion</h1>
 <p>As you can see, in general <em>destroying information by simplifying it won’t improve your model</em>. <b>Chi2</b> just demonstrates that.</p>
 <p>But in more complex cases, creating a new feature from an existing one may help the algorithm and improve the model.</p>
 <p>+The case studied here is not complex enough to show that. Check <a href="https://www.kaggle.com/">Kaggle website</a> for some challenging datasets.</p>
 <p>Moreover, you can see that even if we have added some new features which are not very useful/highly correlated with other features, the boosting tree algorithm was still able to choose the best one (which in this case is the Age).</p>
 <p>Linear models may not perform as well.</p>
-<h1><a class="anchor" id="autotoc_md169"></a>
+<h1><a class="anchor" id="autotoc_md170"></a>
 Special Note: What about Random Forests™?</h1>
 <p>As you may know, the <a href="https://en.wikipedia.org/wiki/Random_forest">Random Forests</a> algorithm is cousin with boosting and both are part of the <a href="https://en.wikipedia.org/wiki/Ensemble_learning">ensemble learning</a> family.</p>
 <p>Both train several decision trees for one dataset. The <em>main</em> difference is that in Random Forests, trees are independent and in boosting, the <code>N+1</code>-st tree focuses its learning on the loss (&lt;=&gt; what has not been well modeled by the tree <code>N</code>).</p>
@@ -347,7 +347,7 @@ bst &lt;- xgboost(
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

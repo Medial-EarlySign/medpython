@@ -73,10 +73,10 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>This file records the changes in xgboost library in reverse chronological order.</p>
-<h1><a class="anchor" id="autotoc_md205"></a>
+<h1><a class="anchor" id="autotoc_md206"></a>
 1.7.6 (2023 Jun 16)</h1>
 <p>This is a patch release for bug fixes. The CRAN package for the R binding is kept at 1.7.5.</p>
-<h2><a class="anchor" id="autotoc_md206"></a>
+<h2><a class="anchor" id="autotoc_md207"></a>
 Bug Fixes</h2>
 <ul>
 <li>Fix distributed training with mixed dense and sparse partitions. (#9272)</li>
@@ -84,18 +84,18 @@ Bug Fixes</h2>
 <li>[spark] Make the spark model have the same UID as its estimator (#9022)</li>
 <li>Optimize prediction with <code>QuantileDMatrix</code>. (#9096)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md207"></a>
+<h2><a class="anchor" id="autotoc_md208"></a>
 Document</h2>
 <ul>
 <li>Improve doxygen (#8959)</li>
 <li>Update the cuDF pip index URL. (#9106)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md208"></a>
+<h2><a class="anchor" id="autotoc_md209"></a>
 Maintenance</h2>
 <ul>
 <li>Fix tests with pandas 2.0. (#9014)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md209"></a>
+<h1><a class="anchor" id="autotoc_md210"></a>
 1.7.5 (2023 Mar 30)</h1>
 <p>This is a patch release for bug fixes.</p>
 <ul>
@@ -106,7 +106,7 @@ Maintenance</h2>
 <li>Make sure iterative DMatrix is properly initialized. (#8997)</li>
 <li>[R] Update link in document. (#8998)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md210"></a>
+<h1><a class="anchor" id="autotoc_md211"></a>
 1.7.4 (2023 Feb 16)</h1>
 <p>This is a patch release for bug fixes.</p>
 <ul>
@@ -117,7 +117,7 @@ Maintenance</h2>
 <li>[PySpark] Fix feature types param (#8772)</li>
 <li>Fix ranking with quantile dmatrix and group weight. (#8762)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md211"></a>
+<h1><a class="anchor" id="autotoc_md212"></a>
 1.7.3 (2023 Jan 6)</h1>
 <p>This is a patch release for bug fixes.</p>
 <ul>
@@ -127,7 +127,7 @@ Maintenance</h2>
 <li>Fix inference with unseen categories with categorical features. (#8591, #8602)</li>
 <li>CI fixes. (#8620, #8631, #8579)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md212"></a>
+<h1><a class="anchor" id="autotoc_md213"></a>
 v1.7.2 (2022 Dec 8)</h1>
 <p>This is a patch release for bug fixes.</p>
 <ul>
@@ -141,47 +141,47 @@ v1.7.2 (2022 Dec 8)</h1>
 <li>[doc] Fix outdated document [skip ci]. (#8527)</li>
 <li>[CI] Fix github action mismatched glibcxx. (#8551)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md213"></a>
+<h1><a class="anchor" id="autotoc_md214"></a>
 v1.7.1 (2022 Nov 3)</h1>
 <p>This is a patch release to incorporate the following hotfix:</p>
 <ul>
 <li>Add back <a class="el" href="namespacexgboost_1_1rabit.html">xgboost.rabit</a> for backwards compatibility (#8411)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md214"></a>
+<h1><a class="anchor" id="autotoc_md215"></a>
 v1.7.0 (2022 Oct 20)</h1>
 <p>We are excited to announce the feature packed XGBoost 1.7 release. The release note will walk through some of the major new features first, then make a summary for other improvements and language-binding-specific changes.</p>
-<h2><a class="anchor" id="autotoc_md215"></a>
+<h2><a class="anchor" id="autotoc_md216"></a>
 PySpark</h2>
 <p>XGBoost 1.7 features initial support for PySpark integration. The new interface is adapted from the existing PySpark XGBoost interface developed by databricks with additional features like <code>QuantileDMatrix</code> and the rapidsai plugin (GPU pipeline) support. The new Spark XGBoost Python estimators not only benefit from PySpark ml facilities for powerful distributed computing but also enjoy the rest of the Python ecosystem. Users can define a custom objective, callbacks, and metrics in Python and use them with this interface on distributed clusters. The support is labeled as experimental with more features to come in future releases. For a brief introduction please visit the tutorial on XGBoost's <a href="https://xgboost.readthedocs.io/en/latest/tutorials/spark_estimator.html">document page</a>. (#8355, #8344, #8335, #8284, #8271, #8283, #8250, #8231, #8219, #8245, #8217, #8200, #8173, #8172, #8145, #8117, #8131, #8088, #8082, #8085, #8066, #8068, #8067, #8020, #8385)</p>
 <p>Due to its initial support status, the new interface has some limitations; categorical features and multi-output models are not yet supported.</p>
-<h2><a class="anchor" id="autotoc_md216"></a>
+<h2><a class="anchor" id="autotoc_md217"></a>
 Development of categorical data support</h2>
 <p>More progress on the experimental support for categorical features. In 1.7, XGBoost can handle missing values in categorical features and features a new parameter <code>max_cat_threshold</code>, which limits the number of categories that can be used in the split evaluation. The parameter is enabled when the partitioning algorithm is used and helps prevent over-fitting. Also, the sklearn interface can now accept the <code>feature_types</code> parameter to use data types other than dataframe for categorical features. (#8280, #7821, #8285, #8080, #7948, #7858, #7853, #8212, #7957, #7937, #7934)</p>
-<h2><a class="anchor" id="autotoc_md217"></a>
+<h2><a class="anchor" id="autotoc_md218"></a>
 Experimental support for federated learning and new communication collective</h2>
 <p>An exciting addition to XGBoost is the experimental federated learning support. The federated learning is implemented with a gRPC federated server that aggregates allreduce calls, and federated clients that train on local data and use existing tree methods (approx, hist, gpu_hist). Currently, this only supports horizontal federated learning (samples are split across participants, and each participant has all the features and labels). Future plans include vertical federated learning (features split across participants), and stronger privacy guarantees with homomorphic encryption and differential privacy. See <a class="el" href="md_External_2xgboost_2demo_2nvflare_2README.html">Demo with NVFlare integration</a> for example usage with nvflare.</p>
 <p>As part of the work, XGBoost 1.7 has replaced the old rabit module with the new collective module as the network communication interface with added support for runtime backend selection. In previous versions, the backend is defined at compile time and can not be changed once built. In this new release, users can choose between <code>rabit</code> and <code>federated.</code> (#8029, #8351, #8350, #8342, #8340, #8325, #8279, #8181, #8027, #7958, #7831, #7879, #8257, #8316, #8242, #8057, #8203, #8038, #7965, #7930, #7911)</p>
 <p>The feature is available in the public PyPI binary package for testing.</p>
-<h2><a class="anchor" id="autotoc_md218"></a>
+<h2><a class="anchor" id="autotoc_md219"></a>
 Quantile DMatrix</h2>
 <p>Before 1.7, XGBoost has an internal data structure called <code>DeviceQuantileDMatrix</code> (and its distributed version). We now extend its support to CPU and renamed it to <code>QuantileDMatrix</code>. This data structure is used for optimizing memory usage for the <code>hist</code> and <code>gpu_hist</code> tree methods. The new feature helps reduce CPU memory usage significantly, especially for dense data. The new <code>QuantileDMatrix</code> can be initialized from both CPU and GPU data, and regardless of where the data comes from, the constructed instance can be used by both the CPU algorithm and GPU algorithm including training and prediction (with some overhead of conversion if the device of data and training algorithm doesn't match). Also, a new parameter <code>ref</code> is added to <code>QuantileDMatrix</code>, which can be used to construct validation/test datasets. Lastly, it's set as default in the scikit-learn interface when a supported tree method is specified by users. (#7889, #7923, #8136, #8215, #8284, #8268, #8220, #8346, #8327, #8130, #8116, #8103, #8094, #8086, #7898, #8060, #8019, #8045, #7901, #7912, #7922)</p>
-<h2><a class="anchor" id="autotoc_md219"></a>
+<h2><a class="anchor" id="autotoc_md220"></a>
 Mean absolute error</h2>
 <p>The mean absolute error is a new member of the collection of objectives in XGBoost. It's noteworthy since MAE has zero hessian value, which is unusual to XGBoost as XGBoost relies on Newton optimization. Without valid Hessian values, the convergence speed can be slow. As part of the support for MAE, we added line searches into the XGBoost training algorithm to overcome the difficulty of training without valid Hessian values. In the future, we will extend the line search to other objectives where it's appropriate for faster convergence speed. (#8343, #8107, #7812, #8380)</p>
-<h2><a class="anchor" id="autotoc_md220"></a>
+<h2><a class="anchor" id="autotoc_md221"></a>
 XGBoost on Browser</h2>
 <p>With the help of the <a href="https://github.com/pyodide/pyodide">pyodide</a> project, you can now run XGBoost on browsers. (#7954, #8369)</p>
-<h2><a class="anchor" id="autotoc_md221"></a>
+<h2><a class="anchor" id="autotoc_md222"></a>
 Experimental IPv6 Support for Dask</h2>
 <p>With the growing adaption of the new internet protocol, XGBoost joined the club. In the latest release, the Dask interface can be used on IPv6 clusters, see XGBoost's Dask tutorial for details. (#8225, #8234)</p>
-<h2><a class="anchor" id="autotoc_md222"></a>
+<h2><a class="anchor" id="autotoc_md223"></a>
 Optimizations</h2>
 <p>We have new optimizations for both the <code>hist</code> and <code>gpu_hist</code> tree methods to make XGBoost's training even more efficient.</p>
 <ul>
 <li>Hist Hist now supports optional by-column histogram build, which is automatically configured based on various conditions of input data. This helps the XGBoost CPU hist algorithm to scale better with different shapes of training datasets. (#8233, #8259). Also, the build histogram kernel now can better utilize CPU registers (#8218)</li>
 <li>GPU Hist GPU hist performance is significantly improved for wide datasets. GPU hist now supports batched node build, which reduces kernel latency and increases throughput. The improvement is particularly significant when growing deep trees with the default <code>depthwise</code> policy. (#7919, #8073, #8051, #8118, #7867, #7964, #8026)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md223"></a>
+<h2><a class="anchor" id="autotoc_md224"></a>
 Breaking Changes</h2>
 <p>Breaking changes made in the 1.7 release are summarized below.</p><ul>
 <li>The <code>grow_local_histmaker</code> updater is removed. This updater is rarely used in practice and has no test. We decided to remove it and focus have XGBoot focus on other more efficient algorithms. (#7992, #8091)</li>
@@ -189,7 +189,7 @@ Breaking Changes</h2>
 <li>Deprecated CUDA architectures are no longer supported in the release binaries. (#7774)</li>
 <li>As part of the federated learning development, the <code>rabit</code> module is replaced with the new <code>collective</code> module. It's a drop-in replacement with added runtime backend selection, see the federated learning section for more details (#8257)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md224"></a>
+<h2><a class="anchor" id="autotoc_md225"></a>
 General new features and improvements</h2>
 <p>Before diving into package-specific changes, some general new features other than those listed at the beginning are summarized here.</p><ul>
 <li>Users of <code>DMatrix</code> and <code>QuantileDMatrix</code> can get the data from XGBoost. In previous versions, only getters for meta info like labels are available. The new method is available in Python (<code>DMatrix::get_data</code>) and C. (#8269, #8323)</li>
@@ -199,7 +199,7 @@ General new features and improvements</h2>
 <li>Improved handling of JSON model input. (#7953, #7918)</li>
 <li>Support IBM i OS (#7920, #8178)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md225"></a>
+<h2><a class="anchor" id="autotoc_md226"></a>
 Fixes</h2>
 <p>Some noteworthy bug fixes that are not related to specific language binding are listed in this section.</p><ul>
 <li>Rename misspelled config parameter for pseudo-Huber (#7904)</li>
@@ -208,7 +208,7 @@ Fixes</h2>
 <li>Force auc.cc to be statically linked for unusual compiler platforms. (#8039)</li>
 <li>New logic for detecting libomp on macos (#8384).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md226"></a>
+<h2><a class="anchor" id="autotoc_md227"></a>
 Python Package</h2>
 <ul>
 <li>Python 3.8 is now the minimum required Python version. (#8071)</li>
@@ -247,7 +247,7 @@ Python Package</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md227"></a>
+<h2><a class="anchor" id="autotoc_md228"></a>
 R Package</h2>
 <p>We summarize improvements for the R package briefly here:</p><ul>
 <li>Feature info including names and types are now passed to DMatrix in preparation for categorical feature support. (#804)</li>
@@ -256,7 +256,7 @@ R Package</h2>
 <li>Emit error early if DiagrammeR is missing (#8037)</li>
 <li>Fix R package Windows build. (#8065)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md228"></a>
+<h2><a class="anchor" id="autotoc_md229"></a>
 JVM Packages</h2>
 <p>The consistency between JVM packages and other language bindings is greatly improved in 1.7, improvements range from model serialization format to the default value of hyper-parameters.</p>
 <ul>
@@ -271,7 +271,7 @@ JVM Packages</h2>
 <li>[Breaking] <code>timeoutRequestWorkers</code> is now removed. With the support for barrier mode, this parameter is no longer needed. (#7839)</li>
 <li>Dependencies updates. (#7791, #8157, #7801, #8240)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md229"></a>
+<h2><a class="anchor" id="autotoc_md230"></a>
 Documents</h2>
 <ul>
 <li>Document for the C interface is greatly improved and is now displayed at the <a href="https://xgboost.readthedocs.io/en/latest/c.html">sphinx document page</a>. Thanks to the breathe project, you can view the C API just like the Python API. (#8300)</li>
@@ -282,7 +282,7 @@ Documents</h2>
 <li>New security policy. (#8360)</li>
 <li>GPU document is overhauled as we consider CUDA support to be feature-complete. (#8378)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md230"></a>
+<h2><a class="anchor" id="autotoc_md231"></a>
 Maintenance</h2>
 <ul>
 <li>Code refactoring and cleanups. (#7850, #7826, #7910, #8332, #8204)</li>
@@ -292,7 +292,7 @@ Maintenance</h2>
 <li>Remove warnings emitted in previous versions. (#7815)</li>
 <li>Small fixes occurred during development. (#8008)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md231"></a>
+<h2><a class="anchor" id="autotoc_md232"></a>
 CI and Tests</h2>
 <ul>
 <li>We overhauled the CI infrastructure to reduce the CI cost and lift the maintenance burdens. Jenkins is replaced with buildkite for better automation, with which, finer control of test runs is implemented to reduce overall cost. Also, we refactored some of the existing tests to reduce their runtime, drooped the size of docker images, and removed multi-GPU C++ tests. Lastly, <code>pytest-timeout</code> is added as an optional dependency for running Python tests to keep the test time in check. (#7772, #8291, #8286, #8276, #8306, #8287, #8243, #8313, #8235, #8288, #8303, #8142, #8092, #8333, #8312, #8348)</li>
@@ -302,37 +302,37 @@ CI and Tests</h2>
 <li>Other fixes and maintenance work. (#8154, #7848, #8069, #7943)</li>
 <li>Small updates and fixes to GitHub action pipelines. (#8364, #8321, #8241, #7950, #8011)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md232"></a>
+<h1><a class="anchor" id="autotoc_md233"></a>
 v1.6.1 (2022 May 9)</h1>
 <p>This is a patch release for bug fixes and Spark barrier mode support. The R package is unchanged.</p>
-<h2><a class="anchor" id="autotoc_md233"></a>
+<h2><a class="anchor" id="autotoc_md234"></a>
 Experimental support for categorical data</h2>
 <ul>
 <li>Fix segfault when the number of samples is smaller than the number of categories. (<a href="https://github.com/dmlc/xgboost/pull/7853">https://github.com/dmlc/xgboost/pull/7853</a>)</li>
 <li>Enable partition-based split for all model types. (<a href="https://github.com/dmlc/xgboost/pull/7857">https://github.com/dmlc/xgboost/pull/7857</a>)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md234"></a>
+<h2><a class="anchor" id="autotoc_md235"></a>
 JVM packages</h2>
 <p>We replaced the old parallelism tracker with spark barrier mode to improve the robustness of the JVM package and fix the GPU training pipeline.</p><ul>
 <li>Fix GPU training pipeline quantile synchronization. (#7823, #7834)</li>
 <li>Use barrier model in spark package. (<a href="https://github.com/dmlc/xgboost/pull/7836">https://github.com/dmlc/xgboost/pull/7836</a>, <a href="https://github.com/dmlc/xgboost/pull/7840">https://github.com/dmlc/xgboost/pull/7840</a>, <a href="https://github.com/dmlc/xgboost/pull/7845">https://github.com/dmlc/xgboost/pull/7845</a>, <a href="https://github.com/dmlc/xgboost/pull/7846">https://github.com/dmlc/xgboost/pull/7846</a>)</li>
 <li>Fix shared object loading on some platforms. (<a href="https://github.com/dmlc/xgboost/pull/7844">https://github.com/dmlc/xgboost/pull/7844</a>)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md235"></a>
+<h1><a class="anchor" id="autotoc_md236"></a>
 v1.6.0 (2022 Apr 16)</h1>
 <p>After a long period of development, XGBoost v1.6.0 is packed with many new features and improvements. We summarize them in the following sections starting with an introduction to some major new features, then moving on to language binding specific changes including new features and notable bug fixes for that binding.</p>
-<h2><a class="anchor" id="autotoc_md236"></a>
+<h2><a class="anchor" id="autotoc_md237"></a>
 Development of categorical data support</h2>
 <p>This version of XGBoost features new improvements and full coverage of experimental categorical data support in Python and C package with tree model. Both <code>hist</code>, <code>approx</code> and <code>gpu_hist</code> now support training with categorical data. Also, partition-based categorical split is introduced in this release. This split type is first available in <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> in the context of gradient boosting. The previous XGBoost release supported one-hot split where the splitting criteria is of form <code>x \in {c}</code>, i.e. the categorical feature <code>x</code> is tested against a single candidate. The new release allows for more expressive conditions: <code>x \in S</code> where the categorical feature <code>x</code> is tested against multiple candidates. Moreover, it is now possible to use any tree algorithms (<code>hist</code>, <code>approx</code>, <code>gpu_hist</code>) when creating categorical splits. For more information, please see our tutorial on <a href="https://xgboost.readthedocs.io/en/latest/tutorials/categorical.html">categorical data</a>, along with examples linked on that page. (#7380, #7708, #7695, #7330, #7307, #7322, #7705, #7652, #7592, #7666, #7576, #7569, #7529, #7575, #7393, #7465, #7385, #7371, #7745, #7810)</p>
 <p>In the future, we will continue to improve categorical data support with new features and optimizations. Also, we are looking forward to bringing the feature beyond Python binding, contributions and feedback are welcomed! Lastly, as a result of experimental status, the behavior might be subject to change, especially the default value of related hyper-parameters.</p>
-<h2><a class="anchor" id="autotoc_md237"></a>
+<h2><a class="anchor" id="autotoc_md238"></a>
 Experimental support for multi-output model</h2>
 <p>XGBoost 1.6 features initial support for the multi-output model, which includes multi-output regression and multi-label classification. Along with this, the XGBoost classifier has proper support for base margin without to need for the user to flatten the input. In this initial support, XGBoost builds one model for each target similar to the sklearn meta estimator, for more details, please see our <a href="https://xgboost.readthedocs.io/en/latest/tutorials/multioutput.html">quick introduction</a>.</p>
 <p>(#7365, #7736, #7607, #7574, #7521, #7514, #7456, #7453, #7455, #7434, #7429, #7405, #7381)</p>
-<h2><a class="anchor" id="autotoc_md238"></a>
+<h2><a class="anchor" id="autotoc_md239"></a>
 External memory support</h2>
 <p>External memory support for both approx and hist tree method is considered feature complete in XGBoost 1.6. Building upon the iterator-based interface introduced in the previous version, now both <code>hist</code> and <code>approx</code> iterates over each batch of data during training and prediction. In previous versions, <code>hist</code> concatenates all the batches into an internal representation, which is removed in this version. As a result, users can expect higher scalability in terms of data size but might experience lower performance due to disk IO. (#7531, #7320, #7638, #7372)</p>
-<h2><a class="anchor" id="autotoc_md239"></a>
+<h2><a class="anchor" id="autotoc_md240"></a>
 Rewritten approx</h2>
 <p>The <code>approx</code> tree method is rewritten based on the existing <code>hist</code> tree method. The rewrite closes the feature gap between <code>approx</code> and <code>hist</code> and improves the performance. Now the behavior of <code>approx</code> should be more aligned with <code>hist</code> and <code>gpu_hist</code>. Here is a list of user-visible changes:</p>
 <ul>
@@ -347,10 +347,10 @@ Rewritten approx</h2>
 <li>Supports prediction cache.</li>
 <li>Significantly better performance for external memory when <code>depthwise</code> policy is used.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md240"></a>
+<h2><a class="anchor" id="autotoc_md241"></a>
 New serialization format</h2>
 <p>Based on the existing JSON serialization format, we introduce UBJSON support as a more efficient alternative. Both formats will be available in the future and we plan to gradually <a href="https://github.com/dmlc/xgboost/issues/7547">phase out</a> support for the old binary model format. Users can opt to use the different formats in the serialization function by providing the file extension <code>json</code> or <code>ubj</code>. Also, the <code>save_raw</code> function in all supported languages bindings gains a new parameter for exporting the model in different formats, available options are <code>json</code>, <code>ubj</code>, and <code>deprecated</code>, see document for the language binding you are using for details. Lastly, the default internal serialization format is set to UBJSON, which affects Python pickle and R RDS. (#7572, #7570, #7358, #7571, #7556, #7549, #7416)</p>
-<h2><a class="anchor" id="autotoc_md241"></a>
+<h2><a class="anchor" id="autotoc_md242"></a>
 General new features and improvements</h2>
 <p>Aside from the major new features mentioned above, some others are summarized here:</p>
 <ul>
@@ -367,10 +367,10 @@ General new features and improvements</h2>
 <li>Deterministic result for evaluation metric and linear model. In previous versions of XGBoost, evaluation results might differ slightly for each run due to parallel reduction for floating-point values, which is now addressed. (#7362, #7303, #7316, #7349)</li>
 <li>XGBoost now uses double for GPU Hist node sum, which improves the accuracy of <code>gpu_hist</code>. (#7507)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md242"></a>
+<h2><a class="anchor" id="autotoc_md243"></a>
 Performance improvements</h2>
 <p>Most of the performance improvements are integrated into other refactors during feature developments. The <code>approx</code> should see significant performance gain for many datasets as mentioned in the previous section, while the <code>hist</code> tree method also enjoys improved performance with the removal of the internal <code>pruner</code> along with some other refactoring. Lastly, <code>gpu_hist</code> no longer synchronizes the device during training. (#7737)</p>
-<h2><a class="anchor" id="autotoc_md243"></a>
+<h2><a class="anchor" id="autotoc_md244"></a>
 General bug fixes</h2>
 <p>This section lists bug fixes that are not specific to any language binding.</p><ul>
 <li>The <code>num_parallel_tree</code> is now a model parameter instead of a training hyper-parameter, which fixes model IO with random forest. (#7751)</li>
@@ -381,7 +381,7 @@ General bug fixes</h2>
 <li>Check the number of trees in inplace predict, this avoids a potential segfault when an incorrect value for <code>iteration_range</code> is provided. (#7409)</li>
 <li>Fix non-stable result in cox regression (#7756)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md244"></a>
+<h2><a class="anchor" id="autotoc_md245"></a>
 Changes in the Python package</h2>
 <p>Other than the changes in Dask, the XGBoost Python package gained some new features and improvements along with small bug fixes.</p>
 <ul>
@@ -402,7 +402,7 @@ Changes in the Python package</h2>
 <li>We clarified the behavior of the callback function when it contains mutable states. (#7685)</li>
 <li>Lastly, there are some code cleanups and maintenance work. (#7585, #7426, #7634, #7665, #7667, #7377, #7360, #7498, #7438, #7667, #7752, #7749, #7751)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md245"></a>
+<h2><a class="anchor" id="autotoc_md246"></a>
 Changes in the Dask interface</h2>
 <ul>
 <li>Dask module now supports user-supplied host IP and port address of scheduler node. Please see <a href="https://xgboost.readthedocs.io/en/latest/tutorials/dask.html#troubleshooting">introduction</a> and <a href="https://xgboost.readthedocs.io/en/latest/python/python_api.html#optional-dask-configuration">API document</a> for reference. (#7645, #7581)</li>
@@ -412,7 +412,7 @@ Changes in the Dask interface</h2>
 <li>Scipy sparse matrix is supported as Dask array partition. (#7457)</li>
 <li>Dask interface is no longer considered experimental. (#7509)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md246"></a>
+<h2><a class="anchor" id="autotoc_md247"></a>
 Changes in the R package</h2>
 <p>This section summarizes the new features, improvements, and bug fixes to the R package.</p>
 <ul>
@@ -425,7 +425,7 @@ Changes in the R package</h2>
 <li>New maintainer for the CRAN package (#7691, #7649)</li>
 <li>Handle non-standard installation of toolchain on macos (#7759)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md247"></a>
+<h2><a class="anchor" id="autotoc_md248"></a>
 Changes in JVM-packages</h2>
 <p>Some new features for JVM-packages are introduced for a more integrated GPU pipeline and better compatibility with musl-based Linux. Aside from this, we have a few notable bug fixes.</p>
 <ul>
@@ -443,7 +443,7 @@ Changes in JVM-packages</h2>
 <li>Some refactoring to the training pipeline for better compatibility between CPU and GPU. (#7440, #7401, #7789, #7784)</li>
 <li>Maintenance work. (#7550, #7335, #7641, #7523, #6792, #4676)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md248"></a>
+<h2><a class="anchor" id="autotoc_md249"></a>
 Deprecation</h2>
 <p>Other than the changes in the Python package and serialization, we removed some deprecated features in previous releases. Also, as mentioned in the previous section, we plan to phase out the old binary format in future releases.</p>
 <ul>
@@ -452,7 +452,7 @@ Deprecation</h2>
 <li>Remove old callback deprecated in 1.3. (#7280)</li>
 <li>Pre-built binary will no longer support deprecated CUDA architectures including sm35 and sm50. Users can continue to use these platforms with source build. (#7767)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md249"></a>
+<h2><a class="anchor" id="autotoc_md250"></a>
 Documentation</h2>
 <p>This section lists some of the general changes to XGBoost's document, for language binding specific change please visit related sections.</p>
 <ul>
@@ -463,7 +463,7 @@ Documentation</h2>
 <li>Update document for building from source. (#7664)</li>
 <li>Add note about CRAN release [skip ci] (#7395)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md250"></a>
+<h2><a class="anchor" id="autotoc_md251"></a>
 Maintenance</h2>
 <p>This is a summary of maintenance work that is not specific to any language binding.</p>
 <ul>
@@ -476,13 +476,13 @@ Maintenance</h2>
 <li>Change shebang used in CLI demo. (#7389)</li>
 <li>Update affiliation (#7289)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md251"></a>
+<h2><a class="anchor" id="autotoc_md252"></a>
 CI</h2>
 <p>Some fixes and update to XGBoost's CI infrastructure. (#7739, #7701, #7382, #7662, #7646, #7582, #7407, #7417, #7475, #7474, #7479, #7472, #7626)</p>
-<h1><a class="anchor" id="autotoc_md252"></a>
+<h1><a class="anchor" id="autotoc_md253"></a>
 v1.5.0 (2021 Oct 11)</h1>
 <p>This release comes with many exciting new features and optimizations, along with some bug fixes. We will describe the experimental categorical data support and the external memory interface independently. Package-specific new features will be listed in respective sections.</p>
-<h2><a class="anchor" id="autotoc_md253"></a>
+<h2><a class="anchor" id="autotoc_md254"></a>
 Development on categorical data support</h2>
 <p>In version 1.3, XGBoost introduced an experimental feature for handling categorical data natively, without one-hot encoding. XGBoost can fit categorical splits in decision trees. (Currently, the generated splits will be of form <code>x \in {v}</code>, where the input is compared to a single category value. A future version of XGBoost will generate splits that compare the input against a list of multiple category values.)</p>
 <p>Most of the other features, including prediction, SHAP value computation, feature importance, and model plotting were revised to natively handle categorical splits. Also, all Python interfaces including native interface with and without quantized <code>DMatrix</code>, scikit-learn interface, and Dask interface now accept categorical data with a wide range of data structures support including numpy/cupy array and cuDF/pandas/modin dataframe. In practice, the following are required for enabling categorical data support during training:</p>
@@ -500,10 +500,10 @@ Development on categorical data support</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md254"></a>
+<h2><a class="anchor" id="autotoc_md255"></a>
 External memory</h2>
 <p>This release features a brand-new interface and implementation for external memory (also known as out-of-core training). (#6901, #7064, #7088, #7089, #7087, #7092, #7070, #7216). The new implementation leverages the data iterator interface, which is currently used to create <code>DeviceQuantileDMatrix</code>. For a quick introduction, see <a href="https://xgboost.readthedocs.io/en/latest/tutorials/external_memory.html#data-iterator">https://xgboost.readthedocs.io/en/latest/tutorials/external_memory.html#data-iterator</a> . During the development of this new interface, <code>lz4</code> compression is removed. (#7076). Please note that external memory support is still experimental and not ready for production use yet. All future development will focus on this new interface and users are advised to migrate. (You are using the old interface if you are using a URL suffix to use external memory.)</p>
-<h2><a class="anchor" id="autotoc_md255"></a>
+<h2><a class="anchor" id="autotoc_md256"></a>
 New features in Python package</h2>
 <ul>
 <li>Support numpy array interface and all numeric types from numpy in <code>DMatrix</code> construction and <code>inplace_predict</code> (#6998, #7003). Now XGBoost no longer makes data copy when input is numpy array view.</li>
@@ -513,26 +513,26 @@ New features in Python package</h2>
 <li>Typehint support for more Python code including scikit-learn interface and rabit module. (#6799, #7240)</li>
 <li>Add tutorial for XGBoost-Ray (#6884)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md256"></a>
+<h2><a class="anchor" id="autotoc_md257"></a>
 New features in R package</h2>
 <ul>
 <li>In 1.4 we have a new prediction function in the C API which is used by the Python package. This release revises the R package to use the new prediction function as well. A new parameter <code>iteration_range</code> for the predict function is available, which can be used for specifying the range of trees for running prediction. (#6819, #7126)</li>
 <li>R package now supports the <code>nthread</code> parameter in <code>DMatrix</code> construction. (#7127)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md257"></a>
+<h2><a class="anchor" id="autotoc_md258"></a>
 New features in JVM packages</h2>
 <ul>
 <li>Support GPU dataframe and <code>DeviceQuantileDMatrix</code> (#7195). Constructing <code>DMatrix</code> with GPU data structures and the interface for quantized <code>DMatrix</code> were first introduced in the Python package and are now available in the xgboost4j package.</li>
 <li>JVM packages now support saving and getting early stopping attributes. (#7095) Here is a quick <a href="https://github.com/dmlc/xgboost/jvm-packages/xgboost4j-example/src/main/java/ml/dmlc/xgboost4j/java/example/EarlyStopping.java" title="example">example</a> in JAVA (#7252).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md258"></a>
+<h2><a class="anchor" id="autotoc_md259"></a>
 General new features</h2>
 <ul>
 <li>We now have a pre-built binary package for R on Windows with GPU support. (#7185)</li>
 <li>CUDA compute capability 86 is now part of the default CMake build configuration with newly added support for CUDA 11.4. (#7131, #7182, #7254)</li>
 <li>XGBoost can be compiled using system CUB provided by CUDA 11.x installation. (#7232)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md259"></a>
+<h2><a class="anchor" id="autotoc_md260"></a>
 Optimizations</h2>
 <p>The performance for both <code>hist</code> and <code>gpu_hist</code> has been significantly improved in 1.5 with the following optimizations:</p><ul>
 <li>GPU multi-class model training now supports prediction cache. (#6860)</li>
@@ -541,14 +541,14 @@ Optimizations</h2>
 <li>More performance optimization in regression and binary classification objectives on CPU (#7206)</li>
 <li>Tree model dump is now performed in parallel (#7040)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md260"></a>
+<h2><a class="anchor" id="autotoc_md261"></a>
 Breaking changes</h2>
 <ul>
 <li><code>n_gpus</code> was deprecated in 1.0 release and is now removed.</li>
 <li>Feature grouping in CPU hist tree method is removed, which was disabled long ago. (#7018)</li>
 <li>C API for Quantile DMatrix is changed to be consistent with the new external memory implementation. (#7082)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md261"></a>
+<h2><a class="anchor" id="autotoc_md262"></a>
 Notable general bug fixes</h2>
 <ul>
 <li>XGBoost no long changes global CUDA device ordinal when <code>gpu_id</code> is specified (#6891, #6987)</li>
@@ -570,7 +570,7 @@ Notable general bug fixes</h2>
 <li>Fix CPU memory usage with extremely sparse datasets (#7255)</li>
 <li>Fix a bug in GPU multi-class AUC implementation with weighted data (#7300)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md262"></a>
+<h2><a class="anchor" id="autotoc_md263"></a>
 Python package</h2>
 <p>Other than the items mentioned in the previous sections, there are some Python-specific improvements.</p><ul>
 <li>Change development release postfix to <code>dev</code> (#6988)</li>
@@ -589,7 +589,7 @@ Python package</h2>
 <li>[dask] Fix dask predict on <code>DaskDMatrix</code> with <code>iteration_range</code>. (#7005)</li>
 <li>[dask] Disallow importing non-dask estimators from <a class="el" href="namespacexgboost_1_1dask.html">xgboost.dask</a> (#7133)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md263"></a>
+<h2><a class="anchor" id="autotoc_md264"></a>
 R package</h2>
 <p>Improvements other than new features on R package:</p><ul>
 <li>Optimization for updating R handles in-place (#6903)</li>
@@ -597,7 +597,7 @@ R package</h2>
 <li>The R package now hides all C++ symbols to avoid conflicts. (#7245)</li>
 <li>Other maintenance including code cleanups, document updates. (#6863, #6915, #6930, #6966, #6967)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md264"></a>
+<h2><a class="anchor" id="autotoc_md265"></a>
 JVM packages</h2>
 <p>Improvements other than new features on JVM packages:</p><ul>
 <li>Constructors with implicit missing value are deprecated due to confusing behaviors. (#7225)</li>
@@ -607,7 +607,7 @@ JVM packages</h2>
 <li>Fix "key not found: train" error (#6842)</li>
 <li>Fix model loading from stream (#7067)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md265"></a>
+<h2><a class="anchor" id="autotoc_md266"></a>
 General document improvements</h2>
 <ul>
 <li>Overhaul the installation documents. (#6877)</li>
@@ -620,7 +620,7 @@ General document improvements</h2>
 <li>Update Python intro. (#7235)</li>
 <li>Some fixes/updates (#6810, #6856, #6935, #6948, #6976, #7084, #7097, #7170, #7173, #7174, #7226, #6979, #6809, #6796, #6979)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md266"></a>
+<h2><a class="anchor" id="autotoc_md267"></a>
 Maintenance</h2>
 <ul>
 <li>Some refactoring around CPU hist, which lead to better performance but are listed under general maintenance tasks:<ul>
@@ -657,7 +657,7 @@ Maintenance</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md267"></a>
+<h2><a class="anchor" id="autotoc_md268"></a>
 CI</h2>
 <ul>
 <li>[CI] Rotate access keys for uploading MacOS artifacts from Travis CI (#7253)</li>
@@ -678,13 +678,13 @@ CI</h2>
 <li>[CI] Clean up in beginning of each task in Win CI (#7189)</li>
 <li>Fix travis. (#7237)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md268"></a>
+<h2><a class="anchor" id="autotoc_md269"></a>
 Acknowledgement</h2>
 <ul>
 <li><b>Contributors</b>: Adam Pocock (@Craigacp), Jeff H (@JeffHCross), Johan Hansson (@JohanWork), Jose Manuel Llorens (@JoseLlorensRipolles), Benjamin Szőke (@Livius90), @ReeceGoding, @ShvetsKS, Robert Zabel (@ZabelTech), Ali (@ali5h), Andrew Ziem (@az0), Andy Adinets (@canonizer), @david-cortes, Daniel Saxton (@dsaxton), Emil Sadek (@esadek), @farfarawayzyt, Gil Forsyth (@gforsyth), @giladmaya, @graue70, Philip Hyunsu Cho (@hcho3), James Lamb (@jameslamb), José Morales (@jmoralez), Kai Fricke (@krfricke), Christian Lorentzen (@lorentzenchr), Mads R. B. Kristensen (@madsbk), Anton Kostin (@masguit42), Martin Petříček (@mpetricek-corp), @naveenkb, Taewoo Kim (@oOTWK), Viktor Szathmáry (@phraktle), Robert Maynard (@robertmaynard), TP Boudreau (@tpboudreau), Jiaming Yuan (@trivialfis), Paul Taylor (@trxcllnt), @vslaykovsky, Bobby Wang (@wbo4958),</li>
 <li><b>Reviewers</b>: Nan Zhu (@CodingCat), Adam Pocock (@Craigacp), Jose Manuel Llorens (@JoseLlorensRipolles), Kodi Arfer (@Kodiologist), Benjamin Szőke (@Livius90), Mark Guryanov (@MarkGuryanov), Rory Mitchell (@RAMitchell), @ReeceGoding, @ShvetsKS, Egor Smirnov (@SmirnovEgorRu), Andrew Ziem (@az0), @candalfigomoro, Andy Adinets (@canonizer), Dante Gama Dessavre (@dantegd), @david-cortes, Daniel Saxton (@dsaxton), @farfarawayzyt, Gil Forsyth (@gforsyth), Harutaka Kawamura (@harupy), Philip Hyunsu Cho (@hcho3), @jakirkham, James Lamb (@jameslamb), José Morales (@jmoralez), James Bourbeau (@jrbourbeau), Christian Lorentzen (@lorentzenchr), Martin Petříček (@mpetricek-corp), Nikolay Petrov (@napetrov), @naveenkb, Viktor Szathmáry (@phraktle), Robin Teuwens (@rteuwens), Yuan Tang (@terrytangyuan), TP Boudreau (@tpboudreau), Jiaming Yuan (@trivialfis), @vkuzmin-uber, Bobby Wang (@wbo4958), William Hicks (@wphicks)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md269"></a>
+<h1><a class="anchor" id="autotoc_md270"></a>
 v1.4.2 (2021.05.13)</h1>
 <p>This is a patch release for Python package with following fixes:</p>
 <ul>
@@ -693,19 +693,19 @@ v1.4.2 (2021.05.13)</h1>
 <li>Fix empty dataset handling with multi-class AUC. (#6947)</li>
 <li>Handle object type from pandas in inplace_predict. (#6927)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md270"></a>
+<h1><a class="anchor" id="autotoc_md271"></a>
 v1.4.1 (2021.04.20)</h1>
 <p>This is a bug fix release.</p>
 <ul>
 <li>Fix GPU implementation of AUC on some large datasets. (#6866)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md271"></a>
+<h1><a class="anchor" id="autotoc_md272"></a>
 v1.4.0 (2021.04.12)</h1>
-<h2><a class="anchor" id="autotoc_md272"></a>
+<h2><a class="anchor" id="autotoc_md273"></a>
 Introduction of pre-built binary package for R, with GPU support</h2>
 <p>Starting with release 1.4.0, users now have the option of installing <code>{xgboost}</code> without having to build it from the source. This is particularly advantageous for users who want to take advantage of the GPU algorithm (<code>gpu_hist</code>), as previously they'd have to build <code>{xgboost}</code> from the source using CMake and NVCC. Now installing <code>{xgboost}</code> with GPU support is as easy as: <code>R CMD INSTALL ./xgboost_r_gpu_linux.tar.gz</code>. (#6827)</p>
 <p>See the instructions at <a href="https://xgboost.readthedocs.io/en/latest/build.html">https://xgboost.readthedocs.io/en/latest/build.html</a></p>
-<h2><a class="anchor" id="autotoc_md273"></a>
+<h2><a class="anchor" id="autotoc_md274"></a>
 Improvements on prediction functions</h2>
 <p>XGBoost has many prediction types including shap value computation and inplace prediction. In 1.4 we overhauled the underlying prediction functions for C API and Python API with an unified interface. (#6777, #6693, #6653, #6662, #6648, #6668, #6804)</p><ul>
 <li>Starting with 1.4, sklearn interface prediction will use inplace predict by default when input data is supported.</li>
@@ -714,7 +714,7 @@ Improvements on prediction functions</h2>
 <li>A new set of C predict functions are exposed in the public interface.</li>
 <li>A user-visible change is a newly added parameter called <code>strict_shape</code>. See <a href="https://xgboost.readthedocs.io/en/latest/prediction.html">https://xgboost.readthedocs.io/en/latest/prediction.html</a> for more details.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md274"></a>
+<h2><a class="anchor" id="autotoc_md275"></a>
 Improvement on Dask interface</h2>
 <ul>
 <li>Starting with 1.4, the Dask interface is considered to be feature-complete, which means all of the models found in the single node Python interface are now supported in Dask, including but not limited to ranking and random forest. Also, the prediction function is significantly faster and supports shap value computation.<ul>
@@ -736,7 +736,7 @@ Improvement on Dask interface</h2>
 </li>
 <li>Other improvements on documents, blogs, tutorials, and demos. (#6389, #6366, #6687, #6699, #6532, #6501)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md275"></a>
+<h2><a class="anchor" id="autotoc_md276"></a>
 Python package</h2>
 <p>With changes from Dask and general improvement on prediction, we have made some enhancements on the general Python interface and IO for booster information. Starting from 1.4, booster feature names and types can be saved into the JSON model. Also some model attributes like <code>best_iteration</code>, <code>best_score</code> are restored upon model load. On sklearn interface, some attributes are now implemented as Python object property with better documents.</p>
 <ul>
@@ -764,7 +764,7 @@ Python package</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md276"></a>
+<h2><a class="anchor" id="autotoc_md277"></a>
 JVM package</h2>
 <ul>
 <li>[jvm-packages] fix early stopping doesn't work even without custom_eval setting (#6738)</li>
@@ -772,19 +772,19 @@ JVM package</h2>
 <li>[jvm] Add ability to load booster direct from byte array (#6655)</li>
 <li>[jvm-packages] JVM library loader extensions (#6630)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md277"></a>
+<h2><a class="anchor" id="autotoc_md278"></a>
 R package</h2>
 <ul>
 <li>R documentation: Make construction of DMatrix consistent.</li>
 <li>Fix R documentation for xgb.train. (#6764)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md278"></a>
+<h2><a class="anchor" id="autotoc_md279"></a>
 ROC-AUC</h2>
 <p>We re-implemented the ROC-AUC metric in XGBoost. The new implementation supports multi-class classification and has better support for learning to rank tasks that are not binary. Also, it has a better-defined average on distributed environments with additional handling for invalid datasets. (#6749, #6747, #6797)</p>
-<h2><a class="anchor" id="autotoc_md279"></a>
+<h2><a class="anchor" id="autotoc_md280"></a>
 Global configuration.</h2>
 <p>Starting from 1.4, XGBoost's Python, R and C interfaces support a new global configuration model where users can specify some global parameters. Currently, supported parameters are <code>verbosity</code> and <code>use_rmm</code>. The latter is experimental, see rmm plugin demo and related README file for details. (#6414, #6656)</p>
-<h2><a class="anchor" id="autotoc_md280"></a>
+<h2><a class="anchor" id="autotoc_md281"></a>
 Other New features.</h2>
 <ul>
 <li>Better handling for input data types that support <code>__array_interface__</code>. For some data types including GPU inputs and <code>scipy.sparse.csr_matrix</code>, XGBoost employs <code>__array_interface__</code> for processing the underlying data. Starting from 1.4, XGBoost can accept arbitrary array strides (which means column-major is supported) without making data copies, potentially reducing a significant amount of memory consumption. Also version 3 of <code>__cuda_array_interface__</code> is now supported. (#6776, #6765, #6459, #6675)</li>
@@ -795,7 +795,7 @@ Other New features.</h2>
 <li>As mentioned in Dask change summary, ranking now supports the <code>qid</code> parameter for query groups. (#6576)</li>
 <li><code>DMatrix.slice</code> can now consume a numpy array. (#6368)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md281"></a>
+<h2><a class="anchor" id="autotoc_md282"></a>
 Other breaking changes</h2>
 <ul>
 <li>Aside from the feature name generation, there are 2 breaking changes:<ul>
@@ -804,13 +804,13 @@ Other breaking changes</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md282"></a>
+<h2><a class="anchor" id="autotoc_md283"></a>
 CPU Optimization</h2>
 <ul>
 <li>Aside from the general changes on predict function, some optimizations are applied on CPU implementation. (#6683, #6550, #6696, #6700)</li>
 <li>Also performance for sampling initialization in <code>hist</code> is improved. (#6410)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md283"></a>
+<h2><a class="anchor" id="autotoc_md284"></a>
 Notable fixes in the core library</h2>
 <p>These fixes do not reside in particular language bindings:</p><ul>
 <li>Fixes for gamma regression. This includes checking for invalid input values, fixes for gamma deviance metric, and better floating point guard for gamma negative log-likelihood metric. (#6778, #6537, #6761)</li>
@@ -827,16 +827,16 @@ Notable fixes in the core library</h2>
 <li>Fix relocatable include in CMakeList (#6734) (#6737)</li>
 <li>Fix DMatrix slice with feature types. (#6689)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md284"></a>
+<h2><a class="anchor" id="autotoc_md285"></a>
 Other deprecation notices:</h2>
 <ul>
 <li>This release will be the last release to support CUDA 10.0. (#6642)</li>
 <li>Starting in the next release, the Python package will require Pip 19.3+ due to the use of manylinux2014 tag. Also, CentOS 6, RHEL 6 and other old distributions will not be supported.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md285"></a>
+<h2><a class="anchor" id="autotoc_md286"></a>
 Known issue:</h2>
 <p>MacOS build of the JVM packages doesn't support multi-threading out of the box. To enable multi-threading with JVM packages, MacOS users will need to build the JVM packages from the source. See <a href="https://xgboost.readthedocs.io/en/latest/jvm/index.html#installation-from-source">https://xgboost.readthedocs.io/en/latest/jvm/index.html#installation-from-source</a></p>
-<h2><a class="anchor" id="autotoc_md286"></a>
+<h2><a class="anchor" id="autotoc_md287"></a>
 Doc</h2>
 <ul>
 <li>Dedicated page for <code>tree_method</code> parameter is added. (#6564, #6633)</li>
@@ -848,7 +848,7 @@ Doc</h2>
 <li>Update the C API comments (#6457)</li>
 <li>Fix document. [skip ci] (#6669)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md287"></a>
+<h2><a class="anchor" id="autotoc_md288"></a>
 Maintenance: Testing, continuous integration</h2>
 <ul>
 <li>Use CPU input for test_boost_from_prediction. (#6818)</li>
@@ -878,7 +878,7 @@ Maintenance: Testing, continuous integration</h2>
 <li>Move sdist test to action. (#6635)</li>
 <li>[dask] Rework base margin test. (#6627)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md288"></a>
+<h2><a class="anchor" id="autotoc_md289"></a>
 Maintenance: Refactor code for legibility and maintainability</h2>
 <ul>
 <li>Improve OpenMP exception handling (#6680)</li>
@@ -886,27 +886,27 @@ Maintenance: Refactor code for legibility and maintainability</h2>
 <li>Simplify Span checks. (#6685)</li>
 <li>Use generic dispatching routine for array interface. (#6672)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md289"></a>
+<h1><a class="anchor" id="autotoc_md290"></a>
 v1.3.0 (2020.12.08)</h1>
-<h2><a class="anchor" id="autotoc_md290"></a>
+<h2><a class="anchor" id="autotoc_md291"></a>
 XGBoost4J-Spark: Exceptions should cancel jobs gracefully instead of killing SparkContext (#6019).</h2>
 <ul>
 <li>By default, exceptions in XGBoost4J-Spark causes the whole SparkContext to shut down, necessitating the restart of the Spark cluster. This behavior is often a major inconvenience.</li>
 <li>Starting from 1.3.0 release, XGBoost adds a new parameter <code>killSparkContextOnWorkerFailure</code> to optionally prevent killing SparkContext. If this parameter is set, exceptions will gracefully cancel training jobs instead of killing SparkContext.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md291"></a>
+<h2><a class="anchor" id="autotoc_md292"></a>
 GPUTreeSHAP: GPU acceleration of the TreeSHAP algorithm (#6038, #6064, #6087, #6099, #6163, #6281, #6332)</h2>
 <ul>
 <li><a href="https://github.com/slundberg/shap">SHAP (SHapley Additive exPlanations)</a> is a game theoretic approach to explain predictions of machine learning models. It computes feature importance scores for individual examples, establishing how each feature influences a particular prediction. TreeSHAP is an optimized SHAP algorithm specifically designed for decision tree ensembles.</li>
 <li>Starting with 1.3.0 release, it is now possible to leverage CUDA-capable GPUs to accelerate the TreeSHAP algorithm. Check out <a href="https://github.com/dmlc/xgboost/blob/master/demo/gpu_acceleration/shap.ipynb">the demo notebook</a>.</li>
 <li>The CUDA implementation of the TreeSHAP algorithm is hosted at <a href="https://github.com/rapidsai/gputreeshap">rapidsai/GPUTreeSHAP</a>. XGBoost imports it as a Git submodule.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md292"></a>
+<h2><a class="anchor" id="autotoc_md293"></a>
 New style Python callback API (#6199, #6270, #6320, #6348, #6376, #6399, #6441)</h2>
 <ul>
 <li>The XGBoost Python package now offers a re-designed callback API. The new callback API lets you design various extensions of training in idomatic Python. In addition, the new callback API allows you to use early stopping with the native Dask API (<code><a class="el" href="namespacexgboost_1_1dask.html">xgboost.dask</a></code>). Check out <a href="https://xgboost.readthedocs.io/en/release_1.3.0/python/callbacks.html">the tutorial</a> and <a href="https://github.com/dmlc/xgboost/blob/master/demo/guide-python/callbacks.py">the demo</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md293"></a>
+<h2><a class="anchor" id="autotoc_md294"></a>
 Enable the use of &lt;tt&gt;DeviceQuantileDMatrix&lt;/tt&gt; / &lt;tt&gt;DaskDeviceQuantileDMatrix&lt;/tt&gt; with large data (#6201, #6229, #6234).</h2>
 <ul>
 <li><code>DeviceQuantileDMatrix</code> can achieve memory saving by avoiding extra copies of the training data, and the saving is bigger for large data. Unfortunately, large data with more than 2^31 elements was triggering integer overflow bugs in CUB and Thrust. Tracking issue: #6228.</li>
@@ -917,20 +917,20 @@ Enable the use of &lt;tt&gt;DeviceQuantileDMatrix&lt;/tt&gt; / &lt;tt&gt;DaskDev
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md294"></a>
+<h2><a class="anchor" id="autotoc_md295"></a>
 Support slicing of tree models (#6302)</h2>
 <ul>
 <li>Accessing the best iteration of a model after the application of early stopping used to be error-prone, need to manually pass the <code>ntree_limit</code> argument to the <code>predict()</code> function.</li>
 <li>Now we provide a simple interface to slice tree models by specifying a range of boosting rounds. The tree ensemble can be split into multiple sub-ensembles via the slicing interface. Check out <a href="https://xgboost.readthedocs.io/en/release_1.3.0/python/model.html">an example</a>.</li>
 <li>In addition, the early stopping callback now supports <code>save_best</code> option. When enabled, XGBoost will save (persist) the model at the best boosting round and discard the trees that were fit subsequent to the best round.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md295"></a>
+<h2><a class="anchor" id="autotoc_md296"></a>
 Weighted subsampling of features (columns) (#5962)</h2>
 <ul>
 <li>It is now possible to sample features (columns) via weighted subsampling, in which features with higher weights are more likely to be selected in the sample. Weighted subsampling allows you to encode domain knowledge by emphasizing a particular set of features in the choice of tree splits. In addition, you can prevent particular features from being used in any splits, by assigning them zero weights.</li>
 <li>Check out <a href="https://github.com/dmlc/xgboost/blob/master/demo/guide-python/feature_weights.py">the demo</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md296"></a>
+<h2><a class="anchor" id="autotoc_md297"></a>
 Improved integration with Dask</h2>
 <ul>
 <li>Support reverse-proxy environment such as Google Kubernetes Engine (#6343, #6475)</li>
@@ -943,7 +943,7 @@ Improved integration with Dask</h2>
 <li>Allow empty data matrix in AFT survival, as Dask may produce empty partitions (#6379)</li>
 <li>Speed up prediction by overlapping prediction jobs in all workers (#6412)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md297"></a>
+<h2><a class="anchor" id="autotoc_md298"></a>
 Experimental support for direct splits with categorical features (#6028, #6128, #6137, #6140, #6164, #6165, #6166, #6179, #6194, #6219)</h2>
 <ul>
 <li>Currently, XGBoost requires users to one-hot-encode categorical variables. This has adverse performance implications, as the creation of many dummy variables results into higher memory consumption and may require fitting deeper trees to achieve equivalent model accuracy.</li>
@@ -951,26 +951,26 @@ Experimental support for direct splits with categorical features (#6028, #6128, 
 <li>The categorical split requires the use of JSON model serialization. The legacy binary serialization method cannot be used to save (persist) models with categorical splits.</li>
 <li>Note. This feature is currently highly experimental. Use it at your own risk. See the detailed list of limitations at <a href="https://github.com/dmlc/xgboost/pull/5949">#5949</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md298"></a>
+<h2><a class="anchor" id="autotoc_md299"></a>
 Experimental plugin for RAPIDS Memory Manager (#5873, #6131, #6146, #6150, #6182)</h2>
 <ul>
 <li>RAPIDS Memory Manager library (<a href="https://github.com/rapidsai/rmm">rapidsai/rmm</a>) provides a collection of efficient memory allocators for NVIDIA GPUs. It is now possible to use XGBoost with memory allocators provided by RMM, by enabling the RMM integration plugin. With this plugin, XGBoost is now able to share a common GPU memory pool with other applications using RMM, such as the RAPIDS data science packages.</li>
 <li>See <a href="https://github.com/dmlc/xgboost/blob/master/demo/rmm_plugin/README.md">the demo</a> for a working example, as well as directions for building XGBoost with the RMM plugin.</li>
 <li>The plugin will be soon considered non-experimental, once #6297 is resolved.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md299"></a>
+<h2><a class="anchor" id="autotoc_md300"></a>
 Experimental plugin for oneAPI programming model (#5825)</h2>
 <ul>
 <li>oneAPI is a programming interface developed by Intel aimed at providing one programming model for many types of hardware such as CPU, GPU, FGPA and other hardware accelerators.</li>
 <li>XGBoost now includes an experimental plugin for using oneAPI for the predictor and objective functions. The plugin is hosted in the directory <code>plugin/updater_oneapi</code>.</li>
 <li>Roadmap: #5442</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md300"></a>
+<h2><a class="anchor" id="autotoc_md301"></a>
 Pickling the XGBoost model will now trigger JSON serialization (#6027)</h2>
 <ul>
 <li>The pickle will now contain the JSON string representation of the XGBoost model, as well as related configuration.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md301"></a>
+<h2><a class="anchor" id="autotoc_md302"></a>
 Performance improvements</h2>
 <ul>
 <li>Various performance improvement on multi-core CPUs<ul>
@@ -986,7 +986,7 @@ Performance improvements</h2>
 <li>[jvm-packages] Clean the way deterministic paritioning is computed (#6033)</li>
 <li>Speed up JSON serialization by implementing an intrusive pointer class (#6129). It leads to 1.5x-2x performance boost.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md302"></a>
+<h2><a class="anchor" id="autotoc_md303"></a>
 API additions</h2>
 <ul>
 <li>[R] Add SHAP summary plot using ggplot2 (#5882)</li>
@@ -998,34 +998,34 @@ API additions</h2>
 <li>Document tree method for feature weights. (#6312)</li>
 <li>Add <code>fail_on_invalid_gpu_id</code> parameter, which will cause XGBoost to terminate upon seeing an invalid value of <code>gpu_id</code> (#6342)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md303"></a>
+<h2><a class="anchor" id="autotoc_md304"></a>
 Breaking: the default evaluation metric for classification is changed to &lt;tt&gt;logloss&lt;/tt&gt; / &lt;tt&gt;mlogloss&lt;/tt&gt; (#6183)</h2>
 <ul>
 <li>The default metric used to be accuracy, and it is not statistically consistent to perform early stopping with the accuracy metric when we are really optimizing the log loss for the <code>binary:logistic</code> objective.</li>
 <li>For statistical consistency, the default metric for classification has been changed to <code>logloss</code>. Users may choose to preserve the old behavior by explicitly specifying <code>eval_metric</code>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md304"></a>
+<h2><a class="anchor" id="autotoc_md305"></a>
 Breaking: &lt;tt&gt;skmaker&lt;/tt&gt; is now removed (#5971)</h2>
 <ul>
 <li>The <code>skmaker</code> updater has not been documented nor tested.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md305"></a>
+<h2><a class="anchor" id="autotoc_md306"></a>
 Breaking: the JSON model format no longer stores the leaf child count (#6094).</h2>
 <ul>
 <li>The leaf child count field has been deprecated and is not used anywhere in the XGBoost codebase.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md306"></a>
+<h2><a class="anchor" id="autotoc_md307"></a>
 Breaking: XGBoost now requires MacOS 10.14 (Mojave) and later.</h2>
 <ul>
 <li>Homebrew has dropped support for MacOS 10.13 (High Sierra), so we are not able to install the OpenMP runtime (<code>libomp</code>) from Homebrew on MacOS 10.13. Please use MacOS 10.14 (Mojave) or later.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md307"></a>
+<h2><a class="anchor" id="autotoc_md308"></a>
 Deprecation notices</h2>
 <ul>
 <li>The use of <code>LabelEncoder</code> in <code>XGBClassifier</code> is now deprecated and will be removed in the next minor release (#6269). The deprecation is necessary to support multiple types of inputs, such as cuDF data frames or cuPy arrays.</li>
 <li>The use of certain positional arguments in the Python interface is deprecated (#6365). Users will use deprecation warnings for the use of position arguments for certain function parameters. New code should use keyword arguments as much as possible. We have not yet decided when we will fully require the use of keyword arguments.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md308"></a>
+<h2><a class="anchor" id="autotoc_md309"></a>
 Bug-fixes</h2>
 <ul>
 <li>On big-endian arch, swap the byte order in the binary serializer to enable loading models that were produced by a little-endian machine (#5813).</li>
@@ -1053,7 +1053,7 @@ Bug-fixes</h2>
 <li>Enforce row-major order in cuPy array (#6459)</li>
 <li>Fix filtering callable objects in the parameters passed to the scikit-learn API. (#6466)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md309"></a>
+<h2><a class="anchor" id="autotoc_md310"></a>
 Maintenance: Testing, continuous integration, build system</h2>
 <ul>
 <li>[CI] Improve JVM test in GitHub Actions (#5930)</li>
@@ -1111,7 +1111,7 @@ Maintenance: Testing, continuous integration, build system</h2>
 <li>[CI] Vendor libgomp in the manylinux Python wheel (#6461)</li>
 <li>[CI] Hot fix for libgomp vendoring (#6482)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md310"></a>
+<h2><a class="anchor" id="autotoc_md311"></a>
 Maintenance: Clean up and merge the Rabit submodule (#6023, #6095, #6096, #6105, #6110, #6262, #6275, #6290)</h2>
 <ul>
 <li>The Rabit submodule is now maintained as part of the XGBoost codebase.</li>
@@ -1123,7 +1123,7 @@ Maintenance: Clean up and merge the Rabit submodule (#6023, #6095, #6096, #6105,
 <li>Single-point model recovery has been dropped and removed from Rabit, simplifying the Rabit code greatly. The single-point model recovery feature has not been adequately maintained over the years.</li>
 <li>We removed the parts of Rabit that were not useful for XGBoost.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md311"></a>
+<h2><a class="anchor" id="autotoc_md312"></a>
 Maintenance: Refactor code for legibility and maintainability</h2>
 <ul>
 <li>Unify CPU hist sketching (#5880)</li>
@@ -1137,7 +1137,7 @@ Maintenance: Refactor code for legibility and maintainability</h2>
 <li>Cleanup Python code. (#6223)</li>
 <li>Small cleanup to evaluator. (#6400)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md312"></a>
+<h2><a class="anchor" id="autotoc_md313"></a>
 Usability Improvements, Documentation</h2>
 <ul>
 <li>[jvm-packages] add example to handle missing value other than 0 (#5677)</li>
@@ -1183,54 +1183,54 @@ Usability Improvements, Documentation</h2>
 <li>Fix CLI ranking demo. (#6439)</li>
 <li>Fix broken links. (#6455)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md313"></a>
+<h2><a class="anchor" id="autotoc_md314"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b>: Nan Zhu (@CodingCat), @FelixYBW, Jack Dunn (@JackDunnNZ), Jean Lescut-Muller (@JeanLescut), Boris Feld (@Lothiraldan), Nikhil Choudhary (@Nikhil1O1), Rory Mitchell (@RAMitchell), @ShvetsKS, Anthony D'Amato (@Totoketchup), @Wittty-Panda, neko (@akiyamaneko), Alexander Gugel (@alexanderGugel), @dependabot[bot], DIVYA CHAUHAN (@divya661), Daniel Steinberg (@dstein64), Akira Funahashi (@funasoul), Philip Hyunsu Cho (@hcho3), Tong He (@hetong007), Hristo Iliev (@hiliev), Honza Sterba (@honzasterba), @hzy001, Igor Moura (@igormp), @jameskrach, James Lamb (@jameslamb), Naveed Ahmed Saleem Janvekar (@janvekarnaveed), Kyle Nicholson (@kylejn27), lacrosse91 (@lacrosse91), Christian Lorentzen (@lorentzenchr), Manikya Bardhan (@manikyabard), @nabokovas, John Quitto-Graham (@nvidia-johnq), @odidev, Qi Zhang (@qzhang90), Sergio Gavilán (@sgavil), Tanuja Kirthi Doddapaneni (@tanuja3), Cuong Duong (@tcuongd), Yuan Tang (@terrytangyuan), Jiaming Yuan (@trivialfis), vcarpani (@vcarpani), Vladislav Epifanov (@vepifanov), Vitalie Spinu (@vspinu), Bobby Wang (@wbo4958), Zeno Gantner (@zenogantner), zhang_jf (@zuston)</p>
 <p><b>Reviewers</b>: Nan Zhu (@CodingCat), John Zedlewski (@JohnZed), Rory Mitchell (@RAMitchell), @ShvetsKS, Egor Smirnov (@SmirnovEgorRu), Anthony D'Amato (@Totoketchup), @Wittty-Panda, Alexander Gugel (@alexanderGugel), Codecov Comments Bot (@codecov-commenter), Codecov (@codecov-io), DIVYA CHAUHAN (@divya661), Devin Robison (@drobison00), Geoffrey Blake (@geoffreyblake), Mark Harris (@harrism), Philip Hyunsu Cho (@hcho3), Honza Sterba (@honzasterba), Igor Moura (@igormp), @jakirkham, @jameskrach, James Lamb (@jameslamb), Janakarajan Natarajan (@janaknat), Jake Hemstad (@jrhemstad), Keith Kraus (@kkraus14), Kyle Nicholson (@kylejn27), Christian Lorentzen (@lorentzenchr), Michael Mayer (@mayer79), Nikolay Petrov (@napetrov), @odidev, PSEUDOTENSOR / Jonathan McKinney (@pseudotensor), Qi Zhang (@qzhang90), Sergio Gavilán (@sgavil), Scott Lundberg (@slundberg), Cuong Duong (@tcuongd), Yuan Tang (@terrytangyuan), Jiaming Yuan (@trivialfis), vcarpani (@vcarpani), Vladislav Epifanov (@vepifanov), Vincent Nijs (@vnijs), Vitalie Spinu (@vspinu), Bobby Wang (@wbo4958), William Hicks (@wphicks)</p>
-<h1><a class="anchor" id="autotoc_md314"></a>
+<h1><a class="anchor" id="autotoc_md315"></a>
 v1.2.0 (2020.08.22)</h1>
-<h2><a class="anchor" id="autotoc_md315"></a>
+<h2><a class="anchor" id="autotoc_md316"></a>
 XGBoost4J-Spark now supports the GPU algorithm (#5171)</h2>
 <ul>
 <li>Now XGBoost4J-Spark is able to leverage NVIDIA GPU hardware to speed up training.</li>
 <li>There is on-going work for accelerating the rest of the data pipeline with NVIDIA GPUs (#5950, #5972).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md316"></a>
+<h2><a class="anchor" id="autotoc_md317"></a>
 XGBoost now supports CUDA 11 (#5808)</h2>
 <ul>
 <li>It is now possible to build XGBoost with CUDA 11. Note that we do not yet distribute pre-built binaries built with CUDA 11; all current distributions use CUDA 10.0.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md317"></a>
+<h2><a class="anchor" id="autotoc_md318"></a>
 Better guidance for persisting XGBoost models in an R environment (#5940, #5964)</h2>
 <ul>
 <li>Users are strongly encouraged to use <code>xgb.save()</code> and <code>xgb.save.raw()</code> instead of <code>saveRDS()</code>. This is so that the persisted models can be accessed with future releases of XGBoost.</li>
 <li>The previous release (1.1.0) had problems loading models that were saved with <code>saveRDS()</code>. This release adds a compatibility layer to restore access to the old RDS files. Note that this is meant to be a temporary measure; users are advised to stop using <code>saveRDS()</code> and migrate to <code>xgb.save()</code> and <code>xgb.save.raw()</code>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md318"></a>
+<h2><a class="anchor" id="autotoc_md319"></a>
 New objectives and metrics</h2>
 <ul>
 <li>The pseudo-Huber loss <code>reg:pseudohubererror</code> is added (#5647). The corresponding metric is <code>mphe</code>. Right now, the slope is hard-coded to 1.</li>
 <li>The Accelerated Failure Time objective for survival analysis (<code>survival:aft</code>) is now accelerated on GPUs (#5714, #5716). The survival metrics <code>aft-nloglik</code> and <code>interval-regression-accuracy</code> are also accelerated on GPUs.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md319"></a>
+<h2><a class="anchor" id="autotoc_md320"></a>
 Improved integration with scikit-learn</h2>
 <ul>
 <li>Added <code>n_features_in_</code> attribute to the scikit-learn interface to store the number of features used (#5780). This is useful for integrating with some scikit-learn features such as <code>StackingClassifier</code>. See <a href="https://scikit-learn-enhancement-proposals.readthedocs.io/en/latest/slep010/proposal.html">this link</a> for more details.</li>
 <li><code>XGBoostError</code> now inherits <code>ValueError</code>, which conforms scikit-learn's exception requirement (#5696).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md320"></a>
+<h2><a class="anchor" id="autotoc_md321"></a>
 Improved integration with Dask</h2>
 <ul>
 <li>The XGBoost Dask API now exposes an asynchronous interface (#5862). See <a href="https://xgboost.readthedocs.io/en/latest/tutorials/dask.html#working-with-asyncio">the document</a> for details.</li>
 <li>Zero-copy ingestion of GPU arrays via <code>DaskDeviceQuantileDMatrix</code> (#5623, #5799, #5800, #5803, #5837, #5874, #5901): Previously, the Dask interface had to make 2 data copies: one for concatenating the Dask partition/block into a single block and another for internal representation. To save memory, we introduce <code>DaskDeviceQuantileDMatrix</code>. As long as Dask partitions are resident in the GPU memory, <code>DaskDeviceQuantileDMatrix</code> is able to ingest them directly without making copies. This matrix type wraps <code>DeviceQuantileDMatrix</code>.</li>
 <li>The prediction function now returns GPU Series type if the input is from Dask-cuDF (#5710). This is to preserve the input data type.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md321"></a>
+<h2><a class="anchor" id="autotoc_md322"></a>
 Robust handling of external data types (#5689, #5893)</h2>
 <ul>
 <li>As we support more and more external data types, the handling logic has proliferated all over the code base and became hard to keep track. It also became unclear how missing values and threads are handled. We refactored the Python package code to collect all data handling logic to a central location, and now we have an explicit list of of all supported data types.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md322"></a>
+<h2><a class="anchor" id="autotoc_md323"></a>
 Improvements in GPU-side data matrix (&lt;tt&gt;DeviceQuantileDMatrix&lt;/tt&gt;)</h2>
 <ul>
 <li>The GPU-side data matrix now implements its own quantile sketching logic, so that data don't have to be transported back to the main memory (#5700, #5747, #5760, #5846, #5870, #5898). The GK sketching algorithm is also now better documented.<ul>
@@ -1239,12 +1239,12 @@ Improvements in GPU-side data matrix (&lt;tt&gt;DeviceQuantileDMatrix&lt;/tt&gt;
 </li>
 <li>The GPU-side data matrix now exposes an iterative interface (#5783), so that users are able to construct a matrix from a data iterator. See the <a href="https://github.com/dmlc/xgboost/blob/release_1.2.0/demo/guide-python/data_iterator.py">Python demo</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md323"></a>
+<h2><a class="anchor" id="autotoc_md324"></a>
 New language binding: Swift (#5728)</h2>
 <ul>
 <li>Visit <a href="https://github.com/kongzii/SwiftXGBoost">https://github.com/kongzii/SwiftXGBoost</a> for more details.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md324"></a>
+<h2><a class="anchor" id="autotoc_md325"></a>
 Robust model serialization with JSON (#5772, #5804, #5831, #5857, #5934)</h2>
 <ul>
 <li>We continue efforts from the 1.0.0 release to adopt JSON as the format to save and load models robustly.</li>
@@ -1253,7 +1253,7 @@ Robust model serialization with JSON (#5772, #5804, #5831, #5857, #5934)</h2>
 <li>We fixed an issue in loading large JSON files to memory.</li>
 <li>It is now possible to load a JSON file from a remote source such as S3.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md325"></a>
+<h2><a class="anchor" id="autotoc_md326"></a>
 Performance improvements</h2>
 <ul>
 <li>CPU hist tree method optimization<ul>
@@ -1268,7 +1268,7 @@ Performance improvements</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md326"></a>
+<h2><a class="anchor" id="autotoc_md327"></a>
 API additions</h2>
 <ul>
 <li>Support passing fmap to importance plot (#5719). Now importance plot can show actual names of features instead of default ones.</li>
@@ -1276,34 +1276,34 @@ API additions</h2>
 <li>A new C API <code>XGBoosterGetNumFeature</code> is added for getting number of features in booster (#5856).</li>
 <li>Feature names and feature types are now stored in C++ core and saved in binary DMatrix (#5858).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md327"></a>
+<h2><a class="anchor" id="autotoc_md328"></a>
 Breaking: The &lt;tt&gt;predict()&lt;/tt&gt; method of &lt;tt&gt;DaskXGBClassifier&lt;/tt&gt; now produces class predictions (#5986). Use &lt;tt&gt;predict_proba()&lt;/tt&gt; to obtain probability predictions.</h2>
 <ul>
 <li>Previously, <code>DaskXGBClassifier.predict()</code> produced probability predictions. This is inconsistent with the behavior of other scikit-learn classifiers, where <code>predict()</code> returns class predictions. We make a breaking change in 1.2.0 release so that <code>DaskXGBClassifier.predict()</code> now correctly produces class predictions and thus behave like other scikit-learn classifiers. Furthermore, we introduce the <code>predict_proba()</code> method for obtaining probability predictions, again to be in line with other scikit-learn classifiers.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md328"></a>
+<h2><a class="anchor" id="autotoc_md329"></a>
 Breaking: Custom evaluation metric now receives raw prediction (#5954)</h2>
 <ul>
 <li>Previously, the custom evaluation metric received a transformed prediction result when used with a classifier. Now the custom metric will receive a raw (untransformed) prediction and will need to transform the prediction itself. See <a href="https://github.com/dmlc/xgboost/blob/release_1.2.0/demo/guide-python/custom_softmax.py">demo/guide-python/custom_softmax.py</a> for an example.</li>
 <li>This change is to make the custom metric behave consistently with the custom objective, which already receives raw prediction (#5564).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md329"></a>
+<h2><a class="anchor" id="autotoc_md330"></a>
 Breaking: XGBoost4J-Spark now requires Spark 3.0 and Scala 2.12 (#5836, #5890)</h2>
 <ul>
 <li>Starting with version 3.0, Spark can manage GPU resources and allocate them among executors.</li>
 <li>Spark 3.0 dropped support for Scala 2.11 and now only supports Scala 2.12. Thus, XGBoost4J-Spark also only supports Scala 2.12.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md330"></a>
+<h2><a class="anchor" id="autotoc_md331"></a>
 Breaking: XGBoost Python package now requires Python 3.6 and later (#5715)</h2>
 <ul>
 <li>Python 3.6 has many useful features such as f-strings.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md331"></a>
+<h2><a class="anchor" id="autotoc_md332"></a>
 Breaking: XGBoost now adopts the C++14 standard (#5664)</h2>
 <ul>
 <li>Make sure to use a sufficiently modern C++ compiler that supports C++14, such as Visual Studio 2017, GCC 5.0+, and Clang 3.4+.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md332"></a>
+<h2><a class="anchor" id="autotoc_md333"></a>
 Bug-fixes</h2>
 <ul>
 <li>Fix a data race in the prediction function (#5853). As a byproduct, the prediction function now uses a thread-local data store and became thread-safe.</li>
@@ -1320,7 +1320,7 @@ Bug-fixes</h2>
 <li>[jvm-packages] Fix wrong method name <code>setAllowZeroForMissingValue</code> (#5740)</li>
 <li>Fix shape inference for Dask predict (#5989)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md333"></a>
+<h2><a class="anchor" id="autotoc_md334"></a>
 Usability Improvements, Documentation</h2>
 <ul>
 <li>[Doc] Document that CUDA 10.0 is required (#5872)</li>
@@ -1344,7 +1344,7 @@ Usability Improvements, Documentation</h2>
 <li>Show <code>n_estimators</code> in the docstring of the scikit-learn interface (#6041)</li>
 <li>Fix a type in a doctring of the scikit-learn interface (#5980)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md334"></a>
+<h2><a class="anchor" id="autotoc_md335"></a>
 Maintenance: testing, continuous integration, build system</h2>
 <ul>
 <li>[CI] Remove CUDA 9.0 from CI (#5674, #5745)</li>
@@ -1379,7 +1379,7 @@ Maintenance: testing, continuous integration, build system</h2>
 <li>[CI] Use mgpu machine to run gpu hist unit tests (#6050)</li>
 <li>[CI] Build GPU-enabled JAR artifact and deploy to xgboost-maven-repo (#6050)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md335"></a>
+<h2><a class="anchor" id="autotoc_md336"></a>
 Maintenance: Refactor code for legibility and maintainability</h2>
 <ul>
 <li>Remove dead code in DMatrix initialization. (#5635)</li>
@@ -1394,11 +1394,11 @@ Maintenance: Refactor code for legibility and maintainability</h2>
 <li>Remove print (#5867)</li>
 <li>Enforce tree order in JSON (#5974)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md336"></a>
+<h2><a class="anchor" id="autotoc_md337"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b>: Nan Zhu (@CodingCat), @LionOrCatThatIsTheQuestion, Dmitry Mottl (@Mottl), Rory Mitchell (@RAMitchell), @ShvetsKS, Alex Wozniakowski (<em></em>-wozniakowski), Alexander Gugel (@alexanderGugel), @anttisaukko, @boxdot, Andy Adinets (@canonizer), Ram Rachum (@cool-RR), Elliot Hershberg (@elliothershberg), Jason E. Aten, Ph.D. (@glycerine), Philip Hyunsu Cho (@hcho3), @jameskrach, James Lamb (@jameslamb), James Bourbeau (@jrbourbeau), Peter Jung (@kongzii), Lorenz Walthert (@lorenzwalthert), Oleksandr Kuvshynov (@okuvshynov), Rong Ou (@rongou), Shaochen Shi (@shishaochen), Yuan Tang (@terrytangyuan), Jiaming Yuan (@trivialfis), Bobby Wang (@wbo4958), Zhang Zhang (@zhangzhang10)</p>
 <p><b>Reviewers</b>: Nan Zhu (@CodingCat), @LionOrCatThatIsTheQuestion, Hao Yang (@QuantHao), Rory Mitchell (@RAMitchell), @ShvetsKS, Egor Smirnov (@SmirnovEgorRu), Alex Wozniakowski (<em></em>-wozniakowski), Amit Kumar (@aktech), Avinash Barnwal (@avinashbarnwal), @boxdot, Andy Adinets (@canonizer), Chandra Shekhar Reddy (@chandrureddy), Ram Rachum (@cool-RR), Cristiano Goncalves (@cristianogoncalves), Elliot Hershberg (@elliothershberg), Jason E. Aten, Ph.D. (@glycerine), Philip Hyunsu Cho (@hcho3), Tong He (@hetong007), James Lamb (@jameslamb), James Bourbeau (@jrbourbeau), Lee Drake (@leedrake5), DougM (@mengdong), Oleksandr Kuvshynov (@okuvshynov), RongOu (@rongou), Shaochen Shi (@shishaochen), Xu Xiao (@sperlingxx), Yuan Tang (@terrytangyuan), Theodore Vasiloudis (@thvasilo), Jiaming Yuan (@trivialfis), Bobby Wang (@wbo4958), Zhang Zhang (@zhangzhang10)</p>
-<h1><a class="anchor" id="autotoc_md337"></a>
+<h1><a class="anchor" id="autotoc_md338"></a>
 v1.1.1 (2020.06.06)</h1>
 <p>This patch release applies the following patches to 1.1.0 release:</p>
 <ul>
@@ -1406,65 +1406,65 @@ v1.1.1 (2020.06.06)</h1>
 <li>Fix loading old model (#5724)</li>
 <li>Install pkg-config file (#5744)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md338"></a>
+<h1><a class="anchor" id="autotoc_md339"></a>
 v1.1.0 (2020.05.17)</h1>
-<h2><a class="anchor" id="autotoc_md339"></a>
+<h2><a class="anchor" id="autotoc_md340"></a>
 Better performance on multi-core CPUs (#5244, #5334, #5522)</h2>
 <ul>
 <li>Poor performance scaling of the <code>hist</code> algorithm for multi-core CPUs has been under investigation (#3810). #5244 concludes the ongoing effort to improve performance scaling on multi-CPUs, in particular Intel CPUs. Roadmap: #5104</li>
 <li>#5334 makes steps toward reducing memory consumption for the <code>hist</code> tree method on CPU.</li>
 <li>#5522 optimizes random number generation for data sampling.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md340"></a>
+<h2><a class="anchor" id="autotoc_md341"></a>
 Deterministic GPU algorithm for regression and classification (#5361)</h2>
 <ul>
 <li>GPU algorithm for regression and classification tasks is now deterministic.</li>
 <li>Roadmap: #5023. Currently only single-GPU training is deterministic. Distributed training with multiple GPUs is not yet deterministic.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md341"></a>
+<h2><a class="anchor" id="autotoc_md342"></a>
 Improve external memory support on GPUs (#5093, #5365)</h2>
 <ul>
 <li>Starting from 1.0.0 release, we added support for external memory on GPUs to enable training with larger datasets. Gradient-based sampling (#5093) speeds up the external memory algorithm by intelligently sampling a subset of the training data to copy into the GPU memory. <a href="https://arxiv.org/abs/2005.09148">Learn more about out-of-core GPU gradient boosting.</a></li>
 <li>GPU-side data sketching now works with data from external memory (#5365).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md342"></a>
+<h2><a class="anchor" id="autotoc_md343"></a>
 Parameter validation: detection of unused or incorrect parameters (#5477, #5569, #5508)</h2>
 <ul>
 <li>Mis-spelled training parameter is a common user mistake. In previous versions of XGBoost, mis-spelled parameters were silently ignored. Starting with 1.0.0 release, XGBoost will produce a warning message if there is any unused training parameters. The 1.1.0 release makes parameter validation available to the scikit-learn interface (#5477) and the R binding (#5569).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md343"></a>
+<h2><a class="anchor" id="autotoc_md344"></a>
 Thread-safe, in-place prediction method (#5389, #5512)</h2>
 <ul>
 <li>Previously, the prediction method was not thread-safe (#5339). This release adds a new API function <code>inplace_predict()</code> that is thread-safe. It is now possible to serve concurrent requests for prediction using a shared model object.</li>
 <li>It is now possible to compute prediction in-place for selected data formats (<code>numpy.ndarray</code> / <code>scipy.sparse.csr_matrix</code> / <code>cupy.ndarray</code> / <code>cudf.DataFrame</code> / <code>pd.DataFrame</code>) without creating a <code>DMatrix</code> object.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md344"></a>
+<h2><a class="anchor" id="autotoc_md345"></a>
 Addition of Accelerated Failure Time objective for survival analysis (#4763, #5473, #5486, #5552, #5553)</h2>
 <ul>
 <li>Survival analysis (regression) models the time it takes for an event of interest to occur. The target label is potentially censored, i.e. the label is a range rather than a single number. We added a new objective <code>survival:aft</code> to support survival analysis. Also added is the new API to specify the ranged labels. Check out <a href="https://xgboost.readthedocs.io/en/release_1.1.0/tutorials/aft_survival_analysis.html">the tutorial</a> and the <a href="https://github.com/dmlc/xgboost/tree/release_1.1.0/demo/aft_survival">demos</a>.</li>
 <li>GPU support is work in progress (#5714).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md345"></a>
+<h2><a class="anchor" id="autotoc_md346"></a>
 Improved installation experience on Mac OSX (#5597, #5602, #5606, #5701)</h2>
 <ul>
 <li>It only takes two commands to install the XGBoost Python package: <code>brew install libomp</code> followed by <code>pip install xgboost</code>. The installed XGBoost will use all CPU cores. Even better, starting with this release, we distribute pre-compiled binary wheels targeting Mac OSX. Now the install command <code>pip install xgboost</code> finishes instantly, as it no longer compiles the C++ source of XGBoost. The last three Mac versions (High Sierra, Mojave, Catalina) are supported.</li>
 <li>R package: the 1.1.0 release fixes the error <code>Initializing libomp.dylib, but found libomp.dylib already initialized</code> (#5701)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md346"></a>
-Ranking metrics are now accelerated on GPUs (#5380, #5387, #5398)</h2>
 <h2><a class="anchor" id="autotoc_md347"></a>
+Ranking metrics are now accelerated on GPUs (#5380, #5387, #5398)</h2>
+<h2><a class="anchor" id="autotoc_md348"></a>
 GPU-side data matrix to ingest data directly from other GPU libraries (#5420, #5465)</h2>
 <ul>
 <li>Previously, data on GPU memory had to be copied back to the main memory before it could be used by XGBoost. Starting with 1.1.0 release, XGBoost provides a dedicated interface (<code>DeviceQuantileDMatrix</code>) so that it can ingest data from GPU memory directly. The result is that XGBoost interoperates better with GPU-accelerated data science libraries, such as cuDF, cuPy, and PyTorch.</li>
 <li>Set device in device dmatrix. (#5596)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md348"></a>
+<h2><a class="anchor" id="autotoc_md349"></a>
 Robust model serialization with JSON (#5123, #5217)</h2>
 <ul>
 <li>We continue efforts from the 1.0.0 release to adopt JSON as the format to save and load models robustly. Refer to the release note for 1.0.0 to learn more.</li>
 <li>It is now possible to store internal configuration of the trained model (<code>Booster</code>) object in R as a JSON string (#5123, #5217).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md349"></a>
+<h2><a class="anchor" id="autotoc_md350"></a>
 Improved integration with Dask</h2>
 <ul>
 <li>Pass through <code>verbose</code> parameter for dask fit (#5413)</li>
@@ -1476,13 +1476,13 @@ Improved integration with Dask</h2>
 <li>Accept other inputs for prediction. (#5428)</li>
 <li>Fix missing value for scikit-learn interface. (#5435)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md350"></a>
+<h2><a class="anchor" id="autotoc_md351"></a>
 XGBoost4J-Spark: Check number of columns in the data iterator (#5202, #5303)</h2>
 <ul>
 <li>Before, the native layer in XGBoost did not know the number of columns (features) ahead of time and had to guess the number of columns by counting the feature index when ingesting data. This method has a failure more in distributed setting: if the training data is highly sparse, some features may be completely missing in one or more worker partitions. Thus, one or more workers may deduce an incorrect data shape, leading to crashes or silently wrong models.</li>
 <li>Enforce correct data shape by passing the number of columns explicitly from the JVM layer into the native layer.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md351"></a>
+<h2><a class="anchor" id="autotoc_md352"></a>
 Major refactoring of the &lt;tt&gt;DMatrix&lt;/tt&gt; class</h2>
 <ul>
 <li>Continued from 1.0.0 release.</li>
@@ -1492,56 +1492,56 @@ Major refactoring of the &lt;tt&gt;DMatrix&lt;/tt&gt; class</h2>
 <li>Use ellpack for prediction only when sparsepage doesn't exist. (#5504)</li>
 <li>RFC: #4354, Roadmap: #5143</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md352"></a>
+<h2><a class="anchor" id="autotoc_md353"></a>
 Breaking: XGBoost Python package now requires Pip 19.0 and higher (#5589)</h2>
 <ul>
 <li>Your Linux machine may have an old version of Pip and may attempt to install a source package, leading to long installation time. This is because we are now using <code>manylinux2010</code> tag in the binary wheel release. Ensure you have Pip 19.0 or newer by running <code>python3 -m pip -V</code> to check the version. Upgrade Pip with command <div class="fragment"><div class="line">python3 -m pip install --upgrade pip</div>
 </div><!-- fragment --> Upgrading to latest pip allows us to depend on newer versions of system libraries. <a href="https://www.tensorflow.org/install/pip">TensorFlow</a> also requires Pip 19.0+.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md353"></a>
+<h2><a class="anchor" id="autotoc_md354"></a>
 Breaking: GPU algorithm now requires CUDA 10.0 and higher (#5649)</h2>
 <ul>
 <li>CUDA 10.0 is necessary to make the GPU algorithm deterministic (#5361).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md354"></a>
+<h2><a class="anchor" id="autotoc_md355"></a>
 Breaking: &lt;tt&gt;silent&lt;/tt&gt; parameter is now removed (#5476)</h2>
 <ul>
 <li>Please use <code>verbosity</code> instead.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md355"></a>
+<h2><a class="anchor" id="autotoc_md356"></a>
 Breaking: Set &lt;tt&gt;output_margin&lt;/tt&gt; to True for custom objectives (#5564)</h2>
 <ul>
 <li>Now both R and Python interface custom objectives get un-transformed (raw) prediction outputs.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md356"></a>
+<h2><a class="anchor" id="autotoc_md357"></a>
 Breaking: &lt;tt&gt;Makefile&lt;/tt&gt; is now removed. We use CMake exclusively to build XGBoost (#5513)</h2>
 <ul>
 <li>Exception: the R package uses Autotools, as the CRAN ecosystem did not yet adopt CMake widely.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md357"></a>
+<h2><a class="anchor" id="autotoc_md358"></a>
 Breaking: &lt;tt&gt;distcol&lt;/tt&gt; updater is now removed (#5507)</h2>
 <ul>
 <li>The <code>distcol</code> updater has been long broken, and currently we lack resources to implement a working implementation from scratch.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md358"></a>
+<h2><a class="anchor" id="autotoc_md359"></a>
 Deprecation notices</h2>
 <ul>
 <li><b>Python 3.5</b>. This release is the last release to support Python 3.5. The following release (1.2.0) will require Python 3.6.</li>
 <li><b>Scala 2.11</b>. Currently XGBoost4J supports Scala 2.11. However, if a future release of XGBoost adopts Spark 3, it will not support Scala 2.11, as Spark 3 requires Scala 2.12+. We do not yet know which XGBoost release will adopt Spark 3.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md359"></a>
+<h2><a class="anchor" id="autotoc_md360"></a>
 Known limitations</h2>
 <ul>
 <li>(Python package) When early stopping is activated with <code>early_stopping_rounds</code> at training time, the prediction method (<code>xgb.predict()</code>) behaves in a surprising way. If XGBoost runs for M rounds and chooses iteration N (N &lt; M) as the best iteration, then the prediction method will use M trees by default. To use the best iteration (N trees), users will need to manually take the best iteration field <code>bst.best_iteration</code> and pass it as the <code>ntree_limit</code> argument to <code>xgb.predict()</code>. See #5209 and #4052 for additional context.</li>
 <li>GPU ranking objective is currently not deterministic (#5561).</li>
 <li>When training parameter <code>reg_lambda</code> is set to zero, some leaf nodes may be assigned a NaN value. (See <a href="https://discuss.xgboost.ai/t/still-getting-unexplained-nans-new-replication-code/1383/9">discussion</a>.) For now, please set <code>reg_lambda</code> to a nonzero value.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md360"></a>
+<h2><a class="anchor" id="autotoc_md361"></a>
 Community and Governance</h2>
 <ul>
 <li>The XGBoost Project Management Committee (PMC) is pleased to announce a new committer: Egor Smirnov (@SmirnovEgorRu). He has led a major initiative to improve the performance of XGBoost on multi-core CPUs.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md361"></a>
+<h2><a class="anchor" id="autotoc_md362"></a>
 Bug-fixes</h2>
 <ul>
 <li>Improved compatibility with scikit-learn (#5255, #5505, #5538)</li>
@@ -1579,7 +1579,7 @@ Bug-fixes</h2>
 <li>Resolve crash due to use of <code>vector&lt;bool&gt;::iterator</code> (#5642)</li>
 <li>Validation JSON model dump using JSON schema (#5660)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md362"></a>
+<h2><a class="anchor" id="autotoc_md363"></a>
 Performance improvements</h2>
 <ul>
 <li>Wide dataset quantile performance improvement (#5306)</li>
@@ -1590,14 +1590,14 @@ Performance improvements</h2>
 <li>Use non-synchronising scan in Thrust (#5560)</li>
 <li>Use <code>cudaDeviceGetAttribute()</code> instead of <code>cudaGetDeviceProperties()</code> for speed (#5570)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md363"></a>
+<h2><a class="anchor" id="autotoc_md364"></a>
 API changes</h2>
 <ul>
 <li>Support importing data from a Pandas SparseArray (#5431)</li>
 <li><code>HostDeviceVector</code> (vector shared between CPU and GPU memory) now exposes <code>HostSpan</code> interface, to enable access on the CPU side with bound check (#5459)</li>
 <li>Accept other gradient types for <code>SplitEntry</code> (#5467)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md364"></a>
+<h2><a class="anchor" id="autotoc_md365"></a>
 Usability Improvements, Documentation</h2>
 <ul>
 <li>Add <code>JVM_CHECK_CALL</code> to prevent C++ exceptions from leaking into the JVM layer (#5199)</li>
@@ -1617,7 +1617,7 @@ Usability Improvements, Documentation</h2>
 <li>Clarify meaning of <code>training</code> parameter in the C API function <code><a class="el" href="group__Prediction.html#gadc14afaedd5f1add105d18942a4de33c" title="make prediction based on dmat (deprecated, use XGBoosterPredictFromDMatrix instead)">XGBoosterPredict()</a></code> (#5604)</li>
 <li>Better error handling for situations where existing trees cannot be modified (#5406, #5418). This feature is enabled when <code>process_type</code> is set to <code>update</code>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md365"></a>
+<h2><a class="anchor" id="autotoc_md366"></a>
 Maintenance: testing, continuous integration, build system</h2>
 <ul>
 <li>Add C++ test coverage for data sketching (#5251)</li>
@@ -1637,7 +1637,7 @@ Maintenance: testing, continuous integration, build system</h2>
 <li>[jvm-packages] [CI] Publish XGBoost4J JARs with Scala 2.11 and 2.12 (#5539)</li>
 <li>[CI] Use Vault repository to re-gain access to devtoolset-4 (#5589)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md366"></a>
+<h2><a class="anchor" id="autotoc_md367"></a>
 Maintenance: Refactor code for legibility and maintainability</h2>
 <ul>
 <li>Move prediction cache to Learner (#5220, #5302)</li>
@@ -1652,11 +1652,11 @@ Maintenance: Refactor code for legibility and maintainability</h2>
 <li>Purge device_helpers.cuh (#5534)</li>
 <li>Use thrust functions instead of custom functions (#5544)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md367"></a>
+<h2><a class="anchor" id="autotoc_md368"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b>: Nan Zhu (@CodingCat), Rory Mitchell (@RAMitchell), @ShvetsKS, Egor Smirnov (@SmirnovEgorRu), Andrew Kane (@ankane), Avinash Barnwal (@avinashbarnwal), Bart Broere (@bartbroere), Andy Adinets (@canonizer), Chen Qin (@chenqin), Daiki Katsuragawa (@daikikatsuragawa), David Díaz Vico (@daviddiazvico), Darius Kharazi (@dkharazi), Darby Payne (@dpayne), Jason E. Aten, Ph.D. (@glycerine), Philip Hyunsu Cho (@hcho3), James Lamb (@jameslamb), Jan Borchmann (@jborchma), Kamil A. Kaczmarek (@kamil-kaczmarek), Melissa Kohl (@mjkohl32), Nicolas Scozzaro (@nscozzaro), Paul Kaefer (@paulkaefer), Rong Ou (@rongou), Samrat Pandiri (@samratp), Sriram Chandramouli (@sriramch), Yuan Tang (@terrytangyuan), Jiaming Yuan (@trivialfis), Liang-Chi Hsieh (@viirya), Bobby Wang (@wbo4958), Zhang Zhang (@zhangzhang10),</p>
 <p><b>Reviewers</b>: Nan Zhu (@CodingCat), @LeZhengThu, Rory Mitchell (@RAMitchell), @ShvetsKS, Egor Smirnov (@SmirnovEgorRu), Steve Bronder (@SteveBronder), Nikita Titov (@StrikerRUS), Andrew Kane (@ankane), Avinash Barnwal (@avinashbarnwal), @brydag, Andy Adinets (@canonizer), Chandra Shekhar Reddy (@chandrureddy), Chen Qin (@chenqin), Codecov (@codecov-io), David Díaz Vico (@daviddiazvico), Darby Payne (@dpayne), Jason E. Aten, Ph.D. (@glycerine), Philip Hyunsu Cho (@hcho3), James Lamb (@jameslamb), @johnny-cat, Mu Li (@mli), Mate Soos (@msoos), @rnyak, Rong Ou (@rongou), Sriram Chandramouli (@sriramch), Toby Dylan Hocking (@tdhock), Yuan Tang (@terrytangyuan), Oleksandr Pryimak (@trams), Jiaming Yuan (@trivialfis), Liang-Chi Hsieh (@viirya), Bobby Wang (@wbo4958),</p>
-<h1><a class="anchor" id="autotoc_md368"></a>
+<h1><a class="anchor" id="autotoc_md369"></a>
 v1.0.2 (2020.03.03)</h1>
 <p>This patch release applies the following patches to 1.0.0 release:</p>
 <ul>
@@ -1664,24 +1664,24 @@ v1.0.2 (2020.03.03)</h1>
 <li>Restore loading model from buffer (#5360)</li>
 <li>Use type name for data type check (#5364)</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md369"></a>
+<h1><a class="anchor" id="autotoc_md370"></a>
 v1.0.1 (2020.02.21)</h1>
 <p>This release is identical to the 1.0.0 release, except that it fixes a small bug that rendered 1.0.0 incompatible with Python 3.5. See #5328.</p>
-<h1><a class="anchor" id="autotoc_md370"></a>
+<h1><a class="anchor" id="autotoc_md371"></a>
 v1.0.0 (2020.02.19)</h1>
 <p>This release marks a major milestone for the XGBoost project.</p>
-<h2><a class="anchor" id="autotoc_md371"></a>
+<h2><a class="anchor" id="autotoc_md372"></a>
 Apache-style governance, contribution policy, and semantic versioning (#4646, #4659)</h2>
 <ul>
 <li>Starting with 1.0.0 release, the XGBoost Project is adopting Apache-style governance. The full community guideline is <a href="https://xgboost.readthedocs.io/en/release_1.0.0/contrib/community.html">available in the doc website</a>. Note that we now have Project Management Committee (PMC) who would steward the project on the long-term basis. The PMC is also entrusted to run and fund the project's continuous integration (CI) infrastructure (<a href="https://xgboost-ci.net">https://xgboost-ci.net</a>).</li>
 <li>We also adopt the <a href="https://semver.org/">semantic versioning</a>. See <a href="https://xgboost.readthedocs.io/en/release_1.0.0/contrib/release.html">our release versioning policy</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md372"></a>
+<h2><a class="anchor" id="autotoc_md373"></a>
 Better performance scaling for multi-core CPUs (#4502, #4529, #4716, #4851, #5008, #5107, #5138, #5156)</h2>
 <ul>
 <li>Poor performance scaling of the <code>hist</code> algorithm for multi-core CPUs has been under investigation (#3810). Previous effort #4529 was replaced with a series of pull requests (#5107, #5138, #5156) aimed at achieving the same performance benefits while keeping the C++ codebase legible. The latest performance benchmark results show <a href="https://github.com/dmlc/xgboost/pull/5156#issuecomment-580024413">up to 5x speedup on Intel CPUs with many cores</a>. Note: #5244, which concludes the effort, will become part of the upcoming release 1.1.0.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md373"></a>
+<h2><a class="anchor" id="autotoc_md374"></a>
 Improved installation experience on Mac OSX (#4672, #5074, #5080, #5146, #5240)</h2>
 <ul>
 <li>It used to be quite complicated to install XGBoost on Mac OSX. XGBoost uses OpenMP to distribute work among multiple CPU cores, and Mac's default C++ compiler (Apple Clang) does not come with OpenMP. Existing work-around (using another C++ compiler) was complex and prone to fail with cryptic diagnosis (#4933, #4949, #4969).</li>
@@ -1689,20 +1689,20 @@ Improved installation experience on Mac OSX (#4672, #5074, #5080, #5146, #5240)<
 <li>Even better, XGBoost is now available from Homebrew: <code>brew install xgboost</code>. See Homebrew/homebrew-core#50467.</li>
 <li>Previously, if you installed the XGBoost R package using the command &lsquo;install.packages('xgboost&rsquo;)`, it could only use a single CPU core and you would experience slow training performance. With 1.0.0 release, the R package will use all CPU cores out of box.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md374"></a>
+<h2><a class="anchor" id="autotoc_md375"></a>
 Distributed XGBoost now available on Kubernetes (#4621, #4939)</h2>
 <ul>
 <li>Check out the <a href="https://xgboost.readthedocs.io/en/release_1.0.0/tutorials/kubernetes.html">tutorial for setting up distributed XGBoost on a Kubernetes cluster</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md375"></a>
-Ruby binding for XGBoost (#4856)</h2>
 <h2><a class="anchor" id="autotoc_md376"></a>
+Ruby binding for XGBoost (#4856)</h2>
+<h2><a class="anchor" id="autotoc_md377"></a>
 New Native Dask interface for multi-GPU and multi-node scaling (#4473, #4507, #4617, #4819, #4907, #4914, #4941, #4942, #4951, #4973, #5048, #5077, #5144, #5270)</h2>
 <ul>
 <li>XGBoost now integrates seamlessly with <a href="https://dask.org/">Dask</a>, a lightweight distributed framework for data processing. Together with the first-class support for cuDF data frames (see below), it is now easier than ever to create end-to-end data pipeline running on one or more NVIDIA GPUs.</li>
 <li>Multi-GPU training with Dask is now up to 20% faster than the previous release (#4914, #4951).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md377"></a>
+<h2><a class="anchor" id="autotoc_md378"></a>
 First-class support for cuDF data frames and cuPy arrays (#4737, #4745, #4794, #4850, #4891, #4902, #4918, #4927, #4928, #5053, #5189, #5194, #5206, #5219, #5225)</h2>
 <ul>
 <li><a href="https://github.com/rapidsai/cudf">cuDF</a> is a data frame library for loading and processing tabular data on NVIDIA GPUs. It provides a Pandas-like API.</li>
@@ -1710,26 +1710,26 @@ First-class support for cuDF data frames and cuPy arrays (#4737, #4745, #4794, #
 <li>Now users can keep the data on the GPU memory throughout the end-to-end data pipeline, obviating the need for copying data between the main memory and GPU memory.</li>
 <li>XGBoost can accept any data structure that exposes <code>__array_interface__</code> signature, opening way to support other columar formats that are compatible with Apache Arrow.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md378"></a>
-&lt;a href="https://xgboost.readthedocs.io/en/release_1.0.0/tutorials/feature_interaction_constraint.html" &gt;Feature interaction constraint&lt;/a&gt; is now available with &lt;tt&gt;approx&lt;/tt&gt; and &lt;tt&gt;gpu_hist&lt;/tt&gt; algorithms (#4534, #4587, #4596, #5034).</h2>
 <h2><a class="anchor" id="autotoc_md379"></a>
+&lt;a href="https://xgboost.readthedocs.io/en/release_1.0.0/tutorials/feature_interaction_constraint.html" &gt;Feature interaction constraint&lt;/a&gt; is now available with &lt;tt&gt;approx&lt;/tt&gt; and &lt;tt&gt;gpu_hist&lt;/tt&gt; algorithms (#4534, #4587, #4596, #5034).</h2>
+<h2><a class="anchor" id="autotoc_md380"></a>
 Learning to rank is now GPU accelerated (#4873, #5004, #5129)</h2>
 <ul>
 <li>Supported ranking objectives: NDGC, Map, Pairwise.</li>
 <li><a href="https://devblogs.nvidia.com/learning-to-rank-with-xgboost-and-gpu/">Up to 2x improved training performance on GPUs</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md380"></a>
+<h2><a class="anchor" id="autotoc_md381"></a>
 Enable &lt;tt&gt;gamma&lt;/tt&gt; parameter for GPU training (#4874, #4953)</h2>
 <ul>
 <li>The <code>gamma</code> parameter specifies the minimum loss reduction required to add a new split in a tree. A larger value for <code>gamma</code> has the effect of pre-pruning the tree, by making harder to add splits.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md381"></a>
+<h2><a class="anchor" id="autotoc_md382"></a>
 External memory for GPU training (#4486, #4526, #4747, #4833, #4879, #5014)</h2>
 <ul>
 <li>It is now possible to use NVIDIA GPUs even when the size of training data exceeds the available GPU memory. Note that the external memory support for GPU is still experimental. #5093 will further improve performance and will become part of the upcoming release 1.1.0.</li>
 <li>RFC for enabling external memory with GPU algorithms: #4357</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md382"></a>
+<h2><a class="anchor" id="autotoc_md383"></a>
 Improve Scikit-Learn interface (#4558, #4842, #4929, #5049, #5151, #5130, #5227)</h2>
 <ul>
 <li>Many users of XGBoost enjoy the convenience and breadth of Scikit-Learn ecosystem. In this release, we revise the Scikit-Learn API of XGBoost (<code>XGBRegressor</code>, <code>XGBClassifier</code>, and <code>XGBRanker</code>) to achieve feature parity with the traditional XGBoost interface (<code>xgboost.train()</code>).</li>
@@ -1739,7 +1739,7 @@ Improve Scikit-Learn interface (#4558, #4842, #4929, #5049, #5151, #5130, #5227)
 <li>Add <code>n_jobs</code> as an alias of <code>nthread</code>.</li>
 <li>Roadmap: #5152</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md383"></a>
+<h2><a class="anchor" id="autotoc_md384"></a>
 XGBoost4J-Spark: Redesigning checkpointing mechanism</h2>
 <ul>
 <li>RFC is available at #4786</li>
@@ -1747,19 +1747,19 @@ XGBoost4J-Spark: Redesigning checkpointing mechanism</h2>
 <li>Avoid Multiple Jobs for Checkpointing (#5082): The current method for checkpoint is to collect the booster produced at the last iteration of each checkpoint internal to Driver and persist it in HDFS. The major issue with this approach is that it needs to re-perform the data preparation for training if the user did not choose to cache the training dataset. To avoid re-performing data prep, we build external-memory checkpointing in the XGBoost4J layer as well.</li>
 <li>Enable deterministic repartitioning when checkpoint is enabled (#4807): Distributed algorithm for gradient boosting assumes a fixed partition of the training data between multiple iterations. In previous versions, there was no guarantee that data partition would stay the same, especially when a worker goes down and some data had to recovered from previous checkpoint. In this release, we make data partition deterministic by using the data hash value of each data row in computing the partition.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md384"></a>
+<h2><a class="anchor" id="autotoc_md385"></a>
 XGBoost4J-Spark: handle errors thrown by the native code (#4560)</h2>
 <ul>
 <li>All core logic of XGBoost is written in C++, so XGBoost4J-Spark internally uses the C++ code via Java Native Interface (JNI). #4560 adds a proper error handling for any errors or exceptions arising from the C++ code, so that the XGBoost Spark application can be torn down in an orderly fashion.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md385"></a>
+<h2><a class="anchor" id="autotoc_md386"></a>
 XGBoost4J-Spark: Refine method to count the number of alive cores  (#4858)</h2>
 <ul>
 <li>The <code>SparkParallelismTracker</code> class ensures that sufficient number of executor cores are alive. To that end, it is important to query the number of alive cores reliably.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md386"></a>
-XGBoost4J: Add &lt;tt&gt;BigDenseMatrix&lt;/tt&gt; to store more than &lt;tt&gt;Integer.MAX_VALUE&lt;/tt&gt; elements (#4383)</h2>
 <h2><a class="anchor" id="autotoc_md387"></a>
+XGBoost4J: Add &lt;tt&gt;BigDenseMatrix&lt;/tt&gt; to store more than &lt;tt&gt;Integer.MAX_VALUE&lt;/tt&gt; elements (#4383)</h2>
+<h2><a class="anchor" id="autotoc_md388"></a>
 Robust model serialization with JSON (#4632, #4708, #4739, #4868, #4936, #4945, #4974, #5086, #5087, #5089, #5091, #5094, #5110, #5111, #5112, #5120, #5137, #5218, #5222, #5236, #5245, #5248, #5281)</h2>
 <ul>
 <li>In this release, we introduce an experimental support of using <a href="https://www.json.org/json-en.html">JSON</a> for serializing (saving/loading) XGBoost models and related hyperparameters for training. We would like to eventually replace the old binary format with JSON, since it is an open format and parsers are available in many programming languages and platforms. See <a href="https://xgboost.readthedocs.io/en/release_1.0.0/tutorials/saving_model.html">the documentation for model I/O using JSON</a>. #3980 explains why JSON was chosen over other alternatives.</li>
@@ -1777,35 +1777,35 @@ Robust model serialization with JSON (#4632, #4708, #4739, #4868, #4936, #4945, 
 <li>Starting with 1.0.0 release, we will use semantic versioning to indicate whether the model produced by one version of XGBoost would be compatible with another version of XGBoost. Any change in the major version indicates a breaking change in the serialization format.</li>
 <li>We now provide a robust method to save and load scikit-learn related attributes (#5245). Previously, we used Python pickle to save Python attributes related to <code>XGBClassifier</code>, <code>XGBRegressor</code>, and <code>XGBRanker</code> objects. The attributes are necessary to properly interact with scikit-learn. See #4639 for more details. The use of pickling hampered interoperability, as a pickle from one machine may not necessarily work on another machine. Starting with this release, we use an alternative method to serialize the scikit-learn related attributes. The use of Python pickle is now discouraged (#5236, #5281).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md388"></a>
+<h2><a class="anchor" id="autotoc_md389"></a>
 Parameter validation: detection of unused or incorrect parameters (#4553, #4577, #4738, #4801, #4961, #5101, #5157, #5167, #5256)</h2>
 <ul>
 <li>Mis-spelled training parameter is a common user mistake. In previous versions of XGBoost, mis-spelled parameters were silently ignored. Starting with 1.0.0 release, XGBoost will produce a warning message if there is any unused training parameters. Currently, parameter validation is available to R users and Python XGBoost API users. We are working to extend its support to scikit-learn users.</li>
 <li>Configuration steps now have well-defined semantics (#4542, #4738), so we know exactly where and how the internal configurable parameters are changed.</li>
 <li>The user can now use <code>save_config()</code> function to inspect all (used) training parameters. This is helpful for debugging model performance.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md389"></a>
+<h2><a class="anchor" id="autotoc_md390"></a>
 Allow individual workers to recover from faults (#4808, #4966)</h2>
 <ul>
 <li>Status quo: if a worker fails, all workers are shut down and restarted, and learning resumes from the last checkpoint. This involves requesting resources from the scheduler (e.g. Spark) and shuffling all the data again from scratch. Both of these operations can be quite costly and block training for extended periods of time, especially if the training data is big and the number of worker nodes is in the hundreds.</li>
 <li>The proposed solution is to recover the single node that failed, instead of shutting down all workers. The rest of the clusters wait until the single failed worker is bootstrapped and catches up with the rest.</li>
 <li>See roadmap at #4753. Note that this is work in progress. In particular, the feature is not yet available from XGBoost4J-Spark.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md390"></a>
+<h2><a class="anchor" id="autotoc_md391"></a>
 Accurate prediction for DART models</h2>
 <ul>
 <li>Use DART tree weights when computing SHAPs (#5050)</li>
 <li>Don't drop trees during DART prediction by default (#5115)</li>
 <li>Fix DART prediction in R (#5204)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md391"></a>
+<h2><a class="anchor" id="autotoc_md392"></a>
 Make external memory more robust</h2>
 <ul>
 <li>Fix issues with training with external memory on cpu (#4487)</li>
 <li>Fix crash with approx tree method on cpu (#4510)</li>
 <li>Fix external memory race in <code>exact</code> (#4980). Note: <code>dmlc::ThreadedIter</code> is not actually thread-safe. We would like to re-design it in the long term.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md392"></a>
+<h2><a class="anchor" id="autotoc_md393"></a>
 Major refactoring of the &lt;tt&gt;DMatrix&lt;/tt&gt; class (#4686, #4744, #4748, #5044, #5092, #5108, #5188, #5198)</h2>
 <ul>
 <li>Goal 1: improve performance and reduce memory consumption. Right now, if the user trains a model with a NumPy array as training data, the array gets copies 2-3 times before training begins. We'd like to reduce duplication of the data matrix.</li>
@@ -1814,19 +1814,19 @@ Major refactoring of the &lt;tt&gt;DMatrix&lt;/tt&gt; class (#4686, #4744, #4748
 <li>RFC: #4354, Roadmap: #5143</li>
 <li>This work is also relevant to external memory support on GPUs.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md393"></a>
+<h2><a class="anchor" id="autotoc_md394"></a>
 Breaking: XGBoost Python package now requires Python 3.5 or newer (#5021, #5274)</h2>
 <ul>
 <li>Python 3.4 has reached its end-of-life on March 16, 2019, so we now require Python 3.5 or newer.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md394"></a>
-Breaking: GPU algorithm now requires CUDA 9.0 and higher (#4527, #4580)</h2>
 <h2><a class="anchor" id="autotoc_md395"></a>
+Breaking: GPU algorithm now requires CUDA 9.0 and higher (#4527, #4580)</h2>
+<h2><a class="anchor" id="autotoc_md396"></a>
 Breaking: &lt;tt&gt;n_gpus&lt;/tt&gt; parameter removed; multi-GPU training now requires a distributed framework (#4579, #4749, #4773, #4810, #4867, #4908)</h2>
 <ul>
 <li>#4531 proposed removing support for single-process multi-GPU training. Contributors would focus on multi-GPU support through distributed frameworks such as Dask and Spark, where the framework would be expected to assign a worker process for each GPU independently. By delegating GPU management and data movement to the distributed framework, we can greatly simplify the core XGBoost codebase, make multi-GPU training more robust, and reduce burden for future development.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md396"></a>
+<h2><a class="anchor" id="autotoc_md397"></a>
 Breaking: Some deprecated features have been removed</h2>
 <ul>
 <li><code>gpu_exact</code> training method (#4527, #4742, #4777). Use <code>gpu_hist</code> instead.</li>
@@ -1834,14 +1834,14 @@ Breaking: Some deprecated features have been removed</h2>
 <li><code>num_roots</code> (#5059, #5165), since the current training code always uses a single root node.</li>
 <li>GPU-specific objectives (#4690), such as <code>gpu:reg:linear</code>. Use objectives without <code>gpu:</code> prefix; GPU will be used automatically if your machine has one.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md397"></a>
-Breaking: the C API function &lt;tt&gt;XGBoosterPredict()&lt;/tt&gt; now asks for an extra parameter &lt;tt&gt;training&lt;/tt&gt;.</h2>
 <h2><a class="anchor" id="autotoc_md398"></a>
+Breaking: the C API function &lt;tt&gt;XGBoosterPredict()&lt;/tt&gt; now asks for an extra parameter &lt;tt&gt;training&lt;/tt&gt;.</h2>
+<h2><a class="anchor" id="autotoc_md399"></a>
 Breaking: We now use CMake exclusively to build XGBoost. &lt;tt&gt;Makefile&lt;/tt&gt; is being sunset.</h2>
 <ul>
 <li>Exception: the R package uses Autotools, as the CRAN ecosystem did not yet adopt CMake widely.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md399"></a>
+<h2><a class="anchor" id="autotoc_md400"></a>
 Performance improvements</h2>
 <ul>
 <li>Smarter choice of histogram construction for distributed <code>gpu_hist</code> (#4519)</li>
@@ -1852,7 +1852,7 @@ Performance improvements</h2>
 <li>Improve operation efficiency for single prediction (#5016)</li>
 <li>Group builder modified for incremental building, to speed up building large <code>DMatrix</code> (#5098)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md400"></a>
+<h2><a class="anchor" id="autotoc_md401"></a>
 Bug-fixes</h2>
 <ul>
 <li>Eliminate <code>FutureWarning: Series.base is deprecated</code> (#4337)</li>
@@ -1897,7 +1897,7 @@ Bug-fixes</h2>
 <li>Model loading should not change system locale (#5314)</li>
 <li>Distributed training jobs would sometimes hang; revert Rabit to fix this regression (dmlc/rabit#132, #5237)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md401"></a>
+<h2><a class="anchor" id="autotoc_md402"></a>
 API changes</h2>
 <ul>
 <li>Add support for cross-validation using query ID (#4474)</li>
@@ -1913,7 +1913,7 @@ API changes</h2>
 <li>[R] Added new <code>train_folds</code> parameter to <code>xgb.cv()</code> (#5114)</li>
 <li>Ingest meta information from Pandas DataFrame, such as data weights (#5216)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md402"></a>
+<h2><a class="anchor" id="autotoc_md403"></a>
 Maintenance: Refactor code for legibility and maintainability</h2>
 <ul>
 <li>De-duplicate GPU parameters (#4454)</li>
@@ -1938,7 +1938,7 @@ Maintenance: Refactor code for legibility and maintainability</h2>
 <li>Extensible binary serialization format for <code>DMatrix::MetaInfo</code> (#5187). This will be useful for implementing censored labels for survival analysis applications.</li>
 <li>Cleanup clang-tidy warnings. (#5247)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md403"></a>
+<h2><a class="anchor" id="autotoc_md404"></a>
 Maintenance: testing, continuous integration, build system</h2>
 <ul>
 <li>Use <code>yaml.safe_load</code> instead of <code>yaml.load</code>. (#4537)</li>
@@ -1988,7 +1988,7 @@ Maintenance: testing, continuous integration, build system</h2>
 <li>Update DMLC-Core submodule (#4674, #4688, #4726, #4924)</li>
 <li>Update Rabit submodule (#4560, #4667, #4718, #4808, #4966, #5237)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md404"></a>
+<h2><a class="anchor" id="autotoc_md405"></a>
 Usability Improvements, Documentation</h2>
 <ul>
 <li>Add Random Forest API to Python API doc (#4500)</li>
@@ -2028,43 +2028,43 @@ Usability Improvements, Documentation</h2>
 <li>Add Optuna badge to <code>README.md</code> (#5208)</li>
 <li>Fix compilation error in <code><a class="el" href="c-api-demo_8c.html" title="Copyright 2019-2023 by XGBoost contributors.">c-api-demo.c</a></code> (#5215)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md405"></a>
+<h2><a class="anchor" id="autotoc_md406"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b>: Nan Zhu (@CodingCat), Crissman Loomis (@Crissman), Cyprien Ricque (@Cyprien-Ricque), Evan Kepner (@EvanKepner), K.O. (@Hi-king), KaiJin Ji (@KerryJi), Peter Badida (@KeyWeeUsr), Kodi Arfer (@Kodiologist), Rory Mitchell (@RAMitchell), Egor Smirnov (@SmirnovEgorRu), Jacob Kim (@TheJacobKim), Vibhu Jawa (@VibhuJawa), Marcos (@astrowonk), Andy Adinets (@canonizer), Chen Qin (@chenqin), Christopher Cowden (@cowden), @cpfarrell, @david-cortes, Liangcai Li (@firestarman), @fuhaoda, Philip Hyunsu Cho (@hcho3), @here-nagini, Tong He (@hetong007), Michal Kurka (@michalkurka), Honza Sterba (@honzasterba), @iblumin, @koertkuipers, mattn (@mattn), Mingjie Tang (@merlintang), OrdoAbChao (@mglowacki100), Matthew Jones (@mt-jones), mitama (@nigimitama), Nathan Moore (@nmoorenz), Daniel Stahl (@phillyfan1138), Michaël Benesty (@pommedeterresautee), Rong Ou (@rongou), Sebastian (@sfahnens), Xu Xiao (@sperlingxx), @sriramch, Sean Owen (@srowen), Stephanie Yang (@stpyang), Yuan Tang (@terrytangyuan), Mathew Wicks (@thesuperzapper), Tim Gates (@timgates42), TinkleG (@tinkle1129), Oleksandr Pryimak (@trams), Jiaming Yuan (@trivialfis), Matvey Turkov (@turk0v), Bobby Wang (@wbo4958), yage (@yage99), @yellowdolphin</p>
 <p><b>Reviewers</b>: Nan Zhu (@CodingCat), Crissman Loomis (@Crissman), Cyprien Ricque (@Cyprien-Ricque), Evan Kepner (@EvanKepner), John Zedlewski (@JohnZed), KOLANICH (@KOLANICH), KaiJin Ji (@KerryJi), Kodi Arfer (@Kodiologist), Rory Mitchell (@RAMitchell), Egor Smirnov (@SmirnovEgorRu), Nikita Titov (@StrikerRUS), Jacob Kim (@TheJacobKim), Vibhu Jawa (@VibhuJawa), Andrew Kane (@ankane), Arno Candel (@arnocandel), Marcos (@astrowonk), Bryan Woods (@bryan-woods), Andy Adinets (@canonizer), Chen Qin (@chenqin), Thomas Franke (@coding-komek), Peter (@codingforfun), @cpfarrell, Joshua Patterson (@datametrician), @fuhaoda, Philip Hyunsu Cho (@hcho3), Tong He (@hetong007), Honza Sterba (@honzasterba), @iblumin, @jakirkham, Vadim Khotilovich (@khotilov), Keith Kraus (@kkraus14), @koertkuipers, @melonki, Mingjie Tang (@merlintang), OrdoAbChao (@mglowacki100), Daniel Mahler (@mhlr), Matthew Rocklin (@mrocklin), Matthew Jones (@mt-jones), Michaël Benesty (@pommedeterresautee), PSEUDOTENSOR / Jonathan McKinney (@pseudotensor), Rong Ou (@rongou), Vladimir (@sh1ng), Scott Lundberg (@slundberg), Xu Xiao (@sperlingxx), @sriramch, Pasha Stetsenko (@st-pasha), Stephanie Yang (@stpyang), Yuan Tang (@terrytangyuan), Mathew Wicks (@thesuperzapper), Theodore Vasiloudis (@thvasilo), TinkleG (@tinkle1129), Oleksandr Pryimak (@trams), Jiaming Yuan (@trivialfis), Bobby Wang (@wbo4958), yage (@yage99), @yellowdolphin, Yin Lou (@yinlou)</p>
-<h1><a class="anchor" id="autotoc_md406"></a>
+<h1><a class="anchor" id="autotoc_md407"></a>
 v0.90 (2019.05.18)</h1>
-<h2><a class="anchor" id="autotoc_md407"></a>
+<h2><a class="anchor" id="autotoc_md408"></a>
 XGBoost Python package drops Python 2.x (#4379, #4381)</h2>
 <p>Python 2.x is reaching its end-of-life at the end of this year. <a href="https://python3statement.org/">Many scientific Python packages are now moving to drop Python 2.x</a>.</p>
-<h2><a class="anchor" id="autotoc_md408"></a>
+<h2><a class="anchor" id="autotoc_md409"></a>
 XGBoost4J-Spark now requires Spark 2.4.x (#4377)</h2>
 <ul>
 <li>Spark 2.3 is reaching its end-of-life soon. See discussion at #4389.</li>
 <li><b>Consistent handling of missing values</b> (#4309, #4349, #4411): Many users had reported issue with inconsistent predictions between XGBoost4J-Spark and the Python XGBoost package. The issue was caused by Spark mis-handling non-zero missing values (NaN, -1, 999 etc). We now alert the user whenever Spark doesn't handle missing values correctly (#4309, #4349). See <a href="https://xgboost.readthedocs.io/en/release_0.90/jvm/xgboost4j_spark_tutorial.html#dealing-with-missing-values">the tutorial for dealing with missing values in XGBoost4J-Spark</a>. This fix also depends on the availability of Spark 2.4.x.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md409"></a>
+<h2><a class="anchor" id="autotoc_md410"></a>
 Roadmap: better performance scaling for multi-core CPUs (#4310)</h2>
 <ul>
 <li>Poor performance scaling of the <code>hist</code> algorithm for multi-core CPUs has been under investigation (#3810). #4310 optimizes quantile sketches and other pre-processing tasks. Special thanks to @SmirnovEgorRu.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md410"></a>
+<h2><a class="anchor" id="autotoc_md411"></a>
 Roadmap: Harden distributed training (#4250)</h2>
 <ul>
 <li>Make distributed training in XGBoost more robust by hardening <a href="https://github.com/dmlc/rabit">Rabit</a>, which implements <a href="https://en.wikipedia.org/wiki/Reduce_%28parallel_pattern%29">the AllReduce primitive</a>. In particular, improve test coverage on mechanisms for fault tolerance and recovery. Special thanks to @chenqin.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md411"></a>
+<h2><a class="anchor" id="autotoc_md412"></a>
 New feature: Multi-class metric functions for GPUs (#4368)</h2>
 <ul>
 <li>Metrics for multi-class classification have been ported to GPU: <code>merror</code>, <code>mlogloss</code>. Special thanks to @trivialfis.</li>
 <li>With supported metrics, XGBoost will select the correct devices based on your system and <code>n_gpus</code> parameter.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md412"></a>
+<h2><a class="anchor" id="autotoc_md413"></a>
 New feature: Scikit-learn-like random forest API (#4148, #4255, #4258)</h2>
 <ul>
 <li>XGBoost Python package now offers <code>XGBRFClassifier</code> and <code>XGBRFRegressor</code> API to train random forests. See <a href="https://xgboost.readthedocs.io/en/release_0.90/tutorials/rf.html">the tutorial</a>. Special thanks to @canonizer</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md413"></a>
+<h2><a class="anchor" id="autotoc_md414"></a>
 New feature: use external memory in GPU predictor (#4284, #4396, #4438, #4457)</h2>
 <ul>
 <li><p class="startli">It is now possible to make predictions on GPU when the input is read from external memory. This is useful when you want to make predictions with big dataset that does not fit into the GPU memory. Special thanks to @rongou, @canonizer, @sriramch.</p>
@@ -2075,12 +2075,12 @@ New feature: use external memory in GPU predictor (#4284, #4396, #4438, #4457)</
 </div><!-- fragment --></li>
 <li>Coming soon: GPU training (<code>gpu_hist</code>) with external memory</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md414"></a>
+<h2><a class="anchor" id="autotoc_md415"></a>
 New feature: XGBoost can now handle comments in LIBSVM files (#4430)</h2>
 <ul>
 <li>Special thanks to @trivialfis and @hcho3</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md415"></a>
+<h2><a class="anchor" id="autotoc_md416"></a>
 New feature: Embed XGBoost in your C/C++ applications using CMake (#4323, #4333, #4453)</h2>
 <ul>
 <li><p class="startli">It is now easier than ever to embed XGBoost in your C/C++ applications. In your CMakeLists.txt, add <code>xgboost::xgboost</code> as a linked library:</p>
@@ -2090,7 +2090,7 @@ New feature: Embed XGBoost in your C/C++ applications using CMake (#4323, #4333,
 </div><!-- fragment --><p class="startli"><a href="https://xgboost.readthedocs.io/en/release_0.90/dev">XGBoost C API documentation is available.</a> Special thanks to @trivialfis</p>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md416"></a>
+<h2><a class="anchor" id="autotoc_md417"></a>
 Performance improvements</h2>
 <ul>
 <li>Use feature interaction constraints to narrow split search space (#4341, #4428)</li>
@@ -2104,7 +2104,7 @@ Performance improvements</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md417"></a>
+<h2><a class="anchor" id="autotoc_md418"></a>
 Bug-fixes</h2>
 <ul>
 <li>Fix node reuse in <code>hist</code> (#4404)</li>
@@ -2125,13 +2125,13 @@ Bug-fixes</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md418"></a>
+<h2><a class="anchor" id="autotoc_md419"></a>
 API changes</h2>
 <ul>
 <li>Deprecate <code>reg:linear</code> in favor of <code>reg:squarederror</code>. (#4267, #4427)</li>
 <li>Add attribute getter and setter to the Booster object in XGBoost4J (#4336)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md419"></a>
+<h2><a class="anchor" id="autotoc_md420"></a>
 Maintenance: Refactor C++ code for legibility and maintainability</h2>
 <ul>
 <li>Fix clang-tidy warnings. (#4149)</li>
@@ -2140,7 +2140,7 @@ Maintenance: Refactor C++ code for legibility and maintainability</h2>
 <li>Retire DVec class in favour of c++20 style span for device memory. (#4293)</li>
 <li>Improve HostDeviceVector exception safety (#4301)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md420"></a>
+<h2><a class="anchor" id="autotoc_md421"></a>
 Maintenance: testing, continuous integration, build system</h2>
 <ul>
 <li><b>Major refactor of CMakeLists.txt</b> (#4323, #4333, #4453): adopt modern CMake and export XGBoost as a target</li>
@@ -2172,7 +2172,7 @@ Maintenance: testing, continuous integration, build system</h2>
 <li>Add additional Python tests to test training under constraints (#4426)</li>
 <li>Enable building with shared NCCL. (#4447)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md421"></a>
+<h2><a class="anchor" id="autotoc_md422"></a>
 Usability Improvements, Documentation</h2>
 <ul>
 <li>Document limitation of one-split-at-a-time Greedy tree learning heuristic (#4233)</li>
@@ -2192,20 +2192,20 @@ Usability Improvements, Documentation</h2>
 <li>Remove subtly sexist remark (#4418)</li>
 <li>Add R vignette about parsing JSON dumps (#4439)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md422"></a>
+<h2><a class="anchor" id="autotoc_md423"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b>: Nan Zhu (@CodingCat), Adam Pocock (@Craigacp), Daniel Hen (@Daniel8hen), Jiaxiang Li (@JiaxiangBU), Rory Mitchell (@RAMitchell), Egor Smirnov (@SmirnovEgorRu), Andy Adinets (@canonizer), Jonas (@elcombato), Harry Braviner (@harrybraviner), Philip Hyunsu Cho (@hcho3), Tong He (@hetong007), James Lamb (@jameslamb), Jean-Francois Zinque (@jeffzi), Yang Yang (@jokerkeny), Mayank Suman (@mayanksuman), jess (@monkeywithacupcake), Hajime Morrita (@omo), Ravi Kalia (@project-delphi), @ras44, Rong Ou (@rongou), Shaochen Shi (@shishaochen), Xu Xiao (@sperlingxx), @sriramch, Jiaming Yuan (@trivialfis), Christopher Suchanek (@wsuchy), Bozhao (@yubozhao)</p>
 <p><b>Reviewers</b>: Nan Zhu (@CodingCat), Adam Pocock (@Craigacp), Daniel Hen (@Daniel8hen), Jiaxiang Li (@JiaxiangBU), Laurae (@Laurae2), Rory Mitchell (@RAMitchell), Egor Smirnov (@SmirnovEgorRu), @alois-bissuel, Andy Adinets (@canonizer), Chen Qin (@chenqin), Harry Braviner (@harrybraviner), Philip Hyunsu Cho (@hcho3), Tong He (@hetong007), @jakirkham, James Lamb (@jameslamb), Julien Schueller (@jschueller), Mayank Suman (@mayanksuman), Hajime Morrita (@omo), Rong Ou (@rongou), Sara Robinson (@sararob), Shaochen Shi (@shishaochen), Xu Xiao (@sperlingxx), @sriramch, Sean Owen (@srowen), Sergei Lebedev (@superbobry), Yuan (Terry) Tang (@terrytangyuan), Theodore Vasiloudis (@thvasilo), Matthew Tovbin (@tovbinm), Jiaming Yuan (@trivialfis), Xin Yin (@xydrolase)</p>
-<h1><a class="anchor" id="autotoc_md423"></a>
+<h1><a class="anchor" id="autotoc_md424"></a>
 v0.82 (2019.03.03)</h1>
 <p>This release is packed with many new features and bug fixes.</p>
-<h2><a class="anchor" id="autotoc_md424"></a>
+<h2><a class="anchor" id="autotoc_md425"></a>
 Roadmap: better performance scaling for multi-core CPUs (#3957)</h2>
 <ul>
 <li>Poor performance scaling of the <code>hist</code> algorithm for multi-core CPUs has been under investigation (#3810). #3957 marks an important step toward better performance scaling, by using software pre-fetching and replacing STL vectors with C-style arrays. Special thanks to @Laurae2 and @SmirnovEgorRu.</li>
 <li>See #3810 for latest progress on this roadmap.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md425"></a>
+<h2><a class="anchor" id="autotoc_md426"></a>
 New feature: Distributed Fast Histogram Algorithm (&lt;tt&gt;hist&lt;/tt&gt;) (#4011, #4102, #4140, #4128)</h2>
 <ul>
 <li>It is now possible to run the <code>hist</code> algorithm in distributed setting. Special thanks to @CodingCat. The benefits include:<ol type="1">
@@ -2216,39 +2216,39 @@ New feature: Distributed Fast Histogram Algorithm (&lt;tt&gt;hist&lt;/tt&gt;) (#
 </li>
 <li>Depth-wise tree growing is now performed in a separate code path, so that cross-node syncronization is performed only once per level.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md426"></a>
+<h2><a class="anchor" id="autotoc_md427"></a>
 New feature: Multi-Node, Multi-GPU training (#4095)</h2>
 <ul>
 <li>Distributed training is now able to utilize clusters equipped with NVIDIA GPUs. In particular, the rabit AllReduce layer will communicate GPU device information. Special thanks to @mt-jones, @RAMitchell, @rongou, @trivialfis, @canonizer, and @jeffdk.</li>
 <li>Resource management systems will be able to assign a rank for each GPU in the cluster.</li>
 <li>In Dask, users will be able to construct a collection of XGBoost processes over an inhomogeneous device cluster (i.e. workers with different number and/or kinds of GPUs).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md427"></a>
+<h2><a class="anchor" id="autotoc_md428"></a>
 New feature: Multiple validation datasets in XGBoost4J-Spark (#3904, #3910)</h2>
 <ul>
 <li>You can now track the performance of the model during training with multiple evaluation datasets. By specifying <code>eval_sets</code> or call <code>setEvalSets</code> over a <code>XGBoostClassifier</code> or <code>XGBoostRegressor</code>, you can pass in multiple evaluation datasets typed as a <code>Map</code> from <code>String</code> to <code>DataFrame</code>. Special thanks to @CodingCat.</li>
 <li>See the usage of multiple validation datasets <a href="https://github.com/dmlc/xgboost/blob/0c1d5f1120c0a159f2567b267f0ec4ffadee00d0/jvm-packages/xgboost4j-example/src/main/scala/ml/dmlc/xgboost4j/scala/example/spark/SparkTraining.scala#L66-L78">here</a></li>
 </ul>
-<h2><a class="anchor" id="autotoc_md428"></a>
+<h2><a class="anchor" id="autotoc_md429"></a>
 New feature: Additional metric functions for GPUs (#3952)</h2>
 <ul>
 <li>Element-wise metrics have been ported to GPU: <code>rmse</code>, <code>mae</code>, <code>logloss</code>, <code>poisson-nloglik</code>, <code>gamma-deviance</code>, <code>gamma-nloglik</code>, <code>error</code>, <code>tweedie-nloglik</code>. Special thanks to @trivialfis and @RAMitchell.</li>
 <li>With supported metrics, XGBoost will select the correct devices based on your system and <code>n_gpus</code> parameter.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md429"></a>
+<h2><a class="anchor" id="autotoc_md430"></a>
 New feature: Column sampling at individual nodes (splits) (#3971)</h2>
 <ul>
 <li>Columns (features) can now be sampled at individual tree nodes, in addition to per-tree and per-level sampling. To enable per-node sampling, set <code>colsample_bynode</code> parameter, which represents the fraction of columns sampled at each node. This parameter is set to 1.0 by default (i.e. no sampling per node). Special thanks to @canonizer.</li>
 <li>The <code>colsample_bynode</code> parameter works cumulatively with other <code>colsample_by*</code> parameters: for example, &lsquo;{'colsample_bynode&rsquo;:0.5, 'colsample_bytree':0.5}` with 100 columns will give 25 features to choose from at each split.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md430"></a>
+<h2><a class="anchor" id="autotoc_md431"></a>
 Major API change: consistent logging level via &lt;tt&gt;verbosity&lt;/tt&gt; (#3982, #4002, #4138)</h2>
 <ul>
 <li>XGBoost now allows fine-grained control over logging. You can set <code>verbosity</code> to 0 (silent), 1 (warning), 2 (info), and 3 (debug). This is useful for controlling the amount of logging outputs. Special thanks to @trivialfis.</li>
 <li>Parameters <code>silent</code> and <code>debug_verbose</code> are now deprecated.</li>
 <li>Note: Sometimes XGBoost tries to change configurations based on heuristics, which is displayed as warning message. If there's unexpected behaviour, please try to increase value of verbosity.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md431"></a>
+<h2><a class="anchor" id="autotoc_md432"></a>
 Major bug fix: external memory (#4040, #4193)</h2>
 <ul>
 <li>Clarify object ownership in multi-threaded prefetcher, to avoid memory error.</li>
@@ -2256,28 +2256,28 @@ Major bug fix: external memory (#4040, #4193)</h2>
 <li>Add unit tests for external memory.</li>
 <li>Special thanks to @trivialfis and @hcho3.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md432"></a>
+<h2><a class="anchor" id="autotoc_md433"></a>
 Major bug fix: early stopping fixed in XGBoost4J and XGBoost4J-Spark (#3928, #4176)</h2>
 <ul>
 <li>Early stopping in XGBoost4J and XGBoost4J-Spark is now consistent with its counterpart in the Python package. Training stops if the current iteration is <code>earlyStoppingSteps</code> away from the best iteration. If there are multiple evaluation sets, only the last one is used to determinate early stop.</li>
 <li>See the updated documentation <a href="https://xgboost.readthedocs.io/en/release_0.82/jvm/xgboost4j_spark_tutorial.html#early-stopping">here</a></li>
 <li>Special thanks to @CodingCat, @yanboliang, and @mingyang.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md433"></a>
+<h2><a class="anchor" id="autotoc_md434"></a>
 Major bug fix: infrequent features should not crash distributed training (#4045)</h2>
 <ul>
 <li>For infrequently occuring features, some partitions may not get any instance. This scenario used to crash distributed training due to mal-formed ranges. The problem has now been fixed.</li>
 <li>In practice, one-hot-encoded categorical variables tend to produce rare features, particularly when the cardinality is high.</li>
 <li>Special thanks to @CodingCat.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md434"></a>
+<h2><a class="anchor" id="autotoc_md435"></a>
 Performance improvements</h2>
 <ul>
 <li>Faster, more space-efficient radix sorting in <code>gpu_hist</code> (#3895)</li>
 <li>Subtraction trick in histogram calculation in <code>gpu_hist</code> (#3945)</li>
 <li>More performant re-partition in XGBoost4J-Spark (#4049)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md435"></a>
+<h2><a class="anchor" id="autotoc_md436"></a>
 Bug-fixes</h2>
 <ul>
 <li>Fix semantics of <code>gpu_id</code> when running multiple XGBoost processes on a multi-GPU machine (#3851)</li>
@@ -2315,7 +2315,7 @@ Bug-fixes</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md436"></a>
+<h2><a class="anchor" id="autotoc_md437"></a>
 API changes</h2>
 <ul>
 <li>Add experimental parameter <code>single_precision_histogram</code> to use single-precision histograms for the <code>gpu_hist</code> algorithm (#3965)</li>
@@ -2332,7 +2332,7 @@ API changes</h2>
 </ul>
 </li>
 </ul>
-<h2><a class="anchor" id="autotoc_md437"></a>
+<h2><a class="anchor" id="autotoc_md438"></a>
 Maintenance: Refactor C++ code for legibility and maintainability</h2>
 <ul>
 <li>Refactor <code>hist</code> algorithm code and add unit tests (#3836)</li>
@@ -2344,7 +2344,7 @@ Maintenance: Refactor C++ code for legibility and maintainability</h2>
 <li>Robust handling of ranges with C++20 span in <code>gpu_exact</code> and <code>gpu_coord_descent</code> (#4020, #4029)</li>
 <li>Simplify tree training code (#3825). Also use Span class for robust handling of ranges.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md438"></a>
+<h2><a class="anchor" id="autotoc_md439"></a>
 Maintenance: testing, continuous integration, build system</h2>
 <ul>
 <li>Disallow <code>std::regex</code> since it's not supported by GCC 4.8.x (#3870)</li>
@@ -2371,7 +2371,7 @@ Maintenance: testing, continuous integration, build system</h2>
 <li>Fix a unit test in <code>gpu_hist</code> (#4158)</li>
 <li>Speed up data generation in Python tests (#4164)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md439"></a>
+<h2><a class="anchor" id="autotoc_md440"></a>
 Usability Improvements</h2>
 <ul>
 <li>Add link to <a href="https://www.infoworld.com/article/3336072/application-development/infoworlds-2019-technology-of-the-year-award-winners.html">InfoWorld 2019 Technology of the Year Award</a> (#4116)</li>
@@ -2390,57 +2390,57 @@ Usability Improvements</h2>
 <li>Clarify a comment in <code>objectiveTrait</code> (#4174)</li>
 <li>Fix typos and broken links in documentation (#3890, #3872, #3902, #3919, #3975, #4027, #4156, #4167)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md440"></a>
+<h2><a class="anchor" id="autotoc_md441"></a>
 Acknowledgement</h2>
 <p><b>Contributors</b> (in no particular order): Jiaming Yuan (@trivialfis), Hyunsu Cho (@hcho3), Nan Zhu (@CodingCat), Rory Mitchell (@RAMitchell), Yanbo Liang (@yanboliang), Andy Adinets (@canonizer), Tong He (@hetong007), Yuan Tang (@terrytangyuan)</p>
 <p><b>First-time Contributors</b> (in no particular order): Jelle Zijlstra (@JelleZijlstra), Jiacheng Xu (@jiachengxu), @ajing, Kashif Rasul (@kashif), @theycallhimavi, Joey Gao (@pjgao), Prabakaran Kumaresshan (@nixphix), Huafeng Wang (@huafengw), @lyxthe, Sam Wilkinson (@scwilkinson), Tatsuhito Kato (@stabacov), Shayak Banerjee (@shayakbanerjee), Kodi Arfer (@Kodiologist), @KyleLi1985, Egor Smirnov (@SmirnovEgorRu), @tmitanitky, Pasha Stetsenko (@st-pasha), Kenichi Nagahara (@keni-chi), Abhai Kollara Dilip (@abhaikollara), Patrick Ford (@pford221), @hshujuan, Matthew Jones (@mt-jones), Thejaswi Rao (@teju85), Adam November (@anovember)</p>
 <p><b>First-time Reviewers</b> (in no particular order): Mingyang Hu (@mingyang), Theodore Vasiloudis (@thvasilo), Jakub Troszok (@troszok), Rong Ou (@rongou), @Denisevi4, Matthew Jones (@mt-jones), Jeff Kaplan (@jeffdk)</p>
-<h1><a class="anchor" id="autotoc_md441"></a>
+<h1><a class="anchor" id="autotoc_md442"></a>
 v0.81 (2018.11.04)</h1>
-<h2><a class="anchor" id="autotoc_md442"></a>
+<h2><a class="anchor" id="autotoc_md443"></a>
 New feature: feature interaction constraints</h2>
 <ul>
 <li>Users are now able to control which features (independent variables) are allowed to interact by specifying feature interaction constraints (#3466).</li>
 <li><a href="https://xgboost.readthedocs.io/en/release_0.81/tutorials/feature_interaction_constraint.html">Tutorial</a> is available, as well as <a href="https://github.com/dmlc/xgboost/blob/9254c58e4dfff6a59dc0829a2ceb02e45ed17cd0/R-package/demo/interaction_constraints.R">R</a> and <a href="https://github.com/dmlc/xgboost/blob/9254c58e4dfff6a59dc0829a2ceb02e45ed17cd0/tests/python/test_interaction_constraints.py">Python</a> examples.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md443"></a>
+<h2><a class="anchor" id="autotoc_md444"></a>
 New feature: learning to rank using scikit-learn interface</h2>
 <ul>
 <li>Learning to rank task is now available for the scikit-learn interface of the Python package (#3560, #3848). It is now possible to integrate the XGBoost ranking model into the scikit-learn learning pipeline.</li>
 <li>Examples of using <code>XGBRanker</code> class is found at <a href="https://github.com/dmlc/xgboost/blob/24a268a2e3cb17302db3d72da8f04016b7d352d9/demo/rank/rank_sklearn.py">demo/rank/rank_sklearn.py</a>.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md444"></a>
+<h2><a class="anchor" id="autotoc_md445"></a>
 New feature: R interface for SHAP interactions</h2>
 <ul>
 <li>SHAP (SHapley Additive exPlanations) is a unified approach to explain the output of any machine learning model. Previously, this feature was only available from the Python package; now it is available from the R package as well (#3636).</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md445"></a>
+<h2><a class="anchor" id="autotoc_md446"></a>
 New feature: GPU predictor now use multiple GPUs to predict</h2>
 <ul>
 <li>GPU predictor is now able to utilize multiple GPUs at once to accelerate prediction (#3738)</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md446"></a>
+<h2><a class="anchor" id="autotoc_md447"></a>
 New feature: Scale distributed XGBoost to large-scale clusters</h2>
 <ul>
 <li>Fix OS file descriptor limit assertion error on large cluster (#3835, dmlc/rabit#73) by replacing <code>select()</code> based AllReduce/Broadcast with <code>poll()</code> based implementation.</li>
 <li>Mitigate tracker "thundering herd" issue on large cluster. Add exponential backoff retry when workers connect to tracker.</li>
 <li>With this change, we were able to scale to 1.5k executors on a 12 billion row dataset after some tweaks here and there.</li>
 </ul>
-<h2><a class="anchor" id="autotoc_md447"></a>
+<h2><a class="anchor" id="autotoc_md448"></a>
 New feature: Additional objective functions for GPUs</h2>
 <ul>
 <li>New objective functions ported to GPU: <code>hinge</code>, <code>multi:softmax</code>, <code>multi:softprob</code>, <code>count:poisson</code>, <code>reg:gamma</code>, <code>"reg:tweedie&lt;/tt&gt;.
 * With supported objectives, XGBoost will select the correct devices based on your system and &lt;tt&gt;n_gpus&lt;/tt&gt; parameter.
 
-@subsection autotoc_md448 Major bug fix: learning to rank with XGBoost4J-Spark
+@subsection autotoc_md449 Major bug fix: learning to rank with XGBoost4J-Spark
 * Previously, &lt;tt&gt;repartitionForData&lt;/tt&gt; would shuffle data and lose ordering necessary for ranking task.
 * To fix this issue, data points within each RDD partition is explicitly group by their group (query session) IDs (#3654). Also handle empty RDD partition carefully (#3750).
 
-@subsection autotoc_md449 Major bug fix: early stopping fixed in XGBoost4J-Spark
+@subsection autotoc_md450 Major bug fix: early stopping fixed in XGBoost4J-Spark
 * Earlier implementation of early stopping had incorrect semantics and didn't let users to specify direction for optimizing (maximize / minimize)
 * A parameter &lt;tt&gt;maximize_evaluation_metrics&lt;/tt&gt; is defined so as to tell whether a metric should be maximized or minimized as part of early stopping criteria (#3808). Also early stopping now has correct semantics.
 
-@subsection autotoc_md450 API changes
+@subsection autotoc_md451 API changes
 * Column sampling by level (&lt;tt&gt;colsample_bylevel&lt;/tt&gt;) is now functional for &lt;tt&gt;hist&lt;/tt&gt; algorithm (#3635, #3862)
 * GPU tag &lt;tt&gt;gpu:&lt;/tt&gt; for regression objectives are now deprecated. XGBoost will select the correct devices automatically (#3643)
 * Add &lt;tt&gt;disable_default_eval_metric&lt;/tt&gt; parameter to disable default metric (#3606)
@@ -2454,11 +2454,11 @@ New feature: Additional objective functions for GPUs</h2>
   - Allow scikit-learn grid search over parameters specified as keyword arguments (#3791)
   - Add &lt;tt&gt;coef_&lt;/tt&gt; and &lt;tt&gt;intercept_&lt;/tt&gt; as properties of scikit-learn wrapper (#3855). Some scikit-learn functions expect these properties.
 
-@subsection autotoc_md451 Performance improvements
+@subsection autotoc_md452 Performance improvements
 * Address very high GPU memory usage for large data (#3635)
 * Fix performance regression within &lt;tt&gt;EvaluateSplits()&lt;/tt&gt; of &lt;tt&gt;gpu_hist&lt;/tt&gt; algorithm. (#3680)
 
-@subsection autotoc_md452 Bug-fixes
+@subsection autotoc_md453 Bug-fixes
 * Fix a problem in GPU quantile sketch with tiny instance weights. (#3628)
 * Fix copy constructor for &lt;tt&gt;HostDeviceVectorImpl&lt;/tt&gt; to prevent dangling pointers (#3657)
 * Fix a bug in partitioned file loading (#3673)
@@ -2489,7 +2489,7 @@ New feature: Additional objective functions for GPUs</h2>
   - Amend &lt;tt&gt;xgb.createFolds&lt;/tt&gt; to handle classes of a single element (#3630)
   - Fix buggy random generator and make &lt;tt&gt;colsample_bytree&lt;/tt&gt; functional (#3781)
 
-@subsection autotoc_md453 Maintenance: testing, continuous integration, build system
+@subsection autotoc_md454 Maintenance: testing, continuous integration, build system
 * Add sanitizers tests to Travis CI (#3557)
 * Add NumPy, Matplotlib, Graphviz as requirements for doc build (#3669)
 * Comply with CRAN submission policy (#3660, #3728)
@@ -2508,7 +2508,7 @@ New feature: Additional objective functions for GPUs</h2>
 * Test wheels on CUDA 10.0 container for compatibility (#3838)
 * Fix JVM doc build (#3853)
 
-@subsection autotoc_md454 Maintenance: Refactor C++ code for legibility and maintainability
+@subsection autotoc_md455 Maintenance: Refactor C++ code for legibility and maintainability
 * Merge generic device helper functions into &lt;tt&gt;GPUSet&lt;/tt&gt; class (#3626)
 * Re-factor column sampling logic into &lt;tt&gt;ColumnSampler&lt;/tt&gt; class (#3635, #3637)
 * Replace &lt;tt&gt;std::vector&lt;/tt&gt; with &lt;tt&gt;HostDeviceVector&lt;/tt&gt; in &lt;tt&gt;MetaInfo&lt;/tt&gt; and &lt;tt&gt;SparsePage&lt;/tt&gt; (#3446)
@@ -2517,13 +2517,13 @@ New feature: Additional objective functions for GPUs</h2>
 * Remove obsoleted &lt;tt&gt;QuantileHistMaker&lt;/tt&gt; class (#3761)
 * Remove obsoleted &lt;tt&gt;NoConstraint&lt;/tt&gt; class (#3792)
 
-@subsection autotoc_md455 Other Features
+@subsection autotoc_md456 Other Features
 * C++20-compliant Span class for safe pointer indexing (#3548, #3588)
 * Add helper functions to manipulate multiple GPU devices (#3693)
 * XGBoost4J-Spark
   - Allow specifying host ip from the &lt;tt&gt;xgboost-tracker.properties file&lt;/tt&gt; (#3833). This comes in handy when &lt;tt&gt;hosts&lt;/tt&gt; files doesn't correctly define localhost.
 
-@subsection autotoc_md456 Usability Improvements
+@subsection autotoc_md457 Usability Improvements
 * Add reference to GitHub repository in &lt;tt&gt;pom.xml&lt;/tt&gt; of JVM packages (#3589)
 * Add R demo of multi-class classification (#3695)
 * Document JSON dump functionality (#3600, #3603)
@@ -2554,10 +2554,10 @@ New feature: Additional objective functions for GPUs</h2>
 * R package
   - Enlarge variable importance plot to make it more visible (#3820)
 
-@subsection autotoc_md457 BREAKING CHANGES
+@subsection autotoc_md458 BREAKING CHANGES
 * External memory page files have changed, breaking backwards compatibility for temporary storage used during external memory training. This only affects external memory users upgrading their xgboost version - we recommend clearing all &lt;tt&gt;*.page&lt;/tt&gt; files before resuming training. Model serialization is unaffected.
 
-@subsection autotoc_md458 Known issues
+@subsection autotoc_md459 Known issues
 * Quantile sketcher fails to produce any quantile for some edge cases (#2943)
 * The &lt;tt&gt;hist&lt;/tt&gt; algorithm leaks memory when used with learning rate decay callback (#3579)
 * Using custom evaluation function together with early stopping causes assertion failure in XGBoost4J-Spark (#3595)
@@ -2566,7 +2566,7 @@ New feature: Additional objective functions for GPUs</h2>
 * The &lt;tt&gt;DMatrix&lt;/tt&gt; Python objects are initialized with incorrect values when given array slices (#3841)
 * The &lt;tt&gt;gpu_id&lt;/tt&gt; parameter is broken and not yet properly supported (#3850)
 
-@subsection autotoc_md459 Acknowledgement
+@subsection autotoc_md460 Acknowledgement
 &lt;strong&gt;Contributors&lt;/strong&gt; (in no particular order): Hyunsu Cho (@hcho3), Jiaming Yuan (@trivialfis), Nan Zhu (@CodingCat), Rory Mitchell (@RAMitchell), Andy Adinets (@canonizer), Vadim Khotilovich (@khotilov), Sergei Lebedev (@superbobry)
 
 &lt;strong&gt;First-time Contributors&lt;/strong&gt; (in no particular order): Matthew Tovbin (@tovbinm), Jakob Richter (@jakob-r), Grace Lam (@grace-lam), Grant W Schneider (@grantschneider), Andrew Thia (@BlueTea88), Sergei Chipiga (@schipiga), Joseph Bradley (@jkbradley), Chen Qin (@chenqin), Jerry Lin (@linjer), Dmitriy Rybalko (@rdtft), Michael Mui (@mmui), Takahiro Kojima (@515hikaru), Bruce Zhao (@BruceZhaoR), Wei Tian (@weitian), Saumya Bhatnagar (@Sam1301), Juzer Shakir (@JuzerShakir), Zhao Hang (@cleghom), Jonathan Friedman (@jontonsoup), Bruno Tremblay (@meztez), Boris Filippov (@frenzykryger), @Shiki-H, @mrgutkun, @gorogm, @htgeis, @jakehoare, @zengxy, @KOLANICH
@@ -2574,7 +2574,7 @@ New feature: Additional objective functions for GPUs</h2>
 &lt;strong&gt;First-time Reviewers&lt;/strong&gt; (in no particular order): Nikita Titov (@StrikerRUS), Xiangrui Meng (@mengxr), Nirmal Borah (@Nirmal-Neel)
 
 
-@section autotoc_md460 v0.80 (2018.08.13)
+@section autotoc_md461 v0.80 (2018.08.13)
 * &lt;strong&gt;JVM packages received a major upgrade&lt;/strong&gt;: To consolidate the APIs and improve the user experience, we refactored the design of XGBoost4J-Spark in a significant manner. (#3387)
   - Consolidated APIs: It is now much easier to integrate XGBoost models into a Spark ML pipeline. Users can control behaviors like output leaf prediction results by setting corresponding column names. Training is now more consistent with other Estimators in Spark MLLIB: there is now one single method &lt;tt&gt;fit()&lt;/tt&gt; to train decision trees.
   - Better user experience: we refactored the parameters relevant modules in XGBoost4J-Spark to provide both camel-case (Spark ML style) and underscore (XGBoost style) parameters
@@ -2623,10 +2623,10 @@ New feature: Additional objective functions for GPUs</h2>
 * Fix loading of sparse CSC matrix (#3553)
 * Fix incorrect handling of &lt;tt&gt;base_score&lt;/tt&gt; parameter for Tweedie regression (#3295)
 
-@section autotoc_md461 v0.72.1 (2018.07.08)
+@section autotoc_md462 v0.72.1 (2018.07.08)
 This version is only applicable for the Python package. The content is identical to that of v0.72.
 
-@section autotoc_md462 v0.72 (2018.06.01)
+@section autotoc_md463 v0.72 (2018.06.01)
 * Starting with this release, we plan to make a new release every two months. See #3252 for more details.
 * Fix a pathological behavior (near-zero second-order gradients) in multiclass objective (#3304)
 * Tree dumps now use high precision in storing floating-point values (#3298)
@@ -2656,7 +2656,7 @@ This version is only applicable for the Python package. The content is identical
 * BREAKING CHANGES
   - &lt;tt&gt;XGBClassifier.predict_proba()&lt;/tt&gt; no longer accepts parameter &lt;tt&gt;output_margin&lt;/tt&gt;. The parameter makes no sense for &lt;tt&gt;predict_proba()&lt;/tt&gt; because the method is to predict class probabilities, not raw margin scores.
 
-@section autotoc_md463 v0.71 (2018.04.11)
+@section autotoc_md464 v0.71 (2018.04.11)
 * This is a minor release, mainly motivated by issues concerning &lt;tt&gt;pip install&lt;/tt&gt;, e.g. #2426, #3189, #3118, and #3194.
   With this release, users of Linux and MacOS will be able to run &lt;tt&gt;pip install&lt;/tt&gt; for the most part.
 * Refactored linear booster class (&lt;tt&gt;gblinear&lt;/tt&gt;), so as to support multiple coordinate descent updaters (#3103, #3134). See BREAKING CHANGES below.
@@ -2685,7 +2685,7 @@ This version is only applicable for the Python package. The content is identical
   - Compatibility fixes for latest Spark versions (#3062, #3093)
 * BREAKING CHANGES: Updated linear modelling algorithms. In particular L1/L2 regularisation penalties are now normalised to number of training examples. This makes the implementation consistent with sklearn/glmnet. L2 regularisation has also been removed from the intercept. To produce linear models with the old regularisation behaviour, the alpha/lambda regularisation parameters can be manually scaled by dividing them by the number of training examples.
 
-@section autotoc_md464 v0.7 (2017.12.30)
+@section autotoc_md465 v0.7 (2017.12.30)
 * &lt;strong&gt;This version represents a major change from the last release (v0.6), which was released one year and half ago.&lt;/strong&gt;
 * Updated Sklearn API
   - Add compatibility layer for scikit-learn v0.18: &lt;tt&gt;sklearn.cross_validation&lt;/tt&gt; now deprecated
@@ -2801,7 +2801,7 @@ This version is only applicable for the Python package. The content is identical
   - [\#2476](https://github.com/dmlc/xgboost/pull/2476)&lt;/tt&gt;XGBoostModel.predict()` now has a different signature
 
 
-@section autotoc_md465 v0.6 (2016.07.29)
+@section autotoc_md466 v0.6 (2016.07.29)
 * Version 0.5 is skipped due to major improvements in the core
 * Major refactor of core library.
   - Goal: more flexible and modular code as a portable library.
@@ -2842,7 +2842,7 @@ This version is only applicable for the Python package. The content is identical
 * Add CMake build system
   - https://github.com/dmlc/xgboost/pull/1314
 
-@section autotoc_md466 v0.47 (2016.01.14)
+@section autotoc_md467 v0.47 (2016.01.14)
 
 * Changes in R library
   - fixed possible problem of poisson regression.
@@ -2864,7 +2864,7 @@ This version is only applicable for the Python package. The content is identical
 * Java api is ready for use
 * Added more test cases and continuous integration to make each build more robust.
 
-@section autotoc_md467 v0.4 (2015.05.11)
+@section autotoc_md468 v0.4 (2015.05.11)
 
 * Distributed version of xgboost that runs on YARN, scales to billions of examples
 * Direct save/load data and model from/to S3 and HDFS
@@ -2879,7 +2879,7 @@ This version is only applicable for the Python package. The content is identical
 * Experimental External memory version
 
 
-@section autotoc_md468 v0.3 (2014.09.07)
+@section autotoc_md469 v0.3 (2014.09.07)
 
 * Faster tree construction module
   - Allows subsample columns during tree construction via &lt;tt&gt;bst:col_samplebytree=ratio&lt;/tt&gt;
@@ -2890,7 +2890,7 @@ This version is only applicable for the Python package. The content is identical
 <li><code>Add R module</code></li>
 </ul>
 <p><code></code></p>
-<h1><a class="anchor" id="autotoc_md469"></a>
+<h1><a class="anchor" id="autotoc_md470"></a>
 v0.2x (2014.05.20)</h1>
 <p><code></code></p>
 <p><code></p><ul>
@@ -2900,7 +2900,7 @@ v0.2x (2014.05.20)</h1>
 </ul>
 <p></code></p>
 <p><code></code></p>
-<h1><a class="anchor" id="autotoc_md470"></a>
+<h1><a class="anchor" id="autotoc_md471"></a>
 v0.1 (2014.03.26)</h1>
 <p><code></code></p>
 <p><code></p><ul>
@@ -2911,7 +2911,7 @@ v0.1 (2014.03.26)</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

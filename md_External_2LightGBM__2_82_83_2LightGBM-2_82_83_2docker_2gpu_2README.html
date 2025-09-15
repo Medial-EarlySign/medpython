@@ -72,8 +72,8 @@ $(function() {
   <div class="headertitle"><div class="title">Dockerfile for LightGBM GPU Version with Python</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md45"></a> A docker file with <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> utilizing nvidia-docker. The file is based on the nvidia/cuda:8.0 image. <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> can be utilized in GPU and CPU modes and via Python (2.7 &amp; 3.5)</p>
-<h1><a class="anchor" id="autotoc_md46"></a>
+<div class="textblock"><p><a class="anchor" id="autotoc_md46"></a> A docker file with <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> utilizing nvidia-docker. The file is based on the nvidia/cuda:8.0 image. <a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> can be utilized in GPU and CPU modes and via Python (2.7 &amp; 3.5)</p>
+<h1><a class="anchor" id="autotoc_md47"></a>
 Contents</h1>
 <ul>
 <li><a class="el" href="namespaceLightGBM.html" title="desc and descl2 fields must be written in reStructuredText format">LightGBM</a> (cpu + gpu)</li>
@@ -82,31 +82,31 @@ Contents</h1>
 </ul>
 <p>Running the container starts a jupyter notebook at localhost:8888</p>
 <p>jupyter password: keras</p>
-<h1><a class="anchor" id="autotoc_md47"></a>
+<h1><a class="anchor" id="autotoc_md48"></a>
 Requirements</h1>
 <p>Requires docker and <a href="https://github.com/NVIDIA/nvidia-docker">nvidia-docker</a> on host machine.</p>
-<h1><a class="anchor" id="autotoc_md48"></a>
+<h1><a class="anchor" id="autotoc_md49"></a>
 Quickstart</h1>
-<h2><a class="anchor" id="autotoc_md49"></a>
+<h2><a class="anchor" id="autotoc_md50"></a>
 Build Docker Image</h2>
 <div class="fragment"><div class="line">mkdir lightgbm-docker</div>
 <div class="line">cd lightgbm-docker</div>
 <div class="line">wget https://raw.githubusercontent.com/Microsoft/LightGBM/master/docker/gpu/dockerfile.gpu</div>
 <div class="line">docker build -f dockerfile.gpu -t lightgbm-gpu .</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md50"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md51"></a>
 Run Image</h2>
 <div class="fragment"><div class="line">nvidia-docker run --rm -d --name lightgbm-gpu -p 8888:8888 -v /home:/home lightgbm-gpu</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md51"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md52"></a>
 Attach with Command Line Access (if required)</h2>
 <div class="fragment"><div class="line">docker exec -it lightgbm-gpu bash</div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md52"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md53"></a>
 Jupyter Notebook</h2>
 <div class="fragment"><div class="line">localhost:8888</div>
 </div><!-- fragment --> </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

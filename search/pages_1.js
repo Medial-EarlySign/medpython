@@ -5,7 +5,7 @@ var searchData=
   ['ai_20images_20logo_20xgboost_20logo_20svg_20width_20135_20extreme_20gradient_20boosting_2',['&lt;img src=&quot;https://xgboost.ai/images/logo/xgboost-logo.svg&quot; width=135/&gt;  eXtreme Gradient Boosting',['../md_External_2xgboost_2README.html',1,'']]],
   ['algorithm_20for_20tree_20construction_3',['DPC++-based Algorithm for Tree Construction',['../md_External_2xgboost_2plugin_2updater__oneapi_2README.html',1,'']]],
   ['algorithms_4',['XGBoost GPU algorithms',['../md_External_2xgboost_2plugin_2updater__gpu_2README.html',1,'']]],
-  ['and_20licenses_5',['Third-Party Libraries and Licenses',['../md_LICENCE.html',1,'']]],
+  ['and_20licenses_5',['Third-Party Libraries and Licenses',['../md_THIRD__PARTY__LICENSES.html',1,'']]],
   ['apis_6',['C-APIs',['../md_External_2xgboost_2demo_2c-api_2basic_2README.html',1,'']]],
   ['appmaster_7',['DMLC YARN AppMaster',['../md_External_2xgboost_2dmlc-core_2tracker_2yarn_2README.html',1,'']]],
   ['awesome_20xgboost_8',['Awesome XGBoost',['../md_External_2xgboost_2demo_2README.html',1,'']]]

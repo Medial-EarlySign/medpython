@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['earlysign_20libraries_0',['Medial EarlySign  Libraries',['../md_README.html',1,'']]],
+  ['earlysign_20libraries_0',['Medial EarlySign Libraries',['../md_README.html',1,'']]],
   ['example_1',['example',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2binary__classification_2README.html',1,'Binary Classification Example'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2lambdarank_2README.html',1,'LambdaRank Example'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2multiclass__classification_2README.html',1,'Multiclass Classification Example'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2parallel__learning_2README.html',1,'Parallel Learning Example'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2regression_2README.html',1,'Regression Example'],['../md_External_2xgboost_2plugin_2example_2README.html',1,'XGBoost Plugin Example']]],
   ['examples_2',['examples',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2README.html',1,'Examples'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2python-guide_2README.html',1,'Python-package Examples'],['../md_External_2xgboost_2jvm-packages_2xgboost4j-example_2README.html',1,'XGBoost4J Code Examples']]],
   ['experimental_20support_20of_20federated_20xgboost_20using_20nvflare_3',['Experimental Support of Federated XGBoost using NVFlare',['../md_External_2xgboost_2demo_2nvflare_2README.html',1,'']]],

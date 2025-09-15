@@ -27,7 +27,7 @@ var searchData=
   ['qrfglobalrng_24',['QRFglobalRNG',['../classQRFglobalRNG.html',1,'']]],
   ['qrpreconditioners_25',['QRPreconditioners',['../group__enums.html#ga46eba0d5c621f590b8cf1b53af31d56e',1,'Eigen']]],
   ['quantile_26',['Quantile',['../namespacexgboost_1_1common.html#a68dcf181a0f4f781a06d6ccc551c2366',1,'xgboost::common']]],
-  ['quantile_20dmatrix_27',['Quantile DMatrix',['../md_External_2xgboost_2NEWS.html#autotoc_md218',1,'']]],
+  ['quantile_20dmatrix_27',['Quantile DMatrix',['../md_External_2xgboost_2NEWS.html#autotoc_md219',1,'']]],
   ['quantile_2eh_28',['quantile.h',['../quantile_8h.html',1,'']]],
   ['quantile_5fdata_5fiterator_29',['quantile_data_iterator',['../namespacequantile__data__iterator.html',1,'']]],
   ['quantile_5floss_30',['quantile_loss',['../namespacequantile__regression.html#adb24652722383c0d4e6ac05bd592bf7e',1,'quantile_regression']]],
@@ -69,5 +69,5 @@ var searchData=
   ['query_5fcontributors_66',['query_contributors',['../namespacequery__contributors.html',1,'']]],
   ['query_5fweights_67',['query_weights',['../classLightGBM_1_1Metadata.html#a46bab1c879c6310b92e22c5a77f951f5',1,'LightGBM::Metadata']]],
   ['queue_68',['Queue',['../structxgboost_1_1common_1_1WQSummary_1_1Queue.html',1,'xgboost::common::WQSummary']]],
-  ['quickstart_69',['Quickstart',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html#autotoc_md48',1,'']]]
+  ['quickstart_69',['Quickstart',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html#autotoc_md49',1,'']]]
 ];

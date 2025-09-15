@@ -73,9 +73,9 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>This is the quick start tutorial for xgboost CLI version. Here we demonstrate how to use XGBoost for a binary classification task. Before getting started, make sure you compile xgboost in the root directory of the project by typing <code>make</code>. The script 'runexp.sh' can be used to run the demo. Here we use <a href="https://archive.ics.uci.edu/ml/datasets/Mushroom">mushroom dataset</a> from UCI machine learning repository.</p>
-<h2><a class="anchor" id="autotoc_md92"></a>
+<h2><a class="anchor" id="autotoc_md93"></a>
 Tutorial</h2>
-<h3><a class="anchor" id="autotoc_md93"></a>
+<h3><a class="anchor" id="autotoc_md94"></a>
 Generate Input Data</h3>
 <p>XGBoost takes LIBSVM format. An example of faked input data is below: </p><div class="fragment"><div class="line">1 101:1.2 102:0.03</div>
 <div class="line">0 1:2.1 10001:300 10002:400</div>
@@ -84,7 +84,7 @@ Generate Input Data</h3>
 <p>First we will transform the dataset into classic LIBSVM format and split the data into training set and test set by running: </p><div class="fragment"><div class="line">python mapfeat.py</div>
 <div class="line">python mknfold.py agaricus.txt 1</div>
 </div><!-- fragment --><p> The two files, 'agaricus.txt.train' and 'agaricus.txt.test' will be used as training set and test set.</p>
-<h3><a class="anchor" id="autotoc_md94"></a>
+<h3><a class="anchor" id="autotoc_md95"></a>
 Training</h3>
 <p>Then we can run the training process: </p><div class="fragment"><div class="line">../../xgboost mushroom.conf</div>
 </div><!-- fragment --><p>mushroom.conf is the configuration for both training and testing. Each line containing the [attribute]=[value] configuration:</p>
@@ -134,11 +134,11 @@ Training</h3>
 <div class="line"> </div>
 <div class="line"># Regression Parameters</div>
 <div class="line">...</div>
-</div><!-- fragment --><h3><a class="anchor" id="autotoc_md95"></a>
+</div><!-- fragment --><h3><a class="anchor" id="autotoc_md96"></a>
 Get Predictions</h3>
 <p>After training, we can use the output model to get the prediction of the test data: </p><div class="fragment"><div class="line">../../xgboost mushroom.conf task=pred model_in=0002.model</div>
 </div><!-- fragment --><p> For binary classification, the output predictions are probability confidence scores in [0,1], corresponds to the probability of the label to be positive.</p>
-<h3><a class="anchor" id="autotoc_md96"></a>
+<h3><a class="anchor" id="autotoc_md97"></a>
 Dump Model</h3>
 <p>This is a preliminary feature, so only tree models support text dump. XGBoost can display the tree models in text or JSON files, and we can scan the model in an easy way: </p><div class="fragment"><div class="line">../../xgboost mushroom.conf task=dump model_in=0002.model name_dump=dump.raw.txt</div>
 <div class="line">../../xgboost mushroom.conf task=dump model_in=0002.model fmap=featmap.txt name_dump=dump.nice.txt</div>
@@ -149,7 +149,7 @@ Dump Model</h3>
 <li>q means this feature is a quantitative value, such as age, time, can be missing</li>
 <li>int means this feature is integer value (when int is hinted, the decision boundary will be integer)</li>
 </ul>
-<h3><a class="anchor" id="autotoc_md97"></a>
+<h3><a class="anchor" id="autotoc_md98"></a>
 Monitoring Progress</h3>
 <p>When you run training we can find there are messages displayed on screen </p><div class="fragment"><div class="line">tree train end, 1 roots, 12 extra nodes, 0 pruned nodes ,max_depth=3</div>
 <div class="line">[0]  test-error:0.016139</div>
@@ -167,14 +167,14 @@ Monitoring Progress</h3>
 </div><!-- fragment --><p> The rule is eval[name-printed-in-log] = filename, then the file will be added to monitoring process, and evaluated each round.</p>
 <p>xgboost also supports monitoring multiple metrics, suppose we also want to monitor average log-likelihood of each prediction during training, simply add <code>eval_metric=logloss</code> to configure. Run again, we can find the log file becomes </p><div class="fragment"><div class="line">[0]     test-error:0.016139     test-negllik:0.029795   trainname-error:0.014433        trainname-negllik:0.027023</div>
 <div class="line">[1]     test-error:0.000000     test-negllik:0.000000   trainname-error:0.001228        trainname-negllik:0.002457</div>
-</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md98"></a>
+</div><!-- fragment --> <h2><a class="anchor" id="autotoc_md99"></a>
 Saving Progress Models</h2>
 <p>If you want to save model every two round, simply set save_period=2. You will find 0002.model in the current folder. If you want to change the output folder of models, add model_dir=foldername. By default xgboost saves the model of last round.</p>
-<h3><a class="anchor" id="autotoc_md99"></a>
+<h3><a class="anchor" id="autotoc_md100"></a>
 Continue from Existing Model</h3>
 <p>If you want to continue boosting from existing model, say 0002.model, use </p><div class="fragment"><div class="line">../../xgboost mushroom.conf model_in=0002.model num_round=2 model_out=continue.model</div>
 </div><!-- fragment --><p> xgboost will load from 0002.model continue boosting for 2 rounds, and save output to continue.model. However, beware that the training and evaluation data specified in mushroom.conf should not change when you use this function. </p>
-<h3><a class="anchor" id="autotoc_md100"></a>
+<h3><a class="anchor" id="autotoc_md101"></a>
 Use Multi-Threading</h3>
 <p>When you are working with a large dataset, you may want to take advantage of parallelism. If your compiler supports OpenMP, xgboost is naturally multi-threaded, to set number of parallel running add <code>nthread</code> parameter to your configuration. Eg. <code>nthread=10</code></p>
 <p>Set nthread to be the number of your real cpu (On Unix, this can be found using <code>lscpu</code>) Some systems will have <code>Thread(s) per core = 2</code>, for example, a 4 core cpu with 8 threads, in such case set <code>nthread=4</code> and not 8. </p>
@@ -182,7 +182,7 @@ Use Multi-Threading</h3>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

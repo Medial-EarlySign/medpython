@@ -73,14 +73,14 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 <div class="textblock"><p>A simple demo for using custom data iterator with XGBoost. The feature is still <b>experimental</b> and not ready for production use. If you are not familiar with C API, please read its introduction in our tutorials and visit the basic demo first.</p>
-<h1><a class="anchor" id="autotoc_md91"></a>
+<h1><a class="anchor" id="autotoc_md92"></a>
 Defining Data Iterator</h1>
 <p>In the example, we define a custom data iterator with 2 methods: <code>reset</code> and <code>next</code>. The <code>next</code> method passes data into XGBoost and tells XGBoost whether the iterator has reached its end, and the <code>reset</code> method resets iterations. One important detail when using the C API for data iterator is users need to make sure that the data passed into <code>next</code> method must be kept in memory until the next iteration or <code>reset</code> is called. The external memory DMatrix is not limited to training, but also valid for other features like prediction. </p>
 </div></div><!-- contents -->
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Thu Aug 14 2025 19:20:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Mon Sep 15 2025 12:12:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

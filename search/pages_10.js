@@ -5,7 +5,7 @@ var searchData=
   ['package_20for_20scalable_20gbm_2',['XGBoost R Package for Scalable GBM',['../md_External_2xgboost_2R-package_2README.html',1,'']]],
   ['parallel_20learning_20example_3',['Parallel Learning Example',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2parallel__learning_2README.html',1,'']]],
   ['parameter_20structure_20for_20machine_20learning_4',['Parameter Structure for Machine Learning',['../md_External_2xgboost_2dmlc-core_2doc_2parameter.html',1,'']]],
-  ['party_20libraries_20and_20licenses_5',['Third-Party Libraries and Licenses',['../md_LICENCE.html',1,'']]],
+  ['party_20libraries_20and_20licenses_5',['Third-Party Libraries and Licenses',['../md_THIRD__PARTY__LICENSES.html',1,'']]],
   ['plugin_20example_6',['XGBoost Plugin Example',['../md_External_2xgboost_2plugin_2example_2README.html',1,'']]],
   ['plugin_20for_20federated_20learning_7',['XGBoost Plugin for Federated Learning',['../md_External_2xgboost_2plugin_2federated_2README.html',1,'']]],
   ['plugins_20modules_8',['XGBoost Plugins Modules',['../md_External_2xgboost_2plugin_2README.html',1,'']]],

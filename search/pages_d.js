@@ -3,7 +3,7 @@ var searchData=
   ['machine_0',['LightGBM, Light Gradient Boosting Machine',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html',1,'']]],
   ['machine_20learning_1',['Parameter Structure for Machine Learning',['../md_External_2xgboost_2dmlc-core_2doc_2parameter.html',1,'']]],
   ['machine_20learning_20common_20codebase_2',['Distributed Machine Learning Common Codebase',['../md_External_2xgboost_2dmlc-core_2README.html',1,'']]],
-  ['medial_20earlysign_20libraries_3',['Medial EarlySign  Libraries',['../md_README.html',1,'']]],
+  ['medial_20earlysign_20libraries_3',['Medial EarlySign Libraries',['../md_README.html',1,'']]],
   ['medial_20libs_20documentation_4',['Welcome To Medial Libs Documentation',['../index.html',1,'']]],
   ['medial_20python_20binding_5',['Medial Python Binding',['../md_Internal_2MedPyExport_2README.html',1,'']]],
   ['memory_6',['Defining a Custom Data Iterator to Load Data from External Memory',['../md_External_2xgboost_2demo_2c-api_2external-memory_2README.html',1,'']]],
