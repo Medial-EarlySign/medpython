@@ -8,7 +8,7 @@ var searchData=
   ['categorical_2eh_5',['categorical.h',['../categorical_8h.html',1,'']]],
   ['cli_5fmain_2ecc_6',['cli_main.cc',['../cli__main_8cc.html',1,'']]],
   ['column_5fmatrix_2eh_7',['column_matrix.h',['../column__matrix_8h.html',1,'']]],
-  ['common_2eh_8',['common.h',['../xgboost_2dmlc-core_2include_2dmlc_2common_8h.html',1,'(Global Namespace)'],['../xgboost_2src_2common_2common_8h.html',1,'(Global Namespace)']]],
+  ['common_2eh_8',['common.h',['../xgboost_2src_2common_2common_8h.html',1,'(Global Namespace)'],['../xgboost_2dmlc-core_2include_2dmlc_2common_8h.html',1,'(Global Namespace)']]],
   ['common_5frow_5fpartitioner_2eh_9',['common_row_partitioner.h',['../common__row__partitioner_8h.html',1,'']]],
   ['compressed_5fiterator_2eh_10',['compressed_iterator.h',['../compressed__iterator_8h.html',1,'']]],
   ['concurrency_2eh_11',['concurrency.h',['../concurrency_8h.html',1,'']]],

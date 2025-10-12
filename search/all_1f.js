@@ -327,7 +327,7 @@ var searchData=
   ['todtype_3c_20uint64_5ft_20_3e_324',['ToDType&lt; uint64_t &gt;',['../structxgboost_1_1ToDType_3_01uint64__t_01_4.html',1,'xgboost']]],
   ['todtype_3c_20uint8_5ft_20_3e_325',['ToDType&lt; uint8_t &gt;',['../structxgboost_1_1ToDType_3_01uint8__t_01_4.html',1,'xgboost']]],
   ['toifelse_326',['ToIfElse',['../classLightGBM_1_1Tree.html#a91db530de6cb9160155ad1a8b7d271f9',1,'LightGBM::Tree']]],
-  ['tojson_327',['tojson',['../namespacexgboost.html#a74cf3e6312a58da3015273f8b9af6e60',1,'xgboost::ToJson()'],['../classLightGBM_1_1Tree.html#add7bf445ec3e192aeff7462437fcbb36',1,'LightGBM::Tree::ToJSON()']]],
+  ['tojson_327',['tojson',['../classLightGBM_1_1Tree.html#add7bf445ec3e192aeff7462437fcbb36',1,'LightGBM::Tree::ToJSON()'],['../namespacexgboost.html#a74cf3e6312a58da3015273f8b9af6e60',1,'xgboost::ToJson()']]],
   ['token_328',['Token',['../structdmlc_1_1Token.html',1,'dmlc']]],
   ['token_5ftype_329',['token_type',['../classdetail_1_1lexer__base.html#add65fa7a85aa15052963809fbcc04540',1,'detail::lexer_base']]],
   ['token_5ftype_5fname_330',['token_type_name',['../classdetail_1_1lexer__base.html#aadef66e89ad828e5f69479c85887fa6d',1,'detail::lexer_base']]],
