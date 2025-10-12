@@ -8,12 +8,12 @@ set(BOOST_LIBS
     filesystem
     system
     program_options
-) # for certain version, you might need to add "atomic" also
+) # for certain version, you might need to add "atomic" also, in some other cases remove system
 
 set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotly MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF micNet CommonLib
 )
 
-#set(BOOST_ROOT "$ENV{HOME}/boost-pic-install") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
+#set(BOOST_ROOT "$ENV{HOME}/Documents/MES/Boost") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
 
 execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
     OUTPUT_VARIABLE DATE_TIME)
@@ -74,7 +74,7 @@ set(BOOST_STATIC_LIB_PATHS "")
 if (BOOST_ROOT)
     set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")
 endif()
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../External)
