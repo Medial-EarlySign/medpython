@@ -32,5 +32,5 @@ We can think about this infrastructure as "TensorFlow" of medical data machine l
 
 ## Documentation
 
-Please refer to [MR_WIKI](https://medial-earlysign.github.io/MR_WIKI/) for full documentation
-- [Installation](https://medial-earlysign.github.io/MR_WIKI/Installation/)
+Please refer to [MR_WIKI](https://medial-earlysign.github.io/MR_Wiki/) for full documentation
+- [Installation](https://medial-earlysign.github.io/MR_Wiki/Installation/)
