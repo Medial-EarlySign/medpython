@@ -82,6 +82,13 @@ string printVec(const vector<float> &v, int from, int to) {
 
 random_device Lazy_Iterator::rd;
 
+void get_random_seed(int seed, size_t i, random_device &rd, mt19937 &output) {
+	if (seed == 0)
+		output = mt19937(rd());
+	else
+		output = mt19937(seed + i);
+}
+
 
 void Lazy_Iterator::init(
 	const vector<int>   *p_pids,   // note: vector can contain multiple entries for the same patient id 
@@ -153,10 +160,7 @@ void Lazy_Iterator::init(
 	//init:
 	rd_gen.resize(maxThreadCount);
 	for (size_t i = 0; i < maxThreadCount; ++i)
-		if (seed == 0)
-			rd_gen[i] = mt19937(rd());
-		else
-			rd_gen[i] = mt19937(seed);
+		get_random_seed(seed, i, rd, rd_gen[i]);
 	rand_pids = uniform_int_distribution<>(0, (int)pid_index_to_indexes.size() - 1);
 	internal_random.resize(max_samples + 1);
 	for (int i = 1; i <= max_samples; ++i)
@@ -397,11 +401,8 @@ Mem_Iterator::Mem_Iterator(const vector<int> &pids, const vector<int> &cohort_in
 	sample_per_pid = p_sample_per_pid;
 	sample_ratio = p_sample_ratio;
 	random_device rd;
-	if (seed == 0)
-		_rd_gen = mt19937(rd());
-	else
-		_rd_gen = mt19937(seed);
-
+	get_random_seed(seed, 0, rd, _rd_gen);
+	
 	if (cohort_indexes.empty())
 		MTHROW_AND_ERR("Error in Mem_Iterator::Mem_Iterator - empty cohort_indexes\n");
 	if (pids.size() <= cohort_indexes.front())
@@ -619,12 +620,7 @@ map<string, float> booststrap_analyze_cohort(const vector<float> &preds, const v
 		vector<mt19937> rd_gen(max_rnd_gen);
 		random_device rd;
 		for (size_t i = 0; i < rd_gen.size(); ++i)
-		{
-			if (seed > 0)
-				rd_gen[i] = mt19937(seed);
-			else
-				rd_gen[i] = mt19937(rd());
-		}
+			get_random_seed(seed, i, rd, rd_gen[i]);
 
 		//other sampling - sample pids and take all thier data:
 		//now sample cohort 
