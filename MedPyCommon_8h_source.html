@@ -136,328 +136,330 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span><span class="preprocessor">#define MEDPY_DOC(function_or_class_name, docstring)</span></div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="preprocessor">#define GET_MACRO(_0,_1,_2,_3,_4,_5,_6,NAME,...) NAME</span></div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="preprocessor">#define MEDPY_DOC_Dyn(text)</span></div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span> </div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="preprocessor">#ifndef SWIG</span></div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span><span class="comment">//#define MEDPY_IGNORE(subj1) subj1</span></div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="preprocessor">#define __MEDPY_IGNORE6(_1,_2,_3,_4,_5,_6) _1,_2,_3,_4,_5,_6</span></div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="preprocessor">#define __MEDPY_IGNORE5(_1,_2,_3,_4,_5) _1,_2,_3,_4,_5</span></div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="preprocessor">#define __MEDPY_IGNORE4(_1,_2,_3,_4) _1,_2,_3,_4</span></div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="preprocessor">#define __MEDPY_IGNORE3(_1,_2,_3) _1,_2,_3</span></div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="preprocessor">#define __MEDPY_IGNORE2(_1,_2) _1,_2</span></div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="preprocessor">#define __MEDPY_IGNORE1(_1) _1</span></div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="preprocessor">#define __MEDPY_IGNORE0()</span></div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span> </div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="preprocessor">#define MEDPY_IGNORE(...) GET_MACRO(_0, ##__VA_ARGS__,__MEDPY_IGNORE6, __MEDPY_IGNORE5,__MEDPY_IGNORE4, __MEDPY_IGNORE3,__MEDPY_IGNORE2,__MEDPY_IGNORE1,__MEDPY_IGNORE0)(__VA_ARGS__)</span></div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span><span class="preprocessor">#else</span></div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="preprocessor">#define MEDPY_IGNORE(...)</span></div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="preprocessor">#define COMMA</span></div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="preprocessor">#endif</span></div>
-<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span> </div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#ifndef SWIG</span></div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span><span class="preprocessor">#define GET_MACRO(_0,_1,_2,_3,_4,_5,_6,NAME,...) NAME</span></div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span> </div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span><span class="preprocessor">#ifndef SWIG</span></div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span><span class="comment">//#define MEDPY_IGNORE(subj1) subj1</span></div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span> </div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span><span class="preprocessor">#define __MEDPY_IGNORE6(_1,_2,_3,_4,_5,_6) _1,_2,_3,_4,_5,_6</span></div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span><span class="preprocessor">#define __MEDPY_IGNORE5(_1,_2,_3,_4,_5) _1,_2,_3,_4,_5</span></div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span><span class="preprocessor">#define __MEDPY_IGNORE4(_1,_2,_3,_4) _1,_2,_3,_4</span></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span><span class="preprocessor">#define __MEDPY_IGNORE3(_1,_2,_3) _1,_2,_3</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span><span class="preprocessor">#define __MEDPY_IGNORE2(_1,_2) _1,_2</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span><span class="preprocessor">#define __MEDPY_IGNORE1(_1) _1</span></div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span><span class="preprocessor">#define __MEDPY_IGNORE0()</span></div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span><span class="preprocessor">#define MEDPY_IGNORE(...) GET_MACRO(_0, ##__VA_ARGS__,__MEDPY_IGNORE6, __MEDPY_IGNORE5,__MEDPY_IGNORE4, __MEDPY_IGNORE3,__MEDPY_IGNORE2,__MEDPY_IGNORE1,__MEDPY_IGNORE0)(__VA_ARGS__)</span></div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span><span class="preprocessor">#else</span></div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span><span class="preprocessor">#define MEDPY_IGNORE(...)</span></div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="preprocessor">#define COMMA</span></div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span> </div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="preprocessor">#include &lt;string&gt;</span></div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="preprocessor">#include &lt;cstring&gt;</span>      <span class="comment">// for std::memcpy()</span></div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="preprocessor">#include &lt;vector&gt;</span></div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="preprocessor">#include &lt;stdexcept&gt;</span></div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">#include &lt;boost/format.hpp&gt;</span></div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">#include &lt;unordered_set&gt;</span></div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">#include &lt;map&gt;</span></div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">using </span>std::vector;</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keyword">using </span>std::string;</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keyword">using </span>std::runtime_error;</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> X&gt;</div>
-<div class="foldopen" id="foldopen00090" data-start="{" data-end="};">
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno"><a class="line" href="classTypeWrapper.html">   90</a></span><span class="keyword">class </span><a class="code hl_class" href="classTypeWrapper.html">TypeWrapper</a> {</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>    X* obj = <span class="keyword">nullptr</span>;</div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>    <span class="keyword">typedef</span> X objType;</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    objType&amp; instance() { <span class="keywordflow">return</span> *obj; }</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="keyword">virtual</span> <a class="code hl_class" href="classTypeWrapper.html">~TypeWrapper</a>() { <span class="keywordflow">if</span> (obj) <span class="keyword">delete</span> obj; obj = <span class="keyword">nullptr</span>; }</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>};</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span><span class="preprocessor">#ifndef SWIG</span></div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span> </div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="preprocessor">#include &lt;string&gt;</span></div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span><span class="preprocessor">#include &lt;cstring&gt;</span>      <span class="comment">// for std::memcpy()</span></div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span><span class="preprocessor">#include &lt;vector&gt;</span></div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span><span class="preprocessor">#include &lt;stdexcept&gt;</span></div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="preprocessor">#include &lt;boost/format.hpp&gt;</span></div>
+<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span><span class="preprocessor">#include &lt;unordered_set&gt;</span></div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="preprocessor">#include &lt;map&gt;</span></div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span> </div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keyword">using </span>std::vector;</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span><span class="keyword">using </span>std::string;</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span><span class="keyword">using </span>std::runtime_error;</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span> </div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> X&gt;</div>
+<div class="foldopen" id="foldopen00092" data-start="{" data-end="};">
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno"><a class="line" href="classTypeWrapper.html">   92</a></span><span class="keyword">class </span><a class="code hl_class" href="classTypeWrapper.html">TypeWrapper</a> {</div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>    X* obj = <span class="keyword">nullptr</span>;</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>    <span class="keyword">typedef</span> X objType;</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>    objType&amp; instance() { <span class="keywordflow">return</span> *obj; }</div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>    <span class="keyword">virtual</span> <a class="code hl_class" href="classTypeWrapper.html">~TypeWrapper</a>() { <span class="keywordflow">if</span> (obj) <span class="keyword">delete</span> obj; obj = <span class="keyword">nullptr</span>; }</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>};</div>
 </div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="comment">/*</span></div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span><span class="comment"> * O - itearatable object type</span></div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="comment"> * I - iterator type</span></div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment"> * E - element type</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="comment"> */</span></div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> O,<span class="keyword">typename</span> E,<span class="keyword">typename</span> I&gt;</div>
-<div class="foldopen" id="foldopen00103" data-start="{" data-end="};">
-<div class="line"><a id="l00103" name="l00103"></a><span class="lineno"><a class="line" href="classIteratorWrapper.html">  103</a></span><span class="keyword">class </span><a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a> {</div>
-<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    O* obj;</div>
-<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    I iterator;</div>
-<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    I end_iter;</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>(O&amp; o, I begin_iter_prm, I end_iter_prm) : obj(&amp;o), iterator(begin_iter_prm), end_iter(end_iter_prm) {}</div>
-<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>(<span class="keyword">const</span> <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>&amp; orig) : obj(orig.obj), iterator(orig.iterator), end_iter(orig.end_iter) {}</div>
-<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span> </div>
-<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    <span class="keyword">virtual</span> E next() = 0;</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span><span class="comment">/*</span></div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span><span class="comment"> * O - itearatable object type</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span><span class="comment"> * I - iterator type</span></div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="comment"> * E - element type</span></div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span><span class="comment"> */</span></div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> O,<span class="keyword">typename</span> E,<span class="keyword">typename</span> I&gt;</div>
+<div class="foldopen" id="foldopen00105" data-start="{" data-end="};">
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno"><a class="line" href="classIteratorWrapper.html">  105</a></span><span class="keyword">class </span><a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a> {</div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>    O* obj;</div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>    I iterator;</div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>    I end_iter;</div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>    <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>(O&amp; o, I begin_iter_prm, I end_iter_prm) : obj(&amp;o), iterator(begin_iter_prm), end_iter(end_iter_prm) {}</div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>    <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>(<span class="keyword">const</span> <a class="code hl_class" href="classIteratorWrapper.html">IteratorWrapper</a>&amp; orig) : obj(orig.obj), iterator(orig.iterator), end_iter(orig.end_iter) {}</div>
 <div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">virtual</span> <a class="code hl_class" href="classIteratorWrapper.html">~IteratorWrapper</a>() { obj = <span class="keyword">nullptr</span>; }</div>
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>};</div>
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>    <span class="keyword">virtual</span> E next() = 0;</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>    <span class="keyword">virtual</span> <a class="code hl_class" href="classIteratorWrapper.html">~IteratorWrapper</a>() { obj = <span class="keyword">nullptr</span>; }</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>};</div>
 </div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span> </div>
-<div class="foldopen" id="foldopen00116" data-start="{" data-end="};">
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno"><a class="line" href="classMED__NPY__TYPE.html">  116</a></span><span class="keyword">class </span><a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> {</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span>    <span class="keyword">static</span> <span class="keyword">const</span> std::map&lt;std::string,std::string&gt; ctypestr_to_dtypestr;</div>
-<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span>    <span class="keyword">static</span> <span class="keyword">const</span> std::map&lt;std::string, int&gt; ctypestr_to_npytypeid;</div>
-<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    <span class="keyword">enum class</span> values: <span class="keywordtype">int</span> {</div>
-<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>        NPY_BOOL = 0,</div>
-<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>        NPY_BYTE, NPY_UBYTE,</div>
-<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>        NPY_SHORT, NPY_USHORT,</div>
-<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>        NPY_INT, NPY_UINT,</div>
-<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>        NPY_LONG, NPY_ULONG,</div>
-<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>        NPY_LONGLONG, NPY_ULONGLONG,</div>
-<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>        NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,</div>
-<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>        NPY_OBJECT = 17,</div>
-<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>        NPY_STRING, NPY_UNICODE,</div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>        NPY_VOID,</div>
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>        NPY_DATETIME, NPY_TIMEDELTA, NPY_HALF,</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        NPY_NTYPES,</div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>        NPY_NOTYPE,</div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>        NPY_CHAR,</div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        NPY_USERDEF = 256,</div>
-<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        NPY_NTYPES_ABI_COMPATIBLE = 21</div>
-<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>    };</div>
-<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>(<span class="keywordtype">int</span> val) : value(val) {}</div>
-<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>(MED_NPY_TYPE::values val) : value((<span class="keywordtype">int</span>)val) {}</div>
-<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    <span class="keywordtype">int</span> value = (int)values::NPY_NOTYPE;</div>
-<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>&amp; operator=(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o) { value = o.value; <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
-<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>&amp; operator=(<span class="keywordtype">int</span> o) { value = o; <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
-<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>    <span class="keywordtype">bool</span> operator==(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value == o.value; }</div>
-<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>    <span class="keywordtype">bool</span> operator!=(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value != o.value; }</div>
-<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>    <span class="keywordtype">bool</span> operator==(<span class="keywordtype">int</span> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value == o; }</div>
-<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keywordtype">bool</span> operator!=(<span class="keywordtype">int</span> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value != o; }</div>
-<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>    <span class="keyword">operator</span> int()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value; }</div>
-<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> sizes[];</div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>    <span class="keywordtype">int</span> size_in_bytes() {</div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>        <span class="keywordflow">if</span> (value &gt; (<span class="keywordtype">int</span>)values::NPY_CLONGDOUBLE) <span class="keywordflow">return</span> -1;</div>
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>        <span class="keywordflow">return</span> sizes[value];</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>    }</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>};</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
+<div class="foldopen" id="foldopen00118" data-start="{" data-end="};">
+<div class="line"><a id="l00118" name="l00118"></a><span class="lineno"><a class="line" href="classMED__NPY__TYPE.html">  118</a></span><span class="keyword">class </span><a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> {</div>
+<div class="line"><a id="l00119" name="l00119"></a><span class="lineno">  119</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00120" name="l00120"></a><span class="lineno">  120</span>    <span class="keyword">static</span> <span class="keyword">const</span> std::map&lt;std::string,std::string&gt; ctypestr_to_dtypestr;</div>
+<div class="line"><a id="l00121" name="l00121"></a><span class="lineno">  121</span>    <span class="keyword">static</span> <span class="keyword">const</span> std::map&lt;std::string, int&gt; ctypestr_to_npytypeid;</div>
+<div class="line"><a id="l00122" name="l00122"></a><span class="lineno">  122</span>    <span class="keyword">enum class</span> values: <span class="keywordtype">int</span> {</div>
+<div class="line"><a id="l00123" name="l00123"></a><span class="lineno">  123</span>        NPY_BOOL = 0,</div>
+<div class="line"><a id="l00124" name="l00124"></a><span class="lineno">  124</span>        NPY_BYTE, NPY_UBYTE,</div>
+<div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>        NPY_SHORT, NPY_USHORT,</div>
+<div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>        NPY_INT, NPY_UINT,</div>
+<div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>        NPY_LONG, NPY_ULONG,</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>        NPY_LONGLONG, NPY_ULONGLONG,</div>
+<div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>        NPY_FLOAT, NPY_DOUBLE, NPY_LONGDOUBLE,</div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>        NPY_CFLOAT, NPY_CDOUBLE, NPY_CLONGDOUBLE,</div>
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>        NPY_OBJECT = 17,</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>        NPY_STRING, NPY_UNICODE,</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>        NPY_VOID,</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>        NPY_DATETIME, NPY_TIMEDELTA, NPY_HALF,</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>        NPY_NTYPES,</div>
+<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span>        NPY_NOTYPE,</div>
+<div class="line"><a id="l00137" name="l00137"></a><span class="lineno">  137</span>        NPY_CHAR,</div>
+<div class="line"><a id="l00138" name="l00138"></a><span class="lineno">  138</span>        NPY_USERDEF = 256,</div>
+<div class="line"><a id="l00139" name="l00139"></a><span class="lineno">  139</span>        NPY_NTYPES_ABI_COMPATIBLE = 21</div>
+<div class="line"><a id="l00140" name="l00140"></a><span class="lineno">  140</span>    };</div>
+<div class="line"><a id="l00141" name="l00141"></a><span class="lineno">  141</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>(<span class="keywordtype">int</span> val) : value(val) {}</div>
+<div class="line"><a id="l00142" name="l00142"></a><span class="lineno">  142</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>(MED_NPY_TYPE::values val) : value((<span class="keywordtype">int</span>)val) {}</div>
+<div class="line"><a id="l00143" name="l00143"></a><span class="lineno">  143</span>    <span class="keywordtype">int</span> value = (int)values::NPY_NOTYPE;</div>
+<div class="line"><a id="l00144" name="l00144"></a><span class="lineno">  144</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>&amp; operator=(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o) { value = o.value; <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
+<div class="line"><a id="l00145" name="l00145"></a><span class="lineno">  145</span>    <a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a>&amp; operator=(<span class="keywordtype">int</span> o) { value = o; <span class="keywordflow">return</span> *<span class="keyword">this</span>; }</div>
+<div class="line"><a id="l00146" name="l00146"></a><span class="lineno">  146</span>    <span class="keywordtype">bool</span> operator==(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value == o.value; }</div>
+<div class="line"><a id="l00147" name="l00147"></a><span class="lineno">  147</span>    <span class="keywordtype">bool</span> operator!=(<a class="code hl_class" href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value != o.value; }</div>
+<div class="line"><a id="l00148" name="l00148"></a><span class="lineno">  148</span>    <span class="keywordtype">bool</span> operator==(<span class="keywordtype">int</span> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value == o; }</div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span>    <span class="keywordtype">bool</span> operator!=(<span class="keywordtype">int</span> o)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value != o; }</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>    <span class="keyword">operator</span> int()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> value; }</div>
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>    <span class="keyword">static</span> <span class="keyword">const</span> <span class="keywordtype">int</span> sizes[];</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>    <span class="keywordtype">int</span> size_in_bytes() {</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>        <span class="keywordflow">if</span> (value &gt; (<span class="keywordtype">int</span>)values::NPY_CLONGDOUBLE) <span class="keywordflow">return</span> -1;</div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>        <span class="keywordflow">return</span> sizes[value];</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>    }</div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>};</div>
 </div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span><span class="keyword">typedef</span> MED_NPY_TYPE::values MED_NPY_TYPES;</div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span> </div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span> </div>
-<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span><span class="comment">// &quot;convert&quot; a vector data buffer to a simple buffer allocated with malloc and a buffer size</span></div>
-<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> S, <span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="keyword">inline</span> <span class="keywordtype">void</span> vector_to_buf(vector&lt;S&gt; vec, T** buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* buf_size) {</div>
-<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span>    *buf = (T*)malloc(<span class="keyword">sizeof</span>(T)*vec.size());</div>
-<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span>    *buf_size = vec.size();</div>
-<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>    std::memcpy(*buf, vec.data(), <span class="keyword">sizeof</span>(T)*vec.size());</div>
-<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    <span class="comment">//</span></div>
-<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    <span class="comment">// TODO: </span></div>
-<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="comment">// Use this somethinglike  https://stackoverflow.com/questions/3667580/can-i-detach-a-stdvectorchar-from-the-data-it-contains</span></div>
-<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    <span class="comment">// Detach the original buffer using Noalloc allocator and steal the original buffer with  no buffer copy operations.</span></div>
-<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    <span class="comment">//</span></div>
-<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>}</div>
-<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span> </div>
-<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span><span class="comment">//specialization for bool/char conversion</span></div>
-<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span><span class="keyword">inline</span> <span class="keywordtype">void</span> vector_to_buf&lt;bool, char&gt;(vector&lt;bool&gt; vec, <span class="keywordtype">char</span>** buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* buf_size) {</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>    *buf = (<span class="keywordtype">char</span>*)malloc(<span class="keyword">sizeof</span>(<span class="keywordtype">char</span>)*vec.size());</div>
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>    *buf_size = vec.size();</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; vec.size(); ++i) {</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>        (*buf)[i] = (vec[i] ? 1 : 0);</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>    }</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>}</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span> </div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span><span class="comment">// &quot;convert&quot; a vector data buffer to a simple buffer allocated with malloc and a buffer size</span></div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> S, <span class="keyword">typename</span> T&gt;</div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="keyword">inline</span> <span class="keywordtype">void</span> buf_to_vector(S* buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> buf_size, vector&lt;T&gt;&amp; vec) {</div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>    vec.resize(buf_size);</div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>    std::memcpy(vec.data(), buf, <span class="keyword">sizeof</span>(S)*vec.size());</div>
-<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>}</div>
-<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span> </div>
-<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span><span class="comment">//specialization for bool/char conversion</span></div>
-<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span><span class="keyword">template</span>&lt;&gt;</div>
-<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="keyword">inline</span> <span class="keywordtype">void</span> buf_to_vector&lt;char, bool&gt;(<span class="keywordtype">char</span>* buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> buf_size, vector&lt;bool&gt;&amp; vec) {</div>
-<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span>    vec.resize(buf_size);</div>
-<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>    <span class="keywordflow">for</span> (<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> i = 0; i &lt; buf_size; ++i) {</div>
-<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>        vec[i] = (buf[i] != 0);</div>
-<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>    }</div>
-<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>}</div>
-<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span> </div>
-<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span><span class="keyword">template</span> &lt;<span class="keyword">template</span>&lt;<span class="keyword">class</span>, <span class="keyword">class</span>, <span class="keyword">class</span>...&gt; <span class="keyword">class </span>C, <span class="keyword">typename</span> K, <span class="keyword">typename</span> V, <span class="keyword">typename</span>... Args&gt;</div>
-<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span>V GetOrDefault(<span class="keyword">const</span> C&lt;K, V, Args...&gt;&amp; m, K <span class="keyword">const</span>&amp; key, <span class="keyword">const</span> V &amp; defval)</div>
-<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span>{</div>
-<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>    <span class="keyword">typename</span> C&lt;K, V, Args...&gt;::const_iterator it = m.find(key);</div>
-<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>    <span class="keywordflow">if</span> (it == m.end())</div>
-<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>        <span class="keywordflow">return</span> defval;</div>
-<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    <span class="keywordflow">return</span> it-&gt;second;</div>
-<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>}</div>
-<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
-<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="preprocessor">#pragma warning( disable : 4290 )</span></div>
+<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span><span class="keyword">typedef</span> MED_NPY_TYPE::values MED_NPY_TYPES;</div>
+<div class="line"><a id="l00158" name="l00158"></a><span class="lineno">  158</span> </div>
+<div class="line"><a id="l00159" name="l00159"></a><span class="lineno">  159</span> </div>
+<div class="line"><a id="l00160" name="l00160"></a><span class="lineno">  160</span><span class="comment">// &quot;convert&quot; a vector data buffer to a simple buffer allocated with malloc and a buffer size</span></div>
+<div class="line"><a id="l00161" name="l00161"></a><span class="lineno">  161</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> S, <span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00162" name="l00162"></a><span class="lineno">  162</span><span class="keyword">inline</span> <span class="keywordtype">void</span> vector_to_buf(vector&lt;S&gt; vec, T** buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* buf_size) {</div>
+<div class="line"><a id="l00163" name="l00163"></a><span class="lineno">  163</span>    *buf = (T*)malloc(<span class="keyword">sizeof</span>(T)*vec.size());</div>
+<div class="line"><a id="l00164" name="l00164"></a><span class="lineno">  164</span>    *buf_size = vec.size();</div>
+<div class="line"><a id="l00165" name="l00165"></a><span class="lineno">  165</span>    std::memcpy(*buf, vec.data(), <span class="keyword">sizeof</span>(T)*vec.size());</div>
+<div class="line"><a id="l00166" name="l00166"></a><span class="lineno">  166</span>    <span class="comment">//</span></div>
+<div class="line"><a id="l00167" name="l00167"></a><span class="lineno">  167</span>    <span class="comment">// TODO: </span></div>
+<div class="line"><a id="l00168" name="l00168"></a><span class="lineno">  168</span>    <span class="comment">// Use this somethinglike  https://stackoverflow.com/questions/3667580/can-i-detach-a-stdvectorchar-from-the-data-it-contains</span></div>
+<div class="line"><a id="l00169" name="l00169"></a><span class="lineno">  169</span>    <span class="comment">// Detach the original buffer using Noalloc allocator and steal the original buffer with  no buffer copy operations.</span></div>
+<div class="line"><a id="l00170" name="l00170"></a><span class="lineno">  170</span>    <span class="comment">//</span></div>
+<div class="line"><a id="l00171" name="l00171"></a><span class="lineno">  171</span>}</div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span> </div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span><span class="comment">//specialization for bool/char conversion</span></div>
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span><span class="keyword">template</span>&lt;&gt;</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span><span class="keyword">inline</span> <span class="keywordtype">void</span> vector_to_buf&lt;bool, char&gt;(vector&lt;bool&gt; vec, <span class="keywordtype">char</span>** buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* buf_size) {</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>    *buf = (<span class="keywordtype">char</span>*)malloc(<span class="keyword">sizeof</span>(<span class="keywordtype">char</span>)*vec.size());</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>    *buf_size = vec.size();</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>    <span class="keywordflow">for</span> (<span class="keywordtype">int</span> i = 0; i &lt; vec.size(); ++i) {</div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>        (*buf)[i] = (vec[i] ? 1 : 0);</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span>    }</div>
+<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>}</div>
+<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span> </div>
+<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="comment">// &quot;convert&quot; a vector data buffer to a simple buffer allocated with malloc and a buffer size</span></div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> S, <span class="keyword">typename</span> T&gt;</div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span><span class="keyword">inline</span> <span class="keywordtype">void</span> buf_to_vector(S* buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> buf_size, vector&lt;T&gt;&amp; vec) {</div>
+<div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>    vec.resize(buf_size);</div>
+<div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>    std::memcpy(vec.data(), buf, <span class="keyword">sizeof</span>(S)*vec.size());</div>
+<div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>}</div>
+<div class="line"><a id="l00189" name="l00189"></a><span class="lineno">  189</span> </div>
+<div class="line"><a id="l00190" name="l00190"></a><span class="lineno">  190</span><span class="comment">//specialization for bool/char conversion</span></div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="keyword">template</span>&lt;&gt;</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span><span class="keyword">inline</span> <span class="keywordtype">void</span> buf_to_vector&lt;char, bool&gt;(<span class="keywordtype">char</span>* buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> buf_size, vector&lt;bool&gt;&amp; vec) {</div>
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno">  193</span>    vec.resize(buf_size);</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>    <span class="keywordflow">for</span> (<span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> i = 0; i &lt; buf_size; ++i) {</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>        vec[i] = (buf[i] != 0);</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>    }</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span>}</div>
+<div class="line"><a id="l00198" name="l00198"></a><span class="lineno">  198</span> </div>
+<div class="line"><a id="l00199" name="l00199"></a><span class="lineno">  199</span><span class="keyword">template</span> &lt;<span class="keyword">template</span>&lt;<span class="keyword">class</span>, <span class="keyword">class</span>, <span class="keyword">class</span>...&gt; <span class="keyword">class </span>C, <span class="keyword">typename</span> K, <span class="keyword">typename</span> V, <span class="keyword">typename</span>... Args&gt;</div>
+<div class="line"><a id="l00200" name="l00200"></a><span class="lineno">  200</span>V GetOrDefault(<span class="keyword">const</span> C&lt;K, V, Args...&gt;&amp; m, K <span class="keyword">const</span>&amp; key, <span class="keyword">const</span> V &amp; defval)</div>
+<div class="line"><a id="l00201" name="l00201"></a><span class="lineno">  201</span>{</div>
+<div class="line"><a id="l00202" name="l00202"></a><span class="lineno">  202</span>    <span class="keyword">typename</span> C&lt;K, V, Args...&gt;::const_iterator it = m.find(key);</div>
+<div class="line"><a id="l00203" name="l00203"></a><span class="lineno">  203</span>    <span class="keywordflow">if</span> (it == m.end())</div>
+<div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>        <span class="keywordflow">return</span> defval;</div>
+<div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span>    <span class="keywordflow">return</span> it-&gt;second;</div>
+<div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span>}</div>
 <div class="line"><a id="l00207" name="l00207"></a><span class="lineno">  207</span> </div>
-<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span><span class="keywordtype">int</span> val_or_exception(<span class="keywordtype">int</span> val, <span class="keyword">const</span> <span class="keywordtype">string</span>&amp; exception_str = <span class="stringliteral">&quot;&quot;</span>, <span class="keywordtype">int</span> expected_val = 0);</div>
+<div class="line"><a id="l00208" name="l00208"></a><span class="lineno">  208</span><span class="preprocessor">#pragma warning( disable : 4290 )</span></div>
 <div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span> </div>
-<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="preprocessor">#endif </span><span class="comment">// !SWIG</span></div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span><span class="keywordtype">int</span> val_or_exception(<span class="keywordtype">int</span> val, <span class="keyword">const</span> <span class="keywordtype">string</span>&amp; exception_str = <span class="stringliteral">&quot;&quot;</span>, <span class="keywordtype">int</span> expected_val = 0);</div>
 <div class="line"><a id="l00211" name="l00211"></a><span class="lineno">  211</span> </div>
-<div class="line"><a id="l00212" name="l00212"></a><span class="lineno"><a class="line" href="classStopIterator.html">  212</a></span><span class="keyword">class </span><a class="code hl_class" href="classStopIterator.html">StopIterator</a> {};</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span><span class="preprocessor">#endif </span><span class="comment">// !SWIG</span></div>
 <div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span> </div>
-<div class="foldopen" id="foldopen00214" data-start="{" data-end="};">
-<div class="line"><a id="l00214" name="l00214"></a><span class="lineno"><a class="line" href="classMPIntIntMapAdaptor.html">  214</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a> {</div>
-<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>    std::map&lt;int, int&gt;* o;</div>
-<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>(std::map&lt;int, int&gt;* ptr));</div>
-<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    <a class="code hl_class" href="classMPIntIntMapAdaptor.html">~MPIntIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <span class="keywordtype">int</span> __getitem__(<span class="keywordtype">int</span> i);</div>
-<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> i, <span class="keywordtype">int</span> val);</div>
-<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    <span class="keywordtype">void</span> keys(MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** intkeys_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* intkeys_out_buf_len));</div>
-<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>};</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno"><a class="line" href="classStopIterator.html">  214</a></span><span class="keyword">class </span><a class="code hl_class" href="classStopIterator.html">StopIterator</a> {};</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
+<div class="foldopen" id="foldopen00216" data-start="{" data-end="};">
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno"><a class="line" href="classMPIntIntMapAdaptor.html">  216</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a> {</div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span>    std::map&lt;int, int&gt;* o;</div>
+<div class="line"><a id="l00219" name="l00219"></a><span class="lineno">  219</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00220" name="l00220"></a><span class="lineno">  220</span>    <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00221" name="l00221"></a><span class="lineno">  221</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00222" name="l00222"></a><span class="lineno">  222</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>(std::map&lt;int, int&gt;* ptr));</div>
+<div class="line"><a id="l00223" name="l00223"></a><span class="lineno">  223</span>    <a class="code hl_class" href="classMPIntIntMapAdaptor.html">~MPIntIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00224" name="l00224"></a><span class="lineno">  224</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00225" name="l00225"></a><span class="lineno">  225</span>    <span class="keywordtype">int</span> __getitem__(<span class="keywordtype">int</span> i);</div>
+<div class="line"><a id="l00226" name="l00226"></a><span class="lineno">  226</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> i, <span class="keywordtype">int</span> val);</div>
+<div class="line"><a id="l00227" name="l00227"></a><span class="lineno">  227</span>    <span class="keywordtype">void</span> keys(MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** intkeys_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* intkeys_out_buf_len));</div>
+<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00229" name="l00229"></a><span class="lineno">  229</span>};</div>
 </div>
-<div class="line"><a id="l00228" name="l00228"></a><span class="lineno">  228</span> </div>
-<div class="foldopen" id="foldopen00229" data-start="{" data-end="};">
-<div class="line"><a id="l00229" name="l00229"></a><span class="lineno"><a class="line" href="classMPStringStringMapAdaptor.html">  229</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a> {</div>
-<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00231" name="l00231"></a><span class="lineno">  231</span>    std::map&lt;std::string, std::string&gt;* o;</div>
-<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>(std::map&lt;std::string, std::string&gt;* ptr));</div>
-<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    <a class="code hl_class" href="classMPStringStringMapAdaptor.html">~MPStringStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    std::string __getitem__(<span class="keyword">const</span> std::string&amp; i);</div>
-<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>    <span class="keywordtype">void</span> __setitem__(<span class="keyword">const</span> std::string&amp; i, <span class="keyword">const</span> std::string&amp; val);</div>
-<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    std::vector&lt;std::string&gt; keys();</div>
-<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>};</div>
+<div class="line"><a id="l00230" name="l00230"></a><span class="lineno">  230</span> </div>
+<div class="foldopen" id="foldopen00231" data-start="{" data-end="};">
+<div class="line"><a id="l00231" name="l00231"></a><span class="lineno"><a class="line" href="classMPStringStringMapAdaptor.html">  231</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a> {</div>
+<div class="line"><a id="l00232" name="l00232"></a><span class="lineno">  232</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00233" name="l00233"></a><span class="lineno">  233</span>    std::map&lt;std::string, std::string&gt;* o;</div>
+<div class="line"><a id="l00234" name="l00234"></a><span class="lineno">  234</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00235" name="l00235"></a><span class="lineno">  235</span>    <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00236" name="l00236"></a><span class="lineno">  236</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00237" name="l00237"></a><span class="lineno">  237</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>(std::map&lt;std::string, std::string&gt;* ptr));</div>
+<div class="line"><a id="l00238" name="l00238"></a><span class="lineno">  238</span>    <a class="code hl_class" href="classMPStringStringMapAdaptor.html">~MPStringStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00239" name="l00239"></a><span class="lineno">  239</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00240" name="l00240"></a><span class="lineno">  240</span>    std::string __getitem__(<span class="keyword">const</span> std::string&amp; i);</div>
+<div class="line"><a id="l00241" name="l00241"></a><span class="lineno">  241</span>    <span class="keywordtype">void</span> __setitem__(<span class="keyword">const</span> std::string&amp; i, <span class="keyword">const</span> std::string&amp; val);</div>
+<div class="line"><a id="l00242" name="l00242"></a><span class="lineno">  242</span>    std::vector&lt;std::string&gt; keys();</div>
+<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00244" name="l00244"></a><span class="lineno">  244</span>};</div>
 </div>
-<div class="line"><a id="l00243" name="l00243"></a><span class="lineno">  243</span> </div>
-<div class="foldopen" id="foldopen00244" data-start="{" data-end="};">
-<div class="line"><a id="l00244" name="l00244"></a><span class="lineno"><a class="line" href="classMPStringFloatMapAdaptor.html">  244</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a> {</div>
-<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00246" name="l00246"></a><span class="lineno">  246</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>    MEDPY_IGNORE(std::map&lt;std::string, float&gt;* o);</div>
-<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span>    <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>();</div>
-<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>(std::map&lt;std::string, float&gt;* ptr));</div>
-<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">~MPStringFloatMapAdaptor</a>();</div>
-<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    <span class="keywordtype">float</span> __getitem__(<span class="keyword">const</span> std::string&amp; i);</div>
-<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    <span class="keywordtype">void</span> __setitem__(<span class="keyword">const</span> std::string&amp; i, <span class="keywordtype">float</span> val);</div>
-<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    std::vector&lt;std::string&gt; keys();</div>
-<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>};</div>
+<div class="line"><a id="l00245" name="l00245"></a><span class="lineno">  245</span> </div>
+<div class="foldopen" id="foldopen00246" data-start="{" data-end="};">
+<div class="line"><a id="l00246" name="l00246"></a><span class="lineno"><a class="line" href="classMPStringFloatMapAdaptor.html">  246</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a> {</div>
+<div class="line"><a id="l00247" name="l00247"></a><span class="lineno">  247</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00248" name="l00248"></a><span class="lineno">  248</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00249" name="l00249"></a><span class="lineno">  249</span>    MEDPY_IGNORE(std::map&lt;std::string, float&gt;* o);</div>
+<div class="line"><a id="l00250" name="l00250"></a><span class="lineno">  250</span>    <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>();</div>
+<div class="line"><a id="l00251" name="l00251"></a><span class="lineno">  251</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00252" name="l00252"></a><span class="lineno">  252</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>(std::map&lt;std::string, float&gt;* ptr));</div>
+<div class="line"><a id="l00253" name="l00253"></a><span class="lineno">  253</span>    <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">~MPStringFloatMapAdaptor</a>();</div>
+<div class="line"><a id="l00254" name="l00254"></a><span class="lineno">  254</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00255" name="l00255"></a><span class="lineno">  255</span>    <span class="keywordtype">float</span> __getitem__(<span class="keyword">const</span> std::string&amp; i);</div>
+<div class="line"><a id="l00256" name="l00256"></a><span class="lineno">  256</span>    <span class="keywordtype">void</span> __setitem__(<span class="keyword">const</span> std::string&amp; i, <span class="keywordtype">float</span> val);</div>
+<div class="line"><a id="l00257" name="l00257"></a><span class="lineno">  257</span>    std::vector&lt;std::string&gt; keys();</div>
+<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span>};</div>
 </div>
-<div class="line"><a id="l00258" name="l00258"></a><span class="lineno">  258</span> </div>
-<div class="line"><a id="l00259" name="l00259"></a><span class="lineno">  259</span> </div>
-<div class="foldopen" id="foldopen00260" data-start="{" data-end="};">
-<div class="line"><a id="l00260" name="l00260"></a><span class="lineno"><a class="line" href="classMPStringVecFloatMapAdaptor.html">  260</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a> {</div>
-<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00262" name="l00262"></a><span class="lineno">  262</span>    std::map&lt;std::string, std::vector&lt;float&gt; &gt;* o;</div>
-<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>    <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>();</div>
-<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>(std::map&lt;std::string, std::vector&lt;float&gt; &gt;* ptr));</div>
-<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">~MPStringVecFloatMapAdaptor</a>();</div>
-<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>    <span class="keywordtype">void</span> __getitem__(std::string key, MEDPY_NP_OUTPUT(<span class="keywordtype">float</span>** float_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* float_out_buf_len));</div>
-<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keywordtype">void</span> __setitem__(std::string key, MEDPY_NP_INPUT(<span class="keywordtype">float</span>* float_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> float_in_buf_len));</div>
-<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>    std::vector&lt;std::string&gt; keys();</div>
-<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>};</div>
+<div class="line"><a id="l00260" name="l00260"></a><span class="lineno">  260</span> </div>
+<div class="line"><a id="l00261" name="l00261"></a><span class="lineno">  261</span> </div>
+<div class="foldopen" id="foldopen00262" data-start="{" data-end="};">
+<div class="line"><a id="l00262" name="l00262"></a><span class="lineno"><a class="line" href="classMPStringVecFloatMapAdaptor.html">  262</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a> {</div>
+<div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00264" name="l00264"></a><span class="lineno">  264</span>    std::map&lt;std::string, std::vector&lt;float&gt; &gt;* o;</div>
+<div class="line"><a id="l00265" name="l00265"></a><span class="lineno">  265</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00266" name="l00266"></a><span class="lineno">  266</span>    <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>();</div>
+<div class="line"><a id="l00267" name="l00267"></a><span class="lineno">  267</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00268" name="l00268"></a><span class="lineno">  268</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>(std::map&lt;std::string, std::vector&lt;float&gt; &gt;* ptr));</div>
+<div class="line"><a id="l00269" name="l00269"></a><span class="lineno">  269</span>    <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">~MPStringVecFloatMapAdaptor</a>();</div>
+<div class="line"><a id="l00270" name="l00270"></a><span class="lineno">  270</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00271" name="l00271"></a><span class="lineno">  271</span>    <span class="keywordtype">void</span> __getitem__(std::string key, MEDPY_NP_OUTPUT(<span class="keywordtype">float</span>** float_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* float_out_buf_len));</div>
+<div class="line"><a id="l00272" name="l00272"></a><span class="lineno">  272</span>    <span class="keywordtype">void</span> __setitem__(std::string key, MEDPY_NP_INPUT(<span class="keywordtype">float</span>* float_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> float_in_buf_len));</div>
+<div class="line"><a id="l00273" name="l00273"></a><span class="lineno">  273</span>    std::vector&lt;std::string&gt; keys();</div>
+<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00275" name="l00275"></a><span class="lineno">  275</span>};</div>
 </div>
-<div class="line"><a id="l00274" name="l00274"></a><span class="lineno">  274</span> </div>
-<div class="foldopen" id="foldopen00275" data-start="{" data-end="};">
-<div class="line"><a id="l00275" name="l00275"></a><span class="lineno"><a class="line" href="classMPIntPairIntIntMapAdaptor.html">  275</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a> {</div>
-<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00277" name="l00277"></a><span class="lineno">  277</span>    std::map&lt;int, std::pair&lt;int, int&gt; &gt;* o;</div>
-<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>(std::map&lt;<span class="keywordtype">int</span>, std::pair&lt;int, int&gt; &gt;* ptr));</div>
-<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">~MPIntPairIntIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <span class="keywordtype">void</span> __getitem__(<span class="keywordtype">int</span> key, MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** int_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* int_out_buf_len));</div>
-<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> key, MEDPY_NP_INPUT(<span class="keywordtype">int</span>* int_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> int_in_buf_len));</div>
-<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>    <span class="keywordtype">void</span> keys(MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** intkeys_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* intkeys_out_buf_len));</div>
-<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>};</div>
+<div class="line"><a id="l00276" name="l00276"></a><span class="lineno">  276</span> </div>
+<div class="foldopen" id="foldopen00277" data-start="{" data-end="};">
+<div class="line"><a id="l00277" name="l00277"></a><span class="lineno"><a class="line" href="classMPIntPairIntIntMapAdaptor.html">  277</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a> {</div>
+<div class="line"><a id="l00278" name="l00278"></a><span class="lineno">  278</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00279" name="l00279"></a><span class="lineno">  279</span>    std::map&lt;int, std::pair&lt;int, int&gt; &gt;* o;</div>
+<div class="line"><a id="l00280" name="l00280"></a><span class="lineno">  280</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00281" name="l00281"></a><span class="lineno">  281</span>    <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00282" name="l00282"></a><span class="lineno">  282</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00283" name="l00283"></a><span class="lineno">  283</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>(std::map&lt;<span class="keywordtype">int</span>, std::pair&lt;int, int&gt; &gt;* ptr));</div>
+<div class="line"><a id="l00284" name="l00284"></a><span class="lineno">  284</span>    <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">~MPIntPairIntIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00285" name="l00285"></a><span class="lineno">  285</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00286" name="l00286"></a><span class="lineno">  286</span>    <span class="keywordtype">void</span> __getitem__(<span class="keywordtype">int</span> key, MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** int_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* int_out_buf_len));</div>
+<div class="line"><a id="l00287" name="l00287"></a><span class="lineno">  287</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> key, MEDPY_NP_INPUT(<span class="keywordtype">int</span>* int_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> int_in_buf_len));</div>
+<div class="line"><a id="l00288" name="l00288"></a><span class="lineno">  288</span>    <span class="keywordtype">void</span> keys(MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** intkeys_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* intkeys_out_buf_len));</div>
+<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span>};</div>
 </div>
-<div class="line"><a id="l00289" name="l00289"></a><span class="lineno">  289</span> </div>
-<div class="line"><a id="l00290" name="l00290"></a><span class="lineno">  290</span> </div>
-<div class="foldopen" id="foldopen00291" data-start="{" data-end="};">
-<div class="line"><a id="l00291" name="l00291"></a><span class="lineno"><a class="line" href="classMPStringUOSetStringMapAdaptor.html">  291</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a> {</div>
-<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00293" name="l00293"></a><span class="lineno">  293</span>    std::map&lt;std::string, std::unordered_set&lt;std::string&gt; &gt;* o;</div>
-<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>(std::map&lt;std::string, std::unordered_set&lt;std::string&gt; &gt;* ptr));</div>
-<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">~MPStringUOSetStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    std::vector&lt;std::string&gt; __getitem__(std::string key);</div>
-<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    <span class="keywordtype">void</span> __setitem__(std::string key, std::vector&lt;std::string&gt; val);</div>
-<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    std::vector&lt;std::string&gt; keys();</div>
-<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>};</div>
+<div class="line"><a id="l00291" name="l00291"></a><span class="lineno">  291</span> </div>
+<div class="line"><a id="l00292" name="l00292"></a><span class="lineno">  292</span> </div>
+<div class="foldopen" id="foldopen00293" data-start="{" data-end="};">
+<div class="line"><a id="l00293" name="l00293"></a><span class="lineno"><a class="line" href="classMPStringUOSetStringMapAdaptor.html">  293</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a> {</div>
+<div class="line"><a id="l00294" name="l00294"></a><span class="lineno">  294</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00295" name="l00295"></a><span class="lineno">  295</span>    std::map&lt;std::string, std::unordered_set&lt;std::string&gt; &gt;* o;</div>
+<div class="line"><a id="l00296" name="l00296"></a><span class="lineno">  296</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00297" name="l00297"></a><span class="lineno">  297</span>    <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00298" name="l00298"></a><span class="lineno">  298</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00299" name="l00299"></a><span class="lineno">  299</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>(std::map&lt;std::string, std::unordered_set&lt;std::string&gt; &gt;* ptr));</div>
+<div class="line"><a id="l00300" name="l00300"></a><span class="lineno">  300</span>    <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">~MPStringUOSetStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00301" name="l00301"></a><span class="lineno">  301</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00302" name="l00302"></a><span class="lineno">  302</span>    std::vector&lt;std::string&gt; __getitem__(std::string key);</div>
+<div class="line"><a id="l00303" name="l00303"></a><span class="lineno">  303</span>    <span class="keywordtype">void</span> __setitem__(std::string key, std::vector&lt;std::string&gt; val);</div>
+<div class="line"><a id="l00304" name="l00304"></a><span class="lineno">  304</span>    std::vector&lt;std::string&gt; keys();</div>
+<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00306" name="l00306"></a><span class="lineno">  306</span>};</div>
 </div>
-<div class="line"><a id="l00305" name="l00305"></a><span class="lineno">  305</span> </div>
-<div class="foldopen" id="foldopen00306" data-start="{" data-end="};">
-<div class="line"><a id="l00306" name="l00306"></a><span class="lineno"><a class="line" href="classMPIntStringMapAdaptor.html">  306</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a> {</div>
-<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00308" name="l00308"></a><span class="lineno">  308</span>    std::map&lt;int, string&gt;* o;</div>
-<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>(std::map&lt;int, string&gt;* ptr));</div>
-<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>    <a class="code hl_class" href="classMPIntStringMapAdaptor.html">~MPIntStringMapAdaptor</a>();</div>
-<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>    std::string __getitem__(<span class="keywordtype">int</span> i);</div>
-<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> i, <span class="keyword">const</span> <span class="keywordtype">string</span>&amp; val);</div>
-<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>    std::vector&lt;int&gt; keys();</div>
-<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>};</div>
+<div class="line"><a id="l00307" name="l00307"></a><span class="lineno">  307</span> </div>
+<div class="foldopen" id="foldopen00308" data-start="{" data-end="};">
+<div class="line"><a id="l00308" name="l00308"></a><span class="lineno"><a class="line" href="classMPIntStringMapAdaptor.html">  308</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a> {</div>
+<div class="line"><a id="l00309" name="l00309"></a><span class="lineno">  309</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00310" name="l00310"></a><span class="lineno">  310</span>    std::map&lt;int, string&gt;* o;</div>
+<div class="line"><a id="l00311" name="l00311"></a><span class="lineno">  311</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00312" name="l00312"></a><span class="lineno">  312</span>    <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00313" name="l00313"></a><span class="lineno">  313</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00314" name="l00314"></a><span class="lineno">  314</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>(std::map&lt;int, string&gt;* ptr));</div>
+<div class="line"><a id="l00315" name="l00315"></a><span class="lineno">  315</span>    <a class="code hl_class" href="classMPIntStringMapAdaptor.html">~MPIntStringMapAdaptor</a>();</div>
+<div class="line"><a id="l00316" name="l00316"></a><span class="lineno">  316</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00317" name="l00317"></a><span class="lineno">  317</span>    std::string __getitem__(<span class="keywordtype">int</span> i);</div>
+<div class="line"><a id="l00318" name="l00318"></a><span class="lineno">  318</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> i, <span class="keyword">const</span> <span class="keywordtype">string</span>&amp; val);</div>
+<div class="line"><a id="l00319" name="l00319"></a><span class="lineno">  319</span>    std::vector&lt;int&gt; keys();</div>
+<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span>};</div>
 </div>
-<div class="line"><a id="l00320" name="l00320"></a><span class="lineno">  320</span> </div>
-<div class="line"><a id="l00321" name="l00321"></a><span class="lineno">  321</span> </div>
-<div class="foldopen" id="foldopen00322" data-start="{" data-end="};">
-<div class="line"><a id="l00322" name="l00322"></a><span class="lineno"><a class="line" href="classMPIntVecIntMapAdaptor.html">  322</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a> {</div>
-<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
-<div class="line"><a id="l00324" name="l00324"></a><span class="lineno">  324</span><span class="keyword">public</span>:</div>
-<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    std::map&lt;int, std::vector&lt;int&gt; &gt;* o;</div>
-<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span>    <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>(std::map&lt;<span class="keywordtype">int</span>, std::vector&lt;int&gt; &gt;* ptr));</div>
-<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">~MPIntVecIntMapAdaptor</a>();</div>
-<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    <span class="keywordtype">int</span> __len__();</div>
-<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    <span class="keywordtype">void</span> __getitem__(<span class="keywordtype">int</span> key, MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** int_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* int_out_buf_len));</div>
-<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> key, MEDPY_NP_INPUT(<span class="keywordtype">int</span>* int_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> int_in_buf_len));</div>
-<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    std::vector&lt;int&gt; keys();</div>
-<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; other));</div>
-<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>};</div>
+<div class="line"><a id="l00322" name="l00322"></a><span class="lineno">  322</span> </div>
+<div class="line"><a id="l00323" name="l00323"></a><span class="lineno">  323</span> </div>
+<div class="foldopen" id="foldopen00324" data-start="{" data-end="};">
+<div class="line"><a id="l00324" name="l00324"></a><span class="lineno"><a class="line" href="classMPIntVecIntMapAdaptor.html">  324</a></span><span class="keyword">class </span><a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a> {</div>
+<div class="line"><a id="l00325" name="l00325"></a><span class="lineno">  325</span>    <span class="keywordtype">bool</span> o_owned = <span class="keyword">true</span>;</div>
+<div class="line"><a id="l00326" name="l00326"></a><span class="lineno">  326</span><span class="keyword">public</span>:</div>
+<div class="line"><a id="l00327" name="l00327"></a><span class="lineno">  327</span>    std::map&lt;int, std::vector&lt;int&gt; &gt;* o;</div>
+<div class="line"><a id="l00328" name="l00328"></a><span class="lineno">  328</span>    <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00329" name="l00329"></a><span class="lineno">  329</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00330" name="l00330"></a><span class="lineno">  330</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>(std::map&lt;<span class="keywordtype">int</span>, std::vector&lt;int&gt; &gt;* ptr));</div>
+<div class="line"><a id="l00331" name="l00331"></a><span class="lineno">  331</span>    <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">~MPIntVecIntMapAdaptor</a>();</div>
+<div class="line"><a id="l00332" name="l00332"></a><span class="lineno">  332</span>    <span class="keywordtype">int</span> __len__();</div>
+<div class="line"><a id="l00333" name="l00333"></a><span class="lineno">  333</span>    <span class="keywordtype">void</span> __getitem__(<span class="keywordtype">int</span> key, MEDPY_NP_OUTPUT(<span class="keywordtype">int</span>** int_out_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span>* int_out_buf_len));</div>
+<div class="line"><a id="l00334" name="l00334"></a><span class="lineno">  334</span>    <span class="keywordtype">void</span> __setitem__(<span class="keywordtype">int</span> key, MEDPY_NP_INPUT(<span class="keywordtype">int</span>* int_in_buf, <span class="keywordtype">unsigned</span> <span class="keywordtype">long</span> <span class="keywordtype">long</span> int_in_buf_len));</div>
+<div class="line"><a id="l00335" name="l00335"></a><span class="lineno">  335</span>    std::vector&lt;int&gt; keys();</div>
+<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span>    MEDPY_IGNORE(<a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; <span class="keyword">operator</span>=(<span class="keyword">const</span> <a class="code hl_class" href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a>&amp; other));</div>
+<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span>};</div>
 </div>
-<div class="line"><a id="l00336" name="l00336"></a><span class="lineno">  336</span> </div>
-<div class="line"><a id="l00337" name="l00337"></a><span class="lineno">  337</span><span class="keywordtype">void</span> logger_use_stdout();</div>
 <div class="line"><a id="l00338" name="l00338"></a><span class="lineno">  338</span> </div>
-<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="preprocessor">#endif </span><span class="comment">// !__MED_PY_COMMON_H</span></div>
-<div class="ttc" id="aclassIteratorWrapper_html"><div class="ttname"><a href="classIteratorWrapper.html">IteratorWrapper</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:103</div></div>
-<div class="ttc" id="aclassMED__NPY__TYPE_html"><div class="ttname"><a href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:116</div></div>
-<div class="ttc" id="aclassMPIntIntMapAdaptor_html"><div class="ttname"><a href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:214</div></div>
-<div class="ttc" id="aclassMPIntPairIntIntMapAdaptor_html"><div class="ttname"><a href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:275</div></div>
-<div class="ttc" id="aclassMPIntStringMapAdaptor_html"><div class="ttname"><a href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:306</div></div>
-<div class="ttc" id="aclassMPIntVecIntMapAdaptor_html"><div class="ttname"><a href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:322</div></div>
-<div class="ttc" id="aclassMPStringFloatMapAdaptor_html"><div class="ttname"><a href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:244</div></div>
-<div class="ttc" id="aclassMPStringStringMapAdaptor_html"><div class="ttname"><a href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:229</div></div>
-<div class="ttc" id="aclassMPStringUOSetStringMapAdaptor_html"><div class="ttname"><a href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:291</div></div>
-<div class="ttc" id="aclassMPStringVecFloatMapAdaptor_html"><div class="ttname"><a href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:260</div></div>
-<div class="ttc" id="aclassStopIterator_html"><div class="ttname"><a href="classStopIterator.html">StopIterator</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:212</div></div>
-<div class="ttc" id="aclassTypeWrapper_html"><div class="ttname"><a href="classTypeWrapper.html">TypeWrapper</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:90</div></div>
+<div class="line"><a id="l00339" name="l00339"></a><span class="lineno">  339</span><span class="keywordtype">void</span> logger_use_stdout();</div>
+<div class="line"><a id="l00340" name="l00340"></a><span class="lineno">  340</span> </div>
+<div class="line"><a id="l00341" name="l00341"></a><span class="lineno">  341</span><span class="preprocessor">#endif </span><span class="comment">// !__MED_PY_COMMON_H</span></div>
+<div class="ttc" id="aclassIteratorWrapper_html"><div class="ttname"><a href="classIteratorWrapper.html">IteratorWrapper</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:105</div></div>
+<div class="ttc" id="aclassMED__NPY__TYPE_html"><div class="ttname"><a href="classMED__NPY__TYPE.html">MED_NPY_TYPE</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:118</div></div>
+<div class="ttc" id="aclassMPIntIntMapAdaptor_html"><div class="ttname"><a href="classMPIntIntMapAdaptor.html">MPIntIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:216</div></div>
+<div class="ttc" id="aclassMPIntPairIntIntMapAdaptor_html"><div class="ttname"><a href="classMPIntPairIntIntMapAdaptor.html">MPIntPairIntIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:277</div></div>
+<div class="ttc" id="aclassMPIntStringMapAdaptor_html"><div class="ttname"><a href="classMPIntStringMapAdaptor.html">MPIntStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:308</div></div>
+<div class="ttc" id="aclassMPIntVecIntMapAdaptor_html"><div class="ttname"><a href="classMPIntVecIntMapAdaptor.html">MPIntVecIntMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:324</div></div>
+<div class="ttc" id="aclassMPStringFloatMapAdaptor_html"><div class="ttname"><a href="classMPStringFloatMapAdaptor.html">MPStringFloatMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:246</div></div>
+<div class="ttc" id="aclassMPStringStringMapAdaptor_html"><div class="ttname"><a href="classMPStringStringMapAdaptor.html">MPStringStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:231</div></div>
+<div class="ttc" id="aclassMPStringUOSetStringMapAdaptor_html"><div class="ttname"><a href="classMPStringUOSetStringMapAdaptor.html">MPStringUOSetStringMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:293</div></div>
+<div class="ttc" id="aclassMPStringVecFloatMapAdaptor_html"><div class="ttname"><a href="classMPStringVecFloatMapAdaptor.html">MPStringVecFloatMapAdaptor</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:262</div></div>
+<div class="ttc" id="aclassStopIterator_html"><div class="ttname"><a href="classStopIterator.html">StopIterator</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:214</div></div>
+<div class="ttc" id="aclassTypeWrapper_html"><div class="ttname"><a href="classTypeWrapper.html">TypeWrapper</a></div><div class="ttdef"><b>Definition</b> MedPyCommon.h:92</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Wed Nov 5 2025 10:24:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Wed Nov 5 2025 13:00:02 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
