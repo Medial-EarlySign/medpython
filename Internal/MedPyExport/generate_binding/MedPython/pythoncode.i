@@ -128,7 +128,7 @@ ___fix_vecmap_iter()
 """
 External Methods in addition to api
 """
-def __export_to_pandas(self, sig_name_str, translate=True, pids=None, float32to64=True, free_signal=True, regex_str = None, regex_filter = ''):
+def __export_to_pandas(self, sig_name_str:str, translate:bool=True, pids:list[int]|str|None=None, float32to64:bool=True, free_signal:bool=True, regex_str:str|None = None, regex_filter:str = '') -> 'pd.DataFrame':
     """get_sig(signame [, translate=True][, pids=None, float32to64=True][,regex_str = None]) -> Pandas DataFrame
          translate : If True, will decode categorical fields into a readable representation in Pandas
          pid : If list is provided, will load only pids from the given list
