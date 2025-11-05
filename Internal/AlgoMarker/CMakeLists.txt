@@ -1,9 +1,19 @@
 cmake_minimum_required(VERSION 3.14)
 project(AlgoMarker_Tools VERSION 1.1.0 LANGUAGES CXX)
+cmake_policy(SET CMP0074 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
+    cmake_policy(SET CMP0144 NEW)
+endif()
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
-#set(BOOST_ROOT "$ENV{HOME}/Documents/MES/Boost") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
+if(DEFINED ENV{BOOST_ROOT})
+    message(STATUS "BOOST_ROOT is set to: $ENV{BOOST_ROOT}")
+    set(BOOST_ROOT "$ENV{BOOST_ROOT}")
+else()
+    message(STATUS "BOOST_ROOT environment variable is not set. Please set it to the Boost installation path.")
+    # set(BOOST_ROOT "$ENV{HOME}/Documents/MES/Boost") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
+endif()
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -fopenmp -Wall -Wno-write-strings -Wno-sign-compare -Wno-reorder -Wno-unknown-pragmas -Wno-unused-function -ldl  --param inline-unit-growth=1000000 -msse4 -DHAVE_WORKING_ISFINITE -DSO_COMPILATION -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"'")
 
@@ -12,7 +22,17 @@ set(BOOST_LIBS
     filesystem
     system
     program_options
-) # for certain version, you might need to add "atomic" also, in some other cases remove system
+) # for certain version, you might need to add "atomic"
+
+find_package(Boost REQUIRED)
+if(Boost_VERSION VERSION_GREATER_EQUAL "1.69") # 1.69 is represented as 106900 in CMake
+    # Remove "system" for newer versions (>= 1.69)
+    # The list(REMOVE_ITEM) command is used to remove a specific item from a list variable.
+    list(REMOVE_ITEM BOOST_LIBS "system")
+    message(STATUS "Boost version is ${Boost_VERSION} (>= 1.69), removing 'system' from BOOST_LIBS.")
+else()
+    message(STATUS "Boost version is ${Boost_VERSION} (< 1.69), keeping 'system' in BOOST_LIBS.")
+endif()
 
 set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotly MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF micNet
 ) #CommonLib if needed

@@ -1,7 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 project(medpython)
+cmake_policy(SET CMP0074 NEW)
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
+    cmake_policy(SET CMP0144 NEW)
+endif()
+
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
+
+if(DEFINED ENV{BOOST_ROOT})
+    message(STATUS "BOOST_ROOT is set to: $ENV{BOOST_ROOT}")
+    set(BOOST_ROOT "$ENV{BOOST_ROOT}")
+else()
+    message(STATUS "BOOST_ROOT environment variable is not set. Please set it to the Boost installation path.")
+    # set(BOOST_ROOT "$ENV{HOME}/Documents/MES/Boost") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
+endif()
 
 set(BOOST_LIBS
     regex
@@ -10,10 +23,18 @@ set(BOOST_LIBS
     program_options
 ) # for certain version, you might need to add "atomic" also, in some other cases remove system
 
+find_package(Boost REQUIRED)
+if(Boost_VERSION VERSION_GREATER_EQUAL "1.69") # 1.69 is represented as 106900 in CMake
+    # Remove "system" for newer versions (>= 1.69)
+    # The list(REMOVE_ITEM) command is used to remove a specific item from a list variable.
+    list(REMOVE_ITEM BOOST_LIBS "system")
+    message(STATUS "Boost version is ${Boost_VERSION} (>= 1.69), removing 'system' from BOOST_LIBS.")
+else()
+    message(STATUS "Boost version is ${Boost_VERSION} (< 1.69), keeping 'system' in BOOST_LIBS.")
+endif()
+
 set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotly MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF micNet CommonLib
 )
-
-#set(BOOST_ROOT "$ENV{HOME}/Documents/MES/Boost") #If you have compiled boost by yourself with -fPIC flag, please provide the path to folder with "/lib" with shared and static lib and "/include" for headers.
 
 execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
     OUTPUT_VARIABLE DATE_TIME)
