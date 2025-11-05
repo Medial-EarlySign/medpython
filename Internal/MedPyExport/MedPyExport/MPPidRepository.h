@@ -103,6 +103,15 @@ public:
 	MEDPY_DOC(free, "free(signame) -> int\n"
 		"  Free the signal data specified by signame");
 	int free(string signame);
+
+	MEDPY_DOC(get_sig, "get_sig(sig_name_str: str, translate: bool = True, pids: list[int] | str | None = None, float32to64: bool = True, free_signal: bool = True, regex_str: str | None = None, regex_filter: str = '') -> pd.DataFrame\n"
+		"  read signals into pandas dataframe");
+	void get_sig(const char * sig_name_str, bool translate=true, 
+                 std::vector<int> * pids=nullptr, 
+                 bool float32to64=true, 
+                 bool free_signal=true,
+                 const char * regex_str=nullptr,
+                 const char * regex_filter="") {}
 #endif
 
 	MEDPY_DOC(switch_to_in_mem, "switch_to_in_mem()\n"
