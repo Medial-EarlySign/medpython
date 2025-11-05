@@ -316,7 +316,7 @@ var searchData=
   ['existing_20model_313',['Continue from Existing Model',['../md_External_2xgboost_2demo_2CLI_2binary__classification_2README.html#autotoc_md100',1,'']]],
   ['exists_314',['Exists',['../structLightGBM_1_1VirtualFileWriter.html#aa4a58e547732b10f465edb6f94977bad',1,'LightGBM::VirtualFileWriter']]],
   ['existscalculator_315',['ExistsCalculator',['../classExistsCalculator.html',1,'']]],
-  ['expand_316',['expand',['../classEigen_1_1internal_1_1SparseLUImpl.html#acc7811f7de19ffb804cb4b1fd5288f3e',1,'Eigen::internal::SparseLUImpl::expand()'],['../classxgboost_1_1MultiTargetTree.html#ae98e608cffb00489c903e078232c1db9',1,'xgboost::MultiTargetTree::Expand()']]],
+  ['expand_316',['expand',['../classxgboost_1_1MultiTargetTree.html#ae98e608cffb00489c903e078232c1db9',1,'xgboost::MultiTargetTree::Expand()'],['../classEigen_1_1internal_1_1SparseLUImpl.html#acc7811f7de19ffb804cb4b1fd5288f3e',1,'Eigen::internal::SparseLUImpl::expand()']]],
   ['expandcategorical_317',['ExpandCategorical',['../classxgboost_1_1RegTree.html#a973474f99b2e78a1187e71a32bb914f8',1,'xgboost::RegTree']]],
   ['expandentryimpl_318',['ExpandEntryImpl',['../structxgboost_1_1tree_1_1ExpandEntryImpl.html',1,'xgboost::tree']]],
   ['expandentryimpl_3c_20cpuexpandentry_20_3e_319',['ExpandEntryImpl&lt; CPUExpandEntry &gt;',['../structxgboost_1_1tree_1_1ExpandEntryImpl.html',1,'xgboost::tree']]],

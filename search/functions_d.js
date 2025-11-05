@@ -93,7 +93,7 @@ var searchData=
   ['merged_90',['merged',['../classEigen_1_1AlignedBox.html#a59eb62d949598853fbc83836e8f2960c',1,'Eigen::AlignedBox']]],
   ['mergefrom_91',['mergefrom',['../classLightGBM_1_1Boosting.html#a5eecc023e2ba9a9ddb60466b829468a2',1,'LightGBM::Boosting::MergeFrom()'],['../classLightGBM_1_1GBDT.html#abce635ae5ed4075b4b41b7235b95b0ef',1,'LightGBM::GBDT::MergeFrom()']]],
   ['meta_92',['meta',['../classbasic__json.html#a7b435c2ed2db99cb1daa78ae3c6c4580',1,'basic_json']]],
-  ['metadata_93',['metadata',['../classLightGBM_1_1Metadata.html#acdf0ec924b008b0362df5af023c51fc5',1,'LightGBM::Metadata::Metadata()'],['../classLightGBM_1_1Metadata.html#a956dda9df18bb51df4b929d16c41806d',1,'LightGBM::Metadata::Metadata(const Metadata &amp;)=delete'],['../classLightGBM_1_1Dataset.html#a4b0cc418026f554841bde05c067d2a9f',1,'LightGBM::Dataset::metadata()']]],
+  ['metadata_93',['metadata',['../classLightGBM_1_1Dataset.html#a4b0cc418026f554841bde05c067d2a9f',1,'LightGBM::Dataset::metadata()'],['../classLightGBM_1_1Metadata.html#acdf0ec924b008b0362df5af023c51fc5',1,'LightGBM::Metadata::Metadata()'],['../classLightGBM_1_1Metadata.html#a956dda9df18bb51df4b929d16c41806d',1,'LightGBM::Metadata::Metadata(const Metadata &amp;)=delete']]],
   ['metainfo_94',['MetaInfo',['../classxgboost_1_1MetaInfo.html#acbb45d9e95548d23c27b008f0266dd81',1,'xgboost::MetaInfo']]],
   ['metric_95',['Metric',['../classLightGBM_1_1Metric.html#a9ca0557aff7bb59d8e07ff070fe6d8fe',1,'LightGBM::Metric']]],
   ['min_96',['min',['../classEigen_1_1AlignedBox.html#ada130f5075f3ea0b480444b6ba5dc96c',1,'Eigen::AlignedBox::min() const'],['../classEigen_1_1AlignedBox.html#a25bb999c0cdad60791a88b2b2a293521',1,'Eigen::AlignedBox::min()']]],
