@@ -53,6 +53,8 @@
 #define MEDPY_DOC(function_or_class_name, docstring)
 #endif
 
+#define MEDPY_DOC_Dyn(text)
+
 #define GET_MACRO(_0,_1,_2,_3,_4,_5,_6,NAME,...) NAME
 
 #ifndef SWIG
