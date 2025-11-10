@@ -752,13 +752,13 @@ int MedialInfraAlgoMarker::AddData(int patient_id, const char *signalName, int T
 	newData->patient_id = patient_id;
 	newData->signalName = string(signalName);
 	newData->TimeStamps_len = TimeStamps_len;
-	newData->TimeStamps = (long long *)malloc(TimeStamps_len * sizeof(long long));
+	newData->TimeStamps = new long long[TimeStamps_len];
 	for (size_t i = 0; i < TimeStamps_len; i++)
 	{
 		newData->TimeStamps[i] = TimeStamps[i];
 	}
 
-	newData->Values = (float *)malloc(Values_len * sizeof(float));
+	newData->Values = new float[Values_len];
 	for (size_t i = 0; i < Values_len; i++)
 	{
 		newData->Values[i] = Values[i];
@@ -785,14 +785,14 @@ int MedialInfraAlgoMarker::AddDataStr(int patient_id, const char *signalName, in
 	newData->patient_id = patient_id;
 	newData->signalName = string(signalName);
 	newData->TimeStamps_len = TimeStamps_len;
-	newData->TimeStamps = (long long *)malloc(TimeStamps_len * sizeof(long long));
+	newData->TimeStamps = new long long[TimeStamps_len];
 	for (size_t i = 0; i < TimeStamps_len; i++)
 	{
 		newData->TimeStamps[i] = TimeStamps[i];
 	}
-	newData->Values = (char **)malloc(Values_len * sizeof(char *));
+	newData->Values = new char*[Values_len];
 	// To send to AddData
-	float *values = (float *)malloc(Values_len * sizeof(float));
+	float *values = new float[Values_len];
 	for (size_t i = 0; i < Values_len; i++)
 	{
 		values[i] = 0.0;
