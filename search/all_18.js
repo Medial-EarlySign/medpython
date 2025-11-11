@@ -593,7 +593,7 @@ var searchData=
   ['models_5f_590',['models_',['../classLightGBM_1_1GBDT.html#a1e25b44b8a77be14e40bec123c634d01',1,'LightGBM::GBDT']]],
   ['modeltoifelse_591',['modeltoifelse',['../classLightGBM_1_1Boosting.html#a9141bdc34b1ba08a17233e174b1009e6',1,'LightGBM::Boosting::ModelToIfElse()'],['../classLightGBM_1_1GBDT.html#a57970c9d097ec53416d6730725fa865c',1,'LightGBM::GBDT::ModelToIfElse()']]],
   ['modern_20c_592',['Projects using JSON for Modern C++',['../md_External_2json_2README.html#autotoc_md35',1,'']]],
-  ['modern_20c_20”_20strong_593',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md519',1,'']]],
+  ['modern_20c_20”_20strong_593',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md518',1,'']]],
   ['modification_20list_594',['Modification List',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docs_2Key-Events.html#autotoc_md60',1,'']]],
   ['modification_20table_595',['Modification Table',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docs_2Key-Events.html#autotoc_md59',1,'']]],
   ['modifications_20of_20lightgbm_596',['Table/List of Key Modifications of LightGBM',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docs_2Key-Events.html',1,'']]],

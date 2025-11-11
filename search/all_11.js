@@ -240,7 +240,7 @@ var searchData=
   ['for_20lightgbm_20gpu_20version_20with_20python_237',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
   ['for_20machine_20learning_238',['Parameter Structure for Machine Learning',['../md_External_2xgboost_2dmlc-core_2doc_2parameter.html',1,'']]],
   ['for_20modern_20c_239',['Projects using JSON for Modern C++',['../md_External_2json_2README.html#autotoc_md35',1,'']]],
-  ['for_20modern_20c_20”_20strong_240',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md519',1,'']]],
+  ['for_20modern_20c_20”_20strong_240',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md518',1,'']]],
   ['for_20multi_20core_20cpus_203957_241',['Roadmap: better performance scaling for multi-core CPUs (#3957)',['../md_External_2xgboost_2NEWS.html#autotoc_md425',1,'']]],
   ['for_20multi_20core_20cpus_204310_242',['Roadmap: better performance scaling for multi-core CPUs (#4310)',['../md_External_2xgboost_2NEWS.html#autotoc_md410',1,'']]],
   ['for_20multi_20core_20cpus_204502_204529_204716_204851_205008_205107_205138_205156_243',['Better performance scaling for multi-core CPUs (#4502, #4529, #4716, #4851, #5008, #5107, #5138, #5156)',['../md_External_2xgboost_2NEWS.html#autotoc_md373',1,'']]],
