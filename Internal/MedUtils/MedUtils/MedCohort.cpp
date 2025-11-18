@@ -738,7 +738,7 @@ int MedCohort::create_samples_sticked(MedRepository& rep, SamplingParams &s_para
 				else
 					bucket_num = -((-relative_days) / s_params.jump_days) - 1;
 				if (print) MLOG("pid %d date %d days %d relative_days %d age %d in_cohort %d in_win %d in age %d bucket %d\n",
-					rc.pid, date, days, relative_days, age, date_is_in_cohort, date_is_in_sample_window, date_is_in_age_range);
+					rc.pid, date, days, relative_days, age, date_is_in_cohort, date_is_in_sample_window, date_is_in_age_range, bucket_num);
 
 				if (date_is_in_cohort && date_is_in_sample_window && date_is_in_age_range) {
 					// Important: only samples that can be considered are put into a bucket.

@@ -612,7 +612,7 @@ int FeatureNormalizer::Learn(MedFeatures& features, unordered_set<int>& ids) {
 	// Handle constant vector
 	if (sd == 0 && values.size()) {
 		if (verbosity > 0)
-			MWARN("Got constant (%f) vector in feature %s....\n", feature_name.c_str());
+			MWARN("Got constant (size=%d) vector in feature %s....\n", (int)values.size(), feature_name.c_str());
 		sd = 1.0;
 	}
 	else  if (sd == 1)

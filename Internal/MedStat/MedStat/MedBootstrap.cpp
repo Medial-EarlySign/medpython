@@ -358,7 +358,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 		if (cohorts.find(it->first) == cohorts.end())
 			cohorts[it->first] = it->second;
 		else
-			MWARN("Cohort \"%s\" name already exists - skip additional\n");
+			MWARN("Cohort \"%s\" name already exists - skip additional\n", it->first.c_str());
 	const vector<int> *rep_ids = &pids;
 	vector<int> new_ids;
 	if (sample_patient_label)
@@ -390,7 +390,7 @@ map<string, map<string, float>> MedBootstrap::bootstrap_base(const vector<float>
 			if (cohorts.find(it->first) == cohorts.end())
 				cohorts[it->first] = it->second;
 			else
-				MWARN("Cohort \"%s\" name already exists - skip additional\n");
+				MWARN("Cohort \"%s\" name already exists - skip additional\n", it->first.c_str());
 
 		if (!cohorts.empty())
 			all_results = booststrap_analyze(preds, preds_order, y, weights, *rep_ids, additional_info, cohorts,

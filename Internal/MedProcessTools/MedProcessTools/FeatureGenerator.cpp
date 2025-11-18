@@ -222,7 +222,10 @@ int FeatureGenerator::generate(MedPidRepository& rep, int id, MedFeatures& featu
 		data_size = (int)features.weights.size();
 
 		if (data_size > samples_size) {
-			MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate weights \n", data_size, samples_size);
+			string name = "";
+			if (names.size() > 0)
+				name = names[0];
+			MERR("Data (%d) is longer than Samples (%d) for %s. Cannot generate weights \n", data_size, samples_size, name.c_str());
 			return -1;
 		}
 		features.weights.resize(samples_size);

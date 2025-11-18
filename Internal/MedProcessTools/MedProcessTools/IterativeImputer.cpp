@@ -218,7 +218,7 @@ int IterativeImputer::init_feature_info(MedFeatures &mfd, string feat_name)
 	}
 
 	fi.resolution = best_res;
-	if (params.verbose > 1)  MLOG("feature %s : best of resolution  %f : n_in_res %d \n", fi.name.c_str(), best_res);
+	if (params.verbose > 1)  MLOG("feature %s : best of resolution  %f\n", fi.name.c_str(), best_res);
 
 
 	if (fi.n_missing == 0) fi.predictor_type = 0;
