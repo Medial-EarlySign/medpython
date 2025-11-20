@@ -68,7 +68,7 @@ find_package(OpenMP REQUIRED)
 
 find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})  # Example components
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIRS})
 
 set(BOOST_STATIC_LIB_PATHS "")
