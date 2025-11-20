@@ -14,9 +14,6 @@ message("*********************************************")
 if("${Python3_INCLUDE_DIRS}" STREQUAL "")
     message(FATAL_ERROR "Could not find PYTHON_INCLUDE_DIR")
 endif()
-if("${Python3_LIBRARIES}" STREQUAL "")
-    message(FATAL_ERROR "Could not find Python3_LIBRARIES")
-endif()
 message("*********************************************")
 
 ADD_CUSTOM_TARGET(apply_directives
@@ -42,4 +39,4 @@ set_property(SOURCE medpython.i PROPERTY SWIG_MODULE_NAME medpython)
 swig_add_library(medpython LANGUAGE python SOURCES medpython.i ${CppFiles})
 
 
-SWIG_LINK_LIBRARIES(medpython ${Python3_LIBRARIES} -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${BOOST_STATIC_LIB_PATHS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${BOOST_STATIC_LIB_PATHS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
