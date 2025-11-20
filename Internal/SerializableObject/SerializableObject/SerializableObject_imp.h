@@ -5,7 +5,7 @@
 #include <typeinfo>
 
 #if __GNUC__
-#if __cplusplus <= 201402L
+#if __cplusplus < 201402L
 template< bool B, class T = void >
 using enable_if_t = typename enable_if<B, T>::type;
 #endif
