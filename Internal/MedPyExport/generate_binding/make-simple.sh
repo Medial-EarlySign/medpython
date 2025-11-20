@@ -7,17 +7,6 @@ CURRENT_DIR=$(realpath ${0%/*})
 
 if [ $DIST_NAME == "unknown" ]; then
 	DIST_NAME="medial-python${PY_VERSION_SHORT}"
-	NUMPY_PATH=$(python -c 'import numpy as np;import os; print(os.path.dirname(np.__file__))')
-	if [ -d "${NUMPY_PATH}/core/include" ]; then
-		export CPATH=$CPATH:${NUMPY_PATH}/core/include/
-		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${NUMPY_PATH}/core/include/
-	elif [ -d "${NUMPY_PATH}/_core/include" ]; then
-		export CPATH=$CPATH:${NUMPY_PATH}/_core/include/
-		export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:${NUMPY_PATH}/_core/include/
-	else
-		echo "Couldn't find numpy headers - does numpy installed for this python? python${PY_VERSION}"
-		exit -1
-	fi
 fi
 
 #echo "(II) Python Include dir: '${PYTHON_INCLUDE_DIR}'"

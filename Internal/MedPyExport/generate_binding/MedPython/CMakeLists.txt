@@ -16,6 +16,22 @@ if("${Python3_INCLUDE_DIRS}" STREQUAL "")
 endif()
 message("*********************************************")
 
+# Numpy:
+execute_process(
+    COMMAND "${Python3_EXECUTABLE}" -c "import numpy; print(numpy.get_include())"
+    OUTPUT_VARIABLE Python3_NumPy_INCLUDE_DIR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# 3. Verify it was found
+if(NOT EXISTS "${Python3_NumPy_INCLUDE_DIR}")
+    message(FATAL_ERROR "NumPy headers not found. Please install numpy.")
+endif()
+
+# 4. Add to includes
+message(STATUS "NumPy Headers found: ${Python3_NumPy_INCLUDE_DIR}")
+INCLUDE_DIRECTORIES(${Python3_NumPy_INCLUDE_DIR})
+
 ADD_CUSTOM_TARGET(apply_directives
                   COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_apply.py ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/ ${CMAKE_CURRENT_SOURCE_DIR}/apply_directives.i )
 
