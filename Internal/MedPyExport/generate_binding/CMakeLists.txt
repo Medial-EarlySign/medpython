@@ -112,6 +112,8 @@ foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../${mes_lib}/${mes_lib} ${mes_lib})
 endforeach()
 
+include_directories(../MedPyExport)
+
 # External Libraries
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/xgboost xgboost)
 add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/LightGBM_2.2.3/LightGBM-2.2.3 _lightgbm)
