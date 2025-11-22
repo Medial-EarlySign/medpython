@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel", "cmake", "swig<4.3", "numpy"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "medpython"
+version = "1.0.0"
+description = "Medial EarlySign Python"
+dependencies = [
+    "numpy>=1.21.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+# copy to src ETL_Infra and AlgoMarker with the shared object
