@@ -80,7 +80,13 @@ class CMakeBuild(build_ext):
             f.write(
                 "from medpython import * ; import medpython as _med ; __doc__=_med.__doc__ ; __all__=_med.__all__ ;\n"
             )
+        #Remove lightgbm
+        if os.path.exists(os.path.join(destination_dir, "lib_lightgbm.so")):
+            os.remove(os.path.join(destination_dir, "lib_lightgbm.so"))
         # strip _medpython.so
+        subprocess.check_call(
+            ["strip", os.path.join(destination_dir, "_medpython.so")], cwd=self.build_temp
+        )
 
 
 setup(

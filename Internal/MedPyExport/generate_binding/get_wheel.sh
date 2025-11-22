@@ -2,6 +2,7 @@
 
 python -m pip install build auditwheel
 mkdir -p wheelhouse
+#rm -fr build dist
 
 set +e
 GIT_COMMIT_HASH=$(git rev-parse HEAD)
