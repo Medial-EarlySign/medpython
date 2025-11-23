@@ -35,7 +35,7 @@ class CMakeBuild(build_ext):
         cmake_args = [
             f"-DCMAKE_POLICY_VERSION_MINIMUM=3.10",
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
-            f"-DPYTHON_EXECUTABLE={sys.executable}",
+            f"-DPython3_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE=Release",
             # Add your specific flags here if needed
             # '-DSWIG_EXECUTABLE=...' (Usually auto-detected correctly in pyproject environment)
