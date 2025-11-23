@@ -27,7 +27,7 @@ var searchData=
   ['agegenerator_24',['AgeGenerator',['../classAgeGenerator.html',1,'']]],
   ['aggregatepredspostprocessor_25',['AggregatePredsPostProcessor',['../classAggregatePredsPostProcessor.html',1,'']]],
   ['alcoholgenerator_26',['AlcoholGenerator',['../classAlcoholGenerator.html',1,'']]],
-  ['algomarker_27',['AlgoMarker',['../classAlgoMarker.html',1,'']]],
+  ['algomarker_27',['algomarker',['../classAlgoMarker.html',1,'AlgoMarker'],['../classAlgoMarker_1_1AlgoMarker_1_1AlgoMarker.html',1,'AlgoMarker.AlgoMarker.AlgoMarker']]],
   ['aligned_5fallocator_28',['aligned_allocator',['../classEigen_1_1aligned__allocator.html',1,'Eigen']]],
   ['aligned_5fallocator_5findirection_29',['aligned_allocator_indirection',['../classEigen_1_1aligned__allocator__indirection.html',1,'Eigen']]],
   ['aligned_5fstack_5fmemory_5fhandler_30',['aligned_stack_memory_handler',['../classEigen_1_1internal_1_1aligned__stack__memory__handler.html',1,'Eigen::internal']]],
