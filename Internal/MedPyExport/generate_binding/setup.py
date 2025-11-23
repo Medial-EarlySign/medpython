@@ -27,19 +27,14 @@ class CMakeBuild(build_ext):
 
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
-
-        # This is where we want the .so and .py files to end up
-        # We target the 'med' folder inside the build directory
-        destination_dir = os.path.join(extdir, "med")
-
         # Ensure the destination exists
-        if not os.path.exists(destination_dir):
-            os.makedirs(destination_dir)
+        if not os.path.exists(extdir):
+            os.makedirs(extdir)
 
         # Config Arguments
         cmake_args = [
             f"-DCMAKE_POLICY_VERSION_MINIMUM=3.10",
-            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={destination_dir}",
+            f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             f"-DPYTHON_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE=Release",
             # Add your specific flags here if needed
@@ -73,19 +68,22 @@ class CMakeBuild(build_ext):
         # Look for the generated python file in the build temp tree
         for root, dirs, files in os.walk(self.build_temp):
             if "medpython.py" in files:
-                shutil.copy(os.path.join(root, "medpython.py"), destination_dir)
+                shutil.copy(os.path.join(root, "medpython.py"), extdir)
                 break
         # Generate med.py:
-        with open(os.path.join(destination_dir, "med.py"), "w") as f:
+        with open(os.path.join(extdir, "med.py"), "w") as f:
             f.write(
-                "from medpython import * ; import medpython as _med ; __doc__=_med.__doc__ ; __all__=_med.__all__ ;\n"
+                "from .medpython import *\nfrom . import medpython as _med\n__doc__=_med.__doc__\n__all__=_med.__all__ ;\n"
             )
-        #Remove lightgbm
-        if os.path.exists(os.path.join(destination_dir, "lib_lightgbm.so")):
-            os.remove(os.path.join(destination_dir, "lib_lightgbm.so"))
+        with open(os.path.join(extdir, "__init__.py"), "w") as f:
+            f.write("from .med import *\n")
+        # Remove lightgbm
+        if os.path.exists(os.path.join(extdir, "lib_lightgbm.so")):
+            os.remove(os.path.join(extdir, "lib_lightgbm.so"))
         # strip _medpython.so
         subprocess.check_call(
-            ["strip", os.path.join(destination_dir, "_medpython.so")], cwd=self.build_temp
+            ["strip", os.path.join(extdir, "_medpython.so")],
+            cwd=self.build_temp,
         )
 
 
@@ -96,7 +94,7 @@ setup(
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     # We define one extension, pointing to the root where CMakeLists.txt is
-    ext_modules=[CMakeExtension("med/medpython", sourcedir=".")],
+    ext_modules=[CMakeExtension("med.medpython", sourcedir=".")],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
 )

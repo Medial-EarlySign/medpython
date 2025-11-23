@@ -1,4 +1,5 @@
 #!/bin/bash
+CURRENT_DIR=$(realpath ${0%/*})
 
 python -m pip install build auditwheel
 mkdir -p wheelhouse
