@@ -14,5 +14,6 @@ var searchData=
   ['project_11',['MSVC Project',['../md_External_2xgboost_2dmlc-core_2windows_2README.html',1,'']]],
   ['python_12',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
   ['python_20binding_13',['Medial Python Binding',['../md_Internal_2MedPyExport_2README.html',1,'']]],
-  ['python_20package_20examples_14',['Python-package Examples',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2python-guide_2README.html',1,'']]]
+  ['python_20library_14',['Medial EarlySign Python Library',['../md_Internal_2MedPyExport_2generate__binding_2README.html',1,'']]],
+  ['python_20package_20examples_15',['Python-package Examples',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2examples_2python-guide_2README.html',1,'']]]
 ];
