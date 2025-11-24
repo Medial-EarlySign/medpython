@@ -20,7 +20,18 @@ BUNDLED_CMAKE_DIR = os.path.join(
     INTERNAL_SOURCE, "Internal", "MedPyExport", "generate_binding"
 )
 
-SKIP_FOLDER_NAMES = set([os.path.basename(SETUP_DIR), ".git", "CMakeBuild", "Release", "build", "dist", "wheelhouse"])
+SKIP_FOLDER_NAMES = set(
+    [
+        ".git",
+        "CMakeBuild",
+        "Release",
+        "build",
+        "dist",
+        "wheelhouse",
+        "__pycache__",
+        ".vscode",
+    ]
+)
 
 
 class CustomSdist(_sdist):
@@ -36,13 +47,19 @@ class CustomSdist(_sdist):
 
             # If we are currently looking at the Root folder (MedPyExport)
             ignored = list(set(names).intersection(SKIP_FOLDER_NAMES))
-            if os.path.basename(src) ==os.path.basename(SETUP_DIR):
-                ignored.append("src")
+            if os.path.basename(src) == os.path.basename(SETUP_DIR):
+                if "src" in names:
+                    ignored.append("src")
+            for name in names:
+                if name.endswith(".egg-info"):
+                    ignored.append(name)
             return ignored
 
         # 2. Copy the external folder into src/med/cpp_src
         for EXTERNAL_SOURCE in EXTERNAL_SOURCES:
-            folder_name = os.path.basename(EXTERNAL_SOURCE) # e.g., "Internal" or "External"
+            folder_name = os.path.basename(
+                EXTERNAL_SOURCE
+            )  # e.g., "Internal" or "External"
             destination = os.path.join(INTERNAL_SOURCE, folder_name)
             print(f"Copying C++ source from {EXTERNAL_SOURCE} -> {destination}")
             # dirs_exist_ok=True allows overwriting if needed (Python 3.8+)
@@ -79,14 +96,14 @@ class CMakeBuild(build_ext):
 
         for ext in self.extensions:
             self.build_extension(ext)
-        
+
         self.cleanup_cpp_source()
 
     def cleanup_cpp_source(self):
         # build_lib is where setuptools assembles the package before zipping
         build_dir = os.path.abspath(self.build_lib)
         cpp_code_dest = os.path.join(build_dir, "med", "cpp_code")
-        
+
         if os.path.exists(cpp_code_dest):
             print(f"Removing C++ source from wheel: {cpp_code_dest}")
             shutil.rmtree(cpp_code_dest)

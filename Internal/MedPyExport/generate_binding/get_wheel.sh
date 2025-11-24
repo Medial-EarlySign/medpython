@@ -14,6 +14,7 @@ touch ${CURRENT_DIR}/../../MedUtils/MedUtils/MedGitVersion.h
 export GIT_HEAD_VERSION=$version_txt 
 
 python -m build --wheel --outdir dist
+#python -m build --sdist --outdir wheelhouse/
 
 for whl in dist/*.whl; do
     auditwheel repair "$whl" --plat manylinux2014_x86_64 -w wheelhouse/
