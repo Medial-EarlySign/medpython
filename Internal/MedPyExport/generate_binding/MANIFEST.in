@@ -1,0 +1,14 @@
+# Include the copied C++ source
+recursive-include src/med/cpp_code *
+recursive-include src/ETL_Infra/dicts *
+recursive-include src/ETL_Infra/rep_signals *
+include pyproject.toml
+include README.md
+include setup.py
+include LICENCE
+
+# Include CMake files if they are needed
+include CMakeLists.txt
+include *.i
+include *.h
+include *.cpp

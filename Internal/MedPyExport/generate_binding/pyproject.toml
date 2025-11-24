@@ -4,12 +4,34 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "medpython"
-version = "1.0.0"
+version = "1.0.1"
 description = "Medial EarlySign Python"
 readme = "README.md"
-dependencies = [
-    "numpy>=1.21.0"
+license = "MIT"
+license-files = ["LICENCE*"]
+requires-python = ">=3.8"
+authors = [
+  { name="Alon Lanyado" },
 ]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Programming Language :: C",
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+    "numpy>=1.21.0",
+    "pandas", 
+    "plotly", 
+    "ipython"
+]
+
+[project.urls]
+Github = "https://github.com/Medial-EarlySign/MR_LIBS"
+Wiki = "https://medial-earlysign.github.io/MR_Wiki/"
 
 [tool.setuptools.packages.find]
 where = ["src"]

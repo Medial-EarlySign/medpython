@@ -40,3 +40,5 @@ obj/
 Ankh.NoLoad
 enc_temp_folder
 generate_binding/MedPython/apply_directives.i
+generate_binding/src/ETL_Infra
+generate_binding/src/med
