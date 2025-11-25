@@ -12,7 +12,7 @@ var searchData=
   ['1_207_204_202023_20feb_2016_9',['1.7.4 (2023 Feb 16)',['../md_External_2xgboost_2NEWS.html#autotoc_md211',1,'']]],
   ['1_207_205_202023_20mar_2030_10',['1.7.5 (2023 Mar 30)',['../md_External_2xgboost_2NEWS.html#autotoc_md210',1,'']]],
   ['1_207_206_202023_20jun_2016_11',['1.7.6 (2023 Jun 16)',['../md_External_2xgboost_2NEWS.html#autotoc_md206',1,'']]],
-  ['1_20strong_20xgboost_20strong_12',['1. &lt;strong&gt;XGBoost&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md518',1,'']]],
+  ['1_20strong_20xgboost_20strong_12',['1. &lt;strong&gt;XGBoost&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md519',1,'']]],
   ['10_200_20and_20higher_205649_13',['Breaking: GPU algorithm now requires CUDA 10.0 and higher (#5649)',['../md_External_2xgboost_2NEWS.html#autotoc_md354',1,'']]],
   ['10_2014_20mojave_20and_20later_14',['Breaking: XGBoost now requires MacOS 10.14 (Mojave) and later.',['../md_External_2xgboost_2NEWS.html#autotoc_md307',1,'']]],
   ['10_20years_15',['Grouping per 10 years',['../md_External_2xgboost_2doc_2R-package_2discoverYourData.html#autotoc_md158',1,'']]],

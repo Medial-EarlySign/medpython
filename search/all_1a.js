@@ -29,7 +29,7 @@ var searchData=
   ['of_20alive_20cores_204858_26',['XGBoost4J-Spark: Refine method to count the number of alive cores  (#4858)',['../md_External_2xgboost_2NEWS.html#autotoc_md386',1,'']]],
   ['of_20categorical_20data_20support_27',['of categorical data support',['../md_External_2xgboost_2NEWS.html#autotoc_md217',1,'Development of categorical data support'],['../md_External_2xgboost_2NEWS.html#autotoc_md237',1,'Development of categorical data support']]],
   ['of_20columns_20in_20the_20data_20iterator_205202_205303_28',['XGBoost4J-Spark: Check number of columns in the data iterator (#5202, #5303)',['../md_External_2xgboost_2NEWS.html#autotoc_md351',1,'']]],
-  ['of_20compliance_20steps_29',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md528',1,'']]],
+  ['of_20compliance_20steps_29',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md529',1,'']]],
   ['of_20conduct_30',['of conduct',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2CODE__OF__CONDUCT.html',1,'Microsoft Open Source Code of Conduct'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html#autotoc_md83',1,'Microsoft Open Source Code of Conduct']]],
   ['of_20conduct_20issues_31',['Reporting Code of Conduct Issues',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2CODE__OF__CONDUCT.html#autotoc_md45',1,'']]],
   ['of_20contributors_32',['List of Contributors',['../md_External_2xgboost_2CONTRIBUTORS.html#autotoc_md89',1,'']]],

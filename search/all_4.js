@@ -5,7 +5,7 @@ var searchData=
   ['4_202_202021_2005_2013_2',['v1.4.2 (2021.05.13)',['../md_External_2xgboost_2NEWS.html#autotoc_md270',1,'']]],
   ['4_202015_2005_2011_3',['v0.4 (2015.05.11)',['../md_External_2xgboost_2NEWS.html#autotoc_md468',1,'']]],
   ['4_202023_20feb_2016_4',['1.7.4 (2023 Feb 16)',['../md_External_2xgboost_2NEWS.html#autotoc_md211',1,'']]],
-  ['4_20strong_20eigen_20strong_5',['4. &lt;strong&gt;Eigen&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md524',1,'']]],
+  ['4_20strong_20eigen_20strong_5',['4. &lt;strong&gt;Eigen&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md525',1,'']]],
   ['4_20x_204377_6',['XGBoost4J-Spark now requires Spark 2.4.x (#4377)',['../md_External_2xgboost_2NEWS.html#autotoc_md409',1,'']]],
   ['4002_204138_7',['Major API change: consistent logging level via &lt;tt&gt;verbosity&lt;/tt&gt; (#3982, #4002, #4138)',['../md_External_2xgboost_2NEWS.html#autotoc_md431',1,'']]],
   ['4011_204102_204140_204128_8',['New feature: Distributed Fast Histogram Algorithm (&lt;tt&gt;hist&lt;/tt&gt;) (#4011, #4102, #4140, #4128)',['../md_External_2xgboost_2NEWS.html#autotoc_md426',1,'']]],
