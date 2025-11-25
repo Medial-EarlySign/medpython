@@ -363,7 +363,7 @@ class AlgoMarker:
             )
             if res != 0:
                 msg = f"Error in add_data_simple - error code {res} for patient_id {patient_id}, signal_name {signal_name}, data: {elem}"
-                print(msg)
+                print(f"Error in add_data_simple - error code {res} for patient_id {patient_id}, more details in response message")
                 messages.append(msg)
         # No return value, errors are handled by the library
         return messages
