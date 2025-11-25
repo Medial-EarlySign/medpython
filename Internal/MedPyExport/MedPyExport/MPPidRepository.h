@@ -9,6 +9,7 @@
 class MPSigVectorAdaptor;
 class MPSig;
 class MedPidRepository;
+class MedConvert;
 //class UniversalSigVec;
 class MPSigExporter;
 
@@ -163,5 +164,20 @@ public:
 };
 
 
+class MPMedConvert {
+	public:
+	MEDPY_IGNORE(MedConvert* o);
+	MPMedConvert();
+	~MPMedConvert();
+
+	MEDPY_DOC(init, "init_load_params(load_args)");
+	void init_load_params(const std::string &load_args);
+
+	MEDPY_DOC(init, "create_rep(conf_fname)");
+	void create_rep(const std::string &conf_fname);
+
+	MEDPY_DOC(init, "create_index(conf_fname) - creates reverse index by pid");
+	int create_index(std::string &conf_fname);
+};
 
 #endif	// !__MP_PidRepository_H

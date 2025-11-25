@@ -903,3 +903,51 @@ int MPSigVectorAdaptor::MEDPY_GET_n_time_channels() { return ((UniversalSigVec *
 int MPSigVectorAdaptor::MEDPY_GET_n_val_channels() { return ((UniversalSigVec *)o)->n_val_channels(); }
 int MPSigVectorAdaptor::MEDPY_GET_time_unit() { return ((UniversalSigVec *)o)->time_unit(); }
 int MPSigVectorAdaptor::MEDPY_GET_size() { return (int)(((UniversalSigVec *)o)->size()); }
+
+MPMedConvert::MPMedConvert(): o(new MedConvert()) {}
+MPMedConvert::~MPMedConvert()
+{
+	delete o;
+	o = nullptr;
+}
+
+void MPMedConvert::init_load_params(const std::string &load_args)
+{
+	o->init_load_params(load_args);
+}
+
+void MPMedConvert::create_rep(const std::string &conf_fname)
+{
+	o->create_rep(conf_fname);
+}
+
+int MPMedConvert::create_index(std::string &conf_fname)
+{
+	MedPidRepository mpr;
+
+	if (mpr.read_config(conf_fname) < 0)
+		return -1;
+	if (mpr.read_pid_list() < 0)
+		return -1;
+
+	if (mpr.all_pids_list.size() == 0)
+	{
+		MERR("Flow: rep_create_pids: ERROR: got 0 pids in repository...., maybe pids list file was not created?...\n");
+		return -1;
+	}
+
+	int jump = 1000000;
+	int first = mpr.all_pids_list[0] - 1;
+	int last = mpr.all_pids_list.back() + 1;
+	if (((last - first) / 10) > jump)
+		jump = (last - first) / 10;
+
+	if (mpr.create(conf_fname, first, last, jump) < 0)
+	{
+		MERR("Flow: rep_create_pids: ERROR: Failed creating pid transpose rep.\n");
+		return -1;
+	}
+
+	MLOG("Flow: rep_create_pids: Succeeded\n");
+	return 0;
+}

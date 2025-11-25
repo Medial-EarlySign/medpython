@@ -48,6 +48,7 @@
  "PredictorTypes", \
  "Predictor", \
  "SampleVectorAdaptor", \
+ "MedConvert", \
 "Bootstrap"
 
 #endif //SWIG

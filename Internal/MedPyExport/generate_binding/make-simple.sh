@@ -33,6 +33,6 @@ popd
 NEW_RELEASE_PATH=${CURRENT_DIR}/Release/${DIST_NAME}
 RELEASE_PATH=${CURRENT_DIR}/CMakeBuild/Linux/Release/MedPython
 mkdir -p ${NEW_RELEASE_PATH}
-cp ${RELEASE_PATH}/medpython.py ${RELEASE_PATH}/_medpython.so ${NEW_RELEASE_PATH}
+cp ${RELEASE_PATH}/../medpython.py ${RELEASE_PATH}/_medpython.so ${NEW_RELEASE_PATH}
 echo "from medpython import * ; import medpython as _med ; __doc__=_med.__doc__ ; __all__=_med.__all__ ;" > ${NEW_RELEASE_PATH}/med.py
 echo "Extension files copied to ${NEW_RELEASE_PATH}"
