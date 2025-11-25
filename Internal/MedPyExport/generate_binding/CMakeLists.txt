@@ -75,24 +75,30 @@ if(DEFINED ENV{BOOST_DISABLE_STATIC})
     message("BOOST_DISABLE_STATIC was found - disabling static Boost libraries")
     set(USE_BOOST_SHARED_LIBS ON)
     set(Boost_USE_STATIC_LIBS OFF)
+
+    find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
 else()
     set(Boost_USE_STATIC_LIBS ON)
     message("Trying to use Boost static libraries. If not compiled with -fPIC it will fail. If it is only for your local machine. You might want to set BOOST_DISABLE_STATIC environment variable")
-endif()
-find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
 
-if(NOT Boost_FOUND)
-    message(WARNING "Could not find static Boost libraries. Falling back to shared libraries.")
-    set(USE_BOOST_SHARED_LIBS ON)
-    set(Boost_USE_STATIC_LIBS OFF)
-    # Unset Boost variables to allow a clean re-search
-    unset(Boost_LIBRARIES CACHE)
-    unset(Boost_FOUND CACHE)
-    find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
-else()
-    set(USE_BOOST_SHARED_LIBS OFF)
-    message(INFO " Using static Boost libraries.")
+    find_package(Boost COMPONENTS ${BOOST_LIBS})
+
+    if(NOT Boost_FOUND)
+        message(WARNING "Could not find static Boost libraries. Falling back to shared libraries.")
+        set(USE_BOOST_SHARED_LIBS ON)
+        set(Boost_USE_STATIC_LIBS OFF)
+        # Unset Boost variables to allow a clean re-search
+        unset(Boost_LIBRARIES CACHE)
+        unset(Boost_FOUND CACHE)
+        find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
+    else()
+        set(USE_BOOST_SHARED_LIBS OFF)
+        message(INFO " Using static Boost libraries.")
+    endif()
 endif()
+
+
+
 
 if (BOOST_ROOT)
     set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")
