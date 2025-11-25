@@ -67,5 +67,8 @@ set_property(SOURCE medpython.i PROPERTY SWIG_MODULE_NAME medpython)
 
 swig_add_library(medpython LANGUAGE python SOURCES medpython.i ${CppFiles})
 
-
-SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${BOOST_STATIC_LIB_PATHS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+if (USE_BOOST_SHARED_LIBS)
+    SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
+else()
+    SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+endif()

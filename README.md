@@ -34,3 +34,10 @@ This framework is deployed in production across multiple healthcare sites and pl
 
 Please refer to [MR_WIKI](https://medial-earlysign.github.io/MR_Wiki/) for full documentation
 - [Installation](https://medial-earlysign.github.io/MR_Wiki/Installation/)
+
+
+## Setup
+To install the python module:
+```bash
+pip install medpython
+```

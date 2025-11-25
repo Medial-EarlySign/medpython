@@ -67,31 +67,25 @@ set(CMAKE_BUILD_TYPE "Release")
 # Find Boost
 find_package(OpenMP REQUIRED)
 
-find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})  # Example components
-
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIRS})
 
-set(BOOST_STATIC_LIB_PATHS "")
-  set(Boost_USE_STATIC_LIBS ON)
-  foreach(lib IN LISTS BOOST_LIBS)
-    string(TOUPPER "${lib}" LIB_VAR)
+# Try to find static Boost libraries first
+set(Boost_USE_STATIC_LIBS ON)
+find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
 
-      if (NOT BOOST_ROOT)
-          find_library(BOOST_${LIB_VAR}_STATIC
-              NAMES "libboost_${lib}.a"
-          )
-      else()
-          set(BOOST_${LIB_VAR}_STATIC ${BOOST_ROOT}/lib/libboost_${lib}.a)
-      endif()
-
-      if(NOT BOOST_${LIB_VAR}_STATIC)
-          message(FATAL_ERROR "Could not find static Boost library: boost_${lib}.a")
-      endif()
-
-      list(APPEND BOOST_STATIC_LIB_PATHS ${BOOST_${LIB_VAR}_STATIC})
-  endforeach()
-
+if(NOT Boost_FOUND)
+    message(WARNING "Could not find static Boost libraries. Falling back to shared libraries.")
+    set(USE_BOOST_SHARED_LIBS ON)
+    set(Boost_USE_STATIC_LIBS OFF)
+    # Unset Boost variables to allow a clean re-search
+    unset(Boost_LIBRARIES CACHE)
+    unset(Boost_FOUND CACHE)
+    find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
+else()
+    set(USE_BOOST_SHARED_LIBS OFF)
+    message(INFO "Using static Boost libraries.")
+endif()
 
 if (BOOST_ROOT)
     set(Boost_INCLUDE_DIRS "${BOOST_ROOT}/include")
