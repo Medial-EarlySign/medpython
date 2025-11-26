@@ -23,6 +23,41 @@ The platform is built on three key pillars:
 *   **MedModel:** An end-to-end machine learning pipeline that takes data from MedRepository or JSON EMR inputs to produce predictions and explainability outputs. It supports both training and inference.
 *   **Medial Tools:** A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability.
 
+## Setup
+
+You can quickly install the package using **pip**:
+
+```bash
+pip install medpython
+```
+
+**System Requirements**
+
+* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04).
+* **Python**: Requires **Python 3.10 through 3.14**
+
+**Compilation for Other Systems**
+If you're using an **older Linux** or a **different platform/Python version >= 3.8**, you'll need to **compile the package yourself**.
+
+* **Note on Compilation**: Ensure the **Boost libraries** are installed. For a local setup, set the environment variable `BOOST_DISABLE_STATIC=1` to link against shared Boost libraries (The reason is that your system static libraries weren't compiled with `-fPIC` flag, so you can't use them inside python module):
+```bash
+export BOOST_DISABLE_STATIC=1
+```
+You can also set Boost installation directory with `BOOST_ROOT` environment variable if it is not part of the system libraries.
+
+## Usage
+```python
+import med
+from AlgoMarker import AlgoMarker
+from ETL_Infra import prepare_final_signals, prepare_dicts, finish_prepare_load, create_train_signal
+```
+
+More information on usage:
+
+* [ETL_Infra](https://medial-earlysign.github.io/MR_Wiki/Tutorials/01.ETL%20Tutorial) 
+* [AlgoMarker](https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Python%20AlgoMarker%20API%20Server.md#simple-usage-example)
+* [med library](https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Examples.md)
+
 ## Getting Started
 
 *   **Build a new model:** Follow the step-by-step [Tutorials](https://medial-earlysign.github.io/MR_Wiki/Tutorials/index.html) to build a model from scratch.
