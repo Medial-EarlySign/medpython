@@ -1,5 +1,15 @@
 # Medial EarlySign Python Library
 
+
+![Pepy Total Downloads](https://img.shields.io/pepy/dt/medpython)
+![PyPI - License](https://img.shields.io/pypi/l/medpython)
+![GitHub contributors](https://img.shields.io/github/contributors-anon/Medial-EarlySign/MR_LIBS)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Medial-EarlySign/MR_LIBS)
+
+[![GitHub Repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/Medial-EarlySign/MR_LIBS)
+![GitHub Repo stars](https://img.shields.io/github/stars/Medial-EarlySign/MR_WIKI)
+
+
 Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into **machine-learning-ready** data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering **low memory usage** and **high-speed processing** at scale.
 
 It was conceived as a **TensorFlow** for machine learning on medical data.
@@ -54,9 +64,13 @@ from ETL_Infra import prepare_final_signals, prepare_dicts, finish_prepare_load,
 
 More information on usage:
 
-* [ETL_Infra](https://medial-earlysign.github.io/MR_Wiki/Tutorials/01.ETL%20Tutorial) 
+* [ETL_Infra](https://medial-earlysign.github.io/MR_Wiki/Tutorials/01.ETL%20Tutorial) - To load data into medpython data format
+    - [API Documentation](https://medial-earlysign.github.io/MR_Tools)
 * [AlgoMarker](https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Python%20AlgoMarker%20API%20Server.md#simple-usage-example)
+    - From usage in deployment/lighter API interface. Usefull for accessing prebuild models. [API Documentation](https://medial-earlysign.github.io/MR_Tools/AlgoMarker.html)
 * [med library](https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Examples.md)
+    - Full library from training new models or using with existing models. [Complete Example: From Data to Model](https://medial-earlysign.github.io/MR_Wiki/#complete-example-from-data-to-model)
+    - [API Documentation](https://medial-earlysign.github.io/MR_Tools)
 
 ## Getting Started
 
