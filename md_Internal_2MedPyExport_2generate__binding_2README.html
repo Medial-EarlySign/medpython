@@ -72,7 +72,10 @@ $(function() {
   <div class="headertitle"><div class="title">Medial EarlySign Python Library</div></div>
 </div><!--header-->
 <div class="contents">
-<div class="textblock"><p><a class="anchor" id="autotoc_md504"></a> Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into <b>machine-learning-ready</b> data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering <b>low memory usage</b> and <b>high-speed processing</b> at scale.</p>
+<div class="textblock"><p><a class="anchor" id="autotoc_md504"></a></p>
+<p><img src="https://img.shields.io/pepy/dt/medpython" alt="Pepy Total Downloads" class="inline"/> <img src="https://img.shields.io/pypi/l/medpython" alt="PyPI - License" class="inline"/> <img src="https://img.shields.io/github/contributors-anon/Medial-EarlySign/MR_LIBS" alt="GitHub contributors" class="inline"/> <img src="https://img.shields.io/github/commit-activity/t/Medial-EarlySign/MR_LIBS" alt="GitHub commit activity" class="inline"/></p>
+<p><a href="https://github.com/Medial-EarlySign/MR_LIBS"><img src="https://img.shields.io/badge/github-repo-blue?logo=github" alt="GitHub Repo" class="inline"/></a> <img src="https://img.shields.io/github/stars/Medial-EarlySign/MR_WIKI" alt="GitHub Repo stars" class="inline"/></p>
+<p>Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into <b>machine-learning-ready</b> data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering <b>low memory usage</b> and <b>high-speed processing</b> at scale.</p>
 <p>It was conceived as a <b>TensorFlow</b> for machine learning on medical data.</p>
 <p>All software is now open-sourced under the MIT license. Some of the models developed by Medial EarlySign that are currently in production are available exclusively through our partners.</p>
 <p>The framework was battle-tested in production across multiple healthcare sites and was a key component of an <b>award-winning</b> submission to the <a href="https://www.cms.gov/priorities/innovation/innovation-models/artificial-intelligence-health-outcomes-challenge">CMS AI Health Outcomes Challenge</a>.</p>
@@ -93,6 +96,41 @@ Core Components</h1>
 <li><b>Medial Tools:</b> A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability.</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md507"></a>
+Setup</h1>
+<p>You can quickly install the package using <b>pip</b>:</p>
+<div class="fragment"><div class="line">pip install medpython</div>
+</div><!-- fragment --><p><b>System Requirements</b></p>
+<ul>
+<li><b>Supported Systems</b>: This pre-built version is available for <b>modern Linux</b> distributions (specifically <code>manylinux2014</code> equivalents, such as CentOS &gt;= 7 or Ubuntu &gt;= 13.04).</li>
+<li><b>Python</b>: Requires <b>Python 3.10 through 3.14</b></li>
+</ul>
+<p><b>Compilation for Other Systems</b> If you're using an <b>older Linux</b> or a <b>different platform/Python version &gt;= 3.8</b>, you'll need to <b>compile the package yourself</b>.</p>
+<ul>
+<li><b>Note on Compilation</b>: Ensure the <b>Boost libraries</b> are installed. For a local setup, set the environment variable <code>BOOST_DISABLE_STATIC=1</code> to link against shared Boost libraries (The reason is that your system static libraries weren't compiled with <code>-fPIC</code> flag, so you can't use them inside python module): <div class="fragment"><div class="line">export BOOST_DISABLE_STATIC=1</div>
+</div><!-- fragment --> You can also set Boost installation directory with <code>BOOST_ROOT</code> environment variable if it is not part of the system libraries.</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md508"></a>
+Usage</h1>
+<div class="fragment"><div class="line"><span class="keyword">import</span> med</div>
+<div class="line"><span class="keyword">from</span> AlgoMarker <span class="keyword">import</span> AlgoMarker</div>
+<div class="line"><span class="keyword">from</span> ETL_Infra <span class="keyword">import</span> prepare_final_signals, prepare_dicts, finish_prepare_load, create_train_signal</div>
+</div><!-- fragment --><p>More information on usage:</p>
+<ul>
+<li><a href="https://medial-earlysign.github.io/MR_Wiki/Tutorials/01.ETL%20Tutorial">ETL_Infra</a> - To load data into medpython data format<ul>
+<li><a href="https://medial-earlysign.github.io/MR_Tools">API Documentation</a></li>
+</ul>
+</li>
+<li><a href="https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Python%20AlgoMarker%20API%20Server.md#simple-usage-example">AlgoMarker</a><ul>
+<li>From usage in deployment/lighter API interface. Usefull for accessing prebuild models. <a href="https://medial-earlysign.github.io/MR_Tools/AlgoMarker.html">API Documentation</a></li>
+</ul>
+</li>
+<li><a href="https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/Medial%20Tools/Python/Examples.md">med library</a><ul>
+<li>Full library from training new models or using with existing models. <a href="https://medial-earlysign.github.io/MR_Wiki/#complete-example-from-data-to-model">Complete Example: From Data to Model</a></li>
+<li><a href="https://medial-earlysign.github.io/MR_Tools">API Documentation</a></li>
+</ul>
+</li>
+</ul>
+<h1><a class="anchor" id="autotoc_md509"></a>
 Getting Started</h1>
 <ul>
 <li><b>Build a new model:</b> Follow the step-by-step <a href="https://medial-earlysign.github.io/MR_Wiki/Tutorials/index.html">Tutorials</a> to build a model from scratch.</li>
@@ -102,7 +140,7 @@ Getting Started</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Nov 25 2025 18:18:14 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Thu Nov 27 2025 19:02:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
