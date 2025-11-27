@@ -5,6 +5,10 @@ if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
     cmake_policy(SET CMP0144 NEW)
 endif()
 
+# Find Boost
+find_package(OpenMP REQUIRED)
+
+find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 set(CMAKE_SWIG_OUTDIR ${CMAKE_CURRENT_BINARY_DIR})
@@ -45,7 +49,10 @@ execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
     PROJECT_BUILD_TIME "${DATE_TIME}")
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++17 -Wno-write-strings -Wuninitialized -Wno-narrowing -fopenmp -msse2 -msse3 -msse4 -march=native -Ofast --param inline-unit-growth=1000000 -fPIC -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
+if (NOT WIN32)
+    set(GCC_WARNINGS "-Wno-write-strings -Wuninitialized -Wno-narrowing")
+endif()
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++17 ${GCC_WARNINGS} -fopenmp -msse2 -msse3 -msse4 -march=native -Ofast --param inline-unit-growth=1000000 -fPIC -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 
 # Filter out definition of NDEBUG from the default configuration flags for Release
 foreach (language CXX C)
@@ -64,10 +71,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -march=native -Og")
 
 set(CMAKE_BUILD_TYPE "Release")
 
-# Find Boost
-find_package(OpenMP REQUIRED)
 
-find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
 set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIRS})
 
 # Try to find static Boost libraries first

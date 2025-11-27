@@ -13,6 +13,7 @@
 
 #define LOCAL_SECTION LOG_INFRA
 #define LOCAL_LEVEL	LOG_DEF_LEVEL
+#define _FILE_OFFSET_BITS 64
 extern MedLogger global_logger;
 
 //-----------------------------------------------------------------------------
@@ -192,7 +193,7 @@ int read_bin_file_IM_parallel(string &fname, unsigned char* &data, unsigned long
 #if defined (_MSC_VER) || defined (_WIN32)
 		_fseeki64(inf_read, i<<k, SEEK_SET);
 #else
-		fseeko64(inf_read, i<<k, SEEK_SET);
+		fseeko(inf_read, i<<k, SEEK_SET);
 #endif
 		if (nread > 0)
 			if (fread(&data[i<<k], 1, nread, inf_read) != nread)
