@@ -50,10 +50,11 @@ execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
 if (NOT WIN32)
-    set(GCC_WARNINGS "-Wno-write-strings -Wuninitialized -Wno-narrowing")
+    set(COMPILER_FLAGS "--std=c++17 -fopenmp -msse2 -msse3 -msse4 -march=x86-64 --param inline-unit-growth=1000000 -fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing")
+else()
+    set(COMPILER_FLAGS "/std:c++17")
 endif()
-set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} --std=c++17 ${GCC_WARNINGS} -fopenmp -msse2 -msse3 -msse4 -march=native -Ofast --param inline-unit-growth=1000000 -fPIC -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
-
+set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS} -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 # Filter out definition of NDEBUG from the default configuration flags for Release
 foreach (language CXX C)
 	set(VAR_TO_MODIFY "CMAKE_${language}_FLAGS_RELEASE")
