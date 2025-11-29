@@ -27,7 +27,7 @@ var searchData=
   ['initialized_24',['initialized',['../structrabit_1_1engine_1_1ThreadLocalEntry.html#aa58df6ba59755bd68404c456dcec5d7a',1,'rabit::engine::ThreadLocalEntry']]],
   ['initmaxlambda_25',['initMaxLambda',['../classLassoSelector.html#ab238427042e4c8e025d422900231a4a8',1,'LassoSelector']]],
   ['input_5fname_26',['input_name',['../classRepSplitSignal.html#aff9fbfd40677febb4199cd53bbbc6e7f',1,'RepSplitSignal::input_name'],['../classRepAggregationPeriod.html#a885f4c82d6a7245304e843cf4a25047c',1,'RepAggregationPeriod::input_name'],['../classRepSignalRate.html#a8754a47deb204c3e759cd35c469fcf6c',1,'RepSignalRate::input_name']]],
-  ['interaction_5fmode_27',['interaction_mode',['../classFilterParams.html#a36de05867bb963bf8c1ca7e36d19f314',1,'FilterParams::interaction_mode'],['../classTimeWindowInteraction.html#a05116e9658008ceacfa7058bd67f93af',1,'TimeWindowInteraction::interaction_mode']]],
+  ['interaction_5fmode_27',['interaction_mode',['../classFilterParams.html#a36de05867bb963bf8c1ca7e36d19f314',1,'FilterParams::interaction_mode'],['../classTimeWindowInteraction.html#a806fec719408e45e2cdda36026bf7344',1,'TimeWindowInteraction::interaction_mode']]],
   ['interaction_5fshap_28',['interaction_shap',['../classTreeExplainer.html#a43fb7b9c1872d3b45ff4505f637c0685',1,'TreeExplainer']]],
   ['intersection_5frange_5fcondition_29',['intersection_range_condition',['../classTimeWindowInteraction.html#ad711dee753723a30601ccdfd9ce8ef9c',1,'TimeWindowInteraction']]],
   ['is_5fbinary_5fmodel_30',['is_binary_model',['../classInputTesterJsonFeature.html#af24d816b1d2bcc6caed1f6b0e9b0cc6a',1,'InputTesterJsonFeature']]],
