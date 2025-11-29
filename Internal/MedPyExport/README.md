@@ -1,5 +1,8 @@
 # Medial Python Binding
 
+## Relase Notes - 1.0.4
+* Fixed all issues to compile also in windows
+
 ## Relase Notes - 1.0.3
 * Updated documentation
 

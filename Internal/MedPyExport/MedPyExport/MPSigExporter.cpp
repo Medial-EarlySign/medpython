@@ -286,6 +286,20 @@ void MPSigExporter::gen_cat_dict(const string &field_name, int channel)
 	categories[field_name].swap(category);
 };
 
+struct chan_info
+{
+	string data_key;
+	char *buf = nullptr;
+	int buf_bytes_len = 0;
+	int gsv_type = 0;
+	int gsv_type_offset = 0;
+	int npy_type = 0;
+	int gsv_type_bytes_len = 0;
+	int gsv_chan_num = -1;
+	int rec_count = 0;
+	bool is_timechan = false;
+};
+
 void MPSigExporter::get_all_data()
 {
 
@@ -918,19 +932,6 @@ void MPSigExporter::get_all_data()
 
 	case SigType::T_Generic:
 	{
-		typedef struct
-		{
-			string data_key;
-			char *buf = nullptr;
-			int buf_bytes_len = 0;
-			int gsv_type = 0;
-			int gsv_type_offset = 0;
-			int npy_type = 0;
-			int gsv_type_bytes_len = 0;
-			int gsv_chan_num = -1;
-			int rec_count = 0;
-			bool is_timechan = false;
-		} chan_info;
 		data_keys = vector<string>();
 		vector<chan_info> data_vec;
 		UniversalSigVec sv;

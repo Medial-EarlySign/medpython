@@ -6,6 +6,7 @@
 #include <map>
 #include <Logger/Logger/Logger.h>
 #include <SerializableObject/SerializableObject/SerializableObject.h>
+#include <array>
 
 using namespace std;
 /**
@@ -19,7 +20,7 @@ private:
 	pair<float, float> default_intersection_range; ///< the default range
 
 public:
-	unordered_map<float, TimeWindowMode[2]> interaction_mode; ///< map from label value to interaction rules
+	unordered_map<float, std::array<TimeWindowMode,2>> interaction_mode; ///< map from label value to interaction rules
 	unordered_map<float, pair<float, float>> intersection_range_condition; ///< intersection rate range with registry condition
 
 	TimeWindowInteraction() {
@@ -32,7 +33,7 @@ public:
 
 	TimeWindowMode *operator[] (float x) {
 		if (interaction_mode.find(x) != interaction_mode.end() || !has_default_mode)
-			return interaction_mode[x];
+			return interaction_mode[x].data();
 		//has_default_mode is true and not exist
 		return default_modes;
 	}
@@ -43,7 +44,7 @@ public:
 
 	const TimeWindowMode *at(float x) const {
 		if (interaction_mode.find(x) != interaction_mode.end() || !has_default_mode)
-			return interaction_mode.at(x);
+			return interaction_mode.at(x).data();
 		return default_modes;
 	}
 
