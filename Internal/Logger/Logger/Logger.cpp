@@ -14,8 +14,11 @@
 #include <unordered_set>
 
 #if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+
 #include <chrono>
 #include <Windows.h>
+#include <winsock2.h>
 
 int gettimeofday(struct timeval* tp, struct timezone* tzp) {
 	namespace sc = std::chrono;
