@@ -52,7 +52,7 @@ set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
 if (NOT WIN32)
     set(COMPILER_FLAGS "--std=c++17 -fopenmp -msse2 -msse3 -msse4 -march=x86-64 --param inline-unit-growth=1000000 -fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 else()
-    set(COMPILER_FLAGS "/std:c++17 /openmp /EHsc /permissive- /Zc:strictStrings- /Zc:__cplusplus")
+	set(COMPILER_FLAGS "/std:c++17 /openmp /EHsc /MD /permissive- /Zc:strictStrings- /Zc:__cplusplus")
 endif()
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS} ")
 # Filter out definition of NDEBUG from the default configuration flags for Release
@@ -119,6 +119,12 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/xgboost/includ
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/xgboost/rabit/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/xgboost/dmlc-core/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../../../External/LightGBM_2.2.3/LightGBM-2.2.3/include)
+
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "Build static libs" FORCE)
+if(POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+endif()
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Runtime library" FORCE)
 
 # Add Internal libraries
 foreach(mes_lib IN LISTS MEDIAL_INTERNAL_LIBS)

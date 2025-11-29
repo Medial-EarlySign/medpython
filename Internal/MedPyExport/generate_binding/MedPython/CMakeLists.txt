@@ -67,8 +67,24 @@ set_property(SOURCE medpython.i PROPERTY SWIG_MODULE_NAME medpython)
 
 swig_add_library(medpython LANGUAGE python SOURCES medpython.i ${CppFiles})
 
-if (USE_BOOST_SHARED_LIBS)
-    SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
+if (NOT WIN32)
+
+    if (USE_BOOST_SHARED_LIBS)
+        SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
+    else()
+        SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+    endif()
 else()
-    SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+    SWIG_LINK_LIBRARIES(medpython 
+        xgboost 
+        _lightgbm_static
+        ${Boost_LIBRARIES} 
+        ${MEDIAL_INTERNAL_LIBS}
+    )
+
+    # 2. Force Whole Archive
+    # We append the linker flag specifically for the libraries you want to embed.
+    set_target_properties(medpython PROPERTIES 
+        LINK_FLAGS "/WHOLEARCHIVE:xgboost /WHOLEARCHIVE:_lightgbm_static"
+    )
 endif()
