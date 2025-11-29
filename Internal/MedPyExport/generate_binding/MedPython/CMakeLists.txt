@@ -70,16 +70,19 @@ swig_add_library(medpython LANGUAGE python SOURCES medpython.i ${CppFiles})
 if (NOT WIN32)
 
     if (USE_BOOST_SHARED_LIBS)
-        SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
+        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
     else()
-        SWIG_LINK_LIBRARIES(medpython -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
     endif()
 else()
-    SWIG_LINK_LIBRARIES(medpython 
+    target_link_libraries(medpython PRIVATE
         xgboost 
         _lightgbm_static
-        ${Boost_LIBRARIES} 
         ${MEDIAL_INTERNAL_LIBS}
+        ${Python3_LIBRARIES}
+        Boost::filesystem
+        Boost::regex
+        Boost::program_options
     )
 
     # 2. Force Whole Archive

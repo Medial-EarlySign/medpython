@@ -120,6 +120,7 @@ class CMakeBuild(build_ext):
             f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}",
             f"-DPython3_EXECUTABLE={sys.executable}",
             f"-DCMAKE_BUILD_TYPE=Release",
+            "-DDMLC_FORCE_SHARED_CRT=ON",
             # Add your specific flags here if needed
             # '-DSWIG_EXECUTABLE=...' (Usually auto-detected correctly in pyproject environment)
         ]
