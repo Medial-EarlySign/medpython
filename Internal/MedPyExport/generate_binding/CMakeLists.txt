@@ -4,6 +4,9 @@ cmake_policy(SET CMP0074 NEW)
 if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.27")
     cmake_policy(SET CMP0144 NEW)
 endif()
+if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
+    cmake_policy(SET CMP0077 NEW)
+endif()
 
 # Find Boost
 find_package(OpenMP REQUIRED)
@@ -28,25 +31,58 @@ set(BOOST_LIBS
     program_options
 ) # for certain version, you might need to add "atomic" also, in some other cases remove system
 
-find_package(Boost REQUIRED)
-if(Boost_VERSION VERSION_GREATER_EQUAL "1.69") # 1.69 is represented as 106900 in CMake
+if (WIN32)
+    add_definitions(-DBOOST_ALL_DYN_LINK)
+endif()
+
+find_package(Boost QUIET)
+if(NOT Boost_FOUND)
+    message(FATAL_ERROR "Could not locate Boost installation to determine version.")
+endif()
+
+if(Boost_VERSION_STRING VERSION_GREATER_EQUAL "1.69") # 1.69 is represented as 106900 in CMake
     # Remove "system" for newer versions (>= 1.69)
     # The list(REMOVE_ITEM) command is used to remove a specific item from a list variable.
     list(REMOVE_ITEM BOOST_LIBS "system")
-    message(STATUS "Boost version is ${Boost_VERSION} (>= 1.69), removing 'system' from BOOST_LIBS.")
+    message(STATUS "Boost version is ${Boost_VERSION_STRING} (>= 1.69), removing 'system' from BOOST_LIBS.")
 else()
-    message(STATUS "Boost version is ${Boost_VERSION} (< 1.69), keeping 'system' in BOOST_LIBS.")
+    message(STATUS "Boost version is ${Boost_VERSION_STRING} (< 1.69), keeping 'system' in BOOST_LIBS.")
+endif()
+if (WIN32)
+    list(APPEND BOOST_LIBS "serialization")
+endif()
+
+# Try to find static Boost libraries first
+if(DEFINED ENV{BOOST_DISABLE_STATIC})
+    message("BOOST_DISABLE_STATIC was found - disabling static Boost libraries")
+    set(USE_BOOST_SHARED_LIBS ON)
+    set(Boost_USE_STATIC_LIBS OFF)
+
+    find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
+else()
+    # Attempt 1: Try to use static Boost libraries first
+    set(Boost_USE_STATIC_LIBS ON)
+    message("Trying to use Boost static libraries. If not compiled with -fPIC it will fail. If it is only for your local machine. You might want to set BOOST_DISABLE_STATIC environment variable")
+
+    find_package(Boost QUIET COMPONENTS ${BOOST_LIBS})
+
+    if(NOT Boost_FOUND)
+        message(WARNING "Could not find static Boost libraries. Falling back to shared libraries.")
+
+        set(USE_BOOST_SHARED_LIBS ON)
+        set(Boost_USE_STATIC_LIBS OFF)
+        # Unset Boost variables to allow a clean re-search
+        unset(Boost_LIBRARIES CACHE)
+        unset(Boost_FOUND CACHE)
+        find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
+    else()
+        set(USE_BOOST_SHARED_LIBS OFF)
+        message(STATUS  "Successfully found static Boost libraries.")
+    endif()
 endif()
 
 set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotly MedProcessTools MedSparseMat MedSplit MedStat MedTime MedUtils QRF SerializableObject TQRF micNet CommonLib
 )
-
-execute_process(COMMAND "date" "+%d-%m-%Y/%H:%M:%S"
-    OUTPUT_VARIABLE DATE_TIME)
-  string(REGEX REPLACE "([^/]*)/.*" "\\1"
-    PROJECT_BUILD_DATE "${DATE_TIME}")
-  string(REGEX REPLACE "[^/]*/([0-9:]*).*" "\\1"
-    PROJECT_BUILD_TIME "${DATE_TIME}")
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
 if (NOT WIN32)
@@ -74,35 +110,6 @@ set(CMAKE_BUILD_TYPE "Release")
 
 
 set(PYTHON_INCLUDE_DIR ${Python3_INCLUDE_DIRS})
-
-# Try to find static Boost libraries first
-if(DEFINED ENV{BOOST_DISABLE_STATIC})
-    message("BOOST_DISABLE_STATIC was found - disabling static Boost libraries")
-    set(USE_BOOST_SHARED_LIBS ON)
-    set(Boost_USE_STATIC_LIBS OFF)
-
-    find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
-else()
-    set(Boost_USE_STATIC_LIBS ON)
-    message("Trying to use Boost static libraries. If not compiled with -fPIC it will fail. If it is only for your local machine. You might want to set BOOST_DISABLE_STATIC environment variable")
-
-    find_package(Boost COMPONENTS ${BOOST_LIBS})
-
-    if(NOT Boost_FOUND)
-        message(WARNING "Could not find static Boost libraries. Falling back to shared libraries.")
-        set(USE_BOOST_SHARED_LIBS ON)
-        set(Boost_USE_STATIC_LIBS OFF)
-        # Unset Boost variables to allow a clean re-search
-        unset(Boost_LIBRARIES CACHE)
-        unset(Boost_FOUND CACHE)
-        find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
-    else()
-        set(USE_BOOST_SHARED_LIBS OFF)
-        message(INFO " Using static Boost libraries.")
-    endif()
-endif()
-
-
 
 
 if (BOOST_ROOT)

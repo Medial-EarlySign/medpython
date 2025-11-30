@@ -75,14 +75,13 @@ if (NOT WIN32)
         target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
     endif()
 else()
-    target_link_libraries(medpython PRIVATE
+    TARGET_LINK_LIBRARIES(medpython PRIVATE 
         xgboost 
-        _lightgbm_static
-        ${MEDIAL_INTERNAL_LIBS}
-        ${Python3_LIBRARIES}
-        Boost::filesystem
-        Boost::regex
-        Boost::program_options
+        _lightgbm_static 
+        ${MEDIAL_INTERNAL_LIBS} 
+        ${Python3_LIBRARIES} 
+        ${Boost_LIBRARIES} 
+        Boost::disable_autolinking
     )
 
     # 2. Force Whole Archive
