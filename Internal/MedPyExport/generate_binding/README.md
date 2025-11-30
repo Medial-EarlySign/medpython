@@ -24,6 +24,7 @@ The framework was battle-tested in production across multiple healthcare sites a
 *   **Reusable Pipelines:** Save valuable engineering time by providing shareable, tested pipelines and methods.
 *   **Built-in Safeguards:** Mitigate common pitfalls like data leakage and time-series-specific overfitting.
 *   **Production-Ready:** Designed for easy deployment using Docker or minimal distroless Linux images.
+*   **State of The Art Algorithms** Developed state of the art algorithms for EMR use cases, explainablity and fairness and more...
 
 ## Core Components
 
@@ -43,7 +44,7 @@ pip install medpython
 
 **System Requirements**
 
-* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04).
+* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). The software also compiles in **Windows** but you will need to install Boost yourself. I hope shortl to provide windows pre-compiled builds through conda.
 * **Python**: Requires **Python 3.10 through 3.14**
 
 **Compilation for Other Systems**
@@ -54,6 +55,7 @@ If you're using an **older Linux** or a **different platform/Python version >= 3
 export BOOST_DISABLE_STATIC=1
 ```
 You can also set Boost installation directory with `BOOST_ROOT` environment variable if it is not part of the system libraries.
+Currently the library was compiled/tested in **linux** and **windows** only.
 
 ## Usage
 ```python

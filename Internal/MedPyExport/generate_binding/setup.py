@@ -143,6 +143,7 @@ class CMakeBuild(build_ext):
         subprocess.check_call(
             ["cmake", "--build", "."] + build_args, cwd=self.build_temp
         )
+        print("########## Done CMAKE BUILD ############3")
 
         # 3. MANUAL COPY (If CMake doesn't put the .py file exactly where we want)
         # CMake will put _medpython.so in destination_dir (because of CMAKE_LIBRARY_OUTPUT_DIRECTORY)
@@ -165,10 +166,14 @@ class CMakeBuild(build_ext):
         if os.path.exists(os.path.join(extdir, "lib_lightgbm.so")):
             os.remove(os.path.join(extdir, "lib_lightgbm.so"))
         # strip _medpython.so
-        subprocess.check_call(
-            ["strip", os.path.join(extdir, "_medpython.so")],
-            cwd=self.build_temp,
-        )
+        if shutil.which("strip"):
+            subprocess.check_call(
+                ["strip", os.path.join(extdir, "_medpython.so")],
+                cwd=self.build_temp,
+            )
+        winlib_file = os.path.join(extdir, "Release", "_medpython.pyd")
+        if os.path.exists(winlib_file):
+            shutil.copy(winlib_file, extdir)
 
 
 if os.path.exists(BUNDLED_CMAKE_DIR):

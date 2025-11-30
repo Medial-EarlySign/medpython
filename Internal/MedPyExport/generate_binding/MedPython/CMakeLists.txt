@@ -33,7 +33,9 @@ message(STATUS "NumPy Headers found: ${Python3_NumPy_INCLUDE_DIR}")
 INCLUDE_DIRECTORIES(${Python3_NumPy_INCLUDE_DIR})
 
 ADD_CUSTOM_TARGET(apply_directives
-                  COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_apply.py ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/ ${CMAKE_CURRENT_SOURCE_DIR}/apply_directives.i )
+                  COMMAND "${Python3_EXECUTABLE}" "${CMAKE_CURRENT_SOURCE_DIR}/scripts/make_apply.py" "${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/" "${CMAKE_CURRENT_SOURCE_DIR}/apply_directives.i" 
+                  COMMENT "Running make_apply.py" 
+                  VERBATIM )
 
 
 INCLUDE_DIRECTORIES(${CMAKE_CURRENT_SOURCE_DIR})
