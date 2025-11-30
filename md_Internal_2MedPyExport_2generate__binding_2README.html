@@ -86,6 +86,7 @@ Why Use This Platform?</h1>
 <li><b>Reusable Pipelines:</b> Save valuable engineering time by providing shareable, tested pipelines and methods.</li>
 <li><b>Built-in Safeguards:</b> Mitigate common pitfalls like data leakage and time-series-specific overfitting.</li>
 <li><b>Production-Ready:</b> Designed for easy deployment using Docker or minimal distroless Linux images.</li>
+<li><b>State of The Art Algorithms</b> Developed state of the art algorithms for EMR use cases, explainablity and fairness and more...</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md506"></a>
 Core Components</h1>
@@ -101,13 +102,13 @@ Setup</h1>
 <div class="fragment"><div class="line">pip install medpython</div>
 </div><!-- fragment --><p><b>System Requirements</b></p>
 <ul>
-<li><b>Supported Systems</b>: This pre-built version is available for <b>modern Linux</b> distributions (specifically <code>manylinux2014</code> equivalents, such as CentOS &gt;= 7 or Ubuntu &gt;= 13.04).</li>
+<li><b>Supported Systems</b>: This pre-built version is available for <b>modern Linux</b> distributions (specifically <code>manylinux2014</code> equivalents, such as CentOS &gt;= 7 or Ubuntu &gt;= 13.04). The software also compiles in <b>Windows</b> but you will need to install Boost yourself. I hope shortl to provide windows pre-compiled builds through conda.</li>
 <li><b>Python</b>: Requires <b>Python 3.10 through 3.14</b></li>
 </ul>
 <p><b>Compilation for Other Systems</b> If you're using an <b>older Linux</b> or a <b>different platform/Python version &gt;= 3.8</b>, you'll need to <b>compile the package yourself</b>.</p>
 <ul>
 <li><b>Note on Compilation</b>: Ensure the <b>Boost libraries</b> are installed. For a local setup, set the environment variable <code>BOOST_DISABLE_STATIC=1</code> to link against shared Boost libraries (The reason is that your system static libraries weren't compiled with <code>-fPIC</code> flag, so you can't use them inside python module): <div class="fragment"><div class="line">export BOOST_DISABLE_STATIC=1</div>
-</div><!-- fragment --> You can also set Boost installation directory with <code>BOOST_ROOT</code> environment variable if it is not part of the system libraries.</li>
+</div><!-- fragment --> You can also set Boost installation directory with <code>BOOST_ROOT</code> environment variable if it is not part of the system libraries. Currently the library was compiled/tested in <b>linux</b> and <b>windows</b> only.</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md508"></a>
 Usage</h1>
@@ -140,7 +141,7 @@ Getting Started</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Sun Nov 30 2025 20:08:39 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Sun Nov 30 2025 22:21:20 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
