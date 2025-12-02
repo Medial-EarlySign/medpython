@@ -7,7 +7,7 @@ var searchData=
   ['3_202023_20jan_206_4',['1.7.3 (2023 Jan 6)',['../md_External_2xgboost_2NEWS.html#autotoc_md212',1,'']]],
   ['3_205_20or_20newer_205021_205274_5',['Breaking: XGBoost Python package now requires Python 3.5 or newer (#5021, #5274)',['../md_External_2xgboost_2NEWS.html#autotoc_md394',1,'']]],
   ['3_206_20and_20later_205715_6',['Breaking: XGBoost Python package now requires Python 3.6 and later (#5715)',['../md_External_2xgboost_2NEWS.html#autotoc_md331',1,'']]],
-  ['3_20strong_20nlohmann_20json_20“json_20for_20modern_20c_20”_20strong_7',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md529',1,'']]],
+  ['3_20strong_20nlohmann_20json_20“json_20for_20modern_20c_20”_20strong_7',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md532',1,'']]],
   ['30_8',['30',['../md_External_2xgboost_2NEWS.html#autotoc_md210',1,'1.7.5 (2023 Mar 30)'],['../md_External_2xgboost_2NEWS.html#autotoc_md465',1,'v0.7 (2017.12.30)']]],
   ['3904_203910_9',['New feature: Multiple validation datasets in XGBoost4J-Spark (#3904, #3910)',['../md_External_2xgboost_2NEWS.html#autotoc_md428',1,'']]],
   ['3910_10',['New feature: Multiple validation datasets in XGBoost4J-Spark (#3904, #3910)',['../md_External_2xgboost_2NEWS.html#autotoc_md428',1,'']]],

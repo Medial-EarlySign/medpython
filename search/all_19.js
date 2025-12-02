@@ -105,7 +105,7 @@ var searchData=
   ['nfolds_102',['nfolds',['../classIterativeFeatureSelector.html#af629a7fc93b0e35b3d41d98b54570115',1,'IterativeFeatureSelector']]],
   ['nhandle_5fattr_103',['nHandle_attr',['../classRepSimValHandler.html#a262a200b93e6ef5658a38b60ded26607',1,'RepSimValHandler']]],
   ['nhandle_5fattr_5fsuffix_104',['nHandle_attr_suffix',['../classRepSimValHandler.html#ad82e2bb207e96245de97d59a7afb63f0',1,'RepSimValHandler']]],
-  ['nlohmann_20json_20“json_20for_20modern_20c_20”_20strong_105',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md529',1,'']]],
+  ['nlohmann_20json_20“json_20for_20modern_20c_20”_20strong_105',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md532',1,'']]],
   ['no_20longer_20stores_20the_20leaf_20child_20count_206094_106',['Breaking: the JSON model format no longer stores the leaf child count (#6094).',['../md_External_2xgboost_2NEWS.html#autotoc_md306',1,'']]],
   ['no_5fassignment_5foperator_107',['no_assignment_operator',['../classEigen_1_1internal_1_1no__assignment__operator.html',1,'Eigen::internal']]],
   ['no_5fipv6_108',['no_ipv6',['../namespacexgboost_1_1testing.html#a0276c38940ea82f1bab67e8582d0d6a0',1,'xgboost::testing']]],

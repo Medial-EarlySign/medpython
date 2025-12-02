@@ -10,7 +10,7 @@ var searchData=
   ['plugin_20for_20federated_20learning_7',['XGBoost Plugin for Federated Learning',['../md_External_2xgboost_2plugin_2federated_2README.html',1,'']]],
   ['plugins_20modules_8',['XGBoost Plugins Modules',['../md_External_2xgboost_2plugin_2README.html',1,'']]],
   ['pmml_20generator_9',['PMML Generator',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2pmml_2README.html',1,'']]],
-  ['policy_10',['Security Policy',['../md_External_2xgboost_2SECURITY.html',1,'']]],
+  ['policy_10',['policy',['../md_External_2xgboost_2SECURITY.html',1,'Security Policy'],['../md_SECURITY.html',1,'Security Policy']]],
   ['project_11',['MSVC Project',['../md_External_2xgboost_2dmlc-core_2windows_2README.html',1,'']]],
   ['python_12',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
   ['python_20binding_13',['Medial Python Binding',['../md_Internal_2MedPyExport_2README.html',1,'']]],

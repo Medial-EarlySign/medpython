@@ -181,7 +181,7 @@ var searchData=
   ['densetimesparseproduct_178',['DenseTimeSparseProduct',['../classEigen_1_1DenseTimeSparseProduct.html',1,'Eigen']]],
   ['densifyparser_179',['DensifyParser',['../classdmlc_1_1data_1_1DensifyParser.html',1,'dmlc::data']]],
   ['dependencies_180',['Dependencies',['../md_External_2xgboost_2plugin_2updater__oneapi_2README.html#autotoc_md482',1,'']]],
-  ['dependencies_20strong_181',['5. &lt;strong&gt;System-Provided Dependencies&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md533',1,'']]],
+  ['dependencies_20strong_181',['5. &lt;strong&gt;System-Provided Dependencies&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md536',1,'']]],
   ['deprecated_20features_20have_20been_20removed_182',['Breaking: Some deprecated features have been removed',['../md_External_2xgboost_2NEWS.html#autotoc_md397',1,'']]],
   ['deprecated_20list_183',['Deprecated List',['../deprecated.html',1,'']]],
   ['deprecated_5fmax_5fdepth_184',['deprecated_max_depth',['../structxgboost_1_1TreeParam.html#adab4853ea9de019ffcb0542290dc53eb',1,'xgboost::TreeParam']]],

@@ -3,7 +3,7 @@ var searchData=
   ['5_200_202021_20oct_2011_0',['v1.5.0 (2021 Oct 11)',['../md_External_2xgboost_2NEWS.html#autotoc_md253',1,'']]],
   ['5_202023_20mar_2030_1',['1.7.5 (2023 Mar 30)',['../md_External_2xgboost_2NEWS.html#autotoc_md210',1,'']]],
   ['5_20or_20newer_205021_205274_2',['Breaking: XGBoost Python package now requires Python 3.5 or newer (#5021, #5274)',['../md_External_2xgboost_2NEWS.html#autotoc_md394',1,'']]],
-  ['5_20strong_20system_20provided_20dependencies_20strong_3',['5. &lt;strong&gt;System-Provided Dependencies&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md533',1,'']]],
+  ['5_20strong_20system_20provided_20dependencies_20strong_3',['5. &lt;strong&gt;System-Provided Dependencies&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md536',1,'']]],
   ['5004_205129_4',['Learning to rank is now GPU accelerated (#4873, #5004, #5129)',['../md_External_2xgboost_2NEWS.html#autotoc_md380',1,'']]],
   ['5008_205107_205138_205156_5',['Better performance scaling for multi-core CPUs (#4502, #4529, #4716, #4851, #5008, #5107, #5138, #5156)',['../md_External_2xgboost_2NEWS.html#autotoc_md373',1,'']]],
   ['5014_6',['External memory for GPU training (#4486, #4526, #4747, #4833, #4879, #5014)',['../md_External_2xgboost_2NEWS.html#autotoc_md382',1,'']]],

@@ -1,7 +1,7 @@
 var searchData=
 [
   ['c_0',['Projects using JSON for Modern C++',['../md_External_2json_2README.html#autotoc_md35',1,'']]],
-  ['c_20”_20strong_1',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md529',1,'']]],
+  ['c_20”_20strong_1',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md532',1,'']]],
   ['c_2014_20standard_205664_2',['Breaking: XGBoost now adopts the C++14 standard (#5664)',['../md_External_2xgboost_2NEWS.html#autotoc_md332',1,'']]],
   ['c_20api_20function_20tt_20xgboosterpredict_20tt_20now_20asks_20for_20an_20extra_20parameter_20tt_20training_20tt_3',['Breaking: the C API function &lt;tt&gt;XGBoosterPredict()&lt;/tt&gt; now asks for an extra parameter &lt;tt&gt;training&lt;/tt&gt;.',['../md_External_2xgboost_2NEWS.html#autotoc_md398',1,'']]],
   ['c_20apis_4',['C-APIs',['../md_External_2xgboost_2demo_2c-api_2basic_2README.html',1,'']]],
@@ -331,7 +331,7 @@ var searchData=
   ['complexschur_328',['complexschur',['../classEigen_1_1ComplexSchur.html',1,'Eigen::ComplexSchur&lt; _MatrixType &gt;'],['../classEigen_1_1ComplexSchur.html#a9c92c6e4c33890d2d063c5c8dd22777d',1,'Eigen::ComplexSchur::ComplexSchur(const EigenBase&lt; InputType &gt; &amp;matrix, bool computeU=true)'],['../classEigen_1_1ComplexSchur.html#ad707d9978dc36b3b15e460c2a83f4093',1,'Eigen::ComplexSchur::ComplexSchur(Index size=RowsAtCompileTime==Dynamic ? 1 :RowsAtCompileTime)']]],
   ['complexschur_3c_20matrixtype_20_3e_329',['ComplexSchur&lt; MatrixType &gt;',['../classEigen_1_1ComplexSchur.html',1,'Eigen']]],
   ['complexvectortype_330',['ComplexVectorType',['../classEigen_1_1GeneralizedEigenSolver.html#acfd144329aca76882069da2fc5d53ef5',1,'Eigen::GeneralizedEigenSolver']]],
-  ['compliance_20steps_331',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md535',1,'']]],
+  ['compliance_20steps_331',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md538',1,'']]],
   ['components_332',['Core Components',['../md_Internal_2MedPyExport_2generate__binding_2README.html#autotoc_md506',1,'']]],
   ['compressbin_333',['CompressBin',['../structxgboost_1_1common_1_1Index_1_1CompressBin.html',1,'xgboost::common::Index']]],
   ['compressed_5fiterator_2eh_334',['compressed_iterator.h',['../compressed__iterator_8h.html',1,'']]],

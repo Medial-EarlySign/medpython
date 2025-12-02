@@ -170,7 +170,7 @@ var searchData=
   ['lightgbm_20gpu_20version_20with_20python_167',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
   ['lightgbm_20light_20gradient_20boosting_20machine_168',['LightGBM, Light Gradient Boosting Machine',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html',1,'']]],
   ['lightgbm_20r_20package_169',['LightGBM R-package',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2R-package_2README.html',1,'']]],
-  ['lightgbm_20strong_170',['2. &lt;strong&gt;LightGBM&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md527',1,'']]],
+  ['lightgbm_20strong_170',['2. &lt;strong&gt;LightGBM&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md530',1,'']]],
   ['lightgbm_20via_20docker_171',['lightgbm via docker',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2README.html#autotoc_md56',1,'Using CLI Version of LightGBM via Docker'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2README.html',1,'Using LightGBM via Docker']]],
   ['lightgbm_3a_3abasic_172',['basic',['../namespacelightgbm_1_1basic.html',1,'lightgbm']]],
   ['lightgbm_3a_3acallback_173',['callback',['../namespacelightgbm_1_1callback.html',1,'lightgbm']]],
