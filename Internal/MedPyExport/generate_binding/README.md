@@ -3,11 +3,11 @@
 
 ![Pepy Total Downloads](https://img.shields.io/pepy/dt/medpython)
 ![PyPI - License](https://img.shields.io/pypi/l/medpython)
-![GitHub contributors](https://img.shields.io/github/contributors-anon/Medial-EarlySign/MR_LIBS)
-![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Medial-EarlySign/MR_LIBS)
+![GitHub contributors](https://img.shields.io/github/contributors-anon/Medial-EarlySign/medpython)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Medial-EarlySign/medpython)
 
-[![GitHub Repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/Medial-EarlySign/MR_LIBS)
-![GitHub Repo stars](https://img.shields.io/github/stars/Medial-EarlySign/MR_WIKI)
+[![GitHub Repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/Medial-EarlySign/medpython)
+![GitHub Repo stars](https://img.shields.io/github/stars/Medial-EarlySign/medpython)
 
 
 Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into **machine-learning-ready** data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering **low memory usage** and **high-speed processing** at scale.

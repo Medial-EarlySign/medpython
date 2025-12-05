@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "medpython"
-version = "1.0.4"
+version = "1.0.5"
 description = "Medial EarlySign Python"
 readme = "README.md"
 license = "MIT"
@@ -30,7 +30,7 @@ dependencies = [
 ]
 
 [project.urls]
-Github = "https://github.com/Medial-EarlySign/MR_LIBS"
+Github = "https://github.com/Medial-EarlySign/medpython"
 Wiki = "https://medial-earlysign.github.io/MR_Wiki/"
 
 [tool.setuptools.packages.find]
