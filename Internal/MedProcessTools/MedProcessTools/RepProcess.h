@@ -9,6 +9,7 @@
 #include "MedProcessTools/MedProcessTools/MedValueCleaner.h"
 #include <MedMat/MedMat/MedMat.h>
 #include <omp.h>
+#include <cmath>
 
 #define DEFAULT_REP_CLNR_NTHREADS 8
 
@@ -951,7 +952,7 @@ public:
 
 	// Rounding - take care of resolution both in original and final units 
 	inline float completer_round(float value, float orig_res, float final_res, float factor) { return  set_resolution(set_resolution(value / factor, orig_res) * factor, final_res); }
-	inline float set_resolution(float value, float res) { return res * (int)(value / res + 0.5); }
+	inline float set_resolution(float value, float res) { return res * std::round(value / res); }
 
 	// Generating panels from usvs
 	void get_panels(vector<UniversalSigVec>& usvs, vector<int>& panel_times, vector<vector<float>>& panels, int time_limit, int panel_size);
