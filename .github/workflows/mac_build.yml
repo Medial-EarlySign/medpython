@@ -85,12 +85,6 @@ jobs:
         run: |
           # Check we have the Boost Root
           brew install libomp
-
-          LIBOMP_PREFIX=$(brew --prefix libomp)
-          
-          export CFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CFLAGS"
-          export CXXFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CXXFLAGS"
-          export LDFLAGS="-lomp -L$LIBOMP_PREFIX/lib $LDFLAGS"
           echo "Using Boost at: $BOOST_ROOT"
           
           cd Internal/MedPyExport/generate_binding
@@ -99,4 +93,5 @@ jobs:
           pip install numpy setuptools cmake "swig<4.3" pandas plotly
           
           # Run the installation
-          pip install . -vv
+          export CMAKE_ARGS="-DBoost_NO_BOOST_CMAKE=ON"
+          pip install . -vv --no-isolation
