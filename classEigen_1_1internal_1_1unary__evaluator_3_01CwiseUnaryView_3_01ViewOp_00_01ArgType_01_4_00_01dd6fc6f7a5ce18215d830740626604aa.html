@@ -69,12 +69,13 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01CwiseUnaryView_3_01ViewOp_00_01ArgType_01_4_00_01IteratorBased_01_4.html">unary_evaluator&lt; CwiseUnaryView&lt; ViewOp, ArgType &gt;, IteratorBased &gt;</a></li><li class="navelem"><a class="el" href="classEigen_1_1internal_1_1unary__evaluator_3_01CwiseUnaryView_3_01ViewOp_00_01ArgType_01_4_00_01dd6fc6f7a5ce18215d830740626604aa.html">InnerIterator</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01CwiseUnaryView_3_01ViewOp_00_01ArgType_01_4_00_01IteratorBased_01_4.html">unary_evaluator&lt; CwiseUnaryView&lt; ViewOp, ArgType &gt;, IteratorBased &gt;</a></li><li class="navelem"><a class="el" href="classEigen_1_1internal_1_1unary__evaluator_3_01CwiseUnaryView_3_01ViewOp_00_01ArgType_01_4_00_01dd6fc6f7a5ce18215d830740626604aa.html">InnerIterator</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pro-types">Protected Types</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a>  </div>
   <div class="headertitle"><div class="title">Eigen::internal::unary_evaluator&lt; CwiseUnaryView&lt; ViewOp, ArgType &gt;, IteratorBased &gt;::InnerIterator Class Reference</div></div>
 </div><!--header-->
@@ -89,22 +90,31 @@ Inheritance diagram for Eigen::internal::unary_evaluator&lt; CwiseUnaryView&lt; 
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a4c6fac5d79ddf219c2fee63eaf731e32" id="r_a4c6fac5d79ddf219c2fee63eaf731e32"><td class="memItemLeft" align="right" valign="top"><a id="a4c6fac5d79ddf219c2fee63eaf731e32" name="a4c6fac5d79ddf219c2fee63eaf731e32"></a>
-EIGEN_STRONG_INLINE&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a> &amp;<a class="el" href="classEigen_1_1Solve.html">unaryOp</a>, Index outer)</td></tr>
+EIGEN_STRONG_INLINE&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">unaryOp</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> outer)</td></tr>
 <tr class="separator:a4c6fac5d79ddf219c2fee63eaf731e32"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac7a1e063bd19e9bc2a71a97dd1b28723" id="r_ac7a1e063bd19e9bc2a71a97dd1b28723"><td class="memItemLeft" align="right" valign="top"><a id="ac7a1e063bd19e9bc2a71a97dd1b28723" name="ac7a1e063bd19e9bc2a71a97dd1b28723"></a>
 EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1InnerIterator.html">InnerIterator</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator++</b> ()</td></tr>
 <tr class="separator:ac7a1e063bd19e9bc2a71a97dd1b28723"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7278f1a034525f7bc6950d626a15e9d5" id="r_a7278f1a034525f7bc6950d626a15e9d5"><td class="memItemLeft" align="right" valign="top"><a id="a7278f1a034525f7bc6950d626a15e9d5" name="a7278f1a034525f7bc6950d626a15e9d5"></a>
-EIGEN_STRONG_INLINE Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>value</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_STRONG_INLINE Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>value</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a7278f1a034525f7bc6950d626a15e9d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adcbf80f7bb43551023b4b9182bf365ca" id="r_adcbf80f7bb43551023b4b9182bf365ca"><td class="memItemLeft" align="right" valign="top"><a id="adcbf80f7bb43551023b4b9182bf365ca" name="adcbf80f7bb43551023b4b9182bf365ca"></a>
 EIGEN_STRONG_INLINE Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>valueRef</b> ()</td></tr>
 <tr class="separator:adcbf80f7bb43551023b4b9182bf365ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-types" name="pro-types"></a>
+Protected Types</h2></td></tr>
+<tr class="memitem:a706ea46ab1c1ab9e8ca2324b624b49f1" id="r_a706ea46ab1c1ab9e8ca2324b624b49f1"><td class="memItemLeft" align="right" valign="top"><a id="a706ea46ab1c1ab9e8ca2324b624b49f1" name="a706ea46ab1c1ab9e8ca2324b624b49f1"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<tr class="separator:a706ea46ab1c1ab9e8ca2324b624b49f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d276abdf6a063c247d2519ca325f16e" id="r_a0d276abdf6a063c247d2519ca325f16e"><td class="memItemLeft" align="right" valign="top"><a id="a0d276abdf6a063c247d2519ca325f16e" name="a0d276abdf6a063c247d2519ca325f16e"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1unary__evaluator.html">unary_evaluator</a>&lt; <a class="el" href="classEigen_1_1CwiseUnaryView.html">CwiseUnaryView</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">ViewOp</a>, ArgType &gt;, <a class="el" href="structEigen_1_1internal_1_1IteratorBased.html">IteratorBased</a> &gt;::EvalIterator&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<tr class="separator:a0d276abdf6a063c247d2519ca325f16e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:a899c81f1f6265765146a7aaae76823fa" id="r_a899c81f1f6265765146a7aaae76823fa"><td class="memItemLeft" align="right" valign="top"><a id="a899c81f1f6265765146a7aaae76823fa" name="a899c81f1f6265765146a7aaae76823fa"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">ViewOp</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_functor</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">ViewOp</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_functor</b></td></tr>
 <tr class="separator:a899c81f1f6265765146a7aaae76823fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this class was generated from the following file:<ul>
@@ -113,7 +123,7 @@ Protected Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:51 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::scalar_min_op&lt; Scalar &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::scalar_min_op&lt; LhsScalar, RhsScalar, NaNPropagation &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,29 +69,52 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1scalar__min__op.html">scalar_min_op</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1scalar__min__op.html">scalar_min_op</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
+<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::scalar_min_op&lt; Scalar &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::scalar_min_op&lt; LhsScalar, RhsScalar, NaNPropagation &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
+<div class="dynheader">
+Inheritance diagram for Eigen::internal::scalar_min_op&lt; LhsScalar, RhsScalar, NaNPropagation &gt;:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="structEigen_1_1internal_1_1scalar__min__op.png" usemap="#Eigen::internal::scalar_5Fmin_5Fop_3C_20LhsScalar_2C_20RhsScalar_2C_20NaNPropagation_20_3E_map" alt=""/>
+  <map id="Eigen::internal::scalar_5Fmin_5Fop_3C_20LhsScalar_2C_20RhsScalar_2C_20NaNPropagation_20_3E_map" name="Eigen::internal::scalar_5Fmin_5Fop_3C_20LhsScalar_2C_20RhsScalar_2C_20NaNPropagation_20_3E_map">
+<area href="structEigen_1_1internal_1_1binary__op__base.html" alt="Eigen::internal::binary_op_base&lt; LhsScalar, RhsScalar &gt;" shape="rect" coords="0,0,430,24"/>
+  </map>
+</div></div>
 <table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
+Public Types</h2></td></tr>
+<tr class="memitem:a53165f4ea752fcf9d7bdc9e470185e8e" id="r_a53165f4ea752fcf9d7bdc9e470185e8e"><td class="memItemLeft" align="right" valign="top"><a id="a53165f4ea752fcf9d7bdc9e470185e8e" name="a53165f4ea752fcf9d7bdc9e470185e8e"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ScalarBinaryOpTraits.html">ScalarBinaryOpTraits</a>&lt; LhsScalar, RhsScalar, <a class="el" href="structEigen_1_1internal_1_1scalar__min__op.html">scalar_min_op</a> &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b></td></tr>
+<tr class="separator:a53165f4ea752fcf9d7bdc9e470185e8e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_structEigen_1_1internal_1_1binary__op__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1binary__op__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1binary__op__base.html">Eigen::internal::binary_op_base&lt; LhsScalar, RhsScalar &gt;</a></td></tr>
+<tr class="memitem:a83c1997b82c31cf8b003232445cbdcf2 inherit pub_types_structEigen_1_1internal_1_1binary__op__base" id="r_a83c1997b82c31cf8b003232445cbdcf2"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> LhsScalar&#160;</td><td class="memItemRight" valign="bottom"><b>first_argument_type</b></td></tr>
+<tr class="separator:a83c1997b82c31cf8b003232445cbdcf2 inherit pub_types_structEigen_1_1internal_1_1binary__op__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd943c603b3b6ff7c304ec1326b4eb53 inherit pub_types_structEigen_1_1internal_1_1binary__op__base" id="r_abd943c603b3b6ff7c304ec1326b4eb53"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> RhsScalar&#160;</td><td class="memItemRight" valign="bottom"><b>second_argument_type</b></td></tr>
+<tr class="separator:abd943c603b3b6ff7c304ec1326b4eb53 inherit pub_types_structEigen_1_1internal_1_1binary__op__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:aff54fc4c1113e47084cb792879c975c0" id="r_aff54fc4c1113e47084cb792879c975c0"><td class="memItemLeft" align="right" valign="top"><a id="aff54fc4c1113e47084cb792879c975c0" name="aff54fc4c1113e47084cb792879c975c0"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;a, <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:aff54fc4c1113e47084cb792879c975c0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7518019119ec61ce1ec9836f23bc8476" id="r_a7518019119ec61ce1ec9836f23bc8476"><td class="memTemplParams" colspan="2"><a id="a7518019119ec61ce1ec9836f23bc8476" name="a7518019119ec61ce1ec9836f23bc8476"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &gt; </td></tr>
-<tr class="memitem:a7518019119ec61ce1ec9836f23bc8476"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> Packet&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packetOp</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;a, <a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a7518019119ec61ce1ec9836f23bc8476"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abcd60e9f47eea85eaf49fc802266f913" id="r_abcd60e9f47eea85eaf49fc802266f913"><td class="memTemplParams" colspan="2"><a id="abcd60e9f47eea85eaf49fc802266f913" name="abcd60e9f47eea85eaf49fc802266f913"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &gt; </td></tr>
-<tr class="memitem:abcd60e9f47eea85eaf49fc802266f913"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar&#160;</td><td class="memTemplItemRight" valign="bottom"><b>predux</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;a) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:abcd60e9f47eea85eaf49fc802266f913"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd4d73f6ee59a56d2ec32ce503a78d0f" id="r_abd4d73f6ee59a56d2ec32ce503a78d0f"><td class="memItemLeft" align="right" valign="top"><a id="abd4d73f6ee59a56d2ec32ce503a78d0f" name="abd4d73f6ee59a56d2ec32ce503a78d0f"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> LhsScalar &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> RhsScalar &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:abd4d73f6ee59a56d2ec32ce503a78d0f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aee2dbc27d2ced73d06adc08e730bbe60" id="r_aee2dbc27d2ced73d06adc08e730bbe60"><td class="memTemplParams" colspan="2"><a id="aee2dbc27d2ced73d06adc08e730bbe60" name="aee2dbc27d2ced73d06adc08e730bbe60"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &gt; </td></tr>
+<tr class="memitem:aee2dbc27d2ced73d06adc08e730bbe60"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packetOp</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aee2dbc27d2ced73d06adc08e730bbe60"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acdb52c87f531b2396bf47bea0646e3aa" id="r_acdb52c87f531b2396bf47bea0646e3aa"><td class="memTemplParams" colspan="2"><a id="acdb52c87f531b2396bf47bea0646e3aa" name="acdb52c87f531b2396bf47bea0646e3aa"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &gt; </td></tr>
+<tr class="memitem:acdb52c87f531b2396bf47bea0646e3aa"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type&#160;</td><td class="memTemplItemRight" valign="bottom"><b>predux</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;a) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:acdb52c87f531b2396bf47bea0646e3aa"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/functors/<a class="el" href="BinaryFunctors_8h_source.html">BinaryFunctors.h</a></li>
@@ -99,7 +122,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &g
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:25 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

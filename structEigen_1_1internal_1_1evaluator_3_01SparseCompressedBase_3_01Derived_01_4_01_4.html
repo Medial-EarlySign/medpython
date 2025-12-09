@@ -69,14 +69,15 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1evaluator_3_01SparseCompressedBase_3_01Derived_01_4_01_4.html">evaluator&lt; SparseCompressedBase&lt; Derived &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1evaluator_3_01SparseCompressedBase_3_01Derived_01_4_01_4.html">evaluator&lt; SparseCompressedBase&lt; Derived &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
-<a href="#pub-attribs">Data Fields</a>  </div>
+<a href="#pro-methods">Protected Member Functions</a> &#124;
+<a href="#pro-attribs">Protected Attributes</a>  </div>
   <div class="headertitle"><div class="title">Eigen::internal::evaluator&lt; SparseCompressedBase&lt; Derived &gt; &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -86,62 +87,67 @@ Inheritance diagram for Eigen::internal::evaluator&lt; SparseCompressedBase&lt; 
  <div class="center">
   <img src="structEigen_1_1internal_1_1evaluator_3_01SparseCompressedBase_3_01Derived_01_4_01_4.png" usemap="#Eigen::internal::evaluator_3C_20SparseCompressedBase_3C_20Derived_20_3E_20_3E_map" alt=""/>
   <map id="Eigen::internal::evaluator_3C_20SparseCompressedBase_3C_20Derived_20_3E_20_3E_map" name="Eigen::internal::evaluator_3C_20SparseCompressedBase_3C_20Derived_20_3E_20_3E_map">
-<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Derived &gt;" shape="rect" coords="0,56,382,80"/>
-<area href="classEigen_1_1internal_1_1noncopyable.html" alt="Eigen::internal::noncopyable" shape="rect" coords="0,0,382,24"/>
+<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Derived &gt;" shape="rect" coords="0,0,382,24"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a7211edaa7fff7a4567f5769cc6b53d99" id="r_a7211edaa7fff7a4567f5769cc6b53d99"><td class="memItemLeft" align="right" valign="top"><a id="a7211edaa7fff7a4567f5769cc6b53d99" name="a7211edaa7fff7a4567f5769cc6b53d99"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>CoeffReadCost</b> = NumTraits&lt;Scalar&gt;::ReadCost
+<tr class="memitem:a9364d1fd6c5237f06dd4a8cf2808074b" id="r_a9364d1fd6c5237f06dd4a8cf2808074b"><td class="memItemLeft" align="right" valign="top"><a id="a9364d1fd6c5237f06dd4a8cf2808074b" name="a9364d1fd6c5237f06dd4a8cf2808074b"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>CoeffReadCost</b> = NumTraits&lt;Scalar&gt;::ReadCost
 , <b>Flags</b> = Derived::Flags
  }</td></tr>
-<tr class="separator:a7211edaa7fff7a4567f5769cc6b53d99"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a9364d1fd6c5237f06dd4a8cf2808074b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0ee9c4e4302545da033cb6574a92b0c5" id="r_a0ee9c4e4302545da033cb6574a92b0c5"><td class="memItemLeft" align="right" valign="top"><a id="a0ee9c4e4302545da033cb6574a92b0c5" name="a0ee9c4e4302545da033cb6574a92b0c5"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Derived::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:a0ee9c4e4302545da033cb6574a92b0c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc5d24ea2cacb1f9fa79e7e936e70816" id="r_abc5d24ea2cacb1f9fa79e7e936e70816"><td class="memItemLeft" align="right" valign="top"><a id="abc5d24ea2cacb1f9fa79e7e936e70816" name="abc5d24ea2cacb1f9fa79e7e936e70816"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::InnerIterator&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Derived::InnerIterator&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b></td></tr>
 <tr class="separator:abc5d24ea2cacb1f9fa79e7e936e70816"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a66c3963c8f9955bfe467dfad853f0822" id="r_a66c3963c8f9955bfe467dfad853f0822"><td class="memItemLeft" align="right" valign="top"><a id="a66c3963c8f9955bfe467dfad853f0822" name="a66c3963c8f9955bfe467dfad853f0822"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::ReverseInnerIterator&#160;</td><td class="memItemRight" valign="bottom"><b>ReverseInnerIterator</b></td></tr>
-<tr class="separator:a66c3963c8f9955bfe467dfad853f0822"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6a09f2251fbe97b764aedfe9a05a19d7" id="r_a6a09f2251fbe97b764aedfe9a05a19d7"><td class="memItemLeft" align="right" valign="top"><a id="a6a09f2251fbe97b764aedfe9a05a19d7" name="a6a09f2251fbe97b764aedfe9a05a19d7"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1DenseCoeffsBase.html">DenseCoeffsBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1DenseCoeffsBase.html">DenseCoeffsBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
 <tr class="separator:a6a09f2251fbe97b764aedfe9a05a19d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1internal_1_1evaluator__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1evaluator__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1evaluator__base.html">Eigen::internal::evaluator_base&lt; Derived &gt;</a></td></tr>
-<tr class="memitem:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af23e7bca3305f345014f6c9690dbdcbd"><td class="memItemLeft" align="right" valign="top"><a id="af23e7bca3305f345014f6c9690dbdcbd" name="af23e7bca3305f345014f6c9690dbdcbd"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af7fb5bd0e99d83cbea60e204838ec0d3"><td class="memItemLeft" align="right" valign="top"><a id="af7fb5bd0e99d83cbea60e204838ec0d3" name="af7fb5bd0e99d83cbea60e204838ec0d3"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_acb94884a759bb59a96c8c3eea1e50c10"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
 <tr class="separator:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a8966591401961c5fca4e62c2b8528e64" id="r_a8966591401961c5fca4e62c2b8528e64"><td class="memItemLeft" align="right" valign="top"><a id="a8966591401961c5fca4e62c2b8528e64" name="a8966591401961c5fca4e62c2b8528e64"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>evaluator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1Solve.html">mat</a>)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>evaluator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1MatrixBase.html">mat</a>)</td></tr>
 <tr class="separator:a8966591401961c5fca4e62c2b8528e64"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a74c6ee3163e15762c0db29c1b7b4e713" id="r_a74c6ee3163e15762c0db29c1b7b4e713"><td class="memItemLeft" align="right" valign="top"><a id="a74c6ee3163e15762c0db29c1b7b4e713" name="a74c6ee3163e15762c0db29c1b7b4e713"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>nonZerosEstimate</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>nonZerosEstimate</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a74c6ee3163e15762c0db29c1b7b4e713"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab4e0103cff2c817eb14041310678f803" id="r_ab4e0103cff2c817eb14041310678f803"><td class="memItemLeft" align="right" valign="top"><a id="ab4e0103cff2c817eb14041310678f803" name="ab4e0103cff2c817eb14041310678f803"></a>
 &#160;</td><td class="memItemRight" valign="bottom"><b>operator Derived &amp;</b> ()</td></tr>
 <tr class="separator:ab4e0103cff2c817eb14041310678f803"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9cf03d1ff5caf19c5d09c5302cad0247" id="r_a9cf03d1ff5caf19c5d09c5302cad0247"><td class="memItemLeft" align="right" valign="top"><a id="a9cf03d1ff5caf19c5d09c5302cad0247" name="a9cf03d1ff5caf19c5d09c5302cad0247"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>operator const Derived &amp;</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>operator const Derived &amp;</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a9cf03d1ff5caf19c5d09c5302cad0247"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a00bdf39e78636d2277d75138a4962fe5" id="r_a00bdf39e78636d2277d75138a4962fe5"><td class="memItemLeft" align="right" valign="top"><a id="a00bdf39e78636d2277d75138a4962fe5" name="a00bdf39e78636d2277d75138a4962fe5"></a>
-Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index row, Index col) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a00bdf39e78636d2277d75138a4962fe5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae39b07cc5e3370c518e4177f97753975" id="r_ae39b07cc5e3370c518e4177f97753975"><td class="memItemLeft" align="right" valign="top"><a id="ae39b07cc5e3370c518e4177f97753975" name="ae39b07cc5e3370c518e4177f97753975"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ae39b07cc5e3370c518e4177f97753975"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8e22be7b7a9a1a7ab73371c4c659de12" id="r_a8e22be7b7a9a1a7ab73371c4c659de12"><td class="memItemLeft" align="right" valign="top"><a id="a8e22be7b7a9a1a7ab73371c4c659de12" name="a8e22be7b7a9a1a7ab73371c4c659de12"></a>
-Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index row, Index col)</td></tr>
+Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col)</td></tr>
 <tr class="separator:a8e22be7b7a9a1a7ab73371c4c659de12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-attribs" name="pub-attribs"></a>
-Data Fields</h2></td></tr>
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a4c68f588a99a46a47ee5b3f75f3a5bf8" id="r_a4c68f588a99a46a47ee5b3f75f3a5bf8"><td class="memItemLeft" align="right" valign="top"><a id="a4c68f588a99a46a47ee5b3f75f3a5bf8" name="a4c68f588a99a46a47ee5b3f75f3a5bf8"></a>
+<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>find</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a4c68f588a99a46a47ee5b3f75f3a5bf8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
+Protected Attributes</h2></td></tr>
 <tr class="memitem:a7ade0dc31f165f3a986b6b071fb8bc58" id="r_a7ade0dc31f165f3a986b6b071fb8bc58"><td class="memItemLeft" align="right" valign="top"><a id="a7ade0dc31f165f3a986b6b071fb8bc58" name="a7ade0dc31f165f3a986b6b071fb8bc58"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> Derived *&#160;</td><td class="memItemRight" valign="bottom"><b>m_matrix</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived *&#160;</td><td class="memItemRight" valign="bottom"><b>m_matrix</b></td></tr>
 <tr class="separator:a7ade0dc31f165f3a986b6b071fb8bc58"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aae5203679f27d57f812976ee83afc227" id="r_aae5203679f27d57f812976ee83afc227"><td class="memItemLeft" align="right" valign="top"><a id="aae5203679f27d57f812976ee83afc227" name="aae5203679f27d57f812976ee83afc227"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_zero</b></td></tr>
+<tr class="separator:aae5203679f27d57f812976ee83afc227"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/SparseCore/<a class="el" href="SparseCompressedBase_8h_source.html">SparseCompressedBase.h</a></li>
@@ -149,7 +155,7 @@ Data Fields</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

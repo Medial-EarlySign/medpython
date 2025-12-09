@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01Ref_3_01__PlainObjectType_00_01__Options_00_01__StrideType_01_4_01_4.html">traits&lt; Ref&lt; _PlainObjectType, _Options, _StrideType &gt; &gt;</a></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01Ref_3_01__PlainObjectType_00_01__Options_00_01__StrideType_01_4_01_4_1_1match.html">match</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01Ref_3_01__PlainObjectType_00_01__Options_00_01__StrideType_01_4_01_4.html">traits&lt; Ref&lt; _PlainObjectType, _Options, _StrideType &gt; &gt;</a></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01Ref_3_01__PlainObjectType_00_01__Options_00_01__StrideType_01_4_01_4_1_1match.html">match</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -81,20 +81,23 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a30a64344a91dff3ef2a40ccde450aa8a" id="r_a30a64344a91dff3ef2a40ccde450aa8a"><td class="memItemLeft" align="right" valign="top"><a id="a30a64344a91dff3ef2a40ccde450aa8a" name="a30a64344a91dff3ef2a40ccde450aa8a"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
-&#160;&#160;<b>HasDirectAccess</b> = internal::has_direct_access&lt;Derived&gt;::ret
-, <b>StorageOrderMatch</b> = PlainObjectType::IsVectorAtCompileTime || Derived::IsVectorAtCompileTime || ((PlainObjectType::Flags&amp;RowMajorBit)==(Derived::Flags&amp;RowMajorBit))
+<tr class="memitem:a7161944d0484071848fa8c09ad37f9da" id="r_a7161944d0484071848fa8c09ad37f9da"><td class="memItemLeft" align="right" valign="top"><a id="a7161944d0484071848fa8c09ad37f9da" name="a7161944d0484071848fa8c09ad37f9da"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>IsVectorAtCompileTime</b> = PlainObjectType::IsVectorAtCompileTime || Derived::IsVectorAtCompileTime
+, <b>HasDirectAccess</b> = internal::has_direct_access&lt;Derived&gt;::ret
+, <b>StorageOrderMatch</b> = IsVectorAtCompileTime || ((PlainObjectType::Flags&amp;RowMajorBit)==(Derived::Flags&amp;RowMajorBit))
 , <b>InnerStrideMatch</b>
-, <b>OuterStrideMatch</b>
 , <br />
-&#160;&#160;<b>AlignmentMatch</b> = (int(traits&lt;PlainObjectType&gt;::Alignment)==int(Unaligned)) || (int(evaluator&lt;Derived&gt;::Alignment) &gt;= int(Alignment))
+&#160;&#160;<b>OuterStrideMatch</b>
+, <b>DerivedAlignment</b> = int(evaluator&lt;Derived&gt;::Alignment)
+, <b>AlignmentMatch</b> = (int(traits&lt;PlainObjectType&gt;::Alignment)==int(Unaligned)) || (DerivedAlignment &gt;= int(Alignment))
 , <b>ScalarTypeMatch</b> = internal::is_same&lt;typename PlainObjectType::Scalar, typename Derived::Scalar&gt;::value
-, <b>MatchAtCompileTime</b> = HasDirectAccess &amp;&amp; StorageOrderMatch &amp;&amp; InnerStrideMatch &amp;&amp; OuterStrideMatch &amp;&amp; AlignmentMatch &amp;&amp; ScalarTypeMatch
+, <br />
+&#160;&#160;<b>MatchAtCompileTime</b> = HasDirectAccess &amp;&amp; StorageOrderMatch &amp;&amp; InnerStrideMatch &amp;&amp; OuterStrideMatch &amp;&amp; AlignmentMatch &amp;&amp; ScalarTypeMatch
 <br />
  }</td></tr>
-<tr class="separator:a30a64344a91dff3ef2a40ccde450aa8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a7161944d0484071848fa8c09ad37f9da"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a80261b560ce9ffdd3a0a150a10bfbd57" id="r_a80261b560ce9ffdd3a0a150a10bfbd57"><td class="memItemLeft" align="right" valign="top"><a id="a80261b560ce9ffdd3a0a150a10bfbd57" name="a80261b560ce9ffdd3a0a150a10bfbd57"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; MatchAtCompileTime, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; MatchAtCompileTime, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
 <tr class="separator:a80261b560ce9ffdd3a0a150a10bfbd57"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -103,7 +106,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:50 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

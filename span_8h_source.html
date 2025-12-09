@@ -605,7 +605,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00635" name="l00635"></a><span class="lineno">  635</span>}</div>
 <div class="line"><a id="l00636" name="l00636"></a><span class="lineno">  636</span> </div>
 <div class="line"><a id="l00637" name="l00637"></a><span class="lineno">  637</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T, std::<span class="keywordtype">size_t</span> X, <span class="keyword">class</span> U, std::<span class="keywordtype">size_t</span> Y&gt;</div>
-<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><a class="code hl_define" href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(Span&lt;T, X&gt; l, Span&lt;U, Y&gt; r) {</div>
+<div class="line"><a id="l00638" name="l00638"></a><span class="lineno">  638</span><a class="code hl_define" href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> operator&lt;(Span&lt;T, X&gt; l, Span&lt;U, Y&gt; r) {</div>
 <div class="line"><a id="l00639" name="l00639"></a><span class="lineno">  639</span>  <span class="keywordflow">return</span> detail::LexicographicalCompare(l.begin(), l.end(),</div>
 <div class="line"><a id="l00640" name="l00640"></a><span class="lineno">  640</span>                                         r.begin(), r.end());</div>
 <div class="line"><a id="l00641" name="l00641"></a><span class="lineno">  641</span>}</div>
@@ -695,7 +695,6 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="ainclude_2xgboost_2base_8h_html_aa33073da721ea3d200c808d1bf4b6099"><div class="ttname"><a href="include_2xgboost_2base_8h.html#aa33073da721ea3d200c808d1bf4b6099">XGBOOST_DEVICE</a></div><div class="ttdeci">#define XGBOOST_DEVICE</div><div class="ttdoc">Tag function as usable by device.</div><div class="ttdef"><b>Definition</b> base.h:64</div></div>
 <div class="ttc" id="ainclude_2xgboost_2logging_8h_html"><div class="ttname"><a href="include_2xgboost_2logging_8h.html">logging.h</a></div><div class="ttdoc">defines console logging options for xgboost. Use to enforce unified print behavior.</div></div>
 <div class="ttc" id="anamespacedetail_html"><div class="ttname"><a href="namespacedetail.html">detail</a></div><div class="ttdoc">detail namespace with internal helper functions</div><div class="ttdef"><b>Definition</b> json.hpp:249</div></div>
-<div class="ttc" id="anamespacedetail_html_aac7ca91589afb0bad68baec5949daaa2"><div class="ttname"><a href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">detail::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const value_t lhs, const value_t rhs) noexcept</div><div class="ttdoc">comparison operator for JSON types</div><div class="ttdef"><b>Definition</b> json.hpp:2889</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1detail_1_1ExtentAsBytesValue_html"><div class="ttname"><a href="structxgboost_1_1common_1_1detail_1_1ExtentAsBytesValue.html">xgboost::common::detail::ExtentAsBytesValue</a></div><div class="ttdef"><b>Definition</b> span.h:301</div></div>
 <div class="ttc" id="astructxgboost_1_1common_1_1detail_1_1ExtentValue_html"><div class="ttname"><a href="structxgboost_1_1common_1_1detail_1_1ExtentValue.html">xgboost::common::detail::ExtentValue</a></div><div class="ttdef"><b>Definition</b> span.h:291</div></div>
@@ -708,7 +707,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1gemm__pack__rhs_3_01Scalar_00_01Index_00_01DataMapper_00_01nr_00_01Coa362601eadb4c84345b37afcaba09a6d.html">gemm_pack_rhs&lt; Scalar, Index, DataMapper, nr, ColMajor, Conjugate, PanelMode &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1gemm__pack__rhs_3_01Scalar_00_01Index_00_01DataMapper_00_01nr_00_01Coa362601eadb4c84345b37afcaba09a6d.html">gemm_pack_rhs&lt; Scalar, Index, DataMapper, nr, ColMajor, Conjugate, PanelMode &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -82,29 +82,29 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a8fa2112e08b34ad3723ef9391245befb" id="r_a8fa2112e08b34ad3723ef9391245befb"><td class="memItemLeft" align="right" valign="top"><a id="a8fa2112e08b34ad3723ef9391245befb" name="a8fa2112e08b34ad3723ef9391245befb"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>PacketSize</b> = packet_traits&lt;Scalar&gt;::size
+<tr class="memitem:a85fe46b69502a5282b1f185394ecce23" id="r_a85fe46b69502a5282b1f185394ecce23"><td class="memItemLeft" align="right" valign="top"><a id="a85fe46b69502a5282b1f185394ecce23" name="a85fe46b69502a5282b1f185394ecce23"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>PacketSize</b> = packet_traits&lt;Scalar&gt;::size
  }</td></tr>
-<tr class="separator:a8fa2112e08b34ad3723ef9391245befb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a85fe46b69502a5282b1f185394ecce23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aadc963b20fd13acc2dc5831c2fc40a97" id="r_aadc963b20fd13acc2dc5831c2fc40a97"><td class="memItemLeft" align="right" valign="top"><a id="aadc963b20fd13acc2dc5831c2fc40a97" name="aadc963b20fd13acc2dc5831c2fc40a97"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>Packet</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>Packet</b></td></tr>
 <tr class="separator:aadc963b20fd13acc2dc5831c2fc40a97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2b1b83935a24f8fb9eeefe131ea9a670" id="r_a2b1b83935a24f8fb9eeefe131ea9a670"><td class="memItemLeft" align="right" valign="top"><a id="a2b1b83935a24f8fb9eeefe131ea9a670" name="a2b1b83935a24f8fb9eeefe131ea9a670"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> DataMapper::LinearMapper&#160;</td><td class="memItemRight" valign="bottom"><b>LinearMapper</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> DataMapper::LinearMapper&#160;</td><td class="memItemRight" valign="bottom"><b>LinearMapper</b></td></tr>
 <tr class="separator:a2b1b83935a24f8fb9eeefe131ea9a670"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:adecc1d0ef7d3a37b141ab64bd56feaf0" id="r_adecc1d0ef7d3a37b141ab64bd56feaf0"><td class="memItemLeft" align="right" valign="top"><a id="adecc1d0ef7d3a37b141ab64bd56feaf0" name="adecc1d0ef7d3a37b141ab64bd56feaf0"></a>
-EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (Scalar *blockB, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">DataMapper</a> &amp;rhs, Index depth, Index cols, Index stride=0, Index offset=0)</td></tr>
+EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (Scalar *blockB, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">DataMapper</a> &amp;rhs, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> depth, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> stride=0, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> offset=0)</td></tr>
 <tr class="separator:adecc1d0ef7d3a37b141ab64bd56feaf0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
-<li>External/Eigen/src/Core/products/<a class="el" href="GeneralBlockPanelKernel_8h_source.html">GeneralBlockPanelKernel.h</a></li>
+<li>External/Eigen/src/Core/products/<a class="el" href="products_2GeneralBlockPanelKernel_8h_source.html">GeneralBlockPanelKernel.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

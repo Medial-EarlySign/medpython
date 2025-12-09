@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::any_unroller&lt; Derived, UnrollCount &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::any_unroller&lt; Derived, UnrollCount, InnerSize &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,32 +69,30 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1any__unroller.html">any_unroller</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1any__unroller.html">any_unroller</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::any_unroller&lt; Derived, UnrollCount &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::any_unroller&lt; Derived, UnrollCount, InnerSize &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ab59e61b7f80d469f2a73b70b8a466ffb" id="r_ab59e61b7f80d469f2a73b70b8a466ffb"><td class="memItemLeft" align="right" valign="top"><a id="ab59e61b7f80d469f2a73b70b8a466ffb" name="ab59e61b7f80d469f2a73b70b8a466ffb"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>col</b> = (UnrollCount-1) / Traits::RowsAtCompileTime
-, <b>row</b> = (UnrollCount-1) % Traits::RowsAtCompileTime
+<tr class="memitem:abfa4ca3d34e1655c8410058cd64e1a4c" id="r_abfa4ca3d34e1655c8410058cd64e1a4c"><td class="memItemLeft" align="right" valign="top"><a id="abfa4ca3d34e1655c8410058cd64e1a4c" name="abfa4ca3d34e1655c8410058cd64e1a4c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>IsRowMajor</b> = (int(Derived::Flags) &amp; int(RowMajor))
+, <b>i</b> = (UnrollCount-1) / InnerSize
+, <b>j</b> = (UnrollCount-1) % InnerSize
  }</td></tr>
-<tr class="separator:ab59e61b7f80d469f2a73b70b8a466ffb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a16eb27338e753255e5f97dda309b8aa9" id="r_a16eb27338e753255e5f97dda309b8aa9"><td class="memItemLeft" align="right" valign="top"><a id="a16eb27338e753255e5f97dda309b8aa9" name="a16eb27338e753255e5f97dda309b8aa9"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::ExpressionTraits&#160;</td><td class="memItemRight" valign="bottom"><b>Traits</b></td></tr>
-<tr class="separator:a16eb27338e753255e5f97dda309b8aa9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:abfa4ca3d34e1655c8410058cd64e1a4c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a706f0aae20ca7a0633921d3219e12ca7" id="r_a706f0aae20ca7a0633921d3219e12ca7"><td class="memItemLeft" align="right" valign="top"><a id="a706f0aae20ca7a0633921d3219e12ca7" name="a706f0aae20ca7a0633921d3219e12ca7"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> bool&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1Solve.html">mat</a>)</td></tr>
-<tr class="separator:a706f0aae20ca7a0633921d3219e12ca7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7eb626b1e6e0c11f629e1fe159a9f6f7" id="r_a7eb626b1e6e0c11f629e1fe159a9f6f7"><td class="memItemLeft" align="right" valign="top"><a id="a7eb626b1e6e0c11f629e1fe159a9f6f7" name="a7eb626b1e6e0c11f629e1fe159a9f6f7"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC bool&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1MatrixBase.html">mat</a>)</td></tr>
+<tr class="separator:a7eb626b1e6e0c11f629e1fe159a9f6f7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="BooleanRedux_8h_source.html">BooleanRedux.h</a></li>
@@ -102,7 +100,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:45 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

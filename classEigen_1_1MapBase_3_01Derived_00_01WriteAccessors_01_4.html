@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html">MapBase&lt; Derived, WriteAccessors &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html">MapBase&lt; Derived, WriteAccessors &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -79,180 +79,395 @@ $(function() {
   <div class="headertitle"><div class="title">Eigen::MapBase&lt; Derived, WriteAccessors &gt; Class Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
+
+<p>Base class for non-const dense <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a> and <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> expression with direct access.  
+ <a href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#details">More...</a></p>
+
+<p><code>#include &lt;<a class="el" href="MapBase_8h_source.html">MapBase.h</a>&gt;</code></p>
 <div class="dynheader">
 Inheritance diagram for Eigen::MapBase&lt; Derived, WriteAccessors &gt;:</div>
 <div class="dyncontent">
  <div class="center">
   <img src="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.png" usemap="#Eigen::MapBase_3C_20Derived_2C_20WriteAccessors_20_3E_map" alt=""/>
   <map id="Eigen::MapBase_3C_20Derived_2C_20WriteAccessors_20_3E_map" name="Eigen::MapBase_3C_20Derived_2C_20WriteAccessors_20_3E_map">
-<area href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html" alt="Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;" shape="rect" coords="0,56,297,80"/>
+<area href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html" title="Base class for dense Map and Block expression with direct access." alt="Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;" shape="rect" coords="0,56,297,80"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:a4f52766f5ba30aba67e8768c13aa6d24" id="r_a4f52766f5ba30aba67e8768c13aa6d24"><td class="memItemLeft" align="right" valign="top"><a id="a4f52766f5ba30aba67e8768c13aa6d24" name="a4f52766f5ba30aba67e8768c13aa6d24"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
 <tr class="separator:a4f52766f5ba30aba67e8768c13aa6d24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac76e1c5cbac21882c60626c02775fa0a" id="r_ac76e1c5cbac21882c60626c02775fa0a"><td class="memItemLeft" align="right" valign="top"><a id="ac76e1c5cbac21882c60626c02775fa0a" name="ac76e1c5cbac21882c60626c02775fa0a"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Base::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Base::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:ac76e1c5cbac21882c60626c02775fa0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a18d59d76ec7b5b0dd3eb81b5f8a98497" id="r_a18d59d76ec7b5b0dd3eb81b5f8a98497"><td class="memItemLeft" align="right" valign="top"><a id="a18d59d76ec7b5b0dd3eb81b5f8a98497" name="a18d59d76ec7b5b0dd3eb81b5f8a98497"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Base::PacketScalar&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Base::PacketScalar&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
 <tr class="separator:a18d59d76ec7b5b0dd3eb81b5f8a98497"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a58118130780691f37741e8deb726472a" id="r_a58118130780691f37741e8deb726472a"><td class="memItemLeft" align="right" valign="top"><a id="a58118130780691f37741e8deb726472a" name="a58118130780691f37741e8deb726472a"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Base::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Base::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
 <tr class="separator:a58118130780691f37741e8deb726472a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8da8a981ab5c8612edae694d182e1a0d" id="r_a8da8a981ab5c8612edae694d182e1a0d"><td class="memItemLeft" align="right" valign="top"><a id="a8da8a981ab5c8612edae694d182e1a0d" name="a8da8a981ab5c8612edae694d182e1a0d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">Base::PointerType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>PointerType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">Base::PointerType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>PointerType</b></td></tr>
 <tr class="separator:a8da8a981ab5c8612edae694d182e1a0d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac026ffc136ffafe05a67ad0d51fcf934" id="r_ac026ffc136ffafe05a67ad0d51fcf934"><td class="memItemLeft" align="right" valign="top"><a id="ac026ffc136ffafe05a67ad0d51fcf934" name="ac026ffc136ffafe05a67ad0d51fcf934"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1internal_1_1is__lvalue.html">internal::is_lvalue</a>&lt; Derived &gt;::value, Scalar, <a class="el" href="classEigen_1_1Solve.html">constScalar</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ScalarWithConstIfNotLvalue</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1internal_1_1is__lvalue.html">internal::is_lvalue</a>&lt; Derived &gt;::value, Scalar, <a class="el" href="classEigen_1_1MatrixBase.html">constScalar</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ScalarWithConstIfNotLvalue</b></td></tr>
 <tr class="separator:ac026ffc136ffafe05a67ad0d51fcf934"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html">Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;</a></td></tr>
-<tr class="memitem:a77016e365566cbbaca3f19bd34025ae5 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a77016e365566cbbaca3f19bd34025ae5"><td class="memItemLeft" align="right" valign="top"><a id="a77016e365566cbbaca3f19bd34025ae5" name="a77016e365566cbbaca3f19bd34025ae5"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = internal::traits&lt;Derived&gt;::RowsAtCompileTime
+<tr class="memitem:a36c0d69d33b9aef151c152243de89614 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a36c0d69d33b9aef151c152243de89614"><td class="memItemLeft" align="right" valign="top"><a id="a36c0d69d33b9aef151c152243de89614" name="a36c0d69d33b9aef151c152243de89614"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = internal::traits&lt;Derived&gt;::RowsAtCompileTime
 , <b>ColsAtCompileTime</b> = internal::traits&lt;Derived&gt;::ColsAtCompileTime
+, <b>InnerStrideAtCompileTime</b> = internal::traits&lt;Derived&gt;::InnerStrideAtCompileTime
 , <b>SizeAtCompileTime</b> = Base::SizeAtCompileTime
  }</td></tr>
-<tr class="separator:a77016e365566cbbaca3f19bd34025ae5 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a36c0d69d33b9aef151c152243de89614 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2166493966c7516ad2b8d5dac152cc61 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a2166493966c7516ad2b8d5dac152cc61"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1dense__xpr__base.html">internal::dense_xpr_base</a>&lt; Derived &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1dense__xpr__base.html">internal::dense_xpr_base</a>&lt; Derived &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
 <tr class="separator:a2166493966c7516ad2b8d5dac152cc61 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af5f55877fa6b63dec975d994bb057796 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af5f55877fa6b63dec975d994bb057796"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
 <tr class="separator:af5f55877fa6b63dec975d994bb057796 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abe44c0f927ddaf98ee7a69ac2dd34ea6 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_abe44c0f927ddaf98ee7a69ac2dd34ea6"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:abe44c0f927ddaf98ee7a69ac2dd34ea6 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a364a4ac68dbf6626b45f5d8b49f2b6ff inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a364a4ac68dbf6626b45f5d8b49f2b6ff"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">internal::packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">internal::packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
 <tr class="separator:a364a4ac68dbf6626b45f5d8b49f2b6ff inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad177b1c429c8ef17d6a18ea95be29946 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ad177b1c429c8ef17d6a18ea95be29946"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
 <tr class="separator:ad177b1c429c8ef17d6a18ea95be29946 inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6af9d777c9815990ca02e11cbff2cc4d inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a6af9d777c9815990ca02e11cbff2cc4d"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; bool(<a class="el" href="structEigen_1_1internal_1_1is__lvalue.html">internal::is_lvalue</a>&lt; Derived &gt;::value), Scalar *, <a class="el" href="classEigen_1_1Solve.html">constScalar</a> * &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PointerType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; bool(<a class="el" href="structEigen_1_1internal_1_1is__lvalue.html">internal::is_lvalue</a>&lt; Derived &gt;::value), Scalar *, <a class="el" href="classEigen_1_1MatrixBase.html">constScalar</a> * &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PointerType</b></td></tr>
 <tr class="separator:a6af9d777c9815990ca02e11cbff2cc4d inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3dda74ffddab2f5368b73c173e95bfbc inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a3dda74ffddab2f5368b73c173e95bfbc"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Base::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Base::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
 <tr class="separator:a3dda74ffddab2f5368b73c173e95bfbc inherit pub_types_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:ae6980e90fafb9942234da588f81720c1" id="r_ae6980e90fafb9942234da588f81720c1"><td class="memItemLeft" align="right" valign="top"><a id="ae6980e90fafb9942234da588f81720c1" name="ae6980e90fafb9942234da588f81720c1"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar *&#160;</td><td class="memItemRight" valign="bottom"><b>data</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar *&#160;</td><td class="memItemRight" valign="bottom"><b>data</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ae6980e90fafb9942234da588f81720c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ada7feb1000742ae7f9f93b4c3049136e" id="r_ada7feb1000742ae7f9f93b4c3049136e"><td class="memItemLeft" align="right" valign="top"><a id="ada7feb1000742ae7f9f93b4c3049136e" name="ada7feb1000742ae7f9f93b4c3049136e"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>data</b> ()</td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> *&#160;</td><td class="memItemRight" valign="bottom"><b>data</b> ()</td></tr>
 <tr class="separator:ada7feb1000742ae7f9f93b4c3049136e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b2707b388de5620e0d371fd37ec4a2b" id="r_a0b2707b388de5620e0d371fd37ec4a2b"><td class="memItemLeft" align="right" valign="top"><a id="a0b2707b388de5620e0d371fd37ec4a2b" name="a0b2707b388de5620e0d371fd37ec4a2b"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index row, Index col)</td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col)</td></tr>
 <tr class="separator:a0b2707b388de5620e0d371fd37ec4a2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2053013771d80e2fd403525378c05872" id="r_a2053013771d80e2fd403525378c05872"><td class="memItemLeft" align="right" valign="top"><a id="a2053013771d80e2fd403525378c05872" name="a2053013771d80e2fd403525378c05872"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index index)</td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1internal_1_1true__type.html">ScalarWithConstIfNotLvalue</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index)</td></tr>
 <tr class="separator:a2053013771d80e2fd403525378c05872"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7caddcdb9331c5bb3a81f92f65997778" id="r_a7caddcdb9331c5bb3a81f92f65997778"><td class="memTemplParams" colspan="2"><a id="a7caddcdb9331c5bb3a81f92f65997778" name="a7caddcdb9331c5bb3a81f92f65997778"></a>
 template&lt;int StoreMode&gt; </td></tr>
-<tr class="memitem:a7caddcdb9331c5bb3a81f92f65997778"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (Index row, Index col, <a class="el" href="classEigen_1_1Solve.html">const</a> PacketScalar &amp;val)</td></tr>
+<tr class="memitem:a7caddcdb9331c5bb3a81f92f65997778"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> PacketScalar &amp;val)</td></tr>
 <tr class="separator:a7caddcdb9331c5bb3a81f92f65997778"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a963656f086c7a9a22acd4aee8a9b980d" id="r_a963656f086c7a9a22acd4aee8a9b980d"><td class="memTemplParams" colspan="2"><a id="a963656f086c7a9a22acd4aee8a9b980d" name="a963656f086c7a9a22acd4aee8a9b980d"></a>
 template&lt;int StoreMode&gt; </td></tr>
-<tr class="memitem:a963656f086c7a9a22acd4aee8a9b980d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (Index index, <a class="el" href="classEigen_1_1Solve.html">const</a> PacketScalar &amp;val)</td></tr>
+<tr class="memitem:a963656f086c7a9a22acd4aee8a9b980d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> PacketScalar &amp;val)</td></tr>
 <tr class="separator:a963656f086c7a9a22acd4aee8a9b980d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a41c11ab1e84f38b23ca4be87c62189d3" id="r_a41c11ab1e84f38b23ca4be87c62189d3"><td class="memItemLeft" align="right" valign="top"><a id="a41c11ab1e84f38b23ca4be87c62189d3" name="a41c11ab1e84f38b23ca4be87c62189d3"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr)</td></tr>
 <tr class="separator:a41c11ab1e84f38b23ca4be87c62189d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5f67bed14fedc7ab503238016e6bb36d" id="r_a5f67bed14fedc7ab503238016e6bb36d"><td class="memItemLeft" align="right" valign="top"><a id="a5f67bed14fedc7ab503238016e6bb36d" name="a5f67bed14fedc7ab503238016e6bb36d"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, Index <a class="el" href="classEigen_1_1Solve.html">vecSize</a>)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">vecSize</a>)</td></tr>
 <tr class="separator:a5f67bed14fedc7ab503238016e6bb36d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab03acae12350d28e0cd58316e3347ef6" id="r_ab03acae12350d28e0cd58316e3347ef6"><td class="memItemLeft" align="right" valign="top"><a id="ab03acae12350d28e0cd58316e3347ef6" name="ab03acae12350d28e0cd58316e3347ef6"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, Index rows, Index cols)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#af815312790a4a878a057656f210a2691">rows</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#afd49bcf772ce3cb5cbade16681f6a05c">cols</a>)</td></tr>
 <tr class="separator:ab03acae12350d28e0cd58316e3347ef6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a85e41b668235ed5188613ce3fbd872e2" id="r_a85e41b668235ed5188613ce3fbd872e2"><td class="memItemLeft" align="right" valign="top"><a id="a85e41b668235ed5188613ce3fbd872e2" name="a85e41b668235ed5188613ce3fbd872e2"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a> &amp;other)</td></tr>
+EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>operator=</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a> &amp;other)</td></tr>
 <tr class="separator:a85e41b668235ed5188613ce3fbd872e2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a78b3ab4983de51f112e6a062ac8f6ffd" id="r_a78b3ab4983de51f112e6a062ac8f6ffd"><td class="memItemLeft" align="right" valign="top"><a id="a78b3ab4983de51f112e6a062ac8f6ffd" name="a78b3ab4983de51f112e6a062ac8f6ffd"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a78b3ab4983de51f112e6a062ac8f6ffd"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad345a6b995b9894e9b076ee174876659" id="r_ad345a6b995b9894e9b076ee174876659"><td class="memItemLeft" align="right" valign="top"><a id="ad345a6b995b9894e9b076ee174876659" name="ad345a6b995b9894e9b076ee174876659"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ad345a6b995b9894e9b076ee174876659"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c032de9fdbf2842485825e91669fe78" id="r_a1c032de9fdbf2842485825e91669fe78"><td class="memItemLeft" align="right" valign="top"><a id="a1c032de9fdbf2842485825e91669fe78" name="a1c032de9fdbf2842485825e91669fe78"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index <a class="el" href="classEigen_1_1Solve.html">rowId</a>, Index <a class="el" href="classEigen_1_1Solve.html">colId</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af815312790a4a878a057656f210a2691" id="r_af815312790a4a878a057656f210a2691"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#af815312790a4a878a057656f210a2691">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af815312790a4a878a057656f210a2691"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd49bcf772ce3cb5cbade16681f6a05c" id="r_afd49bcf772ce3cb5cbade16681f6a05c"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#afd49bcf772ce3cb5cbade16681f6a05c">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:afd49bcf772ce3cb5cbade16681f6a05c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c032de9fdbf2842485825e91669fe78" id="r_a1c032de9fdbf2842485825e91669fe78"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#a1c032de9fdbf2842485825e91669fe78">coeff</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rowId</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">colId</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a1c032de9fdbf2842485825e91669fe78"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index,Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.    <br /></td></tr>
 <tr class="separator:a1c032de9fdbf2842485825e91669fe78"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad8d0a4fb970eba8cdf99f57d10fd763d" id="r_ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="memItemLeft" align="right" valign="top"><a id="ad8d0a4fb970eba8cdf99f57d10fd763d" name="ad8d0a4fb970eba8cdf99f57d10fd763d"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ad8d0a4fb970eba8cdf99f57d10fd763d" id="r_ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#ad8d0a4fb970eba8cdf99f57d10fd763d">coeff</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.    <br /></td></tr>
 <tr class="separator:ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af8f5c2b985b137783804fc5f388a2b11" id="r_af8f5c2b985b137783804fc5f388a2b11"><td class="memItemLeft" align="right" valign="top"><a id="af8f5c2b985b137783804fc5f388a2b11" name="af8f5c2b985b137783804fc5f388a2b11"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index <a class="el" href="classEigen_1_1Solve.html">rowId</a>, Index <a class="el" href="classEigen_1_1Solve.html">colId</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af8f5c2b985b137783804fc5f388a2b11" id="r_af8f5c2b985b137783804fc5f388a2b11"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#af8f5c2b985b137783804fc5f388a2b11">coeffRef</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rowId</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">colId</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:af8f5c2b985b137783804fc5f388a2b11"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the const version of coeffRef(Index,Index) which is thus synonym of coeff(Index,Index).    <br /></td></tr>
 <tr class="separator:af8f5c2b985b137783804fc5f388a2b11"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a91e39530451825f4ce5bae86d4aed0fd" id="r_a91e39530451825f4ce5bae86d4aed0fd"><td class="memItemLeft" align="right" valign="top"><a id="a91e39530451825f4ce5bae86d4aed0fd" name="a91e39530451825f4ce5bae86d4aed0fd"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a91e39530451825f4ce5bae86d4aed0fd" id="r_a91e39530451825f4ce5bae86d4aed0fd"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01WriteAccessors_01_4.html#a91e39530451825f4ce5bae86d4aed0fd">coeffRef</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a91e39530451825f4ce5bae86d4aed0fd"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the const version of coeffRef(Index) which is thus synonym of coeff(Index).    <br /></td></tr>
 <tr class="separator:a91e39530451825f4ce5bae86d4aed0fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html">Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;</a></td></tr>
-<tr class="memitem:a78b3ab4983de51f112e6a062ac8f6ffd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a78b3ab4983de51f112e6a062ac8f6ffd"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a78b3ab4983de51f112e6a062ac8f6ffd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad345a6b995b9894e9b076ee174876659 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ad345a6b995b9894e9b076ee174876659"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ad345a6b995b9894e9b076ee174876659 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adc5e5ae6cbc430301e8904551683e501 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_adc5e5ae6cbc430301e8904551683e501"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#adc5e5ae6cbc430301e8904551683e501">data</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af815312790a4a878a057656f210a2691 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af815312790a4a878a057656f210a2691"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#af815312790a4a878a057656f210a2691">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af815312790a4a878a057656f210a2691 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afd49bcf772ce3cb5cbade16681f6a05c inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_afd49bcf772ce3cb5cbade16681f6a05c"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#afd49bcf772ce3cb5cbade16681f6a05c">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:afd49bcf772ce3cb5cbade16681f6a05c inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adc5e5ae6cbc430301e8904551683e501 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_adc5e5ae6cbc430301e8904551683e501"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#adc5e5ae6cbc430301e8904551683e501">data</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="memdesc:adc5e5ae6cbc430301e8904551683e501 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns a pointer to the first coefficient of the matrix or vector.  <br /></td></tr>
 <tr class="separator:adc5e5ae6cbc430301e8904551683e501 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1c032de9fdbf2842485825e91669fe78 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a1c032de9fdbf2842485825e91669fe78"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index <a class="el" href="classEigen_1_1Solve.html">rowId</a>, Index <a class="el" href="classEigen_1_1Solve.html">colId</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a1c032de9fdbf2842485825e91669fe78 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a1c032de9fdbf2842485825e91669fe78"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#a1c032de9fdbf2842485825e91669fe78">coeff</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rowId</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">colId</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a1c032de9fdbf2842485825e91669fe78 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index,Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.    <br /></td></tr>
 <tr class="separator:a1c032de9fdbf2842485825e91669fe78 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad8d0a4fb970eba8cdf99f57d10fd763d inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ad8d0a4fb970eba8cdf99f57d10fd763d inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ad8d0a4fb970eba8cdf99f57d10fd763d"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#ad8d0a4fb970eba8cdf99f57d10fd763d">coeff</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:ad8d0a4fb970eba8cdf99f57d10fd763d inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.    <br /></td></tr>
 <tr class="separator:ad8d0a4fb970eba8cdf99f57d10fd763d inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af8f5c2b985b137783804fc5f388a2b11 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af8f5c2b985b137783804fc5f388a2b11"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index <a class="el" href="classEigen_1_1Solve.html">rowId</a>, Index <a class="el" href="classEigen_1_1Solve.html">colId</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af8f5c2b985b137783804fc5f388a2b11 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af8f5c2b985b137783804fc5f388a2b11"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#af8f5c2b985b137783804fc5f388a2b11">coeffRef</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rowId</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">colId</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:af8f5c2b985b137783804fc5f388a2b11 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the const version of coeffRef(Index,Index) which is thus synonym of coeff(Index,Index).    <br /></td></tr>
 <tr class="separator:af8f5c2b985b137783804fc5f388a2b11 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a91e39530451825f4ce5bae86d4aed0fd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a91e39530451825f4ce5bae86d4aed0fd"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a91e39530451825f4ce5bae86d4aed0fd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a91e39530451825f4ce5bae86d4aed0fd"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#a91e39530451825f4ce5bae86d4aed0fd">coeffRef</a> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a91e39530451825f4ce5bae86d4aed0fd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="mdescLeft">&#160;</td><td class="mdescRight">This is the const version of coeffRef(Index) which is thus synonym of coeff(Index).    <br /></td></tr>
 <tr class="separator:a91e39530451825f4ce5bae86d4aed0fd inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1ea9c10e8c9997511c517e0417d99331 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a1ea9c10e8c9997511c517e0417d99331"><td class="memTemplParams" colspan="2">
 template&lt;int LoadMode&gt; </td></tr>
-<tr class="memitem:a1ea9c10e8c9997511c517e0417d99331 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">PacketScalar&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (Index <a class="el" href="classEigen_1_1Solve.html">rowId</a>, Index <a class="el" href="classEigen_1_1Solve.html">colId</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a1ea9c10e8c9997511c517e0417d99331 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">PacketScalar&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rowId</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">colId</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a1ea9c10e8c9997511c517e0417d99331 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a73cd04fb01aca4b1a0222a5666f464b0 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a73cd04fb01aca4b1a0222a5666f464b0"><td class="memTemplParams" colspan="2">
 template&lt;int LoadMode&gt; </td></tr>
-<tr class="memitem:a73cd04fb01aca4b1a0222a5666f464b0 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">PacketScalar&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a73cd04fb01aca4b1a0222a5666f464b0 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">PacketScalar&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a73cd04fb01aca4b1a0222a5666f464b0 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac893480fd57f04af57df15fd0c49c71a inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ac893480fd57f04af57df15fd0c49c71a"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr)</td></tr>
 <tr class="separator:ac893480fd57f04af57df15fd0c49c71a inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a451254c4a8ef71b6253d27d0842c8c37 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a451254c4a8ef71b6253d27d0842c8c37"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, Index <a class="el" href="classEigen_1_1Solve.html">vecSize</a>)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">vecSize</a>)</td></tr>
 <tr class="separator:a451254c4a8ef71b6253d27d0842c8c37 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af608cdc5618e25517ebd3551463713b3 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af608cdc5618e25517ebd3551463713b3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, Index rows, Index cols)</td></tr>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>MapBase</b> (<a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a> dataPtr, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#af815312790a4a878a057656f210a2691">rows</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#afd49bcf772ce3cb5cbade16681f6a05c">cols</a>)</td></tr>
 <tr class="separator:af608cdc5618e25517ebd3551463713b3 inherit pub_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="inherited" name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html">Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;</a></td></tr>
-<tr class="memitem:a39d0e18e02b6a6b5eb9bf9020c6c8d5f inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a39d0e18e02b6a6b5eb9bf9020c6c8d5f"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>checkSanity</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a39d0e18e02b6a6b5eb9bf9020c6c8d5f inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4e0760a55ecdb14d06bf728da2e0fa87 inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a4e0760a55ecdb14d06bf728da2e0fa87"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> T &gt; </td></tr>
+<tr class="memitem:a4e0760a55ecdb14d06bf728da2e0fa87 inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>checkSanity</b> (<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1enable__if.html">internal::enable_if</a>&lt;(<a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; T &gt;::Alignment &gt;0), <a class="el" href="classEigen_1_1MatrixBase.html">void</a> * &gt;::type=0) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a4e0760a55ecdb14d06bf728da2e0fa87 inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af36c1238dff55477218d1e7996db8d5e inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_af36c1238dff55477218d1e7996db8d5e"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> T &gt; </td></tr>
+<tr class="memitem:af36c1238dff55477218d1e7996db8d5e inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>checkSanity</b> (<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1enable__if.html">internal::enable_if</a>&lt; <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; T &gt;::Alignment==0, <a class="el" href="classEigen_1_1MatrixBase.html">void</a> * &gt;::type=0) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:af36c1238dff55477218d1e7996db8d5e inherit pro_methods_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td colspan="2" onclick="javascript:toggleInherit('pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4')"><img src="closed.png" alt="-"/>&#160;Protected Attributes inherited from <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html">Eigen::MapBase&lt; Derived, ReadOnlyAccessors &gt;</a></td></tr>
 <tr class="memitem:a95af5ee3b194ce499181e322161a7961 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a95af5ee3b194ce499181e322161a7961"><td class="memItemLeft" align="right" valign="top">
 <a class="el" href="structEigen_1_1internal_1_1true__type.html">PointerType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_data</b></td></tr>
 <tr class="separator:a95af5ee3b194ce499181e322161a7961 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac3c4c3f0ddca9b6508409ebc0a2dd175 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_ac3c4c3f0ddca9b6508409ebc0a2dd175"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">internal::variable_if_dynamic</a>&lt; Index, RowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_rows</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">internal::variable_if_dynamic</a>&lt; <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>, RowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_rows</b></td></tr>
 <tr class="separator:ac3c4c3f0ddca9b6508409ebc0a2dd175 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a868c3efca7dbbde7c80a8589b5435ca2 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4" id="r_a868c3efca7dbbde7c80a8589b5435ca2"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">internal::variable_if_dynamic</a>&lt; Index, ColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_cols</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">internal::variable_if_dynamic</a>&lt; <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>, ColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_cols</b></td></tr>
 <tr class="separator:a868c3efca7dbbde7c80a8589b5435ca2 inherit pro_attribs_classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
+<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived&gt;<br />
+class Eigen::MapBase&lt; Derived, WriteAccessors &gt;</div><p>Base class for non-const dense <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a> and <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> expression with direct access. </p>
+<p>This base class provides the non-const low-level accessors (e.g. coeff and coeffRef) of dense <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a> and <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> objects with direct access. It inherits <a class="el" href="classEigen_1_1MapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html" title="Base class for dense Map and Block expression with direct access.">MapBase&lt;Derived, ReadOnlyAccessors&gt;</a> which defines the const variant for reading specific entries.</p>
+<dl class="section see"><dt>See also</dt><dd>class <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a>, class <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> </dd></dl>
+</div><h2 class="groupheader">Member Function Documentation</h2>
+<a id="ad8d0a4fb970eba8cdf99f57d10fd763d" name="ad8d0a4fb970eba8cdf99f57d10fd763d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad8d0a4fb970eba8cdf99f57d10fd763d">&#9670;&#160;</a></span>coeff() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp; <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::coeff </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.   </p>
+<p>See DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index) const for details.   </p>
+
+</div>
+</div>
+<a id="a1c032de9fdbf2842485825e91669fe78" name="a1c032de9fdbf2842485825e91669fe78"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a1c032de9fdbf2842485825e91669fe78">&#9670;&#160;</a></span>coeff() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp; <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::coeff </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>rowId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>colId</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This is an overloaded version of DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index,Index) const provided to by-pass the creation of an evaluator of the expression, thus saving compilation efforts.   </p>
+<p>See DenseCoeffsBase&lt;Derived,ReadOnlyAccessors&gt;::coeff(Index) const for details.   </p>
+
+</div>
+</div>
+<a id="a91e39530451825f4ce5bae86d4aed0fd" name="a91e39530451825f4ce5bae86d4aed0fd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a91e39530451825f4ce5bae86d4aed0fd">&#9670;&#160;</a></span>coeffRef() <span class="overload">[1/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp; <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::coeffRef </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>index</em></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This is the const version of coeffRef(Index) which is thus synonym of coeff(Index).   </p>
+<p>It is provided for convenience.   </p>
+
+</div>
+</div>
+<a id="af8f5c2b985b137783804fc5f388a2b11" name="af8f5c2b985b137783804fc5f388a2b11"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af8f5c2b985b137783804fc5f388a2b11">&#9670;&#160;</a></span>coeffRef() <span class="overload">[2/2]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar &amp; <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::coeffRef </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>rowId</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td>
+          <td class="paramname"><em>colId</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>This is the const version of coeffRef(Index,Index) which is thus synonym of coeff(Index,Index).   </p>
+<p>It is provided for convenience.   </p>
+
+</div>
+</div>
+<a id="afd49bcf772ce3cb5cbade16681f6a05c" name="afd49bcf772ce3cb5cbade16681f6a05c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#afd49bcf772ce3cb5cbade16681f6a05c">&#9670;&#160;</a></span>cols()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::cols </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p></p>
+
+</div>
+</div>
+<a id="af815312790a4a878a057656f210a2691" name="af815312790a4a878a057656f210a2691"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af815312790a4a878a057656f210a2691">&#9670;&#160;</a></span>rows()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MapBase.html">Eigen::MapBase</a>&lt; Derived, <a class="el" href="group__enums.html#gga9f93eac38eb83deb0e8dbd42ddf11d5daa1f2b0e6a668b11f2958940965d2b572">ReadOnlyAccessors</a> &gt;::rows </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p></p>
+
+</div>
+</div>
 <hr/>The documentation for this class was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="MapBase_8h_source.html">MapBase.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:41 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

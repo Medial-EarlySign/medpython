@@ -78,7 +78,7 @@ var searchData=
   ['_5fto_5fgraphviz_75',['_to_graphviz',['../namespacelightgbm_1_1plotting.html#a1445d4c4eff34e204c7003002e5bb3bd',1,'lightgbm::plotting']]],
   ['_5fto_5fpredictor_76',['_to_predictor',['../classlightgbm_1_1basic_1_1Booster.html#a705ffa764be85771e16988f38882f0f0',1,'lightgbm::basic::Booster']]],
   ['_5ftransform_5fdt_5fdf_77',['_transform_dt_df',['../namespacexgboost_1_1data.html#a64881ab6b2283c1fe7566203034e1c08',1,'xgboost::data']]],
-  ['_5ftransformvector_78',['_transformVector',['../classEigen_1_1QuaternionBase.html#adf855467c3b1a57f33d430fbb5f00596',1,'Eigen::QuaternionBase']]],
+  ['_5ftransformvector_78',['_transformVector',['../classEigen_1_1QuaternionBase.html#a03896e1e743aae2c18a0146086cef983',1,'Eigen::QuaternionBase']]],
   ['_5fwrap_5fevaluation_5fmatrices_79',['_wrap_evaluation_matrices',['../namespacexgboost_1_1sklearn.html#aed11e36763b4d240d17a6771e12947a7',1,'xgboost::sklearn']]],
   ['_5fxgb_5fget_5fclient_80',['_xgb_get_client',['../namespacexgboost_1_1dask.html#a65b0ae4d970cee1ef2419fbc72b99518',1,'xgboost::dask']]]
 ];

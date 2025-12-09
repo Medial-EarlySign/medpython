@@ -1,7 +1,7 @@
 var searchData=
 [
   ['learning_5fto_5frank_0',['learning_to_rank',['../namespacelearning__to__rank.html',1,'']]],
-  ['lightgbm_1',['lightgbm',['../namespaceLightGBM.html',1,'LightGBM'],['../namespacelightgbm.html',1,'lightgbm']]],
+  ['lightgbm_1',['lightgbm',['../namespacelightgbm.html',1,'lightgbm'],['../namespaceLightGBM.html',1,'LightGBM']]],
   ['lightgbm_3a_3abasic_2',['basic',['../namespacelightgbm_1_1basic.html',1,'lightgbm']]],
   ['lightgbm_3a_3acallback_3',['callback',['../namespacelightgbm_1_1callback.html',1,'lightgbm']]],
   ['lightgbm_3a_3acompat_4',['compat',['../namespacelightgbm_1_1compat.html',1,'lightgbm']]],

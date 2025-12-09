@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1packet__traits_3_01int_01_4.html">packet_traits&lt; int &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1packet__traits_3_01int_01_4.html">packet_traits&lt; int &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -92,100 +92,144 @@ Inheritance diagram for Eigen::internal::packet_traits&lt; int &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a89b788194ab8e9a9bd16221f68171f9b" id="r_a89b788194ab8e9a9bd16221f68171f9b"><td class="memItemLeft" align="right" valign="top"><a id="a89b788194ab8e9a9bd16221f68171f9b" name="a89b788194ab8e9a9bd16221f68171f9b"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Vectorizable</b> = 1
+<tr class="memitem:ae198194ed613cb18d67e3f6efb7a17c9" id="r_ae198194ed613cb18d67e3f6efb7a17c9"><td class="memItemLeft" align="right" valign="top"><a id="ae198194ed613cb18d67e3f6efb7a17c9" name="ae198194ed613cb18d67e3f6efb7a17c9"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>Vectorizable</b> = 1
 , <b>AlignedOnScalar</b> = 1
-, <b>size</b> =4
- }</td></tr>
-<tr class="separator:a89b788194ab8e9a9bd16221f68171f9b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a06c17a2a4260d198c3f795801f3b5a35" id="r_a06c17a2a4260d198c3f795801f3b5a35"><td class="memItemLeft" align="right" valign="top"><a id="a06c17a2a4260d198c3f795801f3b5a35" name="a06c17a2a4260d198c3f795801f3b5a35"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Vectorizable</b> = 1
-, <b>AlignedOnScalar</b> = 1
-, <b>size</b> =4
-, <b>HasHalfPacket</b> =0
- }</td></tr>
-<tr class="separator:a06c17a2a4260d198c3f795801f3b5a35"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a58a29ecfe7273e7b5ae0b7d36f7ed742" id="r_a58a29ecfe7273e7b5ae0b7d36f7ed742"><td class="memItemLeft" align="right" valign="top"><a id="a58a29ecfe7273e7b5ae0b7d36f7ed742" name="a58a29ecfe7273e7b5ae0b7d36f7ed742"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Vectorizable</b> = 1
-, <b>AlignedOnScalar</b> = 1
-, <b>size</b> =4
+, <b>size</b> = 4
+, <b>HasHalfPacket</b> = 0
+, <br />
+&#160;&#160;<b>HasAdd</b> = 1
+, <b>HasSub</b> = 1
+, <b>HasShift</b> = 1
+, <b>HasMul</b> = 1
+, <br />
+&#160;&#160;<b>HasDiv</b> = 0
 , <b>HasBlend</b> = 1
+<br />
  }</td></tr>
-<tr class="separator:a58a29ecfe7273e7b5ae0b7d36f7ed742"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ae198194ed613cb18d67e3f6efb7a17c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a64807058e477805264543b0b1cbe7925" id="r_a64807058e477805264543b0b1cbe7925"><td class="memItemLeft" align="right" valign="top"><a id="a64807058e477805264543b0b1cbe7925" name="a64807058e477805264543b0b1cbe7925"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>Vectorizable</b> = 1
+, <b>AlignedOnScalar</b> = 1
+, <b>size</b> = 4
+, <b>HasShift</b> = 1
+, <br />
+&#160;&#160;<b>HasBlend</b> = 1
+<br />
+ }</td></tr>
+<tr class="separator:a64807058e477805264543b0b1cbe7925"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa46914d8c9f0a36b069965007f9122a" id="r_afa46914d8c9f0a36b069965007f9122a"><td class="memItemLeft" align="right" valign="top"><a id="afa46914d8c9f0a36b069965007f9122a" name="afa46914d8c9f0a36b069965007f9122a"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>Vectorizable</b> = 1
+, <b>AlignedOnScalar</b> = 1
+, <b>size</b> = 4
+, <b>HasHalfPacket</b> = 0
+, <br />
+&#160;&#160;<b>HasAdd</b> = 1
+, <b>HasSub</b> = 1
+, <b>HasMul</b> = 1
+, <b>HasDiv</b> = 0
+, <br />
+&#160;&#160;<b>HasBlend</b> = 1
+<br />
+ }</td></tr>
+<tr class="separator:afa46914d8c9f0a36b069965007f9122a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c035d9ce275515f3eabf2934623190b" id="r_a4c035d9ce275515f3eabf2934623190b"><td class="memItemLeft" align="right" valign="top"><a id="a4c035d9ce275515f3eabf2934623190b" name="a4c035d9ce275515f3eabf2934623190b"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
 <tr class="separator:a4c035d9ce275515f3eabf2934623190b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abcd1d398b42e5452213afe6652f7cebb" id="r_abcd1d398b42e5452213afe6652f7cebb"><td class="memItemLeft" align="right" valign="top"><a id="abcd1d398b42e5452213afe6652f7cebb" name="abcd1d398b42e5452213afe6652f7cebb"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
 <tr class="separator:abcd1d398b42e5452213afe6652f7cebb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c035d9ce275515f3eabf2934623190b" id="r_a4c035d9ce275515f3eabf2934623190b"><td class="memItemLeft" align="right" valign="top"><a id="a4c035d9ce275515f3eabf2934623190b" name="a4c035d9ce275515f3eabf2934623190b"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
 <tr class="separator:a4c035d9ce275515f3eabf2934623190b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abcd1d398b42e5452213afe6652f7cebb" id="r_abcd1d398b42e5452213afe6652f7cebb"><td class="memItemLeft" align="right" valign="top"><a id="abcd1d398b42e5452213afe6652f7cebb" name="abcd1d398b42e5452213afe6652f7cebb"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
 <tr class="separator:abcd1d398b42e5452213afe6652f7cebb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c035d9ce275515f3eabf2934623190b" id="r_a4c035d9ce275515f3eabf2934623190b"><td class="memItemLeft" align="right" valign="top"><a id="a4c035d9ce275515f3eabf2934623190b" name="a4c035d9ce275515f3eabf2934623190b"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
 <tr class="separator:a4c035d9ce275515f3eabf2934623190b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abcd1d398b42e5452213afe6652f7cebb" id="r_abcd1d398b42e5452213afe6652f7cebb"><td class="memItemLeft" align="right" valign="top"><a id="abcd1d398b42e5452213afe6652f7cebb" name="abcd1d398b42e5452213afe6652f7cebb"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
 <tr class="separator:abcd1d398b42e5452213afe6652f7cebb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1internal_1_1default__packet__traits"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1default__packet__traits')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1default__packet__traits.html">Eigen::internal::default_packet_traits</a></td></tr>
-<tr class="memitem:ad9ad66a6efeaaff1412b58ea60f3a809 inherit pub_types_structEigen_1_1internal_1_1default__packet__traits" id="r_ad9ad66a6efeaaff1412b58ea60f3a809"><td class="memItemLeft" align="right" valign="top"><a id="ad9ad66a6efeaaff1412b58ea60f3a809" name="ad9ad66a6efeaaff1412b58ea60f3a809"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+<tr class="memitem:a121b15864755cd2537068cec255a4f18 inherit pub_types_structEigen_1_1internal_1_1default__packet__traits" id="r_a121b15864755cd2537068cec255a4f18"><td class="memItemLeft" align="right" valign="top"><a id="a121b15864755cd2537068cec255a4f18" name="a121b15864755cd2537068cec255a4f18"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
 &#160;&#160;<b>HasHalfPacket</b> = 0
 , <b>HasAdd</b> = 1
 , <b>HasSub</b> = 1
-, <b>HasMul</b> = 1
+, <b>HasShift</b> = 1
 , <br />
-&#160;&#160;<b>HasNegate</b> = 1
+&#160;&#160;<b>HasMul</b> = 1
+, <b>HasNegate</b> = 1
 , <b>HasAbs</b> = 1
 , <b>HasArg</b> = 0
-, <b>HasAbs2</b> = 1
 , <br />
-&#160;&#160;<b>HasMin</b> = 1
+&#160;&#160;<b>HasAbs2</b> = 1
+, <b>HasAbsDiff</b> = 0
+, <b>HasMin</b> = 1
 , <b>HasMax</b> = 1
-, <b>HasConj</b> = 1
-, <b>HasSetLinear</b> = 1
 , <br />
-&#160;&#160;<b>HasBlend</b> = 0
-, <b>HasDiv</b> = 0
+&#160;&#160;<b>HasConj</b> = 1
+, <b>HasSetLinear</b> = 1
+, <b>HasBlend</b> = 0
+, <b>HasCmp</b> = 0
+, <br />
+&#160;&#160;<b>HasDiv</b> = 0
 , <b>HasSqrt</b> = 0
 , <b>HasRsqrt</b> = 0
+, <b>HasExp</b> = 0
 , <br />
-&#160;&#160;<b>HasExp</b> = 0
+&#160;&#160;<b>HasExpm1</b> = 0
 , <b>HasLog</b> = 0
+, <b>HasLog1p</b> = 0
 , <b>HasLog10</b> = 0
-, <b>HasPow</b> = 0
 , <br />
-&#160;&#160;<b>HasSin</b> = 0
+&#160;&#160;<b>HasPow</b> = 0
+, <b>HasSin</b> = 0
 , <b>HasCos</b> = 0
 , <b>HasTan</b> = 0
-, <b>HasASin</b> = 0
 , <br />
-&#160;&#160;<b>HasACos</b> = 0
+&#160;&#160;<b>HasASin</b> = 0
+, <b>HasACos</b> = 0
 , <b>HasATan</b> = 0
 , <b>HasSinh</b> = 0
-, <b>HasCosh</b> = 0
 , <br />
-&#160;&#160;<b>HasTanh</b> = 0
+&#160;&#160;<b>HasCosh</b> = 0
+, <b>HasTanh</b> = 0
 , <b>HasLGamma</b> = 0
+, <b>HasDiGamma</b> = 0
+, <br />
+&#160;&#160;<b>HasZeta</b> = 0
+, <b>HasPolygamma</b> = 0
 , <b>HasErf</b> = 0
 , <b>HasErfc</b> = 0
 , <br />
-&#160;&#160;<b>HasRound</b> = 0
+&#160;&#160;<b>HasNdtri</b> = 0
+, <b>HasBessel</b> = 0
+, <b>HasIGamma</b> = 0
+, <b>HasIGammaDerA</b> = 0
+, <br />
+&#160;&#160;<b>HasGammaSampleDerAlpha</b> = 0
+, <b>HasIGammac</b> = 0
+, <b>HasBetaInc</b> = 0
+, <b>HasRound</b> = 0
+, <br />
+&#160;&#160;<b>HasRint</b> = 0
 , <b>HasFloor</b> = 0
 , <b>HasCeil</b> = 0
 , <b>HasSign</b> = 0
 <br />
  }</td></tr>
-<tr class="separator:ad9ad66a6efeaaff1412b58ea60f3a809 inherit pub_types_structEigen_1_1internal_1_1default__packet__traits"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a121b15864755cd2537068cec255a4f18 inherit pub_types_structEigen_1_1internal_1_1default__packet__traits"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following files:<ul>
 <li>External/Eigen/src/Core/arch/AltiVec/<a class="el" href="AltiVec_2PacketMath_8h_source.html">PacketMath.h</a></li>
-<li>External/Eigen/src/Core/arch/NEON/<a class="el" href="NEON_2PacketMath_8h_source.html">PacketMath.h</a></li>
 <li>External/Eigen/src/Core/arch/SSE/<a class="el" href="SSE_2PacketMath_8h_source.html">PacketMath.h</a></li>
+<li>External/Eigen/src/Core/arch/ZVector/<a class="el" href="ZVector_2PacketMath_8h_source.html">PacketMath.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -84,7 +84,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="fragment"><div class="line"><a id="l00001" name="l00001"></a><span class="lineno">    1</span><span class="comment">// This file is part of Eigen, a lightweight C++ template library</span></div>
 <div class="line"><a id="l00002" name="l00002"></a><span class="lineno">    2</span><span class="comment">// for linear algebra.</span></div>
 <div class="line"><a id="l00003" name="l00003"></a><span class="lineno">    3</span><span class="comment">//</span></div>
-<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment">// Copyright (C) 2014 Gael Guennebaud &lt;gael.guennebaud@inria.fr&gt;</span></div>
+<div class="line"><a id="l00004" name="l00004"></a><span class="lineno">    4</span><span class="comment">// Copyright (C) 2014-2019 Gael Guennebaud &lt;gael.guennebaud@inria.fr&gt;</span></div>
 <div class="line"><a id="l00005" name="l00005"></a><span class="lineno">    5</span><span class="comment">//</span></div>
 <div class="line"><a id="l00006" name="l00006"></a><span class="lineno">    6</span><span class="comment">// This Source Code Form is subject to the terms of the Mozilla</span></div>
 <div class="line"><a id="l00007" name="l00007"></a><span class="lineno">    7</span><span class="comment">// Public License v. 2.0. If a copy of the MPL was not distributed</span></div>
@@ -93,7 +93,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#ifndef EIGEN_INVERSE_H</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#define EIGEN_INVERSE_H</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span>Eigen { </div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> {</div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> XprType,<span class="keyword">typename</span> StorageKind&gt; <span class="keyword">class </span>InverseImpl;</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
@@ -105,7 +105,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>  : <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt;typename XprType::PlainObject&gt;</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>{</div>
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> XprType::PlainObject PlainObject;</div>
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">traits&lt;PlainObject&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">BaseTraits</a>;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">traits&lt;PlainObject&gt;</a> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">BaseTraits</a>;</div>
 <div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>  <span class="keyword">enum</span> {</div>
 <div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>    Flags = BaseTraits::Flags &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a></div>
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>  };</div>
@@ -120,20 +120,20 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>{</div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span><span class="keyword">public</span>:</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> XprType::StorageIndex StorageIndex;</div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> XprType::PlainObject                       PlainObject;</div>
+<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> XprType::Scalar                            Scalar;</div>
 <div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::ref_selector&lt;XprType&gt;::type</a>      <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">XprTypeNested</a>;</div>
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">internal::remove_all&lt;XprTypeNested&gt;::type</a>  <a class="code hl_class" href="classEigen_1_1Solve.html">XprTypeNestedCleaned</a>;</div>
+<div class="line"><a id="l00049" name="l00049"></a><span class="lineno">   49</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> internal::remove_all&lt;XprTypeNested&gt;::type  XprTypeNestedCleaned;</div>
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">internal::ref_selector&lt;Inverse&gt;::type</a> <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">Nested</a>;</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">internal::remove_all&lt;XprType&gt;::type</a> <a class="code hl_class" href="classEigen_1_1Solve.html">NestedExpression</a>;</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>  </div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">explicit</span> <a class="code hl_class" href="classEigen_1_1Inverse.html">Inverse</a>(<span class="keyword">const</span> XprType &amp;<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>)</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    : m_xpr(<a class="code hl_class" href="classEigen_1_1Solve.html">xpr</a>)</div>
+<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> internal::remove_all&lt;XprType&gt;::type NestedExpression;</div>
+<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span> </div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">explicit</span> EIGEN_DEVICE_FUNC <a class="code hl_class" href="classEigen_1_1Inverse.html">Inverse</a>(<span class="keyword">const</span> XprType &amp;<a class="code hl_class" href="classEigen_1_1MatrixBase.html">xpr</a>)</div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>    : m_xpr(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">xpr</a>)</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>  {}</div>
 <div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index rows()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_xpr.rows(); }</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index cols()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_xpr.cols(); }</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR  <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows() <span class="keyword">const</span> EIGEN_NOEXCEPT { <span class="keywordflow">return</span> m_xpr.cols(); }</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR  <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols() <span class="keyword">const</span> EIGEN_NOEXCEPT { <span class="keywordflow">return</span> m_xpr.rows(); }</div>
 <div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span> </div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>  <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <span class="keyword">const</span> <a class="code hl_class" href="classEigen_1_1Solve.html">XprTypeNestedCleaned</a>&amp; nestedExpression()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_xpr; }</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>  EIGEN_DEVICE_FUNC <span class="keyword">const</span> XprTypeNestedCleaned&amp; nestedExpression()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> m_xpr; }</div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span><span class="keyword">protected</span>:</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>  <a class="code hl_struct" href="structEigen_1_1internal_1_1true__type.html">XprTypeNested</a> m_xpr;</div>
@@ -151,8 +151,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> XprType::Scalar Scalar;</div>
 <div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span><span class="keyword">private</span>:</div>
 <div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span> </div>
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>  Scalar coeff(Index row, Index col) <span class="keyword">const</span>;</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  Scalar coeff(Index i) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>  Scalar coeff(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col) <span class="keyword">const</span>;</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>  Scalar coeff(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> i) <span class="keyword">const</span>;</div>
 <div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>};</div>
 </div>
 <div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span> </div>
@@ -162,10 +162,10 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span><span class="keyword">struct </span>unary_evaluator&lt;<a class="code hl_class" href="classEigen_1_1Inverse.html">Inverse</a>&lt;ArgType&gt; &gt;</div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>  : <span class="keyword">public</span> evaluator&lt;typename Inverse&lt;ArgType&gt;::PlainObject&gt;</div>
 <div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>{</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">Inverse&lt;ArgType&gt;</a> InverseType;</div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">Inverse&lt;ArgType&gt;</a> InverseType;</div>
 <div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  <span class="keyword">typedef</span> <span class="keyword">typename</span> InverseType::PlainObject PlainObject;</div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Solve.html">evaluator&lt;PlainObject&gt;</a> Base;</div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>  </div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>  <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">evaluator&lt;PlainObject&gt;</a> Base;</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
 <div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>  <span class="keyword">enum</span> { Flags = Base::Flags | <a class="code hl_variable" href="group__flags.html#gaa34e83bae46a8eeae4e69ebe3aaecbed">EvalBeforeNestingBit</a> };</div>
 <div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>  unary_evaluator(<span class="keyword">const</span> InverseType&amp; inv_xpr)</div>
@@ -174,11 +174,11 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>    ::new (<span class="keyword">static_cast&lt;</span>Base*<span class="keyword">&gt;</span>(<span class="keyword">this</span>)) Base(m_result);</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>    internal::call_assignment_no_alias(m_result, inv_xpr);</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>  }</div>
-<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>  </div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span> </div>
 <div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span>protected:</div>
 <div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span>  PlainObject m_result;</div>
 <div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span>};</div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span>  </div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span> </div>
 <div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span>} <span class="comment">// end namespace internal</span></div>
 <div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span> </div>
 <div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>} <span class="comment">// end namespace Eigen</span></div>
@@ -186,16 +186,18 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_INVERSE_H</span></div>
 <div class="ttc" id="aclassEigen_1_1InverseImpl_html"><div class="ttname"><a href="classEigen_1_1InverseImpl.html">Eigen::InverseImpl</a></div><div class="ttdef"><b>Definition</b> Inverse.h:70</div></div>
 <div class="ttc" id="aclassEigen_1_1Inverse_html"><div class="ttname"><a href="classEigen_1_1Inverse.html">Eigen::Inverse</a></div><div class="ttdoc">Expression of the inverse of another expression.</div><div class="ttdef"><b>Definition</b> Inverse.h:44</div></div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
-<div class="ttc" id="agroup__flags_html_gaa34e83bae46a8eeae4e69ebe3aaecbed"><div class="ttname"><a href="group__flags.html#gaa34e83bae46a8eeae4e69ebe3aaecbed">Eigen::EvalBeforeNestingBit</a></div><div class="ttdeci">const unsigned int EvalBeforeNestingBit</div><div class="ttdoc">means the expression should be evaluated by the calling expression</div><div class="ttdef"><b>Definition</b> Constants.h:65</div></div>
-<div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:61</div></div>
-<div class="ttc" id="astructEigen_1_1internal_1_1generic__xpr__base_html"><div class="ttname"><a href="structEigen_1_1internal_1_1generic__xpr__base.html">Eigen::internal::generic_xpr_base</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:445</div></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
+<div class="ttc" id="agroup__flags_html_gaa34e83bae46a8eeae4e69ebe3aaecbed"><div class="ttname"><a href="group__flags.html#gaa34e83bae46a8eeae4e69ebe3aaecbed">Eigen::EvalBeforeNestingBit</a></div><div class="ttdeci">const unsigned int EvalBeforeNestingBit</div><div class="ttdoc">means the expression should be evaluated by the calling expression</div><div class="ttdef"><b>Definition</b> Constants.h:70</div></div>
+<div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:66</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
+<div class="ttc" id="anamespaceEigen_html_a62e77e0933482dafde8fe197d9a2cfde"><div class="ttname"><a href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a></div><div class="ttdeci">EIGEN_DEFAULT_DENSE_INDEX_TYPE Index</div><div class="ttdoc">The Index type as used for the API.</div><div class="ttdef"><b>Definition</b> Meta.h:74</div></div>
+<div class="ttc" id="astructEigen_1_1internal_1_1generic__xpr__base_html"><div class="ttname"><a href="structEigen_1_1internal_1_1generic__xpr__base.html">Eigen::internal::generic_xpr_base</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:501</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
-<div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:30</div></div>
+<div class="ttc" id="astructEigen_1_1internal_1_1true__type_html"><div class="ttname"><a href="structEigen_1_1internal_1_1true__type.html">Eigen::internal::true_type</a></div><div class="ttdef"><b>Definition</b> Meta.h:96</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:06 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:29:45 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -80,11 +80,17 @@ $(function() {
 <p><code>MatrixSizeType</code> where <code>Size</code> can be <code>2</code>,<code>3</code>,<code>4</code> for fixed size square matrices or <code>X</code> for dynamic size, and where <code>Type</code> can be <code>i</code> for integer, <code>f</code> for float, <code>d</code> for double, <code>cf</code> for complex float, <code>cd</code> for complex double.</p>
 <p>For example, <code>Matrix3d</code> is a fixed-size 3x3 matrix type of doubles, and <code>MatrixXf</code> is a dynamic-size matrix of floats.</p>
 <p>There are also <code>VectorSizeType</code> and <code>RowVectorSizeType</code> which are self-explanatory. For example, <code>Vector4cf</code> is a fixed-size vector of 4 complex floats.</p>
+<p>With \cpp11, template alias are also defined for common sizes. They follow the same pattern as above except that the scalar type suffix is replaced by a template parameter, i.e.:</p><ul>
+<li><code>MatrixSize&lt;Type&gt;</code> where <code>Size</code> can be <code>2</code>,<code>3</code>,<code>4</code> for fixed size square matrices or <code>X</code> for dynamic size.</li>
+<li><code>MatrixXSize&lt;Type&gt;</code> and <code>MatrixSizeX&lt;Type&gt;</code> where <code>Size</code> can be <code>2</code>,<code>3</code>,<code>4</code> for hybrid dynamic/fixed matrices.</li>
+<li><code>VectorSize&lt;Type&gt;</code> and <code>RowVectorSize&lt;Type&gt;</code> for column and row vectors.</li>
+</ul>
+<p>With \cpp11, you can also use fully generic column and row vector types: <code>Vector&lt;Type,Size&gt;</code> and <code>RowVector&lt;Type,Size&gt;</code>.</p>
 <dl class="section see"><dt>See also</dt><dd>class <a class="el" href="classEigen_1_1Matrix.html" title="The matrix class, also used for vectors and row-vectors.">Matrix</a> </dd></dl>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:36 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

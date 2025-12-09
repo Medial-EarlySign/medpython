@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::redux_novec_unroller&lt; Func, Derived, Start, Length &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::redux_novec_unroller&lt; Func, Evaluator, Start, Length &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,31 +69,31 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1redux__novec__unroller.html">redux_novec_unroller</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1redux__novec__unroller.html">redux_novec_unroller</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::redux_novec_unroller&lt; Func, Derived, Start, Length &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::redux_novec_unroller&lt; Func, Evaluator, Start, Length &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:aa87375017dff2ea37474598a9ee34d9c" id="r_aa87375017dff2ea37474598a9ee34d9c"><td class="memItemLeft" align="right" valign="top"><a id="aa87375017dff2ea37474598a9ee34d9c" name="aa87375017dff2ea37474598a9ee34d9c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>HalfLength</b> = Length/2
+<tr class="memitem:a4feffe23d5f241defe8840c4b8639469" id="r_a4feffe23d5f241defe8840c4b8639469"><td class="memItemLeft" align="right" valign="top"><a id="a4feffe23d5f241defe8840c4b8639469" name="a4feffe23d5f241defe8840c4b8639469"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>HalfLength</b> = Length/2
  }</td></tr>
-<tr class="separator:aa87375017dff2ea37474598a9ee34d9c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a77060572615dfca306cf2ee47ebe722d" id="r_a77060572615dfca306cf2ee47ebe722d"><td class="memItemLeft" align="right" valign="top"><a id="a77060572615dfca306cf2ee47ebe722d" name="a77060572615dfca306cf2ee47ebe722d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
-<tr class="separator:a77060572615dfca306cf2ee47ebe722d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a4feffe23d5f241defe8840c4b8639469"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a78c78e0ae6f7be49566b4a207b08393d" id="r_a78c78e0ae6f7be49566b4a207b08393d"><td class="memItemLeft" align="right" valign="top"><a id="a78c78e0ae6f7be49566b4a207b08393d" name="a78c78e0ae6f7be49566b4a207b08393d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Evaluator::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<tr class="separator:a78c78e0ae6f7be49566b4a207b08393d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:aa83c93f6cbbd592b9b96f7e7ad62fb90" id="r_aa83c93f6cbbd592b9b96f7e7ad62fb90"><td class="memItemLeft" align="right" valign="top"><a id="aa83c93f6cbbd592b9b96f7e7ad62fb90" name="aa83c93f6cbbd592b9b96f7e7ad62fb90"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1Solve.html">mat</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> Func &amp;func)</td></tr>
-<tr class="separator:aa83c93f6cbbd592b9b96f7e7ad62fb90"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa344dd4bfe4d37dd1372f2ca39a3d8ec" id="r_aa344dd4bfe4d37dd1372f2ca39a3d8ec"><td class="memItemLeft" align="right" valign="top"><a id="aa344dd4bfe4d37dd1372f2ca39a3d8ec" name="aa344dd4bfe4d37dd1372f2ca39a3d8ec"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Evaluator &amp;<a class="el" href="structEigen_1_1internal_1_1eval.html">eval</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Func &amp;func)</td></tr>
+<tr class="separator:aa344dd4bfe4d37dd1372f2ca39a3d8ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="Redux_8h_source.html">Redux.h</a></li>
@@ -101,7 +101,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:25 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

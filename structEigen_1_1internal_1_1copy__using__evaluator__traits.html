@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::copy_using_evaluator_traits&lt; DstEvaluator, SrcEvaluator, AssignFunc &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::copy_using_evaluator_traits&lt; DstEvaluator, SrcEvaluator, AssignFunc, MaxPacketSize &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,45 +69,48 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__traits.html">copy_using_evaluator_traits</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__traits.html">copy_using_evaluator_traits</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::copy_using_evaluator_traits&lt; DstEvaluator, SrcEvaluator, AssignFunc &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::copy_using_evaluator_traits&lt; DstEvaluator, SrcEvaluator, AssignFunc, MaxPacketSize &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ad9a7508d4d7d92c6a8b9ea1858192dd6" id="r_ad9a7508d4d7d92c6a8b9ea1858192dd6"><td class="memItemLeft" align="right" valign="top"><a id="ad9a7508d4d7d92c6a8b9ea1858192dd6" name="ad9a7508d4d7d92c6a8b9ea1858192dd6"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>DstFlags</b> = DstEvaluator::Flags
+<tr class="memitem:ac9f6d0d64b6a90943238bfb169f2c351" id="r_ac9f6d0d64b6a90943238bfb169f2c351"><td class="memItemLeft" align="right" valign="top"><a id="ac9f6d0d64b6a90943238bfb169f2c351" name="ac9f6d0d64b6a90943238bfb169f2c351"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>DstFlags</b> = DstEvaluator::Flags
 , <b>SrcFlags</b> = SrcEvaluator::Flags
-, <b>RequiredAlignment</b> = unpacket_traits&lt;PacketType&gt;::alignment
  }</td></tr>
-<tr class="separator:ad9a7508d4d7d92c6a8b9ea1858192dd6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8dac41b2df3ba89d71588aa4a01b9803" id="r_a8dac41b2df3ba89d71588aa4a01b9803"><td class="memItemLeft" align="right" valign="top"><a id="a8dac41b2df3ba89d71588aa4a01b9803" name="a8dac41b2df3ba89d71588aa4a01b9803"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>DstAlignment</b> = DstEvaluator::Alignment
+<tr class="separator:ac9f6d0d64b6a90943238bfb169f2c351"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae25d96c07f2453c1a928746b71028447" id="r_ae25d96c07f2453c1a928746b71028447"><td class="memItemLeft" align="right" valign="top"><a id="ae25d96c07f2453c1a928746b71028447" name="ae25d96c07f2453c1a928746b71028447"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>DstAlignment</b> = DstEvaluator::Alignment
 , <b>SrcAlignment</b> = SrcEvaluator::Alignment
-, <b>DstHasDirectAccess</b> = DstFlags &amp; DirectAccessBit
-, <b>JointAlignment</b> = EIGEN_PLAIN_ENUM_MIN(DstAlignment, SrcAlignment)
+, <b>DstHasDirectAccess</b> = (DstFlags &amp; DirectAccessBit) == DirectAccessBit
+, <b>JointAlignment</b> = EIGEN_PLAIN_ENUM_MIN(DstAlignment,SrcAlignment)
  }</td></tr>
-<tr class="separator:a8dac41b2df3ba89d71588aa4a01b9803"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa901fba9ca4945839029d8ff291b617c" id="r_aa901fba9ca4945839029d8ff291b617c"><td class="memItemLeft" align="right" valign="top"><a id="aa901fba9ca4945839029d8ff291b617c" name="aa901fba9ca4945839029d8ff291b617c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Traversal</b>
+<tr class="separator:ae25d96c07f2453c1a928746b71028447"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea3aab7a9008f33141741e774d55500e" id="r_aea3aab7a9008f33141741e774d55500e"><td class="memItemLeft" align="right" valign="top"><a id="aea3aab7a9008f33141741e774d55500e" name="aea3aab7a9008f33141741e774d55500e"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>LinearRequiredAlignment</b> = unpacket_traits&lt;LinearPacketType&gt;::alignment
+, <b>InnerRequiredAlignment</b> = unpacket_traits&lt;InnerPacketType&gt;::alignment
+ }</td></tr>
+<tr class="separator:aea3aab7a9008f33141741e774d55500e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ece1d3b572ee852fae11406120b0cb4" id="r_a3ece1d3b572ee852fae11406120b0cb4"><td class="memItemLeft" align="right" valign="top"><a id="a3ece1d3b572ee852fae11406120b0cb4" name="a3ece1d3b572ee852fae11406120b0cb4"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Traversal</b>
 , <b>Vectorized</b>
  }</td></tr>
-<tr class="separator:aa901fba9ca4945839029d8ff291b617c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9d02da6473bedeb6eff1dfb4661e4c1a" id="r_a9d02da6473bedeb6eff1dfb4661e4c1a"><td class="memItemLeft" align="right" valign="top"><a id="a9d02da6473bedeb6eff1dfb4661e4c1a" name="a9d02da6473bedeb6eff1dfb4661e4c1a"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Unrolling</b>
+<tr class="separator:a3ece1d3b572ee852fae11406120b0cb4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad167d266e6c1c3654928f80a7a3598b5" id="r_ad167d266e6c1c3654928f80a7a3598b5"><td class="memItemLeft" align="right" valign="top"><a id="ad167d266e6c1c3654928f80a7a3598b5" name="ad167d266e6c1c3654928f80a7a3598b5"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Unrolling</b>
  }</td></tr>
-<tr class="separator:a9d02da6473bedeb6eff1dfb4661e4c1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3f82645c1639690df8d7c786a86b6d76" id="r_a3f82645c1639690df8d7c786a86b6d76"><td class="memItemLeft" align="right" valign="top"><a id="a3f82645c1639690df8d7c786a86b6d76" name="a3f82645c1639690df8d7c786a86b6d76"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> DstEvaluator::XprType&#160;</td><td class="memItemRight" valign="bottom"><b>Dst</b></td></tr>
-<tr class="separator:a3f82645c1639690df8d7c786a86b6d76"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af449f8796c0ea6e750096672bad13525" id="r_af449f8796c0ea6e750096672bad13525"><td class="memItemLeft" align="right" valign="top"><a id="af449f8796c0ea6e750096672bad13525" name="af449f8796c0ea6e750096672bad13525"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Dst::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>DstScalar</b></td></tr>
-<tr class="separator:af449f8796c0ea6e750096672bad13525"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afc3101ccdb68c938cfd6b045934bfaac" id="r_afc3101ccdb68c938cfd6b045934bfaac"><td class="memItemLeft" align="right" valign="top"><a id="afc3101ccdb68c938cfd6b045934bfaac" name="afc3101ccdb68c938cfd6b045934bfaac"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1find__best__packet.html">find_best_packet</a>&lt; DstScalar, Dst::SizeAtCompileTime &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
-<tr class="separator:afc3101ccdb68c938cfd6b045934bfaac"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ad167d266e6c1c3654928f80a7a3598b5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa9716330cd953312b26506a8eccce6c2" id="r_aa9716330cd953312b26506a8eccce6c2"><td class="memItemLeft" align="right" valign="top"><a id="aa9716330cd953312b26506a8eccce6c2" name="aa9716330cd953312b26506a8eccce6c2"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> DstEvaluator::XprType&#160;</td><td class="memItemRight" valign="bottom"><b>Dst</b></td></tr>
+<tr class="separator:aa9716330cd953312b26506a8eccce6c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af9dc04a1c6ce0fece31652de6c20924e" id="r_af9dc04a1c6ce0fece31652de6c20924e"><td class="memItemLeft" align="right" valign="top"><a id="af9dc04a1c6ce0fece31652de6c20924e" name="af9dc04a1c6ce0fece31652de6c20924e"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Dst::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>DstScalar</b></td></tr>
+<tr class="separator:af9dc04a1c6ce0fece31652de6c20924e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aaba77950701aef241d3f7e51e11a8c8a" id="r_aaba77950701aef241d3f7e51e11a8c8a"><td class="memItemLeft" align="right" valign="top"><a id="aaba77950701aef241d3f7e51e11a8c8a" name="aaba77950701aef241d3f7e51e11a8c8a"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">conditional</a>&lt; int(Traversal)==LinearVectorizedTraversal, LinearPacketType, InnerPacketType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
+<tr class="separator:aaba77950701aef241d3f7e51e11a8c8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="AssignEvaluator_8h_source.html">AssignEvaluator.h</a></li>
@@ -115,7 +118,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:46 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

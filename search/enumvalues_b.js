@@ -7,5 +7,6 @@ var searchData=
   ['number_5ffloat_4',['number_float',['../namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632ad9966ecb59667235a57b4b999a649eef',1,'detail']]],
   ['number_5finteger_5',['number_integer',['../namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632a5763da164f8659d94a56e29df64b4bcc',1,'detail']]],
   ['number_5funsigned_6',['number_unsigned',['../namespacedetail.html#a917c3efabea8a20dc72d9ae2c673d632adce7cc8ec29055c4158828921f2f265e',1,'detail']]],
-  ['numericalissue_7',['NumericalIssue',['../group__enums.html#gga85fad7b87587764e5cf6b513a9e0ee5ea1c6e20706575a629b27a105f07f1883b',1,'Eigen']]]
+  ['numdimensions_7',['numdimensions',['../classEigen_1_1DenseBase.html#a0632b818dc6bddab3ed1dd0ff4ec4e5da4d4548a01ba37a6c2031a3c1f0a37d34',1,'Eigen::DenseBase::NumDimensions'],['../classEigen_1_1SparseMatrixBase.html#a1d4c4901f668db79f62931c523561f05a2366131ffcc38bff48a1c7572eb86dd3',1,'Eigen::SparseMatrixBase::NumDimensions']]],
+  ['numericalissue_8',['NumericalIssue',['../group__enums.html#gga85fad7b87587764e5cf6b513a9e0ee5ea1c6e20706575a629b27a105f07f1883b',1,'Eigen']]]
 ];

@@ -94,74 +94,75 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#ifndef EIGEN_VECTORBLOCK_H</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span><span class="preprocessor">#define EIGEN_VECTORBLOCK_H</span></div>
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
-<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="keyword">namespace </span>Eigen { </div>
+<div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> { </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
-<div class="line"><a id="l00047" name="l00047"></a><span class="lineno">   47</span><span class="keyword">namespace </span>internal {</div>
-<div class="line"><a id="l00048" name="l00048"></a><span class="lineno">   48</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> VectorType, <span class="keywordtype">int</span> Size&gt;</div>
-<div class="foldopen" id="foldopen00049" data-start="{" data-end="};">
-<div class="line"><a id="l00049" name="l00049"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1traits_3_01VectorBlock_3_01VectorType_00_01Size_01_4_01_4.html">   49</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt;<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>&lt;VectorType, Size&gt; &gt;</div>
-<div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span>  : <span class="keyword">public</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt;Block&lt;VectorType,</div>
-<div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span>                     traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? 1 : Size,</div>
-<div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>                     traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? Size : 1&gt; &gt;</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>{</div>
-<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>};</div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span>internal {</div>
+<div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> VectorType, <span class="keywordtype">int</span> Size&gt;</div>
+<div class="foldopen" id="foldopen00018" data-start="{" data-end="};">
+<div class="line"><a id="l00018" name="l00018"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1traits_3_01VectorBlock_3_01VectorType_00_01Size_01_4_01_4.html">   18</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt;<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>&lt;VectorType, Size&gt; &gt;</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  : <span class="keyword">public</span> <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt;Block&lt;VectorType,</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>                     traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? 1 : Size,</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>                     traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? Size : 1&gt; &gt;</div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>{</div>
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span>};</div>
 </div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span>}</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span> </div>
-<div class="foldopen" id="foldopen00057" data-start="{" data-end="};">
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html">   57</a></span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> VectorType, <span class="keywordtype">int</span> Size&gt; <span class="keyword">class </span><a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a></div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  : <span class="keyword">public</span> <a class="code hl_class" href="classEigen_1_1Block.html">Block</a>&lt;VectorType,</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>                     internal::traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? 1 : Size,</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>                     internal::traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? Size : 1&gt;</div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>{</div>
-<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Block.html">Block</a>&lt;VectorType,</div>
-<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>                     <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a> ? 1 : Size,</div>
-<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>                     <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a> ? Size : 1&gt; <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>;</div>
-<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>    <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>      IsColVector = !(<a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a>)</div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>    };</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>  <span class="keyword">public</span>:</div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    EIGEN_DENSE_PUBLIC_INTERFACE(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>)</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span> </div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>    <span class="keyword">using </span>Base::operator=;</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span> </div>
-<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
-<div class="foldopen" id="foldopen00076" data-start="{" data-end="}">
-<div class="line"><a id="l00076" name="l00076"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html#a4bd5eb61b2c420218269a111d717dbb7">   76</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1VectorBlock.html#a4bd5eb61b2c420218269a111d717dbb7">VectorBlock</a>(VectorType&amp; vector, Index start, Index size)</div>
-<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>      : <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>(vector,</div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>             IsColVector ? start : 0, IsColVector ? 0 : start,</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>             IsColVector ? size  : 1, IsColVector ? 1 : size)</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    {</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>      EIGEN_STATIC_ASSERT_VECTOR_ONLY(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>);</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    }</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>}</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
+<div class="foldopen" id="foldopen00056" data-start="{" data-end="};">
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html">   56</a></span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> VectorType, <span class="keywordtype">int</span> Size&gt; <span class="keyword">class </span><a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a></div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  : <span class="keyword">public</span> <a class="code hl_class" href="classEigen_1_1Block.html">Block</a>&lt;VectorType,</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>                     internal::traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? 1 : Size,</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>                     internal::traits&lt;VectorType&gt;::Flags &amp; RowMajorBit ? Size : 1&gt;</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>{</div>
+<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="keyword">typedef</span> <a class="code hl_class" href="classEigen_1_1Block.html">Block</a>&lt;VectorType,</div>
+<div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>                     <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a> ? 1 : Size,</div>
+<div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>                     <a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a> ? Size : 1&gt; <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>;</div>
+<div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>    <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>      IsColVector = !(<a class="code hl_struct" href="structEigen_1_1internal_1_1traits.html">internal::traits&lt;VectorType&gt;::Flags</a> &amp; <a class="code hl_variable" href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">RowMajorBit</a>)</div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>    };</div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>  <span class="keyword">public</span>:</div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>    EIGEN_DENSE_PUBLIC_INTERFACE(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>)</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span> </div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    <span class="keyword">using </span>Base::operator=;</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span> </div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE</div>
+<div class="foldopen" id="foldopen00075" data-start="{" data-end="}">
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html#a149d21775251248826d324028118e515">   75</a></span>    <a class="code hl_function" href="classEigen_1_1VectorBlock.html#a149d21775251248826d324028118e515">VectorBlock</a>(VectorType&amp; vector, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> start, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> size)</div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>      : <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>(vector,</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>             IsColVector ? start : 0, IsColVector ? 0 : start,</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>             IsColVector ? size  : 1, IsColVector ? 1 : size)</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>    {</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>      EIGEN_STATIC_ASSERT_VECTOR_ONLY(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>);</div>
+<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    }</div>
 </div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span> </div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>    <a class="code hl_class" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a></div>
-<div class="foldopen" id="foldopen00087" data-start="{" data-end="}">
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html#a94bcec1eda40d989b2fbcc70f343fa8f">   87</a></span>    <span class="keyword">inline</span> <a class="code hl_function" href="classEigen_1_1VectorBlock.html#a94bcec1eda40d989b2fbcc70f343fa8f">VectorBlock</a>(VectorType&amp; vector, Index start)</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>      : <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>(vector, IsColVector ? start : 0, IsColVector ? 0 : start)</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>    {</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>      EIGEN_STATIC_ASSERT_VECTOR_ONLY(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>);</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>    }</div>
+<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE</div>
+<div class="foldopen" id="foldopen00086" data-start="{" data-end="}">
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno"><a class="line" href="classEigen_1_1VectorBlock.html#a6d8be4a0591a965b361ca1977f22dd75">   86</a></span>    <a class="code hl_function" href="classEigen_1_1VectorBlock.html#a6d8be4a0591a965b361ca1977f22dd75">VectorBlock</a>(VectorType&amp; vector, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> start)</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>      : <a class="code hl_class" href="classEigen_1_1Block.html">Base</a>(vector, IsColVector ? start : 0, IsColVector ? 0 : start)</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>    {</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>      EIGEN_STATIC_ASSERT_VECTOR_ONLY(<a class="code hl_class" href="classEigen_1_1VectorBlock.html">VectorBlock</a>);</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>    }</div>
 </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>};</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>};</div>
 </div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span> </div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span> </div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>} <span class="comment">// end namespace Eigen</span></div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span> </div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_VECTORBLOCK_H</span></div>
-<div class="ttc" id="aclassEigen_1_1Block_html"><div class="ttname"><a href="classEigen_1_1Block.html">Eigen::Block</a></div><div class="ttdoc">Expression of a fixed-size or dynamic-size block.</div><div class="ttdef"><b>Definition</b> Block.h:106</div></div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
-<div class="ttc" id="aclassEigen_1_1VectorBlock_html"><div class="ttname"><a href="classEigen_1_1VectorBlock.html">Eigen::VectorBlock</a></div><div class="ttdoc">Expression of a fixed-size or dynamic-size sub-vector.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:61</div></div>
-<div class="ttc" id="aclassEigen_1_1VectorBlock_html_a4bd5eb61b2c420218269a111d717dbb7"><div class="ttname"><a href="classEigen_1_1VectorBlock.html#a4bd5eb61b2c420218269a111d717dbb7">Eigen::VectorBlock::VectorBlock</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC VectorBlock(VectorType &amp;vector, Index start, Index size)</div><div class="ttdoc">Dynamic-size constructor.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:76</div></div>
-<div class="ttc" id="aclassEigen_1_1VectorBlock_html_a94bcec1eda40d989b2fbcc70f343fa8f"><div class="ttname"><a href="classEigen_1_1VectorBlock.html#a94bcec1eda40d989b2fbcc70f343fa8f">Eigen::VectorBlock::VectorBlock</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC VectorBlock(VectorType &amp;vector, Index start)</div><div class="ttdoc">Fixed-size constructor.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:87</div></div>
-<div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:61</div></div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>} <span class="comment">// end namespace Eigen</span></div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_VECTORBLOCK_H</span></div>
+<div class="ttc" id="aclassEigen_1_1Block_html"><div class="ttname"><a href="classEigen_1_1Block.html">Eigen::Block</a></div><div class="ttdoc">Expression of a fixed-size or dynamic-size block.</div><div class="ttdef"><b>Definition</b> Block.h:105</div></div>
+<div class="ttc" id="aclassEigen_1_1VectorBlock_html"><div class="ttname"><a href="classEigen_1_1VectorBlock.html">Eigen::VectorBlock</a></div><div class="ttdoc">Expression of a fixed-size or dynamic-size sub-vector.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:60</div></div>
+<div class="ttc" id="aclassEigen_1_1VectorBlock_html_a149d21775251248826d324028118e515"><div class="ttname"><a href="classEigen_1_1VectorBlock.html#a149d21775251248826d324028118e515">Eigen::VectorBlock::VectorBlock</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE VectorBlock(VectorType &amp;vector, Index start, Index size)</div><div class="ttdoc">Dynamic-size constructor.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:75</div></div>
+<div class="ttc" id="aclassEigen_1_1VectorBlock_html_a6d8be4a0591a965b361ca1977f22dd75"><div class="ttname"><a href="classEigen_1_1VectorBlock.html#a6d8be4a0591a965b361ca1977f22dd75">Eigen::VectorBlock::VectorBlock</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE VectorBlock(VectorType &amp;vector, Index start)</div><div class="ttdoc">Fixed-size constructor.</div><div class="ttdef"><b>Definition</b> VectorBlock.h:86</div></div>
+<div class="ttc" id="agroup__flags_html_gae4f56c2a60bbe4bd2e44c5b19cbe8762"><div class="ttname"><a href="group__flags.html#gae4f56c2a60bbe4bd2e44c5b19cbe8762">Eigen::RowMajorBit</a></div><div class="ttdeci">const unsigned int RowMajorBit</div><div class="ttdoc">for a matrix, this means that the storage order is row-major.</div><div class="ttdef"><b>Definition</b> Constants.h:66</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
+<div class="ttc" id="anamespaceEigen_html_a62e77e0933482dafde8fe197d9a2cfde"><div class="ttname"><a href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a></div><div class="ttdeci">EIGEN_DEFAULT_DENSE_INDEX_TYPE Index</div><div class="ttdoc">The Index type as used for the API.</div><div class="ttdef"><b>Definition</b> Meta.h:74</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a></div><div class="ttdef"><b>Definition</b> ForwardDeclarations.h:17</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:29:54 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

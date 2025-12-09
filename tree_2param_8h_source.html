@@ -435,7 +435,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00368" name="l00368"></a><span class="lineno">  368</span>    sum_grad = a.sum_grad - b.sum_grad;</div>
 <div class="line"><a id="l00369" name="l00369"></a><span class="lineno">  369</span>    sum_hess = a.sum_hess - b.sum_hess;</div>
 <div class="line"><a id="l00370" name="l00370"></a><span class="lineno">  370</span>  }</div>
-<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>  [[nodiscard]] <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacexgboost_1_1linalg.html#acf354dffd6373ca716114b0980109a7d">Empty</a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> sum_hess == 0.0; }</div>
+<div class="line"><a id="l00372" name="l00372"></a><span class="lineno">  372</span>  [[nodiscard]] <span class="keywordtype">bool</span> Empty()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> sum_hess == 0.0; }</div>
 <div class="line"><a id="l00374" name="l00374"></a><span class="lineno">  374</span>  <span class="keyword">inline</span> <span class="keywordtype">void</span> Add(GradType grad, GradType hess) {</div>
 <div class="line"><a id="l00375" name="l00375"></a><span class="lineno">  375</span>    sum_grad += grad;</div>
 <div class="line"><a id="l00376" name="l00376"></a><span class="lineno">  376</span>    sum_hess += hess;</div>
@@ -629,9 +629,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="ainclude_2xgboost_2parameter_8h_html"><div class="ttname"><a href="include_2xgboost_2parameter_8h.html">parameter.h</a></div><div class="ttdoc">macro for using C++11 enum class as DMLC parameter</div></div>
 <div class="ttc" id="alinalg_8h_html"><div class="ttname"><a href="linalg_8h.html">linalg.h</a></div><div class="ttdoc">Copyright 2021-2023 by XGBoost Contributors.</div></div>
 <div class="ttc" id="anamespacedmlc_html_aff849eb74b4604e70e042dc681819e3d"><div class="ttname"><a href="namespacedmlc.html#aff849eb74b4604e70e042dc681819e3d">dmlc::operator&gt;&gt;</a></div><div class="ttdeci">std::istream &amp; operator&gt;&gt;(std::istream &amp;is, optional&lt; T &gt; &amp;t)</div><div class="ttdoc">parse a string object into optional&lt;T&gt;</div><div class="ttdef"><b>Definition</b> optional.h:323</div></div>
-<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
+<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> BFloat16.h:88</div></div>
 <div class="ttc" id="anamespacexgboost_1_1common_html_aad47d2721bf7ee94721d387cb0591840"><div class="ttname"><a href="namespacexgboost_1_1common.html#aad47d2721bf7ee94721d387cb0591840">xgboost::common::Reduce</a></div><div class="ttdeci">double Reduce(Context const *ctx, HostDeviceVector&lt; float &gt; const &amp;values)</div><div class="ttdoc">Reduction on host device vector.</div><div class="ttdef"><b>Definition</b> numeric.cc:13</div></div>
-<div class="ttc" id="anamespacexgboost_1_1linalg_html_acf354dffd6373ca716114b0980109a7d"><div class="ttname"><a href="namespacexgboost_1_1linalg.html#acf354dffd6373ca716114b0980109a7d">xgboost::linalg::Empty</a></div><div class="ttdeci">auto Empty(Context const *ctx, Index &amp;&amp;...index)</div><div class="ttdoc">Create an array without initialization.</div><div class="ttdef"><b>Definition</b> linalg.h:947</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="anamespacexgboost_html_a104d9973021f954f36fe72da36aedddb"><div class="ttname"><a href="namespacexgboost.html#a104d9973021f954f36fe72da36aedddb">xgboost::bst_feature_t</a></div><div class="ttdeci">uint32_t bst_feature_t</div><div class="ttdoc">Type for data column (feature) index.</div><div class="ttdef"><b>Definition</b> base.h:101</div></div>
 <div class="ttc" id="anamespacexgboost_html_a1e0027a7b65dda23e5149b540d9b4c4e"><div class="ttname"><a href="namespacexgboost.html#a1e0027a7b65dda23e5149b540d9b4c4e">xgboost::bst_node_t</a></div><div class="ttdeci">std::int32_t bst_node_t</div><div class="ttdoc">Type for tree node index.</div><div class="ttdef"><b>Definition</b> base.h:112</div></div>
@@ -656,7 +655,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:34 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

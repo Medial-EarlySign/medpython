@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::assign_op&lt; Scalar &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::assign_op&lt; DstScalar, SrcScalar &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,25 +69,25 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1assign__op.html">assign_op</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1assign__op.html">assign_op</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-methods">Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::assign_op&lt; Scalar &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::assign_op&lt; DstScalar, SrcScalar &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a90e3a39af5ef59a1e52152e7e56c5ccb" id="r_a90e3a39af5ef59a1e52152e7e56c5ccb"><td class="memItemLeft" align="right" valign="top"><a id="a90e3a39af5ef59a1e52152e7e56c5ccb" name="a90e3a39af5ef59a1e52152e7e56c5ccb"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>assignCoeff</b> (Scalar &amp;a, <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a90e3a39af5ef59a1e52152e7e56c5ccb"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5da0f6c11b38c38e8d9d5be6e8c35742" id="r_a5da0f6c11b38c38e8d9d5be6e8c35742"><td class="memTemplParams" colspan="2"><a id="a5da0f6c11b38c38e8d9d5be6e8c35742" name="a5da0f6c11b38c38e8d9d5be6e8c35742"></a>
-template&lt;int Alignment, <a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &gt; </td></tr>
-<tr class="memitem:a5da0f6c11b38c38e8d9d5be6e8c35742"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>assignPacket</b> (Scalar *a, <a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a5da0f6c11b38c38e8d9d5be6e8c35742"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ebf383597f27cf667e1819811240a5f" id="r_a3ebf383597f27cf667e1819811240a5f"><td class="memItemLeft" align="right" valign="top"><a id="a3ebf383597f27cf667e1819811240a5f" name="a3ebf383597f27cf667e1819811240a5f"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>assignCoeff</b> (DstScalar &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">SrcScalar</a> &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a3ebf383597f27cf667e1819811240a5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a692298cacb98ec36a00dadbc36824699" id="r_a692298cacb98ec36a00dadbc36824699"><td class="memTemplParams" colspan="2"><a id="a692298cacb98ec36a00dadbc36824699" name="a692298cacb98ec36a00dadbc36824699"></a>
+template&lt;int Alignment, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &gt; </td></tr>
+<tr class="memitem:a692298cacb98ec36a00dadbc36824699"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>assignPacket</b> (DstScalar *a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a692298cacb98ec36a00dadbc36824699"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/functors/<a class="el" href="AssignmentFunctors_8h_source.html">AssignmentFunctors.h</a></li>
@@ -95,7 +95,7 @@ template&lt;int Alignment, <a class="el" href="classEigen_1_1Solve.html">typenam
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:45 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

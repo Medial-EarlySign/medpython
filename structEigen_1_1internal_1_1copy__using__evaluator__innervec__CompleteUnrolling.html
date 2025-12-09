@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling.html">copy_using_evaluator_innervec_CompleteUnrolling</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__innervec__CompleteUnrolling.html">copy_using_evaluator_innervec_CompleteUnrolling</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -82,25 +82,26 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a2507b468b834cdcdfe84f51979c5904d" id="r_a2507b468b834cdcdfe84f51979c5904d"><td class="memItemLeft" align="right" valign="top"><a id="a2507b468b834cdcdfe84f51979c5904d" name="a2507b468b834cdcdfe84f51979c5904d"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>outer</b> = Index / DstXprType::InnerSizeAtCompileTime
+<tr class="memitem:a86b38339165c7c407d2b55410992a8cd" id="r_a86b38339165c7c407d2b55410992a8cd"><td class="memItemLeft" align="right" valign="top"><a id="a86b38339165c7c407d2b55410992a8cd" name="a86b38339165c7c407d2b55410992a8cd"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>outer</b> = Index / DstXprType::InnerSizeAtCompileTime
 , <b>inner</b> = Index % DstXprType::InnerSizeAtCompileTime
-, <b>JointAlignment</b> = Kernel::AssignmentTraits::JointAlignment
+, <b>SrcAlignment</b> = Kernel::AssignmentTraits::SrcAlignment
+, <b>DstAlignment</b> = Kernel::AssignmentTraits::DstAlignment
  }</td></tr>
-<tr class="separator:a2507b468b834cdcdfe84f51979c5904d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a86b38339165c7c407d2b55410992a8cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a380af5207fb13006b1a69698fd758082" id="r_a380af5207fb13006b1a69698fd758082"><td class="memItemLeft" align="right" valign="top"><a id="a380af5207fb13006b1a69698fd758082" name="a380af5207fb13006b1a69698fd758082"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Kernel::DstEvaluatorType&#160;</td><td class="memItemRight" valign="bottom"><b>DstEvaluatorType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Kernel::DstEvaluatorType&#160;</td><td class="memItemRight" valign="bottom"><b>DstEvaluatorType</b></td></tr>
 <tr class="separator:a380af5207fb13006b1a69698fd758082"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6b3dce8ef2f1568a09bf18dc15a15f81" id="r_a6b3dce8ef2f1568a09bf18dc15a15f81"><td class="memItemLeft" align="right" valign="top"><a id="a6b3dce8ef2f1568a09bf18dc15a15f81" name="a6b3dce8ef2f1568a09bf18dc15a15f81"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> DstEvaluatorType::XprType&#160;</td><td class="memItemRight" valign="bottom"><b>DstXprType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> DstEvaluatorType::XprType&#160;</td><td class="memItemRight" valign="bottom"><b>DstXprType</b></td></tr>
 <tr class="separator:a6b3dce8ef2f1568a09bf18dc15a15f81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0941896241a59f3dd7d288ae55fd236d" id="r_a0941896241a59f3dd7d288ae55fd236d"><td class="memItemLeft" align="right" valign="top"><a id="a0941896241a59f3dd7d288ae55fd236d" name="a0941896241a59f3dd7d288ae55fd236d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Kernel::PacketType&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Kernel::PacketType&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
 <tr class="separator:a0941896241a59f3dd7d288ae55fd236d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
 <tr class="memitem:a5d26f02f41e78b2e18e0294a22393ebb" id="r_a5d26f02f41e78b2e18e0294a22393ebb"><td class="memItemLeft" align="right" valign="top"><a id="a5d26f02f41e78b2e18e0294a22393ebb" name="a5d26f02f41e78b2e18e0294a22393ebb"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classKernel.html">Kernel</a> &amp;kernel)</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classKernel.html">Kernel</a> &amp;kernel)</td></tr>
 <tr class="separator:a5d26f02f41e78b2e18e0294a22393ebb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -109,7 +110,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:46 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

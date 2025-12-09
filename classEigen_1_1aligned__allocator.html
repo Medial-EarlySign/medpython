@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -81,7 +81,7 @@ $(function() {
 </div><!--header-->
 <div class="contents">
 
-<p>STL compatible allocator to use with with 16 byte aligned types.  
+<p>STL compatible allocator to use with types requiring a non standrad alignment.  
  <a href="classEigen_1_1aligned__allocator.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="Memory_8h_source.html">Memory.h</a>&gt;</code></p>
@@ -99,61 +99,66 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ad4c86df7d83acc6679fc8ea14663abb9" id="r_ad4c86df7d83acc6679fc8ea14663abb9"><td class="memItemLeft" align="right" valign="top"><a id="ad4c86df7d83acc6679fc8ea14663abb9" name="ad4c86df7d83acc6679fc8ea14663abb9"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">size_t</a>&#160;</td><td class="memItemRight" valign="bottom"><b>size_type</b></td></tr>
-<tr class="separator:ad4c86df7d83acc6679fc8ea14663abb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2250815f042d86cb48c8e8fb960db280" id="r_a2250815f042d86cb48c8e8fb960db280"><td class="memItemLeft" align="right" valign="top"><a id="a2250815f042d86cb48c8e8fb960db280" name="a2250815f042d86cb48c8e8fb960db280"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> std::size_t&#160;</td><td class="memItemRight" valign="bottom"><b>size_type</b></td></tr>
+<tr class="separator:a2250815f042d86cb48c8e8fb960db280"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a390bc09fb087d94423c42cf3428f0a24" id="r_a390bc09fb087d94423c42cf3428f0a24"><td class="memItemLeft" align="right" valign="top"><a id="a390bc09fb087d94423c42cf3428f0a24" name="a390bc09fb087d94423c42cf3428f0a24"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> std::ptrdiff_t&#160;</td><td class="memItemRight" valign="bottom"><b>difference_type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> std::ptrdiff_t&#160;</td><td class="memItemRight" valign="bottom"><b>difference_type</b></td></tr>
 <tr class="separator:a390bc09fb087d94423c42cf3428f0a24"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0973991f7b26d4113d52aa57284e0360" id="r_a0973991f7b26d4113d52aa57284e0360"><td class="memItemLeft" align="right" valign="top"><a id="a0973991f7b26d4113d52aa57284e0360" name="a0973991f7b26d4113d52aa57284e0360"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> T *&#160;</td><td class="memItemRight" valign="bottom"><b>pointer</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> T *&#160;</td><td class="memItemRight" valign="bottom"><b>pointer</b></td></tr>
 <tr class="separator:a0973991f7b26d4113d52aa57284e0360"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa225f4ea011fce1e792423ad02d5de01" id="r_aa225f4ea011fce1e792423ad02d5de01"><td class="memItemLeft" align="right" valign="top"><a id="aa225f4ea011fce1e792423ad02d5de01" name="aa225f4ea011fce1e792423ad02d5de01"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">const</a> T *&#160;</td><td class="memItemRight" valign="bottom"><b>const_pointer</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">const</a> T *&#160;</td><td class="memItemRight" valign="bottom"><b>const_pointer</b></td></tr>
 <tr class="separator:aa225f4ea011fce1e792423ad02d5de01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0c3b4937cc7a495af864800176e3b9ca" id="r_a0c3b4937cc7a495af864800176e3b9ca"><td class="memItemLeft" align="right" valign="top"><a id="a0c3b4937cc7a495af864800176e3b9ca" name="a0c3b4937cc7a495af864800176e3b9ca"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> T &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>reference</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> T &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>reference</b></td></tr>
 <tr class="separator:a0c3b4937cc7a495af864800176e3b9ca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2f2cd14e4335018c07585467d579207a" id="r_a2f2cd14e4335018c07585467d579207a"><td class="memItemLeft" align="right" valign="top"><a id="a2f2cd14e4335018c07585467d579207a" name="a2f2cd14e4335018c07585467d579207a"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">const</a> T &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_reference</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">const</a> T &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_reference</b></td></tr>
 <tr class="separator:a2f2cd14e4335018c07585467d579207a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2188bac5dd2a2208a02c9dc934acb451" id="r_a2188bac5dd2a2208a02c9dc934acb451"><td class="memItemLeft" align="right" valign="top"><a id="a2188bac5dd2a2208a02c9dc934acb451" name="a2188bac5dd2a2208a02c9dc934acb451"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> T&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> T&#160;</td><td class="memItemRight" valign="bottom"><b>value_type</b></td></tr>
 <tr class="separator:a2188bac5dd2a2208a02c9dc934acb451"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a7076a7a6ccb57759a910860135253543" id="r_a7076a7a6ccb57759a910860135253543"><td class="memItemLeft" align="right" valign="top"><a id="a7076a7a6ccb57759a910860135253543" name="a7076a7a6ccb57759a910860135253543"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>aligned_allocator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a> &amp;other)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>aligned_allocator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a> &amp;other)</td></tr>
 <tr class="separator:a7076a7a6ccb57759a910860135253543"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a19b1a156baf134359d088dc9127fc2c1" id="r_a19b1a156baf134359d088dc9127fc2c1"><td class="memTemplParams" colspan="2"><a id="a19b1a156baf134359d088dc9127fc2c1" name="a19b1a156baf134359d088dc9127fc2c1"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">class</a> <a class="el" href="classEigen_1_1Solve.html">U</a> &gt; </td></tr>
-<tr class="memitem:a19b1a156baf134359d088dc9127fc2c1"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><b>aligned_allocator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a>&lt; <a class="el" href="classEigen_1_1Solve.html">U</a> &gt; &amp;other)</td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">class</a> <a class="el" href="classEigen_1_1MatrixBase.html">U</a> &gt; </td></tr>
+<tr class="memitem:a19b1a156baf134359d088dc9127fc2c1"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><b>aligned_allocator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1aligned__allocator.html">aligned_allocator</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">U</a> &gt; &amp;other)</td></tr>
 <tr class="separator:a19b1a156baf134359d088dc9127fc2c1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a11f921b8c551f8f89c5b6252a2cbfac0" id="r_a11f921b8c551f8f89c5b6252a2cbfac0"><td class="memItemLeft" align="right" valign="top"><a id="a11f921b8c551f8f89c5b6252a2cbfac0" name="a11f921b8c551f8f89c5b6252a2cbfac0"></a>
-pointer&#160;</td><td class="memItemRight" valign="bottom"><b>allocate</b> (<a class="el" href="classEigen_1_1Solve.html">size_type</a> <a class="el" href="classEigen_1_1Solve.html">num</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">void</a> *=0)</td></tr>
+pointer&#160;</td><td class="memItemRight" valign="bottom"><b>allocate</b> (size_type <a class="el" href="classEigen_1_1MatrixBase.html">num</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">void</a> *=0)</td></tr>
 <tr class="separator:a11f921b8c551f8f89c5b6252a2cbfac0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae00326806b7ba19c141c6c61a5f7b1ad" id="r_ae00326806b7ba19c141c6c61a5f7b1ad"><td class="memItemLeft" align="right" valign="top"><a id="ae00326806b7ba19c141c6c61a5f7b1ad" name="ae00326806b7ba19c141c6c61a5f7b1ad"></a>
-<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>deallocate</b> (pointer p, <a class="el" href="classEigen_1_1Solve.html">size_type</a>)</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>deallocate</b> (pointer p, size_type)</td></tr>
 <tr class="separator:ae00326806b7ba19c141c6c61a5f7b1ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">class</a> T&gt;<br />
-class Eigen::aligned_allocator&lt; T &gt;</div><p>STL compatible allocator to use with with 16 byte aligned types. </p>
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">class</a> T&gt;<br />
+class Eigen::aligned_allocator&lt; T &gt;</div><p>STL compatible allocator to use with types requiring a non standrad alignment. </p>
+<p>The memory is aligned as for dynamically aligned matrix/array types such as MatrixXd. By default, it will thus provide at least 16 bytes alignment and more in following cases:</p><ul>
+<li>32 bytes alignment if AVX is enabled.</li>
+<li>64 bytes alignment if AVX512 is enabled.</li>
+</ul>
+<p>This can be controlled using the <code>EIGEN_MAX_ALIGN_BYTES</code> macro as documented <a class="el" href="">there </a>.</p>
 <p>Example: </p><div class="fragment"><div class="line"><span class="comment">// Matrix4f requires 16 bytes alignment:</span></div>
-<div class="line">std::map&lt; int, Matrix4f, std::less&lt;int&gt;, </div>
-<div class="line">          <a class="code hl_class" href="classEigen_1_1Solve.html">aligned_allocator&lt;std::pair&lt;const int, Matrix4f&gt;</a> &gt; &gt; <a class="code hl_class" href="classEigen_1_1Solve.html">my_map_mat4</a>;</div>
+<div class="line">std::map&lt; int, Matrix4f, std::less&lt;int&gt;,</div>
+<div class="line">          <a class="code hl_class" href="classEigen_1_1MatrixBase.html">aligned_allocator&lt;std::pair&lt;const int, Matrix4f&gt;</a> &gt; &gt; <a class="code hl_class" href="classEigen_1_1MatrixBase.html">my_map_mat4</a>;</div>
 <div class="line"><span class="comment">// Vector3f does not require 16 bytes alignment, no need to use Eigen&#39;s allocator:</span></div>
-<div class="line">std::map&lt; int, Vector3f &gt; <a class="code hl_class" href="classEigen_1_1Solve.html">my_map_vec3</a>;</div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
-</div><!-- fragment --><dl class="section see"><dt>See also</dt><dd>TopicStlContainers. </dd></dl>
+<div class="line">std::map&lt; int, Vector3f &gt; <a class="code hl_class" href="classEigen_1_1MatrixBase.html">my_map_vec3</a>;</div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
+</div><!-- fragment --><dl class="section see"><dt>See also</dt><dd>\blank TopicStlContainers. </dd></dl>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li>External/Eigen/src/Core/util/<a class="el" href="Memory_8h_source.html">Memory.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:38 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:15 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

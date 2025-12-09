@@ -93,14 +93,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#ifndef EIGEN_SPARSE_FUZZY_H</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#define EIGEN_SPARSE_FUZZY_H</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span>Eigen {</div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> {</div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span>  </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> OtherDerived&gt;</div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span><span class="keywordtype">bool</span> SparseMatrixBase&lt;Derived&gt;::isApprox(<span class="keyword">const</span> SparseMatrixBase&lt;OtherDerived&gt;&amp; other, <span class="keyword">const</span> RealScalar &amp;prec)<span class="keyword"> const</span></div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword"></span>{</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  <span class="keyword">const</span> <span class="keyword">typename</span> internal::nested_eval&lt;Derived,2,PlainObject&gt;::type actualA(derived());</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>  <span class="keyword">typename</span> internal::conditional&lt;bool(IsRowMajor)==bool(OtherDerived::IsRowMajor),</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>  <span class="keyword">typename</span> internal::conditional&lt;bool(<a class="code hl_enumvalue" href="classEigen_1_1DenseBase.html#a0632b818dc6bddab3ed1dd0ff4ec4e5da406b6af91d61d348ba1c9764bdd66008">IsRowMajor</a>)==bool(OtherDerived::IsRowMajor),</div>
 <div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>    <span class="keyword">const</span> <span class="keyword">typename</span> internal::nested_eval&lt;OtherDerived,2,PlainObject&gt;::type,</div>
 <div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span>    <span class="keyword">const</span> PlainObject&gt;::type actualB(other.derived());</div>
 <div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span> </div>
@@ -110,10 +110,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>} <span class="comment">// end namespace Eigen</span></div>
 <div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
 <div class="line"><a id="l00029" name="l00029"></a><span class="lineno">   29</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_SPARSE_FUZZY_H</span></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_a0632b818dc6bddab3ed1dd0ff4ec4e5da406b6af91d61d348ba1c9764bdd66008"><div class="ttname"><a href="classEigen_1_1DenseBase.html#a0632b818dc6bddab3ed1dd0ff4ec4e5da406b6af91d61d348ba1c9764bdd66008">Eigen::DenseBase::IsRowMajor</a></div><div class="ttdeci">@ IsRowMajor</div><div class="ttdoc">True if this expression has row-major storage order.</div><div class="ttdef"><b>Definition</b> DenseBase.h:170</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:26 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:03 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

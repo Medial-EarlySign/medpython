@@ -96,7 +96,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span> </div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span><span class="comment">// This file contains some helper function to deal with block householder reflectors</span></div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span> </div>
-<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span>Eigen { </div>
+<div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> { </div>
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno">   17</span> </div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  </div>
@@ -131,57 +131,69 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00050" name="l00050"></a><span class="lineno">   50</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> TriangularFactorType,<span class="keyword">typename</span> VectorsType,<span class="keyword">typename</span> CoeffsType&gt;</div>
 <div class="line"><a id="l00051" name="l00051"></a><span class="lineno">   51</span><span class="keywordtype">void</span> make_block_householder_triangular_factor(TriangularFactorType&amp; triFactor, <span class="keyword">const</span> VectorsType&amp; vectors, <span class="keyword">const</span> CoeffsType&amp; hCoeffs)</div>
 <div class="line"><a id="l00052" name="l00052"></a><span class="lineno">   52</span>{</div>
-<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">const</span> Index nbVecs = vectors.cols();</div>
+<div class="line"><a id="l00053" name="l00053"></a><span class="lineno">   53</span>  <span class="keyword">const</span> <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> nbVecs = vectors.cols();</div>
 <div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span>  eigen_assert(triFactor.rows() == nbVecs &amp;&amp; triFactor.cols() == nbVecs &amp;&amp; vectors.rows()&gt;=nbVecs);</div>
 <div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span> </div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">for</span>(Index i = nbVecs-1; i &gt;=0 ; --i)</div>
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span>  <span class="keywordflow">for</span>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> i = nbVecs-1; i &gt;=0 ; --i)</div>
 <div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>  {</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    Index rs = vectors.rows() - i - 1;</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    Index rt = nbVecs-i-1;</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>    <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rs = vectors.rows() - i - 1;</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>    <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rt = nbVecs-i-1;</div>
 <div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
 <div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span>    <span class="keywordflow">if</span>(rt&gt;0)</div>
 <div class="line"><a id="l00062" name="l00062"></a><span class="lineno">   62</span>    {</div>
 <div class="line"><a id="l00063" name="l00063"></a><span class="lineno">   63</span>      triFactor.row(i).tail(rt).noalias() = -hCoeffs(i) * vectors.col(i).tail(rs).adjoint()</div>
 <div class="line"><a id="l00064" name="l00064"></a><span class="lineno">   64</span>                                                        * vectors.bottomRightCorner(rs, rt).template triangularView&lt;UnitLower&gt;();</div>
 <div class="line"><a id="l00065" name="l00065"></a><span class="lineno">   65</span>            </div>
-<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>      <span class="comment">// FIXME add .noalias() once the triangular product can work inplace</span></div>
-<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>      triFactor.row(i).tail(rt) = triFactor.row(i).tail(rt) * triFactor.bottomRightCorner(rt,rt).template triangularView&lt;Upper&gt;();</div>
-<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>      </div>
-<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>    }</div>
-<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>    triFactor(i,i) = hCoeffs(i);</div>
-<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>  }</div>
-<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>}</div>
-<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span> </div>
-<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> MatrixType,<span class="keyword">typename</span> VectorsType,<span class="keyword">typename</span> CoeffsType&gt;</div>
-<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span><span class="keywordtype">void</span> apply_block_householder_on_the_left(MatrixType&amp; mat, <span class="keyword">const</span> VectorsType&amp; vectors, <span class="keyword">const</span> CoeffsType&amp; hCoeffs, <span class="keywordtype">bool</span> forward)</div>
-<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>{</div>
-<div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>  <span class="keyword">enum</span> { TFactorSize = MatrixType::ColsAtCompileTime };</div>
-<div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>  Index nbVecs = vectors.cols();</div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>  <a class="code hl_struct" href="struct__Matrix.html">Matrix&lt;typename MatrixType::Scalar, TFactorSize, TFactorSize, RowMajor&gt;</a> T(nbVecs,nbVecs);</div>
-<div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>  </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>  <span class="keywordflow">if</span>(forward) make_block_householder_triangular_factor(T, vectors, hCoeffs);</div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  <span class="keywordflow">else</span>        make_block_householder_triangular_factor(T, vectors, hCoeffs.conjugate());  </div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>  <span class="keyword">const</span> TriangularView&lt;const VectorsType, UnitLower&gt; V(vectors);</div>
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span> </div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  <span class="comment">// A -= V T V^* A</span></div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  <a class="code hl_struct" href="struct__Matrix.html">Matrix</a>&lt;<span class="keyword">typename</span> MatrixType::Scalar,VectorsType::ColsAtCompileTime,MatrixType::ColsAtCompileTime,0,</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>         VectorsType::MaxColsAtCompileTime,MatrixType::MaxColsAtCompileTime&gt; tmp = V.adjoint() * mat;</div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  <span class="comment">// FIXME add .noalias() once the triangular product can work inplace</span></div>
-<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>  <span class="keywordflow">if</span>(forward) tmp = T.template triangularView&lt;Upper&gt;()           * tmp;</div>
-<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>  <span class="keywordflow">else</span>        tmp = T.template triangularView&lt;Upper&gt;().adjoint() * tmp;</div>
-<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span>  mat.noalias() -= V * tmp;</div>
-<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>}</div>
-<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span> </div>
-<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>} <span class="comment">// end namespace internal</span></div>
-<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span> </div>
-<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>} <span class="comment">// end namespace Eigen</span></div>
-<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span> </div>
-<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_BLOCK_HOUSEHOLDER_H</span></div>
+<div class="line"><a id="l00066" name="l00066"></a><span class="lineno">   66</span>      <span class="comment">// FIXME use the following line with .noalias() once the triangular product can work inplace</span></div>
+<div class="line"><a id="l00067" name="l00067"></a><span class="lineno">   67</span>      <span class="comment">// triFactor.row(i).tail(rt) = triFactor.row(i).tail(rt) * triFactor.bottomRightCorner(rt,rt).template triangularView&lt;Upper&gt;();</span></div>
+<div class="line"><a id="l00068" name="l00068"></a><span class="lineno">   68</span>      <span class="keywordflow">for</span>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> j=nbVecs-1; j&gt;i; --j)</div>
+<div class="line"><a id="l00069" name="l00069"></a><span class="lineno">   69</span>      {</div>
+<div class="line"><a id="l00070" name="l00070"></a><span class="lineno">   70</span>        <span class="keyword">typename</span> TriangularFactorType::Scalar z = triFactor(i,j);</div>
+<div class="line"><a id="l00071" name="l00071"></a><span class="lineno">   71</span>        triFactor(i,j) = z * triFactor(j,j);</div>
+<div class="line"><a id="l00072" name="l00072"></a><span class="lineno">   72</span>        <span class="keywordflow">if</span>(nbVecs-j-1&gt;0)</div>
+<div class="line"><a id="l00073" name="l00073"></a><span class="lineno">   73</span>          triFactor.row(i).tail(nbVecs-j-1) += z * triFactor.row(j).tail(nbVecs-j-1);</div>
+<div class="line"><a id="l00074" name="l00074"></a><span class="lineno">   74</span>      }</div>
+<div class="line"><a id="l00075" name="l00075"></a><span class="lineno">   75</span>      </div>
+<div class="line"><a id="l00076" name="l00076"></a><span class="lineno">   76</span>    }</div>
+<div class="line"><a id="l00077" name="l00077"></a><span class="lineno">   77</span>    triFactor(i,i) = hCoeffs(i);</div>
+<div class="line"><a id="l00078" name="l00078"></a><span class="lineno">   78</span>  }</div>
+<div class="line"><a id="l00079" name="l00079"></a><span class="lineno">   79</span>}</div>
+<div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> MatrixType,<span class="keyword">typename</span> VectorsType,<span class="keyword">typename</span> CoeffsType&gt;</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keywordtype">void</span> apply_block_householder_on_the_left(MatrixType&amp; mat, <span class="keyword">const</span> VectorsType&amp; vectors, <span class="keyword">const</span> CoeffsType&amp; hCoeffs, <span class="keywordtype">bool</span> forward)</div>
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>{</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>  <span class="keyword">enum</span> { TFactorSize = MatrixType::ColsAtCompileTime };</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> nbVecs = vectors.cols();</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  <a class="code hl_struct" href="struct__Matrix.html">Matrix&lt;typename MatrixType::Scalar, TFactorSize, TFactorSize, RowMajor&gt;</a> T(nbVecs,nbVecs);</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>  </div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span>  <span class="keywordflow">if</span>(forward) make_block_householder_triangular_factor(T, vectors, hCoeffs);</div>
+<div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>  <span class="keywordflow">else</span>        make_block_householder_triangular_factor(T, vectors, hCoeffs.conjugate());  </div>
+<div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span>  <span class="keyword">const</span> TriangularView&lt;const VectorsType, UnitLower&gt; V(vectors);</div>
+<div class="line"><a id="l00095" name="l00095"></a><span class="lineno">   95</span> </div>
+<div class="line"><a id="l00096" name="l00096"></a><span class="lineno">   96</span>  <span class="comment">// A -= V T V^* A</span></div>
+<div class="line"><a id="l00097" name="l00097"></a><span class="lineno">   97</span>  <a class="code hl_struct" href="struct__Matrix.html">Matrix</a>&lt;<span class="keyword">typename</span> MatrixType::Scalar,VectorsType::ColsAtCompileTime,MatrixType::ColsAtCompileTime,</div>
+<div class="line"><a id="l00098" name="l00098"></a><span class="lineno">   98</span>         (VectorsType::MaxColsAtCompileTime==1 &amp;&amp; MatrixType::MaxColsAtCompileTime!=1)?<a class="code hl_enumvalue" href="group__enums.html#ggaacded1a18ae58b0f554751f6cdf9eb13a77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>:<a class="code hl_enumvalue" href="group__enums.html#ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62">ColMajor</a>,</div>
+<div class="line"><a id="l00099" name="l00099"></a><span class="lineno">   99</span>         VectorsType::MaxColsAtCompileTime,MatrixType::MaxColsAtCompileTime&gt; tmp = V.adjoint() * mat;</div>
+<div class="line"><a id="l00100" name="l00100"></a><span class="lineno">  100</span>  <span class="comment">// FIXME add .noalias() once the triangular product can work inplace</span></div>
+<div class="line"><a id="l00101" name="l00101"></a><span class="lineno">  101</span>  <span class="keywordflow">if</span>(forward) tmp = T.template triangularView&lt;Upper&gt;()           * tmp;</div>
+<div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>  <span class="keywordflow">else</span>        tmp = T.template triangularView&lt;Upper&gt;().adjoint() * tmp;</div>
+<div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>  mat.noalias() -= V * tmp;</div>
+<div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>}</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span> </div>
+<div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>} <span class="comment">// end namespace internal</span></div>
+<div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span> </div>
+<div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>} <span class="comment">// end namespace Eigen</span></div>
+<div class="line"><a id="l00109" name="l00109"></a><span class="lineno">  109</span> </div>
+<div class="line"><a id="l00110" name="l00110"></a><span class="lineno">  110</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_BLOCK_HOUSEHOLDER_H</span></div>
+<div class="ttc" id="agroup__enums_html_ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62"><div class="ttname"><a href="group__enums.html#ggaacded1a18ae58b0f554751f6cdf9eb13a0103672ae41005ab03b4176c765afd62">Eigen::ColMajor</a></div><div class="ttdeci">@ ColMajor</div><div class="ttdoc">Storage order is column major (see TopicStorageOrders).</div><div class="ttdef"><b>Definition</b> Constants.h:319</div></div>
+<div class="ttc" id="agroup__enums_html_ggaacded1a18ae58b0f554751f6cdf9eb13a77c993a8d9f6efe5c1159fb2ab07dd4f"><div class="ttname"><a href="group__enums.html#ggaacded1a18ae58b0f554751f6cdf9eb13a77c993a8d9f6efe5c1159fb2ab07dd4f">Eigen::RowMajor</a></div><div class="ttdeci">@ RowMajor</div><div class="ttdoc">Storage order is row major (see TopicStorageOrders).</div><div class="ttdef"><b>Definition</b> Constants.h:321</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
+<div class="ttc" id="anamespaceEigen_html_a62e77e0933482dafde8fe197d9a2cfde"><div class="ttname"><a href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a></div><div class="ttdeci">EIGEN_DEFAULT_DENSE_INDEX_TYPE Index</div><div class="ttdoc">The Index type as used for the API.</div><div class="ttdef"><b>Definition</b> Meta.h:74</div></div>
 <div class="ttc" id="astruct__Matrix_html"><div class="ttname"><a href="struct__Matrix.html">_Matrix</a></div><div class="ttdef"><b>Definition</b> inference.c:32</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:29:57 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

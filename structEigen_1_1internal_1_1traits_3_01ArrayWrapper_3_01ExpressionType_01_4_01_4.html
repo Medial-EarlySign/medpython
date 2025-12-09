@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01ArrayWrapper_3_01ExpressionType_01_4_01_4.html">traits&lt; ArrayWrapper&lt; ExpressionType &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01ArrayWrapper_3_01ExpressionType_01_4_01_4.html">traits&lt; ArrayWrapper&lt; ExpressionType &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -90,12 +90,13 @@ Inheritance diagram for Eigen::internal::traits&lt; ArrayWrapper&lt; ExpressionT
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:aa909af85f0f5c27e5a22d7711676b640" id="r_aa909af85f0f5c27e5a22d7711676b640"><td class="memItemLeft" align="right" valign="top"><a id="aa909af85f0f5c27e5a22d7711676b640" name="aa909af85f0f5c27e5a22d7711676b640"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Flags0</b> = traits&lt;typename remove_all&lt;typename ExpressionType::Nested&gt;::type &gt;::Flags
-, <b>Flags</b> = Flags0 &amp; ~NestByRefBit
+<tr class="memitem:a79730c66ab0ad4661e0ca6103175bf0a" id="r_a79730c66ab0ad4661e0ca6103175bf0a"><td class="memItemLeft" align="right" valign="top"><a id="a79730c66ab0ad4661e0ca6103175bf0a" name="a79730c66ab0ad4661e0ca6103175bf0a"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Flags0</b> = traits&lt;typename remove_all&lt;typename ExpressionType::Nested&gt;::type &gt;::Flags
+, <b>LvalueBitFlag</b> = is_lvalue&lt;ExpressionType&gt;::value ? LvalueBit : 0
+, <b>Flags</b> = (Flags0 &amp; ~(NestByRefBit | LvalueBit)) | LvalueBitFlag
  }</td></tr>
-<tr class="separator:aa909af85f0f5c27e5a22d7711676b640"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a79730c66ab0ad4661e0ca6103175bf0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac2e2f91554c6a8582dc117f67212a036" id="r_ac2e2f91554c6a8582dc117f67212a036"><td class="memItemLeft" align="right" valign="top"><a id="ac2e2f91554c6a8582dc117f67212a036" name="ac2e2f91554c6a8582dc117f67212a036"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1ArrayXpr.html">ArrayXpr</a>&#160;</td><td class="memItemRight" valign="bottom"><b>XprKind</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ArrayXpr.html">ArrayXpr</a>&#160;</td><td class="memItemRight" valign="bottom"><b>XprKind</b></td></tr>
 <tr class="separator:ac2e2f91554c6a8582dc117f67212a036"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -104,7 +105,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:49 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:26 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

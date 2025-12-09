@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::copy_using_evaluator_innervec_InnerUnrolling&lt; Kernel, Index_, Stop &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::copy_using_evaluator_innervec_InnerUnrolling&lt; Kernel, Index_, Stop, SrcAlignment, DstAlignment &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,28 +69,28 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling.html">copy_using_evaluator_innervec_InnerUnrolling</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1copy__using__evaluator__innervec__InnerUnrolling.html">copy_using_evaluator_innervec_InnerUnrolling</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::copy_using_evaluator_innervec_InnerUnrolling&lt; Kernel, Index_, Stop &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::copy_using_evaluator_innervec_InnerUnrolling&lt; Kernel, Index_, Stop, SrcAlignment, DstAlignment &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ae9ab5d4b3ea16ba44b9637e5e90ba214" id="r_ae9ab5d4b3ea16ba44b9637e5e90ba214"><td class="memItemLeft" align="right" valign="top"><a id="ae9ab5d4b3ea16ba44b9637e5e90ba214" name="ae9ab5d4b3ea16ba44b9637e5e90ba214"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Kernel::PacketType&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
-<tr class="separator:ae9ab5d4b3ea16ba44b9637e5e90ba214"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bd34f0aaff97549c85930302f539eef" id="r_a7bd34f0aaff97549c85930302f539eef"><td class="memItemLeft" align="right" valign="top"><a id="a7bd34f0aaff97549c85930302f539eef" name="a7bd34f0aaff97549c85930302f539eef"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Kernel::PacketType&#160;</td><td class="memItemRight" valign="bottom"><b>PacketType</b></td></tr>
+<tr class="separator:a7bd34f0aaff97549c85930302f539eef"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:ab956d7d5ecbf250d5d8b8d875e3eaf10" id="r_ab956d7d5ecbf250d5d8b8d875e3eaf10"><td class="memItemLeft" align="right" valign="top"><a id="ab956d7d5ecbf250d5d8b8d875e3eaf10" name="ab956d7d5ecbf250d5d8b8d875e3eaf10"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classKernel.html">Kernel</a> &amp;kernel, Index outer)</td></tr>
-<tr class="separator:ab956d7d5ecbf250d5d8b8d875e3eaf10"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50b1b52b49e7474bb4b6d77bb0286c2d" id="r_a50b1b52b49e7474bb4b6d77bb0286c2d"><td class="memItemLeft" align="right" valign="top"><a id="a50b1b52b49e7474bb4b6d77bb0286c2d" name="a50b1b52b49e7474bb4b6d77bb0286c2d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classKernel.html">Kernel</a> &amp;kernel, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> outer)</td></tr>
+<tr class="separator:a50b1b52b49e7474bb4b6d77bb0286c2d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="AssignEvaluator_8h_source.html">AssignEvaluator.h</a></li>
@@ -98,7 +98,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:46 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

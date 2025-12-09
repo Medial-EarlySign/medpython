@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1scalar__product__op.html">scalar_product_op</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1scalar__product__op.html">scalar_product_op</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -79,29 +79,45 @@ $(function() {
   <div class="headertitle"><div class="title">Eigen::internal::scalar_product_op&lt; LhsScalar, RhsScalar &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
+<div class="dynheader">
+Inheritance diagram for Eigen::internal::scalar_product_op&lt; LhsScalar, RhsScalar &gt;:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="structEigen_1_1internal_1_1scalar__product__op.png" usemap="#Eigen::internal::scalar_5Fproduct_5Fop_3C_20LhsScalar_2C_20RhsScalar_20_3E_map" alt=""/>
+  <map id="Eigen::internal::scalar_5Fproduct_5Fop_3C_20LhsScalar_2C_20RhsScalar_20_3E_map" name="Eigen::internal::scalar_5Fproduct_5Fop_3C_20LhsScalar_2C_20RhsScalar_20_3E_map">
+<area href="structEigen_1_1internal_1_1binary__op__base.html" alt="Eigen::internal::binary_op_base&lt; LhsScalar, RhsScalar &gt;" shape="rect" coords="0,0,352,24"/>
+  </map>
+</div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ad42f0f023115c51ee51f68f1bf822b86" id="r_ad42f0f023115c51ee51f68f1bf822b86"><td class="memItemLeft" align="right" valign="top"><a id="ad42f0f023115c51ee51f68f1bf822b86" name="ad42f0f023115c51ee51f68f1bf822b86"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Vectorizable</b> = is_same&lt;LhsScalar,RhsScalar&gt;::value &amp;&amp; packet_traits&lt;LhsScalar&gt;::HasMul &amp;&amp; packet_traits&lt;RhsScalar&gt;::HasMul
- }</td></tr>
-<tr class="separator:ad42f0f023115c51ee51f68f1bf822b86"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afda1b314c51202301da2fac99786c201" id="r_afda1b314c51202301da2fac99786c201"><td class="memItemLeft" align="right" valign="top"><a id="afda1b314c51202301da2fac99786c201" name="afda1b314c51202301da2fac99786c201"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1scalar__product__traits.html">scalar_product_traits</a>&lt; LhsScalar, RhsScalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b></td></tr>
-<tr class="separator:afda1b314c51202301da2fac99786c201"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2a231bb9be50152f9dd0f29b7e084f75" id="r_a2a231bb9be50152f9dd0f29b7e084f75"><td class="memItemLeft" align="right" valign="top"><a id="a2a231bb9be50152f9dd0f29b7e084f75" name="a2a231bb9be50152f9dd0f29b7e084f75"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ScalarBinaryOpTraits.html">ScalarBinaryOpTraits</a>&lt; LhsScalar, RhsScalar, <a class="el" href="structEigen_1_1internal_1_1scalar__product__op.html">scalar_product_op</a> &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>result_type</b></td></tr>
+<tr class="separator:a2a231bb9be50152f9dd0f29b7e084f75"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_structEigen_1_1internal_1_1binary__op__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1binary__op__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1binary__op__base.html">Eigen::internal::binary_op_base&lt; LhsScalar, RhsScalar &gt;</a></td></tr>
+<tr class="memitem:a83c1997b82c31cf8b003232445cbdcf2 inherit pub_types_structEigen_1_1internal_1_1binary__op__base" id="r_a83c1997b82c31cf8b003232445cbdcf2"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> LhsScalar&#160;</td><td class="memItemRight" valign="bottom"><b>first_argument_type</b></td></tr>
+<tr class="separator:a83c1997b82c31cf8b003232445cbdcf2 inherit pub_types_structEigen_1_1internal_1_1binary__op__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abd943c603b3b6ff7c304ec1326b4eb53 inherit pub_types_structEigen_1_1internal_1_1binary__op__base" id="r_abd943c603b3b6ff7c304ec1326b4eb53"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> RhsScalar&#160;</td><td class="memItemRight" valign="bottom"><b>second_argument_type</b></td></tr>
+<tr class="separator:abd943c603b3b6ff7c304ec1326b4eb53 inherit pub_types_structEigen_1_1internal_1_1binary__op__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a7e82f75f2dbc9d61129ee73907f48c0c" id="r_a7e82f75f2dbc9d61129ee73907f48c0c"><td class="memItemLeft" align="right" valign="top"><a id="a7e82f75f2dbc9d61129ee73907f48c0c" name="a7e82f75f2dbc9d61129ee73907f48c0c"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> result_type&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> LhsScalar &amp;a, <a class="el" href="classEigen_1_1Solve.html">const</a> RhsScalar &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a7e82f75f2dbc9d61129ee73907f48c0c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a61a0fa6e7fb8b2c0d2c8fee70bd913f9" id="r_a61a0fa6e7fb8b2c0d2c8fee70bd913f9"><td class="memTemplParams" colspan="2"><a id="a61a0fa6e7fb8b2c0d2c8fee70bd913f9" name="a61a0fa6e7fb8b2c0d2c8fee70bd913f9"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &gt; </td></tr>
-<tr class="memitem:a61a0fa6e7fb8b2c0d2c8fee70bd913f9"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> Packet&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packetOp</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;a, <a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a61a0fa6e7fb8b2c0d2c8fee70bd913f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5a613968cd8a77c2e7e25feee9ac02a7" id="r_a5a613968cd8a77c2e7e25feee9ac02a7"><td class="memTemplParams" colspan="2"><a id="a5a613968cd8a77c2e7e25feee9ac02a7" name="a5a613968cd8a77c2e7e25feee9ac02a7"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &gt; </td></tr>
-<tr class="memitem:a5a613968cd8a77c2e7e25feee9ac02a7"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> result_type&#160;</td><td class="memTemplItemRight" valign="bottom"><b>predux</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Packet &amp;a) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a5a613968cd8a77c2e7e25feee9ac02a7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7b666b36d758937a33a58390b38fbfa8" id="r_a7b666b36d758937a33a58390b38fbfa8"><td class="memItemLeft" align="right" valign="top"><a id="a7b666b36d758937a33a58390b38fbfa8" name="a7b666b36d758937a33a58390b38fbfa8"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> LhsScalar &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> RhsScalar &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a7b666b36d758937a33a58390b38fbfa8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa9c78b46b95ef3dd061d8de8c333da8a" id="r_aa9c78b46b95ef3dd061d8de8c333da8a"><td class="memTemplParams" colspan="2"><a id="aa9c78b46b95ef3dd061d8de8c333da8a" name="aa9c78b46b95ef3dd061d8de8c333da8a"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &gt; </td></tr>
+<tr class="memitem:aa9c78b46b95ef3dd061d8de8c333da8a"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packetOp</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aa9c78b46b95ef3dd061d8de8c333da8a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7f83cfd0eb39c56b734dbb022464493d" id="r_a7f83cfd0eb39c56b734dbb022464493d"><td class="memTemplParams" colspan="2"><a id="a7f83cfd0eb39c56b734dbb022464493d" name="a7f83cfd0eb39c56b734dbb022464493d"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &gt; </td></tr>
+<tr class="memitem:a7f83cfd0eb39c56b734dbb022464493d"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE result_type&#160;</td><td class="memTemplItemRight" valign="bottom"><b>predux</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="unionEigen_1_1internal_1_1Packet.html">Packet</a> &amp;a) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a7f83cfd0eb39c56b734dbb022464493d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a75b9cba8d052b96678ca55f186f0c0d5" id="r_a75b9cba8d052b96678ca55f186f0c0d5"><td class="memItemLeft" align="right" valign="top"><a id="a75b9cba8d052b96678ca55f186f0c0d5" name="a75b9cba8d052b96678ca55f186f0c0d5"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE bool&#160;</td><td class="memItemRight" valign="bottom"><b>operator()</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> bool &amp;a, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> bool &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a75b9cba8d052b96678ca55f186f0c0d5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/functors/<a class="el" href="BinaryFunctors_8h_source.html">BinaryFunctors.h</a></li>
@@ -109,7 +125,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Packet &g
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:25 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

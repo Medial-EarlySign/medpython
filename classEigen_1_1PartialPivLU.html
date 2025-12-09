@@ -69,15 +69,17 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
-<a href="#pro-attribs">Protected Attributes</a>  </div>
+<a href="#pro-attribs">Protected Attributes</a> &#124;
+<a href="#friends">Friends</a>  </div>
   <div class="headertitle"><div class="title">Eigen::PartialPivLU&lt; _MatrixType &gt; Class Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -99,49 +101,49 @@ Inheritance diagram for Eigen::PartialPivLU&lt; _MatrixType &gt;:</div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ae4fad1d1e3a19d2a72376d5d2f7c9d41" id="r_ae4fad1d1e3a19d2a72376d5d2f7c9d41"><td class="memItemLeft" align="right" valign="top"><a id="ae4fad1d1e3a19d2a72376d5d2f7c9d41" name="ae4fad1d1e3a19d2a72376d5d2f7c9d41"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>MaxRowsAtCompileTime</b> = MatrixType::MaxRowsAtCompileTime
+<tr class="memitem:a3f5b3122c925fa76899d7f2dea9418f1" id="r_a3f5b3122c925fa76899d7f2dea9418f1"><td class="memItemLeft" align="right" valign="top"><a id="a3f5b3122c925fa76899d7f2dea9418f1" name="a3f5b3122c925fa76899d7f2dea9418f1"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>MaxRowsAtCompileTime</b> = MatrixType::MaxRowsAtCompileTime
 , <b>MaxColsAtCompileTime</b> = MatrixType::MaxColsAtCompileTime
  }</td></tr>
-<tr class="separator:ae4fad1d1e3a19d2a72376d5d2f7c9d41"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a3f5b3122c925fa76899d7f2dea9418f1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0736a02bea471dbed733a1fb2cebb678" id="r_a0736a02bea471dbed733a1fb2cebb678"><td class="memItemLeft" align="right" valign="top"><a id="a0736a02bea471dbed733a1fb2cebb678" name="a0736a02bea471dbed733a1fb2cebb678"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> _MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> _MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
 <tr class="separator:a0736a02bea471dbed733a1fb2cebb678"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2131c6ccbf78c1dcfe862654beed1272" id="r_a2131c6ccbf78c1dcfe862654beed1272"><td class="memItemLeft" align="right" valign="top"><a id="a2131c6ccbf78c1dcfe862654beed1272" name="a2131c6ccbf78c1dcfe862654beed1272"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1SolverBase.html">SolverBase</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1SolverBase.html">SolverBase</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
 <tr class="separator:a2131c6ccbf78c1dcfe862654beed1272"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5b5f010f3e7acdff7b7c72db874dc3d9" id="r_a5b5f010f3e7acdff7b7c72db874dc3d9"><td class="memItemLeft" align="right" valign="top"><a id="a5b5f010f3e7acdff7b7c72db874dc3d9" name="a5b5f010f3e7acdff7b7c72db874dc3d9"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationMatrix</a>&lt; RowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>PermutationType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationMatrix</a>&lt; RowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>PermutationType</b></td></tr>
 <tr class="separator:a5b5f010f3e7acdff7b7c72db874dc3d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acf0c9c89566e8aba4fae8f470c5a8d4a" id="r_acf0c9c89566e8aba4fae8f470c5a8d4a"><td class="memItemLeft" align="right" valign="top"><a id="acf0c9c89566e8aba4fae8f470c5a8d4a" name="acf0c9c89566e8aba4fae8f470c5a8d4a"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Transpositions.html">Transpositions</a>&lt; RowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>TranspositionType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Transpositions.html">Transpositions</a>&lt; RowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>TranspositionType</b></td></tr>
 <tr class="separator:acf0c9c89566e8aba4fae8f470c5a8d4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaae954615fa4a1dd947fe7d380bf7206" id="r_aaae954615fa4a1dd947fe7d380bf7206"><td class="memItemLeft" align="right" valign="top"><a id="aaae954615fa4a1dd947fe7d380bf7206" name="aaae954615fa4a1dd947fe7d380bf7206"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>PlainObject</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>PlainObject</b></td></tr>
 <tr class="separator:aaae954615fa4a1dd947fe7d380bf7206"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; PartialPivLU&lt; _MatrixType &gt; &gt;</a></td></tr>
-<tr class="memitem:aa2414eb9136c9e7d7ea90f125b849384 inherit pub_types_classEigen_1_1SolverBase" id="r_aa2414eb9136c9e7d7ea90f125b849384"><td class="memItemLeft" align="right" valign="top"><a id="aa2414eb9136c9e7d7ea90f125b849384" name="aa2414eb9136c9e7d7ea90f125b849384"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:aa2414eb9136c9e7d7ea90f125b849384 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase" id="r_a0d5e6a39b9de5549fcde447a7b782c28"><td class="memItemLeft" align="right" valign="top"><a id="a0d5e6a39b9de5549fcde447a7b782c28" name="a0d5e6a39b9de5549fcde447a7b782c28"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase" id="r_a12798f4bbad57ef378b087801ab90cfe"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
 <tr class="separator:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase" id="r_a08184e3c085cce33f80b5a37376d52ab"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase" id="r_a8013b6454a87289d3e1cd138615af3d3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
 <tr class="separator:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a194a213b4d83301053e02289671d7c5d inherit pub_types_classEigen_1_1SolverBase" id="r_a194a213b4d83301053e02289671d7c5d"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1add__const.html">internal::add_const</a>&lt; <a class="el" href="classEigen_1_1Transpose.html">Transpose</a>&lt; <a class="el" href="classEigen_1_1Solve.html">constDerived</a> &gt; &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ConstTransposeReturnType</b></td></tr>
-<tr class="separator:a194a213b4d83301053e02289671d7c5d inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1b0c648dad6ec8129374f2b816c04c39 inherit pub_types_classEigen_1_1SolverBase" id="r_a1b0c648dad6ec8129374f2b816c04c39"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1CwiseUnaryOp.html">CwiseUnaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__conjugate__op.html">internal::scalar_conjugate_op</a>&lt; Scalar &gt;, <a class="el" href="classEigen_1_1Solve.html">ConstTransposeReturnType</a> &gt;, <a class="el" href="classEigen_1_1Solve.html">ConstTransposeReturnType</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>AdjointReturnType</b></td></tr>
-<tr class="separator:a1b0c648dad6ec8129374f2b816c04c39 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase" id="r_a11e1c0866e89737a17f72efd2cd7d9f9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Transpose.html">Transpose</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstTransposeReturnType</b></td></tr>
+<tr class="separator:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase" id="r_a637cb0dfdcc8c4013c375f2e46951f4c"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1CwiseUnaryOp.html">CwiseUnaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__conjugate__op.html">internal::scalar_conjugate_op</a>&lt; Scalar &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>AdjointReturnType</b></td></tr>
+<tr class="separator:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
-<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
+<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
 <tr class="memdesc:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">The interface type of indices.  <br /></td></tr>
 <tr class="separator:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase" id="r_a95ff992a5c4c5debb41f6ae2f639e1f3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
 <tr class="separator:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
@@ -149,106 +151,114 @@ Public Member Functions</h2></td></tr>
 <tr class="memitem:a5c04818d354f94a98786d8a44cb709c6" id="r_a5c04818d354f94a98786d8a44cb709c6"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a5c04818d354f94a98786d8a44cb709c6">PartialPivLU</a> ()</td></tr>
 <tr class="memdesc:a5c04818d354f94a98786d8a44cb709c6"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor.  <br /></td></tr>
 <tr class="separator:a5c04818d354f94a98786d8a44cb709c6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acf892c12d8a229b32bddc3149e32e63a" id="r_acf892c12d8a229b32bddc3149e32e63a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#acf892c12d8a229b32bddc3149e32e63a">PartialPivLU</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="structEigen_1_1EigenBase.html#ac2c9348df3bb9c0044dbae6c278a8977">size</a>)</td></tr>
+<tr class="memitem:acf892c12d8a229b32bddc3149e32e63a" id="r_acf892c12d8a229b32bddc3149e32e63a"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#acf892c12d8a229b32bddc3149e32e63a">PartialPivLU</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="structEigen_1_1EigenBase.html#a9f40726259520d7e9c5ce58d19d62e79">size</a>)</td></tr>
 <tr class="memdesc:acf892c12d8a229b32bddc3149e32e63a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor with memory preallocation.  <br /></td></tr>
 <tr class="separator:acf892c12d8a229b32bddc3149e32e63a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acf37214aebb54d0e186ae39ac6c41bdf" id="r_acf37214aebb54d0e186ae39ac6c41bdf"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:acf37214aebb54d0e186ae39ac6c41bdf"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#acf37214aebb54d0e186ae39ac6c41bdf">PartialPivLU</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
+<tr class="memitem:acf37214aebb54d0e186ae39ac6c41bdf" id="r_acf37214aebb54d0e186ae39ac6c41bdf"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:acf37214aebb54d0e186ae39ac6c41bdf"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#acf37214aebb54d0e186ae39ac6c41bdf">PartialPivLU</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
 <tr class="memdesc:acf37214aebb54d0e186ae39ac6c41bdf"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <br /></td></tr>
 <tr class="separator:acf37214aebb54d0e186ae39ac6c41bdf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4efc917d31d0e9d76781a97509309061" id="r_a4efc917d31d0e9d76781a97509309061"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:a4efc917d31d0e9d76781a97509309061"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a4efc917d31d0e9d76781a97509309061">PartialPivLU</a> (<a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
+<tr class="memdesc:a4efc917d31d0e9d76781a97509309061"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor for <a class="el" href="">inplace decomposition </a>.  <br /></td></tr>
+<tr class="separator:a4efc917d31d0e9d76781a97509309061"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4a478338f64cbdac202816d2d74cedc1" id="r_a4a478338f64cbdac202816d2d74cedc1"><td class="memTemplParams" colspan="2"><a id="a4a478338f64cbdac202816d2d74cedc1" name="a4a478338f64cbdac202816d2d74cedc1"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:a4a478338f64cbdac202816d2d74cedc1"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:a4a478338f64cbdac202816d2d74cedc1"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
 <tr class="separator:a4a478338f64cbdac202816d2d74cedc1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7550e6f9b8bbed1c0d9238d616c0d364" id="r_a7550e6f9b8bbed1c0d9238d616c0d364"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a7550e6f9b8bbed1c0d9238d616c0d364">matrixLU</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a7550e6f9b8bbed1c0d9238d616c0d364" id="r_a7550e6f9b8bbed1c0d9238d616c0d364"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a7550e6f9b8bbed1c0d9238d616c0d364">matrixLU</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a7550e6f9b8bbed1c0d9238d616c0d364"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a331c643f74610e5cdc122dec159a98e3" id="r_a331c643f74610e5cdc122dec159a98e3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a331c643f74610e5cdc122dec159a98e3">permutationP</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a331c643f74610e5cdc122dec159a98e3" id="r_a331c643f74610e5cdc122dec159a98e3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a331c643f74610e5cdc122dec159a98e3">permutationP</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a331c643f74610e5cdc122dec159a98e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27b1d4328fee23519e655fbbcb93d5ea" id="r_a27b1d4328fee23519e655fbbcb93d5ea"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </td></tr>
-<tr class="memitem:a27b1d4328fee23519e655fbbcb93d5ea"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>, Rhs &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a27b1d4328fee23519e655fbbcb93d5ea">solve</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:a27b1d4328fee23519e655fbbcb93d5ea"><td class="mdescLeft">&#160;</td><td class="mdescRight">This method returns the solution x to the equation Ax=b, where A is the matrix of which *this is the LU decomposition.  <br /></td></tr>
-<tr class="separator:a27b1d4328fee23519e655fbbcb93d5ea"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a251cf261b4ad7b8a4407d0c1762b4d7b" id="r_a251cf261b4ad7b8a4407d0c1762b4d7b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a251cf261b4ad7b8a4407d0c1762b4d7b">inverse</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a472b46d5d9ff7c328e1dccc13805f690" id="r_a472b46d5d9ff7c328e1dccc13805f690"><td class="memItemLeft" align="right" valign="top">RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a472b46d5d9ff7c328e1dccc13805f690">rcond</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a472b46d5d9ff7c328e1dccc13805f690"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a251cf261b4ad7b8a4407d0c1762b4d7b" id="r_a251cf261b4ad7b8a4407d0c1762b4d7b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a251cf261b4ad7b8a4407d0c1762b4d7b">inverse</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a251cf261b4ad7b8a4407d0c1762b4d7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5fb3398feaa989bdf833fcff8ef87e5f" id="r_a5fb3398feaa989bdf833fcff8ef87e5f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; MatrixType &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a5fb3398feaa989bdf833fcff8ef87e5f">determinant</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a5fb3398feaa989bdf833fcff8ef87e5f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aba7f1ee83537b0d240ebf206503a4920" id="r_aba7f1ee83537b0d240ebf206503a4920"><td class="memItemLeft" align="right" valign="top">MatrixType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#aba7f1ee83537b0d240ebf206503a4920">reconstructedMatrix</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a54c3d39c9b46ff485a8d2140b9b23193" id="r_a54c3d39c9b46ff485a8d2140b9b23193"><td class="memItemLeft" align="right" valign="top">Scalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#a54c3d39c9b46ff485a8d2140b9b23193">determinant</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a54c3d39c9b46ff485a8d2140b9b23193"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aba7f1ee83537b0d240ebf206503a4920" id="r_aba7f1ee83537b0d240ebf206503a4920"><td class="memItemLeft" align="right" valign="top">MatrixType&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1PartialPivLU.html#aba7f1ee83537b0d240ebf206503a4920">reconstructedMatrix</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aba7f1ee83537b0d240ebf206503a4920"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7a86697af02b65b13939d319e1d6840" id="r_ad7a86697af02b65b13939d319e1d6840"><td class="memItemLeft" align="right" valign="top"><a id="ad7a86697af02b65b13939d319e1d6840" name="ad7a86697af02b65b13939d319e1d6840"></a>
-<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ad7a86697af02b65b13939d319e1d6840"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9aaa1eaccfb6ee5dfab78cb6e190929a" id="r_a9aaa1eaccfb6ee5dfab78cb6e190929a"><td class="memItemLeft" align="right" valign="top"><a id="a9aaa1eaccfb6ee5dfab78cb6e190929a" name="a9aaa1eaccfb6ee5dfab78cb6e190929a"></a>
-<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a9aaa1eaccfb6ee5dfab78cb6e190929a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad865cdf6ef208ba5c133beeda4a0990d" id="r_ad865cdf6ef208ba5c133beeda4a0990d"><td class="memItemLeft" align="right" valign="top"><a id="ad865cdf6ef208ba5c133beeda4a0990d" name="ad865cdf6ef208ba5c133beeda4a0990d"></a>
+EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:ad865cdf6ef208ba5c133beeda4a0990d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac5e5553d1f8d8ebd55d70cdde4932d18" id="r_ac5e5553d1f8d8ebd55d70cdde4932d18"><td class="memItemLeft" align="right" valign="top"><a id="ac5e5553d1f8d8ebd55d70cdde4932d18" name="ac5e5553d1f8d8ebd55d70cdde4932d18"></a>
+EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:ac5e5553d1f8d8ebd55d70cdde4932d18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab7e88bbaf3bb0172b9be97036be68999" id="r_ab7e88bbaf3bb0172b9be97036be68999"><td class="memTemplParams" colspan="2"><a id="ab7e88bbaf3bb0172b9be97036be68999" name="ab7e88bbaf3bb0172b9be97036be68999"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:ab7e88bbaf3bb0172b9be97036be68999"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:ab7e88bbaf3bb0172b9be97036be68999"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ab7e88bbaf3bb0172b9be97036be68999"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6e63a73644ef9fbe7856c8169287c7f5" id="r_a6e63a73644ef9fbe7856c8169287c7f5"><td class="memTemplParams" colspan="2"><a id="a6e63a73644ef9fbe7856c8169287c7f5" name="a6e63a73644ef9fbe7856c8169287c7f5"></a>
-template&lt;bool Conjugate, <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:a6e63a73644ef9fbe7856c8169287c7f5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl_transposed</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;bool Conjugate, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:a6e63a73644ef9fbe7856c8169287c7f5"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl_transposed</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a6e63a73644ef9fbe7856c8169287c7f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abad742476bc5191f9f952ca08d21fcf7" id="r_abad742476bc5191f9f952ca08d21fcf7"><td class="memTemplParams" colspan="2"><a id="abad742476bc5191f9f952ca08d21fcf7" name="abad742476bc5191f9f952ca08d21fcf7"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:abad742476bc5191f9f952ca08d21fcf7"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; MatrixType &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
-<tr class="separator:abad742476bc5191f9f952ca08d21fcf7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; PartialPivLU&lt; _MatrixType &gt; &gt;</a></td></tr>
 <tr class="memitem:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase" id="r_a4d5e5baddfba3790ab1a5f247dcc4dc1"><td class="memItemLeft" align="right" valign="top">
 &#160;</td><td class="memItemRight" valign="bottom"><b>SolverBase</b> ()</td></tr>
 <tr class="memdesc:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. <br /></td></tr>
 <tr class="separator:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase" id="r_a943c352b597e3cd4744d5c11bfd77520"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt;, Rhs &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase" id="r_a943c352b597e3cd4744d5c11bfd77520"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt;, Rhs &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a732e75b5132bb4db3775916927b0e86c inherit pub_methods_classEigen_1_1SolverBase" id="r_a732e75b5132bb4db3775916927b0e86c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">ConstTransposeReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a732e75b5132bb4db3775916927b0e86c">transpose</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a732e75b5132bb4db3775916927b0e86c inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a05a3686a89888681c8e0c2bcab6d1ce5 inherit pub_methods_classEigen_1_1SolverBase" id="r_a05a3686a89888681c8e0c2bcab6d1ce5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1true__type.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a05a3686a89888681c8e0c2bcab6d1ce5">adjoint</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a05a3686a89888681c8e0c2bcab6d1ce5 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="memitem:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase" id="r_a70cf5cd1b31dbb4f4d61c436c83df6d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">ConstTransposeReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a70cf5cd1b31dbb4f4d61c436c83df6d3">transpose</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase" id="r_ae1025416bdb5a768f7213c67feb4dc33"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ae1025416bdb5a768f7213c67feb4dc33">adjoint</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
 <tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
-<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
 <tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a23248b545ee580f3ddb8150cd3d032a3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase" id="r_abf0796214cde38991fd56c07f0765829"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8141320ba8df384426c298b32b000d8e inherit pub_methods_structEigen_1_1EigenBase" id="r_a8141320ba8df384426c298b32b000d8e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a8141320ba8df384426c298b32b000d8e">rows</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a8141320ba8df384426c298b32b000d8e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7b0b45c7351847696c911ce8aa2abbdb inherit pub_methods_structEigen_1_1EigenBase" id="r_a7b0b45c7351847696c911ce8aa2abbdb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a7b0b45c7351847696c911ce8aa2abbdb">cols</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a7b0b45c7351847696c911ce8aa2abbdb inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2c9348df3bb9c0044dbae6c278a8977 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac2c9348df3bb9c0044dbae6c278a8977"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ac2c9348df3bb9c0044dbae6c278a8977">size</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ac2c9348df3bb9c0044dbae6c278a8977 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase" id="r_af1d12fdb3361e150427e1fd94ebb1f14"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#af1d12fdb3361e150427e1fd94ebb1f14">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a50c19c45f15acdfe1cb66ab5e879b8e3"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a50c19c45f15acdfe1cb66ab5e879b8e3">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase" id="r_a9f40726259520d7e9c5ce58d19d62e79"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a9f40726259520d7e9c5ce58d19d62e79">size</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase" id="r_a991b21b79bb613171a53271933c53cab"><td class="memTemplParams" colspan="2">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase" id="r_ad4300dbb47b34596d8ce6b2361c07b52"><td class="memTemplParams" colspan="2">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase" id="r_a677a970c7d063d7033180dd9dbb53565"><td class="memTemplParams" colspan="2">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase" id="r_aabee6205996703a37df914e379472653"><td class="memTemplParams" colspan="2">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac8a579c4f982dddd2a01489fe66b73c9"><td class="memTemplParams" colspan="2">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a8dc40bd1ef7ac09d58587b1b97fca91d" id="r_a8dc40bd1ef7ac09d58587b1b97fca91d"><td class="memItemLeft" align="right" valign="top"><a id="a8dc40bd1ef7ac09d58587b1b97fca91d" name="a8dc40bd1ef7ac09d58587b1b97fca91d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>compute</b> ()</td></tr>
+<tr class="separator:a8dc40bd1ef7ac09d58587b1b97fca91d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; PartialPivLU&lt; _MatrixType &gt; &gt;</a></td></tr>
+<tr class="memitem:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase" id="r_ac0bf165255e731b5c8a254dbfe5545c9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>_check_solve_assertion</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Rhs &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
 Static Protected Member Functions</h2></td></tr>
 <tr class="memitem:a561b9022ead4336fdacb687f6be86a53" id="r_a561b9022ead4336fdacb687f6be86a53"><td class="memItemLeft" align="right" valign="top"><a id="a561b9022ead4336fdacb687f6be86a53" name="a561b9022ead4336fdacb687f6be86a53"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
 <tr class="separator:a561b9022ead4336fdacb687f6be86a53"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -262,19 +272,28 @@ MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>m_lu</b></td></
 <tr class="memitem:aa71083e9e1ef21838a3058ec0ffd0510" id="r_aa71083e9e1ef21838a3058ec0ffd0510"><td class="memItemLeft" align="right" valign="top"><a id="aa71083e9e1ef21838a3058ec0ffd0510" name="aa71083e9e1ef21838a3058ec0ffd0510"></a>
 <a class="el" href="classEigen_1_1Transpositions.html">TranspositionType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_rowsTranspositions</b></td></tr>
 <tr class="separator:aa71083e9e1ef21838a3058ec0ffd0510"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a904a90299abec5c952ba691faff730cb" id="r_a904a90299abec5c952ba691faff730cb"><td class="memItemLeft" align="right" valign="top"><a id="a904a90299abec5c952ba691faff730cb" name="a904a90299abec5c952ba691faff730cb"></a>
-<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_det_p</b></td></tr>
-<tr class="separator:a904a90299abec5c952ba691faff730cb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a262635d8536e2e790460e3300f4a9e3c" id="r_a262635d8536e2e790460e3300f4a9e3c"><td class="memItemLeft" align="right" valign="top"><a id="a262635d8536e2e790460e3300f4a9e3c" name="a262635d8536e2e790460e3300f4a9e3c"></a>
+RealScalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_l1_norm</b></td></tr>
+<tr class="separator:a262635d8536e2e790460e3300f4a9e3c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5771dfc25659778e8ccc609440062f5c" id="r_a5771dfc25659778e8ccc609440062f5c"><td class="memItemLeft" align="right" valign="top"><a id="a5771dfc25659778e8ccc609440062f5c" name="a5771dfc25659778e8ccc609440062f5c"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">signed</a> <a class="el" href="classEigen_1_1MatrixBase.html">char</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_det_p</b></td></tr>
+<tr class="separator:a5771dfc25659778e8ccc609440062f5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a99833b9547e2b03a5b78244241dc9188" id="r_a99833b9547e2b03a5b78244241dc9188"><td class="memItemLeft" align="right" valign="top"><a id="a99833b9547e2b03a5b78244241dc9188" name="a99833b9547e2b03a5b78244241dc9188"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_isInitialized</b></td></tr>
 <tr class="separator:a99833b9547e2b03a5b78244241dc9188"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="friends" name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:a047ce2709f8ea9a862943c3241083c3d" id="r_a047ce2709f8ea9a862943c3241083c3d"><td class="memItemLeft" align="right" valign="top"><a id="a047ce2709f8ea9a862943c3241083c3d" name="a047ce2709f8ea9a862943c3241083c3d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">class</a>&#160;</td><td class="memItemRight" valign="bottom"><b>SolverBase&lt; PartialPivLU &gt;</b></td></tr>
+<tr class="separator:a047ce2709f8ea9a862943c3241083c3d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType&gt;<br />
 class Eigen::PartialPivLU&lt; _MatrixType &gt;</div><p>LU decomposition of a matrix with partial pivoting, and related features. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">MatrixType</td><td>the type of the matrix of which we are computing the LU decomposition</td></tr>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">_MatrixType</td><td>the type of the matrix of which we are computing the LU decomposition</td></tr>
   </table>
   </dd>
 </dl>
@@ -282,17 +301,18 @@ class Eigen::PartialPivLU&lt; _MatrixType &gt;</div><p>LU decomposition of a mat
 <p>Typically, partial pivoting LU decomposition is only considered numerically stable for square invertible matrices. Thus LAPACK's dgesv and dgesvx require the matrix to be square and invertible. The present class does the same. It will assert that the matrix is square, but it won't (actually it can't) check that the matrix is invertible: it is your task to check that you only use this decomposition on invertible matrices.</p>
 <p>The guaranteed safe alternative, working for all matrices, is the full pivoting LU decomposition, provided by class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a>.</p>
 <p>This is <b>not</b> a rank-revealing LU decomposition. Many features are intentionally absent from this class, such as rank computation. If you need these features, use class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a>.</p>
-<p>This LU decomposition is suitable to invert invertible matrices. It is what <a class="el" href="classEigen_1_1MatrixBase.html#a7712eb69e8ea3c8f7b8da1c44dbdeebf" title="\lu_module">MatrixBase::inverse()</a> uses in the general case. On the other hand, it is <b>not</b> suitable to determine whether a given matrix is invertible.</p>
+<p>This LU decomposition is suitable to invert invertible matrices. It is what <a class="el" href="classEigen_1_1MatrixBase.html#add090d35d12d42d01eba1a24f22cf8f3" title="\lu_module">MatrixBase::inverse()</a> uses in the general case. On the other hand, it is <b>not</b> suitable to determine whether a given matrix is invertible.</p>
 <p>The data of the LU decomposition can be directly accessed through the methods <a class="el" href="classEigen_1_1PartialPivLU.html#a7550e6f9b8bbed1c0d9238d616c0d364">matrixLU()</a>, <a class="el" href="classEigen_1_1PartialPivLU.html#a331c643f74610e5cdc122dec159a98e3">permutationP()</a>.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a6199d8aaf26c1b8ac3097fdfa7733a1e" title="\lu_module">MatrixBase::partialPivLu()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#a7ad8f77004bb956b603bb43fd2e3c061" title="\lu_module">MatrixBase::determinant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#a7712eb69e8ea3c8f7b8da1c44dbdeebf" title="\lu_module">MatrixBase::inverse()</a>, MatrixBase::computeInverse(), class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a> </dd></dl>
+<p>This class supports the <a class="el" href="">inplace decomposition </a> mechanism.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a6199d8aaf26c1b8ac3097fdfa7733a1e" title="\lu_module">MatrixBase::partialPivLu()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#add0789a9cbd9bf1cc71048eaa75a1abb" title="\lu_module">MatrixBase::determinant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#add090d35d12d42d01eba1a24f22cf8f3" title="\lu_module">MatrixBase::inverse()</a>, MatrixBase::computeInverse(), class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a> </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="a5c04818d354f94a98786d8a44cb709c6" name="a5c04818d354f94a98786d8a44cb709c6"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5c04818d354f94a98786d8a44cb709c6">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[1/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#a5c04818d354f94a98786d8a44cb709c6">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::PartialPivLU </td>
@@ -309,12 +329,12 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 </div>
 </div>
 <a id="acf892c12d8a229b32bddc3149e32e63a" name="acf892c12d8a229b32bddc3149e32e63a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acf892c12d8a229b32bddc3149e32e63a">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[2/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#acf892c12d8a229b32bddc3149e32e63a">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -340,14 +360,14 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 </div>
 </div>
 <a id="acf37214aebb54d0e186ae39ac6c41bdf" name="acf37214aebb54d0e186ae39ac6c41bdf"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acf37214aebb54d0e186ae39ac6c41bdf">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[3/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#acf37214aebb54d0e186ae39ac6c41bdf">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -355,7 +375,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::PartialPivLU </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>matrix</em></td><td>)</td>
           <td></td>
         </tr>
@@ -378,17 +398,56 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 
 </div>
 </div>
-<h2 class="groupheader">Member Function Documentation</h2>
-<a id="a5fb3398feaa989bdf833fcff8ef87e5f" name="a5fb3398feaa989bdf833fcff8ef87e5f"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a5fb3398feaa989bdf833fcff8ef87e5f">&#9670;&#160;</a></span>determinant()</h2>
+<a id="a4efc917d31d0e9d76781a97509309061" name="a4efc917d31d0e9d76781a97509309061"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4efc917d31d0e9d76781a97509309061">&#9670;&#160;</a></span>PartialPivLU() <span class="overload">[4/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; MatrixType &gt;::Scalar <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::determinant </td>
+          <td class="memname"><a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::PartialPivLU </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;&#160;</td>
+          <td class="paramname"><em>matrix</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">explicit</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Constructor for <a class="el" href="">inplace decomposition </a>. </p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">matrix</td><td>the matrix of which to compute the LU decomposition.</td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section warning"><dt>Warning</dt><dd>The matrix should have full rank (e.g. if it's square, it should be invertible). If you need to deal with non-full rank, use class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a> instead. </dd></dl>
+
+</div>
+</div>
+<h2 class="groupheader">Member Function Documentation</h2>
+<a id="a54c3d39c9b46ff485a8d2140b9b23193" name="a54c3d39c9b46ff485a8d2140b9b23193"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a54c3d39c9b46ff485a8d2140b9b23193">&#9670;&#160;</a></span>determinant()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>&lt; MatrixType &gt;::Scalar <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::determinant </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -396,9 +455,9 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
       </table>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>the determinant of the matrix of which *this is the LU decomposition. It has only linear complexity (that is, O(n) where n is the dimension of the square matrix) as the LU decomposition has already been computed.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>For fixed-size matrices of size up to 4, <a class="el" href="classEigen_1_1MatrixBase.html#a7ad8f77004bb956b603bb43fd2e3c061" title="\lu_module">MatrixBase::determinant()</a> offers optimized paths.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>For fixed-size matrices of size up to 4, <a class="el" href="classEigen_1_1MatrixBase.html#add0789a9cbd9bf1cc71048eaa75a1abb" title="\lu_module">MatrixBase::determinant()</a> offers optimized paths.</dd></dl>
 <dl class="section warning"><dt>Warning</dt><dd>a determinant can be very big or small, so for matrices of large enough dimension, there is a risk of overflow/underflow.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a7ad8f77004bb956b603bb43fd2e3c061" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#add0789a9cbd9bf1cc71048eaa75a1abb" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
 
 </div>
 </div>
@@ -408,13 +467,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::inverse </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a> &gt; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::inverse </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -428,7 +487,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>the inverse of the matrix of which *this is the LU decomposition.</dd></dl>
 <dl class="section warning"><dt>Warning</dt><dd>The matrix being decomposed here is assumed to be invertible. If you need to check for invertibility, use class <a class="el" href="classEigen_1_1FullPivLU.html" title="LU decomposition of a matrix with complete pivoting, and related features.">FullPivLU</a> instead.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a7712eb69e8ea3c8f7b8da1c44dbdeebf" title="\lu_module">MatrixBase::inverse()</a>, LU::inverse() </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#add090d35d12d42d01eba1a24f22cf8f3" title="\lu_module">MatrixBase::inverse()</a>, LU::inverse() </dd></dl>
 
 </div>
 </div>
@@ -438,13 +497,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::matrixLU </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> MatrixType &amp; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::matrixLU </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -467,13 +526,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::permutationP </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::permutationP </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -489,13 +548,41 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 
 </div>
 </div>
+<a id="a472b46d5d9ff7c328e1dccc13805f690" name="a472b46d5d9ff7c328e1dccc13805f690"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a472b46d5d9ff7c328e1dccc13805f690">&#9670;&#160;</a></span>rcond()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">RealScalar <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::rcond </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>an estimate of the reciprocal condition number of the matrix of which <code>*this</code> is the LU decomposition. </dd></dl>
+
+</div>
+</div>
 <a id="aba7f1ee83537b0d240ebf206503a4920" name="aba7f1ee83537b0d240ebf206503a4920"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aba7f1ee83537b0d240ebf206503a4920">&#9670;&#160;</a></span>reconstructedMatrix()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">MatrixType <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; MatrixType &gt;::reconstructedMatrix </td>
@@ -509,47 +596,6 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 
 </div>
 </div>
-<a id="a27b1d4328fee23519e655fbbcb93d5ea" name="a27b1d4328fee23519e655fbbcb93d5ea"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a27b1d4328fee23519e655fbbcb93d5ea">&#9670;&#160;</a></span>solve()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1PartialPivLU.html">PartialPivLU</a>, Rhs &gt; <a class="el" href="classEigen_1_1PartialPivLU.html">Eigen::PartialPivLU</a>&lt; _MatrixType &gt;::solve </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;&#160;</td>
-          <td class="paramname"><em>b</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>This method returns the solution x to the equation Ax=b, where A is the matrix of which *this is the LU decomposition. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">b</td><td>the right-hand-side of the equation to solve. Can be a vector or a matrix, the only requirement in order for the equation to make sense is that b.rows()==A.rows(), where A is the matrix of which *this is the LU decomposition.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>the solution.</dd></dl>
-<p>Example: </p><div class="fragment"></div><!-- fragment --><p> Output: </p><pre class="fragment"></pre><p>Since this <a class="el" href="classEigen_1_1PartialPivLU.html" title="LU decomposition of a matrix with partial pivoting, and related features.">PartialPivLU</a> class assumes anyway that the matrix A is invertible, the solution theoretically exists and is unique regardless of b.</p>
-<dl class="section see"><dt>See also</dt><dd>TriangularView::solve(), <a class="el" href="classEigen_1_1PartialPivLU.html#a251cf261b4ad7b8a4407d0c1762b4d7b">inverse()</a>, computeInverse() </dd></dl>
-
-</div>
-</div>
 <hr/>The documentation for this class was generated from the following files:<ul>
 <li>External/Eigen/src/Core/util/<a class="el" href="ForwardDeclarations_8h_source.html">ForwardDeclarations.h</a></li>
 <li>External/Eigen/src/LU/<a class="el" href="PartialPivLU_8h_source.html">PartialPivLU.h</a></li>
@@ -557,7 +603,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; 
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:42 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

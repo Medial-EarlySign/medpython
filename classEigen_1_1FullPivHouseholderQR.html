@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -78,7 +78,8 @@ $(function() {
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
-<a href="#pro-attribs">Protected Attributes</a>  </div>
+<a href="#pro-attribs">Protected Attributes</a> &#124;
+<a href="#friends">Friends</a>  </div>
   <div class="headertitle"><div class="title">Eigen::FullPivHouseholderQR&lt; _MatrixType &gt; Class Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -87,141 +88,220 @@ $(function() {
  <a href="classEigen_1_1FullPivHouseholderQR.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="FullPivHouseholderQR_8h_source.html">FullPivHouseholderQR.h</a>&gt;</code></p>
+<div class="dynheader">
+Inheritance diagram for Eigen::FullPivHouseholderQR&lt; _MatrixType &gt;:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="classEigen_1_1FullPivHouseholderQR.png" usemap="#Eigen::FullPivHouseholderQR_3C_20_5FMatrixType_20_3E_map" alt=""/>
+  <map id="Eigen::FullPivHouseholderQR_3C_20_5FMatrixType_20_3E_map" name="Eigen::FullPivHouseholderQR_3C_20_5FMatrixType_20_3E_map">
+<area href="classEigen_1_1SolverBase.html" alt="Eigen::SolverBase&lt; FullPivHouseholderQR&lt; _MatrixType &gt; &gt;" shape="rect" coords="0,56,362,80"/>
+<area href="structEigen_1_1EigenBase.html" title="Common base class for all classes T such that MatrixBase has an operator=(T) and a constructor Matrix..." alt="Eigen::EigenBase&lt; Derived &gt;" shape="rect" coords="0,0,362,24"/>
+  </map>
+</div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:acee54ce27f122d11546f983d8bffea62" id="r_acee54ce27f122d11546f983d8bffea62"><td class="memItemLeft" align="right" valign="top"><a id="acee54ce27f122d11546f983d8bffea62" name="acee54ce27f122d11546f983d8bffea62"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
-&#160;&#160;<b>RowsAtCompileTime</b> = MatrixType::RowsAtCompileTime
-, <b>ColsAtCompileTime</b> = MatrixType::ColsAtCompileTime
-, <b>Options</b> = MatrixType::Options
-, <b>MaxRowsAtCompileTime</b> = MatrixType::MaxRowsAtCompileTime
-, <br />
-&#160;&#160;<b>MaxColsAtCompileTime</b> = MatrixType::MaxColsAtCompileTime
-<br />
+<tr class="memitem:a091a3764d9358fa6c43154f289a1b646" id="r_a091a3764d9358fa6c43154f289a1b646"><td class="memItemLeft" align="right" valign="top"><a id="a091a3764d9358fa6c43154f289a1b646" name="a091a3764d9358fa6c43154f289a1b646"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>MaxRowsAtCompileTime</b> = MatrixType::MaxRowsAtCompileTime
+, <b>MaxColsAtCompileTime</b> = MatrixType::MaxColsAtCompileTime
  }</td></tr>
-<tr class="separator:acee54ce27f122d11546f983d8bffea62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a091a3764d9358fa6c43154f289a1b646"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aad34d3573bf47e18888d1bb4801e7473" id="r_aad34d3573bf47e18888d1bb4801e7473"><td class="memItemLeft" align="right" valign="top"><a id="aad34d3573bf47e18888d1bb4801e7473" name="aad34d3573bf47e18888d1bb4801e7473"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> _MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> _MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
 <tr class="separator:aad34d3573bf47e18888d1bb4801e7473"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a30eb2e756bcd1c1148142a3a0deb6f88" id="r_a30eb2e756bcd1c1148142a3a0deb6f88"><td class="memItemLeft" align="right" valign="top"><a id="a30eb2e756bcd1c1148142a3a0deb6f88" name="a30eb2e756bcd1c1148142a3a0deb6f88"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
-<tr class="separator:a30eb2e756bcd1c1148142a3a0deb6f88"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a22c6a854a83225617e56c03cbdbc94c3" id="r_a22c6a854a83225617e56c03cbdbc94c3"><td class="memItemLeft" align="right" valign="top"><a id="a22c6a854a83225617e56c03cbdbc94c3" name="a22c6a854a83225617e56c03cbdbc94c3"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::RealScalar&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
-<tr class="separator:a22c6a854a83225617e56c03cbdbc94c3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a55934e8ed065b629ca86382863fc66b0" id="r_a55934e8ed065b629ca86382863fc66b0"><td class="memItemLeft" align="right" valign="top"><a id="a55934e8ed065b629ca86382863fc66b0" name="a55934e8ed065b629ca86382863fc66b0"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
-<tr class="separator:a55934e8ed065b629ca86382863fc66b0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4a88b371fb1f039cfc70dfa30e1b5a12" id="r_a4a88b371fb1f039cfc70dfa30e1b5a12"><td class="memItemLeft" align="right" valign="top"><a id="a4a88b371fb1f039cfc70dfa30e1b5a12" name="a4a88b371fb1f039cfc70dfa30e1b5a12"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1SolverBase.html">SolverBase</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<tr class="separator:a4a88b371fb1f039cfc70dfa30e1b5a12"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aca49f0aada2187c4b37b59211188a267" id="r_aca49f0aada2187c4b37b59211188a267"><td class="memItemLeft" align="right" valign="top"><a id="aca49f0aada2187c4b37b59211188a267" name="aca49f0aada2187c4b37b59211188a267"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1FullPivHouseholderQRMatrixQReturnType.html">internal::FullPivHouseholderQRMatrixQReturnType</a>&lt; MatrixType &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixQReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1FullPivHouseholderQRMatrixQReturnType.html">internal::FullPivHouseholderQRMatrixQReturnType</a>&lt; MatrixType &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixQReturnType</b></td></tr>
 <tr class="separator:aca49f0aada2187c4b37b59211188a267"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ace3d0a40673c063c78035548c4259806" id="r_ace3d0a40673c063c78035548c4259806"><td class="memItemLeft" align="right" valign="top"><a id="ace3d0a40673c063c78035548c4259806" name="ace3d0a40673c063c78035548c4259806"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__diag__type.html">internal::plain_diag_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>HCoeffsType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__diag__type.html">internal::plain_diag_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>HCoeffsType</b></td></tr>
 <tr class="separator:ace3d0a40673c063c78035548c4259806"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a79d964192e828e7cc2910f219df4b2dc" id="r_a79d964192e828e7cc2910f219df4b2dc"><td class="memItemLeft" align="right" valign="top"><a id="a79d964192e828e7cc2910f219df4b2dc" name="a79d964192e828e7cc2910f219df4b2dc"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; StorageIndex, 1, EIGEN_SIZE_MIN_PREFER_DYNAMIC(ColsAtCompileTime, RowsAtCompileTime), <a class="el" href="group__enums.html#gga977c35041489176957795b184317f40ca77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>, 1, EIGEN_SIZE_MIN_PREFER_FIXED(MaxColsAtCompileTime, MaxRowsAtCompileTime)&gt;&#160;</td><td class="memItemRight" valign="bottom"><b>IntDiagSizeVectorType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; StorageIndex, 1, EIGEN_SIZE_MIN_PREFER_DYNAMIC(ColsAtCompileTime, RowsAtCompileTime), <a class="el" href="group__enums.html#ggaacded1a18ae58b0f554751f6cdf9eb13a77c993a8d9f6efe5c1159fb2ab07dd4f">RowMajor</a>, 1, EIGEN_SIZE_MIN_PREFER_FIXED(MaxColsAtCompileTime, MaxRowsAtCompileTime)&gt;&#160;</td><td class="memItemRight" valign="bottom"><b>IntDiagSizeVectorType</b></td></tr>
 <tr class="separator:a79d964192e828e7cc2910f219df4b2dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a29ba3c0d3d7ceb8558c6cba4b5afba89" id="r_a29ba3c0d3d7ceb8558c6cba4b5afba89"><td class="memItemLeft" align="right" valign="top"><a id="a29ba3c0d3d7ceb8558c6cba4b5afba89" name="a29ba3c0d3d7ceb8558c6cba4b5afba89"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationMatrix</a>&lt; ColsAtCompileTime, MaxColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>PermutationType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationMatrix</a>&lt; ColsAtCompileTime, MaxColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>PermutationType</b></td></tr>
 <tr class="separator:a29ba3c0d3d7ceb8558c6cba4b5afba89"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2c68675b694ac5feefbe78c6913eaa13" id="r_a2c68675b694ac5feefbe78c6913eaa13"><td class="memItemLeft" align="right" valign="top"><a id="a2c68675b694ac5feefbe78c6913eaa13" name="a2c68675b694ac5feefbe78c6913eaa13"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__row__type.html">internal::plain_row_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>RowVectorType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__row__type.html">internal::plain_row_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>RowVectorType</b></td></tr>
 <tr class="separator:a2c68675b694ac5feefbe78c6913eaa13"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5abef403dc2f41f954dff3a52f597da4" id="r_a5abef403dc2f41f954dff3a52f597da4"><td class="memItemLeft" align="right" valign="top"><a id="a5abef403dc2f41f954dff3a52f597da4" name="a5abef403dc2f41f954dff3a52f597da4"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__col__type.html">internal::plain_col_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ColVectorType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__col__type.html">internal::plain_col_type</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ColVectorType</b></td></tr>
 <tr class="separator:a5abef403dc2f41f954dff3a52f597da4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac665e21d7152407fe05cd60371e5ef17" id="r_ac665e21d7152407fe05cd60371e5ef17"><td class="memItemLeft" align="right" valign="top"><a id="ac665e21d7152407fe05cd60371e5ef17" name="ac665e21d7152407fe05cd60371e5ef17"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>PlainObject</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>PlainObject</b></td></tr>
 <tr class="separator:ac665e21d7152407fe05cd60371e5ef17"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; FullPivHouseholderQR&lt; _MatrixType &gt; &gt;</a></td></tr>
+<tr class="memitem:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase" id="r_a0d5e6a39b9de5549fcde447a7b782c28"><td class="memItemLeft" align="right" valign="top"><a id="a0d5e6a39b9de5549fcde447a7b782c28" name="a0d5e6a39b9de5549fcde447a7b782c28"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase" id="r_a12798f4bbad57ef378b087801ab90cfe"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<tr class="separator:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase" id="r_a08184e3c085cce33f80b5a37376d52ab"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt; &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<tr class="separator:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase" id="r_a8013b6454a87289d3e1cd138615af3d3"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<tr class="separator:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase" id="r_a11e1c0866e89737a17f72efd2cd7d9f9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Transpose.html">Transpose</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstTransposeReturnType</b></td></tr>
+<tr class="separator:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase" id="r_a637cb0dfdcc8c4013c375f2e46951f4c"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1CwiseUnaryOp.html">CwiseUnaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__conjugate__op.html">internal::scalar_conjugate_op</a>&lt; Scalar &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>AdjointReturnType</b></td></tr>
+<tr class="separator:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
+<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
+<tr class="memdesc:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">The interface type of indices.  <br /></td></tr>
+<tr class="separator:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase" id="r_a95ff992a5c4c5debb41f6ae2f639e1f3"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
+<tr class="separator:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:aeb14b4c1eef33128207b40a00bd0bd08" id="r_aeb14b4c1eef33128207b40a00bd0bd08"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeb14b4c1eef33128207b40a00bd0bd08">FullPivHouseholderQR</a> ()</td></tr>
 <tr class="memdesc:aeb14b4c1eef33128207b40a00bd0bd08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor.  <br /></td></tr>
 <tr class="separator:aeb14b4c1eef33128207b40a00bd0bd08"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abf722e1dc7241a5d6f76460ef0c87821" id="r_abf722e1dc7241a5d6f76460ef0c87821"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#abf722e1dc7241a5d6f76460ef0c87821">FullPivHouseholderQR</a> (Index rows, Index cols)</td></tr>
+<tr class="memitem:abf722e1dc7241a5d6f76460ef0c87821" id="r_abf722e1dc7241a5d6f76460ef0c87821"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#abf722e1dc7241a5d6f76460ef0c87821">FullPivHouseholderQR</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> rows, <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> cols)</td></tr>
 <tr class="memdesc:abf722e1dc7241a5d6f76460ef0c87821"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor with memory preallocation.  <br /></td></tr>
 <tr class="separator:abf722e1dc7241a5d6f76460ef0c87821"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeeace3abca6b215025e94c3e098b0a97" id="r_aeeace3abca6b215025e94c3e098b0a97"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:aeeace3abca6b215025e94c3e098b0a97"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeeace3abca6b215025e94c3e098b0a97">FullPivHouseholderQR</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
+<tr class="memitem:aeeace3abca6b215025e94c3e098b0a97" id="r_aeeace3abca6b215025e94c3e098b0a97"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:aeeace3abca6b215025e94c3e098b0a97"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeeace3abca6b215025e94c3e098b0a97">FullPivHouseholderQR</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
 <tr class="memdesc:aeeace3abca6b215025e94c3e098b0a97"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a QR factorization from a given matrix.  <br /></td></tr>
 <tr class="separator:aeeace3abca6b215025e94c3e098b0a97"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:acfb47b4bcb1dfda217c9de0436e48858" id="r_acfb47b4bcb1dfda217c9de0436e48858"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </td></tr>
-<tr class="memitem:acfb47b4bcb1dfda217c9de0436e48858"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>, Rhs &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#acfb47b4bcb1dfda217c9de0436e48858">solve</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:acfb47b4bcb1dfda217c9de0436e48858"><td class="mdescLeft">&#160;</td><td class="mdescRight">This method finds a solution x to the equation Ax=b, where A is the matrix of which <code>*this</code> is the QR decomposition.  <br /></td></tr>
-<tr class="separator:acfb47b4bcb1dfda217c9de0436e48858"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad26dd2d3c002939771d2375e4e051c28" id="r_ad26dd2d3c002939771d2375e4e051c28"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1FullPivHouseholderQRMatrixQReturnType.html">MatrixQReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#ad26dd2d3c002939771d2375e4e051c28">matrixQ</a> (<a class="el" href="classEigen_1_1Solve.html">void</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ac9bdb4f7fa77c1aa16f238592c248e70" id="r_ac9bdb4f7fa77c1aa16f238592c248e70"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:ac9bdb4f7fa77c1aa16f238592c248e70"><td class="memTemplItemLeft" align="right" valign="top">&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#ac9bdb4f7fa77c1aa16f238592c248e70">FullPivHouseholderQR</a> (<a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
+<tr class="memdesc:ac9bdb4f7fa77c1aa16f238592c248e70"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructs a QR factorization from a given matrix.  <br /></td></tr>
+<tr class="separator:ac9bdb4f7fa77c1aa16f238592c248e70"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad26dd2d3c002939771d2375e4e051c28" id="r_ad26dd2d3c002939771d2375e4e051c28"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1FullPivHouseholderQRMatrixQReturnType.html">MatrixQReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#ad26dd2d3c002939771d2375e4e051c28">matrixQ</a> (<a class="el" href="classEigen_1_1MatrixBase.html">void</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ad26dd2d3c002939771d2375e4e051c28"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a172a486062f34604e72c883ce2846d81" id="r_a172a486062f34604e72c883ce2846d81"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a172a486062f34604e72c883ce2846d81">matrixQR</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a172a486062f34604e72c883ce2846d81" id="r_a172a486062f34604e72c883ce2846d81"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> MatrixType &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a172a486062f34604e72c883ce2846d81">matrixQR</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a172a486062f34604e72c883ce2846d81"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab9d229279a2004a52d317dcc3d552d23" id="r_ab9d229279a2004a52d317dcc3d552d23"><td class="memTemplParams" colspan="2"><a id="ab9d229279a2004a52d317dcc3d552d23" name="ab9d229279a2004a52d317dcc3d552d23"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:ab9d229279a2004a52d317dcc3d552d23"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:ab9d229279a2004a52d317dcc3d552d23"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><b>compute</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
 <tr class="separator:ab9d229279a2004a52d317dcc3d552d23"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2a17d9b6d87481e30db6051a47cb952d" id="r_a2a17d9b6d87481e30db6051a47cb952d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a2a17d9b6d87481e30db6051a47cb952d">colsPermutation</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a2a17d9b6d87481e30db6051a47cb952d" id="r_a2a17d9b6d87481e30db6051a47cb952d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a2a17d9b6d87481e30db6051a47cb952d">colsPermutation</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a2a17d9b6d87481e30db6051a47cb952d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a654899ddbc7cca1e9298e1c2094b37c9" id="r_a654899ddbc7cca1e9298e1c2094b37c9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">IntDiagSizeVectorType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a654899ddbc7cca1e9298e1c2094b37c9">rowsTranspositions</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a654899ddbc7cca1e9298e1c2094b37c9" id="r_a654899ddbc7cca1e9298e1c2094b37c9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">IntDiagSizeVectorType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a654899ddbc7cca1e9298e1c2094b37c9">rowsTranspositions</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a654899ddbc7cca1e9298e1c2094b37c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a1029e1ccc70bb8669043c5775e7f3b75" id="r_a1029e1ccc70bb8669043c5775e7f3b75"><td class="memItemLeft" align="right" valign="top">MatrixType::RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a1029e1ccc70bb8669043c5775e7f3b75">absDeterminant</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a1029e1ccc70bb8669043c5775e7f3b75" id="r_a1029e1ccc70bb8669043c5775e7f3b75"><td class="memItemLeft" align="right" valign="top">MatrixType::RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a1029e1ccc70bb8669043c5775e7f3b75">absDeterminant</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a1029e1ccc70bb8669043c5775e7f3b75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aafde38918912c9b562f44b0fc3b22589" id="r_aafde38918912c9b562f44b0fc3b22589"><td class="memItemLeft" align="right" valign="top">MatrixType::RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aafde38918912c9b562f44b0fc3b22589">logAbsDeterminant</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:aafde38918912c9b562f44b0fc3b22589" id="r_aafde38918912c9b562f44b0fc3b22589"><td class="memItemLeft" align="right" valign="top">MatrixType::RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aafde38918912c9b562f44b0fc3b22589">logAbsDeterminant</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aafde38918912c9b562f44b0fc3b22589"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeae555220f46477818ccc94aca2de770" id="r_aeae555220f46477818ccc94aca2de770"><td class="memItemLeft" align="right" valign="top">Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeae555220f46477818ccc94aca2de770">rank</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:aeae555220f46477818ccc94aca2de770" id="r_aeae555220f46477818ccc94aca2de770"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeae555220f46477818ccc94aca2de770">rank</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aeae555220f46477818ccc94aca2de770"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3b5fe5edc66acc01c45b16e728470aa0" id="r_a3b5fe5edc66acc01c45b16e728470aa0"><td class="memItemLeft" align="right" valign="top">Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a3b5fe5edc66acc01c45b16e728470aa0">dimensionOfKernel</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a3b5fe5edc66acc01c45b16e728470aa0" id="r_a3b5fe5edc66acc01c45b16e728470aa0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a3b5fe5edc66acc01c45b16e728470aa0">dimensionOfKernel</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a3b5fe5edc66acc01c45b16e728470aa0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6776788011026b0f63192485a59deaed" id="r_a6776788011026b0f63192485a59deaed"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a6776788011026b0f63192485a59deaed">isInjective</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a6776788011026b0f63192485a59deaed" id="r_a6776788011026b0f63192485a59deaed"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a6776788011026b0f63192485a59deaed">isInjective</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a6776788011026b0f63192485a59deaed"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa3593db4708ce9079b0bdf219b99f57e" id="r_aa3593db4708ce9079b0bdf219b99f57e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aa3593db4708ce9079b0bdf219b99f57e">isSurjective</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:aa3593db4708ce9079b0bdf219b99f57e" id="r_aa3593db4708ce9079b0bdf219b99f57e"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aa3593db4708ce9079b0bdf219b99f57e">isSurjective</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aa3593db4708ce9079b0bdf219b99f57e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aeb1d779ec22ec68a5a28d4235db02ec1" id="r_aeb1d779ec22ec68a5a28d4235db02ec1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeb1d779ec22ec68a5a28d4235db02ec1">isInvertible</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:aeb1d779ec22ec68a5a28d4235db02ec1" id="r_aeb1d779ec22ec68a5a28d4235db02ec1"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aeb1d779ec22ec68a5a28d4235db02ec1">isInvertible</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aeb1d779ec22ec68a5a28d4235db02ec1"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad7050778df4da4ba17663b6aa2a18d08" id="r_ad7050778df4da4ba17663b6aa2a18d08"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#ad7050778df4da4ba17663b6aa2a18d08">inverse</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ad7050778df4da4ba17663b6aa2a18d08" id="r_ad7050778df4da4ba17663b6aa2a18d08"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#ad7050778df4da4ba17663b6aa2a18d08">inverse</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ad7050778df4da4ba17663b6aa2a18d08"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b3fd394100b72f5979060b34b94ff01" id="r_a3b3fd394100b72f5979060b34b94ff01"><td class="memItemLeft" align="right" valign="top"><a id="a3b3fd394100b72f5979060b34b94ff01" name="a3b3fd394100b72f5979060b34b94ff01"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a3b3fd394100b72f5979060b34b94ff01"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1849e6c9ba23dfeeaa00f2480d43f826" id="r_a1849e6c9ba23dfeeaa00f2480d43f826"><td class="memItemLeft" align="right" valign="top"><a id="a1849e6c9ba23dfeeaa00f2480d43f826" name="a1849e6c9ba23dfeeaa00f2480d43f826"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a1849e6c9ba23dfeeaa00f2480d43f826"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7620dc0cae74975b3e997d852fa4d6f4" id="r_a7620dc0cae74975b3e997d852fa4d6f4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">HCoeffsType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a7620dc0cae74975b3e997d852fa4d6f4">hCoeffs</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a7620dc0cae74975b3e997d852fa4d6f4" id="r_a7620dc0cae74975b3e997d852fa4d6f4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">HCoeffsType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a7620dc0cae74975b3e997d852fa4d6f4">hCoeffs</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a7620dc0cae74975b3e997d852fa4d6f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0b236a8d1a2e0b63ecb68a7308562ed2" id="r_a0b236a8d1a2e0b63ecb68a7308562ed2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a0b236a8d1a2e0b63ecb68a7308562ed2">setThreshold</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> RealScalar &amp;<a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201">threshold</a>)</td></tr>
+<tr class="memitem:a0b236a8d1a2e0b63ecb68a7308562ed2" id="r_a0b236a8d1a2e0b63ecb68a7308562ed2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a0b236a8d1a2e0b63ecb68a7308562ed2">setThreshold</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> RealScalar &amp;<a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201">threshold</a>)</td></tr>
 <tr class="memdesc:a0b236a8d1a2e0b63ecb68a7308562ed2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to prescribe a threshold to be used by certain methods, such as rank(), who need to determine when pivots are to be considered nonzero.  <br /></td></tr>
 <tr class="separator:a0b236a8d1a2e0b63ecb68a7308562ed2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2119cef4dab273aad0c6afbe7602a6f3" id="r_a2119cef4dab273aad0c6afbe7602a6f3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a2119cef4dab273aad0c6afbe7602a6f3">setThreshold</a> (Default_t)</td></tr>
-<tr class="memdesc:a2119cef4dab273aad0c6afbe7602a6f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to come back to the default behavior, letting Eigen use its default formula for determining the threshold.  <br /></td></tr>
+<tr class="memdesc:a2119cef4dab273aad0c6afbe7602a6f3"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to come back to the default behavior, letting <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> use its default formula for determining the threshold.  <br /></td></tr>
 <tr class="separator:a2119cef4dab273aad0c6afbe7602a6f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af7f6ac15ca19c2b9e45dc3eaae58c201" id="r_af7f6ac15ca19c2b9e45dc3eaae58c201"><td class="memItemLeft" align="right" valign="top">RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201">threshold</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af7f6ac15ca19c2b9e45dc3eaae58c201" id="r_af7f6ac15ca19c2b9e45dc3eaae58c201"><td class="memItemLeft" align="right" valign="top">RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201">threshold</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="memdesc:af7f6ac15ca19c2b9e45dc3eaae58c201"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the threshold that will be used by certain methods such as rank().  <br /></td></tr>
 <tr class="separator:af7f6ac15ca19c2b9e45dc3eaae58c201"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af1e4d04824084a964c1a6e51db68376f" id="r_af1e4d04824084a964c1a6e51db68376f"><td class="memItemLeft" align="right" valign="top">Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af1e4d04824084a964c1a6e51db68376f">nonzeroPivots</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af1e4d04824084a964c1a6e51db68376f" id="r_af1e4d04824084a964c1a6e51db68376f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af1e4d04824084a964c1a6e51db68376f">nonzeroPivots</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:af1e4d04824084a964c1a6e51db68376f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7887506237a3bf912aebc9aaa8edacec" id="r_a7887506237a3bf912aebc9aaa8edacec"><td class="memItemLeft" align="right" valign="top">RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a7887506237a3bf912aebc9aaa8edacec">maxPivot</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a7887506237a3bf912aebc9aaa8edacec" id="r_a7887506237a3bf912aebc9aaa8edacec"><td class="memItemLeft" align="right" valign="top">RealScalar&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a7887506237a3bf912aebc9aaa8edacec">maxPivot</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a7887506237a3bf912aebc9aaa8edacec"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ada7941201fde2fd566f8d6050fea6c2e" id="r_ada7941201fde2fd566f8d6050fea6c2e"><td class="memTemplParams" colspan="2"><a id="ada7941201fde2fd566f8d6050fea6c2e" name="ada7941201fde2fd566f8d6050fea6c2e"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:ada7941201fde2fd566f8d6050fea6c2e"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ada7941201fde2fd566f8d6050fea6c2e"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6e8c4b39853facddd258b4568bbf17f5" id="r_a6e8c4b39853facddd258b4568bbf17f5"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </td></tr>
-<tr class="memitem:a6e8c4b39853facddd258b4568bbf17f5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; MatrixType &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a6e8c4b39853facddd258b4568bbf17f5">compute</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;matrix)</td></tr>
+<tr class="memitem:aa108b4d779b9c131359a542b0850a137" id="r_aa108b4d779b9c131359a542b0850a137"><td class="memTemplParams" colspan="2"><a id="aa108b4d779b9c131359a542b0850a137" name="aa108b4d779b9c131359a542b0850a137"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:aa108b4d779b9c131359a542b0850a137"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aa108b4d779b9c131359a542b0850a137"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae9a1dd584505ba230ff8fa57ee3d7bbe" id="r_ae9a1dd584505ba230ff8fa57ee3d7bbe"><td class="memTemplParams" colspan="2"><a id="ae9a1dd584505ba230ff8fa57ee3d7bbe" name="ae9a1dd584505ba230ff8fa57ee3d7bbe"></a>
+template&lt;bool Conjugate, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:ae9a1dd584505ba230ff8fa57ee3d7bbe"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl_transposed</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ae9a1dd584505ba230ff8fa57ee3d7bbe"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6e8c4b39853facddd258b4568bbf17f5" id="r_a6e8c4b39853facddd258b4568bbf17f5"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </td></tr>
+<tr class="memitem:a6e8c4b39853facddd258b4568bbf17f5"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; MatrixType &gt; &amp;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a6e8c4b39853facddd258b4568bbf17f5">compute</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;matrix)</td></tr>
 <tr class="memdesc:a6e8c4b39853facddd258b4568bbf17f5"><td class="mdescLeft">&#160;</td><td class="mdescRight">Performs the QR factorization of the given matrix <em>matrix</em>.  <br /></td></tr>
 <tr class="separator:a6e8c4b39853facddd258b4568bbf17f5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa108b4d779b9c131359a542b0850a137" id="r_aa108b4d779b9c131359a542b0850a137"><td class="memTemplParams" colspan="2"><a id="aa108b4d779b9c131359a542b0850a137" name="aa108b4d779b9c131359a542b0850a137"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:aa108b4d779b9c131359a542b0850a137"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:aa108b4d779b9c131359a542b0850a137"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; FullPivHouseholderQR&lt; _MatrixType &gt; &gt;</a></td></tr>
+<tr class="memitem:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase" id="r_a4d5e5baddfba3790ab1a5f247dcc4dc1"><td class="memItemLeft" align="right" valign="top">
+&#160;</td><td class="memItemRight" valign="bottom"><b>SolverBase</b> ()</td></tr>
+<tr class="memdesc:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. <br /></td></tr>
+<tr class="separator:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase" id="r_a943c352b597e3cd4744d5c11bfd77520"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt;, Rhs &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase" id="r_a70cf5cd1b31dbb4f4d61c436c83df6d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">ConstTransposeReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a70cf5cd1b31dbb4f4d61c436c83df6d3">transpose</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase" id="r_ae1025416bdb5a768f7213c67feb4dc33"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ae1025416bdb5a768f7213c67feb4dc33">adjoint</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; _MatrixType &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a23248b545ee580f3ddb8150cd3d032a3"><td class="memItemLeft" align="right" valign="top">
+EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase" id="r_abf0796214cde38991fd56c07f0765829"><td class="memItemLeft" align="right" valign="top">
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase" id="r_af1d12fdb3361e150427e1fd94ebb1f14"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#af1d12fdb3361e150427e1fd94ebb1f14">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a50c19c45f15acdfe1cb66ab5e879b8e3"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a50c19c45f15acdfe1cb66ab5e879b8e3">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase" id="r_a9f40726259520d7e9c5ce58d19d62e79"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a9f40726259520d7e9c5ce58d19d62e79">size</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase" id="r_a991b21b79bb613171a53271933c53cab"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase" id="r_ad4300dbb47b34596d8ce6b2361c07b52"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase" id="r_a677a970c7d063d7033180dd9dbb53565"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase" id="r_aabee6205996703a37df914e379472653"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac8a579c4f982dddd2a01489fe66b73c9"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:a813e30375adb7cc8972aa831d9792a83" id="r_a813e30375adb7cc8972aa831d9792a83"><td class="memItemLeft" align="right" valign="top"><a id="a813e30375adb7cc8972aa831d9792a83" name="a813e30375adb7cc8972aa831d9792a83"></a>
-<a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>computeInPlace</b> ()</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>computeInPlace</b> ()</td></tr>
 <tr class="separator:a813e30375adb7cc8972aa831d9792a83"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; FullPivHouseholderQR&lt; _MatrixType &gt; &gt;</a></td></tr>
+<tr class="memitem:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase" id="r_ac0bf165255e731b5c8a254dbfe5545c9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>_check_solve_assertion</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Rhs &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
 Static Protected Member Functions</h2></td></tr>
 <tr class="memitem:aac6705b86a79ec4998a26da5b3722ac5" id="r_aac6705b86a79ec4998a26da5b3722ac5"><td class="memItemLeft" align="right" valign="top"><a id="aac6705b86a79ec4998a26da5b3722ac5" name="aac6705b86a79ec4998a26da5b3722ac5"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
 <tr class="separator:aac6705b86a79ec4998a26da5b3722ac5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -257,40 +337,47 @@ RealScalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_prescribedThr
 RealScalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_maxpivot</b></td></tr>
 <tr class="separator:a44d0682e4e2f99fa5319304598f7724b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad5e3bdbf5f2da0a0e2e8a4482fbcdf1e" id="r_ad5e3bdbf5f2da0a0e2e8a4482fbcdf1e"><td class="memItemLeft" align="right" valign="top"><a id="ad5e3bdbf5f2da0a0e2e8a4482fbcdf1e" name="ad5e3bdbf5f2da0a0e2e8a4482fbcdf1e"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>m_nonzero_pivots</b></td></tr>
+<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_nonzero_pivots</b></td></tr>
 <tr class="separator:ad5e3bdbf5f2da0a0e2e8a4482fbcdf1e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5e27bd23c1aa3208080354c357309d7e" id="r_a5e27bd23c1aa3208080354c357309d7e"><td class="memItemLeft" align="right" valign="top"><a id="a5e27bd23c1aa3208080354c357309d7e" name="a5e27bd23c1aa3208080354c357309d7e"></a>
 RealScalar&#160;</td><td class="memItemRight" valign="bottom"><b>m_precision</b></td></tr>
 <tr class="separator:a5e27bd23c1aa3208080354c357309d7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6fa460d74c719fed08d8c574ec13d41d" id="r_a6fa460d74c719fed08d8c574ec13d41d"><td class="memItemLeft" align="right" valign="top"><a id="a6fa460d74c719fed08d8c574ec13d41d" name="a6fa460d74c719fed08d8c574ec13d41d"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>m_det_pq</b></td></tr>
+<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_det_pq</b></td></tr>
 <tr class="separator:a6fa460d74c719fed08d8c574ec13d41d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="friends" name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:aa73f1ce5617fd017eec37b4ef636addc" id="r_aa73f1ce5617fd017eec37b4ef636addc"><td class="memItemLeft" align="right" valign="top"><a id="aa73f1ce5617fd017eec37b4ef636addc" name="aa73f1ce5617fd017eec37b4ef636addc"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">class</a>&#160;</td><td class="memItemRight" valign="bottom"><b>SolverBase&lt; FullPivHouseholderQR &gt;</b></td></tr>
+<tr class="separator:aa73f1ce5617fd017eec37b4ef636addc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType&gt;<br />
 class Eigen::FullPivHouseholderQR&lt; _MatrixType &gt;</div><p>Householder rank-revealing QR decomposition of a matrix with full pivoting. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">MatrixType</td><td>the type of the matrix of which we are computing the QR decomposition</td></tr>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
+    <tr><td class="paramname">_MatrixType</td><td>the type of the matrix of which we are computing the QR decomposition</td></tr>
   </table>
   </dd>
 </dl>
 <p>This class performs a rank-revealing QR decomposition of a matrix <b>A</b> into matrices <b>P</b>, <b>P'</b>, <b>Q</b> and <b>R</b> such that  </p><p class="formulaDsp">
-<picture><source srcset="form_172_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[
+<picture><source srcset="form_178_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[
  \mathbf{P} \, \mathbf{A} \, \mathbf{P}' = \mathbf{Q} \, \mathbf{R}
-\]" src="form_172.png"/></picture>
+\]" src="form_178.png"/></picture>
 </p>
 <p> by using Householder transformations. Here, <b>P</b> and <b>P'</b> are permutation matrices, <b>Q</b> a unitary matrix and <b>R</b> an upper triangular matrix.</p>
 <p>This decomposition performs a very prudent full pivoting in order to be rank-revealing and achieve optimal numerical stability. The trade-off is that it is slower than <a class="el" href="classEigen_1_1HouseholderQR.html" title="Householder QR decomposition of a matrix.">HouseholderQR</a> and <a class="el" href="classEigen_1_1ColPivHouseholderQR.html" title="Householder rank-revealing QR decomposition of a matrix with column-pivoting.">ColPivHouseholderQR</a>.</p>
+<p>This class supports the <a class="el" href="">inplace decomposition </a> mechanism.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a863bc0e06b641a089508eabec6835ab2">MatrixBase::fullPivHouseholderQr()</a> </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
 <a id="aeb14b4c1eef33128207b40a00bd0bd08" name="aeb14b4c1eef33128207b40a00bd0bd08"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeb14b4c1eef33128207b40a00bd0bd08">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[1/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aeb14b4c1eef33128207b40a00bd0bd08">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[1/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -315,12 +402,12 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </div>
 </div>
 <a id="abf722e1dc7241a5d6f76460ef0c87821" name="abf722e1dc7241a5d6f76460ef0c87821"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#abf722e1dc7241a5d6f76460ef0c87821">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[2/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#abf722e1dc7241a5d6f76460ef0c87821">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[2/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -328,13 +415,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::FullPivHouseholderQR </td>
           <td>(</td>
-          <td class="paramtype">Index&#160;</td>
+          <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td>
           <td class="paramname"><em>rows</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype">Index&#160;</td>
+          <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td>
           <td class="paramname"><em>cols</em>&#160;</td>
         </tr>
         <tr>
@@ -356,14 +443,14 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </div>
 </div>
 <a id="aeeace3abca6b215025e94c3e098b0a97" name="aeeace3abca6b215025e94c3e098b0a97"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#aeeace3abca6b215025e94c3e098b0a97">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[3/3]</span></h2>
+<h2 class="memtitle"><span class="permalink"><a href="#aeeace3abca6b215025e94c3e098b0a97">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[3/4]</span></h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -371,7 +458,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::FullPivHouseholderQR </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>matrix</em></td><td>)</td>
           <td></td>
         </tr>
@@ -385,10 +472,44 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 
 <p>Constructs a QR factorization from a given matrix. </p>
 <p>This constructor computes the QR factorization of the matrix <em>matrix</em> by calling the method compute(). It is a short cut for:</p>
-<div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">FullPivHouseholderQR&lt;MatrixType&gt;</a> <a class="code hl_class" href="classEigen_1_1Solve.html">qr</a>(matrix.rows(), matrix.cols());</div>
-<div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">qr</a>.compute(matrix);</div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
+<div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1MatrixBase.html">FullPivHouseholderQR&lt;MatrixType&gt;</a> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">qr</a>(matrix.rows(), matrix.cols());</div>
+<div class="line"><a class="code hl_class" href="classEigen_1_1MatrixBase.html">qr</a>.compute(matrix);</div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
 </div><!-- fragment --><dl class="section see"><dt>See also</dt><dd>compute() </dd></dl>
+
+</div>
+</div>
+<a id="ac9bdb4f7fa77c1aa16f238592c248e70" name="ac9bdb4f7fa77c1aa16f238592c248e70"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ac9bdb4f7fa77c1aa16f238592c248e70">&#9670;&#160;</a></span>FullPivHouseholderQR() <span class="overload">[4/4]</span></h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::FullPivHouseholderQR </td>
+          <td>(</td>
+          <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;&#160;</td>
+          <td class="paramname"><em>matrix</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">explicit</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Constructs a QR factorization from a given matrix. </p>
+<p>This overloaded constructor is provided for <a class="el" href="">inplace decomposition </a> when <code>MatrixType</code> is a <a class="el" href="classEigen_1_1Ref.html" title="A matrix or vector expression mapping an existing expression.">Eigen::Ref</a>.</p>
+<dl class="section see"><dt>See also</dt><dd>FullPivHouseholderQR(const EigenBase&amp;) </dd></dl>
 
 </div>
 </div>
@@ -399,7 +520,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">MatrixType::RealScalar <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; MatrixType &gt;::absDeterminant </td>
@@ -412,7 +533,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 <dl class="section return"><dt>Returns</dt><dd>the absolute value of the determinant of the matrix of which *this is the QR decomposition. It has only linear complexity (that is, O(n) where n is the dimension of the square matrix) as the QR decomposition has already been computed.</dd></dl>
 <dl class="section note"><dt>Note</dt><dd>This is only for square matrices.</dd></dl>
 <dl class="section warning"><dt>Warning</dt><dd>a determinant can be very big or small, so for matrices of large enough dimension, there is a risk of overflow/underflow. One way to work around that is to use <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aafde38918912c9b562f44b0fc3b22589">logAbsDeterminant()</a> instead.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aafde38918912c9b562f44b0fc3b22589">logAbsDeterminant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#a7ad8f77004bb956b603bb43fd2e3c061" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#aafde38918912c9b562f44b0fc3b22589">logAbsDeterminant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#add0789a9cbd9bf1cc71048eaa75a1abb" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
 
 </div>
 </div>
@@ -422,13 +543,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::colsPermutation </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1PermutationMatrix.html">PermutationType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::colsPermutation </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -450,14 +571,14 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; MatrixType &gt; &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::compute </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">InputType</a> &gt; &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">InputType</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>matrix</em></td><td>)</td>
           <td></td>
         </tr>
@@ -476,13 +597,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">Index <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::dimensionOfKernel </td>
+          <td class="memname"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::dimensionOfKernel </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -505,13 +626,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">HCoeffsType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::hCoeffs </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">HCoeffsType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::hCoeffs </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -534,13 +655,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &gt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::inverse </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Inverse.html">Inverse</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &gt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::inverse </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -563,7 +684,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -592,7 +713,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -621,7 +742,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -650,7 +771,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
       <table class="memname">
         <tr>
           <td class="memname">MatrixType::RealScalar <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; MatrixType &gt;::logAbsDeterminant </td>
@@ -664,7 +785,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 <dl class="section note"><dt>Note</dt><dd>This is only for square matrices.</dd>
 <dd>
 This method is useful to work around the risk of overflow/underflow that's inherent to determinant computation.</dd></dl>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a1029e1ccc70bb8669043c5775e7f3b75">absDeterminant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#a7ad8f77004bb956b603bb43fd2e3c061" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a1029e1ccc70bb8669043c5775e7f3b75">absDeterminant()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#add0789a9cbd9bf1cc71048eaa75a1abb" title="\lu_module">MatrixBase::determinant()</a> </dd></dl>
 
 </div>
 </div>
@@ -674,7 +795,7 @@ This method is useful to work around the risk of overflow/underflow that's inher
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -682,7 +803,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>&lt; MatrixType &gt;::MatrixQReturnType <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; MatrixType &gt;::matrixQ </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
         </tr>
@@ -703,13 +824,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> MatrixTyp
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::matrixQR </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> MatrixType &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::matrixQR </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -731,7 +852,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -759,13 +880,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">Index <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::nonzeroPivots </td>
+          <td class="memname"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::nonzeroPivots </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -788,13 +909,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname">Index <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::rank </td>
+          <td class="memname"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::rank </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -817,13 +938,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">IntDiagSizeVectorType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::rowsTranspositions </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">IntDiagSizeVectorType</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::rowsTranspositions </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -845,7 +966,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -853,7 +974,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
         <tr>
           <td class="memname"><a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a> &amp; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::setThreshold </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> RealScalar &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> RealScalar &amp;&#160;</td>
           <td class="paramname"><em>threshold</em></td><td>)</td>
           <td></td>
         </tr>
@@ -867,14 +988,14 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 
 <p>Allows to prescribe a threshold to be used by certain methods, such as rank(), who need to determine when pivots are to be considered nonzero. </p>
 <p>This is not used for the QR decomposition itself.</p>
-<p>When it needs to get the threshold value, Eigen calls <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201" title="Returns the threshold that will be used by certain methods such as rank().">threshold()</a>. By default, this uses a formula to automatically determine a reasonable threshold. Once you have called the present method <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a0b236a8d1a2e0b63ecb68a7308562ed2" title="Allows to prescribe a threshold to be used by certain methods, such as rank(), who need to determine ...">setThreshold(const RealScalar&amp;)</a>, your value is used instead.</p>
+<p>When it needs to get the threshold value, <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> calls <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#af7f6ac15ca19c2b9e45dc3eaae58c201" title="Returns the threshold that will be used by certain methods such as rank().">threshold()</a>. By default, this uses a formula to automatically determine a reasonable threshold. Once you have called the present method <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a0b236a8d1a2e0b63ecb68a7308562ed2" title="Allows to prescribe a threshold to be used by certain methods, such as rank(), who need to determine ...">setThreshold(const RealScalar&amp;)</a>, your value is used instead.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">threshold</td><td>The new value to use as the threshold.</td></tr>
   </table>
   </dd>
 </dl>
-<p>A pivot will be considered nonzero if its absolute value is strictly greater than <picture><source srcset="form_170_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ \vert pivot \vert \leqslant threshold \times \vert maxpivot \vert $" src="form_170.png"/></picture> where maxpivot is the biggest pivot.</p>
+<p>A pivot will be considered nonzero if its absolute value is strictly greater than <picture><source srcset="form_172_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ \vert pivot \vert \leqslant threshold \times \vert maxpivot \vert $" src="form_172.png"/></picture> where maxpivot is the biggest pivot.</p>
 <p>If you want to come back to the default behavior, call <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a2119cef4dab273aad0c6afbe7602a6f3" title="Allows to come back to the default behavior, letting Eigen use its default formula for determining th...">setThreshold(Default_t)</a> </p>
 
 </div>
@@ -885,7 +1006,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -905,52 +1026,10 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </table>
 </div><div class="memdoc">
 
-<p>Allows to come back to the default behavior, letting Eigen use its default formula for determining the threshold. </p>
-<p>You should pass the special object Eigen::Default as parameter here. </p><div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">qr</a>.setThreshold(Eigen::Default); </div>
+<p>Allows to come back to the default behavior, letting <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> use its default formula for determining the threshold. </p>
+<p>You should pass the special object Eigen::Default as parameter here. </p><div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1MatrixBase.html">qr</a>.setThreshold(Eigen::Default); </div>
 </div><!-- fragment --><p>See the documentation of <a class="el" href="classEigen_1_1FullPivHouseholderQR.html#a0b236a8d1a2e0b63ecb68a7308562ed2" title="Allows to prescribe a threshold to be used by certain methods, such as rank(), who need to determine ...">setThreshold(const RealScalar&amp;)</a>. </p>
 
-</div>
-</div>
-<a id="acfb47b4bcb1dfda217c9de0436e48858" name="acfb47b4bcb1dfda217c9de0436e48858"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#acfb47b4bcb1dfda217c9de0436e48858">&#9670;&#160;</a></span>solve()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">FullPivHouseholderQR</a>, Rhs &gt; <a class="el" href="classEigen_1_1FullPivHouseholderQR.html">Eigen::FullPivHouseholderQR</a>&lt; _MatrixType &gt;::solve </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;&#160;</td>
-          <td class="paramname"><em>b</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>This method finds a solution x to the equation Ax=b, where A is the matrix of which <code>*this</code> is the QR decomposition. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">b</td><td>the right-hand-side of the equation to solve.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section return"><dt>Returns</dt><dd>the exact or least-square solution if the rank is greater or equal to the number of columns of A, and an arbitrary solution otherwise.</dd></dl>
-<dl class="section note"><dt>Note</dt><dd>The case where b is a matrix is not yet implemented. Also, this code is space inefficient.</dd></dl>
-<p>\note_about_checking_solutions</p>
-<p>\note_about_arbitrary_choice_of_solution</p>
-<p>Example: </p><div class="fragment"></div><!-- fragment --><p> Output: </p><pre class="fragment"></pre> 
 </div>
 </div>
 <a id="af7f6ac15ca19c2b9e45dc3eaae58c201" name="af7f6ac15ca19c2b9e45dc3eaae58c201"></a>
@@ -959,7 +1038,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixType &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> _MatrixType &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -990,7 +1069,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> _MatrixTy
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:39 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

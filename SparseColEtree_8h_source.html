@@ -114,15 +114,15 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00031" name="l00031"></a><span class="lineno">   31</span><span class="preprocessor">#ifndef SPARSE_COLETREE_H</span></div>
 <div class="line"><a id="l00032" name="l00032"></a><span class="lineno">   32</span><span class="preprocessor">#define SPARSE_COLETREE_H</span></div>
 <div class="line"><a id="l00033" name="l00033"></a><span class="lineno">   33</span> </div>
-<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">namespace </span>Eigen {</div>
+<div class="line"><a id="l00034" name="l00034"></a><span class="lineno">   34</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> {</div>
 <div class="line"><a id="l00035" name="l00035"></a><span class="lineno">   35</span> </div>
 <div class="line"><a id="l00036" name="l00036"></a><span class="lineno">   36</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00037" name="l00037"></a><span class="lineno">   37</span> </div>
 <div class="line"><a id="l00039" name="l00039"></a><span class="lineno">   39</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Index, <span class="keyword">typename</span> IndexVector&gt;</div>
-<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span>Index etree_find (Index i, IndexVector&amp; pp)</div>
+<div class="line"><a id="l00040" name="l00040"></a><span class="lineno">   40</span><a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> etree_find (<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> i, IndexVector&amp; pp)</div>
 <div class="line"><a id="l00041" name="l00041"></a><span class="lineno">   41</span>{</div>
-<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>  Index p = pp(i); <span class="comment">// Parent </span></div>
-<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>  Index gp = pp(p); <span class="comment">// Grand parent </span></div>
+<div class="line"><a id="l00042" name="l00042"></a><span class="lineno">   42</span>  <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> p = pp(i); <span class="comment">// Parent </span></div>
+<div class="line"><a id="l00043" name="l00043"></a><span class="lineno">   43</span>  <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> gp = pp(p); <span class="comment">// Grand parent </span></div>
 <div class="line"><a id="l00044" name="l00044"></a><span class="lineno">   44</span>  <span class="keywordflow">while</span> (gp != p) </div>
 <div class="line"><a id="l00045" name="l00045"></a><span class="lineno">   45</span>  {</div>
 <div class="line"><a id="l00046" name="l00046"></a><span class="lineno">   46</span>    pp(i) = gp; <span class="comment">// Parent pointer on find path is changed to former grand parent</span></div>
@@ -156,7 +156,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00080" name="l00080"></a><span class="lineno">   80</span>    <span class="keywordflow">if</span>(perm) pcol  = perm[col];</div>
 <div class="line"><a id="l00081" name="l00081"></a><span class="lineno">   81</span>    <span class="keywordflow">for</span> (<span class="keyword">typename</span> MatrixType::InnerIterator it(mat, pcol); it; ++it)</div>
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span>    { </div>
-<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      Index row = it.row();</div>
+<div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span>      <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row = it.row();</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span>      firstRowElt(row) = (std::min)(firstRowElt(row), col);</div>
 <div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span>    }</div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  }</div>
@@ -178,7 +178,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00102" name="l00102"></a><span class="lineno">  102</span>    <span class="keywordflow">if</span>(perm) pcol  = perm[col];</div>
 <div class="line"><a id="l00103" name="l00103"></a><span class="lineno">  103</span>    <span class="keywordflow">for</span> (<span class="keyword">typename</span> MatrixType::InnerIterator it(mat, pcol); it||!found_diag; ++it)</div>
 <div class="line"><a id="l00104" name="l00104"></a><span class="lineno">  104</span>    { <span class="comment">//  A sequence of interleaved find and union is performed </span></div>
-<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      Index i = col;</div>
+<div class="line"><a id="l00105" name="l00105"></a><span class="lineno">  105</span>      <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> i = col;</div>
 <div class="line"><a id="l00106" name="l00106"></a><span class="lineno">  106</span>      <span class="keywordflow">if</span>(it) i = it.index();</div>
 <div class="line"><a id="l00107" name="l00107"></a><span class="lineno">  107</span>      <span class="keywordflow">if</span> (i == col) found_diag = <span class="keyword">true</span>;</div>
 <div class="line"><a id="l00108" name="l00108"></a><span class="lineno">  108</span>      </div>
@@ -247,8 +247,8 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>  IndexVector first_kid, next_kid; <span class="comment">// Linked list of children </span></div>
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>  StorageIndex postnum; </div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span>  <span class="comment">// Allocate storage for working arrays and results </span></div>
-<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>  first_kid.resize(n+1); </div>
-<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>  next_kid.setZero(n+1);</div>
+<div class="line"><a id="l00184" name="l00184"></a><span class="lineno">  184</span>  first_kid.<a class="code hl_function" href="classEigen_1_1DenseBase.html#a13027a493a68a13496610caf3d81bd3e">resize</a>(n+1); </div>
+<div class="line"><a id="l00185" name="l00185"></a><span class="lineno">  185</span>  next_kid.<a class="code hl_function" href="classEigen_1_1DenseBase.html#ac74411ddeea2545bf20baf14613be47e">setZero</a>(n+1);</div>
 <div class="line"><a id="l00186" name="l00186"></a><span class="lineno">  186</span>  post.setZero(n+1);</div>
 <div class="line"><a id="l00187" name="l00187"></a><span class="lineno">  187</span>  </div>
 <div class="line"><a id="l00188" name="l00188"></a><span class="lineno">  188</span>  <span class="comment">// Set up structure describing children</span></div>
@@ -270,10 +270,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00204" name="l00204"></a><span class="lineno">  204</span>} <span class="comment">// end namespace Eigen</span></div>
 <div class="line"><a id="l00205" name="l00205"></a><span class="lineno">  205</span> </div>
 <div class="line"><a id="l00206" name="l00206"></a><span class="lineno">  206</span><span class="preprocessor">#endif </span><span class="comment">// SPARSE_COLETREE_H</span></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_a13027a493a68a13496610caf3d81bd3e"><div class="ttname"><a href="classEigen_1_1DenseBase.html#a13027a493a68a13496610caf3d81bd3e">Eigen::DenseBase::resize</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC void resize(Index newSize)</div><div class="ttdoc">Only plain matrices/arrays, not expressions, may be resized; therefore the only useful resize methods...</div><div class="ttdef"><b>Definition</b> DenseBase.h:246</div></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_ac74411ddeea2545bf20baf14613be47e"><div class="ttname"><a href="classEigen_1_1DenseBase.html#ac74411ddeea2545bf20baf14613be47e">Eigen::DenseBase::setZero</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC Derived &amp; setZero()</div><div class="ttdoc">Sets all coefficients in this expression to zero.</div><div class="ttdef"><b>Definition</b> CwiseNullaryOp.h:546</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
+<div class="ttc" id="anamespaceEigen_html_a62e77e0933482dafde8fe197d9a2cfde"><div class="ttname"><a href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a></div><div class="ttdeci">EIGEN_DEFAULT_DENSE_INDEX_TYPE Index</div><div class="ttdoc">The Index type as used for the API.</div><div class="ttdef"><b>Definition</b> Meta.h:74</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:25 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:02 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

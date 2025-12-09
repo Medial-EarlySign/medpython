@@ -69,13 +69,14 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_4faeebe93eda719d5c66fcf91e56b05e.html">unary_evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt;, IndexBased &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_4faeebe93eda719d5c66fcf91e56b05e.html">unary_evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt;, IndexBased &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a>  </div>
   <div class="headertitle"><div class="title">Eigen::internal::unary_evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt;, IndexBased &gt; Struct Template Reference</div></div>
 </div><!--header-->
@@ -86,77 +87,95 @@ Inheritance diagram for Eigen::internal::unary_evaluator&lt; Block&lt; ArgType, 
  <div class="center">
   <img src="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_4faeebe93eda719d5c66fcf91e56b05e.png" usemap="#Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IndexBased_20_3E_map" alt=""/>
   <map id="Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IndexBased_20_3E_map" name="Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IndexBased_20_3E_map">
-<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;" shape="rect" coords="0,56,598,80"/>
-<area href="classEigen_1_1internal_1_1noncopyable.html" alt="Eigen::internal::noncopyable" shape="rect" coords="0,0,598,24"/>
+<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;" shape="rect" coords="0,0,598,24"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a8d0934a97f855d9790c72194c9e2060e" id="r_a8d0934a97f855d9790c72194c9e2060e"><td class="memItemLeft" align="right" valign="top"><a id="a8d0934a97f855d9790c72194c9e2060e" name="a8d0934a97f855d9790c72194c9e2060e"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = XprType::RowsAtCompileTime
+<tr class="memitem:a4dd857e823dd5bfca008c1f9b493372e" id="r_a4dd857e823dd5bfca008c1f9b493372e"><td class="memItemLeft" align="right" valign="top"><a id="a4dd857e823dd5bfca008c1f9b493372e" name="a4dd857e823dd5bfca008c1f9b493372e"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = XprType::RowsAtCompileTime
+, <b>ForwardLinearAccess</b> = (InnerPanel || int(XprType::IsRowMajor)==int(ArgType::IsRowMajor)) &amp;&amp; bool(evaluator&lt;ArgType&gt;::Flags&amp;LinearAccessBit)
  }</td></tr>
-<tr class="separator:a8d0934a97f855d9790c72194c9e2060e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a4dd857e823dd5bfca008c1f9b493372e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a33b30e5b2761058d114873d41a73f101" id="r_a33b30e5b2761058d114873d41a73f101"><td class="memItemLeft" align="right" valign="top"><a id="a33b30e5b2761058d114873d41a73f101" name="a33b30e5b2761058d114873d41a73f101"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
 <tr class="separator:a33b30e5b2761058d114873d41a73f101"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa93e41a0368c20cac3cb322d2d5fa914" id="r_aa93e41a0368c20cac3cb322d2d5fa914"><td class="memItemLeft" align="right" valign="top"><a id="aa93e41a0368c20cac3cb322d2d5fa914" name="aa93e41a0368c20cac3cb322d2d5fa914"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:aa93e41a0368c20cac3cb322d2d5fa914"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6d4f366f7dd9083679ca581224e916f" id="r_ae6d4f366f7dd9083679ca581224e916f"><td class="memItemLeft" align="right" valign="top"><a id="ae6d4f366f7dd9083679ca581224e916f" name="ae6d4f366f7dd9083679ca581224e916f"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> XprType::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
 <tr class="separator:ae6d4f366f7dd9083679ca581224e916f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1internal_1_1evaluator__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1evaluator__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1evaluator__base.html">Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;</a></td></tr>
-<tr class="memitem:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af23e7bca3305f345014f6c9690dbdcbd"><td class="memItemLeft" align="right" valign="top"><a id="af23e7bca3305f345014f6c9690dbdcbd" name="af23e7bca3305f345014f6c9690dbdcbd"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af7fb5bd0e99d83cbea60e204838ec0d3"><td class="memItemLeft" align="right" valign="top"><a id="af7fb5bd0e99d83cbea60e204838ec0d3" name="af7fb5bd0e99d83cbea60e204838ec0d3"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_acb94884a759bb59a96c8c3eea1e50c10"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
 <tr class="separator:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a40bf31ddd88f496cc29c3ad285adc067" id="r_a40bf31ddd88f496cc29c3ad285adc067"><td class="memItemLeft" align="right" valign="top"><a id="a40bf31ddd88f496cc29c3ad285adc067" name="a40bf31ddd88f496cc29c3ad285adc067"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>unary_evaluator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">XprType</a> &amp;block)</td></tr>
-<tr class="separator:a40bf31ddd88f496cc29c3ad285adc067"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a11b1f5dced96deb675f81f5ac6b601b7" id="r_a11b1f5dced96deb675f81f5ac6b601b7"><td class="memItemLeft" align="right" valign="top"><a id="a11b1f5dced96deb675f81f5ac6b601b7" name="a11b1f5dced96deb675f81f5ac6b601b7"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index row, Index col) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a11b1f5dced96deb675f81f5ac6b601b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a57397057808071664e48a95964286de7" id="r_a57397057808071664e48a95964286de7"><td class="memItemLeft" align="right" valign="top"><a id="a57397057808071664e48a95964286de7" name="a57397057808071664e48a95964286de7"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a57397057808071664e48a95964286de7"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a94472ec5563448cde46a79e226297477" id="r_a94472ec5563448cde46a79e226297477"><td class="memItemLeft" align="right" valign="top"><a id="a94472ec5563448cde46a79e226297477" name="a94472ec5563448cde46a79e226297477"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index row, Index col)</td></tr>
-<tr class="separator:a94472ec5563448cde46a79e226297477"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa18e24362214c911d93570f4250a52ad" id="r_aa18e24362214c911d93570f4250a52ad"><td class="memItemLeft" align="right" valign="top"><a id="aa18e24362214c911d93570f4250a52ad" name="aa18e24362214c911d93570f4250a52ad"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (Index index)</td></tr>
-<tr class="separator:aa18e24362214c911d93570f4250a52ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a9769d44343f6c0a0d302328625519cc0" id="r_a9769d44343f6c0a0d302328625519cc0"><td class="memTemplParams" colspan="2"><a id="a9769d44343f6c0a0d302328625519cc0" name="a9769d44343f6c0a0d302328625519cc0"></a>
-template&lt;int LoadMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:a9769d44343f6c0a0d302328625519cc0"><td class="memTemplItemLeft" align="right" valign="top">PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (Index row, Index col) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a9769d44343f6c0a0d302328625519cc0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a63389aa9ace35ab89191e0d794a1cc14" id="r_a63389aa9ace35ab89191e0d794a1cc14"><td class="memTemplParams" colspan="2"><a id="a63389aa9ace35ab89191e0d794a1cc14" name="a63389aa9ace35ab89191e0d794a1cc14"></a>
-template&lt;int LoadMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:a63389aa9ace35ab89191e0d794a1cc14"><td class="memTemplItemLeft" align="right" valign="top">PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (Index index) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a63389aa9ace35ab89191e0d794a1cc14"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac34e53853decdf7ee02c0a9190bd4df2" id="r_ac34e53853decdf7ee02c0a9190bd4df2"><td class="memTemplParams" colspan="2"><a id="ac34e53853decdf7ee02c0a9190bd4df2" name="ac34e53853decdf7ee02c0a9190bd4df2"></a>
-template&lt;int StoreMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:ac34e53853decdf7ee02c0a9190bd4df2"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (Index row, Index col, <a class="el" href="classEigen_1_1Solve.html">const</a> PacketType &amp;x)</td></tr>
-<tr class="separator:ac34e53853decdf7ee02c0a9190bd4df2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adea08a5139ce25b6a119939dc431fcca" id="r_adea08a5139ce25b6a119939dc431fcca"><td class="memTemplParams" colspan="2"><a id="adea08a5139ce25b6a119939dc431fcca" name="adea08a5139ce25b6a119939dc431fcca"></a>
-template&lt;int StoreMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:adea08a5139ce25b6a119939dc431fcca"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (Index index, <a class="el" href="classEigen_1_1Solve.html">const</a> PacketType &amp;x)</td></tr>
-<tr class="separator:adea08a5139ce25b6a119939dc431fcca"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2e4f568d29d9c438d06b0aa2dfbfc2a4" id="r_a2e4f568d29d9c438d06b0aa2dfbfc2a4"><td class="memItemLeft" align="right" valign="top"><a id="a2e4f568d29d9c438d06b0aa2dfbfc2a4" name="a2e4f568d29d9c438d06b0aa2dfbfc2a4"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE&#160;</td><td class="memItemRight" valign="bottom"><b>unary_evaluator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">XprType</a> &amp;block)</td></tr>
+<tr class="separator:a2e4f568d29d9c438d06b0aa2dfbfc2a4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9a2fbc6e3dc8264254ede30a17b59216" id="r_a9a2fbc6e3dc8264254ede30a17b59216"><td class="memItemLeft" align="right" valign="top"><a id="a9a2fbc6e3dc8264254ede30a17b59216" name="a9a2fbc6e3dc8264254ede30a17b59216"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a9a2fbc6e3dc8264254ede30a17b59216"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af2d906627abf7cb047b7a75b33902c1d" id="r_af2d906627abf7cb047b7a75b33902c1d"><td class="memItemLeft" align="right" valign="top"><a id="af2d906627abf7cb047b7a75b33902c1d" name="af2d906627abf7cb047b7a75b33902c1d"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:af2d906627abf7cb047b7a75b33902c1d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3984eb921891b6d2b62414fd961f5ab9" id="r_a3984eb921891b6d2b62414fd961f5ab9"><td class="memItemLeft" align="right" valign="top"><a id="a3984eb921891b6d2b62414fd961f5ab9" name="a3984eb921891b6d2b62414fd961f5ab9"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col)</td></tr>
+<tr class="separator:a3984eb921891b6d2b62414fd961f5ab9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeb60288af4cf804b49e7b8b4d6c25b87" id="r_aeb60288af4cf804b49e7b8b4d6c25b87"><td class="memItemLeft" align="right" valign="top"><a id="aeb60288af4cf804b49e7b8b4d6c25b87" name="aeb60288af4cf804b49e7b8b4d6c25b87"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>coeffRef</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index)</td></tr>
+<tr class="separator:aeb60288af4cf804b49e7b8b4d6c25b87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad021eea89e164a73e1b546c81e4eab43" id="r_ad021eea89e164a73e1b546c81e4eab43"><td class="memTemplParams" colspan="2"><a id="ad021eea89e164a73e1b546c81e4eab43" name="ad021eea89e164a73e1b546c81e4eab43"></a>
+template&lt;int LoadMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:ad021eea89e164a73e1b546c81e4eab43"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ad021eea89e164a73e1b546c81e4eab43"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9e99548914daf495f2776895414141ef" id="r_a9e99548914daf495f2776895414141ef"><td class="memTemplParams" colspan="2"><a id="a9e99548914daf495f2776895414141ef" name="a9e99548914daf495f2776895414141ef"></a>
+template&lt;int LoadMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:a9e99548914daf495f2776895414141ef"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a9e99548914daf495f2776895414141ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8ba737cd89d8553e760397073b3018b3" id="r_a8ba737cd89d8553e760397073b3018b3"><td class="memTemplParams" colspan="2"><a id="a8ba737cd89d8553e760397073b3018b3" name="a8ba737cd89d8553e760397073b3018b3"></a>
+template&lt;int StoreMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:a8ba737cd89d8553e760397073b3018b3"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> PacketType &amp;x)</td></tr>
+<tr class="separator:a8ba737cd89d8553e760397073b3018b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4cf19248aad464e3ff9f3cf6f99bf508" id="r_a4cf19248aad464e3ff9f3cf6f99bf508"><td class="memTemplParams" colspan="2"><a id="a4cf19248aad464e3ff9f3cf6f99bf508" name="a4cf19248aad464e3ff9f3cf6f99bf508"></a>
+template&lt;int StoreMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:a4cf19248aad464e3ff9f3cf6f99bf508"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>writePacket</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> PacketType &amp;x)</td></tr>
+<tr class="separator:a4cf19248aad464e3ff9f3cf6f99bf508"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
+Protected Member Functions</h2></td></tr>
+<tr class="memitem:a63ea47e23bcabf1c39ea98c2769106dc" id="r_a63ea47e23bcabf1c39ea98c2769106dc"><td class="memItemLeft" align="right" valign="top"><a id="a63ea47e23bcabf1c39ea98c2769106dc" name="a63ea47e23bcabf1c39ea98c2769106dc"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>linear_coeff_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a63ea47e23bcabf1c39ea98c2769106dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acfb1c30755d219fe3318a0bd16d62615" id="r_acfb1c30755d219fe3318a0bd16d62615"><td class="memItemLeft" align="right" valign="top"><a id="acfb1c30755d219fe3318a0bd16d62615" name="acfb1c30755d219fe3318a0bd16d62615"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE CoeffReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>linear_coeff_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:acfb1c30755d219fe3318a0bd16d62615"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae40d8fcaac22113def07f66d55938600" id="r_ae40d8fcaac22113def07f66d55938600"><td class="memItemLeft" align="right" valign="top"><a id="ae40d8fcaac22113def07f66d55938600" name="ae40d8fcaac22113def07f66d55938600"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>linear_coeffRef_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>)</td></tr>
+<tr class="separator:ae40d8fcaac22113def07f66d55938600"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a520e85ef5aa72d7c31af7af9c881bd62" id="r_a520e85ef5aa72d7c31af7af9c881bd62"><td class="memItemLeft" align="right" valign="top"><a id="a520e85ef5aa72d7c31af7af9c881bd62" name="a520e85ef5aa72d7c31af7af9c881bd62"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Scalar &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>linear_coeffRef_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> index, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a>)</td></tr>
+<tr class="separator:a520e85ef5aa72d7c31af7af9c881bd62"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
 <tr class="memitem:a3f34f67b09cfe5dc557630bea41636cc" id="r_a3f34f67b09cfe5dc557630bea41636cc"><td class="memItemLeft" align="right" valign="top"><a id="a3f34f67b09cfe5dc557630bea41636cc" name="a3f34f67b09cfe5dc557630bea41636cc"></a>
 <a class="el" href="structEigen_1_1internal_1_1evaluator.html">evaluator</a>&lt; ArgType &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_argImpl</b></td></tr>
 <tr class="separator:a3f34f67b09cfe5dc557630bea41636cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adcefdfcc4670badd5c3b0606a8161e64" id="r_adcefdfcc4670badd5c3b0606a8161e64"><td class="memItemLeft" align="right" valign="top"><a id="adcefdfcc4670badd5c3b0606a8161e64" name="adcefdfcc4670badd5c3b0606a8161e64"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>&lt; Index, ArgType::RowsAtCompileTime==1 ? 0 :Dynamic &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_startRow</b></td></tr>
-<tr class="separator:adcefdfcc4670badd5c3b0606a8161e64"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a716f379fbb4867bffdeefa2fd4d23f63" id="r_a716f379fbb4867bffdeefa2fd4d23f63"><td class="memItemLeft" align="right" valign="top"><a id="a716f379fbb4867bffdeefa2fd4d23f63" name="a716f379fbb4867bffdeefa2fd4d23f63"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>&lt; Index, ArgType::ColsAtCompileTime==1 ? 0 :Dynamic &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_startCol</b></td></tr>
-<tr class="separator:a716f379fbb4867bffdeefa2fd4d23f63"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab5e923aaa22b09939479f33950f1c007" id="r_ab5e923aaa22b09939479f33950f1c007"><td class="memItemLeft" align="right" valign="top"><a id="ab5e923aaa22b09939479f33950f1c007" name="ab5e923aaa22b09939479f33950f1c007"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>&lt; <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>,(ArgType::RowsAtCompileTime==1 &amp;&amp;<a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>==1) ? 0 :<a class="el" href="namespaceEigen.html#ad81fa7195215a0ce30017dfac309f0b2">Dynamic</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_startRow</b></td></tr>
+<tr class="separator:ab5e923aaa22b09939479f33950f1c007"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afa310a6795de5c5cb18ff9660663d238" id="r_afa310a6795de5c5cb18ff9660663d238"><td class="memItemLeft" align="right" valign="top"><a id="afa310a6795de5c5cb18ff9660663d238" name="afa310a6795de5c5cb18ff9660663d238"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>&lt; <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>,(ArgType::ColsAtCompileTime==1 &amp;&amp;<a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>==1) ? 0 :<a class="el" href="namespaceEigen.html#ad81fa7195215a0ce30017dfac309f0b2">Dynamic</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_startCol</b></td></tr>
+<tr class="separator:afa310a6795de5c5cb18ff9660663d238"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3ecdbbe60252e34c0d6745b5962f8119" id="r_a3ecdbbe60252e34c0d6745b5962f8119"><td class="memItemLeft" align="right" valign="top"><a id="a3ecdbbe60252e34c0d6745b5962f8119" name="a3ecdbbe60252e34c0d6745b5962f8119"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1internal_1_1variable__if__dynamic.html">variable_if_dynamic</a>&lt; <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>, ForwardLinearAccess ? <a class="el" href="namespaceEigen.html#ad81fa7195215a0ce30017dfac309f0b2">Dynamic</a> :0 &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_linear_offset</b></td></tr>
+<tr class="separator:a3ecdbbe60252e34c0d6745b5962f8119"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="CoreEvaluators_8h_source.html">CoreEvaluators.h</a></li>
@@ -164,7 +183,7 @@ Protected Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:51 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -40,7 +40,7 @@ var searchData=
   ['_7escoreupdater_37',['~ScoreUpdater',['../classLightGBM_1_1ScoreUpdater.html#acdafb4320b9381ac550265ad6c737872',1,'LightGBM::ScoreUpdater']]],
   ['_7eserializable_38',['~Serializable',['../classdmlc_1_1Serializable.html#ae3440f6a437ebc80bce41759eeec5719',1,'dmlc::Serializable']]],
   ['_7esparsemapbase_39',['~sparsemapbase',['../classEigen_1_1SparseMapBase_3_01Derived_00_01ReadOnlyAccessors_01_4.html#ab375aedf824909a7f1a6af24ee60d70f',1,'Eigen::SparseMapBase&lt; Derived, ReadOnlyAccessors &gt;::~SparseMapBase()'],['../classEigen_1_1SparseMapBase_3_01Derived_00_01WriteAccessors_01_4.html#a4dfbcf3ac411885b1710ad04892c984d',1,'Eigen::SparseMapBase&lt; Derived, WriteAccessors &gt;::~SparseMapBase()']]],
-  ['_7esparsematrix_40',['~SparseMatrix',['../classEigen_1_1SparseMatrix.html#a378717e4faef157dbb9da47ee89a6aca',1,'Eigen::SparseMatrix']]],
+  ['_7esparsematrix_40',['~SparseMatrix',['../classEigen_1_1SparseMatrix.html#a36835ee4f8e5f273087910ec8063a4f6',1,'Eigen::SparseMatrix']]],
   ['_7esparsevector_41',['~SparseVector',['../classEigen_1_1SparseVector.html#ad519592c203aedf33c524feb1bdaad1b',1,'Eigen::SparseVector']]],
   ['_7estream_42',['~Stream',['../classdmlc_1_1Stream.html#a4b1cb597f6f53d10b2e72b49bd695a20',1,'dmlc::Stream']]],
   ['_7etemporarydirectory_43',['~TemporaryDirectory',['../classdmlc_1_1TemporaryDirectory.html#a3e909dd51a3463d57580d4bf2da71f1e',1,'dmlc::TemporaryDirectory']]],

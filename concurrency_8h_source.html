@@ -147,7 +147,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00125" name="l00125"></a><span class="lineno">  125</span>  <span class="keyword">struct </span>Entry {</div>
 <div class="line"><a id="l00126" name="l00126"></a><span class="lineno">  126</span>    T data;</div>
 <div class="line"><a id="l00127" name="l00127"></a><span class="lineno">  127</span>    <span class="keywordtype">int</span> priority;</div>
-<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    <span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(<span class="keyword">const</span> Entry &amp;b)<span class="keyword"> const </span>{</div>
+<div class="line"><a id="l00128" name="l00128"></a><span class="lineno">  128</span>    <span class="keyword">inline</span> <span class="keywordtype">bool</span> operator&lt;(<span class="keyword">const</span> Entry &amp;b)<span class="keyword"> const </span>{</div>
 <div class="line"><a id="l00129" name="l00129"></a><span class="lineno">  129</span>      <span class="keywordflow">return</span> priority &lt; b.priority;</div>
 <div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span>    }</div>
 <div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span>  };</div>
@@ -282,13 +282,12 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00263" name="l00263"></a><span class="lineno">  263</span><span class="preprocessor">#endif  </span><span class="comment">// DMLC_CONCURRENCY_H_</span></div>
 <div class="ttc" id="admlc-core_2include_2dmlc_2base_8h_html"><div class="ttname"><a href="dmlc-core_2include_2dmlc_2base_8h.html">base.h</a></div><div class="ttdoc">defines configuration macros</div></div>
 <div class="ttc" id="admlc-core_2include_2dmlc_2base_8h_html_a26529ca54834a4418b46b4a8430f678b"><div class="ttname"><a href="dmlc-core_2include_2dmlc_2base_8h.html#a26529ca54834a4418b46b4a8430f678b">DISALLOW_COPY_AND_ASSIGN</a></div><div class="ttdeci">#define DISALLOW_COPY_AND_ASSIGN(T)</div><div class="ttdoc">Disable copy constructor and assignment operator.</div><div class="ttdef"><b>Definition</b> base.h:202</div></div>
-<div class="ttc" id="anamespacedetail_html_aac7ca91589afb0bad68baec5949daaa2"><div class="ttname"><a href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">detail::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const value_t lhs, const value_t rhs) noexcept</div><div class="ttdoc">comparison operator for JSON types</div><div class="ttdef"><b>Definition</b> json.hpp:2889</div></div>
 <div class="ttc" id="anamespacedmlc_html"><div class="ttname"><a href="namespacedmlc.html">dmlc</a></div><div class="ttdoc">namespace for dmlc</div><div class="ttdef"><b>Definition</b> array_view.h:12</div></div>
-<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
+<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> BFloat16.h:88</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

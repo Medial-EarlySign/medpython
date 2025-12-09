@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_8b34d1be4fa8a7b644028115368dd7a8.html">unary_evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt;, IteratorBased &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_8b34d1be4fa8a7b644028115368dd7a8.html">unary_evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt;, IteratorBased &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -88,8 +88,7 @@ Inheritance diagram for Eigen::internal::unary_evaluator&lt; Block&lt; ArgType, 
  <div class="center">
   <img src="structEigen_1_1internal_1_1unary__evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_8b34d1be4fa8a7b644028115368dd7a8.png" usemap="#Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IteratorBased_20_3E_map" alt=""/>
   <map id="Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IteratorBased_20_3E_map" name="Eigen::internal::unary_5Fevaluator_3C_20Block_3C_20ArgType_2C_20BlockRows_2C_20BlockCols_2C_20InnerPanel_20_3E_2C_20IteratorBased_20_3E_map">
-<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;" shape="rect" coords="0,56,608,80"/>
-<area href="classEigen_1_1internal_1_1noncopyable.html" alt="Eigen::internal::noncopyable" shape="rect" coords="0,0,608,24"/>
+<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;" shape="rect" coords="0,0,608,24"/>
   </map>
 </div></div>
 <table class="memberdecls">
@@ -102,44 +101,44 @@ Data Structures</h2></td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:af69afe2a6594b4db552652da1bf6478c" id="r_af69afe2a6594b4db552652da1bf6478c"><td class="memItemLeft" align="right" valign="top"><a id="af69afe2a6594b4db552652da1bf6478c" name="af69afe2a6594b4db552652da1bf6478c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>IsRowMajor</b> = XprType::IsRowMajor
-, <b>OuterVector</b>
+<tr class="memitem:aac3fa21d249db6f004d992e3e9956c97" id="r_aac3fa21d249db6f004d992e3e9956c97"><td class="memItemLeft" align="right" valign="top"><a id="aac3fa21d249db6f004d992e3e9956c97" name="aac3fa21d249db6f004d992e3e9956c97"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>IsRowMajor</b> = XprType::IsRowMajor
+, <b>OuterVector</b> = (BlockCols == 1 &amp;&amp; ArgType::IsRowMajor) || (BlockRows == 1 &amp;&amp; !ArgType::IsRowMajor)
 , <b>CoeffReadCost</b> = evaluator&lt;ArgType&gt;::CoeffReadCost
 , <b>Flags</b> = XprType::Flags
  }</td></tr>
-<tr class="separator:af69afe2a6594b4db552652da1bf6478c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:aac3fa21d249db6f004d992e3e9956c97"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad42e6673d3294b8e964679ffb0a236be" id="r_ad42e6673d3294b8e964679ffb0a236be"><td class="memItemLeft" align="right" valign="top"><a id="ad42e6673d3294b8e964679ffb0a236be" name="ad42e6673d3294b8e964679ffb0a236be"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
 <tr class="separator:ad42e6673d3294b8e964679ffb0a236be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc7a6c8fa3b1b8dfc1292e99b66bf2b6" id="r_abc7a6c8fa3b1b8dfc1292e99b66bf2b6"><td class="memItemLeft" align="right" valign="top"><a id="abc7a6c8fa3b1b8dfc1292e99b66bf2b6" name="abc7a6c8fa3b1b8dfc1292e99b66bf2b6"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> XprType::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
 <tr class="separator:abc7a6c8fa3b1b8dfc1292e99b66bf2b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1a5335a94b733ec121bd99fe5296f4b" id="r_ac1a5335a94b733ec121bd99fe5296f4b"><td class="memItemLeft" align="right" valign="top"><a id="ac1a5335a94b733ec121bd99fe5296f4b" name="ac1a5335a94b733ec121bd99fe5296f4b"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:ac1a5335a94b733ec121bd99fe5296f4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2dc3e0d38916135df8eeac6cf18203fb" id="r_a2dc3e0d38916135df8eeac6cf18203fb"><td class="memItemLeft" align="right" valign="top"><a id="a2dc3e0d38916135df8eeac6cf18203fb" name="a2dc3e0d38916135df8eeac6cf18203fb"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; OuterVector, OuterVectorInnerIterator, InnerVectorInnerIterator &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; OuterVector, OuterVectorInnerIterator, InnerVectorInnerIterator &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>InnerIterator</b></td></tr>
 <tr class="separator:a2dc3e0d38916135df8eeac6cf18203fb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1internal_1_1evaluator__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1evaluator__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1evaluator__base.html">Eigen::internal::evaluator_base&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;</a></td></tr>
-<tr class="memitem:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af23e7bca3305f345014f6c9690dbdcbd"><td class="memItemLeft" align="right" valign="top"><a id="af23e7bca3305f345014f6c9690dbdcbd" name="af23e7bca3305f345014f6c9690dbdcbd"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af7fb5bd0e99d83cbea60e204838ec0d3"><td class="memItemLeft" align="right" valign="top"><a id="af7fb5bd0e99d83cbea60e204838ec0d3" name="af7fb5bd0e99d83cbea60e204838ec0d3"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_acb94884a759bb59a96c8c3eea1e50c10"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
 <tr class="separator:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
 <tr class="memitem:a60f6106b40381d37c8bef793ac0b9bdb" id="r_a60f6106b40381d37c8bef793ac0b9bdb"><td class="memItemLeft" align="right" valign="top"><a id="a60f6106b40381d37c8bef793ac0b9bdb" name="a60f6106b40381d37c8bef793ac0b9bdb"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>unary_evaluator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">XprType</a> &amp;op)</td></tr>
+&#160;</td><td class="memItemRight" valign="bottom"><b>unary_evaluator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">XprType</a> &amp;op)</td></tr>
 <tr class="separator:a60f6106b40381d37c8bef793ac0b9bdb"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ba2f6d99ab98b5955178cefa2c90e50" id="r_a8ba2f6d99ab98b5955178cefa2c90e50"><td class="memItemLeft" align="right" valign="top"><a id="a8ba2f6d99ab98b5955178cefa2c90e50" name="a8ba2f6d99ab98b5955178cefa2c90e50"></a>
-Index&#160;</td><td class="memItemRight" valign="bottom"><b>nonZerosEstimate</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>nonZerosEstimate</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a8ba2f6d99ab98b5955178cefa2c90e50"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-types" name="pro-types"></a>
 Protected Types</h2></td></tr>
 <tr class="memitem:a4dbf4d167a0970ef1d83f5dd3d30f044" id="r_a4dbf4d167a0970ef1d83f5dd3d30f044"><td class="memItemLeft" align="right" valign="top"><a id="a4dbf4d167a0970ef1d83f5dd3d30f044" name="a4dbf4d167a0970ef1d83f5dd3d30f044"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1evaluator.html">evaluator</a>&lt; ArgType &gt;::InnerIterator&#160;</td><td class="memItemRight" valign="bottom"><b>EvalIterator</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1evaluator.html">evaluator</a>&lt; ArgType &gt;::InnerIterator&#160;</td><td class="memItemRight" valign="bottom"><b>EvalIterator</b></td></tr>
 <tr class="separator:a4dbf4d167a0970ef1d83f5dd3d30f044"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -148,7 +147,7 @@ Protected Attributes</h2></td></tr>
 <a class="el" href="structEigen_1_1internal_1_1evaluator.html">evaluator</a>&lt; ArgType &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>m_argImpl</b></td></tr>
 <tr class="separator:a7bce0ea2705db61efb1d55c086837236"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7fe6d200d82df7b7f586e12753265592" id="r_a7fe6d200d82df7b7f586e12753265592"><td class="memItemLeft" align="right" valign="top"><a id="a7fe6d200d82df7b7f586e12753265592" name="a7fe6d200d82df7b7f586e12753265592"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">XprType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_block</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">XprType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>m_block</b></td></tr>
 <tr class="separator:a7fe6d200d82df7b7f586e12753265592"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -157,7 +156,7 @@ Protected Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:51 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

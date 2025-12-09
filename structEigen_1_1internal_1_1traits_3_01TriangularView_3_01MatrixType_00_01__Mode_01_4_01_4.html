@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01TriangularView_3_01MatrixType_00_01__Mode_01_4_01_4.html">traits&lt; TriangularView&lt; MatrixType, _Mode &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1traits_3_01TriangularView_3_01MatrixType_00_01__Mode_01_4_01_4.html">traits&lt; TriangularView&lt; MatrixType, _Mode &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -90,25 +90,25 @@ Inheritance diagram for Eigen::internal::traits&lt; TriangularView&lt; MatrixTyp
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a7322b91c7b0777ee3445f40f7ac6dd47" id="r_a7322b91c7b0777ee3445f40f7ac6dd47"><td class="memItemLeft" align="right" valign="top"><a id="a7322b91c7b0777ee3445f40f7ac6dd47" name="a7322b91c7b0777ee3445f40f7ac6dd47"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Mode</b> = _Mode
+<tr class="memitem:a543844fa2ff9bb2dc302434e13269e09" id="r_a543844fa2ff9bb2dc302434e13269e09"><td class="memItemLeft" align="right" valign="top"><a id="a543844fa2ff9bb2dc302434e13269e09" name="a543844fa2ff9bb2dc302434e13269e09"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Mode</b> = _Mode
 , <b>FlagsLvalueBit</b> = is_lvalue&lt;MatrixType&gt;::value ? LvalueBit : 0
 , <b>Flags</b> = (MatrixTypeNestedCleaned::Flags &amp; (HereditaryBits | FlagsLvalueBit) &amp; (~(PacketAccessBit | DirectAccessBit | LinearAccessBit)))
  }</td></tr>
-<tr class="separator:a7322b91c7b0777ee3445f40f7ac6dd47"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a28f8d156b076cdf5caefa4ad655026c2" id="r_a28f8d156b076cdf5caefa4ad655026c2"><td class="memItemLeft" align="right" valign="top"><a id="a28f8d156b076cdf5caefa4ad655026c2" name="a28f8d156b076cdf5caefa4ad655026c2"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1ref__selector.html">ref_selector</a>&lt; MatrixType &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNested</b></td></tr>
-<tr class="separator:a28f8d156b076cdf5caefa4ad655026c2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a543844fa2ff9bb2dc302434e13269e09"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0c27455b30110fdb375cc5711476561d" id="r_a0c27455b30110fdb375cc5711476561d"><td class="memItemLeft" align="right" valign="top"><a id="a0c27455b30110fdb375cc5711476561d" name="a0c27455b30110fdb375cc5711476561d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1ref__selector.html">ref_selector</a>&lt; MatrixType &gt;::non_const_type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNested</b></td></tr>
+<tr class="separator:a0c27455b30110fdb375cc5711476561d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aaf52a4904b35eabbf5a273ed7f6c2f8d" id="r_aaf52a4904b35eabbf5a273ed7f6c2f8d"><td class="memItemLeft" align="right" valign="top"><a id="aaf52a4904b35eabbf5a273ed7f6c2f8d" name="aaf52a4904b35eabbf5a273ed7f6c2f8d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1remove__reference.html">remove_reference</a>&lt; <a class="el" href="classEigen_1_1Solve.html">MatrixTypeNested</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNestedNonRef</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1remove__reference.html">remove_reference</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">MatrixTypeNested</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNestedNonRef</b></td></tr>
 <tr class="separator:aaf52a4904b35eabbf5a273ed7f6c2f8d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0fb8e643eb568abfd21a43009024300c" id="r_a0fb8e643eb568abfd21a43009024300c"><td class="memItemLeft" align="right" valign="top"><a id="a0fb8e643eb568abfd21a43009024300c" name="a0fb8e643eb568abfd21a43009024300c"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">MatrixTypeNested</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNestedCleaned</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">remove_all</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">MatrixTypeNested</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixTypeNestedCleaned</b></td></tr>
 <tr class="separator:a0fb8e643eb568abfd21a43009024300c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae095786a046526775ef19b7e9e081acd" id="r_ae095786a046526775ef19b7e9e081acd"><td class="memItemLeft" align="right" valign="top"><a id="ae095786a046526775ef19b7e9e081acd" name="ae095786a046526775ef19b7e9e081acd"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>FullMatrixType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> MatrixType::PlainObject&#160;</td><td class="memItemRight" valign="bottom"><b>FullMatrixType</b></td></tr>
 <tr class="separator:ae095786a046526775ef19b7e9e081acd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1d0a29012b48a59e2376f4154db5130d" id="r_a1d0a29012b48a59e2376f4154db5130d"><td class="memItemLeft" align="right" valign="top"><a id="a1d0a29012b48a59e2376f4154db5130d" name="a1d0a29012b48a59e2376f4154db5130d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionType</b></td></tr>
 <tr class="separator:a1d0a29012b48a59e2376f4154db5130d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
@@ -117,7 +117,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:50 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:27 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -165,24 +165,23 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00082" name="l00082"></a><span class="lineno">   82</span> </div>
 <div class="line"><a id="l00083" name="l00083"></a><span class="lineno">   83</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> operator!=(StringView l, StringView r) { <span class="keywordflow">return</span> !(l == r); }</div>
 <div class="line"><a id="l00084" name="l00084"></a><span class="lineno">   84</span> </div>
-<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(StringView l, StringView r) {</div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> operator&lt;(StringView l, StringView r) {</div>
 <div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span>  <span class="keywordflow">return</span> common::Span&lt;StringView::value_type const&gt;{l.c_str(), l.size()} &lt;</div>
 <div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span>         common::Span&lt;StringView::value_type const&gt;{r.c_str(), r.size()};</div>
 <div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>}</div>
 <div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span> </div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(std::string <span class="keyword">const</span>&amp; l, StringView r) { <span class="keywordflow">return</span> StringView{l} &lt; r; }</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> operator&lt;(std::string <span class="keyword">const</span>&amp; l, StringView r) { <span class="keywordflow">return</span> StringView{l} &lt; r; }</div>
 <div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(StringView l, std::string <span class="keyword">const</span>&amp; r) { <span class="keywordflow">return</span> l &lt; StringView{r}; }</div>
+<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span><span class="keyword">inline</span> <span class="keywordtype">bool</span> operator&lt;(StringView l, std::string <span class="keyword">const</span>&amp; r) { <span class="keywordflow">return</span> l &lt; StringView{r}; }</div>
 <div class="line"><a id="l00093" name="l00093"></a><span class="lineno">   93</span>}  <span class="comment">// namespace xgboost</span></div>
 <div class="line"><a id="l00094" name="l00094"></a><span class="lineno">   94</span><span class="preprocessor">#endif  </span><span class="comment">// XGBOOST_STRING_VIEW_H_</span></div>
 <div class="ttc" id="ainclude_2xgboost_2logging_8h_html"><div class="ttname"><a href="include_2xgboost_2logging_8h.html">logging.h</a></div><div class="ttdoc">defines console logging options for xgboost. Use to enforce unified print behavior.</div></div>
-<div class="ttc" id="anamespacedetail_html_aac7ca91589afb0bad68baec5949daaa2"><div class="ttname"><a href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">detail::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const value_t lhs, const value_t rhs) noexcept</div><div class="ttdoc">comparison operator for JSON types</div><div class="ttdef"><b>Definition</b> json.hpp:2889</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="astructxgboost_1_1StringView_html"><div class="ttname"><a href="structxgboost_1_1StringView.html">xgboost::StringView</a></div><div class="ttdef"><b>Definition</b> string_view.h:15</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:10 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

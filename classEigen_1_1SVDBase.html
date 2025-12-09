@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -78,7 +78,8 @@ $(function() {
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
-<a href="#pro-attribs">Protected Attributes</a>  </div>
+<a href="#pro-attribs">Protected Attributes</a> &#124;
+<a href="#friends">Friends</a>  </div>
   <div class="headertitle"><div class="title">Eigen::SVDBase&lt; Derived &gt; Class Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
@@ -87,10 +88,20 @@ $(function() {
  <a href="classEigen_1_1SVDBase.html#details">More...</a></p>
 
 <p><code>#include &lt;<a class="el" href="SVDBase_8h_source.html">SVDBase.h</a>&gt;</code></p>
+<div class="dynheader">
+Inheritance diagram for Eigen::SVDBase&lt; Derived &gt;:</div>
+<div class="dyncontent">
+ <div class="center">
+  <img src="classEigen_1_1SVDBase.png" usemap="#Eigen::SVDBase_3C_20Derived_20_3E_map" alt=""/>
+  <map id="Eigen::SVDBase_3C_20Derived_20_3E_map" name="Eigen::SVDBase_3C_20Derived_20_3E_map">
+<area href="classEigen_1_1SolverBase.html" alt="Eigen::SolverBase&lt; SVDBase&lt; Derived &gt; &gt;" shape="rect" coords="0,56,262,80"/>
+<area href="structEigen_1_1EigenBase.html" title="Common base class for all classes T such that MatrixBase has an operator=(T) and a constructor Matrix..." alt="Eigen::EigenBase&lt; Derived &gt;" shape="rect" coords="0,0,262,24"/>
+  </map>
+</div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a5c82d97bf37e8c83df51dfc6b9f947b9" id="r_a5c82d97bf37e8c83df51dfc6b9f947b9"><td class="memItemLeft" align="right" valign="top"><a id="a5c82d97bf37e8c83df51dfc6b9f947b9" name="a5c82d97bf37e8c83df51dfc6b9f947b9"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+<tr class="memitem:a42c7894a6d9ae3bceb5968107ab06130" id="r_a42c7894a6d9ae3bceb5968107ab06130"><td class="memItemLeft" align="right" valign="top"><a id="a42c7894a6d9ae3bceb5968107ab06130" name="a42c7894a6d9ae3bceb5968107ab06130"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
 &#160;&#160;<b>RowsAtCompileTime</b> = MatrixType::RowsAtCompileTime
 , <b>ColsAtCompileTime</b> = MatrixType::ColsAtCompileTime
 , <b>DiagSizeAtCompileTime</b> = EIGEN_SIZE_MIN_PREFER_DYNAMIC(RowsAtCompileTime,ColsAtCompileTime)
@@ -101,30 +112,55 @@ Public Types</h2></td></tr>
 , <b>MatrixOptions</b> = MatrixType::Options
 <br />
  }</td></tr>
-<tr class="separator:a5c82d97bf37e8c83df51dfc6b9f947b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a42c7894a6d9ae3bceb5968107ab06130"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aee6fbe51774ff57b8446f0b14a4f34ac" id="r_aee6fbe51774ff57b8446f0b14a4f34ac"><td class="memItemLeft" align="right" valign="top"><a id="aee6fbe51774ff57b8446f0b14a4f34ac" name="aee6fbe51774ff57b8446f0b14a4f34ac"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::MatrixType&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixType</b></td></tr>
 <tr class="separator:aee6fbe51774ff57b8446f0b14a4f34ac"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9ac59dd357f42051be947ca7c4a23745" id="r_a9ac59dd357f42051be947ca7c4a23745"><td class="memItemLeft" align="right" valign="top"><a id="a9ac59dd357f42051be947ca7c4a23745" name="a9ac59dd357f42051be947ca7c4a23745"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> MatrixType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:a9ac59dd357f42051be947ca7c4a23745"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a410a234191aa669c6231aa934226da53" id="r_a410a234191aa669c6231aa934226da53"><td class="memItemLeft" align="right" valign="top"><a id="a410a234191aa669c6231aa934226da53" name="a410a234191aa669c6231aa934226da53"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; typenameMatrixType::Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; typenameMatrixType::Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
 <tr class="separator:a410a234191aa669c6231aa934226da53"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a98b3202ef30648952815e77338408f27" id="r_a98b3202ef30648952815e77338408f27"><td class="memItemLeft" align="right" valign="top"><a id="a98b3202ef30648952815e77338408f27" name="a98b3202ef30648952815e77338408f27"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> MatrixType::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
-<tr class="separator:a98b3202ef30648952815e77338408f27"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6229a37997eca1072b52cca5ee7a2bec" id="r_a6229a37997eca1072b52cca5ee7a2bec"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a></td></tr>
+<tr class="memitem:ae8bce05585c854cee793af652852f285" id="r_ae8bce05585c854cee793af652852f285"><td class="memItemLeft" align="right" valign="top"><a id="ae8bce05585c854cee793af652852f285" name="ae8bce05585c854cee793af652852f285"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">Eigen::internal::traits</a>&lt; <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a> &gt;::StorageIndex&#160;</td><td class="memItemRight" valign="bottom"><b>StorageIndex</b></td></tr>
+<tr class="separator:ae8bce05585c854cee793af652852f285"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a6229a37997eca1072b52cca5ee7a2bec" id="r_a6229a37997eca1072b52cca5ee7a2bec"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a></td></tr>
 <tr class="separator:a6229a37997eca1072b52cca5ee7a2bec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab62c306c5d1efeae9bce88dee1b04965" id="r_ab62c306c5d1efeae9bce88dee1b04965"><td class="memItemLeft" align="right" valign="top"><a id="ab62c306c5d1efeae9bce88dee1b04965" name="ab62c306c5d1efeae9bce88dee1b04965"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; Scalar, RowsAtCompileTime, RowsAtCompileTime, MatrixOptions, MaxRowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixUType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; Scalar, RowsAtCompileTime, RowsAtCompileTime, MatrixOptions, MaxRowsAtCompileTime, MaxRowsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixUType</b></td></tr>
 <tr class="separator:ab62c306c5d1efeae9bce88dee1b04965"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af2ec05d33dd5be28df6fcf56346e23ec" id="r_af2ec05d33dd5be28df6fcf56346e23ec"><td class="memItemLeft" align="right" valign="top"><a id="af2ec05d33dd5be28df6fcf56346e23ec" name="af2ec05d33dd5be28df6fcf56346e23ec"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; Scalar, ColsAtCompileTime, ColsAtCompileTime, MatrixOptions, MaxColsAtCompileTime, MaxColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixVType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Matrix.html">Matrix</a>&lt; Scalar, ColsAtCompileTime, ColsAtCompileTime, MatrixOptions, MaxColsAtCompileTime, MaxColsAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>MatrixVType</b></td></tr>
 <tr class="separator:af2ec05d33dd5be28df6fcf56346e23ec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a12b2496fb3a6e0e1faa3e6723ced20b7" id="r_a12b2496fb3a6e0e1faa3e6723ced20b7"><td class="memItemLeft" align="right" valign="top"><a id="a12b2496fb3a6e0e1faa3e6723ced20b7" name="a12b2496fb3a6e0e1faa3e6723ced20b7"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__diag__type.html">internal::plain_diag_type</a>&lt; MatrixType, <a class="el" href="classEigen_1_1Solve.html">RealScalar</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>SingularValuesType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1plain__diag__type.html">internal::plain_diag_type</a>&lt; MatrixType, <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>SingularValuesType</b></td></tr>
 <tr class="separator:a12b2496fb3a6e0e1faa3e6723ced20b7"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; SVDBase&lt; Derived &gt; &gt;</a></td></tr>
+<tr class="memitem:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase" id="r_a0d5e6a39b9de5549fcde447a7b782c28"><td class="memItemLeft" align="right" valign="top"><a id="a0d5e6a39b9de5549fcde447a7b782c28" name="a0d5e6a39b9de5549fcde447a7b782c28"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:a0d5e6a39b9de5549fcde447a7b782c28 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase" id="r_a12798f4bbad57ef378b087801ab90cfe"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1EigenBase.html">EigenBase</a>&lt; <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<tr class="separator:a12798f4bbad57ef378b087801ab90cfe inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase" id="r_a08184e3c085cce33f80b5a37376d52ab"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt; &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<tr class="separator:a08184e3c085cce33f80b5a37376d52ab inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase" id="r_a8013b6454a87289d3e1cd138615af3d3"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>CoeffReturnType</b></td></tr>
+<tr class="separator:a8013b6454a87289d3e1cd138615af3d3 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase" id="r_a11e1c0866e89737a17f72efd2cd7d9f9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Transpose.html">Transpose</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt; &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstTransposeReturnType</b></td></tr>
+<tr class="separator:a11e1c0866e89737a17f72efd2cd7d9f9 inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase" id="r_a637cb0dfdcc8c4013c375f2e46951f4c"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1CwiseUnaryOp.html">CwiseUnaryOp</a>&lt; <a class="el" href="structEigen_1_1internal_1_1scalar__conjugate__op.html">internal::scalar_conjugate_op</a>&lt; Scalar &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;, <a class="el" href="classEigen_1_1MatrixBase.html">constConstTransposeReturnType</a> &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>AdjointReturnType</b></td></tr>
+<tr class="separator:a637cb0dfdcc8c4013c375f2e46951f4c inherit pub_types_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_types_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
+<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
+<tr class="memdesc:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">The interface type of indices.  <br /></td></tr>
+<tr class="separator:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase" id="r_a95ff992a5c4c5debb41f6ae2f639e1f3"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; Derived &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
+<tr class="separator:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
@@ -132,62 +168,125 @@ Public Member Functions</h2></td></tr>
 Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>derived</b> ()</td></tr>
 <tr class="separator:a4beeacfa799671e2966f4c26f46e3654"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aba4fe0b799580e94895b07fb7953f7f3" id="r_aba4fe0b799580e94895b07fb7953f7f3"><td class="memItemLeft" align="right" valign="top"><a id="aba4fe0b799580e94895b07fb7953f7f3" name="aba4fe0b799580e94895b07fb7953f7f3"></a>
-<a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>derived</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aba4fe0b799580e94895b07fb7953f7f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:accbc8e3f9baab3a57a6eba8e4cc3ea27" id="r_accbc8e3f9baab3a57a6eba8e4cc3ea27"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixUType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#accbc8e3f9baab3a57a6eba8e4cc3ea27">matrixU</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:accbc8e3f9baab3a57a6eba8e4cc3ea27" id="r_accbc8e3f9baab3a57a6eba8e4cc3ea27"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixUType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#accbc8e3f9baab3a57a6eba8e4cc3ea27">matrixU</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:accbc8e3f9baab3a57a6eba8e4cc3ea27"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af09f06357d7d7442f7ca7343713756fe" id="r_af09f06357d7d7442f7ca7343713756fe"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixVType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#af09f06357d7d7442f7ca7343713756fe">matrixV</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:af09f06357d7d7442f7ca7343713756fe" id="r_af09f06357d7d7442f7ca7343713756fe"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixVType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#af09f06357d7d7442f7ca7343713756fe">matrixV</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:af09f06357d7d7442f7ca7343713756fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac44c307a70731003003faf3a9bdf14f6" id="r_ac44c307a70731003003faf3a9bdf14f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">SingularValuesType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#ac44c307a70731003003faf3a9bdf14f6">singularValues</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ac44c307a70731003003faf3a9bdf14f6" id="r_ac44c307a70731003003faf3a9bdf14f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">SingularValuesType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#ac44c307a70731003003faf3a9bdf14f6">singularValues</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ac44c307a70731003003faf3a9bdf14f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:afe8a555f38393a319a71ec0f0331c9ef" id="r_afe8a555f38393a319a71ec0f0331c9ef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#afe8a555f38393a319a71ec0f0331c9ef">nonzeroSingularValues</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:afe8a555f38393a319a71ec0f0331c9ef" id="r_afe8a555f38393a319a71ec0f0331c9ef"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#afe8a555f38393a319a71ec0f0331c9ef">nonzeroSingularValues</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:afe8a555f38393a319a71ec0f0331c9ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a30b89e24f42f1692079eea31b361d26a" id="r_a30b89e24f42f1692079eea31b361d26a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a30b89e24f42f1692079eea31b361d26a">rank</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a30b89e24f42f1692079eea31b361d26a" id="r_a30b89e24f42f1692079eea31b361d26a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a30b89e24f42f1692079eea31b361d26a">rank</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a30b89e24f42f1692079eea31b361d26a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a0ef8fe7049bebc721437034d8d236888" id="r_a0ef8fe7049bebc721437034d8d236888"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a0ef8fe7049bebc721437034d8d236888">setThreshold</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RealScalar</a> &amp;<a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69">threshold</a>)</td></tr>
-<tr class="memdesc:a0ef8fe7049bebc721437034d8d236888"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to prescribe a threshold to be used by certain methods, such as rank() and <a class="el" href="classEigen_1_1SVDBase.html#a2117aa031c491a19d9e2f03933e7005c">solve()</a>, which need to determine when singular values are to be considered nonzero.  <br /></td></tr>
+<tr class="memitem:a0ef8fe7049bebc721437034d8d236888" id="r_a0ef8fe7049bebc721437034d8d236888"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a0ef8fe7049bebc721437034d8d236888">setThreshold</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a> &amp;<a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69">threshold</a>)</td></tr>
+<tr class="memdesc:a0ef8fe7049bebc721437034d8d236888"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to prescribe a threshold to be used by certain methods, such as rank() and <a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve()</a>, which need to determine when singular values are to be considered nonzero.  <br /></td></tr>
 <tr class="separator:a0ef8fe7049bebc721437034d8d236888"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8ec5520e8a3c7fc3134ada3822877334" id="r_a8ec5520e8a3c7fc3134ada3822877334"><td class="memItemLeft" align="right" valign="top">Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a8ec5520e8a3c7fc3134ada3822877334">setThreshold</a> (Default_t)</td></tr>
-<tr class="memdesc:a8ec5520e8a3c7fc3134ada3822877334"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to come back to the default behavior, letting Eigen use its default formula for determining the threshold.  <br /></td></tr>
+<tr class="memdesc:a8ec5520e8a3c7fc3134ada3822877334"><td class="mdescLeft">&#160;</td><td class="mdescRight">Allows to come back to the default behavior, letting <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> use its default formula for determining the threshold.  <br /></td></tr>
 <tr class="separator:a8ec5520e8a3c7fc3134ada3822877334"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a98b2ee98690358951807353812a05c69" id="r_a98b2ee98690358951807353812a05c69"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69">threshold</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a98b2ee98690358951807353812a05c69" id="r_a98b2ee98690358951807353812a05c69"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69">threshold</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="memdesc:a98b2ee98690358951807353812a05c69"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the threshold that will be used by certain methods such as rank().  <br /></td></tr>
 <tr class="separator:a98b2ee98690358951807353812a05c69"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a705a7c2709e1624ccc19aa748a78d473" id="r_a705a7c2709e1624ccc19aa748a78d473"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a705a7c2709e1624ccc19aa748a78d473">computeU</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a705a7c2709e1624ccc19aa748a78d473" id="r_a705a7c2709e1624ccc19aa748a78d473"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a705a7c2709e1624ccc19aa748a78d473">computeU</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a705a7c2709e1624ccc19aa748a78d473"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5f12efcb791eb007d4a4890ac5255ac4" id="r_a5f12efcb791eb007d4a4890ac5255ac4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a5f12efcb791eb007d4a4890ac5255ac4">computeV</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a5f12efcb791eb007d4a4890ac5255ac4" id="r_a5f12efcb791eb007d4a4890ac5255ac4"><td class="memItemLeft" align="right" valign="top">bool&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a5f12efcb791eb007d4a4890ac5255ac4">computeV</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a5f12efcb791eb007d4a4890ac5255ac4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab1a0d1fcc818a876c3cb2b32887604be" id="r_ab1a0d1fcc818a876c3cb2b32887604be"><td class="memItemLeft" align="right" valign="top"><a id="ab1a0d1fcc818a876c3cb2b32887604be" name="ab1a0d1fcc818a876c3cb2b32887604be"></a>
-<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>rows</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ab1a0d1fcc818a876c3cb2b32887604be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a083d99e05949bab974bbff2966606b7f" id="r_a083d99e05949bab974bbff2966606b7f"><td class="memItemLeft" align="right" valign="top"><a id="a083d99e05949bab974bbff2966606b7f" name="a083d99e05949bab974bbff2966606b7f"></a>
-<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>cols</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a083d99e05949bab974bbff2966606b7f"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a2117aa031c491a19d9e2f03933e7005c" id="r_a2117aa031c491a19d9e2f03933e7005c"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </td></tr>
-<tr class="memitem:a2117aa031c491a19d9e2f03933e7005c"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; Derived, Rhs &gt;&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a2117aa031c491a19d9e2f03933e7005c">solve</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a2117aa031c491a19d9e2f03933e7005c"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:abf33b0dd55b31392ef321d491bf4fc27" id="r_abf33b0dd55b31392ef321d491bf4fc27"><td class="memTemplParams" colspan="2"><a id="abf33b0dd55b31392ef321d491bf4fc27" name="abf33b0dd55b31392ef321d491bf4fc27"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:abf33b0dd55b31392ef321d491bf4fc27"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:abf33b0dd55b31392ef321d491bf4fc27"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a569913a15fa2f327121f155682368602" id="r_a569913a15fa2f327121f155682368602"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">ComputationInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#a569913a15fa2f327121f155682368602">info</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a569913a15fa2f327121f155682368602"><td class="mdescLeft">&#160;</td><td class="mdescRight">Reports whether previous computation was successful.  <br /></td></tr>
+<tr class="separator:a569913a15fa2f327121f155682368602"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac3cd36e54727b6ae24e71b67d7e290dc" id="r_ac3cd36e54727b6ae24e71b67d7e290dc"><td class="memTemplParams" colspan="2"><a id="ac3cd36e54727b6ae24e71b67d7e290dc" name="ac3cd36e54727b6ae24e71b67d7e290dc"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DstType</a> &gt; </td></tr>
-<tr class="memitem:ac3cd36e54727b6ae24e71b67d7e290dc"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1Solve.html">DstType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:ac3cd36e54727b6ae24e71b67d7e290dc"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ac3cd36e54727b6ae24e71b67d7e290dc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a01b9814dd386927253731922032f4c30" id="r_a01b9814dd386927253731922032f4c30"><td class="memTemplParams" colspan="2"><a id="a01b9814dd386927253731922032f4c30" name="a01b9814dd386927253731922032f4c30"></a>
+template&lt;bool Conjugate, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &gt; </td></tr>
+<tr class="memitem:a01b9814dd386927253731922032f4c30"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_solve_impl_transposed</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsType</a> &amp;rhs, <a class="el" href="classEigen_1_1MatrixBase.html">DstType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a01b9814dd386927253731922032f4c30"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; SVDBase&lt; Derived &gt; &gt;</a></td></tr>
+<tr class="memitem:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase" id="r_a4d5e5baddfba3790ab1a5f247dcc4dc1"><td class="memItemLeft" align="right" valign="top">
+&#160;</td><td class="memItemRight" valign="bottom"><b>SolverBase</b> ()</td></tr>
+<tr class="memdesc:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default constructor. <br /></td></tr>
+<tr class="separator:a4d5e5baddfba3790ab1a5f247dcc4dc1 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase" id="r_a943c352b597e3cd4744d5c11bfd77520"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt;, Rhs &gt;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a943c352b597e3cd4744d5c11bfd77520 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase" id="r_a70cf5cd1b31dbb4f4d61c436c83df6d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">ConstTransposeReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a70cf5cd1b31dbb4f4d61c436c83df6d3">transpose</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a70cf5cd1b31dbb4f4d61c436c83df6d3 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase" id="r_ae1025416bdb5a768f7213c67feb4dc33"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ae1025416bdb5a768f7213c67feb4dc33">adjoint</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ae1025416bdb5a768f7213c67feb4dc33 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1SVDBase.html">SVDBase</a>&lt; Derived &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SolverBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pub_methods_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; Derived &gt;</a></td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a23248b545ee580f3ddb8150cd3d032a3"><td class="memItemLeft" align="right" valign="top">
+EIGEN_DEVICE_FUNC Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase" id="r_abf0796214cde38991fd56c07f0765829"><td class="memItemLeft" align="right" valign="top">
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Derived &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase" id="r_af1d12fdb3361e150427e1fd94ebb1f14"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#af1d12fdb3361e150427e1fd94ebb1f14">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a50c19c45f15acdfe1cb66ab5e879b8e3"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a50c19c45f15acdfe1cb66ab5e879b8e3">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase" id="r_a9f40726259520d7e9c5ce58d19d62e79"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a9f40726259520d7e9c5ce58d19d62e79">size</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase" id="r_a991b21b79bb613171a53271933c53cab"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase" id="r_ad4300dbb47b34596d8ce6b2361c07b52"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase" id="r_a677a970c7d063d7033180dd9dbb53565"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase" id="r_aabee6205996703a37df914e379472653"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac8a579c4f982dddd2a01489fe66b73c9"><td class="memTemplParams" colspan="2">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
+<tr class="memitem:af64f8efc2b33e59f0389ca580ad84fcf" id="r_af64f8efc2b33e59f0389ca580ad84fcf"><td class="memItemLeft" align="right" valign="top"><a id="af64f8efc2b33e59f0389ca580ad84fcf" name="af64f8efc2b33e59f0389ca580ad84fcf"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>_check_compute_assertions</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:af64f8efc2b33e59f0389ca580ad84fcf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a03cfe4ef5530cd028fcaacd146b9bd4f" id="r_a03cfe4ef5530cd028fcaacd146b9bd4f"><td class="memTemplParams" colspan="2"><a id="a03cfe4ef5530cd028fcaacd146b9bd4f" name="a03cfe4ef5530cd028fcaacd146b9bd4f"></a>
+template&lt;bool Transpose_, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Rhs &gt; </td></tr>
+<tr class="memitem:a03cfe4ef5530cd028fcaacd146b9bd4f"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>_check_solve_assertion</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Rhs &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a03cfe4ef5530cd028fcaacd146b9bd4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7be177a4c6e8e3fbf2bec40cb527321c" id="r_a7be177a4c6e8e3fbf2bec40cb527321c"><td class="memItemLeft" align="right" valign="top"><a id="a7be177a4c6e8e3fbf2bec40cb527321c" name="a7be177a4c6e8e3fbf2bec40cb527321c"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>allocate</b> (<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a> rows, <a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a> cols, <a class="el" href="classEigen_1_1Solve.html">unsigned</a> int <a class="el" href="classEigen_1_1Solve.html">computationOptions</a>)</td></tr>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>allocate</b> (<a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a> rows, <a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a> cols, <a class="el" href="classEigen_1_1MatrixBase.html">unsigned</a> int <a class="el" href="classEigen_1_1MatrixBase.html">computationOptions</a>)</td></tr>
 <tr class="separator:a7be177a4c6e8e3fbf2bec40cb527321c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abed06fc6f4b743e1f76a7b317539da87" id="r_abed06fc6f4b743e1f76a7b317539da87"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1SVDBase.html#abed06fc6f4b743e1f76a7b317539da87">SVDBase</a> ()</td></tr>
 <tr class="memdesc:abed06fc6f4b743e1f76a7b317539da87"><td class="mdescLeft">&#160;</td><td class="mdescRight">Default Constructor.  <br /></td></tr>
 <tr class="separator:abed06fc6f4b743e1f76a7b317539da87"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="inherit_header pro_methods_classEigen_1_1SolverBase"><td colspan="2" onclick="javascript:toggleInherit('pro_methods_classEigen_1_1SolverBase')"><img src="closed.png" alt="-"/>&#160;Protected Member Functions inherited from <a class="el" href="classEigen_1_1SolverBase.html">Eigen::SolverBase&lt; SVDBase&lt; Derived &gt; &gt;</a></td></tr>
+<tr class="memitem:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase" id="r_ac0bf165255e731b5c8a254dbfe5545c9"><td class="memItemLeft" align="right" valign="top">
+<a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>_check_solve_assertion</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Rhs &amp;b) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ac0bf165255e731b5c8a254dbfe5545c9 inherit pro_methods_classEigen_1_1SolverBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
 Static Protected Member Functions</h2></td></tr>
 <tr class="memitem:aec918dd80eeb2d5bf628f15cda83053f" id="r_aec918dd80eeb2d5bf628f15cda83053f"><td class="memItemLeft" align="right" valign="top"><a id="aec918dd80eeb2d5bf628f15cda83053f" name="aec918dd80eeb2d5bf628f15cda83053f"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>check_template_parameters</b> ()</td></tr>
 <tr class="separator:aec918dd80eeb2d5bf628f15cda83053f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -201,6 +300,9 @@ Protected Attributes</h2></td></tr>
 <tr class="memitem:ab71e31e61c33f68ff2f499ed9f30e718" id="r_ab71e31e61c33f68ff2f499ed9f30e718"><td class="memItemLeft" align="right" valign="top"><a id="ab71e31e61c33f68ff2f499ed9f30e718" name="ab71e31e61c33f68ff2f499ed9f30e718"></a>
 <a class="el" href="structEigen_1_1internal_1_1true__type.html">SingularValuesType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_singularValues</b></td></tr>
 <tr class="separator:ab71e31e61c33f68ff2f499ed9f30e718"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a447d2789c6fda585482933f9f0cd02af" id="r_a447d2789c6fda585482933f9f0cd02af"><td class="memItemLeft" align="right" valign="top"><a id="a447d2789c6fda585482933f9f0cd02af" name="a447d2789c6fda585482933f9f0cd02af"></a>
+<a class="el" href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">ComputationInfo</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_info</b></td></tr>
+<tr class="separator:a447d2789c6fda585482933f9f0cd02af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a633b92f4eb9c65911b943b93bb8b341c" id="r_a633b92f4eb9c65911b943b93bb8b341c"><td class="memItemLeft" align="right" valign="top"><a id="a633b92f4eb9c65911b943b93bb8b341c" name="a633b92f4eb9c65911b943b93bb8b341c"></a>
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_isInitialized</b></td></tr>
 <tr class="separator:a633b92f4eb9c65911b943b93bb8b341c"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -223,7 +325,7 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_computeFullV</b></t
 bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_computeThinV</b></td></tr>
 <tr class="separator:ac8321ff2cbf3b82f5c2638b9de6661af"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a680646d2f3fa0de030cbf9b4815d6cda" id="r_a680646d2f3fa0de030cbf9b4815d6cda"><td class="memItemLeft" align="right" valign="top"><a id="a680646d2f3fa0de030cbf9b4815d6cda" name="a680646d2f3fa0de030cbf9b4815d6cda"></a>
-<a class="el" href="classEigen_1_1Solve.html">unsigned</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>m_computationOptions</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">unsigned</a> int&#160;</td><td class="memItemRight" valign="bottom"><b>m_computationOptions</b></td></tr>
 <tr class="separator:a680646d2f3fa0de030cbf9b4815d6cda"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa41b395662650f2e10652f76365877c4" id="r_aa41b395662650f2e10652f76365877c4"><td class="memItemLeft" align="right" valign="top"><a id="aa41b395662650f2e10652f76365877c4" name="aa41b395662650f2e10652f76365877c4"></a>
 <a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_nonzeroSingularValues</b></td></tr>
@@ -238,11 +340,18 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_computeThinV</b></t
 <a class="el" href="classEigen_1_1SVDBase.html#a6229a37997eca1072b52cca5ee7a2bec">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_diagSize</b></td></tr>
 <tr class="separator:a6eca3829eb56684ca01c291c6630c8d8"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abbc1cfb200cc681ca18bdb1892597e62" id="r_abbc1cfb200cc681ca18bdb1892597e62"><td class="memItemLeft" align="right" valign="top"><a id="abbc1cfb200cc681ca18bdb1892597e62" name="abbc1cfb200cc681ca18bdb1892597e62"></a>
-<a class="el" href="classEigen_1_1Solve.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_prescribedThreshold</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_prescribedThreshold</b></td></tr>
 <tr class="separator:abbc1cfb200cc681ca18bdb1892597e62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="friends" name="friends"></a>
+Friends</h2></td></tr>
+<tr class="memitem:aa074c5ef6323eb648d501dd6beb67d2b" id="r_aa074c5ef6323eb648d501dd6beb67d2b"><td class="memTemplParams" colspan="2"><a id="aa074c5ef6323eb648d501dd6beb67d2b" name="aa074c5ef6323eb648d501dd6beb67d2b"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Derived_</a> &gt; </td></tr>
+<tr class="memitem:aa074c5ef6323eb648d501dd6beb67d2b"><td class="memTemplItemLeft" align="right" valign="top">struct&#160;</td><td class="memTemplItemRight" valign="bottom"><b>internal::solve_assertion</b></td></tr>
+<tr class="separator:aa074c5ef6323eb648d501dd6beb67d2b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived&gt;<br />
 class Eigen::SVDBase&lt; Derived &gt;</div><p>Base class of SVD algorithms. </p>
 <dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -251,12 +360,13 @@ class Eigen::SVDBase&lt; Derived &gt;</div><p>Base class of SVD algorithms. </p>
   </dd>
 </dl>
 <p>SVD decomposition consists in decomposing any n-by-p matrix <em>A</em> as a product </p><p class="formulaDsp">
-<picture><source srcset="form_178_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[ A = U S V^* \]" src="form_178.png"/></picture>
+<picture><source srcset="form_184_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[ A = U S V^* \]" src="form_184.png"/></picture>
 </p>
 <p> where <em>U</em> is a n-by-n unitary, <em>V</em> is a p-by-p unitary, and <em>S</em> is a n-by-p real positive matrix which is zero outside of its main diagonal; the diagonal entries of S are known as the <em>singular</em> <em>values</em> of <em>A</em> and the columns of <em>U</em> and <em>V</em> are known as the left and right <em>singular</em> <em>vectors</em> of <em>A</em> respectively.</p>
 <p>Singular values are always sorted in decreasing order.</p>
 <p>You can ask for only <em>thin</em> <em>U</em> or <em>V</em> to be computed, meaning the following. In case of a rectangular n-by-p matrix, letting <em>m</em> be the smaller value among <em>n</em> and <em>p</em>, there are only <em>m</em> singular vectors; the remaining columns of <em>U</em> and <em>V</em> do not correspond to actual singular vectors. Asking for <em>thin</em> <em>U</em> or <em>V</em> means asking for only their <em>m</em> first columns to be formed. So <em>U</em> is then a n-by-m matrix, and <em>V</em> is then a p-by-m matrix. Notice that thin <em>U</em> and <em>V</em> are all you need for (least squares) solving.</p>
-<p>If the input matrix has inf or nan coefficients, the result of the computation is undefined, but the computation is guaranteed to terminate in finite (and reasonable) time. </p><dl class="section see"><dt>See also</dt><dd>MatrixBase::genericSvd() </dd></dl>
+<p>The status of the computation can be retrived using the <em><a class="el" href="classEigen_1_1SVDBase.html#a569913a15fa2f327121f155682368602" title="Reports whether previous computation was successful.">info()</a></em> method. Unless <em><a class="el" href="classEigen_1_1SVDBase.html#a569913a15fa2f327121f155682368602" title="Reports whether previous computation was successful.">info()</a></em> returns <em>Success</em>, the results should be not considered well defined.</p>
+<p>If the input matrix has inf or nan coefficients, the result of the computation is undefined, and <em><a class="el" href="classEigen_1_1SVDBase.html#a569913a15fa2f327121f155682368602" title="Reports whether previous computation was successful.">info()</a></em> will return <em>InvalidInput</em>, but the computation is guaranteed to terminate in finite (and reasonable) time. </p><dl class="section see"><dt>See also</dt><dd>class <a class="el" href="classEigen_1_1BDCSVD.html" title="class Bidiagonal Divide and Conquer SVD">BDCSVD</a>, class <a class="el" href="classEigen_1_1JacobiSVD.html" title="Two-sided Jacobi SVD decomposition of a rectangular matrix.">JacobiSVD</a> </dd></dl>
 </div><h2 class="groupheader">Member Typedef Documentation</h2>
 <a id="a6229a37997eca1072b52cca5ee7a2bec" name="a6229a37997eca1072b52cca5ee7a2bec"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a6229a37997eca1072b52cca5ee7a2bec">&#9670;&#160;</a></span>Index</h2>
@@ -264,14 +374,14 @@ class Eigen::SVDBase&lt; Derived &gt;</div><p>Base class of SVD algorithms. </p>
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::Index</td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a> <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::Index</td>
         </tr>
       </table>
 </div><div class="memdoc">
-<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000037">Deprecated:</a></b></dt><dd>since Eigen 3.3 </dd></dl>
+<dl class="deprecated"><dt><b><a class="el" href="deprecated.html#_deprecated000036">Deprecated:</a></b></dt><dd>since <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> 3.3 </dd></dl>
 
 </div>
 </div>
@@ -282,7 +392,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -313,7 +423,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -341,7 +451,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -363,19 +473,49 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 
 </div>
 </div>
+<a id="a569913a15fa2f327121f155682368602" name="a569913a15fa2f327121f155682368602"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a569913a15fa2f327121f155682368602">&#9670;&#160;</a></span>info()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="group__enums.html#ga85fad7b87587764e5cf6b513a9e0ee5e">ComputationInfo</a> <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::info </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+
+<p>Reports whether previous computation was successful. </p>
+<dl class="section return"><dt>Returns</dt><dd><code>Success</code> if computation was successful. </dd></dl>
+
+</div>
+</div>
 <a id="accbc8e3f9baab3a57a6eba8e4cc3ea27" name="accbc8e3f9baab3a57a6eba8e4cc3ea27"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#accbc8e3f9baab3a57a6eba8e4cc3ea27">&#9670;&#160;</a></span>matrixU()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixUType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::matrixU </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixUType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::matrixU </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -388,7 +528,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 </table>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>the <em>U</em> matrix.</dd></dl>
-<p>For the SVD decomposition of a n-by-p matrix, letting <em>m</em> be the minimum of <em>n</em> and <em>p</em>, the U matrix is n-by-n if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9a9fa9302d510cee20c26311154937e23f" title="Used in JacobiSVD to indicate that the square matrix U is to be computed.">ComputeFullU</a>, and is n-by-m if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9aa7fb4e98834788d0b1b0f2b8467d2527" title="Used in JacobiSVD to indicate that the thin matrix U is to be computed.">ComputeThinU</a>.</p>
+<p>For the SVD decomposition of a n-by-p matrix, letting <em>m</em> be the minimum of <em>n</em> and <em>p</em>, the U matrix is n-by-n if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9a9fa9302d510cee20c26311154937e23f">ComputeFullU </a>, and is n-by-m if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9aa7fb4e98834788d0b1b0f2b8467d2527">ComputeThinU </a>.</p>
 <p>The <em>m</em> first columns of <em>U</em> are the left singular vectors of the matrix being decomposed.</p>
 <p>This method asserts that you asked for <em>U</em> to be computed. </p>
 
@@ -400,13 +540,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixVType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::matrixV </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1Matrix.html">MatrixVType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::matrixV </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -419,7 +559,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 </table>
 </div><div class="memdoc">
 <dl class="section return"><dt>Returns</dt><dd>the <em>V</em> matrix.</dd></dl>
-<p>For the SVD decomposition of a n-by-p matrix, letting <em>m</em> be the minimum of <em>n</em> and <em>p</em>, the V matrix is p-by-p if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9a36581f7c662f7def31efd500c284f930" title="Used in JacobiSVD to indicate that the square matrix V is to be computed.">ComputeFullV</a>, and is p-by-m if you asked for ComputeThinV.</p>
+<p>For the SVD decomposition of a n-by-p matrix, letting <em>m</em> be the minimum of <em>n</em> and <em>p</em>, the V matrix is p-by-p if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9a36581f7c662f7def31efd500c284f930">ComputeFullV </a>, and is p-by-m if you asked for <a class="el" href="group__enums.html#ggae3e239fb70022eb8747994cf5d68b4a9a540036417bfecf2e791a70948c227f47">ComputeThinV </a>.</p>
 <p>The <em>m</em> first columns of <em>V</em> are the right singular vectors of the matrix being decomposed.</p>
 <p>This method asserts that you asked for <em>V</em> to be computed. </p>
 
@@ -431,7 +571,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -459,7 +599,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -488,7 +628,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -496,7 +636,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
         <tr>
           <td class="memname">Derived &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::setThreshold </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RealScalar</a> &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a> &amp;&#160;</td>
           <td class="paramname"><em>threshold</em></td><td>)</td>
           <td></td>
         </tr>
@@ -508,16 +648,16 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 </table>
 </div><div class="memdoc">
 
-<p>Allows to prescribe a threshold to be used by certain methods, such as rank() and <a class="el" href="classEigen_1_1SVDBase.html#a2117aa031c491a19d9e2f03933e7005c">solve()</a>, which need to determine when singular values are to be considered nonzero. </p>
+<p>Allows to prescribe a threshold to be used by certain methods, such as rank() and <a class="el" href="classEigen_1_1SolverBase.html#a943c352b597e3cd4744d5c11bfd77520">solve()</a>, which need to determine when singular values are to be considered nonzero. </p>
 <p>This is not used for the SVD decomposition itself.</p>
-<p>When it needs to get the threshold value, Eigen calls <a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69" title="Returns the threshold that will be used by certain methods such as rank().">threshold()</a>. The default is <code>NumTraits&lt;Scalar&gt;::epsilon()</code> </p>
+<p>When it needs to get the threshold value, <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> calls <a class="el" href="classEigen_1_1SVDBase.html#a98b2ee98690358951807353812a05c69" title="Returns the threshold that will be used by certain methods such as rank().">threshold()</a>. The default is <code>NumTraits&lt;Scalar&gt;::epsilon()</code> </p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">threshold</td><td>The new value to use as the threshold.</td></tr>
   </table>
   </dd>
 </dl>
-<p>A singular value will be considered nonzero if its value is strictly greater than <picture><source srcset="form_180_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ \vert singular value \vert \leqslant threshold \times \vert max singular value \vert $" src="form_180.png"/></picture>.</p>
+<p>A singular value will be considered nonzero if its value is strictly greater than <picture><source srcset="form_186_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ \vert singular value \vert \leqslant threshold \times \vert max singular value \vert $" src="form_186.png"/></picture>.</p>
 <p>If you want to come back to the default behavior, call <a class="el" href="classEigen_1_1SVDBase.html#a8ec5520e8a3c7fc3134ada3822877334" title="Allows to come back to the default behavior, letting Eigen use its default formula for determining th...">setThreshold(Default_t)</a> </p>
 
 </div>
@@ -528,7 +668,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
@@ -548,9 +688,9 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 </table>
 </div><div class="memdoc">
 
-<p>Allows to come back to the default behavior, letting Eigen use its default formula for determining the threshold. </p>
-<p>You should pass the special object Eigen::Default as parameter here. </p><div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">svd</a>.setThreshold(Eigen::Default); </div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
+<p>Allows to come back to the default behavior, letting <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> use its default formula for determining the threshold. </p>
+<p>You should pass the special object Eigen::Default as parameter here. </p><div class="fragment"><div class="line"><a class="code hl_class" href="classEigen_1_1MatrixBase.html">svd</a>.setThreshold(Eigen::Default); </div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
 </div><!-- fragment --><p>See the documentation of <a class="el" href="classEigen_1_1SVDBase.html#a0ef8fe7049bebc721437034d8d236888" title="Allows to prescribe a threshold to be used by certain methods, such as rank() and solve(),...">setThreshold(const RealScalar&amp;)</a>. </p>
 
 </div>
@@ -561,13 +701,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">SingularValuesType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::singularValues </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="structEigen_1_1internal_1_1true__type.html">SingularValuesType</a> &amp; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::singularValues </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -584,59 +724,19 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 
 </div>
 </div>
-<a id="a2117aa031c491a19d9e2f03933e7005c" name="a2117aa031c491a19d9e2f03933e7005c"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a2117aa031c491a19d9e2f03933e7005c">&#9670;&#160;</a></span>solve()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Rhs &gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">Solve</a>&lt; Derived, Rhs &gt; <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::solve </td>
-          <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; Rhs &gt; &amp;&#160;</td>
-          <td class="paramname"><em>b</em></td><td>)</td>
-          <td> const</td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-<dl class="section return"><dt>Returns</dt><dd>a (least squares) solution of <picture><source srcset="form_2_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ A x = b $" src="form_2.png"/></picture> using the current SVD decomposition of A.</dd></dl>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramname">b</td><td>the right-hand-side of the equation to solve.</td></tr>
-  </table>
-  </dd>
-</dl>
-<dl class="section note"><dt>Note</dt><dd>Solving requires both U and V to be computed. Thin U and V are enough, there is no need for full U or V.</dd>
-<dd>
-SVD solving is implicitly least-squares. Thus, this method serves both purposes of exact solving and least-squares solving. In other words, the returned solution is guaranteed to minimize the Euclidean norm <picture><source srcset="form_181_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ \Vert A x - b \Vert $" src="form_181.png"/></picture>. </dd></dl>
-
-</div>
-</div>
 <a id="a98b2ee98690358951807353812a05c69" name="a98b2ee98690358951807353812a05c69"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a98b2ee98690358951807353812a05c69">&#9670;&#160;</a></span>threshold()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> Derived &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">RealScalar</a> <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::threshold </td>
+          <td class="memname"><a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a> <a class="el" href="classEigen_1_1SVDBase.html">Eigen::SVDBase</a>&lt; Derived &gt;::threshold </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -654,13 +754,14 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived &
 
 </div>
 </div>
-<hr/>The documentation for this class was generated from the following file:<ul>
+<hr/>The documentation for this class was generated from the following files:<ul>
+<li>External/Eigen/src/Core/util/<a class="el" href="ForwardDeclarations_8h_source.html">ForwardDeclarations.h</a></li>
 <li>External/Eigen/src/SVD/<a class="el" href="SVDBase_8h_source.html">SVDBase.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:45 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:21 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

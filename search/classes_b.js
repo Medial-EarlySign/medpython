@@ -10,7 +10,8 @@ var searchData=
   ['key_7',['Key',['../structxgboost_1_1DMatrixCache_1_1Key.html',1,'xgboost::DMatrixCache']]],
   ['keyrule_8',['KeyRule',['../classKeyRule.html',1,'']]],
   ['kfrecalculator_9',['KfreCalculator',['../classKfreCalculator.html',1,'']]],
-  ['knn_5fexplainer_10',['KNN_Explainer',['../classKNN__Explainer.html',1,'']]],
-  ['kpsmokinggenerator_11',['KpSmokingGenerator',['../classKpSmokingGenerator.html',1,'']]],
-  ['kullbackleiblerdivergence_12',['KullbackLeiblerDivergence',['../classLightGBM_1_1KullbackLeiblerDivergence.html',1,'LightGBM']]]
+  ['klu_10',['KLU',['../classEigen_1_1KLU.html',1,'Eigen']]],
+  ['knn_5fexplainer_11',['KNN_Explainer',['../classKNN__Explainer.html',1,'']]],
+  ['kpsmokinggenerator_12',['KpSmokingGenerator',['../classKpSmokingGenerator.html',1,'']]],
+  ['kullbackleiblerdivergence_13',['KullbackLeiblerDivergence',['../classLightGBM_1_1KullbackLeiblerDivergence.html',1,'LightGBM']]]
 ];

@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1general__matrix__vector__product_3_01Index_00_01LhsScalar_00_01LhsMap847577b75b4ad5396401e554b8e1cafc.html">general_matrix_vector_product&lt; Index, LhsScalar, LhsMapper, RowMajor, ConjugateLhs, RhsScalar, RhsMapper, ConjugateRhs, Version &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1general__matrix__vector__product_3_01Index_00_01LhsScalar_00_01LhsMap847577b75b4ad5396401e554b8e1cafc.html">general_matrix_vector_product&lt; Index, LhsScalar, LhsMapper, RowMajor, ConjugateLhs, RhsScalar, RhsMapper, ConjugateRhs, Version &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -82,39 +82,51 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a7d83d26e0d0ce6a67cc938a148749183" id="r_a7d83d26e0d0ce6a67cc938a148749183"><td class="memItemLeft" align="right" valign="top"><a id="a7d83d26e0d0ce6a67cc938a148749183" name="a7d83d26e0d0ce6a67cc938a148749183"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Vectorizable</b>
-, <b>LhsPacketSize</b> = Vectorizable ? packet_traits&lt;LhsScalar&gt;::size : 1
-, <b>RhsPacketSize</b> = Vectorizable ? packet_traits&lt;RhsScalar&gt;::size : 1
-, <b>ResPacketSize</b> = Vectorizable ? packet_traits&lt;ResScalar&gt;::size : 1
- }</td></tr>
-<tr class="separator:a7d83d26e0d0ce6a67cc938a148749183"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a5a9d9db4a25666b0e82350d0668ef09d" id="r_a5a9d9db4a25666b0e82350d0668ef09d"><td class="memItemLeft" align="right" valign="top"><a id="a5a9d9db4a25666b0e82350d0668ef09d" name="a5a9d9db4a25666b0e82350d0668ef09d"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1scalar__product__traits.html">scalar_product_traits</a>&lt; LhsScalar, RhsScalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>ResScalar</b></td></tr>
-<tr class="separator:a5a9d9db4a25666b0e82350d0668ef09d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a3793a43c5edfb50f5ff0e6a97038ea65" id="r_a3793a43c5edfb50f5ff0e6a97038ea65"><td class="memItemLeft" align="right" valign="top"><a id="a3793a43c5edfb50f5ff0e6a97038ea65" name="a3793a43c5edfb50f5ff0e6a97038ea65"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; LhsScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>_LhsPacket</b></td></tr>
-<tr class="separator:a3793a43c5edfb50f5ff0e6a97038ea65"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac43fffe804640b476e9cc08636be2e75" id="r_ac43fffe804640b476e9cc08636be2e75"><td class="memItemLeft" align="right" valign="top"><a id="ac43fffe804640b476e9cc08636be2e75" name="ac43fffe804640b476e9cc08636be2e75"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; RhsScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>_RhsPacket</b></td></tr>
-<tr class="separator:ac43fffe804640b476e9cc08636be2e75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a4ec28d44f847984c83adc9e0d507a8b8" id="r_a4ec28d44f847984c83adc9e0d507a8b8"><td class="memItemLeft" align="right" valign="top"><a id="a4ec28d44f847984c83adc9e0d507a8b8" name="a4ec28d44f847984c83adc9e0d507a8b8"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; ResScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>_ResPacket</b></td></tr>
-<tr class="separator:a4ec28d44f847984c83adc9e0d507a8b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a197f9dc10db441240fb8a057c48256ad" id="r_a197f9dc10db441240fb8a057c48256ad"><td class="memItemLeft" align="right" valign="top"><a id="a197f9dc10db441240fb8a057c48256ad" name="a197f9dc10db441240fb8a057c48256ad"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">conditional</a>&lt; Vectorizable, _LhsPacket, LhsScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>LhsPacket</b></td></tr>
-<tr class="separator:a197f9dc10db441240fb8a057c48256ad"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a893602fbf8107460928a5719c0aba439" id="r_a893602fbf8107460928a5719c0aba439"><td class="memItemLeft" align="right" valign="top"><a id="a893602fbf8107460928a5719c0aba439" name="a893602fbf8107460928a5719c0aba439"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">conditional</a>&lt; Vectorizable, _RhsPacket, RhsScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>RhsPacket</b></td></tr>
-<tr class="separator:a893602fbf8107460928a5719c0aba439"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a98df9cc19f5efce862938a7efb2985b6" id="r_a98df9cc19f5efce862938a7efb2985b6"><td class="memItemLeft" align="right" valign="top"><a id="a98df9cc19f5efce862938a7efb2985b6" name="a98df9cc19f5efce862938a7efb2985b6"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">conditional</a>&lt; Vectorizable, _ResPacket, ResScalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>ResPacket</b></td></tr>
-<tr class="separator:a98df9cc19f5efce862938a7efb2985b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a39566d89c8fce46e83cf1bc5a640130b" id="r_a39566d89c8fce46e83cf1bc5a640130b"><td class="memItemLeft" align="right" valign="top"><a id="a39566d89c8fce46e83cf1bc5a640130b" name="a39566d89c8fce46e83cf1bc5a640130b"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1internal_1_1gemv__traits.html">gemv_traits</a>&lt; LhsScalar, RhsScalar &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Traits</b></td></tr>
+<tr class="separator:a39566d89c8fce46e83cf1bc5a640130b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a998a319817f29d444a295584059f4be1" id="r_a998a319817f29d444a295584059f4be1"><td class="memItemLeft" align="right" valign="top"><a id="a998a319817f29d444a295584059f4be1" name="a998a319817f29d444a295584059f4be1"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1internal_1_1gemv__traits.html">gemv_traits</a>&lt; LhsScalar, RhsScalar, GEMVPacketHalf &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>HalfTraits</b></td></tr>
+<tr class="separator:a998a319817f29d444a295584059f4be1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:acceba580d5a23169648d35ee6a531c9d" id="r_acceba580d5a23169648d35ee6a531c9d"><td class="memItemLeft" align="right" valign="top"><a id="acceba580d5a23169648d35ee6a531c9d" name="acceba580d5a23169648d35ee6a531c9d"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1internal_1_1gemv__traits.html">gemv_traits</a>&lt; LhsScalar, RhsScalar, GEMVPacketQuarter &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>QuarterTraits</b></td></tr>
+<tr class="separator:acceba580d5a23169648d35ee6a531c9d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae117047b13fc9a3e9292ed6b3975c5b2" id="r_ae117047b13fc9a3e9292ed6b3975c5b2"><td class="memItemLeft" align="right" valign="top"><a id="ae117047b13fc9a3e9292ed6b3975c5b2" name="ae117047b13fc9a3e9292ed6b3975c5b2"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ScalarBinaryOpTraits.html">ScalarBinaryOpTraits</a>&lt; LhsScalar, RhsScalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>ResScalar</b></td></tr>
+<tr class="separator:ae117047b13fc9a3e9292ed6b3975c5b2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9cf67aac2a72bc2aa88a71721c018f27" id="r_a9cf67aac2a72bc2aa88a71721c018f27"><td class="memItemLeft" align="right" valign="top"><a id="a9cf67aac2a72bc2aa88a71721c018f27" name="a9cf67aac2a72bc2aa88a71721c018f27"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Traits::LhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>LhsPacket</b></td></tr>
+<tr class="separator:a9cf67aac2a72bc2aa88a71721c018f27"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3a6b82d6ec8ba5f2217908d3a3c24757" id="r_a3a6b82d6ec8ba5f2217908d3a3c24757"><td class="memItemLeft" align="right" valign="top"><a id="a3a6b82d6ec8ba5f2217908d3a3c24757" name="a3a6b82d6ec8ba5f2217908d3a3c24757"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Traits::RhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>RhsPacket</b></td></tr>
+<tr class="separator:a3a6b82d6ec8ba5f2217908d3a3c24757"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a916acc32b58baf444e8d6705c50ce048" id="r_a916acc32b58baf444e8d6705c50ce048"><td class="memItemLeft" align="right" valign="top"><a id="a916acc32b58baf444e8d6705c50ce048" name="a916acc32b58baf444e8d6705c50ce048"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> Traits::ResPacket&#160;</td><td class="memItemRight" valign="bottom"><b>ResPacket</b></td></tr>
+<tr class="separator:a916acc32b58baf444e8d6705c50ce048"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab92b66945be70da60294212c3c81d004" id="r_ab92b66945be70da60294212c3c81d004"><td class="memItemLeft" align="right" valign="top"><a id="ab92b66945be70da60294212c3c81d004" name="ab92b66945be70da60294212c3c81d004"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> HalfTraits::LhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>LhsPacketHalf</b></td></tr>
+<tr class="separator:ab92b66945be70da60294212c3c81d004"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a795e8a5a23c15f7b4d069ce1306f9ce0" id="r_a795e8a5a23c15f7b4d069ce1306f9ce0"><td class="memItemLeft" align="right" valign="top"><a id="a795e8a5a23c15f7b4d069ce1306f9ce0" name="a795e8a5a23c15f7b4d069ce1306f9ce0"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> HalfTraits::RhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>RhsPacketHalf</b></td></tr>
+<tr class="separator:a795e8a5a23c15f7b4d069ce1306f9ce0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac61cb79ce63d489cd9825fd288e7bb63" id="r_ac61cb79ce63d489cd9825fd288e7bb63"><td class="memItemLeft" align="right" valign="top"><a id="ac61cb79ce63d489cd9825fd288e7bb63" name="ac61cb79ce63d489cd9825fd288e7bb63"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> HalfTraits::ResPacket&#160;</td><td class="memItemRight" valign="bottom"><b>ResPacketHalf</b></td></tr>
+<tr class="separator:ac61cb79ce63d489cd9825fd288e7bb63"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae883b48c3bd27f884585b8a97d975696" id="r_ae883b48c3bd27f884585b8a97d975696"><td class="memItemLeft" align="right" valign="top"><a id="ae883b48c3bd27f884585b8a97d975696" name="ae883b48c3bd27f884585b8a97d975696"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> QuarterTraits::LhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>LhsPacketQuarter</b></td></tr>
+<tr class="separator:ae883b48c3bd27f884585b8a97d975696"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2a8afa7992d317ca223bbd7ded473b34" id="r_a2a8afa7992d317ca223bbd7ded473b34"><td class="memItemLeft" align="right" valign="top"><a id="a2a8afa7992d317ca223bbd7ded473b34" name="a2a8afa7992d317ca223bbd7ded473b34"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> QuarterTraits::RhsPacket&#160;</td><td class="memItemRight" valign="bottom"><b>RhsPacketQuarter</b></td></tr>
+<tr class="separator:a2a8afa7992d317ca223bbd7ded473b34"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ada9fd8b5f3a803e47b42ace5794f1396" id="r_ada9fd8b5f3a803e47b42ace5794f1396"><td class="memItemLeft" align="right" valign="top"><a id="ada9fd8b5f3a803e47b42ace5794f1396" name="ada9fd8b5f3a803e47b42ace5794f1396"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> QuarterTraits::ResPacket&#160;</td><td class="memItemRight" valign="bottom"><b>ResPacketQuarter</b></td></tr>
+<tr class="separator:ada9fd8b5f3a803e47b42ace5794f1396"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:afb8a4749f583d4725c5254d91c9fcbfb" id="r_afb8a4749f583d4725c5254d91c9fcbfb"><td class="memItemLeft" align="right" valign="top"><a id="afb8a4749f583d4725c5254d91c9fcbfb" name="afb8a4749f583d4725c5254d91c9fcbfb"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (Index rows, Index cols, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">LhsMapper</a> &amp;lhs, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">RhsMapper</a> &amp;rhs, ResScalar *res, Index <a class="el" href="classEigen_1_1Solve.html">resIncr</a>, ResScalar alpha)</td></tr>
-<tr class="separator:afb8a4749f583d4725c5254d91c9fcbfb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea61bf960bada4dd17bc3c7d24689da5" id="r_aea61bf960bada4dd17bc3c7d24689da5"><td class="memItemLeft" align="right" valign="top"><a id="aea61bf960bada4dd17bc3c7d24689da5" name="aea61bf960bada4dd17bc3c7d24689da5"></a>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">LhsMapper</a> &amp;lhs, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">RhsMapper</a> &amp;rhs, ResScalar *res, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">resIncr</a>, ResScalar alpha)</td></tr>
+<tr class="separator:aea61bf960bada4dd17bc3c7d24689da5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/products/<a class="el" href="GeneralMatrixVector_8h_source.html">GeneralMatrixVector.h</a></li>
@@ -122,7 +134,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:24 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1functor__traits_3_01scalar__product__op_3_01LhsScalar_00_01RhsScalar_01_4_01_4.html">functor_traits&lt; scalar_product_op&lt; LhsScalar, RhsScalar &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1functor__traits_3_01scalar__product__op_3_01LhsScalar_00_01RhsScalar_01_4_01_4.html">functor_traits&lt; scalar_product_op&lt; LhsScalar, RhsScalar &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -81,10 +81,10 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a040e2b8ea57a82a55bd6a6dfd0bff8ee" id="r_a040e2b8ea57a82a55bd6a6dfd0bff8ee"><td class="memItemLeft" align="right" valign="top"><a id="a040e2b8ea57a82a55bd6a6dfd0bff8ee" name="a040e2b8ea57a82a55bd6a6dfd0bff8ee"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Cost</b> = (NumTraits&lt;LhsScalar&gt;::MulCost + NumTraits&lt;RhsScalar&gt;::MulCost)/2
-, <b>PacketAccess</b> = scalar_product_op&lt;LhsScalar,RhsScalar&gt;::Vectorizable
+<tr class="memitem:a05516e057467ddc6c43938a86ff918fe" id="r_a05516e057467ddc6c43938a86ff918fe"><td class="memItemLeft" align="right" valign="top"><a id="a05516e057467ddc6c43938a86ff918fe" name="a05516e057467ddc6c43938a86ff918fe"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>Cost</b> = (int(NumTraits&lt;LhsScalar&gt;::MulCost) + int(NumTraits&lt;RhsScalar&gt;::MulCost))/2
+, <b>PacketAccess</b> = is_same&lt;LhsScalar,RhsScalar&gt;::value &amp;&amp; packet_traits&lt;LhsScalar&gt;::HasMul &amp;&amp; packet_traits&lt;RhsScalar&gt;::HasMul
  }</td></tr>
-<tr class="separator:a040e2b8ea57a82a55bd6a6dfd0bff8ee"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a05516e057467ddc6c43938a86ff918fe"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/functors/<a class="el" href="BinaryFunctors_8h_source.html">BinaryFunctors.h</a></li>
@@ -92,7 +92,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:47 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

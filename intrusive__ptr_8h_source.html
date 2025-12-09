@@ -221,7 +221,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>}</div>
 <div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span> </div>
 <div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span><span class="keyword">template</span> &lt;<span class="keyword">class</span> T&gt;</div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(IntrusivePtr&lt;T&gt; <span class="keyword">const</span> &amp;x, IntrusivePtr&lt;T&gt; <span class="keyword">const</span> &amp;y) <span class="keyword">noexcept</span> {</div>
+<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span><span class="keywordtype">bool</span> operator&lt;(IntrusivePtr&lt;T&gt; <span class="keyword">const</span> &amp;x, IntrusivePtr&lt;T&gt; <span class="keyword">const</span> &amp;y) <span class="keyword">noexcept</span> {</div>
 <div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>  <span class="keywordflow">return</span> std::less&lt;T*&gt;{}(x.get(), y.get());</div>
 <div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span>}</div>
 <div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span> </div>
@@ -262,8 +262,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="aclassxgboost_1_1IntrusivePtrCell_html"><div class="ttname"><a href="classxgboost_1_1IntrusivePtrCell.html">xgboost::IntrusivePtrCell</a></div><div class="ttdoc">Helper class for embedding reference counting into client objects. See https://www....</div><div class="ttdef"><b>Definition</b> intrusive_ptr.h:20</div></div>
 <div class="ttc" id="aclassxgboost_1_1IntrusivePtr_html"><div class="ttname"><a href="classxgboost_1_1IntrusivePtr.html">xgboost::IntrusivePtr</a></div><div class="ttdoc">Implementation of Intrusive Pointer. A smart pointer that points to an object with an embedded refere...</div><div class="ttdef"><b>Definition</b> intrusive_ptr.h:73</div></div>
 <div class="ttc" id="aclassxgboost_1_1IntrusivePtr_html_acb12921c0f9e12def0eabb7cd5ac0d7d"><div class="ttname"><a href="classxgboost_1_1IntrusivePtr.html#acb12921c0f9e12def0eabb7cd5ac0d7d">xgboost::IntrusivePtr::IntrusivePtr</a></div><div class="ttdeci">IntrusivePtr(T *p)</div><div class="ttdoc">Contruct an IntrusivePtr from raw pointer. IntrusivePtr takes the ownership.</div><div class="ttdef"><b>Definition</b> intrusive_ptr.h:104</div></div>
-<div class="ttc" id="anamespacedetail_html_aac7ca91589afb0bad68baec5949daaa2"><div class="ttname"><a href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">detail::operator&lt;</a></div><div class="ttdeci">bool operator&lt;(const value_t lhs, const value_t rhs) noexcept</div><div class="ttdoc">comparison operator for JSON types</div><div class="ttdef"><b>Definition</b> json.hpp:2889</div></div>
-<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
+<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> BFloat16.h:88</div></div>
 <div class="ttc" id="anamespacestd_html_ab5fa3119ddc434392ecca8849e2e08e1"><div class="ttname"><a href="namespacestd.html#ab5fa3119ddc434392ecca8849e2e08e1">std::swap</a></div><div class="ttdeci">NLOHMANN_BASIC_JSON_TPL_DECLARATION void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j1, nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j2) noexcept(//NOLINT(readability-inconsistent-declaration-parameter-name, cert-dcl58-cpp) is_nothrow_move_constructible&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value &amp;&amp;//NOLINT(misc-redundant-expression) is_nothrow_move_assignable&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value)</div><div class="ttdoc">exchanges the values of two JSON objects</div><div class="ttdef"><b>Definition</b> json.hpp:24418</div></div>
 <div class="ttc" id="anamespacexgboost_html"><div class="ttname"><a href="namespacexgboost.html">xgboost</a></div><div class="ttdoc">namespace of xgboost</div><div class="ttdef"><b>Definition</b> base.h:90</div></div>
 <div class="ttc" id="anamespacexgboost_html_a31d125e29d3e6e8fb68ce51cf760c318"><div class="ttname"><a href="namespacexgboost.html#a31d125e29d3e6e8fb68ce51cf760c318">xgboost::IntrusivePtrRefCount</a></div><div class="ttdeci">IntrusivePtrCell &amp; IntrusivePtrRefCount(T const *ptr) noexcept</div><div class="ttdoc">User defined function for returning embedded reference count.</div></div>
@@ -271,7 +270,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:33 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

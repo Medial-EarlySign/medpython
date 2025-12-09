@@ -69,13 +69,14 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
 <a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-methods">Public Member Functions</a> &#124;
+<a href="#pro-types">Protected Types</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a> &#124;
 <a href="#friends">Friends</a>  </div>
@@ -99,144 +100,161 @@ Inheritance diagram for Eigen::HouseholderSequence&lt; VectorsType, CoeffsType, 
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:ab1f0cdb5c32101d30eb7c85b44e8e12c" id="r_ab1f0cdb5c32101d30eb7c85b44e8e12c"><td class="memItemLeft" align="right" valign="top"><a id="ab1f0cdb5c32101d30eb7c85b44e8e12c" name="ab1f0cdb5c32101d30eb7c85b44e8e12c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = internal::traits&lt;HouseholderSequence&gt;::RowsAtCompileTime
+<tr class="memitem:ae0666c1d7581c947d78bac222b887396" id="r_ae0666c1d7581c947d78bac222b887396"><td class="memItemLeft" align="right" valign="top"><a id="ae0666c1d7581c947d78bac222b887396" name="ae0666c1d7581c947d78bac222b887396"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>RowsAtCompileTime</b> = internal::traits&lt;HouseholderSequence&gt;::RowsAtCompileTime
 , <b>ColsAtCompileTime</b> = internal::traits&lt;HouseholderSequence&gt;::ColsAtCompileTime
 , <b>MaxRowsAtCompileTime</b> = internal::traits&lt;HouseholderSequence&gt;::MaxRowsAtCompileTime
 , <b>MaxColsAtCompileTime</b> = internal::traits&lt;HouseholderSequence&gt;::MaxColsAtCompileTime
  }</td></tr>
-<tr class="separator:ab1f0cdb5c32101d30eb7c85b44e8e12c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ae0666c1d7581c947d78bac222b887396"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3d464600d251c30a702ac584c0511b7e" id="r_a3d464600d251c30a702ac584c0511b7e"><td class="memItemLeft" align="right" valign="top"><a id="a3d464600d251c30a702ac584c0511b7e" name="a3d464600d251c30a702ac584c0511b7e"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &gt;::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:a3d464600d251c30a702ac584c0511b7e"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4b40914484b1a2fb3dbf3ea3ebf60252" id="r_a4b40914484b1a2fb3dbf3ea3ebf60252"><td class="memItemLeft" align="right" valign="top"><a id="a4b40914484b1a2fb3dbf3ea3ebf60252" name="a4b40914484b1a2fb3dbf3ea3ebf60252"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> VectorsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> &gt;::type, <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1Solve.html">typename</a> CoeffsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> &gt;::type, Side &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConjugateReturnType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> VectorsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> CoeffsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> &gt;::type, Side &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConjugateReturnType</b></td></tr>
 <tr class="separator:a4b40914484b1a2fb3dbf3ea3ebf60252"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afe63789e88c72e4513f8901f357e55d3" id="r_afe63789e88c72e4513f8901f357e55d3"><td class="memItemLeft" align="right" valign="top"><a id="afe63789e88c72e4513f8901f357e55d3" name="afe63789e88c72e4513f8901f357e55d3"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> CoeffsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> &gt;::type, Side &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>AdjointReturnType</b></td></tr>
+<tr class="separator:afe63789e88c72e4513f8901f357e55d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa22d74f8669bceaf6217c0bac02d343c" id="r_aa22d74f8669bceaf6217c0bac02d343c"><td class="memItemLeft" align="right" valign="top"><a id="aa22d74f8669bceaf6217c0bac02d343c" name="aa22d74f8669bceaf6217c0bac02d343c"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::IsComplex, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1remove__all.html">internal::remove_all</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> VectorsType::ConjugateReturnType &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>TransposeReturnType</b></td></tr>
+<tr class="separator:aa22d74f8669bceaf6217c0bac02d343c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9fb86cef0c539883e891960482ea3f23" id="r_a9fb86cef0c539883e891960482ea3f23"><td class="memItemLeft" align="right" valign="top"><a id="a9fb86cef0c539883e891960482ea3f23" name="a9fb86cef0c539883e891960482ea3f23"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1add__const.html">internal::add_const</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> &gt;::type, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="structEigen_1_1internal_1_1add__const.html">internal::add_const</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> &gt;::type, Side &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ConstHouseholderSequence</b></td></tr>
+<tr class="separator:a9fb86cef0c539883e891960482ea3f23"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; HouseholderSequence&lt; VectorsType, CoeffsType, Side &gt; &gt;</a></td></tr>
-<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">typedef</a> Eigen::Index&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
+<tr class="memitem:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase" id="r_a554f30542cc2316add4b1ea0a492ff02"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a></td></tr>
 <tr class="memdesc:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="mdescLeft">&#160;</td><td class="mdescRight">The interface type of indices.  <br /></td></tr>
 <tr class="separator:a554f30542cc2316add4b1ea0a492ff02 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase" id="r_a95ff992a5c4c5debb41f6ae2f639e1f3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt; &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">internal::traits</a>&lt; <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt; &gt;::StorageKind&#160;</td><td class="memItemRight" valign="bottom"><b>StorageKind</b></td></tr>
 <tr class="separator:a95ff992a5c4c5debb41f6ae2f639e1f3 inherit pub_types_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:af6aeede87ed8dac452f4fa8b4f45c3f2" id="r_af6aeede87ed8dac452f4fa8b4f45c3f2"><td class="memItemLeft" align="right" valign="top">&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#af6aeede87ed8dac452f4fa8b4f45c3f2">HouseholderSequence</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> &amp;v, <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> &amp;h)</td></tr>
-<tr class="memdesc:af6aeede87ed8dac452f4fa8b4f45c3f2"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <br /></td></tr>
-<tr class="separator:af6aeede87ed8dac452f4fa8b4f45c3f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa4b1b93fff4d5c79342974d9d2a9eec8" id="r_aa4b1b93fff4d5c79342974d9d2a9eec8"><td class="memItemLeft" align="right" valign="top"><a id="aa4b1b93fff4d5c79342974d9d2a9eec8" name="aa4b1b93fff4d5c79342974d9d2a9eec8"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderSequence</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;other)</td></tr>
-<tr class="memdesc:aa4b1b93fff4d5c79342974d9d2a9eec8"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. <br /></td></tr>
-<tr class="separator:aa4b1b93fff4d5c79342974d9d2a9eec8"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6eaafe2460930d1f4aa67d6e577b71f0" id="r_a6eaafe2460930d1f4aa67d6e577b71f0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a6eaafe2460930d1f4aa67d6e577b71f0">rows</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:a6eaafe2460930d1f4aa67d6e577b71f0"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of rows of transformation viewed as a matrix.  <br /></td></tr>
-<tr class="separator:a6eaafe2460930d1f4aa67d6e577b71f0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:adcdcdd92a77810ce4bdd2b1282fe6a75" id="r_adcdcdd92a77810ce4bdd2b1282fe6a75"><td class="memItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#adcdcdd92a77810ce4bdd2b1282fe6a75">cols</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:adcdcdd92a77810ce4bdd2b1282fe6a75"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of columns of transformation viewed as a matrix.  <br /></td></tr>
-<tr class="separator:adcdcdd92a77810ce4bdd2b1282fe6a75"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac91cf37b0cbea9e504c89e021fd289ba" id="r_ac91cf37b0cbea9e504c89e021fd289ba"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">EssentialVectorType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#ac91cf37b0cbea9e504c89e021fd289ba">essentialVector</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> k) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:ac91cf37b0cbea9e504c89e021fd289ba"><td class="mdescLeft">&#160;</td><td class="mdescRight">Essential part of a Householder vector.  <br /></td></tr>
-<tr class="separator:ac91cf37b0cbea9e504c89e021fd289ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:aa60b1f1ed1a699d092c865d1a0da47e9" id="r_aa60b1f1ed1a699d092c865d1a0da47e9"><td class="memItemLeft" align="right" valign="top"><a id="aa60b1f1ed1a699d092c865d1a0da47e9" name="aa60b1f1ed1a699d092c865d1a0da47e9"></a>
-<a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&#160;</td><td class="memItemRight" valign="bottom"><b>transpose</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:aa60b1f1ed1a699d092c865d1a0da47e9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Transpose of the Householder sequence. <br /></td></tr>
-<tr class="separator:aa60b1f1ed1a699d092c865d1a0da47e9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a12ea5d68522cc22337df0aa4c98d1c91" id="r_a12ea5d68522cc22337df0aa4c98d1c91"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a12ea5d68522cc22337df0aa4c98d1c91">HouseholderSequence</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> &amp;v, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> &amp;h)</td></tr>
+<tr class="memdesc:a12ea5d68522cc22337df0aa4c98d1c91"><td class="mdescLeft">&#160;</td><td class="mdescRight">Constructor.  <br /></td></tr>
+<tr class="separator:a12ea5d68522cc22337df0aa4c98d1c91"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a35832610ccbdd4350f2df9681d3f7f4e" id="r_a35832610ccbdd4350f2df9681d3f7f4e"><td class="memItemLeft" align="right" valign="top"><a id="a35832610ccbdd4350f2df9681d3f7f4e" name="a35832610ccbdd4350f2df9681d3f7f4e"></a>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>HouseholderSequence</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;other)</td></tr>
+<tr class="memdesc:a35832610ccbdd4350f2df9681d3f7f4e"><td class="mdescLeft">&#160;</td><td class="mdescRight">Copy constructor. <br /></td></tr>
+<tr class="separator:a35832610ccbdd4350f2df9681d3f7f4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad85c4afec721dd20691d47c580acf805" id="r_ad85c4afec721dd20691d47c580acf805"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#ad85c4afec721dd20691d47c580acf805">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="memdesc:ad85c4afec721dd20691d47c580acf805"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of rows of transformation viewed as a matrix.  <br /></td></tr>
+<tr class="separator:ad85c4afec721dd20691d47c580acf805"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a0ca78443feed425d4881cb4e5b538d21" id="r_a0ca78443feed425d4881cb4e5b538d21"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a0ca78443feed425d4881cb4e5b538d21">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="memdesc:a0ca78443feed425d4881cb4e5b538d21"><td class="mdescLeft">&#160;</td><td class="mdescRight">Number of columns of transformation viewed as a matrix.  <br /></td></tr>
+<tr class="separator:a0ca78443feed425d4881cb4e5b538d21"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a82f35fa3f893ec94efd249cd76841dbb" id="r_a82f35fa3f893ec94efd249cd76841dbb"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">EssentialVectorType</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a82f35fa3f893ec94efd249cd76841dbb">essentialVector</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> k) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a82f35fa3f893ec94efd249cd76841dbb"><td class="mdescLeft">&#160;</td><td class="mdescRight">Essential part of a Householder vector.  <br /></td></tr>
+<tr class="separator:a82f35fa3f893ec94efd249cd76841dbb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae0959abb2cfa16c9df2e5782e721811c" id="r_ae0959abb2cfa16c9df2e5782e721811c"><td class="memItemLeft" align="right" valign="top"><a id="ae0959abb2cfa16c9df2e5782e721811c" name="ae0959abb2cfa16c9df2e5782e721811c"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">TransposeReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>transpose</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:ae0959abb2cfa16c9df2e5782e721811c"><td class="mdescLeft">&#160;</td><td class="mdescRight">Transpose of the Householder sequence. <br /></td></tr>
+<tr class="separator:ae0959abb2cfa16c9df2e5782e721811c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac71fa85a4f177b0aeb1026752aea5590" id="r_ac71fa85a4f177b0aeb1026752aea5590"><td class="memItemLeft" align="right" valign="top"><a id="ac71fa85a4f177b0aeb1026752aea5590" name="ac71fa85a4f177b0aeb1026752aea5590"></a>
-<a class="el" href="classEigen_1_1Solve.html">ConjugateReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>conjugate</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">ConjugateReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>conjugate</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="memdesc:ac71fa85a4f177b0aeb1026752aea5590"><td class="mdescLeft">&#160;</td><td class="mdescRight">Complex conjugate of the Householder sequence. <br /></td></tr>
 <tr class="separator:ac71fa85a4f177b0aeb1026752aea5590"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a40ca81cf392d8de4c747dbbdd6bd6545" id="r_a40ca81cf392d8de4c747dbbdd6bd6545"><td class="memItemLeft" align="right" valign="top"><a id="a40ca81cf392d8de4c747dbbdd6bd6545" name="a40ca81cf392d8de4c747dbbdd6bd6545"></a>
-<a class="el" href="classEigen_1_1Solve.html">ConjugateReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>adjoint</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:a40ca81cf392d8de4c747dbbdd6bd6545"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjoint (conjugate transpose) of the Householder sequence. <br /></td></tr>
-<tr class="separator:a40ca81cf392d8de4c747dbbdd6bd6545"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af030b5ac2151241aeb920f74e8f73b4a" id="r_af030b5ac2151241aeb920f74e8f73b4a"><td class="memItemLeft" align="right" valign="top"><a id="af030b5ac2151241aeb920f74e8f73b4a" name="af030b5ac2151241aeb920f74e8f73b4a"></a>
-<a class="el" href="classEigen_1_1Solve.html">ConjugateReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>inverse</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:af030b5ac2151241aeb920f74e8f73b4a"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classEigen_1_1Inverse.html" title="Expression of the inverse of another expression.">Inverse</a> of the Householder sequence (equals the adjoint). <br /></td></tr>
-<tr class="separator:af030b5ac2151241aeb920f74e8f73b4a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7ce31c14a7bb7ef488c1f337af2fe010" id="r_a7ce31c14a7bb7ef488c1f337af2fe010"><td class="memTemplParams" colspan="2"><a id="a7ce31c14a7bb7ef488c1f337af2fe010" name="a7ce31c14a7bb7ef488c1f337af2fe010"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">DestType</a> &gt; </td></tr>
-<tr class="memitem:a7ce31c14a7bb7ef488c1f337af2fe010"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1Solve.html">DestType</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a7ce31c14a7bb7ef488c1f337af2fe010"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a91d5354eb63c6d25e977fa4d393c78c4" id="r_a91d5354eb63c6d25e977fa4d393c78c4"><td class="memTemplParams" colspan="2"><a id="a91d5354eb63c6d25e977fa4d393c78c4" name="a91d5354eb63c6d25e977fa4d393c78c4"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &gt; </td></tr>
-<tr class="memitem:a91d5354eb63c6d25e977fa4d393c78c4"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>, <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1Solve.html">workspace</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a91d5354eb63c6d25e977fa4d393c78c4"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aec2aa1e2c3568597441eb837e56eb9b9" id="r_aec2aa1e2c3568597441eb837e56eb9b9"><td class="memTemplParams" colspan="2">template&lt;bool Cond&gt; </td></tr>
+<tr class="memitem:aec2aa1e2c3568597441eb837e56eb9b9"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">Cond</a>, <a class="el" href="classEigen_1_1MatrixBase.html">ConjugateReturnType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">ConstHouseholderSequence</a> &gt;::type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#aec2aa1e2c3568597441eb837e56eb9b9">conjugateIf</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aec2aa1e2c3568597441eb837e56eb9b9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af3967dc6ea7a3671224a4b4a9776a329" id="r_af3967dc6ea7a3671224a4b4a9776a329"><td class="memItemLeft" align="right" valign="top"><a id="af3967dc6ea7a3671224a4b4a9776a329" name="af3967dc6ea7a3671224a4b4a9776a329"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>adjoint</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:af3967dc6ea7a3671224a4b4a9776a329"><td class="mdescLeft">&#160;</td><td class="mdescRight">Adjoint (conjugate transpose) of the Householder sequence. <br /></td></tr>
+<tr class="separator:af3967dc6ea7a3671224a4b4a9776a329"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a02014cb7359500d5bd51b6f8ee4d34fc" id="r_a02014cb7359500d5bd51b6f8ee4d34fc"><td class="memItemLeft" align="right" valign="top"><a id="a02014cb7359500d5bd51b6f8ee4d34fc" name="a02014cb7359500d5bd51b6f8ee4d34fc"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">AdjointReturnType</a>&#160;</td><td class="memItemRight" valign="bottom"><b>inverse</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a02014cb7359500d5bd51b6f8ee4d34fc"><td class="mdescLeft">&#160;</td><td class="mdescRight"><a class="el" href="classEigen_1_1Inverse.html" title="Expression of the inverse of another expression.">Inverse</a> of the Householder sequence (equals the adjoint). <br /></td></tr>
+<tr class="separator:a02014cb7359500d5bd51b6f8ee4d34fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa86cdb2b0577cee1fc18044c7cb65b19" id="r_aa86cdb2b0577cee1fc18044c7cb65b19"><td class="memTemplParams" colspan="2"><a id="aa86cdb2b0577cee1fc18044c7cb65b19" name="aa86cdb2b0577cee1fc18044c7cb65b19"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">DestType</a> &gt; </td></tr>
+<tr class="memitem:aa86cdb2b0577cee1fc18044c7cb65b19"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">DestType</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:aa86cdb2b0577cee1fc18044c7cb65b19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a907442919d309bb888f65741a6b82573" id="r_a907442919d309bb888f65741a6b82573"><td class="memTemplParams" colspan="2"><a id="a907442919d309bb888f65741a6b82573" name="a907442919d309bb888f65741a6b82573"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &gt; </td></tr>
+<tr class="memitem:a907442919d309bb888f65741a6b82573"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>, <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">workspace</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a907442919d309bb888f65741a6b82573"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a7ee4190e14c5e76a9680551c40db0a7d" id="r_a7ee4190e14c5e76a9680551c40db0a7d"><td class="memTemplParams" colspan="2"><a id="a7ee4190e14c5e76a9680551c40db0a7d" name="a7ee4190e14c5e76a9680551c40db0a7d"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:a7ee4190e14c5e76a9680551c40db0a7d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:a7ee4190e14c5e76a9680551c40db0a7d"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a7ee4190e14c5e76a9680551c40db0a7d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:afc99539a130da4395c7df7d1ef1f43f3" id="r_afc99539a130da4395c7df7d1ef1f43f3"><td class="memTemplParams" colspan="2"><a id="afc99539a130da4395c7df7d1ef1f43f3" name="afc99539a130da4395c7df7d1ef1f43f3"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &gt; </td></tr>
-<tr class="memitem:afc99539a130da4395c7df7d1ef1f43f3"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>, <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1Solve.html">workspace</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &gt; </td></tr>
+<tr class="memitem:afc99539a130da4395c7df7d1ef1f43f3"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>, <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">workspace</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:afc99539a130da4395c7df7d1ef1f43f3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8bdafe8c85f1a4f76a983db1cfb87099" id="r_a8bdafe8c85f1a4f76a983db1cfb87099"><td class="memTemplParams" colspan="2"><a id="a8bdafe8c85f1a4f76a983db1cfb87099" name="a8bdafe8c85f1a4f76a983db1cfb87099"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> &gt; </td></tr>
-<tr class="memitem:a8bdafe8c85f1a4f76a983db1cfb87099"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a8bdafe8c85f1a4f76a983db1cfb87099"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a692c1997dc2acda1f4b282faf9432cd3" id="r_a692c1997dc2acda1f4b282faf9432cd3"><td class="memTemplParams" colspan="2"><a id="a692c1997dc2acda1f4b282faf9432cd3" name="a692c1997dc2acda1f4b282faf9432cd3"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Dest</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &gt; </td></tr>
-<tr class="memitem:a692c1997dc2acda1f4b282faf9432cd3"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>, <a class="el" href="classEigen_1_1Solve.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1Solve.html">workspace</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a692c1997dc2acda1f4b282faf9432cd3"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab857ac85a9a200ab8dce3315c99b3fb9" id="r_ab857ac85a9a200ab8dce3315c99b3fb9"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt; </td></tr>
-<tr class="memitem:ab857ac85a9a200ab8dce3315c99b3fb9"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1matrix__type__times__scalar__type.html">internal::matrix_type_times_scalar_type</a>&lt; Scalar, <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt;::Type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#ab857ac85a9a200ab8dce3315c99b3fb9">operator*</a> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt; &amp;other) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:ad2208173fdca3c8855f45fd98d8311f9" id="r_ad2208173fdca3c8855f45fd98d8311f9"><td class="memTemplParams" colspan="2"><a id="ad2208173fdca3c8855f45fd98d8311f9" name="ad2208173fdca3c8855f45fd98d8311f9"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &gt; </td></tr>
+<tr class="memitem:ad2208173fdca3c8855f45fd98d8311f9"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>, bool <a class="el" href="classEigen_1_1MatrixBase.html">inputIsIdentity</a>=<a class="el" href="classEigen_1_1MatrixBase.html">false</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:ad2208173fdca3c8855f45fd98d8311f9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afb2c59fe66cdad3521757886c0d6a1ce" id="r_afb2c59fe66cdad3521757886c0d6a1ce"><td class="memTemplParams" colspan="2"><a id="afb2c59fe66cdad3521757886c0d6a1ce" name="afb2c59fe66cdad3521757886c0d6a1ce"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &gt; </td></tr>
+<tr class="memitem:afb2c59fe66cdad3521757886c0d6a1ce"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>, <a class="el" href="classEigen_1_1MatrixBase.html">Workspace</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">workspace</a>, bool <a class="el" href="classEigen_1_1MatrixBase.html">inputIsIdentity</a>=<a class="el" href="classEigen_1_1MatrixBase.html">false</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:afb2c59fe66cdad3521757886c0d6a1ce"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab857ac85a9a200ab8dce3315c99b3fb9" id="r_ab857ac85a9a200ab8dce3315c99b3fb9"><td class="memTemplParams" colspan="2">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt; </td></tr>
+<tr class="memitem:ab857ac85a9a200ab8dce3315c99b3fb9"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="structEigen_1_1internal_1_1matrix__type__times__scalar__type.html">internal::matrix_type_times_scalar_type</a>&lt; Scalar, <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt;::Type&#160;</td><td class="memTemplItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#ab857ac85a9a200ab8dce3315c99b3fb9">operator*</a> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt; &amp;other) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="memdesc:ab857ac85a9a200ab8dce3315c99b3fb9"><td class="mdescLeft">&#160;</td><td class="mdescRight">Computes the product of a Householder sequence with a matrix.  <br /></td></tr>
 <tr class="separator:ab857ac85a9a200ab8dce3315c99b3fb9"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a182e62a04a5674d56a244390a67e4b38" id="r_a182e62a04a5674d56a244390a67e4b38"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a182e62a04a5674d56a244390a67e4b38">setLength</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html#ac62fad812f3893f237378fe70e55bf66">length</a>)</td></tr>
-<tr class="memdesc:a182e62a04a5674d56a244390a67e4b38"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the length of the Householder sequence.  <br /></td></tr>
-<tr class="separator:a182e62a04a5674d56a244390a67e4b38"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a6a2e69033bfd36b5c0a0be92d425068d" id="r_a6a2e69033bfd36b5c0a0be92d425068d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a6a2e69033bfd36b5c0a0be92d425068d">setShift</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html#a34482bfad5563fd8a8a4264db76ac917">shift</a>)</td></tr>
-<tr class="memdesc:a6a2e69033bfd36b5c0a0be92d425068d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the shift of the Householder sequence.  <br /></td></tr>
-<tr class="separator:a6a2e69033bfd36b5c0a0be92d425068d"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac62fad812f3893f237378fe70e55bf66" id="r_ac62fad812f3893f237378fe70e55bf66"><td class="memItemLeft" align="right" valign="top"><a id="ac62fad812f3893f237378fe70e55bf66" name="ac62fad812f3893f237378fe70e55bf66"></a>
-<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>length</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:ac62fad812f3893f237378fe70e55bf66"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the length of the Householder sequence. <br /></td></tr>
-<tr class="separator:ac62fad812f3893f237378fe70e55bf66"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a34482bfad5563fd8a8a4264db76ac917" id="r_a34482bfad5563fd8a8a4264db76ac917"><td class="memItemLeft" align="right" valign="top"><a id="a34482bfad5563fd8a8a4264db76ac917" name="a34482bfad5563fd8a8a4264db76ac917"></a>
-<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>shift</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:a34482bfad5563fd8a8a4264db76ac917"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the shift of the Householder sequence. <br /></td></tr>
-<tr class="separator:a34482bfad5563fd8a8a4264db76ac917"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af34f776bdc7f1d20ac73c19ddb54d443" id="r_af34f776bdc7f1d20ac73c19ddb54d443"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#af34f776bdc7f1d20ac73c19ddb54d443">setLength</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html#ac61e77c639cc8751b92e71bbbf4d386d">length</a>)</td></tr>
+<tr class="memdesc:af34f776bdc7f1d20ac73c19ddb54d443"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the length of the Householder sequence.  <br /></td></tr>
+<tr class="separator:af34f776bdc7f1d20ac73c19ddb54d443"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae3b8d3583d98adbcad45403883ebbb74" id="r_ae3b8d3583d98adbcad45403883ebbb74"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#ae3b8d3583d98adbcad45403883ebbb74">setShift</a> (<a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html#a927abf54737ab2e3d7d0a7ae9395768f">shift</a>)</td></tr>
+<tr class="memdesc:ae3b8d3583d98adbcad45403883ebbb74"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the shift of the Householder sequence.  <br /></td></tr>
+<tr class="separator:ae3b8d3583d98adbcad45403883ebbb74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac61e77c639cc8751b92e71bbbf4d386d" id="r_ac61e77c639cc8751b92e71bbbf4d386d"><td class="memItemLeft" align="right" valign="top"><a id="ac61e77c639cc8751b92e71bbbf4d386d" name="ac61e77c639cc8751b92e71bbbf4d386d"></a>
+EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>length</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:ac61e77c639cc8751b92e71bbbf4d386d"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the length of the Householder sequence. <br /></td></tr>
+<tr class="separator:ac61e77c639cc8751b92e71bbbf4d386d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a927abf54737ab2e3d7d0a7ae9395768f" id="r_a927abf54737ab2e3d7d0a7ae9395768f"><td class="memItemLeft" align="right" valign="top"><a id="a927abf54737ab2e3d7d0a7ae9395768f" name="a927abf54737ab2e3d7d0a7ae9395768f"></a>
+EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>shift</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="memdesc:a927abf54737ab2e3d7d0a7ae9395768f"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the shift of the Householder sequence. <br /></td></tr>
+<tr class="separator:a927abf54737ab2e3d7d0a7ae9395768f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_methods_structEigen_1_1EigenBase"><td colspan="2" onclick="javascript:toggleInherit('pub_methods_structEigen_1_1EigenBase')"><img src="closed.png" alt="-"/>&#160;Public Member Functions inherited from <a class="el" href="structEigen_1_1EigenBase.html">Eigen::EigenBase&lt; HouseholderSequence&lt; VectorsType, CoeffsType, Side &gt; &gt;</a></td></tr>
-<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
+<tr class="memitem:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ab4cf3e6bb046a94a46b69b857bd3dbc9"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ab4cf3e6bb046a94a46b69b857bd3dbc9">derived</a> ()</td></tr>
 <tr class="separator:ab4cf3e6bb046a94a46b69b857bd3dbc9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+<tr class="memitem:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase" id="r_a80808d9477b4dddab2613a5d8764d79e"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a80808d9477b4dddab2613a5d8764d79e">derived</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a80808d9477b4dddab2613a5d8764d79e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a23248b545ee580f3ddb8150cd3d032a3"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_cast_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a23248b545ee580f3ddb8150cd3d032a3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase" id="r_abf0796214cde38991fd56c07f0765829"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt; &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>const_derived</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:abf0796214cde38991fd56c07f0765829 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a8141320ba8df384426c298b32b000d8e inherit pub_methods_structEigen_1_1EigenBase" id="r_a8141320ba8df384426c298b32b000d8e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a8141320ba8df384426c298b32b000d8e">rows</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a8141320ba8df384426c298b32b000d8e inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a7b0b45c7351847696c911ce8aa2abbdb inherit pub_methods_structEigen_1_1EigenBase" id="r_a7b0b45c7351847696c911ce8aa2abbdb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a7b0b45c7351847696c911ce8aa2abbdb">cols</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a7b0b45c7351847696c911ce8aa2abbdb inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac2c9348df3bb9c0044dbae6c278a8977 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac2c9348df3bb9c0044dbae6c278a8977"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#ac2c9348df3bb9c0044dbae6c278a8977">size</a> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ac2c9348df3bb9c0044dbae6c278a8977 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase" id="r_af1d12fdb3361e150427e1fd94ebb1f14"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#af1d12fdb3361e150427e1fd94ebb1f14">rows</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:af1d12fdb3361e150427e1fd94ebb1f14 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase" id="r_a50c19c45f15acdfe1cb66ab5e879b8e3"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a50c19c45f15acdfe1cb66ab5e879b8e3">cols</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a50c19c45f15acdfe1cb66ab5e879b8e3 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase" id="r_a9f40726259520d7e9c5ce58d19d62e79"><td class="memItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="structEigen_1_1EigenBase.html#a9f40726259520d7e9c5ce58d19d62e79">size</a> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a> EIGEN_NOEXCEPT</td></tr>
+<tr class="separator:a9f40726259520d7e9c5ce58d19d62e79 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase" id="r_a991b21b79bb613171a53271933c53cab"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>evalTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a991b21b79bb613171a53271933c53cab inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase" id="r_ad4300dbb47b34596d8ce6b2361c07b52"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>addTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ad4300dbb47b34596d8ce6b2361c07b52 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase" id="r_a677a970c7d063d7033180dd9dbb53565"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>subTo</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a677a970c7d063d7033180dd9dbb53565 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase" id="r_aabee6205996703a37df914e379472653"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>applyThisOnTheRight</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:aabee6205996703a37df914e379472653 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase" id="r_ac8a579c4f982dddd2a01489fe66b73c9"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1Solve.html">Dest</a> &amp;<a class="el" href="classEigen_1_1Solve.html">dst</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>applyThisOnTheLeft</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Dest</a> &amp;<a class="el" href="classEigen_1_1MatrixBase.html">dst</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ac8a579c4f982dddd2a01489fe66b73c9 inherit pub_methods_structEigen_1_1EigenBase"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-types" name="pro-types"></a>
+Protected Types</h2></td></tr>
+<tr class="memitem:a5ffe0128e15d25210bb6d92b840b3fec" id="r_a5ffe0128e15d25210bb6d92b840b3fec"><td class="memItemLeft" align="right" valign="top"><a id="a5ffe0128e15d25210bb6d92b840b3fec" name="a5ffe0128e15d25210bb6d92b840b3fec"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>BlockSize</b> = 48
+ }</td></tr>
+<tr class="separator:a5ffe0128e15d25210bb6d92b840b3fec"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:a1001219fedd8f9bb4f306d1d2def2c0a" id="r_a1001219fedd8f9bb4f306d1d2def2c0a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="classEigen_1_1HouseholderSequence.html#a1001219fedd8f9bb4f306d1d2def2c0a">setTrans</a> (bool <a class="el" href="classEigen_1_1HouseholderSequence.html#ad61c9b10d95c26b7397ccb47f4d80b08">trans</a>)</td></tr>
-<tr class="memdesc:a1001219fedd8f9bb4f306d1d2def2c0a"><td class="mdescLeft">&#160;</td><td class="mdescRight">Sets the transpose flag.  <br /></td></tr>
-<tr class="separator:a1001219fedd8f9bb4f306d1d2def2c0a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ad61c9b10d95c26b7397ccb47f4d80b08" id="r_ad61c9b10d95c26b7397ccb47f4d80b08"><td class="memItemLeft" align="right" valign="top"><a id="ad61c9b10d95c26b7397ccb47f4d80b08" name="ad61c9b10d95c26b7397ccb47f4d80b08"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>trans</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="memdesc:ad61c9b10d95c26b7397ccb47f4d80b08"><td class="mdescLeft">&#160;</td><td class="mdescRight">Returns the transpose flag. <br /></td></tr>
-<tr class="separator:ad61c9b10d95c26b7397ccb47f4d80b08"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a2c2f3ac0a4f959cd6de3352bf57719c9" id="r_a2c2f3ac0a4f959cd6de3352bf57719c9"><td class="memItemLeft" align="right" valign="top"><a id="a2c2f3ac0a4f959cd6de3352bf57719c9" name="a2c2f3ac0a4f959cd6de3352bf57719c9"></a>
+<a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>setReverseFlag</b> (bool reverse)</td></tr>
+<tr class="separator:a2c2f3ac0a4f959cd6de3352bf57719c9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adafa6371d62a5a3f4b8ae6775df5dd49" id="r_adafa6371d62a5a3f4b8ae6775df5dd49"><td class="memItemLeft" align="right" valign="top"><a id="adafa6371d62a5a3f4b8ae6775df5dd49" name="adafa6371d62a5a3f4b8ae6775df5dd49"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>reverseFlag</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:adafa6371d62a5a3f4b8ae6775df5dd49"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -246,9 +264,9 @@ VectorsType::Nested&#160;</td><td class="memItemRight" valign="bottom"><b>m_vect
 <tr class="memitem:a6768687f4d9fc45c1bb00035d3db0bca" id="r_a6768687f4d9fc45c1bb00035d3db0bca"><td class="memItemLeft" align="right" valign="top"><a id="a6768687f4d9fc45c1bb00035d3db0bca" name="a6768687f4d9fc45c1bb00035d3db0bca"></a>
 CoeffsType::Nested&#160;</td><td class="memItemRight" valign="bottom"><b>m_coeffs</b></td></tr>
 <tr class="separator:a6768687f4d9fc45c1bb00035d3db0bca"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a168eb7aef51e7fdcc1370ac3d614d53b" id="r_a168eb7aef51e7fdcc1370ac3d614d53b"><td class="memItemLeft" align="right" valign="top"><a id="a168eb7aef51e7fdcc1370ac3d614d53b" name="a168eb7aef51e7fdcc1370ac3d614d53b"></a>
-bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_trans</b></td></tr>
-<tr class="separator:a168eb7aef51e7fdcc1370ac3d614d53b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5c1a8ddec1b358d1c13312fffdf29333" id="r_a5c1a8ddec1b358d1c13312fffdf29333"><td class="memItemLeft" align="right" valign="top"><a id="a5c1a8ddec1b358d1c13312fffdf29333" name="a5c1a8ddec1b358d1c13312fffdf29333"></a>
+bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_reverse</b></td></tr>
+<tr class="separator:a5c1a8ddec1b358d1c13312fffdf29333"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1395b340f17bc21b445b114acad519f8" id="r_a1395b340f17bc21b445b114acad519f8"><td class="memItemLeft" align="right" valign="top"><a id="a1395b340f17bc21b445b114acad519f8" name="a1395b340f17bc21b445b114acad519f8"></a>
 <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>m_length</b></td></tr>
 <tr class="separator:a1395b340f17bc21b445b114acad519f8"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -259,12 +277,12 @@ bool&#160;</td><td class="memItemRight" valign="bottom"><b>m_trans</b></td></tr>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="friends" name="friends"></a>
 Friends</h2></td></tr>
 <tr class="memitem:ad2b8c53f81cf9ea056a2eec6ad36cb6b" id="r_ad2b8c53f81cf9ea056a2eec6ad36cb6b"><td class="memTemplParams" colspan="2"><a id="ad2b8c53f81cf9ea056a2eec6ad36cb6b" name="ad2b8c53f81cf9ea056a2eec6ad36cb6b"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">_VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">_CoeffsType</a> , int _Side&gt; </td></tr>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">_VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">_CoeffsType</a> , int _Side&gt; </td></tr>
 <tr class="memitem:ad2b8c53f81cf9ea056a2eec6ad36cb6b"><td class="memTemplItemLeft" align="right" valign="top">struct&#160;</td><td class="memTemplItemRight" valign="bottom"><b>internal::hseq_side_dependent_impl</b></td></tr>
 <tr class="separator:ad2b8c53f81cf9ea056a2eec6ad36cb6b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, int Side&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, int Side&gt;<br />
 class Eigen::HouseholderSequence&lt; VectorsType, CoeffsType, Side &gt;</div><p>\householder_module </p>
 <p>Sequence of Householder reflections acting on subspaces with decreasing size </p><dl class="tparams"><dt>Template Parameters</dt><dd>
   <table class="tparams">
@@ -275,45 +293,46 @@ class Eigen::HouseholderSequence&lt; VectorsType, CoeffsType, Side &gt;</div><p>
   </dd>
 </dl>
 <p>This class represents a product sequence of Householder reflections where the first Householder reflection acts on the whole space, the second Householder reflection leaves the one-dimensional subspace spanned by the first unit vector invariant, the third Householder reflection leaves the two-dimensional subspace spanned by the first two unit vectors invariant, and so on up to the last reflection which leaves all but one dimensions invariant and acts only on the last dimension. Such sequences of Householder reflections are used in several algorithms to zero out certain parts of a matrix. Indeed, the methods <a class="el" href="classEigen_1_1HessenbergDecomposition.html#a346441e4902a58d43d698ac3da6ff791" title="Reconstructs the orthogonal matrix Q in the decomposition.">HessenbergDecomposition::matrixQ()</a>, <a class="el" href="classEigen_1_1Tridiagonalization.html#a000f7392eda930576ffd2af1fae54af2" title="Returns the unitary matrix Q in the decomposition.">Tridiagonalization::matrixQ()</a>, <a class="el" href="classEigen_1_1HouseholderQR.html#affd506c10ef2d25f56e7b1f9f25ff885" title="This method returns an expression of the unitary matrix Q as a sequence of Householder transformation...">HouseholderQR::householderQ()</a>, and <a class="el" href="classEigen_1_1ColPivHouseholderQR.html#a28ab9d8916ca609c5469c4c192fbfa28">ColPivHouseholderQR::householderQ()</a> all return a HouseholderSequence.</p>
-<p>More precisely, the class HouseholderSequence represents an <picture><source srcset="form_139_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n \times n $" src="form_139.png"/></picture> matrix <picture><source srcset="form_80_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H $" src="form_80.png"/></picture> of the form <picture><source srcset="form_140_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = \prod_{i=0}^{n-1} H_i $" src="form_140.png"/></picture> where the i-th Householder reflection is <picture><source srcset="form_141_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H_i = I - h_i v_i
-v_i^* $" src="form_141.png"/></picture>. The i-th Householder coefficient <picture><source srcset="form_89_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ h_i $" src="form_89.png"/></picture> is a scalar and the i-th Householder vector <picture><source srcset="form_142_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$
-v_i $" src="form_142.png"/></picture> is a vector of the form  </p><p class="formulaDsp">
-<picture><source srcset="form_143_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[ 
-v_i = [\underbrace{0, \ldots, 0}_{i-1\mbox{ zeros}}, 1, \underbrace{*, \ldots,*}_{n-i\mbox{ arbitrary entries}} ]. 
-\]" src="form_143.png"/></picture>
+<p>More precisely, the class HouseholderSequence represents an <picture><source srcset="form_142_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n \times n $" src="form_142.png"/></picture> matrix <picture><source srcset="form_81_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H $" src="form_81.png"/></picture> of the form <picture><source srcset="form_143_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = \prod_{i=0}^{n-1} H_i $" src="form_143.png"/></picture> where the i-th Householder reflection is <picture><source srcset="form_144_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H_i = I - h_i v_i
+v_i^* $" src="form_144.png"/></picture>. The i-th Householder coefficient <picture><source srcset="form_90_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ h_i $" src="form_90.png"/></picture> is a scalar and the i-th Householder vector <picture><source srcset="form_145_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$
+v_i $" src="form_145.png"/></picture> is a vector of the form  </p><p class="formulaDsp">
+<picture><source srcset="form_146_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[
+v_i = [\underbrace{0, \ldots, 0}_{i-1\mbox{ zeros}}, 1, \underbrace{*, \ldots,*}_{n-i\mbox{ arbitrary entries}} ].
+\]" src="form_146.png"/></picture>
 </p>
-<p> The last <picture><source srcset="form_144_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_144.png"/></picture> entries of <picture><source srcset="form_91_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_91.png"/></picture> are called the essential part of the Householder vector.</p>
-<p>Typical usages are listed below, where H is a <a class="el" href="classEigen_1_1HouseholderSequence.html" title="\householder_module">HouseholderSequence</a>: </p><div class="fragment"><div class="line">A.applyOnTheRight(<a class="code hl_class" href="classEigen_1_1Solve.html">H</a>);             <span class="comment">// A = A * H</span></div>
-<div class="line">A.applyOnTheLeft(<a class="code hl_class" href="classEigen_1_1Solve.html">H</a>);              <span class="comment">// A = H * A</span></div>
-<div class="line">A.applyOnTheRight(<a class="code hl_class" href="classEigen_1_1Solve.html">H</a>.adjoint());   <span class="comment">// A = A * H^*</span></div>
-<div class="line">A.applyOnTheLeft(<a class="code hl_class" href="classEigen_1_1Solve.html">H</a>.adjoint());    <span class="comment">// A = H^* * A</span></div>
-<div class="line"><a class="code hl_class" href="classEigen_1_1Solve.html">MatrixXd</a> Q = <a class="code hl_class" href="classEigen_1_1Solve.html">H</a>;                   <span class="comment">// conversion to a dense matrix</span></div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
+<p> The last <picture><source srcset="form_147_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_147.png"/></picture> entries of <picture><source srcset="form_92_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_92.png"/></picture> are called the essential part of the Householder vector.</p>
+<p>Typical usages are listed below, where H is a <a class="el" href="classEigen_1_1HouseholderSequence.html" title="\householder_module">HouseholderSequence</a>: </p><div class="fragment"><div class="line">A.applyOnTheRight(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">H</a>);             <span class="comment">// A = A * H</span></div>
+<div class="line">A.applyOnTheLeft(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">H</a>);              <span class="comment">// A = H * A</span></div>
+<div class="line">A.applyOnTheRight(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">H</a>.<a class="code hl_function" href="classEigen_1_1MatrixBase.html#a73d8782980bd75141785340d3a7a8e10">adjoint</a>());   <span class="comment">// A = A * H^*</span></div>
+<div class="line">A.applyOnTheLeft(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">H</a>.<a class="code hl_function" href="classEigen_1_1MatrixBase.html#a73d8782980bd75141785340d3a7a8e10">adjoint</a>());    <span class="comment">// A = H^* * A</span></div>
+<div class="line"><a class="code hl_class" href="classEigen_1_1MatrixBase.html">MatrixXd</a> Q = <a class="code hl_class" href="classEigen_1_1MatrixBase.html">H</a>;                   <span class="comment">// conversion to a dense matrix</span></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html_a73d8782980bd75141785340d3a7a8e10"><div class="ttname"><a href="classEigen_1_1MatrixBase.html#a73d8782980bd75141785340d3a7a8e10">Eigen::MatrixBase::adjoint</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC const AdjointReturnType adjoint() const</div><div class="ttdef"><b>Definition</b> Transpose.h:221</div></div>
 </div><!-- fragment --><p> In addition to the adjoint, you can also apply the inverse (=adjoint), the transpose, and the conjugate operators.</p>
-<p>See the documentation for <a class="el" href="classEigen_1_1HouseholderSequence.html#af6aeede87ed8dac452f4fa8b4f45c3f2" title="Constructor.">HouseholderSequence(const VectorsType&amp;, const CoeffsType&amp;)</a> for an example.</p>
+<p>See the documentation for <a class="el" href="classEigen_1_1HouseholderSequence.html#a12ea5d68522cc22337df0aa4c98d1c91" title="Constructor.">HouseholderSequence(const VectorsType&amp;, const CoeffsType&amp;)</a> for an example.</p>
 <dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1MatrixBase.html#a3a08ad41e81d8ad4a37b5d5c7490e765" title="replaces *this by other * *this.">MatrixBase::applyOnTheLeft()</a>, <a class="el" href="classEigen_1_1MatrixBase.html#a45d91752925d2757fc8058a293b15462" title="replaces *this by *this * other.">MatrixBase::applyOnTheRight()</a> </dd></dl>
 </div><h2 class="groupheader">Constructor &amp; Destructor Documentation</h2>
-<a id="af6aeede87ed8dac452f4fa8b4f45c3f2" name="af6aeede87ed8dac452f4fa8b4f45c3f2"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#af6aeede87ed8dac452f4fa8b4f45c3f2">&#9670;&#160;</a></span>HouseholderSequence()</h2>
+<a id="a12ea5d68522cc22337df0aa4c98d1c91" name="a12ea5d68522cc22337df0aa4c98d1c91"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a12ea5d68522cc22337df0aa4c98d1c91">&#9670;&#160;</a></span>HouseholderSequence()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::HouseholderSequence </td>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::HouseholderSequence </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> &amp;&#160;</td>
           <td class="paramname"><em>v</em>, </td>
         </tr>
         <tr>
           <td class="paramkey"></td>
           <td></td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> &amp;&#160;</td>
           <td class="paramname"><em>h</em>&#160;</td>
         </tr>
         <tr>
@@ -337,26 +356,26 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
   </table>
   </dd>
 </dl>
-<p>Constructs the Householder sequence with coefficients given by <code>h</code> and vectors given by <code>v</code>. The i-th Householder coefficient <picture><source srcset="form_89_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ h_i $" src="form_89.png"/></picture> is given by <code>h(i)</code> and the essential part of the i-th Householder vector <picture><source srcset="form_91_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_91.png"/></picture> is given by <code>v(k,i)</code> with <code>k</code> &gt; <code>i</code> (the subdiagonal part of the i-th column). If <code>v</code> has fewer columns than rows, then the Householder sequence contains as many Householder reflections as there are columns.</p>
+<p>Constructs the Householder sequence with coefficients given by <code>h</code> and vectors given by <code>v</code>. The i-th Householder coefficient <picture><source srcset="form_90_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ h_i $" src="form_90.png"/></picture> is given by <code>h(i)</code> and the essential part of the i-th Householder vector <picture><source srcset="form_92_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_92.png"/></picture> is given by <code>v(k,i)</code> with <code>k</code> &gt; <code>i</code> (the subdiagonal part of the i-th column). If <code>v</code> has fewer columns than rows, then the Householder sequence contains as many Householder reflections as there are columns.</p>
 <dl class="section note"><dt>Note</dt><dd>The HouseholderSequence object stores <code>v</code> and <code>h</code> by reference.</dd></dl>
-<p>Example: </p><div class="fragment"></div><!-- fragment --><p> Output: </p><pre class="fragment"></pre><dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#a182e62a04a5674d56a244390a67e4b38" title="Sets the length of the Householder sequence.">setLength()</a>, <a class="el" href="classEigen_1_1HouseholderSequence.html#a6a2e69033bfd36b5c0a0be92d425068d" title="Sets the shift of the Householder sequence.">setShift()</a> </dd></dl>
+<p>Example: </p><div class="fragment"></div><!-- fragment --><p> Output: </p><pre class="fragment"></pre><dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#af34f776bdc7f1d20ac73c19ddb54d443" title="Sets the length of the Householder sequence.">setLength()</a>, <a class="el" href="classEigen_1_1HouseholderSequence.html#ae3b8d3583d98adbcad45403883ebbb74" title="Sets the shift of the Householder sequence.">setShift()</a> </dd></dl>
 
 </div>
 </div>
 <h2 class="groupheader">Member Function Documentation</h2>
-<a id="adcdcdd92a77810ce4bdd2b1282fe6a75" name="adcdcdd92a77810ce4bdd2b1282fe6a75"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#adcdcdd92a77810ce4bdd2b1282fe6a75">&#9670;&#160;</a></span>cols()</h2>
+<a id="a0ca78443feed425d4881cb4e5b538d21" name="a0ca78443feed425d4881cb4e5b538d21"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a0ca78443feed425d4881cb4e5b538d21">&#9670;&#160;</a></span>cols()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::cols </td>
+          <td class="memname">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::cols </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -375,19 +394,49 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 
 </div>
 </div>
-<a id="ac91cf37b0cbea9e504c89e021fd289ba" name="ac91cf37b0cbea9e504c89e021fd289ba"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#ac91cf37b0cbea9e504c89e021fd289ba">&#9670;&#160;</a></span>essentialVector()</h2>
+<a id="aec2aa1e2c3568597441eb837e56eb9b9" name="aec2aa1e2c3568597441eb837e56eb9b9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aec2aa1e2c3568597441eb837e56eb9b9">&#9670;&#160;</a></span>conjugateIf()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
+<div class="memtemplate">
+template&lt;bool Cond&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">EssentialVectorType</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::essentialVector </td>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="structEigen_1_1internal_1_1conditional.html">internal::conditional</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">Cond</a>, <a class="el" href="classEigen_1_1MatrixBase.html">ConjugateReturnType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">ConstHouseholderSequence</a> &gt;::type <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::conjugateIf </td>
+          <td>(</td>
+          <td class="paramname"></td><td>)</td>
+          <td> const</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel">inline</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<dl class="section return"><dt>Returns</dt><dd>an expression of the complex conjugate of <code>*this</code> if Cond==true, returns <code>*this</code> otherwise. </dd></dl>
+
+</div>
+</div>
+<a id="a82f35fa3f893ec94efd249cd76841dbb" name="a82f35fa3f893ec94efd249cd76841dbb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a82f35fa3f893ec94efd249cd76841dbb">&#9670;&#160;</a></span>essentialVector()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<div class="memtemplate">
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">EssentialVectorType</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::essentialVector </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td>
           <td class="paramname"><em>k</em></td><td>)</td>
@@ -409,13 +458,13 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Vector containing non-trivial entries of k-th Householder vector</dd></dl>
-<p>This function returns the essential part of the Householder vector <picture><source srcset="form_91_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_91.png"/></picture>. This is a vector of length <picture><source srcset="form_144_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_144.png"/></picture> containing the last <picture><source srcset="form_144_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_144.png"/></picture> entries of the vector  </p><p class="formulaDsp">
-<picture><source srcset="form_143_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[ 
-v_i = [\underbrace{0, \ldots, 0}_{i-1\mbox{ zeros}}, 1, \underbrace{*, \ldots,*}_{n-i\mbox{ arbitrary entries}} ]. 
-\]" src="form_143.png"/></picture>
+<p>This function returns the essential part of the Householder vector <picture><source srcset="form_92_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ v_i $" src="form_92.png"/></picture>. This is a vector of length <picture><source srcset="form_147_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_147.png"/></picture> containing the last <picture><source srcset="form_147_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n-i $" src="form_147.png"/></picture> entries of the vector  </p><p class="formulaDsp">
+<picture><source srcset="form_146_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaDsp" alt="\[
+v_i = [\underbrace{0, \ldots, 0}_{i-1\mbox{ zeros}}, 1, \underbrace{*, \ldots,*}_{n-i\mbox{ arbitrary entries}} ].
+\]" src="form_146.png"/></picture>
 </p>
-<p> The index <picture><source srcset="form_90_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ i $" src="form_90.png"/></picture> equals <code>k</code> + <a class="el" href="classEigen_1_1HouseholderSequence.html#a34482bfad5563fd8a8a4264db76ac917" title="Returns the shift of the Householder sequence.">shift()</a>, corresponding to the k-th column of the matrix <code>v</code> passed to the constructor.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#a6a2e69033bfd36b5c0a0be92d425068d" title="Sets the shift of the Householder sequence.">setShift()</a>, <a class="el" href="classEigen_1_1HouseholderSequence.html#a34482bfad5563fd8a8a4264db76ac917" title="Returns the shift of the Householder sequence.">shift()</a> </dd></dl>
+<p> The index <picture><source srcset="form_91_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ i $" src="form_91.png"/></picture> equals <code>k</code> + <a class="el" href="classEigen_1_1HouseholderSequence.html#a927abf54737ab2e3d7d0a7ae9395768f" title="Returns the shift of the Householder sequence.">shift()</a>, corresponding to the k-th column of the matrix <code>v</code> passed to the constructor.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#ae3b8d3583d98adbcad45403883ebbb74" title="Sets the shift of the Householder sequence.">setShift()</a>, <a class="el" href="classEigen_1_1HouseholderSequence.html#a927abf54737ab2e3d7d0a7ae9395768f" title="Returns the shift of the Householder sequence.">shift()</a> </dd></dl>
 
 </div>
 </div>
@@ -425,17 +474,17 @@ v_i = [\underbrace{0, \ldots, 0}_{i-1\mbox{ zeros}}, 1, \underbrace{*, \ldots,*}
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structEigen_1_1internal_1_1matrix__type__times__scalar__type.html">internal::matrix_type_times_scalar_type</a>&lt; Scalar, <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt;::Type <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::operator* </td>
+          <td class="memname"><a class="el" href="structEigen_1_1internal_1_1matrix__type__times__scalar__type.html">internal::matrix_type_times_scalar_type</a>&lt; Scalar, <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt;::Type <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::operator* </td>
           <td>(</td>
-          <td class="paramtype"><a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; <a class="el" href="classEigen_1_1Solve.html">OtherDerived</a> &gt; &amp;&#160;</td>
+          <td class="paramtype"><a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">MatrixBase</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">OtherDerived</a> &gt; &amp;&#160;</td>
           <td class="paramname"><em>other</em></td><td>)</td>
           <td> const</td>
         </tr>
@@ -455,23 +504,23 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>Expression object representing the product.</dd></dl>
-<p>This function computes <picture><source srcset="form_147_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ HM $" src="form_147.png"/></picture> where <picture><source srcset="form_80_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H $" src="form_80.png"/></picture> is the Householder sequence represented by <code>*this</code> and <picture><source srcset="form_146_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ M $" src="form_146.png"/></picture> is the matrix <code>other</code>. </p>
+<p>This function computes <picture><source srcset="form_150_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ HM $" src="form_150.png"/></picture> where <picture><source srcset="form_81_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H $" src="form_81.png"/></picture> is the Householder sequence represented by <code>*this</code> and <picture><source srcset="form_149_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ M $" src="form_149.png"/></picture> is the matrix <code>other</code>. </p>
 
 </div>
 </div>
-<a id="a6eaafe2460930d1f4aa67d6e577b71f0" name="a6eaafe2460930d1f4aa67d6e577b71f0"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6eaafe2460930d1f4aa67d6e577b71f0">&#9670;&#160;</a></span>rows()</h2>
+<a id="ad85c4afec721dd20691d47c580acf805" name="ad85c4afec721dd20691d47c580acf805"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad85c4afec721dd20691d47c580acf805">&#9670;&#160;</a></span>rows()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::rows </td>
+          <td class="memname">EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a> <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::rows </td>
           <td>(</td>
           <td class="paramname"></td><td>)</td>
           <td> const</td>
@@ -490,19 +539,19 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 
 </div>
 </div>
-<a id="a182e62a04a5674d56a244390a67e4b38" name="a182e62a04a5674d56a244390a67e4b38"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a182e62a04a5674d56a244390a67e4b38">&#9670;&#160;</a></span>setLength()</h2>
+<a id="af34f776bdc7f1d20ac73c19ddb54d443" name="af34f776bdc7f1d20ac73c19ddb54d443"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#af34f776bdc7f1d20ac73c19ddb54d443">&#9670;&#160;</a></span>setLength()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp; <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::setLength </td>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp; <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::setLength </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td>
           <td class="paramname"><em>length</em></td><td>)</td>
@@ -523,24 +572,24 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
   </table>
   </dd>
 </dl>
-<p>By default, the length <picture><source srcset="form_47_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n $" src="form_47.png"/></picture> of the Householder sequence <picture><source srcset="form_148_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_0 H_1 \ldots H_{n-1} $" src="form_148.png"/></picture> is set to the number of columns of the matrix <code>v</code> passed to the constructor, or the number of rows if that is smaller. After this function is called, the length equals <code>length</code>.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#ac62fad812f3893f237378fe70e55bf66" title="Returns the length of the Householder sequence.">length()</a> </dd></dl>
+<p>By default, the length <picture><source srcset="form_49_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ n $" src="form_49.png"/></picture> of the Householder sequence <picture><source srcset="form_151_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_0 H_1 \ldots H_{n-1} $" src="form_151.png"/></picture> is set to the number of columns of the matrix <code>v</code> passed to the constructor, or the number of rows if that is smaller. After this function is called, the length equals <code>length</code>.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#ac61e77c639cc8751b92e71bbbf4d386d" title="Returns the length of the Householder sequence.">length()</a> </dd></dl>
 
 </div>
 </div>
-<a id="a6a2e69033bfd36b5c0a0be92d425068d" name="a6a2e69033bfd36b5c0a0be92d425068d"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a6a2e69033bfd36b5c0a0be92d425068d">&#9670;&#160;</a></span>setShift()</h2>
+<a id="ae3b8d3583d98adbcad45403883ebbb74" name="ae3b8d3583d98adbcad45403883ebbb74"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae3b8d3583d98adbcad45403883ebbb74">&#9670;&#160;</a></span>setShift()</h2>
 
 <div class="memitem">
 <div class="memproto">
 <div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a> , <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a> , int Side&gt; </div>
 <table class="mlabels">
   <tr>
   <td class="mlabels-left">
       <table class="memname">
         <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp; <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::setShift </td>
+          <td class="memname">EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp; <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">VectorsType</a>, <a class="el" href="classEigen_1_1MatrixBase.html">CoeffsType</a>, Side &gt;::setShift </td>
           <td>(</td>
           <td class="paramtype"><a class="el" href="structEigen_1_1EigenBase.html#a554f30542cc2316add4b1ea0a492ff02">Index</a>&#160;</td>
           <td class="paramname"><em>shift</em></td><td>)</td>
@@ -561,47 +610,9 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
   </table>
   </dd>
 </dl>
-<p>By default, a HouseholderSequence object represents <picture><source srcset="form_148_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_0 H_1 \ldots H_{n-1} $" src="form_148.png"/></picture> and the i-th column of the matrix <code>v</code> passed to the constructor corresponds to the i-th Householder reflection. After this function is called, the object represents <picture><source srcset="form_149_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_{\mathrm{shift}}
-H_{\mathrm{shift}+1} \ldots H_{n-1} $" src="form_149.png"/></picture> and the i-th column of <code>v</code> corresponds to the (shift+i)-th Householder reflection.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#a34482bfad5563fd8a8a4264db76ac917" title="Returns the shift of the Householder sequence.">shift()</a> </dd></dl>
-
-</div>
-</div>
-<a id="a1001219fedd8f9bb4f306d1d2def2c0a" name="a1001219fedd8f9bb4f306d1d2def2c0a"></a>
-<h2 class="memtitle"><span class="permalink"><a href="#a1001219fedd8f9bb4f306d1d2def2c0a">&#9670;&#160;</a></span>setTrans()</h2>
-
-<div class="memitem">
-<div class="memproto">
-<div class="memtemplate">
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">VectorsType</a> , <a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a> , int Side&gt; </div>
-<table class="mlabels">
-  <tr>
-  <td class="mlabels-left">
-      <table class="memname">
-        <tr>
-          <td class="memname"><a class="el" href="classEigen_1_1HouseholderSequence.html">HouseholderSequence</a> &amp; <a class="el" href="classEigen_1_1HouseholderSequence.html">Eigen::HouseholderSequence</a>&lt; <a class="el" href="classEigen_1_1Solve.html">VectorsType</a>, <a class="el" href="classEigen_1_1Solve.html">CoeffsType</a>, Side &gt;::setTrans </td>
-          <td>(</td>
-          <td class="paramtype">bool&#160;</td>
-          <td class="paramname"><em>trans</em></td><td>)</td>
-          <td></td>
-        </tr>
-      </table>
-  </td>
-  <td class="mlabels-right">
-<span class="mlabels"><span class="mlabel">inline</span><span class="mlabel">protected</span></span>  </td>
-  </tr>
-</table>
-</div><div class="memdoc">
-
-<p>Sets the transpose flag. </p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
-    <tr><td class="paramdir">[in]</td><td class="paramname">trans</td><td>New value of the transpose flag.</td></tr>
-  </table>
-  </dd>
-</dl>
-<p>By default, the transpose flag is not set. If the transpose flag is set, then this object represents <picture><source srcset="form_150_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H^T = H_{n-1}^T \ldots H_1^T H_0^T $" src="form_150.png"/></picture> instead of <picture><source srcset="form_148_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_0 H_1 \ldots H_{n-1} $" src="form_148.png"/></picture>.</p>
-<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#ad61c9b10d95c26b7397ccb47f4d80b08" title="Returns the transpose flag.">trans()</a> </dd></dl>
+<p>By default, a HouseholderSequence object represents <picture><source srcset="form_151_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_0 H_1 \ldots H_{n-1} $" src="form_151.png"/></picture> and the i-th column of the matrix <code>v</code> passed to the constructor corresponds to the i-th Householder reflection. After this function is called, the object represents <picture><source srcset="form_152_dark.png" media="(prefers-color-scheme: dark)"/><img class="formulaInl" alt="$ H = H_{\mathrm{shift}}
+H_{\mathrm{shift}+1} \ldots H_{n-1} $" src="form_152.png"/></picture> and the i-th column of <code>v</code> corresponds to the (shift+i)-th Householder reflection.</p>
+<dl class="section see"><dt>See also</dt><dd><a class="el" href="classEigen_1_1HouseholderSequence.html#a927abf54737ab2e3d7d0a7ae9395768f" title="Returns the shift of the Householder sequence.">shift()</a> </dd></dl>
 
 </div>
 </div>
@@ -612,7 +623,7 @@ template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class=
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:40 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:16 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

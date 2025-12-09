@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1diagonal__product__evaluator__base.html">diagonal_product_evaluator_base</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1diagonal__product__evaluator__base.html">diagonal_product_evaluator_base</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -87,57 +87,58 @@ Inheritance diagram for Eigen::internal::diagonal_product_evaluator_base&lt; Mat
  <div class="center">
   <img src="structEigen_1_1internal_1_1diagonal__product__evaluator__base.png" usemap="#Eigen::internal::diagonal_5Fproduct_5Fevaluator_5Fbase_3C_20MatrixType_2C_20DiagonalType_2C_20Derived_2C_20ProductOrder_20_3E_map" alt=""/>
   <map id="Eigen::internal::diagonal_5Fproduct_5Fevaluator_5Fbase_3C_20MatrixType_2C_20DiagonalType_2C_20Derived_2C_20ProductOrder_20_3E_map" name="Eigen::internal::diagonal_5Fproduct_5Fevaluator_5Fbase_3C_20MatrixType_2C_20DiagonalType_2C_20Derived_2C_20ProductOrder_20_3E_map">
-<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Derived &gt;" shape="rect" coords="0,56,605,80"/>
-<area href="classEigen_1_1internal_1_1noncopyable.html" alt="Eigen::internal::noncopyable" shape="rect" coords="0,0,605,24"/>
+<area href="structEigen_1_1internal_1_1evaluator__base.html" alt="Eigen::internal::evaluator_base&lt; Derived &gt;" shape="rect" coords="0,0,605,24"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a768a88d300d36a70aa79d9d9510a6a4b" id="r_a768a88d300d36a70aa79d9d9510a6a4b"><td class="memItemLeft" align="right" valign="top"><a id="a768a88d300d36a70aa79d9d9510a6a4b" name="a768a88d300d36a70aa79d9d9510a6a4b"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
-&#160;&#160;<b>CoeffReadCost</b> = NumTraits&lt;Scalar&gt;::MulCost + evaluator&lt;MatrixType&gt;::CoeffReadCost + evaluator&lt;DiagonalType&gt;::CoeffReadCost
+<tr class="memitem:a2b13054c69497f21c2bf47b0d93424c5" id="r_a2b13054c69497f21c2bf47b0d93424c5"><td class="memItemLeft" align="right" valign="top"><a id="a2b13054c69497f21c2bf47b0d93424c5" name="a2b13054c69497f21c2bf47b0d93424c5"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>CoeffReadCost</b> = int(NumTraits&lt;Scalar&gt;::MulCost) + int(evaluator&lt;MatrixType&gt;::CoeffReadCost) + int(evaluator&lt;DiagonalType&gt;::CoeffReadCost)
 , <b>MatrixFlags</b> = evaluator&lt;MatrixType&gt;::Flags
 , <b>DiagFlags</b> = evaluator&lt;DiagonalType&gt;::Flags
-, <b>_StorageOrder</b> = MatrixFlags &amp; RowMajorBit ? RowMajor : ColMajor
+, <b>_StorageOrder</b>
 , <br />
-&#160;&#160;<b>_ScalarAccessOnDiag</b>
+&#160;&#160;<b>_SameStorageOrder</b> = _StorageOrder == (MatrixFlags &amp; RowMajorBit ? RowMajor : ColMajor)
+, <b>_ScalarAccessOnDiag</b>
 , <b>_SameTypes</b> = is_same&lt;typename MatrixType::Scalar, typename DiagonalType::Scalar&gt;::value
-, <b>_Vectorizable</b> = bool(int(MatrixFlags)&amp;PacketAccessBit) &amp;&amp; _SameTypes &amp;&amp; (_ScalarAccessOnDiag || (bool(int(DiagFlags)&amp;PacketAccessBit)))
-, <b>_LinearAccessMask</b> = (MatrixType::RowsAtCompileTime==1 || MatrixType::ColsAtCompileTime==1) ? LinearAccessBit : 0
+, <b>_Vectorizable</b>
 , <br />
-&#160;&#160;<b>Flags</b> = ((HereditaryBits|_LinearAccessMask) &amp; (unsigned int)(MatrixFlags)) | (_Vectorizable ? PacketAccessBit : 0)
+&#160;&#160;<b>_LinearAccessMask</b> = (MatrixType::RowsAtCompileTime==1 || MatrixType::ColsAtCompileTime==1) ? LinearAccessBit : 0
+, <b>Flags</b> = ((HereditaryBits|_LinearAccessMask) &amp; (unsigned int)(MatrixFlags)) | (_Vectorizable ? PacketAccessBit : 0)
 , <b>Alignment</b> = evaluator&lt;MatrixType&gt;::Alignment
+, <b>AsScalarProduct</b>
 <br />
  }</td></tr>
-<tr class="separator:a768a88d300d36a70aa79d9d9510a6a4b"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af0684733d9e2f8d1f4651428171f3553" id="r_af0684733d9e2f8d1f4651428171f3553"><td class="memItemLeft" align="right" valign="top"><a id="af0684733d9e2f8d1f4651428171f3553" name="af0684733d9e2f8d1f4651428171f3553"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1scalar__product__traits.html">scalar_product_traits</a>&lt; typenameMatrixType::Scalar, typenameDiagonalType::Scalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
-<tr class="separator:af0684733d9e2f8d1f4651428171f3553"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a2b13054c69497f21c2bf47b0d93424c5"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac9d1b7eee123fb331d7571b4d23a2405" id="r_ac9d1b7eee123fb331d7571b4d23a2405"><td class="memItemLeft" align="right" valign="top"><a id="ac9d1b7eee123fb331d7571b4d23a2405" name="ac9d1b7eee123fb331d7571b4d23a2405"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ScalarBinaryOpTraits.html">ScalarBinaryOpTraits</a>&lt; typenameMatrixType::Scalar, typenameDiagonalType::Scalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<tr class="separator:ac9d1b7eee123fb331d7571b4d23a2405"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1internal_1_1evaluator__base"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1internal_1_1evaluator__base')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1internal_1_1evaluator__base.html">Eigen::internal::evaluator_base&lt; Derived &gt;</a></td></tr>
-<tr class="memitem:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af23e7bca3305f345014f6c9690dbdcbd"><td class="memItemLeft" align="right" valign="top"><a id="af23e7bca3305f345014f6c9690dbdcbd" name="af23e7bca3305f345014f6c9690dbdcbd"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
-<tr class="separator:af23e7bca3305f345014f6c9690dbdcbd inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_af7fb5bd0e99d83cbea60e204838ec0d3"><td class="memItemLeft" align="right" valign="top"><a id="af7fb5bd0e99d83cbea60e204838ec0d3" name="af7fb5bd0e99d83cbea60e204838ec0d3"></a>enum &#160;</td><td class="memItemRight" valign="bottom"></td></tr>
+<tr class="separator:af7fb5bd0e99d83cbea60e204838ec0d3 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base" id="r_acb94884a759bb59a96c8c3eea1e50c10"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1traits.html">traits</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ExpressionTraits</b></td></tr>
 <tr class="separator:acb94884a759bb59a96c8c3eea1e50c10 inherit pub_types_structEigen_1_1internal_1_1evaluator__base"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a31b91435801db27c9ca20198f0d0facf" id="r_a31b91435801db27c9ca20198f0d0facf"><td class="memItemLeft" align="right" valign="top"><a id="a31b91435801db27c9ca20198f0d0facf" name="a31b91435801db27c9ca20198f0d0facf"></a>
-&#160;</td><td class="memItemRight" valign="bottom"><b>diagonal_product_evaluator_base</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> MatrixType &amp;<a class="el" href="classEigen_1_1Solve.html">mat</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> DiagonalType &amp;<a class="el" href="classEigen_1_1Solve.html">diag</a>)</td></tr>
-<tr class="separator:a31b91435801db27c9ca20198f0d0facf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aff55d84de38d157d413dd637d0557b13" id="r_aff55d84de38d157d413dd637d0557b13"><td class="memItemLeft" align="right" valign="top"><a id="aff55d84de38d157d413dd637d0557b13" name="aff55d84de38d157d413dd637d0557b13"></a>
+EIGEN_DEVICE_FUNC&#160;</td><td class="memItemRight" valign="bottom"><b>diagonal_product_evaluator_base</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> MatrixType &amp;<a class="el" href="classEigen_1_1MatrixBase.html">mat</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> DiagonalType &amp;<a class="el" href="classEigen_1_1MatrixBase.html">diag</a>)</td></tr>
+<tr class="separator:aff55d84de38d157d413dd637d0557b13"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0b502bff8d9694d1ba557b2def781917" id="r_a0b502bff8d9694d1ba557b2def781917"><td class="memItemLeft" align="right" valign="top"><a id="a0b502bff8d9694d1ba557b2def781917" name="a0b502bff8d9694d1ba557b2def781917"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1Solve.html">const</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (Index idx) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>coeff</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> idx) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a0b502bff8d9694d1ba557b2def781917"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
 <tr class="memitem:a0c40c8d14ebec720202430c2b54ccd5c" id="r_a0c40c8d14ebec720202430c2b54ccd5c"><td class="memTemplParams" colspan="2"><a id="a0c40c8d14ebec720202430c2b54ccd5c" name="a0c40c8d14ebec720202430c2b54ccd5c"></a>
-template&lt;int LoadMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:a0c40c8d14ebec720202430c2b54ccd5c"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet_impl</b> (Index row, Index col, Index id, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;int LoadMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:a0c40c8d14ebec720202430c2b54ccd5c"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> id, <a class="el" href="structEigen_1_1internal_1_1true__type.html">internal::true_type</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:a0c40c8d14ebec720202430c2b54ccd5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad0c8a0b3d0df8990abbab8c091df0bca" id="r_ad0c8a0b3d0df8990abbab8c091df0bca"><td class="memTemplParams" colspan="2"><a id="ad0c8a0b3d0df8990abbab8c091df0bca" name="ad0c8a0b3d0df8990abbab8c091df0bca"></a>
-template&lt;int LoadMode, <a class="el" href="classEigen_1_1Solve.html">typename</a> PacketType &gt; </td></tr>
-<tr class="memitem:ad0c8a0b3d0df8990abbab8c091df0bca"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet_impl</b> (Index row, Index col, Index id, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a>) <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
+template&lt;int LoadMode, <a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:ad0c8a0b3d0df8990abbab8c091df0bca"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>packet_impl</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> row, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> col, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> id, <a class="el" href="structEigen_1_1internal_1_1false__type.html">internal::false_type</a>) <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
 <tr class="separator:ad0c8a0b3d0df8990abbab8c091df0bca"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
@@ -155,7 +156,7 @@ Protected Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:46 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

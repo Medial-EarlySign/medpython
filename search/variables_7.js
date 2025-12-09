@@ -12,5 +12,6 @@ var searchData=
   ['ht_5fdrugs_9',['ht_drugs',['../classRepCreateRegistry.html#a541d3f2fd2ac522900b44051a65dbf72',1,'RepCreateRegistry']]],
   ['ht_5fdrugs_5fgap_10',['ht_drugs_gap',['../classRepCreateRegistry.html#a1d6db922cbf110d271cf53e753576f97',1,'RepCreateRegistry']]],
   ['ht_5fextra_5fdrugs_11',['ht_extra_drugs',['../classRepCreateRegistry.html#acb2daa4315b1b0925c6e338e3f1da408',1,'RepCreateRegistry']]],
-  ['ht_5fidentifiers_12',['ht_identifiers',['../classRepCreateRegistry.html#a601d487dfadba0cdf70704c71f38183f',1,'RepCreateRegistry']]]
+  ['ht_5fidentifiers_12',['ht_identifiers',['../classRepCreateRegistry.html#a601d487dfadba0cdf70704c71f38183f',1,'RepCreateRegistry']]],
+  ['hugecost_13',['HugeCost',['../namespaceEigen.html#a3163430a1c13173faffde69016b48aaf',1,'Eigen']]]
 ];

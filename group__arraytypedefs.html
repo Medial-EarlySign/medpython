@@ -80,11 +80,15 @@ $(function() {
 <p><code>ArrayRowsColsType</code> where <code>Rows</code> and <code>Cols</code> can be <code>2</code>,<code>3</code>,<code>4</code> for fixed size square matrices or <code>X</code> for dynamic size, and where <code>Type</code> can be <code>i</code> for integer, <code>f</code> for float, <code>d</code> for double, <code>cf</code> for complex float, <code>cd</code> for complex double.</p>
 <p>For example, <code>Array33d</code> is a fixed-size 3x3 array type of doubles, and <code>ArrayXXf</code> is a dynamic-size matrix of floats.</p>
 <p>There are also <code>ArraySizeType</code> which are self-explanatory. For example, <code>Array4cf</code> is a fixed-size 1D array of 4 complex floats.</p>
+<p>With \cpp11, template alias are also defined for common sizes. They follow the same pattern as above except that the scalar type suffix is replaced by a template parameter, i.e.:</p><ul>
+<li><code>ArrayRowsCols&lt;Type&gt;</code> where <code>Rows</code> and <code>Cols</code> can be <code>2</code>,<code>3</code>,<code>4</code>, or <code>X</code> for fixed or dynamic size.</li>
+<li><code>ArraySize&lt;Type&gt;</code> where <code>Size</code> can be <code>2</code>,<code>3</code>,<code>4</code> or <code>X</code> for fixed or dynamic size 1D arrays.</li>
+</ul>
 <dl class="section see"><dt>See also</dt><dd>class <a class="el" href="classEigen_1_1Array.html" title="General-purpose arrays with easy API for coefficient-wise operations.">Array</a> </dd></dl>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:36 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

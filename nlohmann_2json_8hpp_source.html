@@ -12180,7 +12180,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l12697" name="l12697"></a><span class="lineno">12697</span>        <span class="keywordflow">return</span> lhs.m_it == rhs.m_it;</div>
 <div class="line"><a id="l12698" name="l12698"></a><span class="lineno">12698</span>    }</div>
 <div class="line"><a id="l12699" name="l12699"></a><span class="lineno">12699</span> </div>
-<div class="line"><a id="l12700" name="l12700"></a><span class="lineno">12700</span>    <span class="keyword">friend</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(primitive_iterator_t lhs, primitive_iterator_t rhs) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l12700" name="l12700"></a><span class="lineno">12700</span>    <span class="keyword">friend</span> <span class="keyword">constexpr</span> <span class="keywordtype">bool</span> operator&lt;(primitive_iterator_t lhs, primitive_iterator_t rhs) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l12701" name="l12701"></a><span class="lineno">12701</span>    {</div>
 <div class="line"><a id="l12702" name="l12702"></a><span class="lineno">12702</span>        <span class="keywordflow">return</span> lhs.m_it &lt; rhs.m_it;</div>
 <div class="line"><a id="l12703" name="l12703"></a><span class="lineno">12703</span>    }</div>
@@ -12746,7 +12746,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="foldopen" id="foldopen13357" data-start="{" data-end="}">
 <div class="line"><a id="l13357" name="l13357"></a><span class="lineno"><a class="line" href="classdetail_1_1iter__impl.html#a25a3a8e85eb37727487f210f5304a48e">13357</a></span>    <span class="keywordtype">bool</span> <a class="code hl_function" href="classdetail_1_1iter__impl.html#a25a3a8e85eb37727487f210f5304a48e">operator&gt;=</a>(<span class="keyword">const</span> <a class="code hl_class" href="classdetail_1_1iter__impl.html">iter_impl</a>&amp; other)<span class="keyword"> const</span></div>
 <div class="line"><a id="l13358" name="l13358"></a><span class="lineno">13358</span><span class="keyword">    </span>{</div>
-<div class="line"><a id="l13359" name="l13359"></a><span class="lineno">13359</span>        <span class="keywordflow">return</span> !<a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(other);</div>
+<div class="line"><a id="l13359" name="l13359"></a><span class="lineno">13359</span>        <span class="keywordflow">return</span> !operator&lt;(other);</div>
 <div class="line"><a id="l13360" name="l13360"></a><span class="lineno">13360</span>    }</div>
 </div>
 <div class="line"><a id="l13361" name="l13361"></a><span class="lineno">13361</span> </div>
@@ -13877,7 +13877,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l14634" name="l14634"></a><span class="lineno">14634</span> </div>
 <div class="line"><a id="l14636" name="l14636"></a><span class="lineno">14636</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> RefStringTypeLhs, <span class="keyword">typename</span> RefStringTypeRhs&gt;</div>
 <div class="line"><a id="l14637" name="l14637"></a><span class="lineno">14637</span>    <span class="comment">// NOLINTNEXTLINE(readability-redundant-declaration)</span></div>
-<div class="line"><a id="l14638" name="l14638"></a><span class="lineno">14638</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(<span class="keyword">const</span> <a class="code hl_class" href="classjson__pointer.html">json_pointer&lt;RefStringTypeLhs&gt;</a>&amp; lhs,</div>
+<div class="line"><a id="l14638" name="l14638"></a><span class="lineno">14638</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> operator&lt;(<span class="keyword">const</span> <a class="code hl_class" href="classjson__pointer.html">json_pointer&lt;RefStringTypeLhs&gt;</a>&amp; lhs,</div>
 <div class="line"><a id="l14639" name="l14639"></a><span class="lineno">14639</span>                          <span class="keyword">const</span> <a class="code hl_class" href="classjson__pointer.html">json_pointer&lt;RefStringTypeRhs&gt;</a>&amp; rhs) <span class="keyword">noexcept</span>;</div>
 <div class="line"><a id="l14640" name="l14640"></a><span class="lineno">14640</span><span class="preprocessor">#endif</span></div>
 <div class="line"><a id="l14641" name="l14641"></a><span class="lineno">14641</span> </div>
@@ -21563,7 +21563,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l23056" name="l23056"></a><span class="lineno">23056</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="classbasic__json.html">basic_json</a>(lhs) != rhs;</div>
 <div class="line"><a id="l23057" name="l23057"></a><span class="lineno">23057</span>    }</div>
 <div class="line"><a id="l23058" name="l23058"></a><span class="lineno">23058</span> </div>
-<div class="line"><a id="l23061" name="l23061"></a><span class="lineno">23061</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(const_reference lhs, const_reference rhs) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l23061" name="l23061"></a><span class="lineno">23061</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> operator&lt;(const_reference lhs, const_reference rhs) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l23062" name="l23062"></a><span class="lineno">23062</span>    {</div>
 <div class="line"><a id="l23063" name="l23063"></a><span class="lineno">23063</span>        <span class="comment">// default_result is used if we cannot compare values. In that case,</span></div>
 <div class="line"><a id="l23064" name="l23064"></a><span class="lineno">23064</span>        <span class="comment">// we compare types. Note we have to call the operator explicitly,</span></div>
@@ -21573,14 +21573,14 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l23068" name="l23068"></a><span class="lineno">23068</span> </div>
 <div class="line"><a id="l23071" name="l23071"></a><span class="lineno">23071</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> ScalarType, <span class="keyword">typename</span> std::enable_if&lt;</div>
 <div class="line"><a id="l23072" name="l23072"></a><span class="lineno">23072</span>                 std::is_scalar&lt;ScalarType&gt;::value, <span class="keywordtype">int</span>&gt;::type = 0&gt;</div>
-<div class="line"><a id="l23073" name="l23073"></a><span class="lineno">23073</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(const_reference lhs, ScalarType rhs) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l23073" name="l23073"></a><span class="lineno">23073</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> operator&lt;(const_reference lhs, ScalarType rhs) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l23074" name="l23074"></a><span class="lineno">23074</span>    {</div>
 <div class="line"><a id="l23075" name="l23075"></a><span class="lineno">23075</span>        <span class="keywordflow">return</span> lhs &lt; <a class="code hl_class" href="classbasic__json.html">basic_json</a>(rhs);</div>
 <div class="line"><a id="l23076" name="l23076"></a><span class="lineno">23076</span>    }</div>
 <div class="line"><a id="l23077" name="l23077"></a><span class="lineno">23077</span> </div>
 <div class="line"><a id="l23080" name="l23080"></a><span class="lineno">23080</span>    <span class="keyword">template</span>&lt;<span class="keyword">typename</span> ScalarType, <span class="keyword">typename</span> std::enable_if&lt;</div>
 <div class="line"><a id="l23081" name="l23081"></a><span class="lineno">23081</span>                 std::is_scalar&lt;ScalarType&gt;::value, <span class="keywordtype">int</span>&gt;::type = 0&gt;</div>
-<div class="line"><a id="l23082" name="l23082"></a><span class="lineno">23082</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> <a class="code hl_function" href="namespacedetail.html#aac7ca91589afb0bad68baec5949daaa2">operator&lt;</a>(ScalarType lhs, const_reference rhs) <span class="keyword">noexcept</span></div>
+<div class="line"><a id="l23082" name="l23082"></a><span class="lineno">23082</span>    <span class="keyword">friend</span> <span class="keywordtype">bool</span> operator&lt;(ScalarType lhs, const_reference rhs) <span class="keyword">noexcept</span></div>
 <div class="line"><a id="l23083" name="l23083"></a><span class="lineno">23083</span>    {</div>
 <div class="line"><a id="l23084" name="l23084"></a><span class="lineno">23084</span>        <span class="keywordflow">return</span> <a class="code hl_class" href="classbasic__json.html">basic_json</a>(lhs) &lt; rhs;</div>
 <div class="line"><a id="l23085" name="l23085"></a><span class="lineno">23085</span>    }</div>
@@ -22831,7 +22831,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l24419" name="l24419"></a><span class="lineno">24419</span>    is_nothrow_move_constructible&lt;nlohmann::NLOHMANN_BASIC_JSON_TPL&gt;::value&amp;&amp;                          <span class="comment">// NOLINT(misc-redundant-expression)</span></div>
 <div class="line"><a id="l24420" name="l24420"></a><span class="lineno">24420</span>    is_nothrow_move_assignable&lt;nlohmann::NLOHMANN_BASIC_JSON_TPL&gt;::value)</div>
 <div class="line"><a id="l24421" name="l24421"></a><span class="lineno">24421</span>{</div>
-<div class="line"><a id="l24422" name="l24422"></a><span class="lineno">24422</span>    j1.swap(j2);</div>
+<div class="line"><a id="l24422" name="l24422"></a><span class="lineno">24422</span>    j1.<a class="code hl_function" href="classEigen_1_1DenseBase.html#a40aa938e7e7fecafb3178ef37dc977ec">swap</a>(j2);</div>
 <div class="line"><a id="l24423" name="l24423"></a><span class="lineno">24423</span>}</div>
 </div>
 <div class="line"><a id="l24424" name="l24424"></a><span class="lineno">24424</span> </div>
@@ -23051,6 +23051,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l24638" name="l24638"></a><span class="lineno">24638</span> </div>
 <div class="line"><a id="l24639" name="l24639"></a><span class="lineno">24639</span> </div>
 <div class="line"><a id="l24640" name="l24640"></a><span class="lineno">24640</span><span class="preprocessor">#endif  </span><span class="comment">// INCLUDE_NLOHMANN_JSON_HPP_</span></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_a40aa938e7e7fecafb3178ef37dc977ec"><div class="ttname"><a href="classEigen_1_1DenseBase.html#a40aa938e7e7fecafb3178ef37dc977ec">Eigen::DenseBase::swap</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE void swap(const DenseBase&lt; OtherDerived &gt; &amp;other)</div><div class="ttdoc">swaps *this with the expression other.</div><div class="ttdef"><b>Definition</b> DenseBase.h:420</div></div>
 <div class="ttc" id="aclassbasic__json_html"><div class="ttname"><a href="classbasic__json.html">basic_json</a></div><div class="ttdoc">a class to store JSON values</div><div class="ttdef"><b>Definition</b> json.hpp:19313</div></div>
 <div class="ttc" id="aclassbasic__json_html_a007ecebde9a7d40714e300ce0ff52908"><div class="ttname"><a href="classbasic__json.html#a007ecebde9a7d40714e300ce0ff52908">basic_json::is_string</a></div><div class="ttdeci">constexpr bool is_string() const noexcept</div><div class="ttdoc">return whether value is a string</div><div class="ttdef"><b>Definition</b> json.hpp:20580</div></div>
 <div class="ttc" id="aclassbasic__json_html_a05da3b93f2d4a7164589abffaa9acb33"><div class="ttname"><a href="classbasic__json.html#a05da3b93f2d4a7164589abffaa9acb33">basic_json::erase</a></div><div class="ttdeci">size_type erase(const typename object_t::key_type &amp;key)</div><div class="ttdoc">remove element from a JSON object given a key</div><div class="ttdef"><b>Definition</b> json.hpp:21814</div></div>
@@ -23381,7 +23382,7 @@ $(document).ready(function() { init_codefold(0); });
 <div class="ttc" id="anamespacedmlc_html_a1e731f276d3a3efa8e17f46ccf35f828"><div class="ttname"><a href="namespacedmlc.html#a1e731f276d3a3efa8e17f46ccf35f828">dmlc::type_name</a></div><div class="ttdeci">std::string type_name()</div><div class="ttdoc">the string representation of type name</div><div class="ttdef"><b>Definition</b> type_traits.h:101</div></div>
 <div class="ttc" id="anamespacedmlc_html_aff849eb74b4604e70e042dc681819e3d"><div class="ttname"><a href="namespacedmlc.html#aff849eb74b4604e70e042dc681819e3d">dmlc::operator&gt;&gt;</a></div><div class="ttdeci">std::istream &amp; operator&gt;&gt;(std::istream &amp;is, optional&lt; T &gt; &amp;t)</div><div class="ttdoc">parse a string object into optional&lt;T&gt;</div><div class="ttdef"><b>Definition</b> optional.h:323</div></div>
 <div class="ttc" id="anamespacelogistic__regression_html_a95c480d50b25da5de78f160ff3e734fa"><div class="ttname"><a href="namespacelogistic__regression.html#a95c480d50b25da5de78f160ff3e734fa">logistic_regression.N</a></div><div class="ttdeci">int N</div><div class="ttdoc">Simulate some binary data with a single categorical and single continuous predictor.</div><div class="ttdef"><b>Definition</b> logistic_regression.py:26</div></div>
-<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> StdDeque.h:58</div></div>
+<div class="ttc" id="anamespacestd_html"><div class="ttname"><a href="namespacestd.html">std</a></div><div class="ttdef"><b>Definition</b> BFloat16.h:88</div></div>
 <div class="ttc" id="anamespacestd_html_ab5fa3119ddc434392ecca8849e2e08e1"><div class="ttname"><a href="namespacestd.html#ab5fa3119ddc434392ecca8849e2e08e1">std::swap</a></div><div class="ttdeci">NLOHMANN_BASIC_JSON_TPL_DECLARATION void swap(nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j1, nlohmann::NLOHMANN_BASIC_JSON_TPL &amp;j2) noexcept(//NOLINT(readability-inconsistent-declaration-parameter-name, cert-dcl58-cpp) is_nothrow_move_constructible&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value &amp;&amp;//NOLINT(misc-redundant-expression) is_nothrow_move_assignable&lt; nlohmann::NLOHMANN_BASIC_JSON_TPL &gt;::value)</div><div class="ttdoc">exchanges the values of two JSON objects</div><div class="ttdef"><b>Definition</b> json.hpp:24418</div></div>
 <div class="ttc" id="anamespacexgboost_1_1ltr_html_ad5e395ea7f1d993b33f779d9ef5e686d"><div class="ttname"><a href="namespacexgboost_1_1ltr.html#ad5e395ea7f1d993b33f779d9ef5e686d">xgboost::ltr::position_t</a></div><div class="ttdeci">std::uint32_t position_t</div><div class="ttdoc">top-k position</div><div class="ttdef"><b>Definition</b> ranking_utils.h:34</div></div>
 <div class="ttc" id="astructadl__serializer_html"><div class="ttname"><a href="structadl__serializer.html">adl_serializer</a></div><div class="ttdoc">namespace for Niels Lohmann</div><div class="ttdef"><b>Definition</b> json.hpp:5766</div></div>
@@ -23469,7 +23470,7 @@ $(document).ready(function() { init_codefold(0); });
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:32 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:09 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

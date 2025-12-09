@@ -5,7 +5,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=11"/>
 <meta name="generator" content="Doxygen 1.9.8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>Medial Code Documentation: Eigen::internal::redux_vec_unroller&lt; Func, Derived, Start, Length &gt; Struct Template Reference</title>
+<title>Medial Code Documentation: Eigen::internal::redux_vec_unroller&lt; Func, Evaluator, Start, Length &gt; Struct Template Reference</title>
 <link href="tabs.css" rel="stylesheet" type="text/css"/>
 <script type="text/javascript" src="jquery.js"></script>
 <script type="text/javascript" src="dynsections.js"></script>
@@ -69,35 +69,22 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1redux__vec__unroller.html">redux_vec_unroller</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1redux__vec__unroller.html">redux_vec_unroller</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="summary">
-<a href="#pub-types">Public Types</a> &#124;
 <a href="#pub-static-methods">Static Public Member Functions</a>  </div>
-  <div class="headertitle"><div class="title">Eigen::internal::redux_vec_unroller&lt; Func, Derived, Start, Length &gt; Struct Template Reference</div></div>
+  <div class="headertitle"><div class="title">Eigen::internal::redux_vec_unroller&lt; Func, Evaluator, Start, Length &gt; Struct Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
 <table class="memberdecls">
-<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
-Public Types</h2></td></tr>
-<tr class="memitem:af761e1482b0f4ed2b4a6770b7c3d78fa" id="r_af761e1482b0f4ed2b4a6770b7c3d78fa"><td class="memItemLeft" align="right" valign="top"><a id="af761e1482b0f4ed2b4a6770b7c3d78fa" name="af761e1482b0f4ed2b4a6770b7c3d78fa"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>PacketSize</b> = packet_traits&lt;typename Derived::Scalar&gt;::size
-, <b>HalfLength</b> = Length/2
- }</td></tr>
-<tr class="separator:af761e1482b0f4ed2b4a6770b7c3d78fa"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a37caf247b75c895c88df3d44bf97bab5" id="r_a37caf247b75c895c88df3d44bf97bab5"><td class="memItemLeft" align="right" valign="top"><a id="a37caf247b75c895c88df3d44bf97bab5" name="a37caf247b75c895c88df3d44bf97bab5"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> Derived::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
-<tr class="separator:a37caf247b75c895c88df3d44bf97bab5"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ac0eb5f4f0c1073439e629d2c841b92ef" id="r_ac0eb5f4f0c1073439e629d2c841b92ef"><td class="memItemLeft" align="right" valign="top"><a id="ac0eb5f4f0c1073439e629d2c841b92ef" name="ac0eb5f4f0c1073439e629d2c841b92ef"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
-<tr class="separator:ac0eb5f4f0c1073439e629d2c841b92ef"><td class="memSeparator" colspan="2">&#160;</td></tr>
-</table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:aa41cff18de625592df82c377cd67d916" id="r_aa41cff18de625592df82c377cd67d916"><td class="memItemLeft" align="right" valign="top"><a id="aa41cff18de625592df82c377cd67d916" name="aa41cff18de625592df82c377cd67d916"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> EIGEN_STRONG_INLINE PacketScalar&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> Derived &amp;<a class="el" href="classEigen_1_1Solve.html">mat</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> Func &amp;func)</td></tr>
-<tr class="separator:aa41cff18de625592df82c377cd67d916"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aea22db013ad36637e60ae9916dbf8d13" id="r_aea22db013ad36637e60ae9916dbf8d13"><td class="memTemplParams" colspan="2"><a id="aea22db013ad36637e60ae9916dbf8d13" name="aea22db013ad36637e60ae9916dbf8d13"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> PacketType &gt; </td></tr>
+<tr class="memitem:aea22db013ad36637e60ae9916dbf8d13"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE PacketType&#160;</td><td class="memTemplItemRight" valign="bottom"><b>run</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> Evaluator &amp;<a class="el" href="structEigen_1_1internal_1_1eval.html">eval</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> Func &amp;func)</td></tr>
+<tr class="separator:aea22db013ad36637e60ae9916dbf8d13"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="Redux_8h_source.html">Redux.h</a></li>
@@ -105,7 +92,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:48 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:25 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

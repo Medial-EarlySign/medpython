@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="structEigen_1_1NumTraits_3_01Array_3_01Scalar_00_01Rows_00_01Cols_00_01Options_00_01MaxRows_00_01MaxCols_01_4_01_4.html">NumTraits&lt; Array&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="structEigen_1_1NumTraits_3_01Array_3_01Scalar_00_01Rows_00_01Cols_00_01Options_00_01MaxRows_00_01MaxCols_01_4_01_4.html">NumTraits&lt; Array&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -82,45 +82,51 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a59439f8373c479e339e236863f08c78d" id="r_a59439f8373c479e339e236863f08c78d"><td class="memItemLeft" align="right" valign="top"><a id="a59439f8373c479e339e236863f08c78d" name="a59439f8373c479e339e236863f08c78d"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+<tr class="memitem:a0208e1c7a62de26a5c489159c3fb92cc" id="r_a0208e1c7a62de26a5c489159c3fb92cc"><td class="memItemLeft" align="right" valign="top"><a id="a0208e1c7a62de26a5c489159c3fb92cc" name="a0208e1c7a62de26a5c489159c3fb92cc"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
 &#160;&#160;<b>IsComplex</b> = NumTraits&lt;Scalar&gt;::IsComplex
 , <b>IsInteger</b> = NumTraits&lt;Scalar&gt;::IsInteger
 , <b>IsSigned</b> = NumTraits&lt;Scalar&gt;::IsSigned
 , <b>RequireInitialization</b> = 1
 , <br />
-&#160;&#160;<b>ReadCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * NumTraits&lt;Scalar&gt;::ReadCost
-, <b>AddCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * NumTraits&lt;Scalar&gt;::AddCost
-, <b>MulCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * NumTraits&lt;Scalar&gt;::MulCost
+&#160;&#160;<b>ReadCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * int(NumTraits&lt;Scalar&gt;::ReadCost)
+, <b>AddCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * int(NumTraits&lt;Scalar&gt;::AddCost)
+, <b>MulCost</b> = ArrayType::SizeAtCompileTime==Dynamic ? HugeCost : ArrayType::SizeAtCompileTime * int(NumTraits&lt;Scalar&gt;::MulCost)
 <br />
  }</td></tr>
-<tr class="separator:a59439f8373c479e339e236863f08c78d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a0208e1c7a62de26a5c489159c3fb92cc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa65515eccc2c3f0f88080835c975fbc2" id="r_aa65515eccc2c3f0f88080835c975fbc2"><td class="memItemLeft" align="right" valign="top"><a id="aa65515eccc2c3f0f88080835c975fbc2" name="aa65515eccc2c3f0f88080835c975fbc2"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ArrayType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; Scalar, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>ArrayType</b></td></tr>
 <tr class="separator:aa65515eccc2c3f0f88080835c975fbc2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a0466bb695bcb2ebd0692ad6ae99c37e5" id="r_a0466bb695bcb2ebd0692ad6ae99c37e5"><td class="memItemLeft" align="right" valign="top"><a id="a0466bb695bcb2ebd0692ad6ae99c37e5" name="a0466bb695bcb2ebd0692ad6ae99c37e5"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::Real&#160;</td><td class="memItemRight" valign="bottom"><b>RealScalar</b></td></tr>
 <tr class="separator:a0466bb695bcb2ebd0692ad6ae99c37e5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4b36f130a9f51f5012d2630ca70431d7" id="r_a4b36f130a9f51f5012d2630ca70431d7"><td class="memItemLeft" align="right" valign="top"><a id="a4b36f130a9f51f5012d2630ca70431d7" name="a4b36f130a9f51f5012d2630ca70431d7"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; <a class="el" href="classEigen_1_1Solve.html">RealScalar</a>, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a>, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b></td></tr>
 <tr class="separator:a4b36f130a9f51f5012d2630ca70431d7"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4724a5585f6b9bb8b5b3bdce7de6f3bd" id="r_a4724a5585f6b9bb8b5b3bdce7de6f3bd"><td class="memItemLeft" align="right" valign="top"><a id="a4724a5585f6b9bb8b5b3bdce7de6f3bd" name="a4724a5585f6b9bb8b5b3bdce7de6f3bd"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::NonInteger&#160;</td><td class="memItemRight" valign="bottom"><b>NonIntegerScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::NonInteger&#160;</td><td class="memItemRight" valign="bottom"><b>NonIntegerScalar</b></td></tr>
 <tr class="separator:a4724a5585f6b9bb8b5b3bdce7de6f3bd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae33a724d929f2212615ea61500a7acc9" id="r_ae33a724d929f2212615ea61500a7acc9"><td class="memItemLeft" align="right" valign="top"><a id="ae33a724d929f2212615ea61500a7acc9" name="ae33a724d929f2212615ea61500a7acc9"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; <a class="el" href="classEigen_1_1Solve.html">NonIntegerScalar</a>, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>NonInteger</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Array.html">Array</a>&lt; <a class="el" href="classEigen_1_1MatrixBase.html">NonIntegerScalar</a>, Rows, Cols, Options, MaxRows, MaxCols &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>NonInteger</b></td></tr>
 <tr class="separator:ae33a724d929f2212615ea61500a7acc9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2424310bbf6d8d20521d6a8c79324981" id="r_a2424310bbf6d8d20521d6a8c79324981"><td class="memItemLeft" align="right" valign="top"><a id="a2424310bbf6d8d20521d6a8c79324981" name="a2424310bbf6d8d20521d6a8c79324981"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">ArrayType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Nested</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">ArrayType</a> &amp;&#160;</td><td class="memItemRight" valign="bottom"><b>Nested</b></td></tr>
 <tr class="separator:a2424310bbf6d8d20521d6a8c79324981"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1339c70e5bca976d329f493f9c8de37c" id="r_a1339c70e5bca976d329f493f9c8de37c"><td class="memItemLeft" align="right" valign="top"><a id="a1339c70e5bca976d329f493f9c8de37c" name="a1339c70e5bca976d329f493f9c8de37c"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a>&lt; Scalar &gt;::Literal&#160;</td><td class="memItemRight" valign="bottom"><b>Literal</b></td></tr>
+<tr class="separator:a1339c70e5bca976d329f493f9c8de37c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a73da164507bdcc21695ac471442dff19" id="r_a73da164507bdcc21695ac471442dff19"><td class="memItemLeft" align="right" valign="top"><a id="a73da164507bdcc21695ac471442dff19" name="a73da164507bdcc21695ac471442dff19"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>epsilon</b> ()</td></tr>
-<tr class="separator:a73da164507bdcc21695ac471442dff19"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:af97adfa5e0fe58ac156c84e10a1b5672" id="r_af97adfa5e0fe58ac156c84e10a1b5672"><td class="memItemLeft" align="right" valign="top"><a id="af97adfa5e0fe58ac156c84e10a1b5672" name="af97adfa5e0fe58ac156c84e10a1b5672"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> <a class="el" href="classEigen_1_1Solve.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dummy_precision</b> ()</td></tr>
-<tr class="separator:af97adfa5e0fe58ac156c84e10a1b5672"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a08e35f935ff963dc9fe3774ef09eed24" id="r_a08e35f935ff963dc9fe3774ef09eed24"><td class="memItemLeft" align="right" valign="top"><a id="a08e35f935ff963dc9fe3774ef09eed24" name="a08e35f935ff963dc9fe3774ef09eed24"></a>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_CONSTEXPR <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>epsilon</b> ()</td></tr>
+<tr class="separator:a08e35f935ff963dc9fe3774ef09eed24"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1c3b3b1207fe3eafec984424b8d7472f" id="r_a1c3b3b1207fe3eafec984424b8d7472f"><td class="memItemLeft" align="right" valign="top"><a id="a1c3b3b1207fe3eafec984424b8d7472f" name="a1c3b3b1207fe3eafec984424b8d7472f"></a>
+EIGEN_DEVICE_FUNC <a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_CONSTEXPR <a class="el" href="classEigen_1_1MatrixBase.html">RealScalar</a>&#160;</td><td class="memItemRight" valign="bottom"><b>dummy_precision</b> ()</td></tr>
+<tr class="separator:a1c3b3b1207fe3eafec984424b8d7472f"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ac42a505b6455600139fa25a967de04d6" id="r_ac42a505b6455600139fa25a967de04d6"><td class="memItemLeft" align="right" valign="top"><a id="ac42a505b6455600139fa25a967de04d6" name="ac42a505b6455600139fa25a967de04d6"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_CONSTEXPR int&#160;</td><td class="memItemRight" valign="bottom"><b>digits10</b> ()</td></tr>
+<tr class="separator:ac42a505b6455600139fa25a967de04d6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="NumTraits_8h_source.html">NumTraits.h</a></li>
@@ -128,7 +134,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:41 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:18 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

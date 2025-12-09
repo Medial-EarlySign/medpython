@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1RefBase.html">RefBase</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1RefBase.html">RefBase</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -78,6 +78,7 @@ $(function() {
 <a href="#pub-methods">Public Member Functions</a> &#124;
 <a href="#pro-types">Protected Types</a> &#124;
 <a href="#pro-methods">Protected Member Functions</a> &#124;
+<a href="#pro-static-methods">Static Protected Member Functions</a> &#124;
 <a href="#pro-attribs">Protected Attributes</a>  </div>
   <div class="headertitle"><div class="title">Eigen::RefBase&lt; Derived &gt; Class Template Reference</div></div>
 </div><!--header-->
@@ -88,39 +89,49 @@ Inheritance diagram for Eigen::RefBase&lt; Derived &gt;:</div>
  <div class="center">
   <img src="classEigen_1_1RefBase.png" usemap="#Eigen::RefBase_3C_20Derived_20_3E_map" alt=""/>
   <map id="Eigen::RefBase_3C_20Derived_20_3E_map" name="Eigen::RefBase_3C_20Derived_20_3E_map">
-<area href="classEigen_1_1MapBase.html" title="Base class for Map and Block expression with direct access." alt="Eigen::MapBase&lt; Derived, Level &gt;" shape="rect" coords="209,0,617,24"/>
-<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const UmfpackMatrixType, StandardCompressedFormat &gt;" shape="rect" coords="0,112,408,136"/>
-<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const MatrixType &gt;" shape="rect" coords="418,112,826,136"/>
+<area href="classEigen_1_1MapBase.html" alt="Eigen::MapBase&lt; Derived, Level &gt;" shape="rect" coords="418,0,826,24"/>
+<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const KLUMatrixType, StandardCompressedFormat &gt;" shape="rect" coords="0,112,408,136"/>
+<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const UmfpackMatrixType, StandardCompressedFormat &gt;" shape="rect" coords="418,112,826,136"/>
+<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const MatrixType &gt;" shape="rect" coords="836,112,1244,136"/>
   </map>
 </div></div>
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
 <tr class="memitem:af4cf7b03dd4f89bf2caf76776923d8ab" id="r_af4cf7b03dd4f89bf2caf76776923d8ab"><td class="memItemLeft" align="right" valign="top"><a id="af4cf7b03dd4f89bf2caf76776923d8ab" name="af4cf7b03dd4f89bf2caf76776923d8ab"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MapBase.html">MapBase</a>&lt; Derived &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>Base</b></td></tr>
 <tr class="separator:af4cf7b03dd4f89bf2caf76776923d8ab"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a6b596948fd93da0ef5e860499bd378b6" id="r_a6b596948fd93da0ef5e860499bd378b6"><td class="memItemLeft" align="right" valign="top"><a id="a6b596948fd93da0ef5e860499bd378b6" name="a6b596948fd93da0ef5e860499bd378b6"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>innerStride</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:a6b596948fd93da0ef5e860499bd378b6"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:ab16f2280abb4f0818e1f65e012b65585" id="r_ab16f2280abb4f0818e1f65e012b65585"><td class="memItemLeft" align="right" valign="top"><a id="ab16f2280abb4f0818e1f65e012b65585" name="ab16f2280abb4f0818e1f65e012b65585"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> Index&#160;</td><td class="memItemRight" valign="bottom"><b>outerStride</b> () <a class="el" href="classEigen_1_1Solve.html">const</a></td></tr>
-<tr class="separator:ab16f2280abb4f0818e1f65e012b65585"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1943039d18564beb4d5527657fe82b74" id="r_a1943039d18564beb4d5527657fe82b74"><td class="memItemLeft" align="right" valign="top"><a id="a1943039d18564beb4d5527657fe82b74" name="a1943039d18564beb4d5527657fe82b74"></a>
+EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>innerStride</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a1943039d18564beb4d5527657fe82b74"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a24438dc57f582588693c9c8fad4ffc16" id="r_a24438dc57f582588693c9c8fad4ffc16"><td class="memItemLeft" align="right" valign="top"><a id="a24438dc57f582588693c9c8fad4ffc16" name="a24438dc57f582588693c9c8fad4ffc16"></a>
+EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>outerStride</b> () <a class="el" href="classEigen_1_1MatrixBase.html">const</a></td></tr>
+<tr class="separator:a24438dc57f582588693c9c8fad4ffc16"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-types" name="pro-types"></a>
 Protected Types</h2></td></tr>
 <tr class="memitem:aa04c323ef5f01e4900cbd375cb850662" id="r_aa04c323ef5f01e4900cbd375cb850662"><td class="memItemLeft" align="right" valign="top"><a id="aa04c323ef5f01e4900cbd375cb850662" name="aa04c323ef5f01e4900cbd375cb850662"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Stride.html">Stride</a>&lt; StrideType::OuterStrideAtCompileTime, StrideType::InnerStrideAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>StrideBase</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Stride.html">Stride</a>&lt; StrideType::OuterStrideAtCompileTime, StrideType::InnerStrideAtCompileTime &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>StrideBase</b></td></tr>
 <tr class="separator:aa04c323ef5f01e4900cbd375cb850662"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-methods" name="pro-methods"></a>
 Protected Member Functions</h2></td></tr>
-<tr class="memitem:aa099f09a8242561fe6d34b55b74e5dcc" id="r_aa099f09a8242561fe6d34b55b74e5dcc"><td class="memTemplParams" colspan="2"><a id="aa099f09a8242561fe6d34b55b74e5dcc" name="aa099f09a8242561fe6d34b55b74e5dcc"></a>
-template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> <a class="el" href="classEigen_1_1Solve.html">Expression</a> &gt; </td></tr>
-<tr class="memitem:aa099f09a8242561fe6d34b55b74e5dcc"><td class="memTemplItemLeft" align="right" valign="top"><a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a> <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memTemplItemRight" valign="bottom"><b>construct</b> (<a class="el" href="classEigen_1_1Solve.html">Expression</a> &amp;expr)</td></tr>
-<tr class="separator:aa099f09a8242561fe6d34b55b74e5dcc"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a7bed36881beaef3980d321140e9fb746" id="r_a7bed36881beaef3980d321140e9fb746"><td class="memTemplParams" colspan="2"><a id="a7bed36881beaef3980d321140e9fb746" name="a7bed36881beaef3980d321140e9fb746"></a>
+template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> <a class="el" href="classEigen_1_1MatrixBase.html">Expression</a> &gt; </td></tr>
+<tr class="memitem:a7bed36881beaef3980d321140e9fb746"><td class="memTemplItemLeft" align="right" valign="top">EIGEN_DEVICE_FUNC bool&#160;</td><td class="memTemplItemRight" valign="bottom"><b>construct</b> (<a class="el" href="classEigen_1_1MatrixBase.html">Expression</a> &amp;expr)</td></tr>
+<tr class="separator:a7bed36881beaef3980d321140e9fb746"><td class="memSeparator" colspan="2">&#160;</td></tr>
+</table><table class="memberdecls">
+<tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-static-methods" name="pro-static-methods"></a>
+Static Protected Member Functions</h2></td></tr>
+<tr class="memitem:a467ccf65408fd74ba8c1859c54b27eb0" id="r_a467ccf65408fd74ba8c1859c54b27eb0"><td class="memItemLeft" align="right" valign="top"><a id="a467ccf65408fd74ba8c1859c54b27eb0" name="a467ccf65408fd74ba8c1859c54b27eb0"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>resolveInnerStride</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> inner)</td></tr>
+<tr class="separator:a467ccf65408fd74ba8c1859c54b27eb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a522e00243b3f8432efdfaf895ec4377a" id="r_a522e00243b3f8432efdfaf895ec4377a"><td class="memItemLeft" align="right" valign="top"><a id="a522e00243b3f8432efdfaf895ec4377a" name="a522e00243b3f8432efdfaf895ec4377a"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a>&#160;</td><td class="memItemRight" valign="bottom"><b>resolveOuterStride</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> inner, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> outer, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols, bool <a class="el" href="classEigen_1_1MatrixBase.html">isVectorAtCompileTime</a>, bool <a class="el" href="classEigen_1_1MatrixBase.html">isRowMajor</a>)</td></tr>
+<tr class="separator:a522e00243b3f8432efdfaf895ec4377a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pro-attribs" name="pro-attribs"></a>
 Protected Attributes</h2></td></tr>
@@ -134,7 +145,7 @@ Protected Attributes</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:43 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:19 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

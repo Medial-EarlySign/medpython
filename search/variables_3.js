@@ -8,7 +8,7 @@ var searchData=
   ['data_5fptr_5f_5',['data_ptr_',['../classdmlc_1_1data_1_1ParserImpl.html#a89333e29f0a99b2d5ddcd9bb467ece9a',1,'dmlc::data::ParserImpl']]],
   ['data_5fsplit_5fmode_6',['data_split_mode',['../classxgboost_1_1MetaInfo.html#a674e6fcb4e49a914b73b7e552ec31cd1',1,'xgboost::MetaInfo']]],
   ['date_7',['date',['../classMPTime.html#a16bc036ddacc8aaf36048c0cf0ab7bb2',1,'MPTime::Date'],['../classMedTime.html#af7cadb96feabc054d97500019a5d5619',1,'MedTime::Date']]],
-  ['datetimestring_8',['datetimestring',['../classMedTime.html#a3f55e8a7608296179aa18401d453cbd9',1,'MedTime::DateTimeString'],['../classMPTime.html#a4a5f31639860c4949b4ee70c267d0faf',1,'MPTime::DateTimeString']]],
+  ['datetimestring_8',['datetimestring',['../classMPTime.html#a4a5f31639860c4949b4ee70c267d0faf',1,'MPTime::DateTimeString'],['../classMedTime.html#a3f55e8a7608296179aa18401d453cbd9',1,'MedTime::DateTimeString']]],
   ['days_9',['days',['../classMPTime.html#a9694f9e6da05636dff4c7a1a647d4d22',1,'MPTime::Days'],['../classMedTime.html#a9d826529f9a56bd460d654117a4ab342',1,'MedTime::Days']]],
   ['debug_10',['debug',['../classRepSimValHandler.html#a7bb31cc96bb063d5d78e10d1d88b5966',1,'RepSimValHandler::debug'],['../classmedial_1_1io_1_1ProgramArgs__base.html#a765e5c39404e8a1a069608f02835287c',1,'medial::io::ProgramArgs_base::debug'],['../classTQRF__Params.html#a48bc8edaa901dc6e8f65d3a85349c555',1,'TQRF_Params::debug']]],
   ['decimal_5fpoint_11',['decimal_point',['../classdetail_1_1serializer.html#a5f01fcbf64cb1e5f36d8853ebcd96412',1,'detail::serializer']]],
@@ -40,5 +40,7 @@ var searchData=
   ['duration_37',['duration',['../classMedRegistryKeepAlive.html#a1e5c6660adacb2d9a03b7c80400c3f93',1,'MedRegistryKeepAlive']]],
   ['duration_5fchan_38',['duration_chan',['../classRepCreateBitSignal.html#a11e4cdb474bf8bd752844780febc6909',1,'RepCreateBitSignal']]],
   ['duration_5fflag_39',['duration_flag',['../classRegistrySignal.html#a066d857294337df3ccd5e8e3e57113f3',1,'RegistrySignal']]],
-  ['duration_5fmult_40',['duration_mult',['../classRepCreateBitSignal.html#afcdd61f64bd42d2e2247b268025f0296',1,'RepCreateBitSignal']]]
+  ['duration_5fmult_40',['duration_mult',['../classRepCreateBitSignal.html#afcdd61f64bd42d2e2247b268025f0296',1,'RepCreateBitSignal']]],
+  ['dynamic_41',['Dynamic',['../namespaceEigen.html#ad81fa7195215a0ce30017dfac309f0b2',1,'Eigen']]],
+  ['dynamicindex_42',['DynamicIndex',['../namespaceEigen.html#a73c597189a4a99127175e8167c456fff',1,'Eigen']]]
 ];

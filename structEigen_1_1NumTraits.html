@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="structEigen_1_1NumTraits.html">NumTraits</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -94,7 +94,7 @@ Inheritance diagram for Eigen::NumTraits&lt; T &gt;:</div>
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="inherited" name="inherited"></a>
 Additional Inherited Members</h2></td></tr>
 <tr class="inherit_header pub_types_structEigen_1_1GenericNumTraits"><td colspan="2" onclick="javascript:toggleInherit('pub_types_structEigen_1_1GenericNumTraits')"><img src="closed.png" alt="-"/>&#160;Public Types inherited from <a class="el" href="structEigen_1_1GenericNumTraits.html">Eigen::GenericNumTraits&lt; T &gt;</a></td></tr>
-<tr class="memitem:a6984bae6c4ff4b9fe81679e9593ca2f2 inherit pub_types_structEigen_1_1GenericNumTraits" id="r_a6984bae6c4ff4b9fe81679e9593ca2f2"><td class="memItemLeft" align="right" valign="top"><a id="a6984bae6c4ff4b9fe81679e9593ca2f2" name="a6984bae6c4ff4b9fe81679e9593ca2f2"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+<tr class="memitem:a743163ae4caef31d41472919644a034b inherit pub_types_structEigen_1_1GenericNumTraits" id="r_a743163ae4caef31d41472919644a034b"><td class="memItemLeft" align="right" valign="top"><a id="a743163ae4caef31d41472919644a034b" name="a743163ae4caef31d41472919644a034b"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
 &#160;&#160;<b>IsInteger</b> = std::numeric_limits&lt;T&gt;::is_integer
 , <b>IsSigned</b> = std::numeric_limits&lt;T&gt;::is_signed
 , <b>IsComplex</b> = 0
@@ -105,34 +105,40 @@ Additional Inherited Members</h2></td></tr>
 , <b>MulCost</b> = 1
 <br />
  }</td></tr>
-<tr class="separator:a6984bae6c4ff4b9fe81679e9593ca2f2 inherit pub_types_structEigen_1_1GenericNumTraits"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a743163ae4caef31d41472919644a034b inherit pub_types_structEigen_1_1GenericNumTraits"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abca8573812593670795c41f22aa9d5e2 inherit pub_types_structEigen_1_1GenericNumTraits" id="r_abca8573812593670795c41f22aa9d5e2"><td class="memItemLeft" align="right" valign="top">
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> T&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> T&#160;</td><td class="memItemRight" valign="bottom"><b>Real</b></td></tr>
 <tr class="separator:abca8573812593670795c41f22aa9d5e2 inherit pub_types_structEigen_1_1GenericNumTraits"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> T&gt;<br />
+<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1MatrixBase.html">typename</a> T&gt;<br />
 class Eigen::NumTraits&lt; T &gt;</div><p>Holds information about the various numeric (i.e. </p>
-<p>scalar) types allowed by Eigen.</p>
-<dl class="params"><dt>Parameters</dt><dd>
-  <table class="params">
+<p>scalar) types allowed by <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a>.</p>
+<dl class="tparams"><dt>Template Parameters</dt><dd>
+  <table class="tparams">
     <tr><td class="paramname">T</td><td>the numeric type at hand</td></tr>
   </table>
   </dd>
 </dl>
 <p>This class stores enums, typedefs and static methods giving information about a numeric type.</p>
 <p>The provided data consists of: </p><ul>
-<li>A typedef <em>Real</em>, giving the "real part" type of <em>T</em>. If <em>T</em> is already real, then <em>Real</em> is just a typedef to <em>T</em>. If <em>T</em> is <code>std::complex&lt;U&gt;</code> then <em>Real</em> is a typedef to <em>U</em>. </li>
-<li>A typedef <em>NonInteger</em>, giving the type that should be used for operations producing non-integral values, such as quotients, square roots, etc. If <em>T</em> is a floating-point type, then this typedef just gives <em>T</em> again. Note however that many Eigen functions such as internal::sqrt simply refuse to take integers. Outside of a few cases, Eigen doesn't do automatic type promotion. Thus, this typedef is only intended as a helper for code that needs to explicitly promote types. </li>
-<li>A typedef <em>Nested</em> giving the type to use to nest a value inside of the expression tree. If you don't know what this means, just use <em>T</em> here. </li>
-<li>An enum value <em>IsComplex</em>. It is equal to 1 if <em>T</em> is a <code>std::complex</code> type, and to 0 otherwise. </li>
-<li>An enum value <em>IsInteger</em>. It is equal to <code>1</code> if <em>T</em> is an integer type such as <code>int</code>, and to <code>0</code> otherwise. </li>
-<li>Enum values ReadCost, AddCost and MulCost representing a rough estimate of the number of CPU cycles needed to by move / add / mul instructions respectively, assuming the data is already stored in CPU registers. Stay vague here. No need to do architecture-specific stuff. </li>
-<li>An enum value <em>IsSigned</em>. It is equal to <code>1</code> if <em>T</em> is a signed type and to 0 if <em>T</em> is unsigned. </li>
-<li>An enum value <em>RequireInitialization</em>. It is equal to <code>1</code> if the constructor of the numeric type <em>T</em> must be called, and to 0 if it is safe not to call it. Default is 0 if <em>T</em> is an arithmetic type, and 1 otherwise. </li>
-<li>An epsilon() function which, unlike std::numeric_limits::epsilon(), returns a <em>Real</em> instead of a <em>T</em>. </li>
-<li>A dummy_precision() function returning a weak epsilon value. It is mainly used as a default value by the fuzzy comparison operators. </li>
-<li>highest() and lowest() functions returning the highest and lowest possible values respectively. </li>
+<li>A typedef <code>Real</code>, giving the "real part" type of <em>T</em>. If <em>T</em> is already real, then <code>Real</code> is just a typedef to <em>T</em>. If <em>T</em> is <code>std::complex&lt;U&gt;</code> then <code>Real</code> is a typedef to <em>U</em>. </li>
+<li>A typedef <code>NonInteger</code>, giving the type that should be used for operations producing non-integral values, such as quotients, square roots, etc. If <em>T</em> is a floating-point type, then this typedef just gives <em>T</em> again. Note however that many <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> functions such as <code>internal::sqrt</code> simply refuse to take integers. Outside of a few cases, <a class="el" href="namespaceEigen.html" title="Namespace containing all symbols from the Eigen library.">Eigen</a> doesn't do automatic type promotion. Thus, this typedef is only intended as a helper for code that needs to explicitly promote types. </li>
+<li>A typedef <code>Literal</code> giving the type to use for numeric literals such as "2" or "0.5". For instance, for <code>std::complex&lt;U&gt;</code>, Literal is defined as <code>U</code>. Of course, this type must be fully compatible with <em>T</em>. In doubt, just use <em>T</em> here. </li>
+<li>A typedef <code>Nested</code> giving the type to use to nest a value inside of the expression tree. If you don't know what this means, just use <em>T</em> here. </li>
+<li>An enum value <code>IsComplex</code>. It is equal to 1 if <em>T</em> is a <code>std::complex</code> type, and to 0 otherwise. </li>
+<li>An enum value <code>IsInteger</code>. It is equal to <code>1</code> if <em>T</em> is an integer type such as <code>int</code>, and to <code>0</code> otherwise. </li>
+<li>Enum values <code>ReadCost</code>, <code>AddCost</code> and <code>MulCost</code> representing a rough estimate of the number of CPU cycles needed to by move / add / mul instructions respectively, assuming the data is already stored in CPU registers. Stay vague here. No need to do architecture-specific stuff. If you don't know what this means, just use <code><a class="el" href="namespaceEigen.html#a3163430a1c13173faffde69016b48aaf" title="This value means that the cost to evaluate an expression coefficient is either very expensive or cann...">Eigen::HugeCost</a></code>. </li>
+<li>An enum value <code>IsSigned</code>. It is equal to <code>1</code> if <em>T</em> is a signed type and to 0 if <em>T</em> is unsigned. </li>
+<li>An enum value <code>RequireInitialization</code>. It is equal to <code>1</code> if the constructor of the numeric type <em>T</em> must be called, and to 0 if it is safe not to call it. Default is 0 if <em>T</em> is an arithmetic type, and 1 otherwise. </li>
+<li>An <code>epsilon()</code> function which, unlike <a href="http://en.cppreference.com/w/cpp/types/numeric_limits/epsilon"><code>std::numeric_limits::epsilon()</code></a>, it returns a <code>Real</code> instead of a <em>T</em>. </li>
+<li>A <code>dummy_precision()</code> function returning a weak epsilon value. It is mainly used as a default value by the fuzzy comparison operators. </li>
+<li><code>highest()</code> and <code>lowest()</code> functions returning the highest and lowest possible values respectively. </li>
+<li><code>digits()</code> function returning the number of radix digits (non-sign digits for integers, mantissa for floating-point). This is the analogue of <a href="http://en.cppreference.com/w/cpp/types/numeric_limits/digits">std::numeric_limits&lt;T&gt;::digits</a> which is used as the default implementation if specialized. </li>
+<li><code>digits10()</code> function returning the number of decimal digits that can be represented without change. This is the analogue of <a href="http://en.cppreference.com/w/cpp/types/numeric_limits/digits10">std::numeric_limits&lt;T&gt;::digits10</a> which is used as the default implementation if specialized. </li>
+<li><code>min_exponent()</code> and <code>max_exponent()</code> functions returning the highest and lowest possible values, respectively, such that the radix raised to the power exponent-1 is a normalized floating-point number. These are equivalent to <a href="http://en.cppreference.com/w/cpp/types/numeric_limits/min_exponent"><code>std::numeric_limits&lt;T&gt;::min_exponent</code></a>/ <a href="http://en.cppreference.com/w/cpp/types/numeric_limits/max_exponent"><code>std::numeric_limits&lt;T&gt;::max_exponent</code></a>. </li>
+<li><code>infinity()</code> function returning a representation of positive infinity, if available. </li>
+<li><code>quiet_NaN</code> function returning a non-signaling "not-a-number", if available. </li>
 </ul>
 </div><hr/>The documentation for this class was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="NumTraits_8h_source.html">NumTraits.h</a></li>
@@ -140,7 +146,7 @@ class Eigen::NumTraits&lt; T &gt;</div><p>Holds information about the various nu
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:41 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:18 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

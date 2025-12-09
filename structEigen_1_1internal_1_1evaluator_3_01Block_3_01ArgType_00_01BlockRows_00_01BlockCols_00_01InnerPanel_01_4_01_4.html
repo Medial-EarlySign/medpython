@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_01_4_01_4.html">evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1evaluator_3_01Block_3_01ArgType_00_01BlockRows_00_01BlockCols_00_01InnerPanel_01_4_01_4.html">evaluator&lt; Block&lt; ArgType, BlockRows, BlockCols, InnerPanel &gt; &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -91,7 +91,7 @@ Inheritance diagram for Eigen::internal::evaluator&lt; Block&lt; ArgType, BlockR
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:aed1952125320a2bed3ec5a22f87d9182" id="r_aed1952125320a2bed3ec5a22f87d9182"><td class="memItemLeft" align="right" valign="top"><a id="aed1952125320a2bed3ec5a22f87d9182" name="aed1952125320a2bed3ec5a22f87d9182"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+<tr class="memitem:a1a18b2d5d116731736291439c311b8be" id="r_a1a18b2d5d116731736291439c311b8be"><td class="memItemLeft" align="right" valign="top"><a id="a1a18b2d5d116731736291439c311b8be" name="a1a18b2d5d116731736291439c311b8be"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
 &#160;&#160;<b>CoeffReadCost</b> = evaluator&lt;ArgType&gt;::CoeffReadCost
 , <b>RowsAtCompileTime</b> = traits&lt;XprType&gt;::RowsAtCompileTime
 , <b>ColsAtCompileTime</b> = traits&lt;XprType&gt;::ColsAtCompileTime
@@ -105,7 +105,7 @@ Public Types</h2></td></tr>
 &#160;&#160;<b>InnerSize</b> = IsRowMajor ? int(ColsAtCompileTime) : int(RowsAtCompileTime)
 , <b>InnerStrideAtCompileTime</b>
 , <b>OuterStrideAtCompileTime</b>
-, <b>MaskPacketAccessBit</b>
+, <b>MaskPacketAccessBit</b> = (InnerStrideAtCompileTime == 1 || HasSameStorageOrderAsArgType) ? PacketAccessBit : 0
 , <br />
 &#160;&#160;<b>FlagsLinearAccessBit</b> = (RowsAtCompileTime == 1 || ColsAtCompileTime == 1 || (InnerPanel &amp;&amp; (evaluator&lt;ArgType&gt;::Flags&amp;LinearAccessBit))) ? LinearAccessBit : 0
 , <b>FlagsRowMajorBit</b> = XprType::Flags&amp;RowMajorBit
@@ -113,29 +113,29 @@ Public Types</h2></td></tr>
 , <b>Flags</b> = Flags0 | FlagsLinearAccessBit | FlagsRowMajorBit
 , <br />
 &#160;&#160;<b>PacketAlignment</b> = unpacket_traits&lt;PacketScalar&gt;::alignment
-, <b>Alignment0</b> = (InnerPanel &amp;&amp; (OuterStrideAtCompileTime!=Dynamic) &amp;&amp; (((OuterStrideAtCompileTime * int(sizeof(Scalar))) % int(PacketAlignment)) == 0)) ? int(PacketAlignment) : 0
+, <b>Alignment0</b>
 , <b>Alignment</b> = EIGEN_PLAIN_ENUM_MIN(evaluator&lt;ArgType&gt;::Alignment, Alignment0)
 <br />
  }</td></tr>
-<tr class="separator:aed1952125320a2bed3ec5a22f87d9182"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:a1a18b2d5d116731736291439c311b8be"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a03d9714304dbf679d6c7f512b9457239" id="r_a03d9714304dbf679d6c7f512b9457239"><td class="memItemLeft" align="right" valign="top"><a id="a03d9714304dbf679d6c7f512b9457239" name="a03d9714304dbf679d6c7f512b9457239"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1Block.html">Block</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>XprType</b></td></tr>
 <tr class="separator:a03d9714304dbf679d6c7f512b9457239"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aeac654173d49400de96f827920e5af15" id="r_aeac654173d49400de96f827920e5af15"><td class="memItemLeft" align="right" valign="top"><a id="aeac654173d49400de96f827920e5af15" name="aeac654173d49400de96f827920e5af15"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> XprType::Scalar&#160;</td><td class="memItemRight" valign="bottom"><b>Scalar</b></td></tr>
 <tr class="separator:aeac654173d49400de96f827920e5af15"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6fdb7fb2890be941c57f823731c4a106" id="r_a6fdb7fb2890be941c57f823731c4a106"><td class="memItemLeft" align="right" valign="top"><a id="a6fdb7fb2890be941c57f823731c4a106" name="a6fdb7fb2890be941c57f823731c4a106"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1packet__traits.html">packet_traits</a>&lt; Scalar &gt;::type&#160;</td><td class="memItemRight" valign="bottom"><b>PacketScalar</b></td></tr>
 <tr class="separator:a6fdb7fb2890be941c57f823731c4a106"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c30dd5be540921ece9c7cae8fa0b5fd" id="r_a4c30dd5be540921ece9c7cae8fa0b5fd"><td class="memItemLeft" align="right" valign="top"><a id="a4c30dd5be540921ece9c7cae8fa0b5fd" name="a4c30dd5be540921ece9c7cae8fa0b5fd"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1block__evaluator.html">block_evaluator</a>&lt; ArgType, <a class="el" href="classEigen_1_1Solve.html">BlockRows</a>, <a class="el" href="classEigen_1_1Solve.html">BlockCols</a>, <a class="el" href="classEigen_1_1Solve.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>block_evaluator_type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1block__evaluator.html">block_evaluator</a>&lt; ArgType, <a class="el" href="classEigen_1_1MatrixBase.html">BlockRows</a>, <a class="el" href="classEigen_1_1MatrixBase.html">BlockCols</a>, <a class="el" href="classEigen_1_1MatrixBase.html">InnerPanel</a> &gt;&#160;</td><td class="memItemRight" valign="bottom"><b>block_evaluator_type</b></td></tr>
 <tr class="separator:a4c30dd5be540921ece9c7cae8fa0b5fd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-methods" name="pub-methods"></a>
 Public Member Functions</h2></td></tr>
-<tr class="memitem:a62acb70267bf17ee5a3869f0998fe470" id="r_a62acb70267bf17ee5a3869f0998fe470"><td class="memItemLeft" align="right" valign="top"><a id="a62acb70267bf17ee5a3869f0998fe470" name="a62acb70267bf17ee5a3869f0998fe470"></a>
-<a class="el" href="classEigen_1_1Solve.html">EIGEN_DEVICE_FUNC</a>&#160;</td><td class="memItemRight" valign="bottom"><b>evaluator</b> (<a class="el" href="classEigen_1_1Solve.html">const</a> <a class="el" href="classEigen_1_1Solve.html">XprType</a> &amp;block)</td></tr>
-<tr class="separator:a62acb70267bf17ee5a3869f0998fe470"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4b4ffe55a02fa66868038809ccefc47d" id="r_a4b4ffe55a02fa66868038809ccefc47d"><td class="memItemLeft" align="right" valign="top"><a id="a4b4ffe55a02fa66868038809ccefc47d" name="a4b4ffe55a02fa66868038809ccefc47d"></a>
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE&#160;</td><td class="memItemRight" valign="bottom"><b>evaluator</b> (<a class="el" href="classEigen_1_1MatrixBase.html">const</a> <a class="el" href="classEigen_1_1MatrixBase.html">XprType</a> &amp;block)</td></tr>
+<tr class="separator:a4b4ffe55a02fa66868038809ccefc47d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/<a class="el" href="CoreEvaluators_8h_source.html">CoreEvaluators.h</a></li>
@@ -143,7 +143,7 @@ Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:46 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:23 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

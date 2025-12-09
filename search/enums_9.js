@@ -1,6 +1,6 @@
 var searchData=
 [
-  ['panelcompletertypes_0',['PanelCompleterTypes',['../RepProcess_8h.html#ab2e258ab69c7e69db8e94aa979a3a651',1,'RepProcess.h']]],
-  ['postprocessortypes_1',['PostProcessorTypes',['../PostProcessor_8h.html#a1dab070b8206be89206ff19f321a1cfc',1,'PostProcessor.h']]],
-  ['probabilitydistributiontype_2',['ProbabilityDistributionType',['../namespacexgboost_1_1common.html#a11e87e7e4b0c0e8dcf9e4222ec0a5d94',1,'xgboost::common']]]
+  ['operation_0',['Operation',['../namespacexgboost_1_1collective.html#a0aaf1f5c793a2db28f939dd44d7f088d',1,'xgboost::collective']]],
+  ['option_1',['Option',['../classdmlc_1_1LuaState.html#a00653ef79293ad2e4797326295028ce7',1,'dmlc::LuaState']]],
+  ['optype_2',['OpType',['../namespacerabit_1_1engine_1_1mpi.html#aeb1bf35331242272d044bf7c85490208',1,'rabit::engine::mpi']]]
 ];

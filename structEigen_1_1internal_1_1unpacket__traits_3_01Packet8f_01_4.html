@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unpacket__traits_3_01Packet8f_01_4.html">unpacket_traits&lt; Packet8f &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1unpacket__traits_3_01Packet8f_01_4.html">unpacket_traits&lt; Packet8f &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -81,16 +81,28 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:a74cfd6b723756a81c3725e4a027e358c" id="r_a74cfd6b723756a81c3725e4a027e358c"><td class="memItemLeft" align="right" valign="top"><a id="a74cfd6b723756a81c3725e4a027e358c" name="a74cfd6b723756a81c3725e4a027e358c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>size</b> =8
+<tr class="memitem:ad19edb26a7e8be01d6bbe860b355f02c" id="r_ad19edb26a7e8be01d6bbe860b355f02c"><td class="memItemLeft" align="right" valign="top"><a id="ad19edb26a7e8be01d6bbe860b355f02c" name="ad19edb26a7e8be01d6bbe860b355f02c"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <br />
+&#160;&#160;<b>size</b> =8
 , <b>alignment</b> =Aligned32
+, <b>vectorizable</b> =true
+, <b>masked_load_available</b> =true
+, <br />
+&#160;&#160;<b>masked_store_available</b> =true
+<br />
  }</td></tr>
-<tr class="separator:a74cfd6b723756a81c3725e4a027e358c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:ad19edb26a7e8be01d6bbe860b355f02c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a8a3bb88f05ceb7126a3e15104d27932a" id="r_a8a3bb88f05ceb7126a3e15104d27932a"><td class="memItemLeft" align="right" valign="top"><a id="a8a3bb88f05ceb7126a3e15104d27932a" name="a8a3bb88f05ceb7126a3e15104d27932a"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> float&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> float&#160;</td><td class="memItemRight" valign="bottom"><b>type</b></td></tr>
 <tr class="separator:a8a3bb88f05ceb7126a3e15104d27932a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a244e650cd5a4262422abafbfa4221945" id="r_a244e650cd5a4262422abafbfa4221945"><td class="memItemLeft" align="right" valign="top"><a id="a244e650cd5a4262422abafbfa4221945" name="a244e650cd5a4262422abafbfa4221945"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="classEigen_1_1Solve.html">Packet4f</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet4f</a>&#160;</td><td class="memItemRight" valign="bottom"><b>half</b></td></tr>
 <tr class="separator:a244e650cd5a4262422abafbfa4221945"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a1a67c73570eb01b931d348430b009419" id="r_a1a67c73570eb01b931d348430b009419"><td class="memItemLeft" align="right" valign="top"><a id="a1a67c73570eb01b931d348430b009419" name="a1a67c73570eb01b931d348430b009419"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="classEigen_1_1MatrixBase.html">Packet8i</a>&#160;</td><td class="memItemRight" valign="bottom"><b>integer_packet</b></td></tr>
+<tr class="separator:a1a67c73570eb01b931d348430b009419"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a01992da8e2fbfeb00d8ab6dc526dae87" id="r_a01992da8e2fbfeb00d8ab6dc526dae87"><td class="memItemLeft" align="right" valign="top"><a id="a01992da8e2fbfeb00d8ab6dc526dae87" name="a01992da8e2fbfeb00d8ab6dc526dae87"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> uint8_t&#160;</td><td class="memItemRight" valign="bottom"><b>mask_t</b></td></tr>
+<tr class="separator:a01992da8e2fbfeb00d8ab6dc526dae87"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/arch/AVX/<a class="el" href="AVX_2PacketMath_8h_source.html">PacketMath.h</a></li>
@@ -98,7 +110,7 @@ Public Types</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:52 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

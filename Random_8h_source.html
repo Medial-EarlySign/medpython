@@ -93,94 +93,118 @@ $(document).ready(function() { init_codefold(0); });
 <div class="line"><a id="l00010" name="l00010"></a><span class="lineno">   10</span><span class="preprocessor">#ifndef EIGEN_RANDOM_H</span></div>
 <div class="line"><a id="l00011" name="l00011"></a><span class="lineno">   11</span><span class="preprocessor">#define EIGEN_RANDOM_H</span></div>
 <div class="line"><a id="l00012" name="l00012"></a><span class="lineno">   12</span> </div>
-<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span>Eigen { </div>
+<div class="line"><a id="l00013" name="l00013"></a><span class="lineno">   13</span><span class="keyword">namespace </span><a class="code hl_namespace" href="namespaceEigen.html">Eigen</a> { </div>
 <div class="line"><a id="l00014" name="l00014"></a><span class="lineno">   14</span> </div>
 <div class="line"><a id="l00015" name="l00015"></a><span class="lineno">   15</span><span class="keyword">namespace </span>internal {</div>
 <div class="line"><a id="l00016" name="l00016"></a><span class="lineno">   16</span> </div>
 <div class="foldopen" id="foldopen00017" data-start="{" data-end="};">
 <div class="line"><a id="l00017" name="l00017"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1scalar__random__op.html">   17</a></span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Scalar&gt; <span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">scalar_random_op</a> {</div>
 <div class="line"><a id="l00018" name="l00018"></a><span class="lineno">   18</span>  EIGEN_EMPTY_STRUCT_CTOR(<a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">scalar_random_op</a>)</div>
-<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  <span class="keyword">template</span>&lt;<span class="keyword">typename</span> Index&gt;</div>
-<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>  <span class="keyword">inline</span> <span class="keyword">const</span> Scalar <a class="code hl_class" href="classEigen_1_1Solve.html">operator() </a>(Index, Index = 0)<span class="keyword"> const </span>{ <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1Solve.html">random&lt;Scalar&gt;</a>(); }</div>
-<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span>};</div>
+<div class="line"><a id="l00019" name="l00019"></a><span class="lineno">   19</span>  <span class="keyword">inline</span> <span class="keyword">const</span> Scalar <a class="code hl_class" href="classEigen_1_1MatrixBase.html">operator() </a>()<span class="keyword"> const </span>{ <span class="keywordflow">return</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">random&lt;Scalar&gt;</a>(); }</div>
+<div class="line"><a id="l00020" name="l00020"></a><span class="lineno">   20</span>};</div>
 </div>
-<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span> </div>
-<div class="line"><a id="l00023" name="l00023"></a><span class="lineno">   23</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Scalar&gt;</div>
-<div class="foldopen" id="foldopen00024" data-start="{" data-end="};">
-<div class="line"><a id="l00024" name="l00024"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1functor__traits_3_01scalar__random__op_3_01Scalar_01_4_01_4.html">   24</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1functor__traits.html">functor_traits</a>&lt;<a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">scalar_random_op</a>&lt;Scalar&gt; &gt;</div>
-<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span>{ <span class="keyword">enum</span> { Cost = 5 * <a class="code hl_class" href="structEigen_1_1NumTraits.html">NumTraits&lt;Scalar&gt;::MulCost</a>, PacketAccess = <span class="keyword">false</span>, IsRepeatable = <span class="keyword">false</span> }; };</div>
+<div class="line"><a id="l00021" name="l00021"></a><span class="lineno">   21</span> </div>
+<div class="line"><a id="l00022" name="l00022"></a><span class="lineno">   22</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Scalar&gt;</div>
+<div class="foldopen" id="foldopen00023" data-start="{" data-end="};">
+<div class="line"><a id="l00023" name="l00023"></a><span class="lineno"><a class="line" href="structEigen_1_1internal_1_1functor__traits_3_01scalar__random__op_3_01Scalar_01_4_01_4.html">   23</a></span><span class="keyword">struct </span><a class="code hl_struct" href="structEigen_1_1internal_1_1functor__traits.html">functor_traits</a>&lt;<a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">scalar_random_op</a>&lt;Scalar&gt; &gt;</div>
+<div class="line"><a id="l00024" name="l00024"></a><span class="lineno">   24</span>{ <span class="keyword">enum</span> { Cost = 5 * <a class="code hl_class" href="structEigen_1_1NumTraits.html">NumTraits&lt;Scalar&gt;::MulCost</a>, PacketAccess = <span class="keyword">false</span>, IsRepeatable = <span class="keyword">false</span> }; };</div>
 </div>
-<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span> </div>
-<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span>} <span class="comment">// end namespace internal</span></div>
-<div class="line"><a id="l00028" name="l00028"></a><span class="lineno">   28</span> </div>
-<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00056" name="l00056"></a><span class="lineno">   56</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
-<div class="foldopen" id="foldopen00057" data-start="{" data-end="}">
-<div class="line"><a id="l00057" name="l00057"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#ae97f8d9d08f969c733c8144be6225756">   57</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>(Index rows, Index cols)</div>
-<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>{</div>
-<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>  <span class="keywordflow">return</span> NullaryExpr(rows, cols, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
-<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span>}</div>
+<div class="line"><a id="l00025" name="l00025"></a><span class="lineno">   25</span> </div>
+<div class="line"><a id="l00026" name="l00026"></a><span class="lineno">   26</span>} <span class="comment">// end namespace internal</span></div>
+<div class="line"><a id="l00027" name="l00027"></a><span class="lineno">   27</span> </div>
+<div class="line"><a id="l00054" name="l00054"></a><span class="lineno">   54</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00055" name="l00055"></a><span class="lineno">   55</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
+<div class="foldopen" id="foldopen00056" data-start="{" data-end="}">
+<div class="line"><a id="l00056" name="l00056"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#ae97f8d9d08f969c733c8144be6225756">   56</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols)</div>
+<div class="line"><a id="l00057" name="l00057"></a><span class="lineno">   57</span>{</div>
+<div class="line"><a id="l00058" name="l00058"></a><span class="lineno">   58</span>  <span class="keywordflow">return</span> NullaryExpr(rows, cols, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
+<div class="line"><a id="l00059" name="l00059"></a><span class="lineno">   59</span>}</div>
 </div>
-<div class="line"><a id="l00061" name="l00061"></a><span class="lineno">   61</span> </div>
-<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00087" name="l00087"></a><span class="lineno">   87</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
-<div class="foldopen" id="foldopen00088" data-start="{" data-end="}">
-<div class="line"><a id="l00088" name="l00088"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#a7eb5f974a8f0b67eac7080db1da0e308">   88</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>(Index size)</div>
-<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>{</div>
-<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>  <span class="keywordflow">return</span> NullaryExpr(size, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
-<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span>}</div>
+<div class="line"><a id="l00060" name="l00060"></a><span class="lineno">   60</span> </div>
+<div class="line"><a id="l00085" name="l00085"></a><span class="lineno">   85</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00086" name="l00086"></a><span class="lineno">   86</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
+<div class="foldopen" id="foldopen00087" data-start="{" data-end="}">
+<div class="line"><a id="l00087" name="l00087"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#a7eb5f974a8f0b67eac7080db1da0e308">   87</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> size)</div>
+<div class="line"><a id="l00088" name="l00088"></a><span class="lineno">   88</span>{</div>
+<div class="line"><a id="l00089" name="l00089"></a><span class="lineno">   89</span>  <span class="keywordflow">return</span> NullaryExpr(size, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
+<div class="line"><a id="l00090" name="l00090"></a><span class="lineno">   90</span>}</div>
 </div>
-<div class="line"><a id="l00092" name="l00092"></a><span class="lineno">   92</span> </div>
-<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00113" name="l00113"></a><span class="lineno">  113</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1Solve.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
-<div class="foldopen" id="foldopen00114" data-start="{" data-end="}">
-<div class="line"><a id="l00114" name="l00114"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#ae814abb451b48ed872819192dc188c19">  114</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>()</div>
-<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>{</div>
-<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>  <span class="keywordflow">return</span> NullaryExpr(RowsAtCompileTime, ColsAtCompileTime, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
-<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span>}</div>
+<div class="line"><a id="l00091" name="l00091"></a><span class="lineno">   91</span> </div>
+<div class="line"><a id="l00111" name="l00111"></a><span class="lineno">  111</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00112" name="l00112"></a><span class="lineno">  112</span><span class="keyword">inline</span> <span class="keyword">const</span> <span class="keyword">typename</span> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">DenseBase&lt;Derived&gt;::RandomReturnType</a></div>
+<div class="foldopen" id="foldopen00113" data-start="{" data-end="}">
+<div class="line"><a id="l00113" name="l00113"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#ae814abb451b48ed872819192dc188c19">  113</a></span><a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::Random</a>()</div>
+<div class="line"><a id="l00114" name="l00114"></a><span class="lineno">  114</span>{</div>
+<div class="line"><a id="l00115" name="l00115"></a><span class="lineno">  115</span>  <span class="keywordflow">return</span> NullaryExpr(<a class="code hl_enumvalue" href="classEigen_1_1MatrixBase.html#adb37c78ebbf15aa20b65c3b70415a1ab">RowsAtCompileTime</a>, <a class="code hl_enumvalue" href="classEigen_1_1MatrixBase.html#a787f85fd67ee5985917eb2cef6e70441">ColsAtCompileTime</a>, <a class="code hl_struct" href="structEigen_1_1internal_1_1scalar__random__op.html">internal::scalar_random_op&lt;Scalar&gt;</a>());</div>
+<div class="line"><a id="l00116" name="l00116"></a><span class="lineno">  116</span>}</div>
 </div>
-<div class="line"><a id="l00118" name="l00118"></a><span class="lineno">  118</span> </div>
-<div class="line"><a id="l00131" name="l00131"></a><span class="lineno">  131</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="foldopen" id="foldopen00132" data-start="{" data-end="}">
-<div class="line"><a id="l00132" name="l00132"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#ac476e5852129ba32beaa1a8a3d7ee0db">  132</a></span><span class="keyword">inline</span> Derived&amp; <a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::setRandom</a>()</div>
-<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>{</div>
-<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>  <span class="keywordflow">return</span> *<span class="keyword">this</span> = Random(rows(), cols());</div>
-<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span>}</div>
+<div class="line"><a id="l00117" name="l00117"></a><span class="lineno">  117</span> </div>
+<div class="line"><a id="l00130" name="l00130"></a><span class="lineno">  130</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="foldopen" id="foldopen00131" data-start="{" data-end="}">
+<div class="line"><a id="l00131" name="l00131"></a><span class="lineno"><a class="line" href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">  131</a></span>EIGEN_DEVICE_FUNC <span class="keyword">inline</span> Derived&amp; <a class="code hl_class" href="classEigen_1_1DenseBase.html">DenseBase&lt;Derived&gt;::setRandom</a>()</div>
+<div class="line"><a id="l00132" name="l00132"></a><span class="lineno">  132</span>{</div>
+<div class="line"><a id="l00133" name="l00133"></a><span class="lineno">  133</span>  <span class="keywordflow">return</span> *<span class="keyword">this</span> = <a class="code hl_function" href="classEigen_1_1DenseBase.html#ae814abb451b48ed872819192dc188c19">Random</a>(rows(), cols());</div>
+<div class="line"><a id="l00134" name="l00134"></a><span class="lineno">  134</span>}</div>
 </div>
-<div class="line"><a id="l00136" name="l00136"></a><span class="lineno">  136</span> </div>
-<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00151" name="l00151"></a><span class="lineno">  151</span>EIGEN_STRONG_INLINE Derived&amp;</div>
-<div class="foldopen" id="foldopen00152" data-start="{" data-end="}">
-<div class="line"><a id="l00152" name="l00152"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#af0e576a0e1aefc9ee346de44cc352ba3">  152</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(Index <a class="code hl_class" href="classEigen_1_1Solve.html">newSize</a>)</div>
-<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>{</div>
-<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>  resize(<a class="code hl_class" href="classEigen_1_1Solve.html">newSize</a>);</div>
-<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>  <span class="keywordflow">return</span> setRandom();</div>
-<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span>}</div>
+<div class="line"><a id="l00135" name="l00135"></a><span class="lineno">  135</span> </div>
+<div class="line"><a id="l00149" name="l00149"></a><span class="lineno">  149</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00150" name="l00150"></a><span class="lineno">  150</span>EIGEN_STRONG_INLINE Derived&amp;</div>
+<div class="foldopen" id="foldopen00151" data-start="{" data-end="}">
+<div class="line"><a id="l00151" name="l00151"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#af0e576a0e1aefc9ee346de44cc352ba3">  151</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="code hl_class" href="classEigen_1_1MatrixBase.html">newSize</a>)</div>
+<div class="line"><a id="l00152" name="l00152"></a><span class="lineno">  152</span>{</div>
+<div class="line"><a id="l00153" name="l00153"></a><span class="lineno">  153</span>  <a class="code hl_function" href="classEigen_1_1DenseBase.html#a13027a493a68a13496610caf3d81bd3e">resize</a>(<a class="code hl_class" href="classEigen_1_1MatrixBase.html">newSize</a>);</div>
+<div class="line"><a id="l00154" name="l00154"></a><span class="lineno">  154</span>  <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">setRandom</a>();</div>
+<div class="line"><a id="l00155" name="l00155"></a><span class="lineno">  155</span>}</div>
 </div>
-<div class="line"><a id="l00157" name="l00157"></a><span class="lineno">  157</span> </div>
-<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
-<div class="line"><a id="l00174" name="l00174"></a><span class="lineno">  174</span>EIGEN_STRONG_INLINE Derived&amp;</div>
-<div class="foldopen" id="foldopen00175" data-start="{" data-end="}">
-<div class="line"><a id="l00175" name="l00175"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#a2139f7c1a6711ebd86c4ff6378f5e775">  175</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(Index rows, Index cols)</div>
-<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>{</div>
-<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>  resize(rows, cols);</div>
-<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>  <span class="keywordflow">return</span> setRandom();</div>
-<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span>}</div>
+<div class="line"><a id="l00156" name="l00156"></a><span class="lineno">  156</span> </div>
+<div class="line"><a id="l00172" name="l00172"></a><span class="lineno">  172</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00173" name="l00173"></a><span class="lineno">  173</span>EIGEN_STRONG_INLINE Derived&amp;</div>
+<div class="foldopen" id="foldopen00174" data-start="{" data-end="}">
+<div class="line"><a id="l00174" name="l00174"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#a2139f7c1a6711ebd86c4ff6378f5e775">  174</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols)</div>
+<div class="line"><a id="l00175" name="l00175"></a><span class="lineno">  175</span>{</div>
+<div class="line"><a id="l00176" name="l00176"></a><span class="lineno">  176</span>  <a class="code hl_function" href="classEigen_1_1DenseBase.html#a13027a493a68a13496610caf3d81bd3e">resize</a>(rows, cols);</div>
+<div class="line"><a id="l00177" name="l00177"></a><span class="lineno">  177</span>  <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">setRandom</a>();</div>
+<div class="line"><a id="l00178" name="l00178"></a><span class="lineno">  178</span>}</div>
 </div>
-<div class="line"><a id="l00180" name="l00180"></a><span class="lineno">  180</span> </div>
-<div class="line"><a id="l00181" name="l00181"></a><span class="lineno">  181</span>} <span class="comment">// end namespace Eigen</span></div>
-<div class="line"><a id="l00182" name="l00182"></a><span class="lineno">  182</span> </div>
-<div class="line"><a id="l00183" name="l00183"></a><span class="lineno">  183</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_RANDOM_H</span></div>
-<div class="ttc" id="aclassEigen_1_1DenseBase_html"><div class="ttname"><a href="classEigen_1_1DenseBase.html">Eigen::DenseBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and arrays.</div><div class="ttdef"><b>Definition</b> DenseBase.h:49</div></div>
-<div class="ttc" id="aclassEigen_1_1PlainObjectBase_html"><div class="ttname"><a href="classEigen_1_1PlainObjectBase.html">Eigen::PlainObjectBase</a></div><div class="ttdoc">Dense storage base class for matrices and arrays.</div><div class="ttdef"><b>Definition</b> PlainObjectBase.h:93</div></div>
-<div class="ttc" id="aclassEigen_1_1Solve_html"><div class="ttname"><a href="classEigen_1_1Solve.html">Eigen::Solve</a></div><div class="ttdoc">Pseudo expression representing a solving operation.</div><div class="ttdef"><b>Definition</b> Solve.h:63</div></div>
-<div class="ttc" id="astructEigen_1_1NumTraits_html"><div class="ttname"><a href="structEigen_1_1NumTraits.html">Eigen::NumTraits</a></div><div class="ttdoc">Holds information about the various numeric (i.e.</div><div class="ttdef"><b>Definition</b> NumTraits.h:108</div></div>
-<div class="ttc" id="astructEigen_1_1internal_1_1functor__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1functor__traits.html">Eigen::internal::functor_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:107</div></div>
+<div class="line"><a id="l00179" name="l00179"></a><span class="lineno">  179</span> </div>
+<div class="line"><a id="l00191" name="l00191"></a><span class="lineno">  191</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00192" name="l00192"></a><span class="lineno">  192</span>EIGEN_STRONG_INLINE Derived&amp;</div>
+<div class="foldopen" id="foldopen00193" data-start="{" data-end="}">
+<div class="line"><a id="l00193" name="l00193"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#a36a0fb834bd40f8bd1d91b1918c394ea">  193</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(NoChange_t, <a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols)</div>
+<div class="line"><a id="l00194" name="l00194"></a><span class="lineno">  194</span>{</div>
+<div class="line"><a id="l00195" name="l00195"></a><span class="lineno">  195</span>  <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">setRandom</a>(rows(), cols);</div>
+<div class="line"><a id="l00196" name="l00196"></a><span class="lineno">  196</span>}</div>
+</div>
+<div class="line"><a id="l00197" name="l00197"></a><span class="lineno">  197</span> </div>
+<div class="line"><a id="l00209" name="l00209"></a><span class="lineno">  209</span><span class="keyword">template</span>&lt;<span class="keyword">typename</span> Derived&gt;</div>
+<div class="line"><a id="l00210" name="l00210"></a><span class="lineno">  210</span>EIGEN_STRONG_INLINE Derived&amp;</div>
+<div class="foldopen" id="foldopen00211" data-start="{" data-end="}">
+<div class="line"><a id="l00211" name="l00211"></a><span class="lineno"><a class="line" href="classEigen_1_1PlainObjectBase.html#aa9e950df21d6f6b02548ba1f76bbe292">  211</a></span><a class="code hl_class" href="classEigen_1_1PlainObjectBase.html">PlainObjectBase&lt;Derived&gt;::setRandom</a>(<a class="code hl_typedef" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows, NoChange_t)</div>
+<div class="line"><a id="l00212" name="l00212"></a><span class="lineno">  212</span>{</div>
+<div class="line"><a id="l00213" name="l00213"></a><span class="lineno">  213</span>  <span class="keywordflow">return</span> <a class="code hl_function" href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">setRandom</a>(rows, cols());</div>
+<div class="line"><a id="l00214" name="l00214"></a><span class="lineno">  214</span>}</div>
+</div>
+<div class="line"><a id="l00215" name="l00215"></a><span class="lineno">  215</span> </div>
+<div class="line"><a id="l00216" name="l00216"></a><span class="lineno">  216</span>} <span class="comment">// end namespace Eigen</span></div>
+<div class="line"><a id="l00217" name="l00217"></a><span class="lineno">  217</span> </div>
+<div class="line"><a id="l00218" name="l00218"></a><span class="lineno">  218</span><span class="preprocessor">#endif </span><span class="comment">// EIGEN_RANDOM_H</span></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html"><div class="ttname"><a href="classEigen_1_1DenseBase.html">Eigen::DenseBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and arrays.</div><div class="ttdef"><b>Definition</b> DenseBase.h:47</div></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_a13027a493a68a13496610caf3d81bd3e"><div class="ttname"><a href="classEigen_1_1DenseBase.html#a13027a493a68a13496610caf3d81bd3e">Eigen::DenseBase::resize</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC void resize(Index newSize)</div><div class="ttdoc">Only plain matrices/arrays, not expressions, may be resized; therefore the only useful resize methods...</div><div class="ttdef"><b>Definition</b> DenseBase.h:246</div></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_a39046dff78acbcb389ad0b018e587c8e"><div class="ttname"><a href="classEigen_1_1DenseBase.html#a39046dff78acbcb389ad0b018e587c8e">Eigen::DenseBase::setRandom</a></div><div class="ttdeci">EIGEN_DEVICE_FUNC Derived &amp; setRandom()</div><div class="ttdoc">Sets all coefficients in this expression to random values.</div><div class="ttdef"><b>Definition</b> Random.h:131</div></div>
+<div class="ttc" id="aclassEigen_1_1DenseBase_html_ae814abb451b48ed872819192dc188c19"><div class="ttname"><a href="classEigen_1_1DenseBase.html#ae814abb451b48ed872819192dc188c19">Eigen::DenseBase::Random</a></div><div class="ttdeci">static const RandomReturnType Random()</div><div class="ttdef"><b>Definition</b> Random.h:113</div></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html"><div class="ttname"><a href="classEigen_1_1MatrixBase.html">Eigen::MatrixBase</a></div><div class="ttdoc">Base class for all dense matrices, vectors, and expressions.</div><div class="ttdef"><b>Definition</b> MatrixBase.h:50</div></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html_a787f85fd67ee5985917eb2cef6e70441"><div class="ttname"><a href="classEigen_1_1MatrixBase.html#a787f85fd67ee5985917eb2cef6e70441">Eigen::MatrixBase::ColsAtCompileTime</a></div><div class="ttdeci">@ ColsAtCompileTime</div><div class="ttdoc">The number of columns at compile-time.</div><div class="ttdef"><b>Definition</b> DenseBase.h:106</div></div>
+<div class="ttc" id="aclassEigen_1_1MatrixBase_html_adb37c78ebbf15aa20b65c3b70415a1ab"><div class="ttname"><a href="classEigen_1_1MatrixBase.html#adb37c78ebbf15aa20b65c3b70415a1ab">Eigen::MatrixBase::RowsAtCompileTime</a></div><div class="ttdeci">@ RowsAtCompileTime</div><div class="ttdoc">The number of rows at compile-time.</div><div class="ttdef"><b>Definition</b> DenseBase.h:100</div></div>
+<div class="ttc" id="aclassEigen_1_1PlainObjectBase_html"><div class="ttname"><a href="classEigen_1_1PlainObjectBase.html">Eigen::PlainObjectBase</a></div><div class="ttdef"><b>Definition</b> PlainObjectBase.h:100</div></div>
+<div class="ttc" id="anamespaceEigen_html"><div class="ttname"><a href="namespaceEigen.html">Eigen</a></div><div class="ttdoc">Namespace containing all symbols from the Eigen library.</div><div class="ttdef"><b>Definition</b> LDLT.h:16</div></div>
+<div class="ttc" id="anamespaceEigen_html_a62e77e0933482dafde8fe197d9a2cfde"><div class="ttname"><a href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Eigen::Index</a></div><div class="ttdeci">EIGEN_DEFAULT_DENSE_INDEX_TYPE Index</div><div class="ttdoc">The Index type as used for the API.</div><div class="ttdef"><b>Definition</b> Meta.h:74</div></div>
+<div class="ttc" id="astructEigen_1_1NumTraits_html"><div class="ttname"><a href="structEigen_1_1NumTraits.html">Eigen::NumTraits</a></div><div class="ttdoc">Holds information about the various numeric (i.e.</div><div class="ttdef"><b>Definition</b> NumTraits.h:236</div></div>
+<div class="ttc" id="astructEigen_1_1internal_1_1functor__traits_html"><div class="ttname"><a href="structEigen_1_1internal_1_1functor__traits.html">Eigen::internal::functor_traits</a></div><div class="ttdef"><b>Definition</b> XprHelper.h:176</div></div>
 <div class="ttc" id="astructEigen_1_1internal_1_1scalar__random__op_html"><div class="ttname"><a href="structEigen_1_1internal_1_1scalar__random__op.html">Eigen::internal::scalar_random_op</a></div><div class="ttdef"><b>Definition</b> Random.h:17</div></div>
 </div><!-- fragment --></div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:29:51 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

@@ -69,7 +69,7 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1triangular__matrix__vector__product_3_01Index_00_01Mode_00_01LhsScalacba82d1974de6a0033a8c1da6e99db3c.html">triangular_matrix_vector_product&lt; Index, Mode, LhsScalar, ConjLhs, RhsScalar, ConjRhs, ColMajor, Version &gt;</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><b>internal</b></li><li class="navelem"><a class="el" href="structEigen_1_1internal_1_1triangular__matrix__vector__product_3_01Index_00_01Mode_00_01LhsScalacba82d1974de6a0033a8c1da6e99db3c.html">triangular_matrix_vector_product&lt; Index, Mode, LhsScalar, ConjLhs, RhsScalar, ConjRhs, ColMajor, Version &gt;</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
@@ -82,20 +82,20 @@ $(function() {
 <table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-types" name="pub-types"></a>
 Public Types</h2></td></tr>
-<tr class="memitem:abbefb4890831cf5b6e090cbe1460e43a" id="r_abbefb4890831cf5b6e090cbe1460e43a"><td class="memItemLeft" align="right" valign="top"><a id="abbefb4890831cf5b6e090cbe1460e43a" name="abbefb4890831cf5b6e090cbe1460e43a"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>IsLower</b> = ((Mode&amp;Lower)==Lower)
+<tr class="memitem:aef5d2bbc2c80227850f7c8b211519646" id="r_aef5d2bbc2c80227850f7c8b211519646"><td class="memItemLeft" align="right" valign="top"><a id="aef5d2bbc2c80227850f7c8b211519646" name="aef5d2bbc2c80227850f7c8b211519646"></a>enum &#160;</td><td class="memItemRight" valign="bottom">{ <b>IsLower</b> = ((Mode&amp;Lower)==Lower)
 , <b>HasUnitDiag</b> = (Mode &amp; UnitDiag)==UnitDiag
 , <b>HasZeroDiag</b> = (Mode &amp; ZeroDiag)==ZeroDiag
  }</td></tr>
-<tr class="separator:abbefb4890831cf5b6e090cbe1460e43a"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a27ad93a0874a167243f27de5aa102540" id="r_a27ad93a0874a167243f27de5aa102540"><td class="memItemLeft" align="right" valign="top"><a id="a27ad93a0874a167243f27de5aa102540" name="a27ad93a0874a167243f27de5aa102540"></a>
-<a class="el" href="classEigen_1_1Solve.html">typedef</a> <a class="el" href="structEigen_1_1internal_1_1scalar__product__traits.html">scalar_product_traits</a>&lt; LhsScalar, RhsScalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>ResScalar</b></td></tr>
-<tr class="separator:a27ad93a0874a167243f27de5aa102540"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="separator:aef5d2bbc2c80227850f7c8b211519646"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:afccdd81dbf01beeca47d629449753ee3" id="r_afccdd81dbf01beeca47d629449753ee3"><td class="memItemLeft" align="right" valign="top"><a id="afccdd81dbf01beeca47d629449753ee3" name="afccdd81dbf01beeca47d629449753ee3"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">typedef</a> <a class="el" href="structEigen_1_1ScalarBinaryOpTraits.html">ScalarBinaryOpTraits</a>&lt; LhsScalar, RhsScalar &gt;::ReturnType&#160;</td><td class="memItemRight" valign="bottom"><b>ResScalar</b></td></tr>
+<tr class="separator:afccdd81dbf01beeca47d629449753ee3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="pub-static-methods" name="pub-static-methods"></a>
 Static Public Member Functions</h2></td></tr>
-<tr class="memitem:a3008eaf7d182e5ae3e01f55801bc6610" id="r_a3008eaf7d182e5ae3e01f55801bc6610"><td class="memItemLeft" align="right" valign="top"><a id="a3008eaf7d182e5ae3e01f55801bc6610" name="a3008eaf7d182e5ae3e01f55801bc6610"></a>
-<a class="el" href="classEigen_1_1Solve.html">static</a> EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1Solve.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (Index <a class="el" href="classEigen_1_1Solve.html">_rows</a>, Index <a class="el" href="classEigen_1_1Solve.html">_cols</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> LhsScalar *<a class="el" href="classEigen_1_1Solve.html">_lhs</a>, Index <a class="el" href="classEigen_1_1Solve.html">lhsStride</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> RhsScalar *<a class="el" href="classEigen_1_1Solve.html">_rhs</a>, Index <a class="el" href="classEigen_1_1Solve.html">rhsIncr</a>, ResScalar *<a class="el" href="classEigen_1_1Solve.html">_res</a>, Index <a class="el" href="classEigen_1_1Solve.html">resIncr</a>, <a class="el" href="classEigen_1_1Solve.html">const</a> ResScalar &amp;alpha)</td></tr>
-<tr class="separator:a3008eaf7d182e5ae3e01f55801bc6610"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad3f5a88166e36911a77da6bdde43ee14" id="r_ad3f5a88166e36911a77da6bdde43ee14"><td class="memItemLeft" align="right" valign="top"><a id="ad3f5a88166e36911a77da6bdde43ee14" name="ad3f5a88166e36911a77da6bdde43ee14"></a>
+<a class="el" href="classEigen_1_1MatrixBase.html">static</a> EIGEN_DONT_INLINE <a class="el" href="classEigen_1_1MatrixBase.html">void</a>&#160;</td><td class="memItemRight" valign="bottom"><b>run</b> (<a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> rows_, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> cols_, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> LhsScalar *<a class="el" href="classEigen_1_1MatrixBase.html">lhs_</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">lhsStride</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> RhsScalar *<a class="el" href="classEigen_1_1MatrixBase.html">rhs_</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">rhsIncr</a>, ResScalar *<a class="el" href="classEigen_1_1MatrixBase.html">res_</a>, <a class="el" href="namespaceEigen.html#a62e77e0933482dafde8fe197d9a2cfde">Index</a> <a class="el" href="classEigen_1_1MatrixBase.html">resIncr</a>, <a class="el" href="classEigen_1_1MatrixBase.html">const</a> RhsScalar &amp;alpha)</td></tr>
+<tr class="separator:ad3f5a88166e36911a77da6bdde43ee14"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table>
 <hr/>The documentation for this struct was generated from the following file:<ul>
 <li>External/Eigen/src/Core/products/<a class="el" href="TriangularMatrixVector_8h_source.html">TriangularMatrixVector.h</a></li>
@@ -103,7 +103,7 @@ Static Public Member Functions</h2></td></tr>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:51 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:28 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>

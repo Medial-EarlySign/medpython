@@ -69,49 +69,36 @@ $(function() {
 
 <div id="nav-path" class="navpath">
   <ul>
-<li class="navelem"><b>Eigen</b></li><li class="navelem"><a class="el" href="classEigen_1_1MapBase.html">MapBase</a></li>  </ul>
+<li class="navelem"><a class="el" href="namespaceEigen.html">Eigen</a></li><li class="navelem"><a class="el" href="classEigen_1_1MapBase.html">MapBase</a></li>  </ul>
 </div>
 </div><!-- top -->
 <div class="header">
   <div class="headertitle"><div class="title">Eigen::MapBase&lt; Derived, Level &gt; Class Template Reference</div></div>
 </div><!--header-->
 <div class="contents">
-
-<p>Base class for <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a> and <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> expression with direct access.  
- <a href="classEigen_1_1MapBase.html#details">More...</a></p>
-
-<p><code>#include &lt;<a class="el" href="MapBase_8h_source.html">MapBase.h</a>&gt;</code></p>
 <div class="dynheader">
 Inheritance diagram for Eigen::MapBase&lt; Derived, Level &gt;:</div>
 <div class="dyncontent">
  <div class="center">
   <img src="classEigen_1_1MapBase.png" usemap="#Eigen::MapBase_3C_20Derived_2C_20Level_20_3E_map" alt=""/>
   <map id="Eigen::MapBase_3C_20Derived_2C_20Level_20_3E_map" name="Eigen::MapBase_3C_20Derived_2C_20Level_20_3E_map">
-<area href="classEigen_1_1Map.html" alt="Eigen::Map&lt; SparseMatrix&lt; _Scalar, _Flags, _StorageIndex &gt; &gt;" shape="rect" coords="0,56,432,80"/>
-<area href="classEigen_1_1Map.html" alt="Eigen::Map&lt; SparseMatrix&lt; Scalar, _Flags, StorageIndex &gt; &gt;" shape="rect" coords="442,56,874,80"/>
-<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; PlainObjectType, Options, StrideType &gt; &gt;" shape="rect" coords="884,56,1316,80"/>
-<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const TPlainObjectType, Options, StrideType &gt; &gt;" shape="rect" coords="1326,56,1758,80"/>
-<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const UmfpackMatrixType, Options, StrideType &gt; &gt;" shape="rect" coords="1768,56,2200,80"/>
-<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const MatrixType, Options, StrideType &gt; &gt;" shape="rect" coords="2210,56,2642,80"/>
-<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Derived &gt;" shape="rect" coords="2652,56,3084,80"/>
-<area href="classEigen_1_1MappedSparseMatrix.html" title="Sparse matrix." alt="Eigen::MappedSparseMatrix&lt; _Scalar, _Flags, _StorageIndex &gt;" shape="rect" coords="0,112,432,136"/>
-<area href="classEigen_1_1Ref.html" title="A matrix or vector expression mapping an existing expression." alt="Eigen::Ref&lt; PlainObjectType, Options, StrideType &gt;" shape="rect" coords="884,112,1316,136"/>
-<area href="classEigen_1_1Ref_3_01const_01TPlainObjectType_00_01Options_00_01StrideType_01_4.html" alt="Eigen::Ref&lt; const TPlainObjectType, Options, StrideType &gt;" shape="rect" coords="1326,112,1758,136"/>
-<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const UmfpackMatrixType, StandardCompressedFormat &gt;" shape="rect" coords="2431,112,2863,136"/>
-<area href="classEigen_1_1Ref.html" alt="Eigen::Ref&lt; const MatrixType &gt;" shape="rect" coords="2873,112,3305,136"/>
+<area href="classEigen_1_1Map.html" alt="Eigen::Map&lt; SparseMatrix&lt; _Scalar, _Flags, _StorageIndex &gt; &gt;" shape="rect" coords="442,56,874,80"/>
+<area href="classEigen_1_1Map.html" alt="Eigen::Map&lt; SparseMatrix&lt; Scalar, _Flags, StorageIndex &gt; &gt;" shape="rect" coords="442,112,874,136"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; PlainObjectType, Options, StrideType &gt; &gt;" shape="rect" coords="442,168,874,192"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const TPlainObjectType, Options, StrideType &gt; &gt;" shape="rect" coords="442,224,874,248"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const KLUMatrixType, Options, StrideType &gt; &gt;" shape="rect" coords="442,280,874,304"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const UmfpackMatrixType, Options, StrideType &gt; &gt;" shape="rect" coords="442,336,874,360"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Ref&lt; const MatrixType, Options, StrideType &gt; &gt;" shape="rect" coords="442,392,874,416"/>
+<area href="classEigen_1_1RefBase.html" alt="Eigen::RefBase&lt; Derived &gt;" shape="rect" coords="442,448,874,472"/>
   </map>
 </div></div>
-<a name="details" id="details"></a><h2 class="groupheader">Detailed Description</h2>
-<div class="textblock"><div class="compoundTemplParams">template&lt;<a class="el" href="classEigen_1_1Solve.html">typename</a> Derived, int Level = internal::accessors_level&lt;Derived&gt;::has_write_access ? WriteAccessors : ReadOnlyAccessors&gt;<br />
-class Eigen::MapBase&lt; Derived, Level &gt;</div><p>Base class for <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a> and <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> expression with direct access. </p>
-<dl class="section see"><dt>See also</dt><dd>class <a class="el" href="classEigen_1_1Map.html" title="A matrix or vector expression mapping an existing array of data.">Map</a>, class <a class="el" href="classEigen_1_1Block.html" title="Expression of a fixed-size or dynamic-size block.">Block</a> </dd></dl>
-</div><hr/>The documentation for this class was generated from the following file:<ul>
+<hr/>The documentation for this class was generated from the following file:<ul>
 <li>External/Eigen/src/Core/util/<a class="el" href="ForwardDeclarations_8h_source.html">ForwardDeclarations.h</a></li>
 </ul>
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 16:36:40 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Tue Dec 9 2025 17:30:17 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
