@@ -94,4 +94,4 @@ jobs:
           
           # Run the installation
           export CMAKE_ARGS="-DBoost_NO_BOOST_CMAKE=ON"
-          pip install . -vv --no-isolation
+          pip install . -vv --no-build-isolation
