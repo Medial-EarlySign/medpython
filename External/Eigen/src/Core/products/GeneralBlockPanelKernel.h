@@ -11,11 +11,17 @@
 #define EIGEN_GENERAL_BLOCK_PANEL_H
 
 
-namespace Eigen { 
-  
+namespace Eigen {
+
 namespace internal {
 
-template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs=false, bool _ConjRhs=false>
+enum GEBPPacketSizeType {
+  GEBPPacketFull = 0,
+  GEBPPacketHalf,
+  GEBPPacketQuarter
+};
+
+template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs=false, bool _ConjRhs=false, int Arch=Architecture::Target, int _PacketSize=GEBPPacketFull>
 class gebp_traits;
 
 
@@ -25,18 +31,44 @@ inline std::ptrdiff_t manage_caching_sizes_helper(std::ptrdiff_t a, std::ptrdiff
   return a<=0 ? b : a;
 }
 
-#if EIGEN_ARCH_i386_OR_x86_64
-const std::ptrdiff_t defaultL1CacheSize = 32*1024;
-const std::ptrdiff_t defaultL2CacheSize = 256*1024;
-const std::ptrdiff_t defaultL3CacheSize = 2*1024*1024;
+#if defined(EIGEN_DEFAULT_L1_CACHE_SIZE)
+#define EIGEN_SET_DEFAULT_L1_CACHE_SIZE(val) EIGEN_DEFAULT_L1_CACHE_SIZE
 #else
-const std::ptrdiff_t defaultL1CacheSize = 16*1024;
-const std::ptrdiff_t defaultL2CacheSize = 512*1024;
-const std::ptrdiff_t defaultL3CacheSize = 512*1024;
+#define EIGEN_SET_DEFAULT_L1_CACHE_SIZE(val) val
+#endif // defined(EIGEN_DEFAULT_L1_CACHE_SIZE)
+
+#if defined(EIGEN_DEFAULT_L2_CACHE_SIZE)
+#define EIGEN_SET_DEFAULT_L2_CACHE_SIZE(val) EIGEN_DEFAULT_L2_CACHE_SIZE
+#else
+#define EIGEN_SET_DEFAULT_L2_CACHE_SIZE(val) val
+#endif // defined(EIGEN_DEFAULT_L2_CACHE_SIZE)
+
+#if defined(EIGEN_DEFAULT_L3_CACHE_SIZE)
+#define EIGEN_SET_DEFAULT_L3_CACHE_SIZE(val) EIGEN_DEFAULT_L3_CACHE_SIZE
+#else
+#define EIGEN_SET_DEFAULT_L3_CACHE_SIZE(val) val
+#endif // defined(EIGEN_DEFAULT_L3_CACHE_SIZE)
+  
+#if EIGEN_ARCH_i386_OR_x86_64
+const std::ptrdiff_t defaultL1CacheSize = EIGEN_SET_DEFAULT_L1_CACHE_SIZE(32*1024);
+const std::ptrdiff_t defaultL2CacheSize = EIGEN_SET_DEFAULT_L2_CACHE_SIZE(256*1024);
+const std::ptrdiff_t defaultL3CacheSize = EIGEN_SET_DEFAULT_L3_CACHE_SIZE(2*1024*1024);
+#elif EIGEN_ARCH_PPC
+const std::ptrdiff_t defaultL1CacheSize = EIGEN_SET_DEFAULT_L1_CACHE_SIZE(64*1024);
+const std::ptrdiff_t defaultL2CacheSize = EIGEN_SET_DEFAULT_L2_CACHE_SIZE(512*1024);
+const std::ptrdiff_t defaultL3CacheSize = EIGEN_SET_DEFAULT_L3_CACHE_SIZE(4*1024*1024);
+#else
+const std::ptrdiff_t defaultL1CacheSize = EIGEN_SET_DEFAULT_L1_CACHE_SIZE(16*1024);
+const std::ptrdiff_t defaultL2CacheSize = EIGEN_SET_DEFAULT_L2_CACHE_SIZE(512*1024);
+const std::ptrdiff_t defaultL3CacheSize = EIGEN_SET_DEFAULT_L3_CACHE_SIZE(512*1024);
 #endif
 
+#undef EIGEN_SET_DEFAULT_L1_CACHE_SIZE
+#undef EIGEN_SET_DEFAULT_L2_CACHE_SIZE
+#undef EIGEN_SET_DEFAULT_L3_CACHE_SIZE
+
 /** \internal */
-struct CacheSizes { 
+struct CacheSizes {
   CacheSizes(): m_l1(-1),m_l2(-1),m_l3(-1) {
     int l1CacheSize, l2CacheSize, l3CacheSize;
     queryCacheSizes(l1CacheSize, l2CacheSize, l3CacheSize);
@@ -49,7 +81,6 @@ struct CacheSizes {
   std::ptrdiff_t m_l2;
   std::ptrdiff_t m_l3;
 };
-
 
 /** \internal */
 inline void manage_caching_sizes(Action action, std::ptrdiff_t* l1, std::ptrdiff_t* l2, std::ptrdiff_t* l3)
@@ -89,7 +120,7 @@ inline void manage_caching_sizes(Action action, std::ptrdiff_t* l1, std::ptrdiff
  *
  * \sa setCpuCacheSizes */
 
-template<typename LhsScalar, typename RhsScalar, int KcFactor>
+template<typename LhsScalar, typename RhsScalar, int KcFactor, typename Index>
 void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index num_threads = 1)
 {
   typedef gebp_traits<LhsScalar,RhsScalar> Traits;
@@ -101,27 +132,34 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
   // at the register level. This small horizontal panel has to stay within L1 cache.
   std::ptrdiff_t l1, l2, l3;
   manage_caching_sizes(GetAction, &l1, &l2, &l3);
+  #ifdef EIGEN_VECTORIZE_AVX512
+  // We need to find a rationale for that, but without this adjustment,
+  // performance with AVX512 is pretty bad, like -20% slower.
+  // One reason is that with increasing packet-size, the blocking size k
+  // has to become pretty small if we want that 1 lhs panel fit within L1.
+  // For instance, with the 3pX4 kernel and double, the size of the lhs+rhs panels are:
+  //   k*(3*64 + 4*8) Bytes, with l1=32kBytes, and k%8=0, we have k=144.
+  // This is quite small for a good reuse of the accumulation registers.
+  l1 *= 4;
+  #endif
 
   if (num_threads > 1) {
     typedef typename Traits::ResScalar ResScalar;
     enum {
       kdiv = KcFactor * (Traits::mr * sizeof(LhsScalar) + Traits::nr * sizeof(RhsScalar)),
       ksub = Traits::mr * Traits::nr * sizeof(ResScalar),
-      k_mask = -8,
-
+      kr = 8,
       mr = Traits::mr,
-      mr_mask = -mr,
-
-      nr = Traits::nr,
-      nr_mask = -nr
+      nr = Traits::nr
     };
     // Increasing k gives us more time to prefetch the content of the "C"
     // registers. However once the latency is hidden there is no point in
     // increasing the value of k, so we'll cap it at 320 (value determined
     // experimentally).
-    const Index k_cache = (std::min<Index>)((l1-ksub)/kdiv, 320);
+    // To avoid that k vanishes, we make k_cache at least as big as kr
+    const Index k_cache = numext::maxi<Index>(kr, (numext::mini<Index>)((l1-ksub)/kdiv, 320));
     if (k_cache < k) {
-      k = k_cache & k_mask;
+      k = k_cache - (k_cache % kr);
       eigen_internal_assert(k > 0);
     }
 
@@ -130,10 +168,10 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
     if (n_cache <= n_per_thread) {
       // Don't exceed the capacity of the l2 cache.
       eigen_internal_assert(n_cache >= static_cast<Index>(nr));
-      n = n_cache & nr_mask;
+      n = n_cache - (n_cache % nr);
       eigen_internal_assert(n > 0);
     } else {
-      n = (std::min<Index>)(n, (n_per_thread + nr - 1) & nr_mask);
+      n = (numext::mini<Index>)(n, (n_per_thread + nr - 1) - ((n_per_thread + nr - 1) % nr));
     }
 
     if (l3 > l2) {
@@ -141,10 +179,10 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
       const Index m_cache = (l3-l2) / (sizeof(LhsScalar) * k * num_threads);
       const Index m_per_thread = numext::div_ceil(m, num_threads);
       if(m_cache < m_per_thread && m_cache >= static_cast<Index>(mr)) {
-        m = m_cache & mr_mask;
+        m = m_cache - (m_cache % mr);
         eigen_internal_assert(m > 0);
       } else {
-        m = (std::min<Index>)(m, (m_per_thread + mr - 1) & mr_mask);
+        m = (numext::mini<Index>)(m, (m_per_thread + mr - 1) - ((m_per_thread + mr - 1) % mr));
       }
     }
   }
@@ -156,29 +194,29 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
     l2 = 32*1024;
     l3 = 512*1024;
 #endif
-    
+
     // Early return for small problems because the computation below are time consuming for small problems.
     // Perhaps it would make more sense to consider k*n*m??
     // Note that for very tiny problem, this function should be bypassed anyway
     // because we use the coefficient-based implementation for them.
-    if((std::max)(k,(std::max)(m,n))<48)
+    if((numext::maxi)(k,(numext::maxi)(m,n))<48)
       return;
-    
+
     typedef typename Traits::ResScalar ResScalar;
     enum {
       k_peeling = 8,
       k_div = KcFactor * (Traits::mr * sizeof(LhsScalar) + Traits::nr * sizeof(RhsScalar)),
       k_sub = Traits::mr * Traits::nr * sizeof(ResScalar)
     };
-    
+
     // ---- 1st level of blocking on L1, yields kc ----
-    
+
     // Blocking on the third dimension (i.e., k) is chosen so that an horizontal panel
     // of size mr x kc of the lhs plus a vertical panel of kc x nr of the rhs both fits within L1 cache.
     // We also include a register-level block of the result (mx x nr).
     // (In an ideal world only the lhs panel would stay in L1)
     // Moreover, kc has to be a multiple of 8 to be compatible with loop peeling, leading to a maximum blocking size of:
-    const Index max_kc = ((l1-k_sub)/k_div) & (~(k_peeling-1));
+    const Index max_kc = numext::maxi<Index>(((l1-k_sub)/k_div) & (~(k_peeling-1)),1);
     const Index old_k = k;
     if(k>max_kc)
     {
@@ -187,12 +225,12 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
       //    while keeping the same number of sweeps over the result.
       k = (k%max_kc)==0 ? max_kc
                         : max_kc - k_peeling * ((max_kc-1-(k%max_kc))/(k_peeling*(k/max_kc+1)));
-                        
+
       eigen_internal_assert(((old_k/k) == (old_k/max_kc)) && "the number of sweeps has to remain the same");
     }
-    
+
     // ---- 2nd level of blocking on max(L2,L3), yields nc ----
-    
+
     // TODO find a reliable way to get the actual amount of cache per core to use for 2nd level blocking, that is:
     //      actual_l2 = max(l2, l3/nb_core_sharing_l3)
     // The number below is quite conservative: it is better to underestimate the cache size rather than overestimating it)
@@ -202,7 +240,7 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
     #else
     const Index actual_l2 = 1572864; // == 1.5 MB
     #endif
-    
+
     // Here, nc is chosen such that a block of kc x nc of the rhs fit within half of L2.
     // The second half is implicitly reserved to access the result and lhs coefficients.
     // When k<max_kc, then nc can arbitrarily growth. In practice, it seems to be fruitful
@@ -223,7 +261,7 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
       max_nc = (3*actual_l2)/(2*2*max_kc*sizeof(RhsScalar));
     }
     // WARNING Below, we assume that Traits::nr is a power of two.
-    Index nc = std::min<Index>(actual_l2/(2*k*sizeof(RhsScalar)), max_nc) & (~(Traits::nr-1));
+    Index nc = numext::mini<Index>(actual_l2/(2*k*sizeof(RhsScalar)), max_nc) & (~(Traits::nr-1));
     if(n>nc)
     {
       // We are really blocking over the columns:
@@ -252,9 +290,9 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
         // we have both L2 and L3, and problem is small enough to be kept in L2
         // Let's choose m such that lhs's block fit in 1/3 of L2
         actual_lm = l2;
-        max_mc = 576;
+        max_mc = (numext::mini<Index>)(576,max_mc);
       }
-      Index mc = (std::min<Index>)(actual_lm/(3*k*sizeof(LhsScalar)), max_mc);
+      Index mc = (numext::mini<Index>)(actual_lm/(3*k*sizeof(LhsScalar)), max_mc);
       if (mc > Traits::mr) mc -= mc % Traits::mr;
       else if (mc==0) return;
       m = (m%mc)==0 ? mc
@@ -263,13 +301,14 @@ void evaluateProductBlockingSizesHeuristic(Index& k, Index& m, Index& n, Index n
   }
 }
 
+template <typename Index>
 inline bool useSpecificBlockingSizes(Index& k, Index& m, Index& n)
 {
 #ifdef EIGEN_TEST_SPECIFIC_BLOCKING_SIZES
   if (EIGEN_TEST_SPECIFIC_BLOCKING_SIZES) {
-    k = std::min<Index>(k, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_K);
-    m = std::min<Index>(m, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_M);
-    n = std::min<Index>(n, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_N);
+    k = numext::mini<Index>(k, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_K);
+    m = numext::mini<Index>(m, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_M);
+    n = numext::mini<Index>(n, EIGEN_TEST_SPECIFIC_BLOCKING_SIZE_N);
     return true;
   }
 #else
@@ -296,59 +335,74 @@ inline bool useSpecificBlockingSizes(Index& k, Index& m, Index& n)
   *
   * \sa setCpuCacheSizes */
 
-template<typename LhsScalar, typename RhsScalar, int KcFactor>
+template<typename LhsScalar, typename RhsScalar, int KcFactor, typename Index>
 void computeProductBlockingSizes(Index& k, Index& m, Index& n, Index num_threads = 1)
 {
   if (!useSpecificBlockingSizes(k, m, n)) {
-    evaluateProductBlockingSizesHeuristic<LhsScalar, RhsScalar, KcFactor>(k, m, n, num_threads);
+    evaluateProductBlockingSizesHeuristic<LhsScalar, RhsScalar, KcFactor, Index>(k, m, n, num_threads);
   }
-
-  typedef gebp_traits<LhsScalar,RhsScalar> Traits;
-  enum {
-    kr = 8,
-    mr = Traits::mr,
-    nr = Traits::nr
-  };
-  if (k > kr) k -= k % kr;
-  if (m > mr) m -= m % mr;
-  if (n > nr) n -= n % nr;
 }
 
-template<typename LhsScalar, typename RhsScalar>
+template<typename LhsScalar, typename RhsScalar, typename Index>
 inline void computeProductBlockingSizes(Index& k, Index& m, Index& n, Index num_threads = 1)
 {
-  computeProductBlockingSizes<LhsScalar,RhsScalar,1>(k, m, n, num_threads);
+  computeProductBlockingSizes<LhsScalar,RhsScalar,1,Index>(k, m, n, num_threads);
 }
 
-#ifdef EIGEN_HAS_SINGLE_INSTRUCTION_CJMADD
-  #define CJMADD(CJ,A,B,C,T)  C = CJ.pmadd(A,B,C);
-#else
+template <typename RhsPacket, typename RhsPacketx4, int registers_taken>
+struct RhsPanelHelper {
+ private:
+  static const int remaining_registers = EIGEN_ARCH_DEFAULT_NUMBER_OF_REGISTERS - registers_taken;
+ public:
+  typedef typename conditional<remaining_registers>=4, RhsPacketx4, RhsPacket>::type type;
+};
 
-  // FIXME (a bit overkill maybe ?)
+template <typename Packet>
+struct QuadPacket
+{
+  Packet B_0, B1, B2, B3;
+  const Packet& get(const FixedInt<0>&) const { return B_0; }
+  const Packet& get(const FixedInt<1>&) const { return B1; }
+  const Packet& get(const FixedInt<2>&) const { return B2; }
+  const Packet& get(const FixedInt<3>&) const { return B3; }
+};
 
-  template<typename CJ, typename A, typename B, typename C, typename T> struct gebp_madd_selector {
-    EIGEN_ALWAYS_INLINE static void run(const CJ& cj, A& a, B& b, C& c, T& /*t*/)
-    {
-      c = cj.pmadd(a,b,c);
-    }
-  };
+template <int N, typename T1, typename T2, typename T3>
+struct packet_conditional { typedef T3 type; };
 
-  template<typename CJ, typename T> struct gebp_madd_selector<CJ,T,T,T,T> {
-    EIGEN_ALWAYS_INLINE static void run(const CJ& cj, T& a, T& b, T& c, T& t)
-    {
-      t = b; t = cj.pmul(a,t); c = padd(c,t);
-    }
-  };
+template <typename T1, typename T2, typename T3>
+struct packet_conditional<GEBPPacketFull, T1, T2, T3> { typedef T1 type; };
 
-  template<typename CJ, typename A, typename B, typename C, typename T>
-  EIGEN_STRONG_INLINE void gebp_madd(const CJ& cj, A& a, B& b, C& c, T& t)
-  {
-    gebp_madd_selector<CJ,A,B,C,T>::run(cj,a,b,c,t);
-  }
+template <typename T1, typename T2, typename T3>
+struct packet_conditional<GEBPPacketHalf, T1, T2, T3> { typedef T2 type; };
 
-  #define CJMADD(CJ,A,B,C,T)  gebp_madd(CJ,A,B,C,T);
-//   #define CJMADD(CJ,A,B,C,T)  T = B; T = CJ.pmul(A,T); C = padd(C,T);
-#endif
+#define PACKET_DECL_COND_PREFIX(prefix, name, packet_size)         \
+  typedef typename packet_conditional<packet_size,                 \
+                                      typename packet_traits<name ## Scalar>::type, \
+                                      typename packet_traits<name ## Scalar>::half, \
+                                      typename unpacket_traits<typename packet_traits<name ## Scalar>::half>::half>::type \
+  prefix ## name ## Packet
+
+#define PACKET_DECL_COND(name, packet_size)                        \
+  typedef typename packet_conditional<packet_size,                 \
+                                      typename packet_traits<name ## Scalar>::type, \
+                                      typename packet_traits<name ## Scalar>::half, \
+                                      typename unpacket_traits<typename packet_traits<name ## Scalar>::half>::half>::type \
+  name ## Packet
+
+#define PACKET_DECL_COND_SCALAR_PREFIX(prefix, packet_size)        \
+  typedef typename packet_conditional<packet_size,                 \
+                                      typename packet_traits<Scalar>::type, \
+                                      typename packet_traits<Scalar>::half, \
+                                      typename unpacket_traits<typename packet_traits<Scalar>::half>::half>::type \
+  prefix ## ScalarPacket
+
+#define PACKET_DECL_COND_SCALAR(packet_size)                       \
+  typedef typename packet_conditional<packet_size,                 \
+                                      typename packet_traits<Scalar>::type, \
+                                      typename packet_traits<Scalar>::half, \
+                                      typename unpacket_traits<typename packet_traits<Scalar>::half>::half>::type \
+  ScalarPacket
 
 /* Vectorization logic
  *  real*real: unpack rhs to constant packets, ...
@@ -360,21 +414,25 @@ inline void computeProductBlockingSizes(Index& k, Index& m, Index& n, Index num_
  *  cplx*real : unpack rhs to constant packets, ...
  *  real*cplx : load lhs as (a0,a0,a1,a1), and mul as usual
  */
-template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs, bool _ConjRhs>
+template<typename _LhsScalar, typename _RhsScalar, bool _ConjLhs, bool _ConjRhs, int Arch, int _PacketSize>
 class gebp_traits
 {
 public:
   typedef _LhsScalar LhsScalar;
   typedef _RhsScalar RhsScalar;
-  typedef typename scalar_product_traits<LhsScalar, RhsScalar>::ReturnType ResScalar;
+  typedef typename ScalarBinaryOpTraits<LhsScalar, RhsScalar>::ReturnType ResScalar;
+
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
 
   enum {
     ConjLhs = _ConjLhs,
     ConjRhs = _ConjRhs,
-    Vectorizable = packet_traits<LhsScalar>::Vectorizable && packet_traits<RhsScalar>::Vectorizable,
-    LhsPacketSize = Vectorizable ? packet_traits<LhsScalar>::size : 1,
-    RhsPacketSize = Vectorizable ? packet_traits<RhsScalar>::size : 1,
-    ResPacketSize = Vectorizable ? packet_traits<ResScalar>::size : 1,
+    Vectorizable = unpacket_traits<_LhsPacket>::vectorizable && unpacket_traits<_RhsPacket>::vectorizable,
+    LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
+    RhsPacketSize = Vectorizable ? unpacket_traits<_RhsPacket>::size : 1,
+    ResPacketSize = Vectorizable ? unpacket_traits<_ResPacket>::size : 1,
     
     NumberOfRegisters = EIGEN_ARCH_DEFAULT_NUMBER_OF_REGISTERS,
 
@@ -383,10 +441,12 @@ public:
 
     // register block size along the M direction (currently, this one cannot be modified)
     default_mr = (EIGEN_PLAIN_ENUM_MIN(16,NumberOfRegisters)/2/nr)*LhsPacketSize,
-#if defined(EIGEN_HAS_SINGLE_INSTRUCTION_MADD) && !defined(EIGEN_VECTORIZE_ALTIVEC) && !defined(EIGEN_VECTORIZE_VSX)
-    // we assume 16 registers
+#if defined(EIGEN_HAS_SINGLE_INSTRUCTION_MADD) && !defined(EIGEN_VECTORIZE_ALTIVEC) && !defined(EIGEN_VECTORIZE_VSX) \
+    && ((!EIGEN_COMP_MSVC) || (EIGEN_COMP_MSVC>=1914))
+    // we assume 16 registers or more
     // See bug 992, if the scalar type is not vectorizable but that EIGEN_HAS_SINGLE_INSTRUCTION_MADD is defined,
     // then using 3*LhsPacketSize triggers non-implemented paths in syrk.
+    // Bug 1515: MSVC prior to v19.14 yields to register spilling.
     mr = Vectorizable ? 3*LhsPacketSize : default_mr,
 #else
     mr = default_mr,
@@ -396,37 +456,41 @@ public:
     RhsProgress = 1
   };
 
-  typedef typename packet_traits<LhsScalar>::type  _LhsPacket;
-  typedef typename packet_traits<RhsScalar>::type  _RhsPacket;
-  typedef typename packet_traits<ResScalar>::type  _ResPacket;
 
   typedef typename conditional<Vectorizable,_LhsPacket,LhsScalar>::type LhsPacket;
   typedef typename conditional<Vectorizable,_RhsPacket,RhsScalar>::type RhsPacket;
   typedef typename conditional<Vectorizable,_ResPacket,ResScalar>::type ResPacket;
+  typedef LhsPacket LhsPacket4Packing;
 
+  typedef QuadPacket<RhsPacket> RhsPacketx4;
   typedef ResPacket AccPacket;
   
   EIGEN_STRONG_INLINE void initAcc(AccPacket& p)
   {
     p = pset1<ResPacket>(ResScalar(0));
   }
-  
-  EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1, RhsPacket& b2, RhsPacket& b3)
-  {
-    pbroadcast4(b, b0, b1, b2, b3);
-  }
-  
-//   EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1)
-//   {
-//     pbroadcast2(b, b0, b1);
-//   }
-  
+
   template<typename RhsPacketType>
   EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketType& dest) const
   {
     dest = pset1<RhsPacketType>(*b);
   }
-  
+
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketx4& dest) const
+  {
+    pbroadcast4(b, dest.B_0, dest.B1, dest.B2, dest.B3);
+  }
+
+  template<typename RhsPacketType>
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar* b, RhsPacketType& dest) const
+  {
+    loadRhs(b, dest);
+  }
+
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar*, RhsPacketx4&) const
+  {
+  }
+
   EIGEN_STRONG_INLINE void loadRhsQuad(const RhsScalar* b, RhsPacket& dest) const
   {
     dest = ploadquad<RhsPacket>(b);
@@ -444,19 +508,26 @@ public:
     dest = ploadu<LhsPacketType>(a);
   }
 
-  template<typename LhsPacketType, typename RhsPacketType, typename AccPacketType>
-  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, AccPacketType& tmp) const
+  template<typename LhsPacketType, typename RhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, RhsPacketType& tmp, const LaneIdType&) const
   {
+    conj_helper<LhsPacketType,RhsPacketType,ConjLhs,ConjRhs> cj;
     // It would be a lot cleaner to call pmadd all the time. Unfortunately if we
     // let gcc allocate the register in which to store the result of the pmul
     // (in the case where there is no FMA) gcc fails to figure out how to avoid
     // spilling register.
 #ifdef EIGEN_HAS_SINGLE_INSTRUCTION_MADD
     EIGEN_UNUSED_VARIABLE(tmp);
-    c = pmadd(a,b,c);
+    c = cj.pmadd(a,b,c);
 #else
-    tmp = b; tmp = pmul(a,tmp); c = padd(c,tmp);
+    tmp = b; tmp = cj.pmul(a,tmp); c = padd(c,tmp);
 #endif
+  }
+
+  template<typename LhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketx4& b, AccPacketType& c, RhsPacket& tmp, const LaneIdType& lane) const
+  {
+    madd(a, b.get(lane), c, tmp, lane);
   }
 
   EIGEN_STRONG_INLINE void acc(const AccPacket& c, const ResPacket& alpha, ResPacket& r) const
@@ -470,26 +541,27 @@ public:
     r = pmadd(c,alpha,r);
   }
 
-protected:
-//   conj_helper<LhsScalar,RhsScalar,ConjLhs,ConjRhs> cj;
-//   conj_helper<LhsPacket,RhsPacket,ConjLhs,ConjRhs> pcj;
 };
 
-template<typename RealScalar, bool _ConjLhs>
-class gebp_traits<std::complex<RealScalar>, RealScalar, _ConjLhs, false>
+template<typename RealScalar, bool _ConjLhs, int Arch, int _PacketSize>
+class gebp_traits<std::complex<RealScalar>, RealScalar, _ConjLhs, false, Arch, _PacketSize>
 {
 public:
   typedef std::complex<RealScalar> LhsScalar;
   typedef RealScalar RhsScalar;
-  typedef typename scalar_product_traits<LhsScalar, RhsScalar>::ReturnType ResScalar;
+  typedef typename ScalarBinaryOpTraits<LhsScalar, RhsScalar>::ReturnType ResScalar;
+
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
 
   enum {
     ConjLhs = _ConjLhs,
     ConjRhs = false,
-    Vectorizable = packet_traits<LhsScalar>::Vectorizable && packet_traits<RhsScalar>::Vectorizable,
-    LhsPacketSize = Vectorizable ? packet_traits<LhsScalar>::size : 1,
-    RhsPacketSize = Vectorizable ? packet_traits<RhsScalar>::size : 1,
-    ResPacketSize = Vectorizable ? packet_traits<ResScalar>::size : 1,
+    Vectorizable = unpacket_traits<_LhsPacket>::vectorizable && unpacket_traits<_RhsPacket>::vectorizable,
+    LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
+    RhsPacketSize = Vectorizable ? unpacket_traits<_RhsPacket>::size : 1,
+    ResPacketSize = Vectorizable ? unpacket_traits<_ResPacket>::size : 1,
     
     NumberOfRegisters = EIGEN_ARCH_DEFAULT_NUMBER_OF_REGISTERS,
     nr = 4,
@@ -504,13 +576,12 @@ public:
     RhsProgress = 1
   };
 
-  typedef typename packet_traits<LhsScalar>::type  _LhsPacket;
-  typedef typename packet_traits<RhsScalar>::type  _RhsPacket;
-  typedef typename packet_traits<ResScalar>::type  _ResPacket;
-
   typedef typename conditional<Vectorizable,_LhsPacket,LhsScalar>::type LhsPacket;
   typedef typename conditional<Vectorizable,_RhsPacket,RhsScalar>::type RhsPacket;
   typedef typename conditional<Vectorizable,_ResPacket,ResScalar>::type ResPacket;
+  typedef LhsPacket LhsPacket4Packing;
+
+  typedef QuadPacket<RhsPacket> RhsPacketx4;
 
   typedef ResPacket AccPacket;
 
@@ -519,13 +590,42 @@ public:
     p = pset1<ResPacket>(ResScalar(0));
   }
 
-  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacket& dest) const
+  template<typename RhsPacketType>
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketType& dest) const
   {
-    dest = pset1<RhsPacket>(*b);
+    dest = pset1<RhsPacketType>(*b);
   }
+
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketx4& dest) const
+  {
+    pbroadcast4(b, dest.B_0, dest.B1, dest.B2, dest.B3);
+  }
+
+  template<typename RhsPacketType>
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar* b, RhsPacketType& dest) const
+  {
+    loadRhs(b, dest);
+  }
+
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar*, RhsPacketx4&) const
+  {}
   
   EIGEN_STRONG_INLINE void loadRhsQuad(const RhsScalar* b, RhsPacket& dest) const
   {
+    loadRhsQuad_impl(b,dest, typename conditional<RhsPacketSize==16,true_type,false_type>::type());
+  }
+
+  EIGEN_STRONG_INLINE void loadRhsQuad_impl(const RhsScalar* b, RhsPacket& dest, const true_type&) const
+  {
+    // FIXME we can do better!
+    // what we want here is a ploadheight
+    RhsScalar tmp[4] = {b[0],b[0],b[1],b[1]};
+    dest = ploadquad<RhsPacket>(tmp);
+  }
+
+  EIGEN_STRONG_INLINE void loadRhsQuad_impl(const RhsScalar* b, RhsPacket& dest, const false_type&) const
+  {
+    eigen_internal_assert(RhsPacketSize<=8);
     dest = pset1<RhsPacket>(*b);
   }
 
@@ -534,27 +634,20 @@ public:
     dest = pload<LhsPacket>(a);
   }
 
-  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacket& dest) const
+  template<typename LhsPacketType>
+  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacketType& dest) const
   {
-    dest = ploadu<LhsPacket>(a);
+    dest = ploadu<LhsPacketType>(a);
   }
 
-  EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1, RhsPacket& b2, RhsPacket& b3)
-  {
-    pbroadcast4(b, b0, b1, b2, b3);
-  }
-  
-//   EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1)
-//   {
-//     pbroadcast2(b, b0, b1);
-//   }
-
-  EIGEN_STRONG_INLINE void madd(const LhsPacket& a, const RhsPacket& b, AccPacket& c, RhsPacket& tmp) const
+  template <typename LhsPacketType, typename RhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, RhsPacketType& tmp, const LaneIdType&) const
   {
     madd_impl(a, b, c, tmp, typename conditional<Vectorizable,true_type,false_type>::type());
   }
 
-  EIGEN_STRONG_INLINE void madd_impl(const LhsPacket& a, const RhsPacket& b, AccPacket& c, RhsPacket& tmp, const true_type&) const
+  template <typename LhsPacketType, typename RhsPacketType, typename AccPacketType>
+  EIGEN_STRONG_INLINE void madd_impl(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, RhsPacketType& tmp, const true_type&) const
   {
 #ifdef EIGEN_HAS_SINGLE_INSTRUCTION_MADD
     EIGEN_UNUSED_VARIABLE(tmp);
@@ -569,13 +662,20 @@ public:
     c += a * b;
   }
 
-  EIGEN_STRONG_INLINE void acc(const AccPacket& c, const ResPacket& alpha, ResPacket& r) const
+  template<typename LhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketx4& b, AccPacketType& c, RhsPacket& tmp, const LaneIdType& lane) const
   {
+    madd(a, b.get(lane), c, tmp, lane);
+  }
+
+  template <typename ResPacketType, typename AccPacketType>
+  EIGEN_STRONG_INLINE void acc(const AccPacketType& c, const ResPacketType& alpha, ResPacketType& r) const
+  {
+    conj_helper<ResPacketType,ResPacketType,ConjLhs,false> cj;
     r = cj.pmadd(c,alpha,r);
   }
 
 protected:
-  conj_helper<ResPacket,ResPacket,ConjLhs,false> cj;
 };
 
 template<typename Packet>
@@ -594,13 +694,57 @@ DoublePacket<Packet> padd(const DoublePacket<Packet> &a, const DoublePacket<Pack
   return res;
 }
 
+// note that for DoublePacket<RealPacket> the "4" in "downto4"
+// corresponds to the number of complexes, so it means "8"
+// it terms of real coefficients.
+
 template<typename Packet>
-const DoublePacket<Packet>& predux4(const DoublePacket<Packet> &a)
+const DoublePacket<Packet>&
+predux_half_dowto4(const DoublePacket<Packet> &a,
+                   typename enable_if<unpacket_traits<Packet>::size<=8>::type* = 0)
 {
   return a;
 }
 
-template<typename Packet> struct unpacket_traits<DoublePacket<Packet> > { typedef DoublePacket<Packet> half; };
+template<typename Packet>
+DoublePacket<typename unpacket_traits<Packet>::half>
+predux_half_dowto4(const DoublePacket<Packet> &a,
+                   typename enable_if<unpacket_traits<Packet>::size==16>::type* = 0)
+{
+  // yes, that's pretty hackish :(
+  DoublePacket<typename unpacket_traits<Packet>::half> res;
+  typedef std::complex<typename unpacket_traits<Packet>::type> Cplx;
+  typedef typename packet_traits<Cplx>::type CplxPacket;
+  res.first  = predux_half_dowto4(CplxPacket(a.first)).v;
+  res.second = predux_half_dowto4(CplxPacket(a.second)).v;
+  return res;
+}
+
+// same here, "quad" actually means "8" in terms of real coefficients
+template<typename Scalar, typename RealPacket>
+void loadQuadToDoublePacket(const Scalar* b, DoublePacket<RealPacket>& dest,
+                            typename enable_if<unpacket_traits<RealPacket>::size<=8>::type* = 0)
+{
+  dest.first  = pset1<RealPacket>(numext::real(*b));
+  dest.second = pset1<RealPacket>(numext::imag(*b));
+}
+
+template<typename Scalar, typename RealPacket>
+void loadQuadToDoublePacket(const Scalar* b, DoublePacket<RealPacket>& dest,
+                            typename enable_if<unpacket_traits<RealPacket>::size==16>::type* = 0)
+{
+  // yes, that's pretty hackish too :(
+  typedef typename NumTraits<Scalar>::Real RealScalar;
+  RealScalar r[4] = {numext::real(b[0]), numext::real(b[0]), numext::real(b[1]), numext::real(b[1])};
+  RealScalar i[4] = {numext::imag(b[0]), numext::imag(b[0]), numext::imag(b[1]), numext::imag(b[1])};
+  dest.first  = ploadquad<RealPacket>(r);
+  dest.second = ploadquad<RealPacket>(i);
+}
+
+
+template<typename Packet> struct unpacket_traits<DoublePacket<Packet> > {
+  typedef DoublePacket<typename unpacket_traits<Packet>::half> half;
+};
 // template<typename Packet>
 // DoublePacket<Packet> pmadd(const DoublePacket<Packet> &a, const DoublePacket<Packet> &b)
 // {
@@ -610,8 +754,8 @@ template<typename Packet> struct unpacket_traits<DoublePacket<Packet> > { typede
 //   return res;
 // }
 
-template<typename RealScalar, bool _ConjLhs, bool _ConjRhs>
-class gebp_traits<std::complex<RealScalar>, std::complex<RealScalar>, _ConjLhs, _ConjRhs >
+template<typename RealScalar, bool _ConjLhs, bool _ConjRhs, int Arch, int _PacketSize>
+class gebp_traits<std::complex<RealScalar>, std::complex<RealScalar>, _ConjLhs, _ConjRhs, Arch, _PacketSize >
 {
 public:
   typedef std::complex<RealScalar>  Scalar;
@@ -619,15 +763,21 @@ public:
   typedef std::complex<RealScalar>  RhsScalar;
   typedef std::complex<RealScalar>  ResScalar;
   
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
+  PACKET_DECL_COND(Real, _PacketSize);
+  PACKET_DECL_COND_SCALAR(_PacketSize);
+
   enum {
     ConjLhs = _ConjLhs,
     ConjRhs = _ConjRhs,
-    Vectorizable = packet_traits<RealScalar>::Vectorizable
-                && packet_traits<Scalar>::Vectorizable,
-    RealPacketSize  = Vectorizable ? packet_traits<RealScalar>::size : 1,
-    ResPacketSize   = Vectorizable ? packet_traits<ResScalar>::size : 1,
-    LhsPacketSize = Vectorizable ? packet_traits<LhsScalar>::size : 1,
-    RhsPacketSize = Vectorizable ? packet_traits<RhsScalar>::size : 1,
+    Vectorizable = unpacket_traits<RealPacket>::vectorizable
+                && unpacket_traits<ScalarPacket>::vectorizable,
+    ResPacketSize   = Vectorizable ? unpacket_traits<_ResPacket>::size : 1,
+    LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
+    RhsPacketSize = Vectorizable ? unpacket_traits<RhsScalar>::size : 1,
+    RealPacketSize  = Vectorizable ? unpacket_traits<RealPacket>::size : 1,
 
     // FIXME: should depend on NumberOfRegisters
     nr = 4,
@@ -637,14 +787,16 @@ public:
     RhsProgress = 1
   };
   
-  typedef typename packet_traits<RealScalar>::type RealPacket;
-  typedef typename packet_traits<Scalar>::type     ScalarPacket;
-  typedef DoublePacket<RealPacket> DoublePacketType;
+  typedef DoublePacket<RealPacket>                 DoublePacketType;
 
+  typedef typename conditional<Vectorizable,ScalarPacket,Scalar>::type LhsPacket4Packing;
   typedef typename conditional<Vectorizable,RealPacket,  Scalar>::type LhsPacket;
   typedef typename conditional<Vectorizable,DoublePacketType,Scalar>::type RhsPacket;
   typedef typename conditional<Vectorizable,ScalarPacket,Scalar>::type ResPacket;
   typedef typename conditional<Vectorizable,DoublePacketType,Scalar>::type AccPacket;
+
+  // this actualy holds 8 packets!
+  typedef QuadPacket<RhsPacket> RhsPacketx4;
   
   EIGEN_STRONG_INLINE void initAcc(Scalar& p) { p = Scalar(0); }
 
@@ -655,17 +807,41 @@ public:
   }
 
   // Scalar path
-  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, ResPacket& dest) const
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, ScalarPacket& dest) const
   {
-    dest = pset1<ResPacket>(*b);
+    dest = pset1<ScalarPacket>(*b);
   }
 
   // Vectorized path
-  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, DoublePacketType& dest) const
+  template<typename RealPacketType>
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, DoublePacket<RealPacketType>& dest) const
   {
-    dest.first  = pset1<RealPacket>(real(*b));
-    dest.second = pset1<RealPacket>(imag(*b));
+    dest.first  = pset1<RealPacketType>(numext::real(*b));
+    dest.second = pset1<RealPacketType>(numext::imag(*b));
   }
+
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketx4& dest) const
+  {
+    loadRhs(b, dest.B_0);
+    loadRhs(b + 1, dest.B1);
+    loadRhs(b + 2, dest.B2);
+    loadRhs(b + 3, dest.B3);
+  }
+
+  // Scalar path
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar* b, ScalarPacket& dest) const
+  {
+    loadRhs(b, dest);
+  }
+
+  // Vectorized path
+  template<typename RealPacketType>
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar* b, DoublePacket<RealPacketType>& dest) const
+  {
+    loadRhs(b, dest);
+  }
+
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar*, RhsPacketx4&) const {}
   
   EIGEN_STRONG_INLINE void loadRhsQuad(const RhsScalar* b, ResPacket& dest) const
   {
@@ -673,33 +849,7 @@ public:
   }
   EIGEN_STRONG_INLINE void loadRhsQuad(const RhsScalar* b, DoublePacketType& dest) const
   {
-    eigen_internal_assert(unpacket_traits<ScalarPacket>::size<=4);
-    loadRhs(b,dest);
-  }
-  
-  EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1, RhsPacket& b2, RhsPacket& b3)
-  {
-    // FIXME not sure that's the best way to implement it!
-    loadRhs(b+0, b0);
-    loadRhs(b+1, b1);
-    loadRhs(b+2, b2);
-    loadRhs(b+3, b3);
-  }
-  
-  // Vectorized path
-  EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, DoublePacketType& b0, DoublePacketType& b1)
-  {
-    // FIXME not sure that's the best way to implement it!
-    loadRhs(b+0, b0);
-    loadRhs(b+1, b1);
-  }
-  
-  // Scalar path
-  EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsScalar& b0, RhsScalar& b1)
-  {
-    // FIXME not sure that's the best way to implement it!
-    loadRhs(b+0, b0);
-    loadRhs(b+1, b1);
+    loadQuadToDoublePacket(b,dest);
   }
 
   // nothing special here
@@ -708,47 +858,59 @@ public:
     dest = pload<LhsPacket>((const typename unpacket_traits<LhsPacket>::type*)(a));
   }
 
-  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacket& dest) const
+  template<typename LhsPacketType>
+  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacketType& dest) const
   {
-    dest = ploadu<LhsPacket>((const typename unpacket_traits<LhsPacket>::type*)(a));
+    dest = ploadu<LhsPacketType>((const typename unpacket_traits<LhsPacketType>::type*)(a));
   }
 
-  EIGEN_STRONG_INLINE void madd(const LhsPacket& a, const RhsPacket& b, DoublePacketType& c, RhsPacket& /*tmp*/) const
+  template<typename LhsPacketType, typename RhsPacketType, typename ResPacketType, typename TmpType, typename LaneIdType>
+  EIGEN_STRONG_INLINE
+  typename enable_if<!is_same<RhsPacketType,RhsPacketx4>::value>::type
+  madd(const LhsPacketType& a, const RhsPacketType& b, DoublePacket<ResPacketType>& c, TmpType& /*tmp*/, const LaneIdType&) const
   {
     c.first   = padd(pmul(a,b.first), c.first);
     c.second  = padd(pmul(a,b.second),c.second);
   }
 
-  EIGEN_STRONG_INLINE void madd(const LhsPacket& a, const RhsPacket& b, ResPacket& c, RhsPacket& /*tmp*/) const
+  template<typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacket& a, const RhsPacket& b, ResPacket& c, RhsPacket& /*tmp*/, const LaneIdType&) const
   {
     c = cj.pmadd(a,b,c);
+  }
+
+  template<typename LhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketx4& b, AccPacketType& c, RhsPacket& tmp, const LaneIdType& lane) const
+  {
+    madd(a, b.get(lane), c, tmp, lane);
   }
   
   EIGEN_STRONG_INLINE void acc(const Scalar& c, const Scalar& alpha, Scalar& r) const { r += alpha * c; }
   
-  EIGEN_STRONG_INLINE void acc(const DoublePacketType& c, const ResPacket& alpha, ResPacket& r) const
+  template<typename RealPacketType, typename ResPacketType>
+  EIGEN_STRONG_INLINE void acc(const DoublePacket<RealPacketType>& c, const ResPacketType& alpha, ResPacketType& r) const
   {
     // assemble c
-    ResPacket tmp;
+    ResPacketType tmp;
     if((!ConjLhs)&&(!ConjRhs))
     {
-      tmp = pcplxflip(pconj(ResPacket(c.second)));
-      tmp = padd(ResPacket(c.first),tmp);
+      tmp = pcplxflip(pconj(ResPacketType(c.second)));
+      tmp = padd(ResPacketType(c.first),tmp);
     }
     else if((!ConjLhs)&&(ConjRhs))
     {
-      tmp = pconj(pcplxflip(ResPacket(c.second)));
-      tmp = padd(ResPacket(c.first),tmp);
+      tmp = pconj(pcplxflip(ResPacketType(c.second)));
+      tmp = padd(ResPacketType(c.first),tmp);
     }
     else if((ConjLhs)&&(!ConjRhs))
     {
-      tmp = pcplxflip(ResPacket(c.second));
-      tmp = padd(pconj(ResPacket(c.first)),tmp);
+      tmp = pcplxflip(ResPacketType(c.second));
+      tmp = padd(pconj(ResPacketType(c.first)),tmp);
     }
     else if((ConjLhs)&&(ConjRhs))
     {
-      tmp = pcplxflip(ResPacket(c.second));
-      tmp = psub(pconj(ResPacket(c.first)),tmp);
+      tmp = pcplxflip(ResPacketType(c.second));
+      tmp = psub(pconj(ResPacketType(c.first)),tmp);
     }
     
     r = pmadd(tmp,alpha,r);
@@ -758,8 +920,8 @@ protected:
   conj_helper<LhsScalar,RhsScalar,ConjLhs,ConjRhs> cj;
 };
 
-template<typename RealScalar, bool _ConjRhs>
-class gebp_traits<RealScalar, std::complex<RealScalar>, false, _ConjRhs >
+template<typename RealScalar, bool _ConjRhs, int Arch, int _PacketSize>
+class gebp_traits<RealScalar, std::complex<RealScalar>, false, _ConjRhs, Arch, _PacketSize >
 {
 public:
   typedef std::complex<RealScalar>  Scalar;
@@ -767,14 +929,25 @@ public:
   typedef Scalar      RhsScalar;
   typedef Scalar      ResScalar;
 
+  PACKET_DECL_COND_PREFIX(_, Lhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Rhs, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Res, _PacketSize);
+  PACKET_DECL_COND_PREFIX(_, Real, _PacketSize);
+  PACKET_DECL_COND_SCALAR_PREFIX(_, _PacketSize);
+
+#undef PACKET_DECL_COND_SCALAR_PREFIX
+#undef PACKET_DECL_COND_PREFIX
+#undef PACKET_DECL_COND_SCALAR
+#undef PACKET_DECL_COND
+
   enum {
     ConjLhs = false,
     ConjRhs = _ConjRhs,
-    Vectorizable = packet_traits<RealScalar>::Vectorizable
-                && packet_traits<Scalar>::Vectorizable,
-    LhsPacketSize = Vectorizable ? packet_traits<LhsScalar>::size : 1,
-    RhsPacketSize = Vectorizable ? packet_traits<RhsScalar>::size : 1,
-    ResPacketSize = Vectorizable ? packet_traits<ResScalar>::size : 1,
+    Vectorizable = unpacket_traits<_RealPacket>::vectorizable
+                && unpacket_traits<_ScalarPacket>::vectorizable,
+    LhsPacketSize = Vectorizable ? unpacket_traits<_LhsPacket>::size : 1,
+    RhsPacketSize = Vectorizable ? unpacket_traits<_RhsPacket>::size : 1,
+    ResPacketSize = Vectorizable ? unpacket_traits<_ResPacket>::size : 1,
     
     NumberOfRegisters = EIGEN_ARCH_DEFAULT_NUMBER_OF_REGISTERS,
     // FIXME: should depend on NumberOfRegisters
@@ -785,14 +958,11 @@ public:
     RhsProgress = 1
   };
 
-  typedef typename packet_traits<LhsScalar>::type  _LhsPacket;
-  typedef typename packet_traits<RhsScalar>::type  _RhsPacket;
-  typedef typename packet_traits<ResScalar>::type  _ResPacket;
-
   typedef typename conditional<Vectorizable,_LhsPacket,LhsScalar>::type LhsPacket;
   typedef typename conditional<Vectorizable,_RhsPacket,RhsScalar>::type RhsPacket;
   typedef typename conditional<Vectorizable,_ResPacket,ResScalar>::type ResPacket;
-
+  typedef LhsPacket LhsPacket4Packing;
+  typedef QuadPacket<RhsPacket> RhsPacketx4;
   typedef ResPacket AccPacket;
 
   EIGEN_STRONG_INLINE void initAcc(AccPacket& p)
@@ -800,22 +970,25 @@ public:
     p = pset1<ResPacket>(ResScalar(0));
   }
 
-  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacket& dest) const
+  template<typename RhsPacketType>
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketType& dest) const
   {
-    dest = pset1<RhsPacket>(*b);
+    dest = pset1<RhsPacketType>(*b);
   }
-  
-  void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1, RhsPacket& b2, RhsPacket& b3)
+
+  EIGEN_STRONG_INLINE void loadRhs(const RhsScalar* b, RhsPacketx4& dest) const
   {
-    pbroadcast4(b, b0, b1, b2, b3);
+    pbroadcast4(b, dest.B_0, dest.B1, dest.B2, dest.B3);
   }
-  
-//   EIGEN_STRONG_INLINE void broadcastRhs(const RhsScalar* b, RhsPacket& b0, RhsPacket& b1)
-//   {
-//     // FIXME not sure that's the best way to implement it!
-//     b0 = pload1<RhsPacket>(b+0);
-//     b1 = pload1<RhsPacket>(b+1);
-//   }
+
+  template<typename RhsPacketType>
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar* b, RhsPacketType& dest) const
+  {
+    loadRhs(b, dest);
+  }
+
+  EIGEN_STRONG_INLINE void updateRhs(const RhsScalar*, RhsPacketx4&) const
+  {}
 
   EIGEN_STRONG_INLINE void loadLhs(const LhsScalar* a, LhsPacket& dest) const
   {
@@ -824,21 +997,23 @@ public:
   
   EIGEN_STRONG_INLINE void loadRhsQuad(const RhsScalar* b, RhsPacket& dest) const
   {
-    eigen_internal_assert(unpacket_traits<RhsPacket>::size<=4);
-    loadRhs(b,dest);
+    dest = ploadquad<RhsPacket>(b);
   }
 
-  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacket& dest) const
+  template<typename LhsPacketType>
+  EIGEN_STRONG_INLINE void loadLhsUnaligned(const LhsScalar* a, LhsPacketType& dest) const
   {
-    dest = ploaddup<LhsPacket>(a);
+    dest = ploaddup<LhsPacketType>(a);
   }
 
-  EIGEN_STRONG_INLINE void madd(const LhsPacket& a, const RhsPacket& b, AccPacket& c, RhsPacket& tmp) const
+  template <typename LhsPacketType, typename RhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, RhsPacketType& tmp, const LaneIdType&) const
   {
     madd_impl(a, b, c, tmp, typename conditional<Vectorizable,true_type,false_type>::type());
   }
 
-  EIGEN_STRONG_INLINE void madd_impl(const LhsPacket& a, const RhsPacket& b, AccPacket& c, RhsPacket& tmp, const true_type&) const
+  template <typename LhsPacketType, typename RhsPacketType, typename AccPacketType>
+  EIGEN_STRONG_INLINE void madd_impl(const LhsPacketType& a, const RhsPacketType& b, AccPacketType& c, RhsPacketType& tmp, const true_type&) const
   {
 #ifdef EIGEN_HAS_SINGLE_INSTRUCTION_MADD
     EIGEN_UNUSED_VARIABLE(tmp);
@@ -854,90 +1029,24 @@ public:
     c += a * b;
   }
 
-  EIGEN_STRONG_INLINE void acc(const AccPacket& c, const ResPacket& alpha, ResPacket& r) const
+  template<typename LhsPacketType, typename AccPacketType, typename LaneIdType>
+  EIGEN_STRONG_INLINE void madd(const LhsPacketType& a, const RhsPacketx4& b, AccPacketType& c, RhsPacket& tmp, const LaneIdType& lane) const
   {
+    madd(a, b.get(lane), c, tmp, lane);
+  }
+
+  template <typename ResPacketType, typename AccPacketType>
+  EIGEN_STRONG_INLINE void acc(const AccPacketType& c, const ResPacketType& alpha, ResPacketType& r) const
+  {
+    conj_helper<ResPacketType,ResPacketType,false,ConjRhs> cj;
     r = cj.pmadd(alpha,c,r);
   }
 
 protected:
-  conj_helper<ResPacket,ResPacket,false,ConjRhs> cj;
+
 };
 
-// helper for the rotating kernel below
-template <typename GebpKernel, bool UseRotatingKernel = GebpKernel::UseRotatingKernel>
-struct PossiblyRotatingKernelHelper
-{
-  // default implementation, not rotating
-
-  typedef typename GebpKernel::Traits Traits;
-  typedef typename Traits::RhsScalar RhsScalar;
-  typedef typename Traits::RhsPacket RhsPacket;
-  typedef typename Traits::AccPacket AccPacket;
-
-  const Traits& traits;
-  PossiblyRotatingKernelHelper(const Traits& t) : traits(t) {}
-
-
-  template <size_t K, size_t Index>
-  void loadOrRotateRhs(RhsPacket& to, const RhsScalar* from) const
-  {
-    traits.loadRhs(from + (Index+4*K)*Traits::RhsProgress, to);
-  }
-
-  void unrotateResult(AccPacket&,
-                      AccPacket&,
-                      AccPacket&,
-                      AccPacket&)
-  {
-  }
-};
-
-// rotating implementation
-template <typename GebpKernel>
-struct PossiblyRotatingKernelHelper<GebpKernel, true>
-{
-  typedef typename GebpKernel::Traits Traits;
-  typedef typename Traits::RhsScalar RhsScalar;
-  typedef typename Traits::RhsPacket RhsPacket;
-  typedef typename Traits::AccPacket AccPacket;
-
-  const Traits& traits;
-  PossiblyRotatingKernelHelper(const Traits& t) : traits(t) {}
-
-  template <size_t K, size_t Index>
-  void loadOrRotateRhs(RhsPacket& to, const RhsScalar* from) const
-  {
-    if (Index == 0) {
-      to = pload<RhsPacket>(from + 4*K*Traits::RhsProgress);
-    } else {
-      EIGEN_ASM_COMMENT("Do not reorder code, we're very tight on registers");
-      to = protate<1>(to);
-    }
-  }
-
-  void unrotateResult(AccPacket& res0,
-                      AccPacket& res1,
-                      AccPacket& res2,
-                      AccPacket& res3)
-  {
-    PacketBlock<AccPacket> resblock;
-    resblock.packet[0] = res0;
-    resblock.packet[1] = res1;
-    resblock.packet[2] = res2;
-    resblock.packet[3] = res3;
-    ptranspose(resblock);
-    resblock.packet[3] = protate<1>(resblock.packet[3]);
-    resblock.packet[2] = protate<2>(resblock.packet[2]);
-    resblock.packet[1] = protate<3>(resblock.packet[1]);
-    ptranspose(resblock);
-    res0 = resblock.packet[0];
-    res1 = resblock.packet[1];
-    res2 = resblock.packet[2];
-    res3 = resblock.packet[3];
-  }
-};
-
-/* optimized GEneral packed Block * packed Panel product kernel
+/* optimized General packed Block * packed Panel product kernel
  *
  * Mixing type logic: C += A * B
  *  |  A  |  B  | comments
@@ -947,43 +1056,347 @@ struct PossiblyRotatingKernelHelper<GebpKernel, true>
 template<typename LhsScalar, typename RhsScalar, typename Index, typename DataMapper, int mr, int nr, bool ConjugateLhs, bool ConjugateRhs>
 struct gebp_kernel
 {
-  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs> Traits;
+  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs,Architecture::Target> Traits;
+  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs,Architecture::Target,GEBPPacketHalf> HalfTraits;
+  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs,Architecture::Target,GEBPPacketQuarter> QuarterTraits;
+  
   typedef typename Traits::ResScalar ResScalar;
   typedef typename Traits::LhsPacket LhsPacket;
   typedef typename Traits::RhsPacket RhsPacket;
   typedef typename Traits::ResPacket ResPacket;
   typedef typename Traits::AccPacket AccPacket;
+  typedef typename Traits::RhsPacketx4 RhsPacketx4;
 
-  typedef gebp_traits<RhsScalar,LhsScalar,ConjugateRhs,ConjugateLhs> SwappedTraits;
+  typedef typename RhsPanelHelper<RhsPacket, RhsPacketx4, 15>::type RhsPanel15;
+
+  typedef gebp_traits<RhsScalar,LhsScalar,ConjugateRhs,ConjugateLhs,Architecture::Target> SwappedTraits;
+
   typedef typename SwappedTraits::ResScalar SResScalar;
   typedef typename SwappedTraits::LhsPacket SLhsPacket;
   typedef typename SwappedTraits::RhsPacket SRhsPacket;
   typedef typename SwappedTraits::ResPacket SResPacket;
   typedef typename SwappedTraits::AccPacket SAccPacket;
 
+  typedef typename HalfTraits::LhsPacket LhsPacketHalf;
+  typedef typename HalfTraits::RhsPacket RhsPacketHalf;
+  typedef typename HalfTraits::ResPacket ResPacketHalf;
+  typedef typename HalfTraits::AccPacket AccPacketHalf;
+
+  typedef typename QuarterTraits::LhsPacket LhsPacketQuarter;
+  typedef typename QuarterTraits::RhsPacket RhsPacketQuarter;
+  typedef typename QuarterTraits::ResPacket ResPacketQuarter;
+  typedef typename QuarterTraits::AccPacket AccPacketQuarter;
+
   typedef typename DataMapper::LinearMapper LinearMapper;
 
   enum {
     Vectorizable  = Traits::Vectorizable,
     LhsProgress   = Traits::LhsProgress,
+    LhsProgressHalf      = HalfTraits::LhsProgress,
+    LhsProgressQuarter   = QuarterTraits::LhsProgress,
     RhsProgress   = Traits::RhsProgress,
+    RhsProgressHalf      = HalfTraits::RhsProgress,
+    RhsProgressQuarter   = QuarterTraits::RhsProgress,
     ResPacketSize = Traits::ResPacketSize
   };
-
-
-  static const bool UseRotatingKernel =
-    EIGEN_ARCH_ARM &&
-    internal::is_same<LhsScalar, float>::value &&
-    internal::is_same<RhsScalar, float>::value &&
-    internal::is_same<ResScalar, float>::value &&
-    Traits::LhsPacketSize == 4 &&
-    Traits::RhsPacketSize == 4 &&
-    Traits::ResPacketSize == 4;
 
   EIGEN_DONT_INLINE
   void operator()(const DataMapper& res, const LhsScalar* blockA, const RhsScalar* blockB,
                   Index rows, Index depth, Index cols, ResScalar alpha,
                   Index strideA=-1, Index strideB=-1, Index offsetA=0, Index offsetB=0);
+};
+
+template<typename LhsScalar, typename RhsScalar, typename Index, typename DataMapper, int mr, int nr, bool ConjugateLhs, bool ConjugateRhs,
+int SwappedLhsProgress = gebp_traits<RhsScalar,LhsScalar,ConjugateRhs,ConjugateLhs,Architecture::Target>::LhsProgress>
+struct last_row_process_16_packets
+{
+  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs,Architecture::Target> Traits;
+  typedef gebp_traits<RhsScalar,LhsScalar,ConjugateRhs,ConjugateLhs,Architecture::Target> SwappedTraits;
+
+  typedef typename Traits::ResScalar ResScalar;
+  typedef typename SwappedTraits::LhsPacket SLhsPacket;
+  typedef typename SwappedTraits::RhsPacket SRhsPacket;
+  typedef typename SwappedTraits::ResPacket SResPacket;
+  typedef typename SwappedTraits::AccPacket SAccPacket;
+
+  EIGEN_STRONG_INLINE void operator()(const DataMapper& res, SwappedTraits &straits, const LhsScalar* blA,
+                  const RhsScalar* blB, Index depth, const Index endk, Index i, Index j2,
+                  ResScalar alpha, SAccPacket &C0)
+    {
+      EIGEN_UNUSED_VARIABLE(res);
+      EIGEN_UNUSED_VARIABLE(straits);
+      EIGEN_UNUSED_VARIABLE(blA);
+      EIGEN_UNUSED_VARIABLE(blB);
+      EIGEN_UNUSED_VARIABLE(depth);
+      EIGEN_UNUSED_VARIABLE(endk);
+      EIGEN_UNUSED_VARIABLE(i);
+      EIGEN_UNUSED_VARIABLE(j2);
+      EIGEN_UNUSED_VARIABLE(alpha);
+      EIGEN_UNUSED_VARIABLE(C0);
+    }
+};
+
+
+template<typename LhsScalar, typename RhsScalar, typename Index, typename DataMapper, int mr, int nr, bool ConjugateLhs, bool ConjugateRhs>
+struct last_row_process_16_packets<LhsScalar, RhsScalar, Index, DataMapper,  mr,  nr, ConjugateLhs,  ConjugateRhs, 16> {
+  typedef gebp_traits<LhsScalar,RhsScalar,ConjugateLhs,ConjugateRhs,Architecture::Target> Traits;
+  typedef gebp_traits<RhsScalar,LhsScalar,ConjugateRhs,ConjugateLhs,Architecture::Target> SwappedTraits;
+
+  typedef typename Traits::ResScalar ResScalar;
+  typedef typename SwappedTraits::LhsPacket SLhsPacket;
+  typedef typename SwappedTraits::RhsPacket SRhsPacket;
+  typedef typename SwappedTraits::ResPacket SResPacket;
+  typedef typename SwappedTraits::AccPacket SAccPacket;
+
+  EIGEN_STRONG_INLINE void operator()(const DataMapper& res, SwappedTraits &straits, const LhsScalar* blA,
+                  const RhsScalar* blB, Index depth, const Index endk, Index i, Index j2,
+                  ResScalar alpha, SAccPacket &C0)
+  {
+    typedef typename unpacket_traits<typename unpacket_traits<SResPacket>::half>::half SResPacketQuarter;
+    typedef typename unpacket_traits<typename unpacket_traits<SLhsPacket>::half>::half SLhsPacketQuarter;
+    typedef typename unpacket_traits<typename unpacket_traits<SRhsPacket>::half>::half SRhsPacketQuarter;
+    typedef typename unpacket_traits<typename unpacket_traits<SAccPacket>::half>::half SAccPacketQuarter;
+
+    SResPacketQuarter R = res.template gatherPacket<SResPacketQuarter>(i, j2);
+    SResPacketQuarter alphav = pset1<SResPacketQuarter>(alpha);
+
+    if (depth - endk > 0)
+      {
+	// We have to handle the last row(s) of the rhs, which
+	// correspond to a half-packet
+	SAccPacketQuarter c0 = predux_half_dowto4(predux_half_dowto4(C0));
+
+	for (Index kk = endk; kk < depth; kk++)
+	  {
+	    SLhsPacketQuarter a0;
+	    SRhsPacketQuarter b0;
+	    straits.loadLhsUnaligned(blB, a0);
+	    straits.loadRhs(blA, b0);
+	    straits.madd(a0,b0,c0,b0, fix<0>);
+	    blB += SwappedTraits::LhsProgress/4;
+	    blA += 1;
+	  }
+	straits.acc(c0, alphav, R);
+      }
+    else
+      {
+	straits.acc(predux_half_dowto4(predux_half_dowto4(C0)), alphav, R);
+      }
+    res.scatterPacket(i, j2, R);
+  }
+};
+
+template<int nr, Index LhsProgress, Index RhsProgress, typename LhsScalar, typename RhsScalar, typename ResScalar, typename AccPacket, typename LhsPacket, typename RhsPacket, typename ResPacket, typename GEBPTraits, typename LinearMapper, typename DataMapper>
+struct lhs_process_one_packet
+{
+  typedef typename GEBPTraits::RhsPacketx4 RhsPacketx4;
+
+  EIGEN_STRONG_INLINE void peeled_kc_onestep(Index K, const LhsScalar* blA, const RhsScalar* blB, GEBPTraits traits, LhsPacket *A0, RhsPacketx4 *rhs_panel, RhsPacket *T0, AccPacket *C0, AccPacket *C1, AccPacket *C2, AccPacket *C3)
+  {
+    EIGEN_ASM_COMMENT("begin step of gebp micro kernel 1X4");
+    EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!");
+    traits.loadLhs(&blA[(0+1*K)*LhsProgress], *A0);
+    traits.loadRhs(&blB[(0+4*K)*RhsProgress], *rhs_panel);
+    traits.madd(*A0, *rhs_panel, *C0, *T0, fix<0>);
+    traits.madd(*A0, *rhs_panel, *C1, *T0, fix<1>);
+    traits.madd(*A0, *rhs_panel, *C2, *T0, fix<2>);
+    traits.madd(*A0, *rhs_panel, *C3, *T0, fix<3>);
+    #if EIGEN_GNUC_AT_LEAST(6,0) && defined(EIGEN_VECTORIZE_SSE)
+    __asm__  ("" : "+x,m" (*A0));
+    #endif
+    EIGEN_ASM_COMMENT("end step of gebp micro kernel 1X4");
+  }
+
+  EIGEN_STRONG_INLINE void operator()(
+    const DataMapper& res, const LhsScalar* blockA, const RhsScalar* blockB, ResScalar alpha,
+    Index peelStart, Index peelEnd, Index strideA, Index strideB, Index offsetA, Index offsetB,
+    int prefetch_res_offset, Index peeled_kc, Index pk, Index cols, Index depth, Index packet_cols4)
+  {
+    GEBPTraits traits;
+
+    // loops on each largest micro horizontal panel of lhs
+    // (LhsProgress x depth)
+    for(Index i=peelStart; i<peelEnd; i+=LhsProgress)
+    {
+      // loops on each largest micro vertical panel of rhs (depth * nr)
+      for(Index j2=0; j2<packet_cols4; j2+=nr)
+      {
+        // We select a LhsProgress x nr micro block of res
+        // which is entirely stored into 1 x nr registers.
+
+        const LhsScalar* blA = &blockA[i*strideA+offsetA*(LhsProgress)];
+        prefetch(&blA[0]);
+
+        // gets res block as register
+        AccPacket C0, C1, C2, C3;
+        traits.initAcc(C0);
+        traits.initAcc(C1);
+        traits.initAcc(C2);
+        traits.initAcc(C3);
+        // To improve instruction pipelining, let's double the accumulation registers:
+        //  even k will accumulate in C*, while odd k will accumulate in D*.
+        // This trick is crutial to get good performance with FMA, otherwise it is 
+        // actually faster to perform separated MUL+ADD because of a naturally
+        // better instruction-level parallelism.
+        AccPacket D0, D1, D2, D3;
+        traits.initAcc(D0);
+        traits.initAcc(D1);
+        traits.initAcc(D2);
+        traits.initAcc(D3);
+
+        LinearMapper r0 = res.getLinearMapper(i, j2 + 0);
+        LinearMapper r1 = res.getLinearMapper(i, j2 + 1);
+        LinearMapper r2 = res.getLinearMapper(i, j2 + 2);
+        LinearMapper r3 = res.getLinearMapper(i, j2 + 3);
+
+        r0.prefetch(prefetch_res_offset);
+        r1.prefetch(prefetch_res_offset);
+        r2.prefetch(prefetch_res_offset);
+        r3.prefetch(prefetch_res_offset);
+
+        // performs "inner" products
+        const RhsScalar* blB = &blockB[j2*strideB+offsetB*nr];
+        prefetch(&blB[0]);
+        LhsPacket A0, A1;
+
+        for(Index k=0; k<peeled_kc; k+=pk)
+        {
+          EIGEN_ASM_COMMENT("begin gebp micro kernel 1/half/quarterX4");
+          RhsPacketx4 rhs_panel;
+          RhsPacket T0;
+
+          internal::prefetch(blB+(48+0));
+          peeled_kc_onestep(0, blA, blB, traits, &A0, &rhs_panel, &T0, &C0, &C1, &C2, &C3);
+          peeled_kc_onestep(1, blA, blB, traits, &A1, &rhs_panel, &T0, &D0, &D1, &D2, &D3);
+          peeled_kc_onestep(2, blA, blB, traits, &A0, &rhs_panel, &T0, &C0, &C1, &C2, &C3);
+          peeled_kc_onestep(3, blA, blB, traits, &A1, &rhs_panel, &T0, &D0, &D1, &D2, &D3);
+          internal::prefetch(blB+(48+16));
+          peeled_kc_onestep(4, blA, blB, traits, &A0, &rhs_panel, &T0, &C0, &C1, &C2, &C3);
+          peeled_kc_onestep(5, blA, blB, traits, &A1, &rhs_panel, &T0, &D0, &D1, &D2, &D3);
+          peeled_kc_onestep(6, blA, blB, traits, &A0, &rhs_panel, &T0, &C0, &C1, &C2, &C3);
+          peeled_kc_onestep(7, blA, blB, traits, &A1, &rhs_panel, &T0, &D0, &D1, &D2, &D3);
+
+          blB += pk*4*RhsProgress;
+          blA += pk*LhsProgress;
+
+          EIGEN_ASM_COMMENT("end gebp micro kernel 1/half/quarterX4");
+        }
+        C0 = padd(C0,D0);
+        C1 = padd(C1,D1);
+        C2 = padd(C2,D2);
+        C3 = padd(C3,D3);
+
+        // process remaining peeled loop
+        for(Index k=peeled_kc; k<depth; k++)
+        {
+          RhsPacketx4 rhs_panel;
+          RhsPacket T0;
+          peeled_kc_onestep(0, blA, blB, traits, &A0, &rhs_panel, &T0, &C0, &C1, &C2, &C3);
+          blB += 4*RhsProgress;
+          blA += LhsProgress;
+        }
+
+        ResPacket R0, R1;
+        ResPacket alphav = pset1<ResPacket>(alpha);
+
+        R0 = r0.template loadPacket<ResPacket>(0);
+        R1 = r1.template loadPacket<ResPacket>(0);
+        traits.acc(C0, alphav, R0);
+        traits.acc(C1,  alphav, R1);
+        r0.storePacket(0, R0);
+        r1.storePacket(0, R1);
+
+        R0 = r2.template loadPacket<ResPacket>(0);
+        R1 = r3.template loadPacket<ResPacket>(0);
+        traits.acc(C2,  alphav, R0);
+        traits.acc(C3,  alphav, R1);
+        r2.storePacket(0, R0);
+        r3.storePacket(0, R1);
+      }
+
+      // Deal with remaining columns of the rhs
+      for(Index j2=packet_cols4; j2<cols; j2++)
+      {
+        // One column at a time
+        const LhsScalar* blA = &blockA[i*strideA+offsetA*(LhsProgress)];
+        prefetch(&blA[0]);
+
+        // gets res block as register
+        AccPacket C0;
+        traits.initAcc(C0);
+
+        LinearMapper r0 = res.getLinearMapper(i, j2);
+
+        // performs "inner" products
+        const RhsScalar* blB = &blockB[j2*strideB+offsetB];
+        LhsPacket A0;
+
+        for(Index k= 0; k<peeled_kc; k+=pk)
+        {
+          EIGEN_ASM_COMMENT("begin gebp micro kernel 1/half/quarterX1");
+          RhsPacket B_0;
+
+#define EIGEN_GEBGP_ONESTEP(K)                                          \
+	      do {                                                      \
+		EIGEN_ASM_COMMENT("begin step of gebp micro kernel 1/half/quarterX1"); \
+		EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
+    /* FIXME: why unaligned???? */ \
+		traits.loadLhsUnaligned(&blA[(0+1*K)*LhsProgress], A0); \
+		traits.loadRhs(&blB[(0+K)*RhsProgress], B_0);		\
+		traits.madd(A0, B_0, C0, B_0, fix<0>);				\
+		EIGEN_ASM_COMMENT("end step of gebp micro kernel 1/half/quarterX1"); \
+	      } while(false);
+
+          EIGEN_GEBGP_ONESTEP(0);
+          EIGEN_GEBGP_ONESTEP(1);
+          EIGEN_GEBGP_ONESTEP(2);
+          EIGEN_GEBGP_ONESTEP(3);
+          EIGEN_GEBGP_ONESTEP(4);
+          EIGEN_GEBGP_ONESTEP(5);
+          EIGEN_GEBGP_ONESTEP(6);
+          EIGEN_GEBGP_ONESTEP(7);
+
+          blB += pk*RhsProgress;
+          blA += pk*LhsProgress;
+
+          EIGEN_ASM_COMMENT("end gebp micro kernel 1/half/quarterX1");
+        }
+
+        // process remaining peeled loop
+        for(Index k=peeled_kc; k<depth; k++)
+        {
+          RhsPacket B_0;
+          EIGEN_GEBGP_ONESTEP(0);
+          blB += RhsProgress;
+          blA += LhsProgress;
+        }
+#undef EIGEN_GEBGP_ONESTEP
+        ResPacket R0;
+        ResPacket alphav = pset1<ResPacket>(alpha);
+        R0 = r0.template loadPacket<ResPacket>(0);
+        traits.acc(C0, alphav, R0);
+        r0.storePacket(0, R0);
+      }
+    }
+  }
+};
+
+template<int nr, Index LhsProgress, Index RhsProgress, typename LhsScalar, typename RhsScalar, typename ResScalar, typename AccPacket, typename LhsPacket, typename RhsPacket, typename ResPacket, typename GEBPTraits, typename LinearMapper, typename DataMapper>
+struct lhs_process_fraction_of_packet : lhs_process_one_packet<nr, LhsProgress, RhsProgress, LhsScalar, RhsScalar, ResScalar, AccPacket, LhsPacket, RhsPacket, ResPacket, GEBPTraits, LinearMapper, DataMapper>
+{
+
+EIGEN_STRONG_INLINE void peeled_kc_onestep(Index K, const LhsScalar* blA, const RhsScalar* blB, GEBPTraits traits, LhsPacket *A0, RhsPacket *B_0, RhsPacket *B1, RhsPacket *B2, RhsPacket *B3, AccPacket *C0, AccPacket *C1, AccPacket *C2, AccPacket *C3)
+  {
+        EIGEN_ASM_COMMENT("begin step of gebp micro kernel 1X4");
+        EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!");
+        traits.loadLhsUnaligned(&blA[(0+1*K)*(LhsProgress)], *A0);
+        traits.broadcastRhs(&blB[(0+4*K)*RhsProgress], *B_0, *B1, *B2, *B3);
+        traits.madd(*A0, *B_0, *C0, *B_0);
+        traits.madd(*A0, *B1,  *C1, *B1);
+        traits.madd(*A0, *B2,  *C2, *B2);
+        traits.madd(*A0, *B3,  *C3, *B3);
+        EIGEN_ASM_COMMENT("end step of gebp micro kernel 1X4");
+  }
 };
 
 template<typename LhsScalar, typename RhsScalar, typename Index, typename DataMapper, int mr, int nr, bool ConjugateLhs, bool ConjugateRhs>
@@ -1002,19 +1415,19 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
     Index packet_cols4 = nr>=4 ? (cols/4) * 4 : 0;
     const Index peeled_mc3 = mr>=3*Traits::LhsProgress ? (rows/(3*LhsProgress))*(3*LhsProgress) : 0;
     const Index peeled_mc2 = mr>=2*Traits::LhsProgress ? peeled_mc3+((rows-peeled_mc3)/(2*LhsProgress))*(2*LhsProgress) : 0;
-    const Index peeled_mc1 = mr>=1*Traits::LhsProgress ? (rows/(1*LhsProgress))*(1*LhsProgress) : 0;
+    const Index peeled_mc1 = mr>=1*Traits::LhsProgress ? peeled_mc2+((rows-peeled_mc2)/(1*LhsProgress))*(1*LhsProgress) : 0;
+    const Index peeled_mc_half = mr>=LhsProgressHalf ? peeled_mc1+((rows-peeled_mc1)/(LhsProgressHalf))*(LhsProgressHalf) : 0;
+    const Index peeled_mc_quarter = mr>=LhsProgressQuarter ? peeled_mc_half+((rows-peeled_mc_half)/(LhsProgressQuarter))*(LhsProgressQuarter) : 0;
     enum { pk = 8 }; // NOTE Such a large peeling factor is important for large matrices (~ +5% when >1000 on Haswell)
     const Index peeled_kc  = depth & ~(pk-1);
-    const Index prefetch_res_offset = 32/sizeof(ResScalar);    
+    const int prefetch_res_offset = 32/sizeof(ResScalar);    
 //     const Index depth2     = depth & ~1;
 
     //---------- Process 3 * LhsProgress rows at once ----------
     // This corresponds to 3*LhsProgress x nr register blocks.
     // Usually, make sense only with FMA
     if(mr>=3*Traits::LhsProgress)
-    {      
-      PossiblyRotatingKernelHelper<gebp_kernel> possiblyRotatingKernelHelper(traits);
-      
+    {
       // Here, the general idea is to loop on each largest micro horizontal panel of the lhs (3*Traits::LhsProgress x depth)
       // and on each largest micro vertical panel of the rhs (depth * nr).
       // Blocking sizes, i.e., 'depth' has been computed so that the micro horizontal panel of the lhs fit in L1.
@@ -1065,36 +1478,48 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           for(Index k=0; k<peeled_kc; k+=pk)
           {
             EIGEN_ASM_COMMENT("begin gebp micro kernel 3pX4");
-            RhsPacket B_0, T0;
+            // 15 registers are taken (12 for acc, 2 for lhs).
+            RhsPanel15 rhs_panel;
+            RhsPacket T0;
             LhsPacket A2;
-
-#define EIGEN_GEBP_ONESTEP(K) \
-            do { \
-              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 3pX4"); \
+            #if EIGEN_COMP_GNUC_STRICT && EIGEN_ARCH_ARM64 && defined(EIGEN_VECTORIZE_NEON) && !(EIGEN_GNUC_AT_LEAST(9,0))
+            // see http://eigen.tuxfamily.org/bz/show_bug.cgi?id=1633
+            // without this workaround A0, A1, and A2 are loaded in the same register,
+            // which is not good for pipelining
+            #define EIGEN_GEBP_3PX4_REGISTER_ALLOC_WORKAROUND __asm__  ("" : "+w,m" (A0), "+w,m" (A1), "+w,m" (A2));
+            #else
+            #define EIGEN_GEBP_3PX4_REGISTER_ALLOC_WORKAROUND
+            #endif
+#define EIGEN_GEBP_ONESTEP(K)                                                     \
+            do {                                                                  \
+              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 3pX4");          \
               EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
-              internal::prefetch(blA+(3*K+16)*LhsProgress); \
-              if (EIGEN_ARCH_ARM) internal::prefetch(blB+(4*K+16)*RhsProgress); /* Bug 953 */ \
-              traits.loadLhs(&blA[(0+3*K)*LhsProgress], A0);  \
-              traits.loadLhs(&blA[(1+3*K)*LhsProgress], A1);  \
-              traits.loadLhs(&blA[(2+3*K)*LhsProgress], A2);  \
-              possiblyRotatingKernelHelper.template loadOrRotateRhs<K, 0>(B_0, blB); \
-              traits.madd(A0, B_0, C0, T0); \
-              traits.madd(A1, B_0, C4, T0); \
-              traits.madd(A2, B_0, C8, B_0); \
-              possiblyRotatingKernelHelper.template loadOrRotateRhs<K, 1>(B_0, blB); \
-              traits.madd(A0, B_0, C1, T0); \
-              traits.madd(A1, B_0, C5, T0); \
-              traits.madd(A2, B_0, C9, B_0); \
-              possiblyRotatingKernelHelper.template loadOrRotateRhs<K, 2>(B_0, blB); \
-              traits.madd(A0, B_0, C2,  T0); \
-              traits.madd(A1, B_0, C6,  T0); \
-              traits.madd(A2, B_0, C10, B_0); \
-              possiblyRotatingKernelHelper.template loadOrRotateRhs<K, 3>(B_0, blB); \
-              traits.madd(A0, B_0, C3 , T0); \
-              traits.madd(A1, B_0, C7,  T0); \
-              traits.madd(A2, B_0, C11, B_0); \
-              EIGEN_ASM_COMMENT("end step of gebp micro kernel 3pX4"); \
-            } while(false)
+              internal::prefetch(blA + (3 * K + 16) * LhsProgress);               \
+              if (EIGEN_ARCH_ARM || EIGEN_ARCH_MIPS) {                            \
+                internal::prefetch(blB + (4 * K + 16) * RhsProgress);             \
+              } /* Bug 953 */                                                     \
+              traits.loadLhs(&blA[(0 + 3 * K) * LhsProgress], A0);                \
+              traits.loadLhs(&blA[(1 + 3 * K) * LhsProgress], A1);                \
+              traits.loadLhs(&blA[(2 + 3 * K) * LhsProgress], A2);                \
+              EIGEN_GEBP_3PX4_REGISTER_ALLOC_WORKAROUND \
+              traits.loadRhs(blB + (0+4*K) * Traits::RhsProgress, rhs_panel);     \
+              traits.madd(A0, rhs_panel, C0, T0, fix<0>);                         \
+              traits.madd(A1, rhs_panel, C4, T0, fix<0>);                         \
+              traits.madd(A2, rhs_panel, C8, T0, fix<0>);                         \
+              traits.updateRhs(blB + (1+4*K) * Traits::RhsProgress, rhs_panel);   \
+              traits.madd(A0, rhs_panel, C1, T0, fix<1>);                         \
+              traits.madd(A1, rhs_panel, C5, T0, fix<1>);                         \
+              traits.madd(A2, rhs_panel, C9, T0, fix<1>);                         \
+              traits.updateRhs(blB + (2+4*K) * Traits::RhsProgress, rhs_panel);   \
+              traits.madd(A0, rhs_panel, C2, T0, fix<2>);                         \
+              traits.madd(A1, rhs_panel, C6, T0, fix<2>);                         \
+              traits.madd(A2, rhs_panel, C10, T0, fix<2>);                        \
+              traits.updateRhs(blB + (3+4*K) * Traits::RhsProgress, rhs_panel);   \
+              traits.madd(A0, rhs_panel, C3, T0, fix<3>);                         \
+              traits.madd(A1, rhs_panel, C7, T0, fix<3>);                         \
+              traits.madd(A2, rhs_panel, C11, T0, fix<3>);                        \
+              EIGEN_ASM_COMMENT("end step of gebp micro kernel 3pX4");            \
+            } while (false)
 
             internal::prefetch(blB);
             EIGEN_GEBP_ONESTEP(0);
@@ -1114,7 +1539,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           // process remaining peeled loop
           for(Index k=peeled_kc; k<depth; k++)
           {
-            RhsPacket B_0, T0;
+            RhsPanel15 rhs_panel;
+            RhsPacket T0;
             LhsPacket A2;
             EIGEN_GEBP_ONESTEP(0);
             blB += 4*RhsProgress;
@@ -1123,16 +1549,12 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
 
 #undef EIGEN_GEBP_ONESTEP
 
-          possiblyRotatingKernelHelper.unrotateResult(C0, C1, C2, C3);
-          possiblyRotatingKernelHelper.unrotateResult(C4, C5, C6, C7);
-          possiblyRotatingKernelHelper.unrotateResult(C8, C9, C10, C11);
-
           ResPacket R0, R1, R2;
           ResPacket alphav = pset1<ResPacket>(alpha);
 
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r0.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r0.loadPacket(2 * Traits::ResPacketSize);
+          R0 = r0.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r0.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r0.template loadPacket<ResPacket>(2 * Traits::ResPacketSize);
           traits.acc(C0, alphav, R0);
           traits.acc(C4, alphav, R1);
           traits.acc(C8, alphav, R2);
@@ -1140,9 +1562,9 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           r0.storePacket(1 * Traits::ResPacketSize, R1);
           r0.storePacket(2 * Traits::ResPacketSize, R2);
 
-          R0 = r1.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r1.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r1.loadPacket(2 * Traits::ResPacketSize);
+          R0 = r1.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r1.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r1.template loadPacket<ResPacket>(2 * Traits::ResPacketSize);
           traits.acc(C1, alphav, R0);
           traits.acc(C5, alphav, R1);
           traits.acc(C9, alphav, R2);
@@ -1150,9 +1572,9 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           r1.storePacket(1 * Traits::ResPacketSize, R1);
           r1.storePacket(2 * Traits::ResPacketSize, R2);
 
-          R0 = r2.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r2.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r2.loadPacket(2 * Traits::ResPacketSize);
+          R0 = r2.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r2.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r2.template loadPacket<ResPacket>(2 * Traits::ResPacketSize);
           traits.acc(C2, alphav, R0);
           traits.acc(C6, alphav, R1);
           traits.acc(C10, alphav, R2);
@@ -1160,9 +1582,9 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           r2.storePacket(1 * Traits::ResPacketSize, R1);
           r2.storePacket(2 * Traits::ResPacketSize, R2);
 
-          R0 = r3.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r3.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r3.loadPacket(2 * Traits::ResPacketSize);
+          R0 = r3.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r3.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r3.template loadPacket<ResPacket>(2 * Traits::ResPacketSize);
           traits.acc(C3, alphav, R0);
           traits.acc(C7, alphav, R1);
           traits.acc(C11, alphav, R2);
@@ -1198,20 +1620,20 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           {
             EIGEN_ASM_COMMENT("begin gebp micro kernel 3pX1");
             RhsPacket B_0;
-#define EIGEN_GEBGP_ONESTEP(K) \
-            do { \
-              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 3pX1"); \
+#define EIGEN_GEBGP_ONESTEP(K)                                                    \
+            do {                                                                  \
+              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 3pX1");          \
               EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
-              traits.loadLhs(&blA[(0+3*K)*LhsProgress], A0);  \
-              traits.loadLhs(&blA[(1+3*K)*LhsProgress], A1);  \
-              traits.loadLhs(&blA[(2+3*K)*LhsProgress], A2);  \
-              traits.loadRhs(&blB[(0+K)*RhsProgress], B_0);   \
-              traits.madd(A0, B_0, C0, B_0); \
-              traits.madd(A1, B_0, C4, B_0); \
-              traits.madd(A2, B_0, C8, B_0); \
-              EIGEN_ASM_COMMENT("end step of gebp micro kernel 3pX1"); \
-            } while(false)
-        
+              traits.loadLhs(&blA[(0 + 3 * K) * LhsProgress], A0);                \
+              traits.loadLhs(&blA[(1 + 3 * K) * LhsProgress], A1);                \
+              traits.loadLhs(&blA[(2 + 3 * K) * LhsProgress], A2);                \
+              traits.loadRhs(&blB[(0 + K) * RhsProgress], B_0);                   \
+              traits.madd(A0, B_0, C0, B_0, fix<0>);                              \
+              traits.madd(A1, B_0, C4, B_0, fix<0>);                              \
+              traits.madd(A2, B_0, C8, B_0, fix<0>);                              \
+              EIGEN_ASM_COMMENT("end step of gebp micro kernel 3pX1");            \
+            } while (false)
+
             EIGEN_GEBGP_ONESTEP(0);
             EIGEN_GEBGP_ONESTEP(1);
             EIGEN_GEBGP_ONESTEP(2);
@@ -1221,8 +1643,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
             EIGEN_GEBGP_ONESTEP(6);
             EIGEN_GEBGP_ONESTEP(7);
 
-            blB += pk*RhsProgress;
-            blA += pk*3*Traits::LhsProgress;
+            blB += int(pk) * int(RhsProgress);
+            blA += int(pk) * 3 * int(Traits::LhsProgress);
 
             EIGEN_ASM_COMMENT("end gebp micro kernel 3pX1");
           }
@@ -1239,9 +1661,9 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           ResPacket R0, R1, R2;
           ResPacket alphav = pset1<ResPacket>(alpha);
 
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r0.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r0.loadPacket(2 * Traits::ResPacketSize);
+          R0 = r0.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r0.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r0.template loadPacket<ResPacket>(2 * Traits::ResPacketSize);
           traits.acc(C0, alphav, R0);
           traits.acc(C4, alphav, R1);
           traits.acc(C8, alphav, R2);
@@ -1300,26 +1722,34 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           for(Index k=0; k<peeled_kc; k+=pk)
           {
             EIGEN_ASM_COMMENT("begin gebp micro kernel 2pX4");
-            RhsPacket B_0, B1, B2, B3, T0;
+            RhsPacketx4 rhs_panel;
+            RhsPacket T0;
 
-   #define EIGEN_GEBGP_ONESTEP(K) \
-            do {                                                                \
-              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 2pX4");        \
-              EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
-              traits.loadLhs(&blA[(0+2*K)*LhsProgress], A0);                    \
-              traits.loadLhs(&blA[(1+2*K)*LhsProgress], A1);                    \
-              traits.broadcastRhs(&blB[(0+4*K)*RhsProgress], B_0, B1, B2, B3);  \
-              traits.madd(A0, B_0, C0, T0);                                     \
-              traits.madd(A1, B_0, C4, B_0);                                    \
-              traits.madd(A0, B1,  C1, T0);                                     \
-              traits.madd(A1, B1,  C5, B1);                                     \
-              traits.madd(A0, B2,  C2, T0);                                     \
-              traits.madd(A1, B2,  C6, B2);                                     \
-              traits.madd(A0, B3,  C3, T0);                                     \
-              traits.madd(A1, B3,  C7, B3);                                     \
-              EIGEN_ASM_COMMENT("end step of gebp micro kernel 2pX4");          \
-            } while(false)
-            
+          // NOTE: the begin/end asm comments below work around bug 935!
+          // but they are not enough for gcc>=6 without FMA (bug 1637)
+          #if EIGEN_GNUC_AT_LEAST(6,0) && defined(EIGEN_VECTORIZE_SSE)
+            #define EIGEN_GEBP_2PX4_SPILLING_WORKAROUND __asm__  ("" : [a0] "+x,m" (A0),[a1] "+x,m" (A1));
+          #else
+            #define EIGEN_GEBP_2PX4_SPILLING_WORKAROUND
+          #endif
+#define EIGEN_GEBGP_ONESTEP(K)                                            \
+            do {                                                          \
+              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 2pX4");  \
+              traits.loadLhs(&blA[(0 + 2 * K) * LhsProgress], A0);        \
+              traits.loadLhs(&blA[(1 + 2 * K) * LhsProgress], A1);        \
+              traits.loadRhs(&blB[(0 + 4 * K) * RhsProgress], rhs_panel); \
+              traits.madd(A0, rhs_panel, C0, T0, fix<0>);                 \
+              traits.madd(A1, rhs_panel, C4, T0, fix<0>);                 \
+              traits.madd(A0, rhs_panel, C1, T0, fix<1>);                 \
+              traits.madd(A1, rhs_panel, C5, T0, fix<1>);                 \
+              traits.madd(A0, rhs_panel, C2, T0, fix<2>);                 \
+              traits.madd(A1, rhs_panel, C6, T0, fix<2>);                 \
+              traits.madd(A0, rhs_panel, C3, T0, fix<3>);                 \
+              traits.madd(A1, rhs_panel, C7, T0, fix<3>);                 \
+              EIGEN_GEBP_2PX4_SPILLING_WORKAROUND                         \
+              EIGEN_ASM_COMMENT("end step of gebp micro kernel 2pX4");    \
+            } while (false)
+
             internal::prefetch(blB+(48+0));
             EIGEN_GEBGP_ONESTEP(0);
             EIGEN_GEBGP_ONESTEP(1);
@@ -1339,7 +1769,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           // process remaining peeled loop
           for(Index k=peeled_kc; k<depth; k++)
           {
-            RhsPacket B_0, B1, B2, B3, T0;
+            RhsPacketx4 rhs_panel;
+            RhsPacket T0;
             EIGEN_GEBGP_ONESTEP(0);
             blB += 4*RhsProgress;
             blA += 2*Traits::LhsProgress;
@@ -1349,10 +1780,10 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           ResPacket R0, R1, R2, R3;
           ResPacket alphav = pset1<ResPacket>(alpha);
 
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r0.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r1.loadPacket(0 * Traits::ResPacketSize);
-          R3 = r1.loadPacket(1 * Traits::ResPacketSize);
+          R0 = r0.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r0.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r1.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R3 = r1.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
           traits.acc(C0, alphav, R0);
           traits.acc(C4, alphav, R1);
           traits.acc(C1, alphav, R2);
@@ -1362,10 +1793,10 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           r1.storePacket(0 * Traits::ResPacketSize, R2);
           r1.storePacket(1 * Traits::ResPacketSize, R3);
 
-          R0 = r2.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r2.loadPacket(1 * Traits::ResPacketSize);
-          R2 = r3.loadPacket(0 * Traits::ResPacketSize);
-          R3 = r3.loadPacket(1 * Traits::ResPacketSize);
+          R0 = r2.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r2.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
+          R2 = r3.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R3 = r3.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
           traits.acc(C2,  alphav, R0);
           traits.acc(C6,  alphav, R1);
           traits.acc(C3,  alphav, R2);
@@ -1410,8 +1841,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
               traits.loadLhs(&blA[(0+2*K)*LhsProgress], A0);                      \
               traits.loadLhs(&blA[(1+2*K)*LhsProgress], A1);                      \
               traits.loadRhs(&blB[(0+K)*RhsProgress], B_0);                       \
-              traits.madd(A0, B_0, C0, B1);                                       \
-              traits.madd(A1, B_0, C4, B_0);                                      \
+              traits.madd(A0, B_0, C0, B1, fix<0>);                               \
+              traits.madd(A1, B_0, C4, B_0, fix<0>);                              \
               EIGEN_ASM_COMMENT("end step of gebp micro kernel 2pX1");            \
             } while(false)
         
@@ -1424,8 +1855,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
             EIGEN_GEBGP_ONESTEP(6);
             EIGEN_GEBGP_ONESTEP(7);
 
-            blB += pk*RhsProgress;
-            blA += pk*2*Traits::LhsProgress;
+            blB += int(pk) * int(RhsProgress);
+            blA += int(pk) * 2 * int(Traits::LhsProgress);
 
             EIGEN_ASM_COMMENT("end gebp micro kernel 2pX1");
           }
@@ -1442,8 +1873,8 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           ResPacket R0, R1;
           ResPacket alphav = pset1<ResPacket>(alpha);
 
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r0.loadPacket(1 * Traits::ResPacketSize);
+          R0 = r0.template loadPacket<ResPacket>(0 * Traits::ResPacketSize);
+          R1 = r0.template loadPacket<ResPacket>(1 * Traits::ResPacketSize);
           traits.acc(C0, alphav, R0);
           traits.acc(C4, alphav, R1);
           r0.storePacket(0 * Traits::ResPacketSize, R0);
@@ -1455,182 +1886,44 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
     //---------- Process 1 * LhsProgress rows at once ----------
     if(mr>=1*Traits::LhsProgress)
     {
-      // loops on each largest micro horizontal panel of lhs (1*LhsProgress x depth)
-      for(Index i=peeled_mc2; i<peeled_mc1; i+=1*LhsProgress)
-      {
-        // loops on each largest micro vertical panel of rhs (depth * nr)
-        for(Index j2=0; j2<packet_cols4; j2+=nr)
-        {
-          // We select a 1*Traits::LhsProgress x nr micro block of res which is entirely
-          // stored into 1 x nr registers.
-          
-          const LhsScalar* blA = &blockA[i*strideA+offsetA*(1*Traits::LhsProgress)];
-          prefetch(&blA[0]);
-
-          // gets res block as register
-          AccPacket C0, C1, C2, C3;
-          traits.initAcc(C0);
-          traits.initAcc(C1);
-          traits.initAcc(C2);
-          traits.initAcc(C3);
-
-          LinearMapper r0 = res.getLinearMapper(i, j2 + 0);
-          LinearMapper r1 = res.getLinearMapper(i, j2 + 1);
-          LinearMapper r2 = res.getLinearMapper(i, j2 + 2);
-          LinearMapper r3 = res.getLinearMapper(i, j2 + 3);
-
-          r0.prefetch(prefetch_res_offset);
-          r1.prefetch(prefetch_res_offset);
-          r2.prefetch(prefetch_res_offset);
-          r3.prefetch(prefetch_res_offset);
-
-          // performs "inner" products
-          const RhsScalar* blB = &blockB[j2*strideB+offsetB*nr];
-          prefetch(&blB[0]);
-          LhsPacket A0;
-
-          for(Index k=0; k<peeled_kc; k+=pk)
-          {
-            EIGEN_ASM_COMMENT("begin gebp micro kernel 1pX4");
-            RhsPacket B_0, B1, B2, B3;
-               
-#define EIGEN_GEBGP_ONESTEP(K) \
-            do {                                                                \
-              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 1pX4");        \
-              EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
-              traits.loadLhs(&blA[(0+1*K)*LhsProgress], A0);                    \
-              traits.broadcastRhs(&blB[(0+4*K)*RhsProgress], B_0, B1, B2, B3);  \
-              traits.madd(A0, B_0, C0, B_0);                                    \
-              traits.madd(A0, B1,  C1, B1);                                     \
-              traits.madd(A0, B2,  C2, B2);                                     \
-              traits.madd(A0, B3,  C3, B3);                                     \
-              EIGEN_ASM_COMMENT("end step of gebp micro kernel 1pX4");          \
-            } while(false)
-            
-            internal::prefetch(blB+(48+0));
-            EIGEN_GEBGP_ONESTEP(0);
-            EIGEN_GEBGP_ONESTEP(1);
-            EIGEN_GEBGP_ONESTEP(2);
-            EIGEN_GEBGP_ONESTEP(3);
-            internal::prefetch(blB+(48+16));
-            EIGEN_GEBGP_ONESTEP(4);
-            EIGEN_GEBGP_ONESTEP(5);
-            EIGEN_GEBGP_ONESTEP(6);
-            EIGEN_GEBGP_ONESTEP(7);
-
-            blB += pk*4*RhsProgress;
-            blA += pk*1*LhsProgress;
-
-            EIGEN_ASM_COMMENT("end gebp micro kernel 1pX4");
-          }
-          // process remaining peeled loop
-          for(Index k=peeled_kc; k<depth; k++)
-          {
-            RhsPacket B_0, B1, B2, B3;
-            EIGEN_GEBGP_ONESTEP(0);
-            blB += 4*RhsProgress;
-            blA += 1*LhsProgress;
-          }
-#undef EIGEN_GEBGP_ONESTEP
-
-          ResPacket R0, R1;
-          ResPacket alphav = pset1<ResPacket>(alpha);
-
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r1.loadPacket(0 * Traits::ResPacketSize);
-          traits.acc(C0, alphav, R0);
-          traits.acc(C1,  alphav, R1);
-          r0.storePacket(0 * Traits::ResPacketSize, R0);
-          r1.storePacket(0 * Traits::ResPacketSize, R1);
-
-          R0 = r2.loadPacket(0 * Traits::ResPacketSize);
-          R1 = r3.loadPacket(0 * Traits::ResPacketSize);
-          traits.acc(C2,  alphav, R0);
-          traits.acc(C3,  alphav, R1);
-          r2.storePacket(0 * Traits::ResPacketSize, R0);
-          r3.storePacket(0 * Traits::ResPacketSize, R1);
-        }
-
-        // Deal with remaining columns of the rhs
-        for(Index j2=packet_cols4; j2<cols; j2++)
-        {
-          // One column at a time
-          const LhsScalar* blA = &blockA[i*strideA+offsetA*(1*Traits::LhsProgress)];
-          prefetch(&blA[0]);
-
-          // gets res block as register
-          AccPacket C0;
-          traits.initAcc(C0);
-
-          LinearMapper r0 = res.getLinearMapper(i, j2);
-
-          // performs "inner" products
-          const RhsScalar* blB = &blockB[j2*strideB+offsetB];
-          LhsPacket A0;
-
-          for(Index k=0; k<peeled_kc; k+=pk)
-          {
-            EIGEN_ASM_COMMENT("begin gebp micro kernel 1pX1");
-            RhsPacket B_0;
-        
-#define EIGEN_GEBGP_ONESTEP(K) \
-            do {                                                                \
-              EIGEN_ASM_COMMENT("begin step of gebp micro kernel 1pX1");        \
-              EIGEN_ASM_COMMENT("Note: these asm comments work around bug 935!"); \
-              traits.loadLhs(&blA[(0+1*K)*LhsProgress], A0);                    \
-              traits.loadRhs(&blB[(0+K)*RhsProgress], B_0);                     \
-              traits.madd(A0, B_0, C0, B_0);                                    \
-              EIGEN_ASM_COMMENT("end step of gebp micro kernel 1pX1");          \
-            } while(false);
-
-            EIGEN_GEBGP_ONESTEP(0);
-            EIGEN_GEBGP_ONESTEP(1);
-            EIGEN_GEBGP_ONESTEP(2);
-            EIGEN_GEBGP_ONESTEP(3);
-            EIGEN_GEBGP_ONESTEP(4);
-            EIGEN_GEBGP_ONESTEP(5);
-            EIGEN_GEBGP_ONESTEP(6);
-            EIGEN_GEBGP_ONESTEP(7);
-
-            blB += pk*RhsProgress;
-            blA += pk*1*Traits::LhsProgress;
-
-            EIGEN_ASM_COMMENT("end gebp micro kernel 1pX1");
-          }
-
-          // process remaining peeled loop
-          for(Index k=peeled_kc; k<depth; k++)
-          {
-            RhsPacket B_0;
-            EIGEN_GEBGP_ONESTEP(0);
-            blB += RhsProgress;
-            blA += 1*Traits::LhsProgress;
-          }
-#undef EIGEN_GEBGP_ONESTEP
-          ResPacket R0;
-          ResPacket alphav = pset1<ResPacket>(alpha);
-          R0 = r0.loadPacket(0 * Traits::ResPacketSize);
-          traits.acc(C0, alphav, R0);
-          r0.storePacket(0 * Traits::ResPacketSize, R0);
-        }
-      }
+      lhs_process_one_packet<nr, LhsProgress, RhsProgress, LhsScalar, RhsScalar, ResScalar, AccPacket, LhsPacket, RhsPacket, ResPacket, Traits, LinearMapper, DataMapper> p;
+      p(res, blockA, blockB, alpha, peeled_mc2, peeled_mc1, strideA, strideB, offsetA, offsetB, prefetch_res_offset, peeled_kc, pk, cols, depth, packet_cols4);
+    }
+    //---------- Process LhsProgressHalf rows at once ----------
+    if((LhsProgressHalf < LhsProgress) && mr>=LhsProgressHalf)
+    {
+      lhs_process_fraction_of_packet<nr, LhsProgressHalf, RhsProgressHalf, LhsScalar, RhsScalar, ResScalar, AccPacketHalf, LhsPacketHalf, RhsPacketHalf, ResPacketHalf, HalfTraits, LinearMapper, DataMapper> p;
+      p(res, blockA, blockB, alpha, peeled_mc1, peeled_mc_half, strideA, strideB, offsetA, offsetB, prefetch_res_offset, peeled_kc, pk, cols, depth, packet_cols4);
+    }
+    //---------- Process LhsProgressQuarter rows at once ----------
+    if((LhsProgressQuarter < LhsProgressHalf) && mr>=LhsProgressQuarter)
+    {
+      lhs_process_fraction_of_packet<nr, LhsProgressQuarter, RhsProgressQuarter, LhsScalar, RhsScalar, ResScalar, AccPacketQuarter, LhsPacketQuarter, RhsPacketQuarter, ResPacketQuarter, QuarterTraits, LinearMapper, DataMapper> p;
+      p(res, blockA, blockB, alpha, peeled_mc_half, peeled_mc_quarter, strideA, strideB, offsetA, offsetB, prefetch_res_offset, peeled_kc, pk, cols, depth, packet_cols4);
     }
     //---------- Process remaining rows, 1 at once ----------
-    if(peeled_mc1<rows)
+    if(peeled_mc_quarter<rows)
     {
       // loop on each panel of the rhs
       for(Index j2=0; j2<packet_cols4; j2+=nr)
       {
         // loop on each row of the lhs (1*LhsProgress x depth)
-        for(Index i=peeled_mc1; i<rows; i+=1)
+        for(Index i=peeled_mc_quarter; i<rows; i+=1)
         {
           const LhsScalar* blA = &blockA[i*strideA+offsetA];
           prefetch(&blA[0]);
           const RhsScalar* blB = &blockB[j2*strideB+offsetB*nr];
 
-          if( (SwappedTraits::LhsProgress % 4)==0 )
+          // If LhsProgress is 8 or 16, it assumes that there is a
+          // half or quarter packet, respectively, of the same size as
+          // nr (which is currently 4) for the return type.
+          const int SResPacketHalfSize = unpacket_traits<typename unpacket_traits<SResPacket>::half>::size;
+          const int SResPacketQuarterSize = unpacket_traits<typename unpacket_traits<typename unpacket_traits<SResPacket>::half>::half>::size;
+          if ((SwappedTraits::LhsProgress % 4) == 0 &&
+              (SwappedTraits::LhsProgress<=16) &&
+              (SwappedTraits::LhsProgress!=8  || SResPacketHalfSize==nr) &&
+              (SwappedTraits::LhsProgress!=16 || SResPacketQuarterSize==nr))
           {
-            // NOTE The following piece of code wont work for 512 bit registers
             SAccPacket C0, C1, C2, C3;
             straits.initAcc(C0);
             straits.initAcc(C1);
@@ -1652,15 +1945,15 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
 
               straits.loadRhsQuad(blA+0*spk, B_0);
               straits.loadRhsQuad(blA+1*spk, B_1);
-              straits.madd(A0,B_0,C0,B_0);
-              straits.madd(A1,B_1,C1,B_1);
+              straits.madd(A0,B_0,C0,B_0, fix<0>);
+              straits.madd(A1,B_1,C1,B_1, fix<0>);
 
               straits.loadLhsUnaligned(blB+2*SwappedTraits::LhsProgress, A0);
               straits.loadLhsUnaligned(blB+3*SwappedTraits::LhsProgress, A1);
               straits.loadRhsQuad(blA+2*spk, B_0);
               straits.loadRhsQuad(blA+3*spk, B_1);
-              straits.madd(A0,B_0,C2,B_0);
-              straits.madd(A1,B_1,C3,B_1);
+              straits.madd(A0,B_0,C2,B_0, fix<0>);
+              straits.madd(A1,B_1,C3,B_1, fix<0>);
 
               blB += 4*SwappedTraits::LhsProgress;
               blA += 4*spk;
@@ -1673,7 +1966,7 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
 
               straits.loadLhsUnaligned(blB, A0);
               straits.loadRhsQuad(blA, B_0);
-              straits.madd(A0,B_0,C0,B_0);
+              straits.madd(A0,B_0,C0,B_0, fix<0>);
 
               blB += SwappedTraits::LhsProgress;
               blA += spk;
@@ -1681,10 +1974,10 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
             if(SwappedTraits::LhsProgress==8)
             {
               // Special case where we have to first reduce the accumulation register C0
-              typedef typename conditional<SwappedTraits::LhsProgress==8,typename unpacket_traits<SResPacket>::half,SResPacket>::type SResPacketHalf;
-              typedef typename conditional<SwappedTraits::LhsProgress==8,typename unpacket_traits<SLhsPacket>::half,SLhsPacket>::type SLhsPacketHalf;
-              typedef typename conditional<SwappedTraits::LhsProgress==8,typename unpacket_traits<SLhsPacket>::half,SRhsPacket>::type SRhsPacketHalf;
-              typedef typename conditional<SwappedTraits::LhsProgress==8,typename unpacket_traits<SAccPacket>::half,SAccPacket>::type SAccPacketHalf;
+              typedef typename conditional<SwappedTraits::LhsProgress>=8,typename unpacket_traits<SResPacket>::half,SResPacket>::type SResPacketHalf;
+              typedef typename conditional<SwappedTraits::LhsProgress>=8,typename unpacket_traits<SLhsPacket>::half,SLhsPacket>::type SLhsPacketHalf;
+              typedef typename conditional<SwappedTraits::LhsProgress>=8,typename unpacket_traits<SRhsPacket>::half,SRhsPacket>::type SRhsPacketHalf;
+              typedef typename conditional<SwappedTraits::LhsProgress>=8,typename unpacket_traits<SAccPacket>::half,SAccPacket>::type SAccPacketHalf;
 
               SResPacketHalf R = res.template gatherPacket<SResPacketHalf>(i, j2);
               SResPacketHalf alphav = pset1<SResPacketHalf>(alpha);
@@ -1696,15 +1989,24 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
                 SRhsPacketHalf b0;
                 straits.loadLhsUnaligned(blB, a0);
                 straits.loadRhs(blA, b0);
-                SAccPacketHalf c0 = predux4(C0);
-                straits.madd(a0,b0,c0,b0);
+                SAccPacketHalf c0 = predux_half_dowto4(C0);
+                straits.madd(a0,b0,c0,b0, fix<0>);
                 straits.acc(c0, alphav, R);
               }
               else
               {
-                straits.acc(predux4(C0), alphav, R);
+                straits.acc(predux_half_dowto4(C0), alphav, R);
               }
               res.scatterPacket(i, j2, R);
+            }
+            else if (SwappedTraits::LhsProgress==16)
+            {
+              // Special case where we have to first reduce the
+              // accumulation register C0. We specialize the block in
+              // template form, so that LhsProgress < 16 paths don't
+              // fail to compile
+              last_row_process_16_packets<LhsScalar, RhsScalar, Index, DataMapper, mr, nr, ConjugateLhs, ConjugateRhs> p;
+	            p(res, straits, blA, blB, depth, endk, i, j2,alpha, C0);
             }
             else
             {
@@ -1728,14 +2030,14 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
 
               B_0 = blB[0];
               B_1 = blB[1];
-              CJMADD(cj,A0,B_0,C0,  B_0);
-              CJMADD(cj,A0,B_1,C1,  B_1);
-              
+              C0 = cj.pmadd(A0,B_0,C0);
+              C1 = cj.pmadd(A0,B_1,C1);
+
               B_0 = blB[2];
               B_1 = blB[3];
-              CJMADD(cj,A0,B_0,C2,  B_0);
-              CJMADD(cj,A0,B_1,C3,  B_1);
-              
+              C2 = cj.pmadd(A0,B_0,C2);
+              C3 = cj.pmadd(A0,B_1,C3);
+
               blB += 4;
             }
             res(i, j2 + 0) += alpha * C0;
@@ -1749,7 +2051,7 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
       for(Index j2=packet_cols4; j2<cols; j2++)
       {
         // loop on each row of the lhs (1*LhsProgress x depth)
-        for(Index i=peeled_mc1; i<rows; i+=1)
+        for(Index i=peeled_mc_quarter; i<rows; i+=1)
         {
           const LhsScalar* blA = &blockA[i*strideA+offsetA];
           prefetch(&blA[0]);
@@ -1760,7 +2062,7 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
           {
             LhsScalar A0 = blA[k];
             RhsScalar B_0 = blB[k];
-            CJMADD(cj, A0, B_0, C0, B_0);
+            C0 = cj.pmadd(A0, B_0, C0);
           }
           res(i, j2) += alpha * C0;
         }
@@ -1768,8 +2070,6 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
     }
   }
 
-
-#undef CJMADD
 
 // pack a block of the lhs
 // The traversal is as follow (mr==4):
@@ -1785,19 +2085,24 @@ void gebp_kernel<LhsScalar,RhsScalar,Index,DataMapper,mr,nr,ConjugateLhs,Conjuga
 //
 //  32 33 34 35 ...
 //  36 36 38 39 ...
-template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, bool Conjugate, bool PanelMode>
-struct gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, ColMajor, Conjugate, PanelMode>
+template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, typename Packet, bool Conjugate, bool PanelMode>
+struct gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Packet, ColMajor, Conjugate, PanelMode>
 {
   typedef typename DataMapper::LinearMapper LinearMapper;
   EIGEN_DONT_INLINE void operator()(Scalar* blockA, const DataMapper& lhs, Index depth, Index rows, Index stride=0, Index offset=0);
 };
 
-template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, bool Conjugate, bool PanelMode>
-EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, ColMajor, Conjugate, PanelMode>
+template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, typename Packet, bool Conjugate, bool PanelMode>
+EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Packet, ColMajor, Conjugate, PanelMode>
   ::operator()(Scalar* blockA, const DataMapper& lhs, Index depth, Index rows, Index stride, Index offset)
 {
-  typedef typename packet_traits<Scalar>::type Packet;
-  enum { PacketSize = packet_traits<Scalar>::size };
+  typedef typename unpacket_traits<Packet>::half HalfPacket;
+  typedef typename unpacket_traits<typename unpacket_traits<Packet>::half>::half QuarterPacket;
+  enum { PacketSize = unpacket_traits<Packet>::size,
+         HalfPacketSize = unpacket_traits<HalfPacket>::size,
+         QuarterPacketSize = unpacket_traits<QuarterPacket>::size,
+         HasHalf = (int)HalfPacketSize < (int)PacketSize,
+         HasQuarter = (int)QuarterPacketSize < (int)HalfPacketSize};
 
   EIGEN_ASM_COMMENT("EIGEN PRODUCT PACK LHS");
   EIGEN_UNUSED_VARIABLE(stride);
@@ -1809,9 +2114,12 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Co
 
   const Index peeled_mc3 = Pack1>=3*PacketSize ? (rows/(3*PacketSize))*(3*PacketSize) : 0;
   const Index peeled_mc2 = Pack1>=2*PacketSize ? peeled_mc3+((rows-peeled_mc3)/(2*PacketSize))*(2*PacketSize) : 0;
-  const Index peeled_mc1 = Pack1>=1*PacketSize ? (rows/(1*PacketSize))*(1*PacketSize) : 0;
-  const Index peeled_mc0 = Pack2>=1*PacketSize ? peeled_mc1
-                         : Pack2>1             ? (rows/Pack2)*Pack2 : 0;
+  const Index peeled_mc1 = Pack1>=1*PacketSize ? peeled_mc2+((rows-peeled_mc2)/(1*PacketSize))*(1*PacketSize) : 0;
+  const Index peeled_mc_half = Pack1>=HalfPacketSize ? peeled_mc1+((rows-peeled_mc1)/(HalfPacketSize))*(HalfPacketSize) : 0;
+  const Index peeled_mc_quarter = Pack1>=QuarterPacketSize ? (rows/(QuarterPacketSize))*(QuarterPacketSize) : 0;
+  const Index last_lhs_progress = rows > peeled_mc_quarter ? (rows - peeled_mc_quarter) & ~1 : 0;
+  const Index peeled_mc0 = Pack2>=PacketSize ? peeled_mc_quarter
+                         : Pack2>1 && last_lhs_progress ? (rows/last_lhs_progress)*last_lhs_progress : 0;
 
   Index i=0;
 
@@ -1825,9 +2133,9 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Co
       for(Index k=0; k<depth; k++)
       {
         Packet A, B, C;
-        A = lhs.loadPacket(i+0*PacketSize, k);
-        B = lhs.loadPacket(i+1*PacketSize, k);
-        C = lhs.loadPacket(i+2*PacketSize, k);
+        A = lhs.template loadPacket<Packet>(i+0*PacketSize, k);
+        B = lhs.template loadPacket<Packet>(i+1*PacketSize, k);
+        C = lhs.template loadPacket<Packet>(i+2*PacketSize, k);
         pstore(blockA+count, cj.pconj(A)); count+=PacketSize;
         pstore(blockA+count, cj.pconj(B)); count+=PacketSize;
         pstore(blockA+count, cj.pconj(C)); count+=PacketSize;
@@ -1845,8 +2153,8 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Co
       for(Index k=0; k<depth; k++)
       {
         Packet A, B;
-        A = lhs.loadPacket(i+0*PacketSize, k);
-        B = lhs.loadPacket(i+1*PacketSize, k);
+        A = lhs.template loadPacket<Packet>(i+0*PacketSize, k);
+        B = lhs.template loadPacket<Packet>(i+1*PacketSize, k);
         pstore(blockA+count, cj.pconj(A)); count+=PacketSize;
         pstore(blockA+count, cj.pconj(B)); count+=PacketSize;
       }
@@ -1863,27 +2171,67 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Co
       for(Index k=0; k<depth; k++)
       {
         Packet A;
-        A = lhs.loadPacket(i+0*PacketSize, k);
+        A = lhs.template loadPacket<Packet>(i+0*PacketSize, k);
         pstore(blockA+count, cj.pconj(A));
         count+=PacketSize;
       }
       if(PanelMode) count += (1*PacketSize) * (stride-offset-depth);
     }
   }
-  // Pack scalars
-  if(Pack2<PacketSize && Pack2>1)
+  // Pack half packets
+  if(HasHalf && Pack1>=HalfPacketSize)
   {
-    for(; i<peeled_mc0; i+=Pack2)
+    for(; i<peeled_mc_half; i+=HalfPacketSize)
     {
-      if(PanelMode) count += Pack2 * offset;
+      if(PanelMode) count += (HalfPacketSize) * offset;
 
       for(Index k=0; k<depth; k++)
-        for(Index w=0; w<Pack2; w++)
-          blockA[count++] = cj(lhs(i+w, k));
-
-      if(PanelMode) count += Pack2 * (stride-offset-depth);
+      {
+        HalfPacket A;
+        A = lhs.template loadPacket<HalfPacket>(i+0*(HalfPacketSize), k);
+        pstoreu(blockA+count, cj.pconj(A));
+        count+=HalfPacketSize;
+      }
+      if(PanelMode) count += (HalfPacketSize) * (stride-offset-depth);
     }
   }
+  // Pack quarter packets
+  if(HasQuarter && Pack1>=QuarterPacketSize)
+  {
+    for(; i<peeled_mc_quarter; i+=QuarterPacketSize)
+    {
+      if(PanelMode) count += (QuarterPacketSize) * offset;
+
+      for(Index k=0; k<depth; k++)
+      {
+        QuarterPacket A;
+        A = lhs.template loadPacket<QuarterPacket>(i+0*(QuarterPacketSize), k);
+        pstoreu(blockA+count, cj.pconj(A));
+        count+=QuarterPacketSize;
+      }
+      if(PanelMode) count += (QuarterPacketSize) * (stride-offset-depth);
+    }
+  }
+  // Pack2 may be *smaller* than PacketSize—that happens for
+  // products like real * complex, where we have to go half the
+  // progress on the lhs in order to duplicate those operands to
+  // address both real & imaginary parts on the rhs. This portion will
+  // pack those half ones until they match the number expected on the
+  // last peeling loop at this point (for the rhs).
+  if(Pack2<PacketSize && Pack2>1)
+  {
+    for(; i<peeled_mc0; i+=last_lhs_progress)
+    {
+      if(PanelMode) count += last_lhs_progress * offset;
+
+      for(Index k=0; k<depth; k++)
+        for(Index w=0; w<last_lhs_progress; w++)
+          blockA[count++] = cj(lhs(i+w, k));
+
+      if(PanelMode) count += last_lhs_progress * (stride-offset-depth);
+    }
+  }
+  // Pack scalars
   for(; i<rows; i++)
   {
     if(PanelMode) count += offset;
@@ -1893,19 +2241,24 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Co
   }
 }
 
-template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, bool Conjugate, bool PanelMode>
-struct gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, RowMajor, Conjugate, PanelMode>
+template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, typename Packet, bool Conjugate, bool PanelMode>
+struct gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Packet, RowMajor, Conjugate, PanelMode>
 {
   typedef typename DataMapper::LinearMapper LinearMapper;
   EIGEN_DONT_INLINE void operator()(Scalar* blockA, const DataMapper& lhs, Index depth, Index rows, Index stride=0, Index offset=0);
 };
 
-template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, bool Conjugate, bool PanelMode>
-EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, RowMajor, Conjugate, PanelMode>
+template<typename Scalar, typename Index, typename DataMapper, int Pack1, int Pack2, typename Packet, bool Conjugate, bool PanelMode>
+EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Packet, RowMajor, Conjugate, PanelMode>
   ::operator()(Scalar* blockA, const DataMapper& lhs, Index depth, Index rows, Index stride, Index offset)
 {
-  typedef typename packet_traits<Scalar>::type Packet;
-  enum { PacketSize = packet_traits<Scalar>::size };
+  typedef typename unpacket_traits<Packet>::half HalfPacket;
+  typedef typename unpacket_traits<typename unpacket_traits<Packet>::half>::half QuarterPacket;
+  enum { PacketSize = unpacket_traits<Packet>::size,
+         HalfPacketSize = unpacket_traits<HalfPacket>::size,
+         QuarterPacketSize = unpacket_traits<QuarterPacket>::size,
+         HasHalf = (int)HalfPacketSize < (int)PacketSize,
+         HasQuarter = (int)QuarterPacketSize < (int)HalfPacketSize};
 
   EIGEN_ASM_COMMENT("EIGEN PRODUCT PACK LHS");
   EIGEN_UNUSED_VARIABLE(stride);
@@ -1913,37 +2266,51 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Ro
   eigen_assert(((!PanelMode) && stride==0 && offset==0) || (PanelMode && stride>=depth && offset<=stride));
   conj_if<NumTraits<Scalar>::IsComplex && Conjugate> cj;
   Index count = 0;
+  bool gone_half = false, gone_quarter = false, gone_last = false;
 
-//   const Index peeled_mc3 = Pack1>=3*PacketSize ? (rows/(3*PacketSize))*(3*PacketSize) : 0;
-//   const Index peeled_mc2 = Pack1>=2*PacketSize ? peeled_mc3+((rows-peeled_mc3)/(2*PacketSize))*(2*PacketSize) : 0;
-//   const Index peeled_mc1 = Pack1>=1*PacketSize ? (rows/(1*PacketSize))*(1*PacketSize) : 0;
-
-  int pack = Pack1;
   Index i = 0;
+  Index pack = Pack1;
+  Index psize = PacketSize;
   while(pack>0)
   {
     Index remaining_rows = rows-i;
-    Index peeled_mc = i+(remaining_rows/pack)*pack;
+    Index peeled_mc = gone_last ? Pack2>1 ? (rows/pack)*pack : 0 : i+(remaining_rows/pack)*pack;
+    Index starting_pos = i;
     for(; i<peeled_mc; i+=pack)
     {
       if(PanelMode) count += pack * offset;
 
-      const Index peeled_k = (depth/PacketSize)*PacketSize;
       Index k=0;
-      if(pack>=PacketSize)
+      if(pack>=psize && psize >= QuarterPacketSize)
       {
-        for(; k<peeled_k; k+=PacketSize)
+        const Index peeled_k = (depth/psize)*psize;
+        for(; k<peeled_k; k+=psize)
         {
-          for (Index m = 0; m < pack; m += PacketSize)
+          for (Index m = 0; m < pack; m += psize)
           {
-            PacketBlock<Packet> kernel;
-            for (int p = 0; p < PacketSize; ++p) kernel.packet[p] = lhs.loadPacket(i+p+m, k);
-            ptranspose(kernel);
-            for (int p = 0; p < PacketSize; ++p) pstore(blockA+count+m+(pack)*p, cj.pconj(kernel.packet[p]));
+            if (psize == PacketSize) {
+              PacketBlock<Packet> kernel;
+              for (Index p = 0; p < psize; ++p) kernel.packet[p] = lhs.template loadPacket<Packet>(i+p+m, k);
+              ptranspose(kernel);
+              for (Index p = 0; p < psize; ++p) pstore(blockA+count+m+(pack)*p, cj.pconj(kernel.packet[p]));
+            } else if (HasHalf && psize == HalfPacketSize) {
+              gone_half = true;
+              PacketBlock<HalfPacket> kernel_half;
+              for (Index p = 0; p < psize; ++p) kernel_half.packet[p] = lhs.template loadPacket<HalfPacket>(i+p+m, k);
+              ptranspose(kernel_half);
+              for (Index p = 0; p < psize; ++p) pstore(blockA+count+m+(pack)*p, cj.pconj(kernel_half.packet[p]));
+            } else if (HasQuarter && psize == QuarterPacketSize) {
+              gone_quarter = true;
+              PacketBlock<QuarterPacket> kernel_quarter;
+              for (Index p = 0; p < psize; ++p) kernel_quarter.packet[p] = lhs.template loadPacket<QuarterPacket>(i+p+m, k);
+              ptranspose(kernel_quarter);
+              for (Index p = 0; p < psize; ++p) pstore(blockA+count+m+(pack)*p, cj.pconj(kernel_quarter.packet[p]));
+	    }
           }
-          count += PacketSize*pack;
+          count += psize*pack;
         }
       }
+
       for(; k<depth; k++)
       {
         Index w=0;
@@ -1966,9 +2333,28 @@ EIGEN_DONT_INLINE void gemm_pack_lhs<Scalar, Index, DataMapper, Pack1, Pack2, Ro
       if(PanelMode) count += pack * (stride-offset-depth);
     }
 
-    pack -= PacketSize;
-    if(pack<Pack2 && (pack+PacketSize)!=Pack2)
-      pack = Pack2;
+    pack -= psize;
+    Index left = rows - i;
+    if (pack <= 0) {
+      if (!gone_last &&
+          (starting_pos == i || left >= psize/2 || left >= psize/4) &&
+          ((psize/2 == HalfPacketSize && HasHalf && !gone_half) ||
+           (psize/2 == QuarterPacketSize && HasQuarter && !gone_quarter))) {
+        psize /= 2;
+        pack = psize;
+        continue;
+      }
+      // Pack2 may be *smaller* than PacketSize—that happens for
+      // products like real * complex, where we have to go half the
+      // progress on the lhs in order to duplicate those operands to
+      // address both real & imaginary parts on the rhs. This portion will
+      // pack those half ones until they match the number expected on the
+      // last peeling loop at this point (for the rhs).
+      if (Pack2 < PacketSize && !gone_last) {
+        gone_last = true;
+        psize = pack = left & ~1;
+      }
+    }
   }
 
   for(; i<rows; i++)
@@ -2024,7 +2410,7 @@ EIGEN_DONT_INLINE void gemm_pack_rhs<Scalar, Index, DataMapper, nr, ColMajor, Co
 //       const Scalar* b6 = &rhs[(j2+6)*rhsStride];
 //       const Scalar* b7 = &rhs[(j2+7)*rhsStride];
 //       Index k=0;
-//       if(PacketSize==8) // TODO enbale vectorized transposition for PacketSize==4
+//       if(PacketSize==8) // TODO enable vectorized transposition for PacketSize==4
 //       {
 //         for(; k<peeled_k; k+=PacketSize) {
 //           PacketBlock<Packet> kernel;
@@ -2071,10 +2457,10 @@ EIGEN_DONT_INLINE void gemm_pack_rhs<Scalar, Index, DataMapper, nr, ColMajor, Co
       {
         for(; k<peeled_k; k+=PacketSize) {
           PacketBlock<Packet,(PacketSize%4)==0?4:PacketSize> kernel;
-          kernel.packet[0] = dm0.loadPacket(k);
-          kernel.packet[1%PacketSize] = dm1.loadPacket(k);
-          kernel.packet[2%PacketSize] = dm2.loadPacket(k);
-          kernel.packet[3%PacketSize] = dm3.loadPacket(k);
+          kernel.packet[0           ] = dm0.template loadPacket<Packet>(k);
+          kernel.packet[1%PacketSize] = dm1.template loadPacket<Packet>(k);
+          kernel.packet[2%PacketSize] = dm2.template loadPacket<Packet>(k);
+          kernel.packet[3%PacketSize] = dm3.template loadPacket<Packet>(k);
           ptranspose(kernel);
           pstoreu(blockB+count+0*PacketSize, cj.pconj(kernel.packet[0]));
           pstoreu(blockB+count+1*PacketSize, cj.pconj(kernel.packet[1%PacketSize]));
@@ -2115,94 +2501,104 @@ template<typename Scalar, typename Index, typename DataMapper, int nr, bool Conj
 struct gemm_pack_rhs<Scalar, Index, DataMapper, nr, RowMajor, Conjugate, PanelMode>
 {
   typedef typename packet_traits<Scalar>::type Packet;
+  typedef typename unpacket_traits<Packet>::half HalfPacket;
+  typedef typename unpacket_traits<typename unpacket_traits<Packet>::half>::half QuarterPacket;
   typedef typename DataMapper::LinearMapper LinearMapper;
-  enum { PacketSize = packet_traits<Scalar>::size };
-  EIGEN_DONT_INLINE void operator()(Scalar* blockB, const DataMapper& rhs, Index depth, Index cols, Index stride=0, Index offset=0);
-};
-
-template<typename Scalar, typename Index, typename DataMapper, int nr, bool Conjugate, bool PanelMode>
-EIGEN_DONT_INLINE void gemm_pack_rhs<Scalar, Index, DataMapper, nr, RowMajor, Conjugate, PanelMode>
-  ::operator()(Scalar* blockB, const DataMapper& rhs, Index depth, Index cols, Index stride, Index offset)
-{
-  EIGEN_ASM_COMMENT("EIGEN PRODUCT PACK RHS ROWMAJOR");
-  EIGEN_UNUSED_VARIABLE(stride);
-  EIGEN_UNUSED_VARIABLE(offset);
-  eigen_assert(((!PanelMode) && stride==0 && offset==0) || (PanelMode && stride>=depth && offset<=stride));
-  conj_if<NumTraits<Scalar>::IsComplex && Conjugate> cj;
-  Index packet_cols8 = nr>=8 ? (cols/8) * 8 : 0;
-  Index packet_cols4 = nr>=4 ? (cols/4) * 4 : 0;
-  Index count = 0;
-
-//   if(nr>=8)
-//   {
-//     for(Index j2=0; j2<packet_cols8; j2+=8)
-//     {
-//       // skip what we have before
-//       if(PanelMode) count += 8 * offset;
-//       for(Index k=0; k<depth; k++)
-//       {
-//         if (PacketSize==8) {
-//           Packet A = ploadu<Packet>(&rhs[k*rhsStride + j2]);
-//           pstoreu(blockB+count, cj.pconj(A));
-//         } else if (PacketSize==4) {
-//           Packet A = ploadu<Packet>(&rhs[k*rhsStride + j2]);
-//           Packet B = ploadu<Packet>(&rhs[k*rhsStride + j2 + PacketSize]);
-//           pstoreu(blockB+count, cj.pconj(A));
-//           pstoreu(blockB+count+PacketSize, cj.pconj(B));
-//         } else {
-//           const Scalar* b0 = &rhs[k*rhsStride + j2];
-//           blockB[count+0] = cj(b0[0]);
-//           blockB[count+1] = cj(b0[1]);
-//           blockB[count+2] = cj(b0[2]);
-//           blockB[count+3] = cj(b0[3]);
-//           blockB[count+4] = cj(b0[4]);
-//           blockB[count+5] = cj(b0[5]);
-//           blockB[count+6] = cj(b0[6]);
-//           blockB[count+7] = cj(b0[7]);
-//         }
-//         count += 8;
-//       }
-//       // skip what we have after
-//       if(PanelMode) count += 8 * (stride-offset-depth);
-//     }
-//   }
-  if(nr>=4)
+  enum { PacketSize = packet_traits<Scalar>::size,
+         HalfPacketSize = unpacket_traits<HalfPacket>::size,
+		 QuarterPacketSize = unpacket_traits<QuarterPacket>::size};
+  EIGEN_DONT_INLINE void operator()(Scalar* blockB, const DataMapper& rhs, Index depth, Index cols, Index stride=0, Index offset=0)
   {
-    for(Index j2=packet_cols8; j2<packet_cols4; j2+=4)
+    EIGEN_ASM_COMMENT("EIGEN PRODUCT PACK RHS ROWMAJOR");
+    EIGEN_UNUSED_VARIABLE(stride);
+    EIGEN_UNUSED_VARIABLE(offset);
+    eigen_assert(((!PanelMode) && stride==0 && offset==0) || (PanelMode && stride>=depth && offset<=stride));
+    const bool HasHalf = (int)HalfPacketSize < (int)PacketSize;
+    const bool HasQuarter = (int)QuarterPacketSize < (int)HalfPacketSize;
+    conj_if<NumTraits<Scalar>::IsComplex && Conjugate> cj;
+    Index packet_cols8 = nr>=8 ? (cols/8) * 8 : 0;
+    Index packet_cols4 = nr>=4 ? (cols/4) * 4 : 0;
+    Index count = 0;
+
+  //   if(nr>=8)
+  //   {
+  //     for(Index j2=0; j2<packet_cols8; j2+=8)
+  //     {
+  //       // skip what we have before
+  //       if(PanelMode) count += 8 * offset;
+  //       for(Index k=0; k<depth; k++)
+  //       {
+  //         if (PacketSize==8) {
+  //           Packet A = ploadu<Packet>(&rhs[k*rhsStride + j2]);
+  //           pstoreu(blockB+count, cj.pconj(A));
+  //         } else if (PacketSize==4) {
+  //           Packet A = ploadu<Packet>(&rhs[k*rhsStride + j2]);
+  //           Packet B = ploadu<Packet>(&rhs[k*rhsStride + j2 + PacketSize]);
+  //           pstoreu(blockB+count, cj.pconj(A));
+  //           pstoreu(blockB+count+PacketSize, cj.pconj(B));
+  //         } else {
+  //           const Scalar* b0 = &rhs[k*rhsStride + j2];
+  //           blockB[count+0] = cj(b0[0]);
+  //           blockB[count+1] = cj(b0[1]);
+  //           blockB[count+2] = cj(b0[2]);
+  //           blockB[count+3] = cj(b0[3]);
+  //           blockB[count+4] = cj(b0[4]);
+  //           blockB[count+5] = cj(b0[5]);
+  //           blockB[count+6] = cj(b0[6]);
+  //           blockB[count+7] = cj(b0[7]);
+  //         }
+  //         count += 8;
+  //       }
+  //       // skip what we have after
+  //       if(PanelMode) count += 8 * (stride-offset-depth);
+  //     }
+  //   }
+    if(nr>=4)
     {
-      // skip what we have before
-      if(PanelMode) count += 4 * offset;
+      for(Index j2=packet_cols8; j2<packet_cols4; j2+=4)
+      {
+        // skip what we have before
+        if(PanelMode) count += 4 * offset;
+        for(Index k=0; k<depth; k++)
+        {
+          if (PacketSize==4) {
+            Packet A = rhs.template loadPacket<Packet>(k, j2);
+            pstoreu(blockB+count, cj.pconj(A));
+            count += PacketSize;
+          } else if (HasHalf && HalfPacketSize==4) {
+            HalfPacket A = rhs.template loadPacket<HalfPacket>(k, j2);
+            pstoreu(blockB+count, cj.pconj(A));
+            count += HalfPacketSize;
+          } else if (HasQuarter && QuarterPacketSize==4) {
+            QuarterPacket A = rhs.template loadPacket<QuarterPacket>(k, j2);
+            pstoreu(blockB+count, cj.pconj(A));
+            count += QuarterPacketSize;
+          } else {
+            const LinearMapper dm0 = rhs.getLinearMapper(k, j2);
+            blockB[count+0] = cj(dm0(0));
+            blockB[count+1] = cj(dm0(1));
+            blockB[count+2] = cj(dm0(2));
+            blockB[count+3] = cj(dm0(3));
+            count += 4;
+          }
+        }
+        // skip what we have after
+        if(PanelMode) count += 4 * (stride-offset-depth);
+      }
+    }
+    // copy the remaining columns one at a time (nr==1)
+    for(Index j2=packet_cols4; j2<cols; ++j2)
+    {
+      if(PanelMode) count += offset;
       for(Index k=0; k<depth; k++)
       {
-        if (PacketSize==4) {
-          Packet A = rhs.loadPacket(k, j2);
-          pstoreu(blockB+count, cj.pconj(A));
-          count += PacketSize;
-        } else {
-          const LinearMapper dm0 = rhs.getLinearMapper(k, j2);
-          blockB[count+0] = cj(dm0(0));
-          blockB[count+1] = cj(dm0(1));
-          blockB[count+2] = cj(dm0(2));
-          blockB[count+3] = cj(dm0(3));
-          count += 4;
-        }
+        blockB[count] = cj(rhs(k, j2));
+        count += 1;
       }
-      // skip what we have after
-      if(PanelMode) count += 4 * (stride-offset-depth);
+      if(PanelMode) count += stride-offset-depth;
     }
   }
-  // copy the remaining columns one at a time (nr==1)
-  for(Index j2=packet_cols4; j2<cols; ++j2)
-  {
-    if(PanelMode) count += offset;
-    for(Index k=0; k<depth; k++)
-    {
-      blockB[count] = cj(rhs(k, j2));
-      count += 1;
-    }
-    if(PanelMode) count += stride-offset-depth;
-  }
-}
+};
 
 } // end namespace internal
 
@@ -2222,6 +2618,16 @@ inline std::ptrdiff_t l2CacheSize()
   std::ptrdiff_t l1, l2, l3;
   internal::manage_caching_sizes(GetAction, &l1, &l2, &l3);
   return l2;
+}
+
+/** \returns the currently set level 3 cpu cache size (in bytes) used to estimate the ideal blocking size paramete\
+rs.                                                                                                                
+* \sa setCpuCacheSize */
+inline std::ptrdiff_t l3CacheSize()
+{
+  std::ptrdiff_t l1, l2, l3;
+  internal::manage_caching_sizes(GetAction, &l1, &l2, &l3);
+  return l3;
 }
 
 /** Set the cpu L1 and L2 cache sizes (in bytes).

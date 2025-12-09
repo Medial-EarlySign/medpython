@@ -3,6 +3,7 @@
 //
 // Copyright (C) 2008-2015 Gael Guennebaud <gael.guennebaud@inria.fr>
 // Copyright (C) 2007-2009 Benoit Jacob <jacob.benoit.1@gmail.com>
+// Copyright (C) 2020, Arm Limited and Contributors
 //
 // This Source Code Form is subject to the terms of the Mozilla
 // Public License v. 2.0. If a copy of the MPL was not distributed
@@ -24,6 +25,10 @@ const int Dynamic = -1;
   * has to be specified at runtime.
   */
 const int DynamicIndex = 0xffffff;
+
+/** This value means that the increment to go from one value to another in a sequence is not constant for each step.
+  */
+const int UndefinedIncr = 0xfffffe;
 
 /** This value means +Infinity; it is currently used only as the p parameter to MatrixBase::lpNorm<int>().
   * The value Infinity there means the L-infinity norm.
@@ -56,8 +61,8 @@ const int HugeCost = 10000;
   * for a matrix, this means that the storage order is row-major.
   * If this bit is not set, the storage order is column-major.
   * For an expression, this determines the storage order of
-  * the matrix created by evaluation of that expression. 
-  * \sa \ref TopicStorageOrders */
+  * the matrix created by evaluation of that expression.
+  * \sa \blank  \ref TopicStorageOrders */
 const unsigned int RowMajorBit = 0x1;
 
 /** \ingroup flags
@@ -67,6 +72,7 @@ const unsigned int EvalBeforeNestingBit = 0x2;
 /** \ingroup flags
   * \deprecated
   * means the expression should be evaluated before any assignment */
+EIGEN_DEPRECATED
 const unsigned int EvalBeforeAssigningBit = 0x4; // FIXME deprecated
 
 /** \ingroup flags
@@ -128,7 +134,7 @@ const unsigned int LinearAccessBit = 0x10;
   * Means the expression has a coeffRef() method, i.e. is writable as its individual coefficients are directly addressable.
   * This rules out read-only expressions.
   *
-  * Note that DirectAccessBit and LvalueBit are mutually orthogonal, as there are examples of expression having one but note
+  * Note that DirectAccessBit and LvalueBit are mutually orthogonal, as there are examples of expression having one but not
   * the other:
   *   \li writable expressions that don't have a very simple memory layout as a strided array, have LvalueBit but not DirectAccessBit
   *   \li Map-to-const expressions, for example Map<const Matrix>, have DirectAccessBit but not LvalueBit
@@ -151,14 +157,14 @@ const unsigned int DirectAccessBit = 0x40;
 /** \deprecated \ingroup flags
   *
   * means the first coefficient packet is guaranteed to be aligned.
-  * An expression cannot has the AlignedBit without the PacketAccessBit flag.
+  * An expression cannot have the AlignedBit without the PacketAccessBit flag.
   * In other words, this means we are allow to perform an aligned packet access to the first element regardless
   * of the expression kind:
   * \code
   * expression.packet<Aligned>(0);
   * \endcode
   */
-const unsigned int AlignedBit = 0x80;
+EIGEN_DEPRECATED const unsigned int AlignedBit = 0x80;
 
 const unsigned int NestByRefBit = 0x100;
 
@@ -168,7 +174,7 @@ const unsigned int NestByRefBit = 0x100;
   * can be either row-major or column-major.
   * The precise choice will be decided at evaluation time or when
   * combined with other expressions.
-  * \sa \ref RowMajorBit, \ref TopicStorageOrders */
+  * \sa \blank  \ref RowMajorBit, \ref TopicStorageOrders */
 const unsigned int NoPreferredStorageOrderBit = 0x200;
 
 /** \ingroup flags
@@ -187,8 +193,7 @@ const unsigned int CompressedAccessBit = 0x400;
 
 // list of flags that are inherited by default
 const unsigned int HereditaryBits = RowMajorBit
-                                  | EvalBeforeNestingBit
-                                  | EvalBeforeAssigningBit;
+                                  | EvalBeforeNestingBit;
 
 /** \defgroup enums Enumerations
   * \ingroup Core_Module
@@ -199,7 +204,7 @@ const unsigned int HereditaryBits = RowMajorBit
 /** \ingroup enums
   * Enum containing possible values for the \c Mode or \c UpLo parameter of
   * MatrixBase::selfadjointView() and MatrixBase::triangularView(), and selfadjoint solvers. */
-enum {
+enum UpLoType {
   /** View matrix as a lower triangular matrix. */
   Lower=0x1,                      
   /** View matrix as an upper triangular matrix. */
@@ -224,7 +229,7 @@ enum {
 
 /** \ingroup enums
   * Enum for indicating whether a buffer is aligned or not. */
-enum { 
+enum AlignmentType {
   Unaligned=0,        /**< Data pointer has no specific alignment. */
   Aligned8=8,         /**< Data pointer is aligned on a 8 bytes boundary. */
   Aligned16=16,       /**< Data pointer is aligned on a 16 bytes boundary. */
@@ -251,12 +256,6 @@ enum {
 };
 
 /** \ingroup enums
- * Enum used by DenseBase::corner() in Eigen2 compatibility mode. */
-// FIXME after the corner() API change, this was not needed anymore, except by AlignedBox
-// TODO: find out what to do with that. Adapt the AlignedBox API ?
-enum CornerType { TopLeft, TopRight, BottomLeft, BottomRight };
-
-/** \ingroup enums
   * Enum containing possible values for the \p Direction parameter of
   * Reverse, PartialReduxExpr and VectorwiseOp. */
 enum DirectionType { 
@@ -273,7 +272,7 @@ enum DirectionType {
 
 /** \internal \ingroup enums
   * Enum to specify how to traverse the entries of a matrix. */
-enum {
+enum TraversalType {
   /** \internal Default traversal, no vectorization, no index-based access */
   DefaultTraversal,
   /** \internal No vectorization, use index-based access to have only one for loop instead of 2 nested loops */
@@ -295,7 +294,7 @@ enum {
 
 /** \internal \ingroup enums
   * Enum to specify whether to unroll loops when traversing over the entries of a matrix. */
-enum {
+enum UnrollingType {
   /** \internal Do not unroll loops. */
   NoUnrolling,
   /** \internal Unroll only the inner loop, but not the outer loop. */
@@ -307,7 +306,7 @@ enum {
 
 /** \internal \ingroup enums
   * Enum to specify whether to use the default (built-in) implementation or the specialization. */
-enum {
+enum SpecializedType {
   Specialized,
   BuiltIn
 };
@@ -315,7 +314,7 @@ enum {
 /** \ingroup enums
   * Enum containing possible values for the \p _Options template parameter of
   * Matrix, Array and BandMatrix. */
-enum {
+enum StorageOptions {
   /** Storage order is column major (see \ref TopicStorageOrders). */
   ColMajor = 0,
   /** Storage order is row major (see \ref TopicStorageOrders). */
@@ -328,11 +327,22 @@ enum {
 
 /** \ingroup enums
   * Enum for specifying whether to apply or solve on the left or right. */
-enum {
+enum SideType {
   /** Apply transformation on the left. */
-  OnTheLeft = 1,  
+  OnTheLeft = 1,
   /** Apply transformation on the right. */
-  OnTheRight = 2  
+  OnTheRight = 2
+};
+
+/** \ingroup enums
+ * Enum for specifying NaN-propagation behavior, e.g. for coeff-wise min/max. */
+enum NaNPropagationOptions {
+  /**  Implementation defined behavior if NaNs are present. */
+  PropagateFast = 0,
+  /**  Always propagate NaNs. */
+  PropagateNaN,
+  /**  Always propagate not-NaNs. */
+  PropagateNumbers
 };
 
 /* the following used to be written as:
@@ -353,7 +363,7 @@ enum Default_t    { Default };
 
 /** \internal \ingroup enums
   * Used in AmbiVector. */
-enum {
+enum AmbiVectorMode {
   IsDense         = 0,
   IsSparse
 };
@@ -464,6 +474,8 @@ namespace Architecture
     AltiVec = 0x2,
     VSX = 0x3,
     NEON = 0x4,
+    MSA = 0x5,
+    SVE = 0x6,
 #if defined EIGEN_VECTORIZE_SSE
     Target = SSE
 #elif defined EIGEN_VECTORIZE_ALTIVEC
@@ -472,6 +484,10 @@ namespace Architecture
     Target = VSX
 #elif defined EIGEN_VECTORIZE_NEON
     Target = NEON
+#elif defined EIGEN_VECTORIZE_SVE
+    Target = SVE
+#elif defined EIGEN_VECTORIZE_MSA
+    Target = MSA
 #else
     Target = Generic
 #endif
@@ -479,8 +495,9 @@ namespace Architecture
 }
 
 /** \internal \ingroup enums
-  * Enum used as template parameter in Product and product evalautors. */
-enum { DefaultProduct=0, LazyProduct, AliasFreeProduct, CoeffBasedProductMode, LazyCoeffBasedProductMode, OuterProduct, InnerProduct, GemvProduct, GemmProduct };
+  * Enum used as template parameter in Product and product evaluators. */
+enum ProductImplType
+{ DefaultProduct=0, LazyProduct, AliasFreeProduct, CoeffBasedProductMode, LazyCoeffBasedProductMode, OuterProduct, InnerProduct, GemvProduct, GemmProduct };
 
 /** \internal \ingroup enums
   * Enum used in experimental parallel implementation. */
@@ -492,7 +509,7 @@ struct Dense {};
 /** The type used to identify a general sparse storage. */
 struct Sparse {};
 
-/** The type used to identify a general solver (foctored) storage. */
+/** The type used to identify a general solver (factored) storage. */
 struct SolverStorage {};
 
 /** The type used to identify a permutation storage. */

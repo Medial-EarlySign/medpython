@@ -10,22 +10,7 @@
 #ifndef EIGEN_REPLICATE_H
 #define EIGEN_REPLICATE_H
 
-namespace Eigen { 
-
-/**
-  * \class Replicate
-  * \ingroup Core_Module
-  *
-  * \brief Expression of the multiple replication of a matrix or vector
-  *
-  * \param MatrixType the type of the object we are replicating
-  *
-  * This class represents an expression of the multiple replication of a matrix or vector.
-  * It is the return type of DenseBase::replicate() and most of the time
-  * this is the only way it is used.
-  *
-  * \sa DenseBase::replicate()
-  */
+namespace Eigen {
 
 namespace internal {
 template<typename MatrixType,int RowFactor,int ColFactor>
@@ -50,13 +35,29 @@ struct traits<Replicate<MatrixType,RowFactor,ColFactor> >
     IsRowMajor = MaxRowsAtCompileTime==1 && MaxColsAtCompileTime!=1 ? 1
                : MaxColsAtCompileTime==1 && MaxRowsAtCompileTime!=1 ? 0
                : (MatrixType::Flags & RowMajorBit) ? 1 : 0,
-    
+
     // FIXME enable DirectAccess with negative strides?
     Flags = IsRowMajor ? RowMajorBit : 0
   };
 };
 }
 
+/**
+  * \class Replicate
+  * \ingroup Core_Module
+  *
+  * \brief Expression of the multiple replication of a matrix or vector
+  *
+  * \tparam MatrixType the type of the object we are replicating
+  * \tparam RowFactor number of repetitions at compile time along the vertical direction, can be Dynamic.
+  * \tparam ColFactor number of repetitions at compile time along the horizontal direction, can be Dynamic.
+  *
+  * This class represents an expression of the multiple replication of a matrix or vector.
+  * It is the return type of DenseBase::replicate() and most of the time
+  * this is the only way it is used.
+  *
+  * \sa DenseBase::replicate()
+  */
 template<typename MatrixType,int RowFactor,int ColFactor> class Replicate
   : public internal::dense_xpr_base< Replicate<MatrixType,RowFactor,ColFactor> >::type
 {
@@ -87,15 +88,15 @@ template<typename MatrixType,int RowFactor,int ColFactor> class Replicate
                           THE_MATRIX_OR_EXPRESSION_THAT_YOU_PASSED_DOES_NOT_HAVE_THE_EXPECTED_TYPE)
     }
 
-    EIGEN_DEVICE_FUNC
+    EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
     inline Index rows() const { return m_matrix.rows() * m_rowFactor.value(); }
-    EIGEN_DEVICE_FUNC
+    EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
     inline Index cols() const { return m_matrix.cols() * m_colFactor.value(); }
 
     EIGEN_DEVICE_FUNC
     const _MatrixTypeNested& nestedExpression() const
-    { 
-      return m_matrix; 
+    {
+      return m_matrix;
     }
 
   protected:
@@ -114,7 +115,7 @@ template<typename MatrixType,int RowFactor,int ColFactor> class Replicate
   */
 template<typename Derived>
 template<int RowFactor, int ColFactor>
-const Replicate<Derived,RowFactor,ColFactor>
+EIGEN_DEVICE_FUNC const Replicate<Derived,RowFactor,ColFactor>
 DenseBase<Derived>::replicate() const
 {
   return Replicate<Derived,RowFactor,ColFactor>(derived());
@@ -129,7 +130,7 @@ DenseBase<Derived>::replicate() const
   * \sa VectorwiseOp::replicate(), DenseBase::replicate(), class Replicate
   */
 template<typename ExpressionType, int Direction>
-const typename VectorwiseOp<ExpressionType,Direction>::ReplicateReturnType
+EIGEN_DEVICE_FUNC const typename VectorwiseOp<ExpressionType,Direction>::ReplicateReturnType
 VectorwiseOp<ExpressionType,Direction>::replicate(Index factor) const
 {
   return typename VectorwiseOp<ExpressionType,Direction>::ReplicateReturnType

@@ -10,49 +10,22 @@
 #ifndef EIGEN_TRANSPOSITIONS_H
 #define EIGEN_TRANSPOSITIONS_H
 
-namespace Eigen { 
-
-/** \class Transpositions
-  * \ingroup Core_Module
-  *
-  * \brief Represents a sequence of transpositions (row/column interchange)
-  *
-  * \param SizeAtCompileTime the number of transpositions, or Dynamic
-  * \param MaxSizeAtCompileTime the maximum number of transpositions, or Dynamic. This optional parameter defaults to SizeAtCompileTime. Most of the time, you should not have to specify it.
-  *
-  * This class represents a permutation transformation as a sequence of \em n transpositions
-  * \f$[T_{n-1} \ldots T_{i} \ldots T_{0}]\f$. It is internally stored as a vector of integers \c indices.
-  * Each transposition \f$ T_{i} \f$ applied on the left of a matrix (\f$ T_{i} M\f$) interchanges
-  * the rows \c i and \c indices[i] of the matrix \c M.
-  * A transposition applied on the right (e.g., \f$ M T_{i}\f$) yields a column interchange.
-  *
-  * Compared to the class PermutationMatrix, such a sequence of transpositions is what is
-  * computed during a decomposition with pivoting, and it is faster when applying the permutation in-place.
-  * 
-  * To apply a sequence of transpositions to a matrix, simply use the operator * as in the following example:
-  * \code
-  * Transpositions tr;
-  * MatrixXf mat;
-  * mat = tr * mat;
-  * \endcode
-  * In this example, we detect that the matrix appears on both side, and so the transpositions
-  * are applied in-place without any temporary or extra copy.
-  *
-  * \sa class PermutationMatrix
-  */
+namespace Eigen {
 
 template<typename Derived>
 class TranspositionsBase
 {
     typedef internal::traits<Derived> Traits;
-    
+
   public:
 
     typedef typename Traits::IndicesType IndicesType;
     typedef typename IndicesType::Scalar StorageIndex;
     typedef Eigen::Index Index; ///< \deprecated since Eigen 3.3
 
+    EIGEN_DEVICE_FUNC
     Derived& derived() { return *static_cast<Derived*>(this); }
+    EIGEN_DEVICE_FUNC
     const Derived& derived() const { return *static_cast<const Derived*>(this); }
 
     /** Copies the \a other transpositions into \c *this */
@@ -62,26 +35,19 @@ class TranspositionsBase
       indices() = other.indices();
       return derived();
     }
-    
-    #ifndef EIGEN_PARSED_BY_DOXYGEN
-    /** This is a special case of the templated operator=. Its purpose is to
-      * prevent a default operator= from hiding the templated operator=.
-      */
-    Derived& operator=(const TranspositionsBase& other)
-    {
-      indices() = other.indices();
-      return derived();
-    }
-    #endif
 
     /** \returns the number of transpositions */
+    EIGEN_DEVICE_FUNC
     Index size() const { return indices().size(); }
     /** \returns the number of rows of the equivalent permutation matrix */
+    EIGEN_DEVICE_FUNC
     Index rows() const { return indices().size(); }
     /** \returns the number of columns of the equivalent permutation matrix */
+    EIGEN_DEVICE_FUNC
     Index cols() const { return indices().size(); }
 
     /** Direct access to the underlying index vector */
+    EIGEN_DEVICE_FUNC
     inline const StorageIndex& coeff(Index i) const { return indices().coeff(i); }
     /** Direct access to the underlying index vector */
     inline StorageIndex& coeffRef(Index i) { return indices().coeffRef(i); }
@@ -95,8 +61,10 @@ class TranspositionsBase
     inline StorageIndex& operator[](Index i) { return indices()(i); }
 
     /** const version of indices(). */
+    EIGEN_DEVICE_FUNC
     const IndicesType& indices() const { return derived().indices(); }
     /** \returns a reference to the stored array representing the transpositions. */
+    EIGEN_DEVICE_FUNC
     IndicesType& indices() { return derived().indices(); }
 
     /** Resizes to given size. */
@@ -113,7 +81,7 @@ class TranspositionsBase
     }
 
     // FIXME: do we want such methods ?
-    // might be usefull when the target matrix expression is complex, e.g.:
+    // might be useful when the target matrix expression is complex, e.g.:
     // object.matrix().block(..,..,..,..) = trans * object.matrix().block(..,..,..,..);
     /*
     template<typename MatrixType>
@@ -154,6 +122,35 @@ struct traits<Transpositions<SizeAtCompileTime,MaxSizeAtCompileTime,_StorageInde
 };
 }
 
+/** \class Transpositions
+  * \ingroup Core_Module
+  *
+  * \brief Represents a sequence of transpositions (row/column interchange)
+  *
+  * \tparam SizeAtCompileTime the number of transpositions, or Dynamic
+  * \tparam MaxSizeAtCompileTime the maximum number of transpositions, or Dynamic. This optional parameter defaults to SizeAtCompileTime. Most of the time, you should not have to specify it.
+  *
+  * This class represents a permutation transformation as a sequence of \em n transpositions
+  * \f$[T_{n-1} \ldots T_{i} \ldots T_{0}]\f$. It is internally stored as a vector of integers \c indices.
+  * Each transposition \f$ T_{i} \f$ applied on the left of a matrix (\f$ T_{i} M\f$) interchanges
+  * the rows \c i and \c indices[i] of the matrix \c M.
+  * A transposition applied on the right (e.g., \f$ M T_{i}\f$) yields a column interchange.
+  *
+  * Compared to the class PermutationMatrix, such a sequence of transpositions is what is
+  * computed during a decomposition with pivoting, and it is faster when applying the permutation in-place.
+  *
+  * To apply a sequence of transpositions to a matrix, simply use the operator * as in the following example:
+  * \code
+  * Transpositions tr;
+  * MatrixXf mat;
+  * mat = tr * mat;
+  * \endcode
+  * In this example, we detect that the matrix appears on both side, and so the transpositions
+  * are applied in-place without any temporary or extra copy.
+  *
+  * \sa class PermutationMatrix
+  */
+
 template<int SizeAtCompileTime, int MaxSizeAtCompileTime, typename _StorageIndex>
 class Transpositions : public TranspositionsBase<Transpositions<SizeAtCompileTime,MaxSizeAtCompileTime,_StorageIndex> >
 {
@@ -171,12 +168,6 @@ class Transpositions : public TranspositionsBase<Transpositions<SizeAtCompileTim
     inline Transpositions(const TranspositionsBase<OtherDerived>& other)
       : m_indices(other.indices()) {}
 
-    #ifndef EIGEN_PARSED_BY_DOXYGEN
-    /** Standard copy constructor. Defined only to prevent a default copy constructor
-      * from hiding the other templated constructor */
-    inline Transpositions(const Transpositions& other) : m_indices(other.indices()) {}
-    #endif
-
     /** Generic constructor from expression of the transposition indices. */
     template<typename Other>
     explicit inline Transpositions(const MatrixBase<Other>& indices) : m_indices(indices)
@@ -189,25 +180,16 @@ class Transpositions : public TranspositionsBase<Transpositions<SizeAtCompileTim
       return Base::operator=(other);
     }
 
-    #ifndef EIGEN_PARSED_BY_DOXYGEN
-    /** This is a special case of the templated operator=. Its purpose is to
-      * prevent a default operator= from hiding the templated operator=.
-      */
-    Transpositions& operator=(const Transpositions& other)
-    {
-      m_indices = other.m_indices;
-      return *this;
-    }
-    #endif
-
     /** Constructs an uninitialized permutation matrix of given size.
       */
     inline Transpositions(Index size) : m_indices(size)
     {}
 
     /** const version of indices(). */
+    EIGEN_DEVICE_FUNC
     const IndicesType& indices() const { return m_indices; }
     /** \returns a reference to the stored array representing the transpositions. */
+    EIGEN_DEVICE_FUNC
     IndicesType& indices() { return m_indices; }
 
   protected:
@@ -265,9 +247,11 @@ class Map<Transpositions<SizeAtCompileTime,MaxSizeAtCompileTime,_StorageIndex>,P
     #endif
 
     /** const version of indices(). */
+    EIGEN_DEVICE_FUNC
     const IndicesType& indices() const { return m_indices; }
-    
+
     /** \returns a reference to the stored array representing the transpositions. */
+    EIGEN_DEVICE_FUNC
     IndicesType& indices() { return m_indices; }
 
   protected:
@@ -306,26 +290,17 @@ class TranspositionsWrapper
       return Base::operator=(other);
     }
 
-    #ifndef EIGEN_PARSED_BY_DOXYGEN
-    /** This is a special case of the templated operator=. Its purpose is to
-      * prevent a default operator= from hiding the templated operator=.
-      */
-    TranspositionsWrapper& operator=(const TranspositionsWrapper& other)
-    {
-      m_indices = other.m_indices;
-      return *this;
-    }
-    #endif
-
     /** const version of indices(). */
+    EIGEN_DEVICE_FUNC
     const IndicesType& indices() const { return m_indices; }
 
     /** \returns a reference to the stored array representing the transpositions. */
+    EIGEN_DEVICE_FUNC
     IndicesType& indices() { return m_indices; }
 
   protected:
 
-    const typename IndicesType::Nested m_indices;
+    typename IndicesType::Nested m_indices;
 };
 
 
@@ -374,9 +349,12 @@ class Transpose<TranspositionsBase<TranspositionsDerived> >
 
     explicit Transpose(const TranspositionType& t) : m_transpositions(t) {}
 
-    Index size() const { return m_transpositions.size(); }
-    Index rows() const { return m_transpositions.size(); }
-    Index cols() const { return m_transpositions.size(); }
+    EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
+    Index size() const EIGEN_NOEXCEPT { return m_transpositions.size(); }
+    EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
+    Index rows() const EIGEN_NOEXCEPT { return m_transpositions.size(); }
+    EIGEN_DEVICE_FUNC EIGEN_CONSTEXPR
+    Index cols() const EIGEN_NOEXCEPT { return m_transpositions.size(); }
 
     /** \returns the \a matrix with the inverse transpositions applied to the columns.
       */
@@ -384,7 +362,7 @@ class Transpose<TranspositionsBase<TranspositionsDerived> >
     const Product<OtherDerived, Transpose, AliasFreeProduct>
     operator*(const MatrixBase<OtherDerived>& matrix, const Transpose& trt)
     {
-      return Product<OtherDerived, Transpose, AliasFreeProduct>(matrix.derived(), trt.derived());
+      return Product<OtherDerived, Transpose, AliasFreeProduct>(matrix.derived(), trt);
     }
 
     /** \returns the \a matrix with the inverse transpositions applied to the rows.
@@ -395,7 +373,8 @@ class Transpose<TranspositionsBase<TranspositionsDerived> >
     {
       return Product<Transpose, OtherDerived, AliasFreeProduct>(*this, matrix.derived());
     }
-    
+
+    EIGEN_DEVICE_FUNC
     const TranspositionType& nestedExpression() const { return m_transpositions; }
 
   protected:

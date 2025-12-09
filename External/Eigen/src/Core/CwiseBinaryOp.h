@@ -13,26 +13,6 @@
 
 namespace Eigen {
 
-/** \class CwiseBinaryOp
-  * \ingroup Core_Module
-  *
-  * \brief Generic expression where a coefficient-wise binary operator is applied to two expressions
-  *
-  * \param BinaryOp template functor implementing the operator
-  * \param Lhs the type of the left-hand side
-  * \param Rhs the type of the right-hand side
-  *
-  * This class represents an expression  where a coefficient-wise binary operator is applied to two expressions.
-  * It is the return type of binary operators, by which we mean only those binary operators where
-  * both the left-hand side and the right-hand side are Eigen expressions.
-  * For example, the return type of matrix1+matrix2 is a CwiseBinaryOp.
-  *
-  * Most of the time, this is the only way that it is used, so you typically don't have to name
-  * CwiseBinaryOp types explicitly.
-  *
-  * \sa MatrixBase::binaryExpr(const MatrixBase<OtherDerived> &,const CustomBinaryOp &) const, class CwiseUnaryOp, class CwiseNullaryOp
-  */
-
 namespace internal {
 template<typename BinaryOp, typename Lhs, typename Rhs>
 struct traits<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >
@@ -52,8 +32,8 @@ struct traits<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >
   // we still want to handle the case when the result type is different.
   typedef typename result_of<
                      BinaryOp(
-                       typename Lhs::Scalar,
-                       typename Rhs::Scalar
+                       const typename Lhs::Scalar&,
+                       const typename Rhs::Scalar&
                      )
                    >::type Scalar;
   typedef typename cwise_promote_storage_type<typename traits<Lhs>::StorageKind,
@@ -66,7 +46,7 @@ struct traits<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >
   typedef typename remove_reference<LhsNested>::type _LhsNested;
   typedef typename remove_reference<RhsNested>::type _RhsNested;
   enum {
-    Flags = _LhsNested::Flags & RowMajorBit
+    Flags = cwise_promote_storage_order<typename traits<Lhs>::StorageKind,typename traits<Rhs>::StorageKind,_LhsNested::Flags & RowMajorBit,_RhsNested::Flags & RowMajorBit>::value
   };
 };
 } // end namespace internal
@@ -74,8 +54,27 @@ struct traits<CwiseBinaryOp<BinaryOp, Lhs, Rhs> >
 template<typename BinaryOp, typename Lhs, typename Rhs, typename StorageKind>
 class CwiseBinaryOpImpl;
 
+/** \class CwiseBinaryOp
+  * \ingroup Core_Module
+  *
+  * \brief Generic expression where a coefficient-wise binary operator is applied to two expressions
+  *
+  * \tparam BinaryOp template functor implementing the operator
+  * \tparam LhsType the type of the left-hand side
+  * \tparam RhsType the type of the right-hand side
+  *
+  * This class represents an expression  where a coefficient-wise binary operator is applied to two expressions.
+  * It is the return type of binary operators, by which we mean only those binary operators where
+  * both the left-hand side and the right-hand side are Eigen expressions.
+  * For example, the return type of matrix1+matrix2 is a CwiseBinaryOp.
+  *
+  * Most of the time, this is the only way that it is used, so you typically don't have to name
+  * CwiseBinaryOp types explicitly.
+  *
+  * \sa MatrixBase::binaryExpr(const MatrixBase<OtherDerived> &,const CustomBinaryOp &) const, class CwiseUnaryOp, class CwiseNullaryOp
+  */
 template<typename BinaryOp, typename LhsType, typename RhsType>
-class CwiseBinaryOp : 
+class CwiseBinaryOp :
   public CwiseBinaryOpImpl<
           BinaryOp, LhsType, RhsType,
           typename internal::cwise_promote_storage_type<typename internal::traits<LhsType>::StorageKind,
@@ -84,7 +83,8 @@ class CwiseBinaryOp :
   internal::no_assignment_operator
 {
   public:
-    
+
+    typedef typename internal::remove_all<BinaryOp>::type Functor;
     typedef typename internal::remove_all<LhsType>::type Lhs;
     typedef typename internal::remove_all<RhsType>::type Rhs;
 
@@ -100,8 +100,14 @@ class CwiseBinaryOp :
     typedef typename internal::remove_reference<LhsNested>::type _LhsNested;
     typedef typename internal::remove_reference<RhsNested>::type _RhsNested;
 
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE CwiseBinaryOp(const Lhs& aLhs, const Rhs& aRhs, const BinaryOp& func = BinaryOp())
+#if EIGEN_COMP_MSVC && EIGEN_HAS_CXX11
+    //Required for Visual Studio or the Copy constructor will probably not get inlined!
+    EIGEN_STRONG_INLINE
+    CwiseBinaryOp(const CwiseBinaryOp<BinaryOp,LhsType,RhsType>&) = default;
+#endif
+
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
+    CwiseBinaryOp(const Lhs& aLhs, const Rhs& aRhs, const BinaryOp& func = BinaryOp())
       : m_lhs(aLhs), m_rhs(aRhs), m_functor(func)
     {
       EIGEN_CHECK_BINARY_COMPATIBILIY(BinaryOp,typename Lhs::Scalar,typename Rhs::Scalar);
@@ -110,31 +116,25 @@ class CwiseBinaryOp :
       eigen_assert(aLhs.rows() == aRhs.rows() && aLhs.cols() == aRhs.cols());
     }
 
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE Index rows() const {
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR
+    Index rows() const EIGEN_NOEXCEPT {
       // return the fixed size type if available to enable compile time optimizations
-      if (internal::traits<typename internal::remove_all<LhsNested>::type>::RowsAtCompileTime==Dynamic)
-        return m_rhs.rows();
-      else
-        return m_lhs.rows();
+      return internal::traits<typename internal::remove_all<LhsNested>::type>::RowsAtCompileTime==Dynamic ? m_rhs.rows() : m_lhs.rows();
     }
-    EIGEN_DEVICE_FUNC
-    EIGEN_STRONG_INLINE Index cols() const {
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE EIGEN_CONSTEXPR
+    Index cols() const EIGEN_NOEXCEPT {
       // return the fixed size type if available to enable compile time optimizations
-      if (internal::traits<typename internal::remove_all<LhsNested>::type>::ColsAtCompileTime==Dynamic)
-        return m_rhs.cols();
-      else
-        return m_lhs.cols();
+      return internal::traits<typename internal::remove_all<LhsNested>::type>::ColsAtCompileTime==Dynamic ? m_rhs.cols() : m_lhs.cols();
     }
 
     /** \returns the left hand side nested expression */
-    EIGEN_DEVICE_FUNC
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
     const _LhsNested& lhs() const { return m_lhs; }
     /** \returns the right hand side nested expression */
-    EIGEN_DEVICE_FUNC
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
     const _RhsNested& rhs() const { return m_rhs; }
     /** \returns the functor representing the binary operation */
-    EIGEN_DEVICE_FUNC
+    EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE
     const BinaryOp& functor() const { return m_functor; }
 
   protected:
@@ -158,10 +158,10 @@ public:
   */
 template<typename Derived>
 template<typename OtherDerived>
-EIGEN_STRONG_INLINE Derived &
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived &
 MatrixBase<Derived>::operator-=(const MatrixBase<OtherDerived> &other)
 {
-  call_assignment(derived(), other.derived(), internal::sub_assign_op<Scalar>());
+  call_assignment(derived(), other.derived(), internal::sub_assign_op<Scalar,typename OtherDerived::Scalar>());
   return derived();
 }
 
@@ -171,14 +171,13 @@ MatrixBase<Derived>::operator-=(const MatrixBase<OtherDerived> &other)
   */
 template<typename Derived>
 template<typename OtherDerived>
-EIGEN_STRONG_INLINE Derived &
+EIGEN_DEVICE_FUNC EIGEN_STRONG_INLINE Derived &
 MatrixBase<Derived>::operator+=(const MatrixBase<OtherDerived>& other)
 {
-  call_assignment(derived(), other.derived(), internal::add_assign_op<Scalar>());
+  call_assignment(derived(), other.derived(), internal::add_assign_op<Scalar,typename OtherDerived::Scalar>());
   return derived();
 }
 
 } // end namespace Eigen
 
 #endif // EIGEN_CWISE_BINARY_OP_H
-

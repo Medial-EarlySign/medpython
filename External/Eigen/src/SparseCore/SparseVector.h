@@ -22,7 +22,7 @@ namespace Eigen {
   * See http://www.netlib.org/linalg/html_templates/node91.html for details on the storage scheme.
   *
   * This class can be extended with the help of the plugin mechanism described on the page
-  * \ref TopicCustomizingEigen by defining the preprocessor symbol \c EIGEN_SPARSEVECTOR_PLUGIN.
+  * \ref TopicCustomizing_Plugins by defining the preprocessor symbol \c EIGEN_SPARSEVECTOR_PLUGIN.
   */
 
 namespace internal {
@@ -83,11 +83,11 @@ class SparseVector
     EIGEN_STRONG_INLINE Index innerSize() const { return m_size; }
     EIGEN_STRONG_INLINE Index outerSize() const { return 1; }
 
-    EIGEN_STRONG_INLINE const Scalar* valuePtr() const { return &m_data.value(0); }
-    EIGEN_STRONG_INLINE Scalar* valuePtr() { return &m_data.value(0); }
+    EIGEN_STRONG_INLINE const Scalar* valuePtr() const { return m_data.valuePtr(); }
+    EIGEN_STRONG_INLINE Scalar* valuePtr() { return m_data.valuePtr(); }
 
-    EIGEN_STRONG_INLINE const StorageIndex* innerIndexPtr() const { return &m_data.index(0); }
-    EIGEN_STRONG_INLINE StorageIndex* innerIndexPtr() { return &m_data.index(0); }
+    EIGEN_STRONG_INLINE const StorageIndex* innerIndexPtr() const { return m_data.indexPtr(); }
+    EIGEN_STRONG_INLINE StorageIndex* innerIndexPtr() { return m_data.indexPtr(); }
 
     inline const StorageIndex* outerIndexPtr() const { return 0; }
     inline StorageIndex* outerIndexPtr() { return 0; }
@@ -125,6 +125,7 @@ class SparseVector
     inline Scalar& coeffRef(Index i)
     {
       eigen_assert(i>=0 && i<m_size);
+
       return m_data.atWithInsertion(StorageIndex(i));
     }
 
@@ -205,21 +206,52 @@ class SparseVector
 
     inline void finalize() {}
 
+    /** \copydoc SparseMatrix::prune(const Scalar&,const RealScalar&) */
     void prune(const Scalar& reference, const RealScalar& epsilon = NumTraits<RealScalar>::dummy_precision())
     {
       m_data.prune(reference,epsilon);
     }
 
+    /** Resizes the sparse vector to \a rows x \a cols
+      *
+      * This method is provided for compatibility with matrices.
+      * For a column vector, \a cols must be equal to 1.
+      * For a row vector, \a rows must be equal to 1.
+      *
+      * \sa resize(Index)
+      */
     void resize(Index rows, Index cols)
     {
       eigen_assert((IsColVector ? cols : rows)==1 && "Outer dimension must equal 1");
       resize(IsColVector ? rows : cols);
     }
 
+    /** Resizes the sparse vector to \a newSize
+      * This method deletes all entries, thus leaving an empty sparse vector
+      *
+      * \sa  conservativeResize(), setZero() */
     void resize(Index newSize)
     {
       m_size = newSize;
       m_data.clear();
+    }
+
+    /** Resizes the sparse vector to \a newSize, while leaving old values untouched.
+      *
+      * If the size of the vector is decreased, then the storage of the out-of bounds coefficients is kept and reserved.
+      * Call .data().squeeze() to free extra memory.
+      *
+      * \sa reserve(), setZero()
+      */
+    void conservativeResize(Index newSize)
+    {
+      if (newSize < m_size)
+      {
+        Index i = 0;
+        while (i<m_data.size() && m_data.index(i)<newSize) ++i;
+        m_data.resize(i);
+      }
+      m_size = newSize;
     }
 
     void resizeNonZeros(Index size) { m_data.resize(size); }
@@ -249,12 +281,20 @@ class SparseVector
     }
 
     /** Swaps the values of \c *this and \a other.
-      * Overloaded for performance: this version performs a \em shallow swap by swaping pointers and attributes only.
+      * Overloaded for performance: this version performs a \em shallow swap by swapping pointers and attributes only.
       * \sa SparseMatrixBase::swap()
       */
     inline void swap(SparseVector& other)
     {
       std::swap(m_size, other.m_size);
+      m_data.swap(other.m_data);
+    }
+
+    template<int OtherOptions>
+    inline void swap(SparseMatrix<Scalar,OtherOptions,StorageIndex>& other)
+    {
+      eigen_assert(other.outerSize()==1);
+      std::swap(m_size, other.m_innerSize);
       m_data.swap(other.m_data);
     }
 
@@ -289,6 +329,7 @@ class SparseVector
     }
     #endif
 
+#ifndef EIGEN_NO_IO
     friend std::ostream & operator << (std::ostream & s, const SparseVector& m)
     {
       for (Index i=0; i<m.nonZeros(); ++i)
@@ -296,6 +337,7 @@ class SparseVector
       s << std::endl;
       return s;
     }
+#endif
 
     /** Destructor */
     inline ~SparseVector() {}
@@ -371,6 +413,7 @@ struct evaluator<SparseVector<_Scalar,_Options,_Index> >
   : evaluator_base<SparseVector<_Scalar,_Options,_Index> >
 {
   typedef SparseVector<_Scalar,_Options,_Index> SparseVectorType;
+  typedef evaluator_base<SparseVectorType> Base;
   typedef typename SparseVectorType::InnerIterator InnerIterator;
   typedef typename SparseVectorType::ReverseInnerIterator ReverseInnerIterator;
   
@@ -378,20 +421,22 @@ struct evaluator<SparseVector<_Scalar,_Options,_Index> >
     CoeffReadCost = NumTraits<_Scalar>::ReadCost,
     Flags = SparseVectorType::Flags
   };
+
+  evaluator() : Base() {}
   
-  explicit evaluator(const SparseVectorType &mat) : m_matrix(mat)
+  explicit evaluator(const SparseVectorType &mat) : m_matrix(&mat)
   {
     EIGEN_INTERNAL_CHECK_COST_VALUE(CoeffReadCost);
   }
   
   inline Index nonZerosEstimate() const {
-    return m_matrix.nonZeros();
+    return m_matrix->nonZeros();
   }
   
-  operator SparseVectorType&() { return m_matrix.const_cast_derived(); }
-  operator const SparseVectorType&() const { return m_matrix; }
+  operator SparseVectorType&() { return m_matrix->const_cast_derived(); }
+  operator const SparseVectorType&() const { return *m_matrix; }
   
-  const SparseVectorType &m_matrix;
+  const SparseVectorType *m_matrix;
 };
 
 template< typename Dest, typename Src>

@@ -171,6 +171,8 @@ struct sparse_solve_triangular_selector<Lhs,Rhs,Mode,Upper,ColMajor>
 
 } // end namespace internal
 
+#ifndef EIGEN_PARSED_BY_DOXYGEN
+
 template<typename ExpressionType,unsigned int Mode>
 template<typename OtherDerived>
 void TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace(MatrixBase<OtherDerived>& other) const
@@ -189,6 +191,7 @@ void TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace(MatrixBase<Oth
   if (copy)
     other = otherCopy;
 }
+#endif
 
 // pure sparse path
 
@@ -267,11 +270,11 @@ struct sparse_solve_triangular_sparse_selector<Lhs,Rhs,Mode,UpLo,ColMajor>
       }
 
 
-      Index count = 0;
+//       Index count = 0;
       // FIXME compute a reference value to filter zeros
       for (typename AmbiVector<Scalar,StorageIndex>::Iterator it(tempVector/*,1e-12*/); it; ++it)
       {
-        ++ count;
+//         ++ count;
 //         std::cerr << "fill " << it.index() << ", " << col << "\n";
 //         std::cout << it.value() << "  ";
         // FIXME use insertBack
@@ -286,6 +289,7 @@ struct sparse_solve_triangular_sparse_selector<Lhs,Rhs,Mode,UpLo,ColMajor>
 
 } // end namespace internal
 
+#ifndef EIGEN_PARSED_BY_DOXYGEN
 template<typename ExpressionType,unsigned int Mode>
 template<typename OtherDerived>
 void TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace(SparseMatrixBase<OtherDerived>& other) const
@@ -304,6 +308,7 @@ void TriangularViewImpl<ExpressionType,Mode,Sparse>::solveInPlace(SparseMatrixBa
 //   if (copy)
 //     other = otherCopy;
 }
+#endif
 
 } // end namespace Eigen
 

@@ -13,7 +13,7 @@
 namespace Eigen {
 
 enum {
-  StandardCompressedFormat = 2
+  StandardCompressedFormat = 2 /**< used by Ref<SparseMatrix> to specify whether the input storage must be in standard compressed form */
 };
   
 namespace internal {
@@ -108,20 +108,25 @@ protected:
 
 
 /** 
-  * \ingroup Sparse_Module
+  * \ingroup SparseCore_Module
   *
   * \brief A sparse matrix expression referencing an existing sparse expression
   *
-  * \tparam PlainObjectType the equivalent sparse matrix type of the referenced data
+  * \tparam SparseMatrixType the equivalent sparse matrix type of the referenced data, it must be a template instance of class SparseMatrix.
   * \tparam Options specifies whether the a standard compressed format is required \c Options is  \c #StandardCompressedFormat, or \c 0.
   *                The default is \c 0.
-  * \tparam StrideType Only used for dense Ref
   *
   * \sa class Ref
   */
+#ifndef EIGEN_PARSED_BY_DOXYGEN
 template<typename MatScalar, int MatOptions, typename MatIndex, int Options, typename StrideType>
 class Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType >
   : public internal::SparseRefBase<Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType > >
+#else
+template<typename SparseMatrixType, int Options>
+class Ref<SparseMatrixType, Options>
+  : public SparseMapBase<Derived,WriteAccessors> // yes, that's weird to use Derived here, but that works!
+#endif
 {
     typedef SparseMatrix<MatScalar,MatOptions,MatIndex> PlainObjectType;
     typedef internal::traits<Ref> Traits;
@@ -155,6 +160,7 @@ class Ref<SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType >
     template<typename Derived>
     inline Ref(const SparseCompressedBase<Derived>& expr)
     #else
+    /** Implicit constructor from any sparse expression (2D matrix or 1D vector) */
     template<typename Derived>
     inline Ref(SparseCompressedBase<Derived>& expr)
     #endif
@@ -179,18 +185,25 @@ class Ref<const SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType
     EIGEN_SPARSE_PUBLIC_INTERFACE(Ref)
 
     template<typename Derived>
-    inline Ref(const SparseMatrixBase<Derived>& expr)
+    inline Ref(const SparseMatrixBase<Derived>& expr) : m_hasCopy(false)
     {
       construct(expr.derived(), typename Traits::template match<Derived>::type());
     }
 
-    inline Ref(const Ref& other) : Base(other) {
+    inline Ref(const Ref& other) : Base(other), m_hasCopy(false) {
       // copy constructor shall not copy the m_object, to avoid unnecessary malloc and copy
     }
 
     template<typename OtherRef>
-    inline Ref(const RefBase<OtherRef>& other) {
+    inline Ref(const RefBase<OtherRef>& other) : m_hasCopy(false) {
       construct(other.derived(), typename Traits::template match<OtherRef>::type());
+    }
+
+    ~Ref() {
+      if(m_hasCopy) {
+        TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(&m_storage);
+        obj->~TPlainObjectType();
+      }
     }
 
   protected:
@@ -200,8 +213,9 @@ class Ref<const SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType
     {
       if((Options & int(StandardCompressedFormat)) && (!expr.isCompressed()))
       {
-        TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(m_object_bytes);
+        TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(&m_storage);
         ::new (obj) TPlainObjectType(expr);
+        m_hasCopy = true;
         Base::construct(*obj);
       }
       else
@@ -213,31 +227,37 @@ class Ref<const SparseMatrix<MatScalar,MatOptions,MatIndex>, Options, StrideType
     template<typename Expression>
     void construct(const Expression& expr, internal::false_type)
     {
-      TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(m_object_bytes);
+      TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(&m_storage);
       ::new (obj) TPlainObjectType(expr);
+      m_hasCopy = true;
       Base::construct(*obj);
     }
 
   protected:
-    char m_object_bytes[sizeof(TPlainObjectType)];
+    typename internal::aligned_storage<sizeof(TPlainObjectType), EIGEN_ALIGNOF(TPlainObjectType)>::type m_storage;
+    bool m_hasCopy;
 };
 
 
 
 /**
-  * \ingroup Sparse_Module
+  * \ingroup SparseCore_Module
   *
   * \brief A sparse vector expression referencing an existing sparse vector expression
   *
-  * \tparam PlainObjectType the equivalent sparse matrix type of the referenced data
-  * \tparam Options Not used for SparseVector.
-  * \tparam StrideType Only used for dense Ref
+  * \tparam SparseVectorType the equivalent sparse vector type of the referenced data, it must be a template instance of class SparseVector.
   *
   * \sa class Ref
   */
+#ifndef EIGEN_PARSED_BY_DOXYGEN
 template<typename MatScalar, int MatOptions, typename MatIndex, int Options, typename StrideType>
 class Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options, StrideType >
   : public internal::SparseRefBase<Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options, StrideType > >
+#else
+template<typename SparseVectorType>
+class Ref<SparseVectorType>
+  : public SparseMapBase<Derived,WriteAccessors>
+#endif
 {
     typedef SparseVector<MatScalar,MatOptions,MatIndex> PlainObjectType;
     typedef internal::traits<Ref> Traits;
@@ -259,6 +279,7 @@ class Ref<SparseVector<MatScalar,MatOptions,MatIndex>, Options, StrideType >
     template<typename Derived>
     inline Ref(const SparseCompressedBase<Derived>& expr)
     #else
+    /** Implicit constructor from any 1D sparse vector expression */
     template<typename Derived>
     inline Ref(SparseCompressedBase<Derived>& expr)
     #endif
@@ -282,18 +303,25 @@ class Ref<const SparseVector<MatScalar,MatOptions,MatIndex>, Options, StrideType
     EIGEN_SPARSE_PUBLIC_INTERFACE(Ref)
 
     template<typename Derived>
-    inline Ref(const SparseMatrixBase<Derived>& expr)
+    inline Ref(const SparseMatrixBase<Derived>& expr) : m_hasCopy(false)
     {
       construct(expr.derived(), typename Traits::template match<Derived>::type());
     }
 
-    inline Ref(const Ref& other) : Base(other) {
+    inline Ref(const Ref& other) : Base(other), m_hasCopy(false) {
       // copy constructor shall not copy the m_object, to avoid unnecessary malloc and copy
     }
 
     template<typename OtherRef>
-    inline Ref(const RefBase<OtherRef>& other) {
+    inline Ref(const RefBase<OtherRef>& other) : m_hasCopy(false) {
       construct(other.derived(), typename Traits::template match<OtherRef>::type());
+    }
+
+    ~Ref() {
+      if(m_hasCopy) {
+        TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(&m_storage);
+        obj->~TPlainObjectType();
+      }
     }
 
   protected:
@@ -307,13 +335,15 @@ class Ref<const SparseVector<MatScalar,MatOptions,MatIndex>, Options, StrideType
     template<typename Expression>
     void construct(const Expression& expr, internal::false_type)
     {
-      TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(m_object_bytes);
+      TPlainObjectType* obj = reinterpret_cast<TPlainObjectType*>(&m_storage);
       ::new (obj) TPlainObjectType(expr);
+      m_hasCopy = true;
       Base::construct(*obj);
     }
 
   protected:
-    char m_object_bytes[sizeof(TPlainObjectType)];
+    typename internal::aligned_storage<sizeof(TPlainObjectType), EIGEN_ALIGNOF(TPlainObjectType)>::type m_storage;
+    bool m_hasCopy;
 };
 
 namespace internal {

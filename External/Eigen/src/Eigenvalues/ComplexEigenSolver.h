@@ -214,7 +214,7 @@ template<typename _MatrixType> class ComplexEigenSolver
 
     /** \brief Reports whether previous computation was successful.
       *
-      * \returns \c Success if computation was succesful, \c NoConvergence otherwise.
+      * \returns \c Success if computation was successful, \c NoConvergence otherwise.
       */
     ComputationInfo info() const
     {
@@ -250,7 +250,7 @@ template<typename _MatrixType> class ComplexEigenSolver
     EigenvectorType m_matX;
 
   private:
-    void doComputeEigenvectors(const RealScalar& matrixnorm);
+    void doComputeEigenvectors(RealScalar matrixnorm);
     void sortEigenvalues(bool computeEigenvectors);
 };
 
@@ -284,9 +284,11 @@ ComplexEigenSolver<MatrixType>::compute(const EigenBase<InputType>& matrix, bool
 
 
 template<typename MatrixType>
-void ComplexEigenSolver<MatrixType>::doComputeEigenvectors(const RealScalar& matrixnorm)
+void ComplexEigenSolver<MatrixType>::doComputeEigenvectors(RealScalar matrixnorm)
 {
   const Index n = m_eivalues.size();
+
+  matrixnorm = numext::maxi(matrixnorm,(std::numeric_limits<RealScalar>::min)());
 
   // Compute X such that T = X D X^(-1), where D is the diagonal of T.
   // The matrix X is unit triangular.
@@ -314,9 +316,8 @@ void ComplexEigenSolver<MatrixType>::doComputeEigenvectors(const RealScalar& mat
   // Compute V as V = U X; now A = U T U^* = U X D X^(-1) U^* = V D V^(-1)
   m_eivec.noalias() = m_schur.matrixU() * m_matX;
   // .. and normalize the eigenvectors
-  for(Index k=0 ; k<n ; k++)
-  {
-    m_eivec.col(k).normalize();
+  for (Index k = 0; k < n; k++) {
+    m_eivec.col(k).stableNormalize();
   }
 }
 

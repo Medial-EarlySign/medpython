@@ -14,22 +14,21 @@
 namespace Eigen {
 namespace internal {
   
-/**
- * \brief Performs numeric block updates from a given supernode to a single column
- * 
- * \param segsize Size of the segment (and blocks ) to use for updates
- * \param[in,out] dense Packed values of the original matrix
- * \param tempv temporary vector to use for updates
- * \param lusup array containing the supernodes
- * \param lda Leading dimension in the supernode
- * \param nrow Number of rows in the rectangular part of the supernode
- * \param lsub compressed row subscripts of supernodes
- * \param lptr pointer to the first column of the current supernode in lsub
- * \param no_zeros Number of nonzeros elements before the diagonal part of the supernode
- * \return 0 on success
- */
 template <int SegSizeAtCompileTime> struct LU_kernel_bmod
 {
+  /** \internal
+    * \brief Performs numeric block updates from a given supernode to a single column
+    *
+    * \param segsize Size of the segment (and blocks ) to use for updates
+    * \param[in,out] dense Packed values of the original matrix
+    * \param tempv temporary vector to use for updates
+    * \param lusup array containing the supernodes
+    * \param lda Leading dimension in the supernode
+    * \param nrow Number of rows in the rectangular part of the supernode
+    * \param lsub compressed row subscripts of supernodes
+    * \param lptr pointer to the first column of the current supernode in lsub
+    * \param no_zeros Number of nonzeros elements before the diagonal part of the supernode
+    */
   template <typename BlockScalarVector, typename ScalarVector, typename IndexVector>
   static EIGEN_DONT_INLINE void run(const Index segsize, BlockScalarVector& dense, ScalarVector& tempv, ScalarVector& lusup, Index& luptr, const Index lda,
                                     const Index nrow, IndexVector& lsub, const Index lptr, const Index no_zeros);
@@ -70,8 +69,7 @@ EIGEN_DONT_INLINE void LU_kernel_bmod<SegSizeAtCompileTime>::run(const Index seg
   Index aligned_with_B_offset = (PacketSize-internal::first_default_aligned(B.data(), PacketSize))%PacketSize;
   Map<Matrix<Scalar,Dynamic,1>, 0, OuterStride<> > l(tempv.data()+segsize+aligned_offset+aligned_with_B_offset, nrow, OuterStride<>(ldl) );
   
-  l.setZero();
-  internal::sparselu_gemm<Scalar>(l.rows(), l.cols(), B.cols(), B.data(), B.outerStride(), u.data(), u.outerStride(), l.data(), l.outerStride());
+  l.noalias() = B * u;
   
   // Scatter tempv[] into SPA dense[] as a temporary storage 
   isub = lptr + no_zeros;

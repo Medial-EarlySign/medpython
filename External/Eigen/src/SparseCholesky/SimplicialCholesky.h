@@ -39,18 +39,16 @@ namespace internal {
 } // end namespace internal
 
 /** \ingroup SparseCholesky_Module
-  * \brief A direct sparse Cholesky factorizations
+  * \brief A base class for direct sparse Cholesky factorizations
   *
-  * These classes provide LL^T and LDL^T Cholesky factorizations of sparse matrices that are
-  * selfadjoint and positive definite. The factorization allows for solving A.X = B where
+  * This is a base class for LL^T and LDL^T Cholesky factorizations of sparse matrices that are
+  * selfadjoint and positive definite. These factorizations allow for solving A.X = B where
   * X and B can be either dense or sparse.
   * 
   * In order to reduce the fill-in, a symmetric permutation P is applied prior to the factorization
   * such that the factorized matrix is P A P^-1.
   *
-  * \tparam _MatrixType the type of the sparse matrix A, it must be a SparseMatrix<>
-  * \tparam _UpLo the triangular part that will be used for the computations. It can be Lower
-  *               or Upper. Default is Lower.
+  * \tparam Derived the type of the derived class, that is the actual factorization type.
   *
   */
 template<typename Derived>
@@ -82,11 +80,19 @@ class SimplicialCholeskyBase : public SparseSolverBase<Derived>
 
     /** Default constructor */
     SimplicialCholeskyBase()
-      : m_info(Success), m_shiftOffset(0), m_shiftScale(1)
+      : m_info(Success),
+        m_factorizationIsOk(false),
+        m_analysisIsOk(false),
+        m_shiftOffset(0),
+        m_shiftScale(1)
     {}
 
     explicit SimplicialCholeskyBase(const MatrixType& matrix)
-      : m_info(Success), m_shiftOffset(0), m_shiftScale(1)
+      : m_info(Success),
+        m_factorizationIsOk(false),
+        m_analysisIsOk(false),
+        m_shiftOffset(0),
+        m_shiftScale(1)
     {
       derived().compute(matrix);
     }
@@ -103,7 +109,7 @@ class SimplicialCholeskyBase : public SparseSolverBase<Derived>
     
     /** \brief Reports whether previous computation was successful.
       *
-      * \returns \c Success if computation was succesful,
+      * \returns \c Success if computation was successful,
       *          \c NumericalIssue if the matrix.appears to be negative.
       */
     ComputationInfo info() const
@@ -212,7 +218,7 @@ class SimplicialCholeskyBase : public SparseSolverBase<Derived>
       CholMatrixType tmp(size,size);
       ConstCholMatrixPtr pmat;
       
-      if(m_P.size()==0 && (UpLo&Upper)==Upper)
+      if(m_P.size() == 0 && (int(UpLo) & int(Upper)) == Upper)
       {
         // If there is no ordering, try to directly use the input matrix without any copy
         internal::simplicial_cholesky_grab_input<CholMatrixType,MatrixType>::run(a, pmat, tmp);
@@ -281,8 +287,8 @@ template<typename _MatrixType, int _UpLo, typename _Ordering> struct traits<Simp
   typedef SparseMatrix<Scalar, ColMajor, StorageIndex>        CholMatrixType;
   typedef TriangularView<const CholMatrixType, Eigen::Lower>  MatrixL;
   typedef TriangularView<const typename CholMatrixType::AdjointReturnType, Eigen::Upper>   MatrixU;
-  static inline MatrixL getL(const MatrixType& m) { return MatrixL(m); }
-  static inline MatrixU getU(const MatrixType& m) { return MatrixU(m.adjoint()); }
+  static inline MatrixL getL(const CholMatrixType& m) { return MatrixL(m); }
+  static inline MatrixU getU(const CholMatrixType& m) { return MatrixU(m.adjoint()); }
 };
 
 template<typename _MatrixType,int _UpLo, typename _Ordering> struct traits<SimplicialLDLT<_MatrixType,_UpLo,_Ordering> >
@@ -295,8 +301,8 @@ template<typename _MatrixType,int _UpLo, typename _Ordering> struct traits<Simpl
   typedef SparseMatrix<Scalar, ColMajor, StorageIndex>            CholMatrixType;
   typedef TriangularView<const CholMatrixType, Eigen::UnitLower>  MatrixL;
   typedef TriangularView<const typename CholMatrixType::AdjointReturnType, Eigen::UnitUpper> MatrixU;
-  static inline MatrixL getL(const MatrixType& m) { return MatrixL(m); }
-  static inline MatrixU getU(const MatrixType& m) { return MatrixU(m.adjoint()); }
+  static inline MatrixL getL(const CholMatrixType& m) { return MatrixL(m); }
+  static inline MatrixU getU(const CholMatrixType& m) { return MatrixU(m.adjoint()); }
 };
 
 template<typename _MatrixType, int _UpLo, typename _Ordering> struct traits<SimplicialCholesky<_MatrixType,_UpLo,_Ordering> >
@@ -610,7 +616,7 @@ public:
       }
 
       if(Base::m_diag.size()>0)
-        dest = Base::m_diag.asDiagonal().inverse() * dest;
+        dest = Base::m_diag.real().asDiagonal().inverse() * dest;
 
       if (Base::m_matrix.nonZeros()>0) // otherwise I==I
       {
