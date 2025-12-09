@@ -1,4 +1,5 @@
 import os
+import platform
 import sys
 import subprocess
 import shutil
@@ -166,7 +167,7 @@ class CMakeBuild(build_ext):
         if os.path.exists(os.path.join(extdir, "lib_lightgbm.so")):
             os.remove(os.path.join(extdir, "lib_lightgbm.so"))
         # strip _medpython.so
-        if shutil.which("strip"):
+        if platform.system() != "Darwin" and shutil.which("strip"):
             subprocess.check_call(
                 ["strip", os.path.join(extdir, "_medpython.so")],
                 cwd=self.build_temp,

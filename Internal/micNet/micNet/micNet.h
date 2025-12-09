@@ -5,7 +5,7 @@
 //
 
 #ifndef __micNet__H__
-#define __minNet__H__
+#define __micNet__H__
 
 #include <vector>
 #include "MedUtils/MedUtils/MedUtils.h"

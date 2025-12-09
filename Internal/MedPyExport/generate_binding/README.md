@@ -106,11 +106,11 @@ pip install medpython
 
 **System Requirements**
 
-* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). The software also compiles in **Windows** and **Alpine** but you will need to install Boost yourself. I hope shortly to provide windows/macos pre-compiled builds through conda.
+* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). The software also compiles in **Windows**, **Alpine** and **Mac** but you will need to install Boost yourself. I hope shortly to provide windows/macos pre-compiled builds.
 * **Python**: Requires **Python 3.10 through 3.14**
 
 **Compilation for Other Systems**
-If you're using an **older Linux** or a **different platform/Python version >= 3.8**, you'll need to **compile the package yourself**.
+If you're using an **older Linux** or a **different platform/Python version >= 3.8**, or a version without a pre-build, you will need to **compile the package yourself**.
 More information in [Installation](http://medial-earlysign.github.io/MR_Wiki/Installation/)
 
 ## Release Notes

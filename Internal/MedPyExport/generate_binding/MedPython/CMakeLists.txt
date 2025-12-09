@@ -62,7 +62,7 @@ file(GLOB CppFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/*.cpp)
 file(GLOB HeaderFiles ${CMAKE_CURRENT_SOURCE_DIR}/../../MedPyExport/*.h)
 
 
-SET_SOURCE_FILES_PROPERTIES(SOURCE ${CppFiles} PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -lpython3 -lpthread -ldl -lutil -lm")
+
 set(SWIG_MODULE_medpython_EXTRA_DEPS MedPython.h MedPython.h ${HeaderFiles} apply_directives pythoncode.i)
 
 set_property(SOURCE medpython.i PROPERTY SWIG_MODULE_NAME medpython)
