@@ -8,7 +8,7 @@ jobs:
     name: Build on macOS
     # specific version 'macos-13' ensures an Intel (x86_64) runner. 
     # Use 'macos-latest' if you want Apple Silicon (M1/M2), but you must remove -march=x86-64 checks.
-    runs-on: macos-13 
+    runs-on: macos-15-intel
     
     steps:
       - name: Checkout Code
