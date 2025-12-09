@@ -8,6 +8,25 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.13")
     cmake_policy(SET CMP0077 NEW)
 endif()
 
+if(UNIX AND NOT APPLE)
+    include(CheckIncludeFileCXX)
+    
+    # Check if execinfo.h exists (Standard Linux/glibc has it, Alpine/Musl does not)
+    check_include_file_cxx("execinfo.h" HAVE_EXECINFO)
+
+    if(NOT HAVE_EXECINFO)
+        message(STATUS "Musl libc (Alpine) detected. Applying compatibility flags.")
+        
+        # Add the flags specifically for this environment
+        add_compile_definitions(
+            DMLC_LOG_STACK_TRACE=0
+            DMLC_CMAKE_LITTLE_ENDIAN=1
+            mmap64=mmap
+            SO_COMPILATION
+        )
+    endif()
+endif()
+
 # Find Boost
 find_package(OpenMP REQUIRED)
 
