@@ -148,7 +148,7 @@ var searchData=
   ['versioning_204646_204659_145',['Apache-style governance, contribution policy, and semantic versioning (#4646, #4659)',['../md_External_2xgboost_2NEWS.html#autotoc_md372',1,'']]],
   ['versioniterator_146',['versionIterator',['../classversionIterator.html',1,'']]],
   ['versionnumber_147',['versionnumber',['../namespacerabit.html#aec55aba3329291c47e04e196c20bf097',1,'rabit::VersionNumber()'],['../classrabit_1_1engine_1_1MPIEngine.html#a2cab157f664f86e38bb5fb33e061a0dc',1,'rabit::engine::MPIEngine::VersionNumber()'],['../classrabit_1_1engine_1_1AllreduceBase.html#a63d3f1dce689dc6491dbaa3756e2fb68',1,'rabit::engine::AllreduceBase::VersionNumber()'],['../classrabit_1_1engine_1_1IEngine.html#ab0e37b9b3be772566f4b54675672975a',1,'rabit::engine::IEngine::VersionNumber()']]],
-  ['versions_148',['versions',['../md_SECURITY.html#autotoc_md524',1,'Supported Versions'],['../md_External_2xgboost_2SECURITY.html#autotoc_md499',1,'Supported Versions']]],
+  ['versions_148',['versions',['../md_SECURITY.html#autotoc_md527',1,'Supported Versions'],['../md_External_2xgboost_2SECURITY.html#autotoc_md499',1,'Supported Versions']]],
   ['vertical_149',['Vertical',['../group__enums.html#ggad49a7b3738e273eb00932271b36127f7ae2efac6e74ecab5e3b0b1561c5ddf83e',1,'Eigen']]],
   ['vertical_20federated_20xgboost_150',['Vertical Federated XGBoost',['../md_External_2xgboost_2demo_2nvflare_2README.html#autotoc_md114',1,'']]],
   ['vertical_20federated_20xgboost_20using_20nvflare_151',['Experimental Support of Vertical Federated XGBoost using NVFlare',['../md_External_2xgboost_2demo_2nvflare_2vertical_2README.html',1,'']]],
@@ -169,5 +169,5 @@ var searchData=
   ['vml_5fassign_5ftraits_166',['vml_assign_traits',['../classEigen_1_1internal_1_1vml__assign__traits.html',1,'Eigen::internal']]],
   ['volume_167',['volume',['../classEigen_1_1AlignedBox.html#ae048c23dc498b5012a080737e5b1d1c3',1,'Eigen::AlignedBox']]],
   ['votingparalleltreelearner_168',['VotingParallelTreeLearner',['../classLightGBM_1_1VotingParallelTreeLearner.html',1,'LightGBM']]],
-  ['vulnerability_169',['vulnerability',['../md_External_2xgboost_2SECURITY.html#autotoc_md500',1,'Reporting a Vulnerability'],['../md_SECURITY.html#autotoc_md525',1,'Reporting a Vulnerability']]]
+  ['vulnerability_169',['vulnerability',['../md_External_2xgboost_2SECURITY.html#autotoc_md500',1,'Reporting a Vulnerability'],['../md_SECURITY.html#autotoc_md528',1,'Reporting a Vulnerability']]]
 ];

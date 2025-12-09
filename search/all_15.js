@@ -11,7 +11,7 @@ var searchData=
   ['joinable_8',['joinable',['../classdmlc_1_1ThreadGroup_1_1Thread.html#abff81204caa69efd85052b6be5af5281',1,'dmlc::ThreadGroup::Thread']]],
   ['jrec_9',['jrec',['../classMedSample.html#a54ea14dd697e5a587e62ec35793b3534',1,'MedSample']]],
   ['json_10',['json',['../md_External_2json_2README.html#autotoc_md38',1,'Comments in JSON'],['../classxgboost_1_1Json.html',1,'xgboost::Json'],['../classjson11_1_1Json.html',1,'json11::Json']]],
-  ['json_20“json_20for_20modern_20c_20”_20strong_11',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md532',1,'']]],
+  ['json_20“json_20for_20modern_20c_20”_20strong_11',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md535',1,'']]],
   ['json_204632_204708_204739_204868_204936_204945_204974_205086_205087_205089_205091_205094_205110_205111_205112_205120_205137_205218_205222_205236_205245_205248_205281_12',['Robust model serialization with JSON (#4632, #4708, #4739, #4868, #4936, #4945, #4974, #5086, #5087, #5089, #5091, #5094, #5110, #5111, #5112, #5120, #5137, #5218, #5222, #5236, #5245, #5248, #5281)',['../md_External_2xgboost_2NEWS.html#autotoc_md388',1,'']]],
   ['json_205123_205217_13',['Robust model serialization with JSON (#5123, #5217)',['../md_External_2xgboost_2NEWS.html#autotoc_md349',1,'']]],
   ['json_205772_205804_205831_205857_205934_14',['Robust model serialization with JSON (#5772, #5804, #5831, #5857, #5934)',['../md_External_2xgboost_2NEWS.html#autotoc_md325',1,'']]],

@@ -1,13 +1,13 @@
 var searchData=
 [
-  ['2_0',['Release Notes - 1.0.2',['../md_Internal_2MedPyExport_2README.html#autotoc_md514',1,'']]],
+  ['2_0',['Release Notes - 1.0.2',['../md_Internal_2MedPyExport_2README.html#autotoc_md517',1,'']]],
   ['2_200_202020_2008_2022_1',['v1.2.0 (2020.08.22)',['../md_External_2xgboost_2NEWS.html#autotoc_md315',1,'']]],
   ['2_2012_205836_205890_2',['Breaking: XGBoost4J-Spark now requires Spark 3.0 and Scala 2.12 (#5836, #5890)',['../md_External_2xgboost_2NEWS.html#autotoc_md330',1,'']]],
   ['2_202020_2003_2003_3',['v1.0.2 (2020.03.03)',['../md_External_2xgboost_2NEWS.html#autotoc_md369',1,'']]],
   ['2_202021_2005_2013_4',['v1.4.2 (2021.05.13)',['../md_External_2xgboost_2NEWS.html#autotoc_md270',1,'']]],
   ['2_202022_20dec_208_5',['v1.7.2 (2022 Dec 8)',['../md_External_2xgboost_2NEWS.html#autotoc_md213',1,'']]],
   ['2_204_20x_204377_6',['XGBoost4J-Spark now requires Spark 2.4.x (#4377)',['../md_External_2xgboost_2NEWS.html#autotoc_md409',1,'']]],
-  ['2_20strong_20lightgbm_20strong_7',['2. &lt;strong&gt;LightGBM&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md530',1,'']]],
+  ['2_20strong_20lightgbm_20strong_7',['2. &lt;strong&gt;LightGBM&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md533',1,'']]],
   ['2_20x_204379_204381_8',['XGBoost Python package drops Python 2.x (#4379, #4381)',['../md_External_2xgboost_2NEWS.html#autotoc_md408',1,'']]],
   ['20_9',['20',['../md_External_2xgboost_2NEWS.html#autotoc_md470',1,'v0.2x (2014.05.20)'],['../md_External_2xgboost_2NEWS.html#autotoc_md271',1,'v1.4.1 (2021.04.20)'],['../md_External_2xgboost_2NEWS.html#autotoc_md215',1,'v1.7.0 (2022 Oct 20)']]],
   ['2014_2003_2026_10',['v0.1 (2014.03.26)',['../md_External_2xgboost_2NEWS.html#autotoc_md471',1,'']]],
