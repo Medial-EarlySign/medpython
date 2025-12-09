@@ -3,7 +3,7 @@
 ## Relase Notes - 1.0.5
 * Adjustments to compile with Alpine/Musl library
 * Bugfix issue #5
-* Fix code to support osx - not tested yet.
+* Fix code to support and compile in osx
 
 ## Relase Notes - 1.0.4
 * Fixed all issues to compile also in windows

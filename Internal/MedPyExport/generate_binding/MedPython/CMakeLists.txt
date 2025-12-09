@@ -69,14 +69,8 @@ set_property(SOURCE medpython.i PROPERTY SWIG_MODULE_NAME medpython)
 
 swig_add_library(medpython LANGUAGE python SOURCES medpython.i ${CppFiles})
 
-if (NOT WIN32)
 
-    if (USE_BOOST_SHARED_LIBS)
-        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
-    else()
-        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
-    endif()
-else()
+if(WIN32)
     TARGET_LINK_LIBRARIES(medpython PRIVATE 
         xgboost 
         _lightgbm_static 
@@ -91,4 +85,20 @@ else()
     set_target_properties(medpython PROPERTIES 
         LINK_FLAGS "/WHOLEARCHIVE:xgboost /WHOLEARCHIVE:_lightgbm_static"
     )
+elseif(APPLE)
+    # --- MACOS ---
+    target_link_libraries(medpython PRIVATE
+        ${MEDIAL_INTERNAL_LIBS}
+        ${Boost_LIBRARIES}
+        xgboost
+        _lightgbm_static
+        OpenMP::OpenMP_CXX
+    )
+else()
+    # --- LINUX ---
+     if (USE_BOOST_SHARED_LIBS)
+        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic ${Boost_LIBRARIES})
+    else()
+        target_link_libraries(medpython PRIVATE -Wl,-Bstatic,--whole-archive -Wl,--start-group ${MEDIAL_INTERNAL_LIBS} ${Boost_LIBRARIES} xgboost _lightgbm_static -Wl,--end-group -Wl,-no-whole-archive -Wl,-Bdynamic)
+    endif()
 endif()

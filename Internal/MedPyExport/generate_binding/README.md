@@ -113,6 +113,9 @@ pip install medpython
 If you're using an **older Linux** or a **different platform/Python version >= 3.8**, you'll need to **compile the package yourself**.
 More information in [Installation](http://medial-earlysign.github.io/MR_Wiki/Installation/)
 
+## Release Notes
+Please refer to [Release Notes](https://github.com/Medial-EarlySign/medpython/discussions/categories/announcements)
+
 ## Usage
 ```python
 import med
