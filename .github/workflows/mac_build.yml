@@ -101,3 +101,8 @@ jobs:
           # Run the installation
           export CMAKE_ARGS="-DBoost_NO_BOOST_CMAKE=ON"
           pip install . -vv --no-build-isolation
+
+      - name: Test MedPython
+        run: |
+          python -c 'import med'
+

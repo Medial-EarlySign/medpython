@@ -94,6 +94,10 @@ elseif(APPLE)
         _lightgbm_static
         OpenMP::OpenMP_CXX
     )
+
+    set_target_properties(medpython PROPERTIES 
+        LINK_FLAGS "-undefined dynamic_lookup"
+    )
 else()
     # --- LINUX ---
      if (USE_BOOST_SHARED_LIBS)
