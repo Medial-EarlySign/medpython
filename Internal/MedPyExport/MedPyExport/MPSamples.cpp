@@ -70,7 +70,7 @@ void MPSamples::set_samples(MEDPY_NP_INPUT(int * patients, unsigned long long pa
 	if (_time < 0) {
 		time_t theTime = time(NULL);
 		struct tm *now;
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 		now = localtime(&theTime);
 #else
 		struct tm now_m;

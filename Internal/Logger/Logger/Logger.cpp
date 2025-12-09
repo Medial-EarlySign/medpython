@@ -219,7 +219,7 @@ void init_vars(string &str, int section, int print_level) {
 
 			struct timeval now_ms;
 			gettimeofday(&now_ms, NULL);
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 			now = localtime(&now_ms.tv_sec);
 #else
 			//allocate local mem
@@ -237,7 +237,7 @@ void init_vars(string &str, int section, int print_level) {
 		else if (var_name == "time") {
 			time_t theTime = time(NULL);
 			struct tm *now;
-#if defined(__unix__)
+#if defined(__unix__) || defined(__APPLE__)
 			now = localtime(&theTime);
 #else
 			struct tm now_m;

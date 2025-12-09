@@ -8,7 +8,7 @@
 #include <boost/algorithm/string/classification.hpp>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/regex.hpp>
-#ifdef __unix__
+#if defined(__unix__) || defined(__APPLE__)
 #include <unistd.h>
 #endif
 
