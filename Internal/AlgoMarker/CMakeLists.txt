@@ -7,6 +7,24 @@ endif()
 
 set(EXECUTABLE_OUTPUT_PATH "${PROJECT_SOURCE_DIR}/Linux/${CMAKE_BUILD_TYPE}")
 
+if(UNIX AND NOT APPLE)
+    include(CheckIncludeFileCXX)
+    
+    # Check if execinfo.h exists (Standard Linux/glibc has it, Alpine/Musl does not)
+    check_include_file_cxx("execinfo.h" HAVE_EXECINFO)
+
+    if(NOT HAVE_EXECINFO)
+        message(STATUS "Musl libc (Alpine) detected. Applying compatibility flags.")
+        
+        # Add the flags specifically for this environment
+        add_compile_definitions(
+            DMLC_LOG_STACK_TRACE=0
+            DMLC_CMAKE_LITTLE_ENDIAN=1
+            mmap64=mmap
+        )
+    endif()
+endif()
+
 if(DEFINED ENV{BOOST_ROOT})
     message(STATUS "BOOST_ROOT is set to: $ENV{BOOST_ROOT}")
     set(BOOST_ROOT "$ENV{BOOST_ROOT}")
