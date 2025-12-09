@@ -67,7 +67,7 @@ jobs:
 
           # 7. Organize Headers
           mkdir -p ${WORK_BUILD_FOLDER}/Boost/include
-          ln -sf ${WORK_BUILD_FOLDER}/boost_${VERSION_UNDERSCORE}/boost ${WORK_BUILD_FOLDER}/Boost/include/boost
+          cp -r ${WORK_BUILD_FOLDER}/boost_${VERSION_UNDERSCORE}/boost ${WORK_BUILD_FOLDER}/Boost/include/
 
       - name: Save Boost Cache
         if: steps.cache-boost.outputs.cache-hit != 'true'

@@ -27,6 +27,10 @@ if(UNIX AND NOT APPLE)
     endif()
 endif()
 
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 # Find Boost
 find_package(OpenMP REQUIRED)
 
@@ -105,9 +109,14 @@ set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotl
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
 if (NOT WIN32)
-    set(COMPILER_FLAGS "--std=c++17 -fopenmp -msse2 -msse3 -msse4 -march=x86-64 --param inline-unit-growth=1000000 -fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
+    if(APPLE)
+        set(COMPILER_FLAGS "-Xpreprocessor -fopenmp")
+    else()
+        set(COMPILER_FLAGS "-fopenmp")
+    endif()
+    set(COMPILER_FLAGS "${COMPILER_FLAGS} -msse2 -msse3 -msse4 -march=x86-64 --param inline-unit-growth=1000000 -fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 else()
-	set(COMPILER_FLAGS "/std:c++17 /openmp /EHsc /MD /permissive- /Zc:strictStrings- /Zc:__cplusplus")
+	set(COMPILER_FLAGS "/openmp /EHsc /MD /permissive- /Zc:strictStrings- /Zc:__cplusplus")
 endif()
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS} ")
 # Filter out definition of NDEBUG from the default configuration flags for Release
