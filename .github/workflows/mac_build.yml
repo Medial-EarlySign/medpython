@@ -91,6 +91,12 @@ jobs:
           
           # Install dependencies (if you have a requirements.txt, run it here)
           pip install numpy setuptools cmake "swig<4.3" pandas plotly
+
+          LIBOMP_PREFIX=$(brew --prefix libomp)
+          
+          export CFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CFLAGS"
+          export CXXFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CXXFLAGS"
+          export LDFLAGS="-lomp -L$LIBOMP_PREFIX/lib $LDFLAGS"
           
           # Run the installation
           export CMAKE_ARGS="-DBoost_NO_BOOST_CMAKE=ON"
