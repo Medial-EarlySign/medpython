@@ -6,8 +6,6 @@ on:
 jobs:
   build_mac_wheels:
     name: Build on macOS
-    # specific version 'macos-13' ensures an Intel (x86_64) runner. 
-    # Use 'macos-latest' if you want Apple Silicon (M1/M2), but you must remove -march=x86-64 checks.
     runs-on: macos-15-intel
     
     steps:
@@ -15,14 +13,14 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12' # Adjust to your needed version
 
-      # --- BOOST CACHING STRATEGY ---
-      - name: Cache Boost
+      # --- 1. RESTORE CACHE (Check if it exists) ---
+      - name: Restore Boost Cache
         id: cache-boost
-        uses: actions/cache@v4
+        uses: actions/cache/restore@v4
         with:
           path: ./Boost
           key: boost-1.89.0-macos-x86_64
@@ -71,6 +69,13 @@ jobs:
           mkdir -p ${WORK_BUILD_FOLDER}/Boost/include
           ln -sf ${WORK_BUILD_FOLDER}/boost_${VERSION_UNDERSCORE}/boost ${WORK_BUILD_FOLDER}/Boost/include/boost
 
+      - name: Save Boost Cache
+        if: steps.cache-boost.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ./Boost
+          key: boost-1.89.0-macos-x86_64
+
       # --- SETUP ENVIRONMENT VARIABLES ---
       - name: Set BOOST_ROOT
         run: echo "BOOST_ROOT=$(pwd)/Boost" >> $GITHUB_ENV
@@ -79,6 +84,13 @@ jobs:
       - name: Build MedPython Package
         run: |
           # Check we have the Boost Root
+          brew install libomp
+
+          LIBOMP_PREFIX=$(brew --prefix libomp)
+          
+          export CFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CFLAGS"
+          export CXXFLAGS="-Xpreprocessor -fopenmp -I$LIBOMP_PREFIX/include $CXXFLAGS"
+          export LDFLAGS="-lomp -L$LIBOMP_PREFIX/lib $LDFLAGS"
           echo "Using Boost at: $BOOST_ROOT"
           
           cd Internal/MedPyExport/generate_binding

@@ -9,12 +9,13 @@
 [![GitHub Repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/Medial-EarlySign/medpython)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Medial-EarlySign/medpython)
 
+**A note on our journey:** Medial EarlySign was a company that developed a proprietary platform for machine learning on electronic medical records. Following the company's liquidation, the decision was made to release the core software as an **open-source** project to allow the community to benefit from and build upon this technology. Please feel free to [reach me out](#community-and-contributions) in any case of an issue. I'm voluntarily holding this, so please be patients.
 
 Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into **machine-learning-ready** data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering **low memory usage** and **high-speed processing** at scale.
 
 It was conceived as a **TensorFlow** for machine learning on medical data.
 
-All software is now open-sourced under the MIT license. Some of the models developed by Medial EarlySign that are currently in production are available exclusively through our partners.
+All software is now open-sourced under the MIT license. Some of the [models](http://medial-earlysign.github.io/MR_Wiki/Models) developed by Medial EarlySign that are currently in production are available exclusively through our partners.
 
 The framework was battle-tested in production across multiple healthcare sites and was a key component of an **award-winning** submission to the [CMS AI Health Outcomes Challenge](https://www.cms.gov/priorities/innovation/innovation-models/artificial-intelligence-health-outcomes-challenge).
 
@@ -24,7 +25,8 @@ The framework was battle-tested in production across multiple healthcare sites a
 *   **Reusable Pipelines:** Save valuable engineering time by providing shareable, tested pipelines and methods.
 *   **Built-in Safeguards:** Mitigate common pitfalls like data leakage and time-series-specific overfitting.
 *   **Production-Ready:** Designed for easy deployment using Docker or minimal distroless Linux images.
-*   **State of The Art Algorithms** Developed state of the art algorithms for EMR use cases, explainablity and fairness and more...
+*   **State of The Art Algorithms** Developed state of the art algorithms for EMR use cases, explainablity and fairness and more.
+    - Read My Journey on [Explainability](https://medial-earlysign.github.io/MR_Wiki/Blog/explainability.html)
 
 ## Core Components
 
@@ -33,6 +35,66 @@ The platform is built on three key pillars:
 *   **MedRepository:** A compact, efficient data repository and API for storing and accessing EMR signals. Querying categorical signals like perscriptions and diagnosis in an easy and efficient API. 
 *   **MedModel:** An end-to-end machine learning pipeline that takes data from MedRepository or JSON EMR inputs to produce predictions and explainability outputs. It supports both training and inference.
 *   **Medial Tools:** A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability.
+
+## From Raw Data to Insight in Four Simple Steps
+
+Our platform streamlines the development and deployment of clinical predictive models, transforming raw patient data into actionable insights. For live predictions (inference), you can use raw JSON data directly, bypassing the need for an optimized data store.
+
+<img src="https://medial-earlysign.github.io/MR_Wiki/images/MES_Arch.png">
+
+This structured approach ensures that data is processed efficiently, models are built systematically, and the results are both accurate and interpretable.
+
+### The Workflow
+
+**1. Start with Raw Patient Data**
+
+Begin with your data in a simple JSON format.
+
+```json
+{
+  "patient_id": "1",
+  "data": {
+    "signals": [
+      {
+        "code": "Hemoglobin",
+        "unit": "g/dL",
+        "data": [
+          { "timestamp": [20240806], "value": ["14.1"] },
+          { "timestamp": [20250806], "value": ["14.5"] }
+        ]
+      },
+      {
+        "code": "Diagnosis",
+        "data": [
+          { "timestamp": [20240701], "value": ["ICD10_CODE:J20"] },
+          ...
+        ]
+      },
+      ...
+    ]
+  }
+}
+```
+
+Load it into our Optimized Store or use it "as is" in deployment.
+
+**2. Define Your Label**
+
+For each patient, and for any chosen prediction date (after which no future information is provided to the model), specify what the outcome label should be for training or testing
+
+**3. Define Your ML Pipeline**
+
+Configure your entire machine learning workflow from preprocessing and feature engineering to the final model using a single [JSON configuration file](Infrastructure%20Library/MedModel%20json%20format.md). This approach ensures your experiments are reproducible and easy to version.
+
+**4. Get Explainable Predictions**
+
+Train your model using the Python SDK and generate predictions with clear, interpretable explanations. [Example output](Tutorials/07.Deployment/index.md#how-to-use-the-deployed-algomarker).
+
+This is an illustration of the final output in a visual format (Our infrastructure returns the data to create this):
+
+<img src="https://medial-earlysign.github.io/MR_Wiki/images/Explainability.png">
+
+For more details, refer to the [Tutorials](Tutorials).
 
 ## Setup
 
@@ -44,18 +106,12 @@ pip install medpython
 
 **System Requirements**
 
-* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). The software also compiles in **Windows** but you will need to install Boost yourself. I hope shortl to provide windows pre-compiled builds through conda.
+* **Supported Systems**: This pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). The software also compiles in **Windows** and **Alpine** but you will need to install Boost yourself. I hope shortly to provide windows/macos pre-compiled builds through conda.
 * **Python**: Requires **Python 3.10 through 3.14**
 
 **Compilation for Other Systems**
 If you're using an **older Linux** or a **different platform/Python version >= 3.8**, you'll need to **compile the package yourself**.
-
-* **Note on Compilation**: Ensure the **Boost libraries** are installed. For a local setup, set the environment variable `BOOST_DISABLE_STATIC=1` to link against shared Boost libraries (The reason is that your system static libraries weren't compiled with `-fPIC` flag, so you can't use them inside python module):
-```bash
-export BOOST_DISABLE_STATIC=1
-```
-You can also set Boost installation directory with `BOOST_ROOT` environment variable if it is not part of the system libraries.
-Currently the library was compiled/tested in **linux** and **windows** only.
+More information in [Installation](http://medial-earlysign.github.io/MR_Wiki/Installation/)
 
 ## Usage
 ```python
@@ -78,3 +134,13 @@ More information on usage:
 
 *   **Build a new model:** Follow the step-by-step [Tutorials](https://medial-earlysign.github.io/MR_Wiki/Tutorials/index.html) to build a model from scratch.
 *   **Use an existing model:** Browse the collection of [Models](https://medial-earlysign.github.io/MR_Wiki/Models/index.html).
+
+## Community and Contributions
+
+This is an open-source project, and we welcome contributions from the community.
+
+*   **Report issues or ask questions:** Please use our [Github Discussions](https://github.com/Medial-EarlySign/medpython/discussions).
+*   **Contribute to the code:** Check out our repositories:
+    *   [medpython](https://github.com/Medial-EarlySign/medpython): The core infrastructure libraries.
+    *   [MR_Tools](https://github.com/Medial-EarlySign/MR_Tools): Tools and pipelines built on top of medpython.
+    *   [MR_Scripts](https://github.com/Medial-EarlySign/MR_Scripts): Dev Ops tools
