@@ -6,6 +6,5 @@ var searchData=
   ['gpu_20algorithms_3',['XGBoost GPU algorithms',['../md_External_2xgboost_2plugin_2updater__gpu_2README.html',1,'']]],
   ['gpu_20version_20with_20python_4',['Dockerfile for LightGBM GPU Version with Python',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2gpu_2README.html',1,'']]],
   ['gradient_20boosting_5',['&lt;img src=&quot;https://xgboost.ai/images/logo/xgboost-logo.svg&quot; width=135/&gt;  eXtreme Gradient Boosting',['../md_External_2xgboost_2README.html',1,'']]],
-  ['gradient_20boosting_20machine_6',['LightGBM, Light Gradient Boosting Machine',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html',1,'']]],
-  ['guide_7',['User Guide',['../md_Internal_2MedPyExport_2HOWTO.html',1,'']]]
+  ['gradient_20boosting_20machine_6',['LightGBM, Light Gradient Boosting Machine',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html',1,'']]]
 ];
