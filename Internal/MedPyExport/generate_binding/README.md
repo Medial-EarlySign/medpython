@@ -9,7 +9,7 @@
 [![GitHub Repo](https://img.shields.io/badge/github-repo-blue?logo=github)](https://github.com/Medial-EarlySign/medpython)
 ![GitHub Repo stars](https://img.shields.io/github/stars/Medial-EarlySign/medpython)
 
-**A note on our journey:** Medial EarlySign was a company that developed a proprietary platform for machine learning on electronic medical records. Following the company's liquidation, the decision was made to release the core software as an **open-source** project to allow the community to benefit from and build upon this technology. Please feel free to [reach me out](#community-and-contributions) in any case of an issue. I'm voluntarily holding this, so please be patients.
+**A note on our journey:** Medial EarlySign was a company that developed a proprietary platform for machine learning on electronic medical records. Following the company's liquidation, the decision was made to release the core software as an **open-source** project to allow the community to benefit from and build upon this technology. Please feel free to [reach me out](https://medial-earlysign.github.io/MR_Wiki/#community-and-contributions) in any case of an issue. I'm voluntarily holding this, so please be patients.
 
 Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into **machine-learning-ready** data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering **low memory usage** and **high-speed processing** at scale.
 
@@ -34,7 +34,7 @@ The platform is built on three key pillars:
 
 *   **MedRepository:** A compact, efficient data repository and API for storing and accessing EMR signals. Querying categorical signals like perscriptions and diagnosis in an easy and efficient API. 
 *   **MedModel:** An end-to-end machine learning pipeline that takes data from MedRepository or JSON EMR inputs to produce predictions and explainability outputs. It supports both training and inference.
-*   **Medial Tools:** A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability.
+*   **Medial Tools:** A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability. `MedPython` is the Python alternative to replace all those tools.
 
 ## From Raw Data to Insight in Four Simple Steps
 
@@ -84,17 +84,17 @@ For each patient, and for any chosen prediction date (after which no future info
 
 **3. Define Your ML Pipeline**
 
-Configure your entire machine learning workflow from preprocessing and feature engineering to the final model using a single [JSON configuration file](Infrastructure%20Library/MedModel%20json%20format.md). This approach ensures your experiments are reproducible and easy to version.
+Configure your entire machine learning workflow from preprocessing and feature engineering to the final model using a single [JSON configuration file](https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/MedModel%20json%20format.html). This approach ensures your experiments are reproducible and easy to version.
 
 **4. Get Explainable Predictions**
 
-Train your model using the Python SDK and generate predictions with clear, interpretable explanations. [Example output](Tutorials/07.Deployment/index.md#how-to-use-the-deployed-algomarker).
+Train your model using the Python SDK and generate predictions with clear, interpretable explanations. [Example output](https://medial-earlysign.github.io/MR_Wiki/Tutorials/07.Deployment/index.html#how-to-use-the-deployed-algomarker).
 
 This is an illustration of the final output in a visual format (Our infrastructure returns the data to create this):
 
 <img src="https://medial-earlysign.github.io/MR_Wiki/images/Explainability.png">
 
-For more details, refer to the [Tutorials](Tutorials).
+For more details, refer to the [Tutorials](https://medial-earlysign.github.io/MR_Wiki/Tutorials).
 
 ## Setup
 
@@ -144,6 +144,6 @@ This is an open-source project, and we welcome contributions from the community.
 
 *   **Report issues or ask questions:** Please use our [Github Discussions](https://github.com/Medial-EarlySign/medpython/discussions).
 *   **Contribute to the code:** Check out our repositories:
-    *   [medpython](https://github.com/Medial-EarlySign/medpython): The core infrastructure libraries.
+    *   [MedPython](https://github.com/Medial-EarlySign/medpython): The core infrastructure libraries.
     *   [MR_Tools](https://github.com/Medial-EarlySign/MR_Tools): Tools and pipelines built on top of medpython.
     *   [MR_Scripts](https://github.com/Medial-EarlySign/MR_Scripts): Dev Ops tools

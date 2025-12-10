@@ -1,4 +1,6 @@
 name: Build medpython (macOS)
+permissions:
+  contents: read
 
 on:
   workflow_dispatch:
