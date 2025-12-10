@@ -167,11 +167,12 @@ class CMakeBuild(build_ext):
         if os.path.exists(os.path.join(extdir, "lib_lightgbm.so")):
             os.remove(os.path.join(extdir, "lib_lightgbm.so"))
         # strip _medpython.so
-        if platform.system() != "Darwin" and shutil.which("strip"):
-            subprocess.check_call(
-                ["strip", os.path.join(extdir, "_medpython.so")],
-                cwd=self.build_temp,
-            )
+        if platform.system() == "Linux" and shutil.which("strip"):
+            if os.path.exists(os.path.join(extdir, "_medpython.so")):
+                subprocess.check_call(
+                    ["strip", os.path.join(extdir, "_medpython.so")],
+                    cwd=self.build_temp,
+                )
         winlib_file = os.path.join(extdir, "Release", "_medpython.pyd")
         if os.path.exists(winlib_file):
             shutil.copy(winlib_file, extdir)
