@@ -58,9 +58,13 @@
 #define __MED__SPARSE__VEC__
 
 #include <vector>
-#include <immintrin.h>
-#include <nmmintrin.h>
+// #include <immintrin.h>
+// #include <nmmintrin.h>
 #include <cstring>
+
+// Helper macro to use the standard GCC/Clang built-in for population count.
+// This works on both x86_64 and ARM64 (AArch64).
+#define MED_POPCOUNT(x) __builtin_popcountll(x)
 
 using namespace std;
 
@@ -139,7 +143,7 @@ template <class T> class MedSparseVec {
 			return 0; // no value inserted
 
 //		unsigned int ind = counts[i_count] + (int)_mm_popcnt_u64(is_in_bit[i_count]>>i_bit);
-		unsigned int ind = counts[i_count] + (int)_mm_popcnt_u64(kbits);
+		unsigned int ind = counts[i_count] + (int)MED_POPCOUNT(kbits);
 
 		//fprintf(stderr, "key=%d mkey=%d i_count=%d %d i_bit=%d i_mask=%llx %llx pos = %d val = %d\n", key, mkey, i_count, counts[i_count], i_bit, i_mask, is_in_bit[i_count]>>i_bit, pos, data[pos]); fflush(stderr);
 
@@ -163,7 +167,7 @@ template <class T> class MedSparseVec {
 //		fprintf(stderr, "key=%d mkey=%d i_count=%d i_bit=%d i_mask=%llx max_key=%d is_in_bit=%llx\n", key, mkey, i_count, i_bit, i_mask,max_key, is_in_bit[i_count]);
 		if (key <= max_key) {
 			if (is_in_bit[i_count]&i_mask) {
-				unsigned int pos = counts[i_count] + (int)_mm_popcnt_u64(is_in_bit[i_count]>>i_bit);
+				unsigned int pos = counts[i_count] + (int)MED_POPCOUNT(is_in_bit[i_count]>>i_bit);
 				data[pos] = elem;
 				return 0;
 			}
@@ -180,7 +184,7 @@ template <class T> class MedSparseVec {
 		counts.resize(i_count+2, last_cnt);
 		is_in_bit.resize(i_count+1, 0);
 		is_in_bit[i_count] |= i_mask;
-		counts[i_count+1] = counts[i_count] + (int)_mm_popcnt_u64(is_in_bit[i_count]);
+		counts[i_count+1] = counts[i_count] + (int)MED_POPCOUNT(is_in_bit[i_count]);
 		data.push_back(elem);
 		max_key = key;
 		return 0;
