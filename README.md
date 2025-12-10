@@ -1,5 +1,11 @@
 # Medial EarlySign Libraries
 
+![Pepy Total Downloads](https://img.shields.io/pepy/dt/medpython)
+![PyPI - License](https://img.shields.io/pypi/l/medpython)
+![GitHub contributors](https://img.shields.io/github/contributors-anon/Medial-EarlySign/medpython)
+![GitHub commit activity](https://img.shields.io/github/commit-activity/t/Medial-EarlySign/medpython)
+
+
 ## Overview of Medial Infrastructure
 Medial EarlySign provides an infrastructure to convert **Electronic Medical Records (EMR)** - a complex, semi-structured time-series dataset into **machine-learning-ready** data and reproducible model pipelines. The library is optimized for sparse time-series EMR data and is designed for low memory usage and fast processing at scale.
 Unlike images or free text, EMR data can be stored in complex format. The infrastructure standardize both the storage and the processing of time-series signals. We can think about this infrastructure as "TensorFlow" of medical data machine learning.
