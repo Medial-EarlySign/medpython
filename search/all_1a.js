@@ -29,7 +29,7 @@ var searchData=
   ['of_20alive_20cores_204858_26',['XGBoost4J-Spark: Refine method to count the number of alive cores  (#4858)',['../md_External_2xgboost_2NEWS.html#autotoc_md386',1,'']]],
   ['of_20categorical_20data_20support_27',['of categorical data support',['../md_External_2xgboost_2NEWS.html#autotoc_md217',1,'Development of categorical data support'],['../md_External_2xgboost_2NEWS.html#autotoc_md237',1,'Development of categorical data support']]],
   ['of_20columns_20in_20the_20data_20iterator_205202_205303_28',['XGBoost4J-Spark: Check number of columns in the data iterator (#5202, #5303)',['../md_External_2xgboost_2NEWS.html#autotoc_md351',1,'']]],
-  ['of_20compliance_20steps_29',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md541',1,'']]],
+  ['of_20compliance_20steps_29',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md542',1,'']]],
   ['of_20conduct_30',['of conduct',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2CODE__OF__CONDUCT.html',1,'Microsoft Open Source Code of Conduct'],['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2README.html#autotoc_md83',1,'Microsoft Open Source Code of Conduct']]],
   ['of_20conduct_20issues_31',['Reporting Code of Conduct Issues',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2CODE__OF__CONDUCT.html#autotoc_md45',1,'']]],
   ['of_20contributors_32',['List of Contributors',['../md_External_2xgboost_2CONTRIBUTORS.html#autotoc_md89',1,'']]],
@@ -41,7 +41,7 @@ var searchData=
   ['of_20key_20modifications_20of_20lightgbm_38',['Table/List of Key Modifications of LightGBM',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docs_2Key-Events.html',1,'']]],
   ['of_20killing_20sparkcontext_206019_39',['XGBoost4J-Spark: Exceptions should cancel jobs gracefully instead of killing SparkContext (#6019).',['../md_External_2xgboost_2NEWS.html#autotoc_md291',1,'']]],
   ['of_20lightgbm_20via_20docker_40',['Using CLI Version of LightGBM via Docker',['../md_External_2LightGBM__2_82_83_2LightGBM-2_82_83_2docker_2README.html#autotoc_md56',1,'']]],
-  ['of_20medial_20infrastructure_41',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md520',1,'']]],
+  ['of_20medial_20infrastructure_41',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md521',1,'']]],
   ['of_20new_20features_20based_20on_20old_20ones_42',['Creation of new features based on old ones',['../md_External_2xgboost_2doc_2R-package_2discoverYourData.html#autotoc_md157',1,'']]],
   ['of_20object_20keys_43',['Order of object keys',['../md_External_2json_2README.html#autotoc_md39',1,'']]],
   ['of_20parameters_44',['Serialization of Parameters',['../md_External_2xgboost_2dmlc-core_2doc_2parameter.html#autotoc_md141',1,'']]],
@@ -199,7 +199,7 @@ var searchData=
   ['overall_5fprob_196',['overall_prob',['../classGetProbFeatProcessor.html#aadb7a1b254c9da576742d165e3bdb5f9',1,'GetProbFeatProcessor']]],
   ['override_5fpredictions_197',['override_predictions',['../classModelFeatGenerator.html#a2f5c6b68623d1f878710fb7e03d4fb4f',1,'ModelFeatGenerator']]],
   ['override_5fscore_5fbias_198',['override_score_bias',['../classMissingShapExplainer.html#a06f1d69a3061cd72b188f69b6b46a310',1,'MissingShapExplainer']]],
-  ['overview_20of_20medial_20infrastructure_199',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md520',1,'']]],
+  ['overview_20of_20medial_20infrastructure_199',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md521',1,'']]],
   ['own_20plugin_200',['Write Your Own Plugin',['../md_External_2xgboost_2plugin_2README.html#autotoc_md475',1,'']]],
   ['own_20serializer_20advanced_20use_201',['Can I write my own serializer? (Advanced use)',['../md_External_2json_2README.html#autotoc_md26',1,'']]]
 ];

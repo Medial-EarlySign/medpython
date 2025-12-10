@@ -75,7 +75,7 @@ $(function() {
 <div class="textblock"><p><a class="anchor" id="autotoc_md504"></a></p>
 <p><img src="https://img.shields.io/pepy/dt/medpython" alt="Pepy Total Downloads" class="inline"/> <img src="https://img.shields.io/pypi/l/medpython" alt="PyPI - License" class="inline"/> <img src="https://img.shields.io/github/contributors-anon/Medial-EarlySign/medpython" alt="GitHub contributors" class="inline"/> <img src="https://img.shields.io/github/commit-activity/t/Medial-EarlySign/medpython" alt="GitHub commit activity" class="inline"/></p>
 <p><a href="https://github.com/Medial-EarlySign/medpython"><img src="https://img.shields.io/badge/github-repo-blue?logo=github" alt="GitHub Repo" class="inline"/></a> <img src="https://img.shields.io/github/stars/Medial-EarlySign/medpython" alt="GitHub Repo stars" class="inline"/></p>
-<p><b>A note on our journey:</b> Medial EarlySign was a company that developed a proprietary platform for machine learning on electronic medical records. Following the company's liquidation, the decision was made to release the core software as an <b>open-source</b> project to allow the community to benefit from and build upon this technology. Please feel free to reach me out in any case of an issue. I'm voluntarily holding this, so please be patients.</p>
+<p><b>A note on our journey:</b> Medial EarlySign was a company that developed a proprietary platform for machine learning on electronic medical records. Following the company's liquidation, the decision was made to release the core software as an <b>open-source</b> project to allow the community to benefit from and build upon this technology. Please feel free to <a href="https://medial-earlysign.github.io/MR_Wiki/#community-and-contributions">reach me out</a> in any case of an issue. I'm voluntarily holding this, so please be patients.</p>
 <p>Our platform is designed to transform complex, semi-structured Electronic Medical Records (EMR) into <b>machine-learning-ready</b> data and reproducible model pipelines. The framework is optimized for the unique challenges of sparse, time-series EMR data, delivering <b>low memory usage</b> and <b>high-speed processing</b> at scale.</p>
 <p>It was conceived as a <b>TensorFlow</b> for machine learning on medical data.</p>
 <p>All software is now open-sourced under the MIT license. Some of the <a href="http://medial-earlysign.github.io/MR_Wiki/Models">models</a> developed by Medial EarlySign that are currently in production are available exclusively through our partners.</p>
@@ -98,7 +98,7 @@ Core Components</h1>
 <ul>
 <li><b><a class="el" href="classMedRepository.html">MedRepository</a>:</b> A compact, efficient data repository and API for storing and accessing EMR signals. Querying categorical signals like perscriptions and diagnosis in an easy and efficient API.</li>
 <li><b><a class="el" href="classMedModel.html" title="A model = repCleaner + featureGenerator + featureProcessor + MedPredictor.">MedModel</a>:</b> An end-to-end machine learning pipeline that takes data from <a class="el" href="classMedRepository.html">MedRepository</a> or JSON EMR inputs to produce predictions and explainability outputs. It supports both training and inference.</li>
-<li><b>Medial Tools:</b> A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability.</li>
+<li><b>Medial Tools:</b> A suite of utilities for training, evaluation, and workflow management, including bootstrap analysis, fairness checks, and explainability. <code>MedPython</code> is the Python alternative to replace all those tools.</li>
 </ul>
 <h1><a class="anchor" id="autotoc_md507"></a>
 From Raw Data to Insight in Four Simple Steps</h1>
@@ -136,23 +136,26 @@ The Workflow</h2>
 <p><b>2. Define Your Label</b></p>
 <p>For each patient, and for any chosen prediction date (after which no future information is provided to the model), specify what the outcome label should be for training or testing</p>
 <p><b>3. Define Your ML Pipeline</b></p>
-<p>Configure your entire machine learning workflow from preprocessing and feature engineering to the final model using a single JSON configuration file. This approach ensures your experiments are reproducible and easy to version.</p>
+<p>Configure your entire machine learning workflow from preprocessing and feature engineering to the final model using a single <a href="https://medial-earlysign.github.io/MR_Wiki/Infrastructure%20Library/MedModel%20json%20format.html">JSON configuration file</a>. This approach ensures your experiments are reproducible and easy to version.</p>
 <p><b>4. Get Explainable Predictions</b></p>
-<p>Train your model using the Python SDK and generate predictions with clear, interpretable explanations. <a href="Tutorials/07.Deployment/index.md#how-to-use-the-deployed-algomarker">Example output</a>.</p>
+<p>Train your model using the Python SDK and generate predictions with clear, interpretable explanations. <a href="https://medial-earlysign.github.io/MR_Wiki/Tutorials/07.Deployment/index.html#how-to-use-the-deployed-algomarker">Example output</a>.</p>
 <p>This is an illustration of the final output in a visual format (Our infrastructure returns the data to create this):</p>
 <p><img src="https://medial-earlysign.github.io/MR_Wiki/images/Explainability.png" alt="" class="inline"/></p>
-<p>For more details, refer to the [Tutorials](Tutorials).</p>
+<p>For more details, refer to the <a href="https://medial-earlysign.github.io/MR_Wiki/Tutorials">Tutorials</a>.</p>
 <h1><a class="anchor" id="autotoc_md509"></a>
 Setup</h1>
 <p>You can quickly install the package using <b>pip</b>:</p>
 <div class="fragment"><div class="line">pip install medpython</div>
 </div><!-- fragment --><p><b>System Requirements</b></p>
 <ul>
-<li><b>Supported Systems</b>: This pre-built version is available for <b>modern Linux</b> distributions (specifically <code>manylinux2014</code> equivalents, such as CentOS &gt;= 7 or Ubuntu &gt;= 13.04). The software also compiles in <b>Windows</b> and <b>Alpine</b> but you will need to install Boost yourself. I hope shortly to provide windows/macos pre-compiled builds through conda.</li>
+<li><b>Supported Systems</b>: This pre-built version is available for <b>modern Linux</b> distributions (specifically <code>manylinux2014</code> equivalents, such as CentOS &gt;= 7 or Ubuntu &gt;= 13.04). The software also compiles in <b>Windows</b>, <b>Alpine</b> and <b>Mac</b> but you will need to install Boost yourself. I hope shortly to provide windows/macos pre-compiled builds.</li>
 <li><b>Python</b>: Requires <b>Python 3.10 through 3.14</b></li>
 </ul>
-<p><b>Compilation for Other Systems</b> If you're using an <b>older Linux</b> or a <b>different platform/Python version &gt;= 3.8</b>, you'll need to <b>compile the package yourself</b>. More information in <a href="http://medial-earlysign.github.io/MR_Wiki/Installation/">Installation</a></p>
+<p><b>Compilation for Other Systems</b> If you're using an <b>older Linux</b> or a <b>different platform/Python version &gt;= 3.8</b>, or a version without a pre-build, you will need to <b>compile the package yourself</b>. More information in <a href="http://medial-earlysign.github.io/MR_Wiki/Installation/">Installation</a></p>
 <h1><a class="anchor" id="autotoc_md510"></a>
+Release Notes</h1>
+<p>Please refer to <a href="https://github.com/Medial-EarlySign/medpython/discussions/categories/announcements">Release Notes</a></p>
+<h1><a class="anchor" id="autotoc_md511"></a>
 Usage</h1>
 <div class="fragment"><div class="line"><span class="keyword">import</span> med</div>
 <div class="line"><span class="keyword">from</span> AlgoMarker <span class="keyword">import</span> AlgoMarker</div>
@@ -173,19 +176,19 @@ Usage</h1>
 </ul>
 </li>
 </ul>
-<h1><a class="anchor" id="autotoc_md511"></a>
+<h1><a class="anchor" id="autotoc_md512"></a>
 Getting Started</h1>
 <ul>
 <li><b>Build a new model:</b> Follow the step-by-step <a href="https://medial-earlysign.github.io/MR_Wiki/Tutorials/index.html">Tutorials</a> to build a model from scratch.</li>
 <li><b>Use an existing model:</b> Browse the collection of <a href="https://medial-earlysign.github.io/MR_Wiki/Models/index.html">Models</a>.</li>
 </ul>
-<h1><a class="anchor" id="autotoc_md512"></a>
+<h1><a class="anchor" id="autotoc_md513"></a>
 Community and Contributions</h1>
 <p>This is an open-source project, and we welcome contributions from the community.</p>
 <ul>
 <li><b>Report issues or ask questions:</b> Please use our <a href="https://github.com/Medial-EarlySign/medpython/discussions">Github Discussions</a>.</li>
 <li><b>Contribute to the code:</b> Check out our repositories:<ul>
-<li><a href="https://github.com/Medial-EarlySign/medpython">medpython</a>: The core infrastructure libraries.</li>
+<li><a href="https://github.com/Medial-EarlySign/medpython">MedPython</a>: The core infrastructure libraries.</li>
 <li><a href="https://github.com/Medial-EarlySign/MR_Tools">MR_Tools</a>: Tools and pipelines built on top of medpython.</li>
 <li><a href="https://github.com/Medial-EarlySign/MR_Scripts">MR_Scripts</a>: Dev Ops tools </li>
 </ul>
@@ -195,7 +198,7 @@ Community and Contributions</h1>
 </div><!-- PageDoc -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Tue Dec 9 2025 17:30:13 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Wed Dec 10 2025 06:12:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
