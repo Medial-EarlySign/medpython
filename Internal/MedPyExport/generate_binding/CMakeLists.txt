@@ -114,14 +114,30 @@ set (MEDIAL_INTERNAL_LIBS InfraMed Logger MedAlgo MedEmbed MedIO MedMat MedPlotl
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
 if (NOT WIN32)
+    # 1. Base flags common to all Unix/Linux/Mac systems
+    set(COMMON_FLAGS "-fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"'")
+
     if(APPLE)
-        set(COMPILER_FLAGS "-Xpreprocessor -fopenmp")
+        set(COMPILER_FLAGS "${COMMON_FLAGS} -Xpreprocessor -fopenmp")
     else()
-        set(COMPILER_FLAGS "-fopenmp --param inline-unit-growth=1000000")
+        # Linux specific base flags
+        set(COMPILER_FLAGS "${COMMON_FLAGS} -fopenmp --param inline-unit-growth=1000000")
+
+        # 2. Check Architecture
+        # Matches aarch64 (Linux) or arm64 (Apple Silicon)
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64)")
+            message(STATUS "Target architecture: ARM64 (aarch64)")
+            # No -march=x86-64 or -msse flags here! 
+            # ARM64 implies NEON support by default, so usually no extra SIMD flags needed.
+        else()
+            message(STATUS "Target architecture: x86_64")
+            # Apply Intel/AMD specific flags
+            set(COMPILER_FLAGS "${COMPILER_FLAGS} -msse2 -msse3 -msse4 -march=x86-64")
+        endif()
     endif()
-    set(COMPILER_FLAGS "${COMPILER_FLAGS} -msse2 -msse3 -msse4 -march=x86-64 -fPIC -Wno-write-strings -Wuninitialized -Wno-narrowing -DGIT_HEAD_VERSION='\"'$(GIT_HEAD_VERSION)'\"' ")
 else()
-	set(COMPILER_FLAGS "/openmp /EHsc /MD /permissive- /Zc:strictStrings- /Zc:__cplusplus")
+    # Windows
+    set(COMPILER_FLAGS "/openmp /EHsc /MD /permissive- /Zc:strictStrings- /Zc:__cplusplus")
 endif()
 set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ${COMPILER_FLAGS} ")
 # Filter out definition of NDEBUG from the default configuration flags for Release
