@@ -54,10 +54,6 @@ set(BOOST_LIBS
     program_options
 ) # for certain version, you might need to add "atomic" also, in some other cases remove system
 
-if (WIN32)
-    add_definitions(-DBOOST_ALL_DYN_LINK)
-endif()
-
 find_package(Boost QUIET)
 if(NOT Boost_FOUND)
     message(FATAL_ERROR "Could not locate Boost installation to determine version.")
@@ -82,6 +78,9 @@ if(DEFINED ENV{BOOST_DISABLE_STATIC})
     set(Boost_USE_STATIC_LIBS OFF)
 
     find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
+    if (WIN32)
+        add_definitions(-DBOOST_ALL_DYN_LINK) # Dynamic
+    endif()
 else()
     # Attempt 1: Try to use static Boost libraries first
     set(Boost_USE_STATIC_LIBS ON)
@@ -97,9 +96,15 @@ else()
         # Unset Boost variables to allow a clean re-search
         unset(Boost_LIBRARIES CACHE)
         unset(Boost_FOUND CACHE)
+        if (WIN32)
+            add_definitions(-DBOOST_ALL_DYN_LINK) # Dynamic
+        endif()
         find_package(Boost REQUIRED COMPONENTS ${BOOST_LIBS})
     else()
         set(USE_BOOST_SHARED_LIBS OFF)
+        if (WIN32)
+            add_definitions(-DBOOST_ALL_NO_LIB) # Static
+        endif()
         message(STATUS  "Successfully found static Boost libraries.")
     endif()
 endif()
