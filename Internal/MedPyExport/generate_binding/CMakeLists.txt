@@ -136,6 +136,12 @@ else()
     set(XGBOOST_TARGET_DIR "cpp_src")
 endif()
 
+if(XGBOOST_VERSION VERSION_GREATER_EQUAL "3.0.0")
+    set(XGBOOST_DOWNLOAD "-src")
+else()
+    set(XGBOOST_DOWNLOAD "")
+endif()
+
 set(XGBOOST_STATIC_FALLBACK OFF)
 find_package(xgboost QUIET)
 
@@ -162,7 +168,7 @@ else()
     set(XGBOOST_STATIC_FALLBACK ON)
     FetchContent_Declare(
         xgboost
-        URL      https://github.com/dmlc/xgboost/releases/download/v${XGBOOST_VERSION}/xgboost-${XGBOOST_VERSION}.tar.gz
+        URL      https://github.com/dmlc/xgboost/releases/download/v${XGBOOST_VERSION}/xgboost${XGBOOST_DOWNLOAD}-${XGBOOST_VERSION}.tar.gz
         DOWNLOAD_EXTRACT_TIMESTAMP ON
         SOURCE_SUBDIR ${XGBOOST_TARGET_DIR}
     )
@@ -176,9 +182,8 @@ else()
     endif()
     FetchContent_MakeAvailable(xgboost)
 
-    include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/include)          
-    include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/rabit/include)
-    include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/dmlc-core/include)
+    include_directories(SYSTEM ${xgboost_SOURCE_DIR}/${XGBOOST_TARGET_DIR}/include)
+    include_directories(SYSTEM ${xgboost_SOURCE_DIR}/${XGBOOST_TARGET_DIR}/dmlc-core/include)
 
     set(XGBOOST_TARGET xgboost)
 endif()

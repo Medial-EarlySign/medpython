@@ -112,9 +112,15 @@ else()
     set(XGBOOST_TARGET_DIR "cpp_src")
 endif()
 
+if(XGBOOST_VERSION VERSION_GREATER_EQUAL "3.0.0")
+    set(XGBOOST_DOWNLOAD "-src")
+else()
+    set(XGBOOST_DOWNLOAD "")
+endif()
+
 FetchContent_Declare(
     xgboost
-    URL      https://github.com/dmlc/xgboost/releases/download/v${XGBOOST_VERSION}/xgboost-${XGBOOST_VERSION}.tar.gz
+    URL      https://github.com/dmlc/xgboost/releases/download/v${XGBOOST_VERSION}/xgboost${XGBOOST_DOWNLOAD}-${XGBOOST_VERSION}.tar.gz
     DOWNLOAD_EXTRACT_TIMESTAMP ON
     SOURCE_SUBDIR ${XGBOOST_TARGET_DIR}
 )
