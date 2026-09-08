@@ -104,11 +104,19 @@ else ()
 endif()
 
 # XGboost
+set(XGBOOST_VERSION "2.0.3")
+
+if(XGBOOST_VERSION VERSION_GREATER "2.0.3")
+    set(XGBOOST_TARGET_DIR "")
+else()
+    set(XGBOOST_TARGET_DIR "cpp_src")
+endif()
+
 FetchContent_Declare(
     xgboost
-    URL      https://github.com/dmlc/xgboost/releases/download/v2.0.3/xgboost-2.0.3.tar.gz
+    URL      https://github.com/dmlc/xgboost/releases/download/v${XGBOOST_VERSION}/xgboost-${XGBOOST_VERSION}.tar.gz
     DOWNLOAD_EXTRACT_TIMESTAMP ON
-    SOURCE_SUBDIR cpp_src
+    SOURCE_SUBDIR ${XGBOOST_TARGET_DIR}
 )
 
 set(BUILD_STATIC_LIB ON CACHE BOOL "Build XGBoost as a static library" FORCE)
@@ -117,9 +125,10 @@ set(XGBOOST_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 
 FetchContent_MakeAvailable(xgboost)
 
-include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/include)          
-include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/rabit/include)
-include_directories(SYSTEM ${xgboost_SOURCE_DIR}/cpp_src/dmlc-core/include)
+
+
+include_directories(SYSTEM ${xgboost_SOURCE_DIR}/${XGBOOST_TARGET_DIR}/include)          
+include_directories(SYSTEM ${xgboost_SOURCE_DIR}/${XGBOOST_TARGET_DIR}/dmlc-core/include)
 
 # LightGBM
 FetchContent_Declare(

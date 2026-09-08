@@ -6,8 +6,8 @@
 #include "MedXGB.h"
 #include <boost/lexical_cast.hpp>
 #include <MedProcessTools/MedProcessTools/ExplainWrapper.h>
-#include <dmlc/timer.h>
 //#include <data/simple_dmatrix.h>
+#include <chrono>
 
 #include <omp.h>
 
@@ -131,7 +131,7 @@ void MedXGB::export_predictor(const string &output_fname)
 	string cfg_js = "{ \"format\":\"json\" }";
 	if (my_learner != NULL) {
 		if (XGBoosterSaveModelToBuffer(my_learner, cfg_js.c_str(), &len, &out_dptr) != 0)
-			throw runtime_error("failed XGBoosterGetModelRaw\n");
+			throw runtime_error("failed XGBoosterSaveModelToBuffer\n");
 		string xgb_data = string(out_dptr);
 		// Store in file:
 		ofstream output_fw(output_fname);
@@ -223,7 +223,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 			MTHROW_AND_ERR("MedXGB:: Wrong usage in monotone_constraints\n");
 	}
 
-	const double start = dmlc::GetTime();
+	const auto start = std::chrono::high_resolution_clock::now();
 	const char *evnames[2] = { "train", "test" };
 	const char *out_result;
 
@@ -241,7 +241,7 @@ int MedXGB::Learn(float *x, float *y, const float *w, int nsamples, int nftrs) {
 		}
 	}
 
-	double elapsed = dmlc::GetTime() - start;
+	double elapsed = std::chrono::duration_cast<std::chrono::seconds>(std::chrono::high_resolution_clock::now() - start).count();
 	if (params.silent == 0)
 		MLOG("update end, %d sec overall", elapsed);
 

@@ -4,7 +4,6 @@
 #include <MedAlgo/MedAlgo/MedAlgo.h>
 #include <MedProcessTools/MedProcessTools/MedProcessUtils.h>
 #include <xgboost/learner.h>
-#include <xgboost/data.h>
 #include <xgboost/c_api.h>
 #include "MedProcessTools/MedProcessTools/MedSamples.h"
 
@@ -145,7 +144,7 @@ public:
 		string cfg_js = "{ \"format\":\"json\" }";
 		if (my_learner != NULL) {
 			if (XGBoosterSaveModelToBuffer(my_learner, cfg_js.c_str(), &len, &out_dptr) != 0)
-				throw runtime_error("failed XGBoosterGetModelRaw\n");
+				throw runtime_error("failed XGBoosterSaveModelToBuffer\n");
 			serial_xgb.resize(len);
 			memcpy(&serial_xgb[0], out_dptr, len);
 		}
