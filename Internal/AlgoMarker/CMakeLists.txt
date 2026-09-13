@@ -104,7 +104,7 @@ else ()
 endif()
 
 # XGboost
-set(XGBOOST_VERSION "2.0.3")
+set(XGBOOST_VERSION "3.0.5")
 
 if(XGBOOST_VERSION VERSION_GREATER "2.0.3")
     set(XGBOOST_TARGET_DIR "")
