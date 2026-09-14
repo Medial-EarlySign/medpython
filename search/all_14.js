@@ -1,7 +1,7 @@
 var searchData=
 [
   ['m_0',['M',['../structExplanationDataset.html#a8a1cbf7f9dffde2593555442d16f7fe4',1,'ExplanationDataset']]],
-  ['main_20contributers_20from_20recent_20years_3a_1',['Main contributers from recent years:',['../md_README.html#autotoc_md25',1,'']]],
+  ['main_20contributers_20from_20recent_20years_3a_1',['Main contributers from recent years:',['../md_README.html#autotoc_md26',1,'']]],
   ['make_5fcalculator_2',['make_calculator',['../classSimpleCalculator.html#a59f4f7b81964e46c0360a8b750d64046',1,'SimpleCalculator']]],
   ['make_5ffilter_3',['make_filter',['../classSampleFilter.html#a67acf380bbe0691ed18f5fda707383e5',1,'SampleFilter::make_filter(string name)'],['../classSampleFilter.html#add99b2b6c51682e81df968b7ce16c838',1,'SampleFilter::make_filter(SampleFilterTypes type)'],['../classSampleFilter.html#a1b3d6d8f89029e173f803296efbeb7e7',1,'SampleFilter::make_filter(string name, string params)'],['../classSampleFilter.html#a9d5aa6fda817a7d7af92465c88a34612',1,'SampleFilter::make_filter(SampleFilterTypes type, string params)']]],
   ['make_5fprocessor_4',['make_processor',['../classRepProcessor.html#a02f4de1bdfc3271e66c07606c21a138a',1,'RepProcessor::make_processor(string name)'],['../classRepProcessor.html#a79901b365239d9b78743b031e22e9833',1,'RepProcessor::make_processor(string type, string params)'],['../classRepProcessor.html#a19c5a218e68bc0cead79b2cb279a1211',1,'RepProcessor::make_processor(RepProcessorTypes type)'],['../classRepProcessor.html#a024ed477a82e70343943335154615fb2',1,'RepProcessor::make_processor(RepProcessorTypes type, string params)']]],
@@ -120,7 +120,7 @@ var searchData=
   ['medial_20earlysign_20libraries_117',['Medial EarlySign Libraries',['../md_README.html',1,'']]],
   ['medial_20earlysign_20python_20library_118',['Medial EarlySign Python Library',['../md_Internal_2MedPyExport_2generate__binding_2README.html',1,'']]],
   ['medial_20helper_20functions_119',['Medial Helper Functions',['../index.html#medial_namespace',1,'']]],
-  ['medial_20infrastructure_120',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md24',1,'']]],
+  ['medial_20infrastructure_120',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md25',1,'']]],
   ['medial_20libs_20documentation_121',['Welcome To Medial Libs Documentation',['../index.html',1,'']]],
   ['medial_20python_20binding_122',['Medial Python Binding',['../md_Internal_2MedPyExport_2README.html',1,'']]],
   ['medial_3a_3acontingency_5ftables_123',['contingency_tables',['../namespacemedial_1_1contingency__tables.html',1,'medial']]],
@@ -309,7 +309,7 @@ var searchData=
   ['modelfeatgenerator_306',['ModelFeatGenerator',['../classModelFeatGenerator.html',1,'']]],
   ['modelfile_307',['modelFile',['../classModelFeatGenerator.html#a0604516545f774e0529cd51d16177a4e',1,'ModelFeatGenerator']]],
   ['modelname_308',['modelName',['../classModelFeatGenerator.html#a5373940ffed3b25a0e7921e88c7c879c',1,'ModelFeatGenerator']]],
-  ['modern_20c_20”_20strong_309',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md39',1,'']]],
+  ['modern_20c_20”_20strong_309',['3. &lt;strong&gt;nlohmann/json (“JSON for Modern C++”)&lt;/strong&gt;',['../md_THIRD__PARTY__LICENSES.html#autotoc_md40',1,'']]],
   ['momentum_310',['momentum',['../classLassoSelector.html#a42dcaa808fcbc8785ea311e36256f621',1,'LassoSelector']]],
   ['months_311',['months',['../classMPTime.html#a466358d3c62a32c05f0aeca70e5b6bf1',1,'MPTime::Months'],['../classMedTime.html#adbfd8af104596a80d1a361f24b8b6d7e',1,'MedTime::Months']]],
   ['mpbootstrap_312',['MPBootstrap',['../classMPBootstrap.html',1,'']]],

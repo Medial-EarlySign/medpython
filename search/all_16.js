@@ -3,8 +3,8 @@ var searchData=
   ['object_5ftype_5fname_0',['object_type_name',['../classChangeModelInfo.html#a070ed9b813a47bb20f711c0a0813101d',1,'ChangeModelInfo']]],
   ['observation_5findexes_1',['observation_indexes',['../classbart__node.html#a8d15e6f35a3d62726cd8c281c9e9d7c0',1,'bart_node']]],
   ['odds_2',['odds',['../classProbAdjustPostProcessor.html#a49994125ea77f6d136452ef121a1ada8',1,'ProbAdjustPostProcessor']]],
-  ['of_20compliance_20steps_3',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md45',1,'']]],
-  ['of_20medial_20infrastructure_4',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md24',1,'']]],
+  ['of_20compliance_20steps_3',['Summary of Compliance Steps',['../md_THIRD__PARTY__LICENSES.html#autotoc_md46',1,'']]],
+  ['of_20medial_20infrastructure_4',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md25',1,'']]],
   ['one_5fclass_5fq_5',['ONE_CLASS_Q',['../classONE__CLASS__Q.html',1,'']]],
   ['one_5fhot_6',['one_hot',['../classBinningFeatProcessor.html#a1446f7298a1c572feef1e7ee5c25de3b',1,'BinningFeatProcessor']]],
   ['onehotfeatprocessor_7',['OneHotFeatProcessor',['../classOneHotFeatProcessor.html',1,'']]],
@@ -30,5 +30,5 @@ var searchData=
   ['overall_5fprob_27',['overall_prob',['../classGetProbFeatProcessor.html#aadb7a1b254c9da576742d165e3bdb5f9',1,'GetProbFeatProcessor']]],
   ['override_5fpredictions_28',['override_predictions',['../classModelFeatGenerator.html#a2f5c6b68623d1f878710fb7e03d4fb4f',1,'ModelFeatGenerator']]],
   ['override_5fscore_5fbias_29',['override_score_bias',['../classMissingShapExplainer.html#a06f1d69a3061cd72b188f69b6b46a310',1,'MissingShapExplainer']]],
-  ['overview_20of_20medial_20infrastructure_30',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md24',1,'']]]
+  ['overview_20of_20medial_20infrastructure_30',['Overview of Medial Infrastructure',['../md_README.html#autotoc_md25',1,'']]]
 ];
