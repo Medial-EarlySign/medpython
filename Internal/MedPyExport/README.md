@@ -1,5 +1,10 @@
 # Medial Python Binding
 
+## Relase Notes - 1.2.1
+* Feature: Update XGBoost to 3.4.1
+* Fix Support for SWIG 4.5
+* Close all CodeQL potential vulnerabilities
+
 ## Relase Notes - 1.2.0
 * Bugfix: Compile in low memory system
 * Feature: Update LightGBM to 4.6.0
