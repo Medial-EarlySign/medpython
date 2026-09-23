@@ -292,9 +292,6 @@ Data Fields</h2></td></tr>
 <tr class="memitem:ab2e7648340a7a1941ac3cf07f3d01bb0" id="r_ab2e7648340a7a1941ac3cf07f3d01bb0"><td class="memItemLeft" align="right" valign="top"><a id="ab2e7648340a7a1941ac3cf07f3d01bb0" name="ab2e7648340a7a1941ac3cf07f3d01bb0"></a>
 BoosterHandle&#160;</td><td class="memItemRight" valign="bottom"><b>my_learner</b> = NULL</td></tr>
 <tr class="separator:ab2e7648340a7a1941ac3cf07f3d01bb0"><td class="memSeparator" colspan="2">&#160;</td></tr>
-<tr class="memitem:a139066441047982d410706ad5ac34852" id="r_a139066441047982d410706ad5ac34852"><td class="memItemLeft" align="right" valign="top"><a id="a139066441047982d410706ad5ac34852" name="a139066441047982d410706ad5ac34852"></a>
-xgboost::DMatrix *&#160;</td><td class="memItemRight" valign="bottom"><b>dvalidate</b> = NULL</td></tr>
-<tr class="separator:a139066441047982d410706ad5ac34852"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a474a160d25efe6da63fdc329bb6a5835" id="r_a474a160d25efe6da63fdc329bb6a5835"><td class="memItemLeft" align="right" valign="top"><a id="a474a160d25efe6da63fdc329bb6a5835" name="a474a160d25efe6da63fdc329bb6a5835"></a>
 <a class="el" href="structMedXGBParams.html">MedXGBParams</a>&#160;</td><td class="memItemRight" valign="bottom"><b>params</b></td></tr>
 <tr class="separator:a474a160d25efe6da63fdc329bb6a5835"><td class="memSeparator" colspan="2">&#160;</td></tr>
@@ -904,31 +901,55 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 </div><div class="memdoc">
 
 <p>The parsed fields from init command. </p>
-<div class="fragment"><div class="line">        <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;booster&quot;</span>) params.booster = entry.second;</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;objective&quot;</span>) params.objective = entry.second;</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;eval_metric&quot;</span>) split(params.eval_metric, entry.second, boost::is_any_of(<span class="stringliteral">&quot;,&quot;</span>));</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;eta&quot;</span>) params.eta = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;gamma&quot;</span>) params.gamma = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;min_child_weight&quot;</span>) params.min_child_weight = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;max_depth&quot;</span>) params.max_depth = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;num_round&quot;</span>) params.num_round = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;silent&quot;</span>) params.silent = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;num_class&quot;</span>) params.num_class = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;missing_value&quot;</span>) params.missing_value = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;colsample_bytree&quot;</span>) params.colsample_bytree = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;colsample_bylevel&quot;</span>) params.colsample_bylevel = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;subsample&quot;</span>) params.subsample = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;scale_pos_weight&quot;</span>) params.scale_pos_weight = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;tree_method&quot;</span>) params.tree_method = entry.second;</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;lambda&quot;</span>) params.lambda = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;alpha&quot;</span>) params.alpha = stof(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;seed&quot;</span>) params.seed = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;verbose_eval&quot;</span>) params.verbose_eval = stoi(entry.second);</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;split_penalties&quot;</span>) params.split_penalties = entry.second;</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;monotone_constraints&quot;</span>) params.monotone_constraints = entry.second;</div>
-<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;validate_frac&quot;</span>) params.validate_frac = stof(entry.second);</div>
+<div class="fragment"><div class="line">        <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;booster&quot;</span>)</div>
+<div class="line">            params.booster = entry.second;</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;objective&quot;</span>)</div>
+<div class="line">            params.objective = entry.second;</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;eval_metric&quot;</span>)</div>
+<div class="line">            split(params.eval_metric, entry.second, boost::is_any_of(<span class="stringliteral">&quot;,&quot;</span>));</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;eta&quot;</span>)</div>
+<div class="line">            params.eta = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;gamma&quot;</span>)</div>
+<div class="line">            params.gamma = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;min_child_weight&quot;</span>)</div>
+<div class="line">            params.min_child_weight = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;max_depth&quot;</span>)</div>
+<div class="line">            params.max_depth = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;num_round&quot;</span>)</div>
+<div class="line">            params.num_round = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;silent&quot;</span>)</div>
+<div class="line">            params.silent = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;num_class&quot;</span>)</div>
+<div class="line">            params.num_class = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;missing_value&quot;</span>)</div>
+<div class="line">            params.missing_value = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;colsample_bytree&quot;</span>)</div>
+<div class="line">            params.colsample_bytree = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;colsample_bylevel&quot;</span>)</div>
+<div class="line">            params.colsample_bylevel = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;subsample&quot;</span>)</div>
+<div class="line">            params.subsample = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;scale_pos_weight&quot;</span>)</div>
+<div class="line">            params.scale_pos_weight = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;tree_method&quot;</span>)</div>
+<div class="line">            params.tree_method = entry.second;</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;lambda&quot;</span>)</div>
+<div class="line">            params.lambda = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;alpha&quot;</span>)</div>
+<div class="line">            params.alpha = stof(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;seed&quot;</span>)</div>
+<div class="line">            params.seed = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;verbose_eval&quot;</span>)</div>
+<div class="line">            params.verbose_eval = stoi(entry.second);</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;split_penalties&quot;</span>)</div>
+<div class="line">            params.split_penalties = entry.second;</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;monotone_constraints&quot;</span>)</div>
+<div class="line">            params.monotone_constraints = entry.second;</div>
+<div class="line">        <span class="keywordflow">else</span> <span class="keywordflow">if</span> (field == <span class="stringliteral">&quot;validate_frac&quot;</span>)</div>
+<div class="line">            params.validate_frac = stof(entry.second);</div>
 <div class="line"> </div>
-<div class="line">        <span class="keywordflow">else</span> <a class="code hl_define" href="Logger_8h.html#a6da8ca831f02c2f430dcde5016e598bf">MLOG</a>(<span class="stringliteral">&quot;Unknonw parameter \&#39;%s\&#39; for XGB\n&quot;</span>, field.c_str());</div>
+<div class="line">        <span class="keywordflow">else</span></div>
+<div class="line">            <a class="code hl_define" href="Logger_8h.html#a6da8ca831f02c2f430dcde5016e598bf">MLOG</a>(<span class="stringliteral">&quot;Unknonw parameter \&#39;%s\&#39; for XGB\n&quot;</span>, field.c_str());</div>
 <div class="ttc" id="aLogger_8h_html_a6da8ca831f02c2f430dcde5016e598bf"><div class="ttname"><a href="Logger_8h.html#a6da8ca831f02c2f430dcde5016e598bf">MLOG</a></div><div class="ttdeci">#define MLOG(fmt,...)</div><div class="ttdoc">MLOG() - use LOCAL_SECTION and LOCAL_LEVEL.</div><div class="ttdef"><b>Definition</b> Logger.h:145</div></div>
 </div><!-- fragment --> <p>[MedXGB::init]</p>
 <p>[MedXGB::init]</p>
@@ -944,7 +965,7 @@ void&#160;</td><td class="memItemRight" valign="bottom"><b>predict_thread</b> (v
 </div><!-- contents -->
 <!-- start footer part -->
 <hr class="footer"/><address class="footer"><small>
-Generated on Mon Sep 14 2026 12:26:22 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
+Generated on Wed Sep 23 2026 17:44:08 for Medial Code Documentation by&#160;<a href="https://www.doxygen.org/index.html"><img class="footer" src="doxygen.svg" width="104" height="31" alt="doxygen"/></a> 1.9.8
 </small></address>
 </body>
 </html>
