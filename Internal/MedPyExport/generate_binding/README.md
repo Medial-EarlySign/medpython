@@ -123,7 +123,7 @@ python -m pip install -v "medpython @ git+https://github.com/Medial-EarlySign/me
 
 | Platform | x86_64 (Intel/AMD) | aarch64 (ARM / Apple Silicon) |
 | :--- | :--- | :--- |
-| **Linux (glibc)** | ✅ Pre-built (Py 3.10-3.14) | ✅ Pre-built (Py 3.13) |
+| **Linux (glibc)** | ✅ Pre-built (Py 3.11-3.15) | ✅ Pre-built (Py 3.11-3.15) |
 | **Linux (Alpine/musl)**| 🛠️ Compile Required | 🛠️ Compile Required |
 | **Windows** | ✅ Pre-built (Py 3.11-3.14) | 🛠️ Compile Required |
 | **macOS** | 🛠️ Compile Required | ✅ Pre-built (Py 3.11-3.14) |
@@ -131,7 +131,7 @@ python -m pip install -v "medpython @ git+https://github.com/Medial-EarlySign/me
 > **Note:** For any Compile Required or either not listed as Pre-built. Compliation is required.
 > Compilation in Alpine was also tested, but pre-builds are not provided. 
 
-* **Supported Systems**: This linux pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). 
+* **Supported Systems**: This linux pre-built version is available for **modern Linux** distributions (specifically `manylinux2014` equivalents, such as CentOS >= 7 or Ubuntu >= 13.04). Newer versions requirements are "manylinux_2_28" (CentOS >= 8, Ubuntu >= 18.10, Debian >= 10 or any linux with glibc >= 2.28)
 
 **Compilation for Other Systems**
 More information in [Installation](http://medial-earlysign.github.io/MR_Wiki/Installation/)
