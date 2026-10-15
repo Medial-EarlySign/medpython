@@ -31,6 +31,15 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
+# Define versions for packages
+set(XGBOOST_VERSION "3.4.2")
+set(LIGHTGBM_VERSION "4.7.0")
+set(BOOST_VERSION "1.90.0")
+set(EIGEN3_VERSION "3.4.1")
+set(NLOHMANN_JSON_VERSION "3.11.2")
+
+string(REPLACE "." "_" BOOST_VERSION_UNDERSCORE "${BOOST_VERSION}")
+
 # Find Boost
 find_package(OpenMP REQUIRED)
 
@@ -53,7 +62,7 @@ else()
         
         FetchContent_Declare(
             boost_headers
-                URL      https://archives.boost.io/release/1.89.0/source/boost_1_89_0.tar.gz
+                URL      https://archives.boost.io/release/${BOOST_VERSION}/source/boost_${BOOST_VERSION_UNDERSCORE}.tar.gz
                 SOURCE_SUBDIR pathThatDoesNotExist
                 DOWNLOAD_EXTRACT_TIMESTAMP ON
             )
@@ -91,7 +100,7 @@ else()
     message(STATUS "Eigen3 not found. Downloading headers from source...")
     FetchContent_Declare(
         eigen_headers
-        URL      https://gitlab.com/libeigen/eigen/-/archive/3.4.1/eigen-3.4.1.tar.gz
+        URL      https://gitlab.com/libeigen/eigen/-/archive/${EIGEN3_VERSION}/eigen-${EIGEN3_VERSION}.tar.gz
         SOURCE_SUBDIR pathThatDoesNotExist
         DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
@@ -116,7 +125,7 @@ else ()
     # https://github.com/nlohmann/json/releases/download/v3.11.2/json.hpp include.zip
     FetchContent_Declare(
         json_headers
-        URL      https://github.com/nlohmann/json/releases/download/v3.11.2/include.zip
+        URL      https://github.com/nlohmann/json/releases/download/v${NLOHMANN_JSON_VERSION}/include.zip
         SOURCE_SUBDIR pathThatDoesNotExist
         DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
@@ -127,8 +136,6 @@ else ()
     include_directories(SYSTEM "${json_headers_SOURCE_DIR}/single_include")
 endif()
 # XGboost
-
-set(XGBOOST_VERSION "3.4.1")
 
 if(XGBOOST_VERSION VERSION_GREATER "2.0.3")
     set(XGBOOST_TARGET_DIR "")
@@ -215,7 +222,7 @@ else()
     set(LIGHTGBM_STATIC_FALLBACK ON)
     FetchContent_Declare(
         lightgbm
-        URL      https://github.com/lightgbm-org/LightGBM/releases/download/v4.6.0/lightgbm-4.6.0.tar.gz
+        URL      https://github.com/lightgbm-org/LightGBM/releases/download/v${LIGHTGBM_VERSION}/lightgbm-${LIGHTGBM_VERSION}.tar.gz
         DOWNLOAD_EXTRACT_TIMESTAMP ON
     )
     set(CMAKE_POSITION_INDEPENDENT_CODE ON)
